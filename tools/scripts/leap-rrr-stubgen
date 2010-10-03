@@ -1,0 +1,511 @@
+#!/usr/bin/env perl
+# -*- perl -*-
+
+# *****************************************************************
+# *                                                               *
+# *   Copyright (c) (Fill in here)                                *
+# *                                                               *
+# *****************************************************************
+
+#
+# Author:  Angshuman Parashar
+#
+
+use warnings;
+use strict;
+use re 'eval';
+
+use Getopt::Long;
+use File::Basename;
+use Data::Dumper;
+
+use Leap::RRR;
+
+#
+# Turn on warnings
+#
+$^W = 1;
+$| = 1;
+
+# parse command line
+my $usage = "usage: leap-rrr-stubgen\n" .
+            "           -mode      (stub | names | debug)\n" .
+            "           -target    (hw | sw)\n" .
+            "           -type      (client | server)\n" .
+            "           -incdirs   (colon separate include directory list)\n" .
+            "           -odir <outputdir>\n" .
+            "           INPUTFILE\n";
+
+my $mode = "";
+my $target = "";
+my $type = "";
+my $incdirs = "";
+my $odir = "";
+
+GetOptions("mode=s"      => \$mode,
+           "target=s"    => \$target,
+           "type=s"      => \$type,
+           "incdirs=s"   => \$incdirs,
+           "odir=s"      => \$odir);
+
+my @serviceTable;
+
+
+##
+## Start by parsing all the input files.  After parsing we'll have a table:
+##
+##   @serviceTable -- A merged array of sTables merged from all input files
+##
+foreach my $ifile (@ARGV)
+{
+    my ($iname, $ipath, $isuffix) = fileparse($ifile, qr/\.[^.]*/);
+
+    if ($isuffix ne '.rrr')
+    {
+        print "error: input filename $ifile must end with .rrr suffix\n";
+        exit(1);
+    }
+
+    # parse input RRR file into data structure
+    push (@serviceTable, parse_rrr_file($ifile));
+}
+
+##
+## HACK!  Statically force memory service to be first.  This gives it highest
+## priority in the current priority encoder.
+##
+if ($#serviceTable > 0)
+{
+    for my $idx ( 1 .. $#serviceTable )
+    {
+        if ($serviceTable[$idx]->name() eq 'FUNCP_MEMORY')
+        {
+            my $t = $serviceTable[0];
+            $serviceTable[0] = $serviceTable[$idx];
+            $serviceTable[$idx] = $t;
+        }
+    }
+}
+
+##
+## Canonicalize output directory specification
+##
+if ($odir ne "")
+{
+    # generate output file name from input file name
+    if ($odir =~ /(\S+)\/+$/)
+    {
+        # get rid of trailing forward slashes
+        $odir = $1;
+    }
+}
+else
+{
+    $odir = ".";
+}
+
+##
+## Process according to mode
+##
+if ($mode eq "stub")
+{
+    ##
+    ## Generate individual BSV stubs
+    ##
+    foreach my $service (@serviceTable)
+    {
+        # server
+        my $ofile = $odir . "/server_stub_" . $service->name() . ".bsh";
+        open(my $ohandle, "> $ofile") || die "stubgen: unable to open output file $ofile";
+        print_server_stub($ohandle, "hw", $service);
+        close($ohandle);
+
+        # remote-server (only exists for compatibility): create symlink to client stub file
+        if ($service->needs_server_connections("hw"))
+        {
+            my $lfile = $odir . "/remote_server_stub_" . $service->name() . ".bsh";
+            $ofile = "server_stub_" . $service->name() . ".bsh";
+            unlink($lfile);
+            symlink($ofile, $lfile) || die "stubgen: unable to create symbolic link $lfile to file $ofile";
+        }
+
+        # client
+        $ofile = $odir . "/client_stub_" . $service->name() . ".bsh";
+        open($ohandle, "> $ofile") || die "stubgen: unable to open output file $ofile";
+        print_client_stub($ohandle, "hw", $service);
+        close($ohandle);
+
+        # remote-client (only exists for compatibility): create symlink to client stub file
+        if ($service->needs_client_connections("hw"))
+        {
+            my $lfile = $odir . "/remote_client_stub_" . $service->name() . ".bsh";
+            $ofile = "client_stub_" . $service->name() . ".bsh";
+            unlink($lfile);
+            symlink($ofile, $lfile) || die "stubgen: unable to create symbolic link $lfile to file $ofile";
+        }
+    }
+
+    ##
+    ## Generate connections
+    ##
+
+    # server
+    my $ofile = $odir . "/server_connections.bsh";
+    open(my $ohandle, "> $ofile") || die "stubgen: unable to open output file $ofile";
+    print_server_connections($ohandle, "hw", @serviceTable);
+    close($ohandle);
+
+    # client
+    $ofile = $odir . "/client_connections.bsh";
+    open($ohandle, "> $ofile") || die "stubgen: unable to open output file $ofile";
+    print_client_connections($ohandle, "hw", @serviceTable);
+    close($ohandle);
+
+    # DELETEME: client control IDs *** SLIGHTLY HACKY *** see method definition
+    # $ofile = $odir . "/client_control_ids.bsh";
+    # open($ohandle, "> $ofile") || die "stubgen: unable to open output file $ofile";
+    # print_client_control_ids($ohandle, "hw", @serviceTable);
+    # close($ohandle);
+
+    ##
+    ## Generate individual CPP stubs
+    ##
+    foreach my $service (@serviceTable)
+    {
+        # server
+        my $ofile = $odir . "/server_stub_" . $service->name() . ".h";
+        open(my $ohandle, "> $ofile") || die "stubgen: unable to open output file $ofile";
+        print_server_stub($ohandle, "sw", $service);
+        close($ohandle);
+
+        # client
+        $ofile = $odir . "/client_stub_" . $service->name() . ".h";
+        open($ohandle, "> $ofile") || die "stubgen: unable to open output file $ofile";
+        print_client_stub($ohandle, "sw", $service);
+        close($ohandle);
+    }
+
+    ##
+    ## Global service IDs
+    ##
+    open(my $ohandle_h, "> ${odir}/service_ids.h") ||
+        die "stubgen: unable to open output file ${odir}/service_ids.h";
+    open(my $ohandle_bsh, "> ${odir}/service_ids.bsh") ||
+        die "stubgen: unable to open output file ${odir}/service_ids.bsh";
+    print_service_ids($ohandle_h, $ohandle_bsh, @serviceTable);
+}
+elsif ($mode eq "names")
+{
+    print_service_names(\*STDOUT, @serviceTable);
+}
+elsif ($mode eq "debug")
+{
+    dump_service_table(\*STDOUT, @serviceTable);
+}
+else
+{
+    print $usage;
+    exit(1);
+}
+
+exit(0);
+
+############################################################
+# get_service_name: given a parsed service table, return the
+#                   name of the first service in the table
+sub get_service_name
+{
+    my ($head, @tail) = @_;
+    return $head->name();
+}
+
+############################################################
+# print_service_names: given a parsed service table, print
+#                      out a list of service names
+sub print_service_names
+{
+    my $ofile = shift;
+    my @serviceTable = @_;
+
+    foreach my $service (@serviceTable)
+    {
+        print $ofile $service->name() . "\n";
+    }
+}
+
+
+############################################################
+# parse_rrr_file: parse an RRR file into a service table
+sub parse_rrr_file
+{
+    my $filename = shift;
+
+    my $searchpath = "";
+    if ($incdirs ne "")
+    {
+        $searchpath = '-I ' . join(' -I ', split(':', $incdirs));
+    }
+
+    my $cmd = "cpp $searchpath -D AWB_DEFS_ONLY -P";
+
+    # First update dependence file
+    system("$cmd -M -MT build/include/asim/rrr/service_ids.h -MF .depends-rrr-" . basename($filename) . " $filename");
+
+    # open input RRR file and read it into a string
+    CORE::open(RRRFILE, "$cmd $filename |") || die "stubgen: unable to open input file $filename";
+
+    my $source = "";
+    my $line;
+
+    while (defined($line = <RRRFILE>))
+    {
+        chomp $line;
+
+        # get rid of comments
+        if ($line =~ /(.*?)\/\//)
+        {
+            $source .= $1;
+        }
+        else
+        {
+            $source .= $line;
+        }
+    }
+
+    CORE::close(RRRFILE);
+
+    # parse string into a list of services
+    my @serviceTable = Leap::RRR::Service->new($source);
+
+    # return list of services
+    return @serviceTable;
+}
+
+############################################################
+# dump_service_table: dump a service table in human-readable
+#                     format to given file handle
+sub dump_service_table
+{
+    my $ofile = shift;
+    my @serviceTable = @_;
+
+    # do nothing, this was only used for debugging
+    die "dump functionality deprecated.";
+}
+
+############################################################
+# print_service_ids: given a parsed service table, print
+#                    service id include files for C++ and BSC
+sub print_service_ids
+{
+    my $ofile_h = shift;
+    my $ofile_bsh = shift;
+    my @serviceTable = @_;
+
+    print $ofile_h "//\n";
+    print $ofile_h "// Synthesized header file created by leap-rrr-stubgen\n";
+    print $ofile_h "//\n\n";
+    print $ofile_h "\#ifndef __RRR_SERVICE_IDS__\n";
+    print $ofile_h "\#define __RRR_SERVICE_IDS__\n";
+    print $ofile_h "\n";
+
+    print $ofile_bsh "//\n";
+    print $ofile_bsh "// Synthesized header file created by leap-rrr-stubgen\n";
+    print $ofile_bsh "//\n\n";
+    print $ofile_bsh "\`ifndef __RRR_SERVICE_IDS__\n";
+    print $ofile_bsh "\`define __RRR_SERVICE_IDS__\n";
+    print $ofile_bsh "\n";
+
+    my $serviceID = 0;
+    foreach my $service (@serviceTable)
+    {
+        print $ofile_h   "\#define " . $service->name() . "_SERVICE_ID $serviceID\n";
+        print $ofile_bsh "\`define " . $service->name() . "_SERVICE_ID $serviceID\n";
+        $serviceID = $serviceID + 1;
+    }
+
+    print $ofile_h "\#define NUM_SERVICES $serviceID\n";
+    print $ofile_h "\n";
+    print $ofile_h "\#endif // __RRR_SERVICE_IDS__\n";
+
+    print $ofile_bsh "\`define NUM_SERVICES $serviceID\n";
+    print $ofile_bsh "\n";
+    print $ofile_bsh "\`endif // __RRR_SERVICE_IDS__\n";
+}
+
+################################################################
+# print_server_stub: given a parsed service table, print out a
+#                    full server stub for a given target
+sub print_server_stub
+{
+    my $file    = shift;
+    my $target  = shift;
+    my $service = shift;
+
+    # ask the service to print the actual module
+    $service->print_server_stub($file, $target);
+}
+
+############################################################
+# print_server_connections: given a parsed service table,
+#                           print out a wrapper module that
+#                           (a) instantiates a stub module
+#                               for each service, and
+#                           (b) creates connection
+#                               interfaces to each stub
+#                               module
+sub print_server_connections
+{
+    my $file = shift;
+    my $target = shift;
+    my @serviceTable = @_;
+
+    # generate common header
+    print $file "//\n";
+    print $file "// Synthesized header file created by leap-rrr-stubgen\n";
+    print $file "//\n\n";
+    print $file "`ifndef _RRR_SERVER_CONNECTIONS_\n";
+    print $file "`define _RRR_SERVER_CONNECTIONS_\n";
+    print $file "\n";
+
+    print $file "`include \"soft_connections.bsh\"\n";
+    print $file "`include \"rrr.bsh\"\n";
+    print $file "`include \"channelio.bsh\"\n";
+    print $file "`include \"umf.bsh\"\n";
+    print $file "`include \"asim/rrr/service_ids.bsh\"\n";
+    print $file "\n";
+
+    # DELETEME: we don't talk to stubs any more, we talk directly to the RRR client manager
+    # import header files for generated stubs
+    # foreach my $service (@serviceTable)
+    # {
+    #     my $servicename = $service->name();
+    #     if ($service->needs_server_connections($target))
+    #     {
+    #         print $file "`include \"asim/rrr/server_stub_$servicename.bsh\"\n";
+    #     }
+    # }
+    # print $file "\n";
+
+    # main module definition
+    print $file "module [CONNECTED_MODULE] mkServerConnections#(RRR_SERVER server) ();\n";
+    print $file "\n";
+
+    # for each service
+    foreach my $service (@serviceTable)
+    {
+        # print module and connection instantiations
+        if ($service->needs_server_connections($target))
+        {
+            $service->print_server_connections($file, "    ", $target);
+            print $file "\n";
+        }
+    }
+
+    # again, for each service
+    foreach my $service (@serviceTable)
+    {
+        # print wrapper rules
+        if ($service->needs_server_connections($target))
+        {
+            $service->print_server_link_rules($file, "    ", $target);
+        }
+    }
+
+    # end module
+    print $file "endmodule\n";
+    print $file "\n";
+
+    # end stub file
+    print $file "`endif\n";
+    print $file "\n";
+}
+
+################################################################
+# print_client_stub: given a parsed service table, print out a
+#                    full client stub for a given target
+sub print_client_stub
+{
+    my $file    = shift;
+    my $target  = shift;
+    my $service = shift;
+
+    # ask the service to print the actual module
+    $service->print_client_stub($file, $target);
+}
+
+############################################################
+# print_client_connections: given a parsed service table,
+#                           print out a wrapper module that
+#                           (a) instantiates a stub module
+#                               for each service, and
+#                           (b) creates connection
+#                               interfaces to each stub
+#                               module
+sub print_client_connections
+{
+    my $file = shift;
+    my $target = shift;
+    my @serviceTable = @_;
+
+    # generate common header
+    print $file "//\n";
+    print $file "// Synthesized header file created by leap-rrr-stubgen\n";
+    print $file "//\n\n";
+    print $file "`ifndef _RRR_CLIENT_CONNECTIONS_\n";
+    print $file "`define _RRR_CLIENT_CONNECTIONS_\n";
+    print $file "\n";
+
+    print $file "`include \"soft_connections.bsh\"\n";
+    print $file "`include \"rrr.bsh\"\n";
+    print $file "`include \"channelio.bsh\"\n";
+    print $file "`include \"umf.bsh\"\n";
+    print $file "`include \"asim/rrr/service_ids.bsh\"\n";
+    # DELETEME print $file "`include \"asim/rrr/client_control_ids.bsh\"\n";
+    print $file "\n";
+
+    # DELETEME: we don't talk to stubs any more, we talk directly to the RRR client manager
+    # import header files for generated stubs
+    # foreach my $service (@serviceTable)
+    # {
+    #     my $servicename = $service->name();
+    #     if ($service->needs_client_connections($target))
+    #     {
+    #         print $file "`include \"asim/rrr/client_stub_$servicename.bsh\"\n";
+    #     }
+    # }
+    # print $file "\n";
+
+    # main module definition
+    print $file "module [CONNECTED_MODULE] mkClientConnections#(RRR_CLIENT client) ();\n";
+    print $file "\n";
+
+    # for each service
+    foreach my $service (@serviceTable)
+    {
+        # print module and connection instantiations
+        if ($service->needs_client_connections($target))
+        {
+            $service->print_client_connections($file, "    ", $target);
+            print $file "\n";
+        }
+    }
+
+    # again, for each service
+    foreach my $service (@serviceTable)
+    {
+        # print wrapper rules
+        if ($service->needs_client_connections($target))
+        {
+            $service->print_client_link_rules($file, "    ", $target);
+        }
+    }
+
+    # end module
+    print $file "endmodule\n";
+    print $file "\n";
+
+    # end stub file
+    print $file "`endif\n";
+    print $file "\n";
+}

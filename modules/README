@@ -1,0 +1,8 @@
+Module trees that have been removed from leap but will remain in Hasim
+
+hasim/functional-partition
+hasim/timing-partition
+hasim/model-services
+hasim/modellib
+system/cpu_system
+

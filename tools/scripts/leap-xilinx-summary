@@ -1,0 +1,127 @@
+#!/usr/bin/env perl
+# -*- perl -*-
+
+##
+## Summarize Xilinx place & route results.  Invoked at end of standard SCons
+## script.
+##
+## Also validates that timing is met and writes any timing errors to the
+## error file (3rd argument).  Benchmark run scripts may read the error file
+## and refuse to load the bitfile.
+##
+
+use warnings;
+use strict;
+
+if ($#ARGV != 2)
+{
+    print STDERR "Usage: leap-xilinx-summary <map summary file> <par summary file> <error output file>\n";
+    exit(1);
+}
+
+open(MAP, $ARGV[0]) or die("Failed to open MAP file $ARGV[0]");
+open(PAR, $ARGV[1]) or die("Failed to open PAR file $ARGV[1]");
+open(ERR, "> $ARGV[2]") or die("Failed to open error output file $ARGV[2]");
+
+my $emit_map = 0;
+while (<MAP>)
+{
+    chomp;
+
+    last if (/^Peak Memory Usage:/);
+    $emit_map = 1 if (/^Slice Logic Utilization:/);
+
+    if ($emit_map)
+    {
+        if (/^ .*:/ &&
+            ! (/ O[56] / ||
+               /^$/)
+           )
+        {
+            print "$_\n";
+        }
+    }
+}
+close(MAP);
+
+print "\n";
+
+my $timing_score = undef;
+my $clk_err = 0;
+while (<PAR>)
+{
+    chomp;
+
+    ## Timing score
+    if (/^Timing Score: ([0-9]*)/)
+    {
+        $timing_score = $1;
+    }
+
+    ## |TS_CLK line is FPGA board clock for designs with user clocks
+    my $clock_type;
+    $clock_type = 'FPGA ' if (/\|TS_CLK /);
+    $clock_type = 'Model' if (/\| TS_.*phys_plat_clock/);
+    $clock_type = 'DDR2 ' if (/\| TS_.*phys_plat_ddr2/);
+    $clock_type = 'PCIe ' if (/\| TS_.*phys_plat_pci/);
+
+    ## ACP
+    # Really need to parse multiple lines to figure these out...
+    $clock_type = 'Base ' if (/\|m_vp_llpi_phys_plat_nallatech/);
+    $clock_type = 'LVDS ' if (/\| m_vp_llpi_phys_plat_nallatech_\|     10/);
+    $clock_type = 'RAM  ' if (/\| m_vp_llpi_phys_plat_nallatech_\|      5/);
+    $clock_type = 'Model' if (/\|  m_vp_llpi_phys_plat_nallatech/);
+
+    if (defined($clock_type))
+    {
+        ## Extract period requirement and actual periods
+
+        my $s = $_;
+        # Drop spaces
+        $s =~ s/ //g;
+        # Drop "ns"
+        $s =~ s/ns//g;
+        my @clk = split('\|', $s);
+
+        my $clk_req = $clk[2];
+        my $clk_limit = (($clk[4] eq 'N/A') ? $clk[3] : $clk[4]);
+
+        if ($clk_limit ne 'N/A')
+        {
+            printf "${clock_type} Clock:  Requires %0.2f MHz (%0.3f ns)", 1000 / $clk_req, $clk_req;
+            printf " / Achieves %0.2f MHz (%0.3f ns)", 1000 / $clk_limit, $clk_limit;
+
+            if ($clk_limit > $clk_req)
+            {
+                $clk_err = 1;
+                printf " **";
+                printf ERR "${clock_type} Clock:  Requires %0.2f MHz (%0.3f ns)", 1000 / $clk_req, $clk_req;
+                printf ERR " / Achieves %0.2f MHz (%0.3f ns)\n", 1000 / $clk_limit, $clk_limit;
+            }
+
+            printf "\n";
+        }
+    }
+}
+
+if (! defined($timing_score))
+{
+    print "Failed to find timing score!\n";
+    $clk_err = 1;
+}
+
+print "\nTiming Score: ${timing_score}\n";
+
+if ($clk_err)
+{
+    print "\n";
+    print "        ******** Design does NOT meet timing! ********\n";
+    print "\n";
+}
+else
+{
+    print "Design meets timing.\n";
+}
+
+close(PAR);
+close(ERR);

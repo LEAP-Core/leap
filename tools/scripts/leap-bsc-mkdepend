@@ -1,0 +1,498 @@
+#!/usr/bin/env perl
+# -*- perl -*-
+
+use strict;
+use File::Basename;
+use File::Temp qw/ tempfile /;
+use Getopt::Long;
+
+my $debug = 0;
+
+#
+# Turn on warnings
+#
+$^W = 1;
+
+# Search path in Bluespec compiler
+my $bscPathArg;
+my @bscPath;
+my $bscBDir = ".";
+
+my $derived;
+my %derivedBSV;
+
+my %bsvFiles;
+my %bsvDep;             # Dependence on source files.
+
+my $preprocessor;
+my $ivlpp_tmpfile = undef;      # MUST DELETE THIS FILE ON EXIT!
+
+sub ErrorExit($)
+{
+    my ($str) = @_;
+    print STDERR "leap-bsc-mkdepend error: ${str}\n";
+
+    if (defined($ivlpp_tmpfile)) {
+        unlink($ivlpp_tmpfile);
+    }
+
+    exit(1);
+}
+
+sub Usage()
+{
+    my $prog = basename($0);
+    print STDERR "Usage:\n";
+    print STDERR "  ${prog}: [-p path] <bsv files>\n";
+    exit(1);
+}
+
+
+##
+## SetSearchPath --
+##   Combine user specified search path (-p argument) and the Bluespec compiler's
+##   default path.
+##
+sub SetSearchPath($)
+{
+    my ($path) = @_;
+
+    ## Figure out Bluespec's default path
+    my $default = undef;
+    open(BSC, "bsc -help |");
+    while (<BSC>)
+    {
+        chomp;
+        my $p = $_;
+        if ($p =~ /^import path:/)
+        {
+            $default = $p;
+            $default =~ s/^import path: \.:\s*//;
+            $default =~ s/\s*$//;
+        }
+    }
+    close(BSC);
+    ErrorExit("Failed to find Bluespec default path") if (! defined($default));
+
+    $bscPathArg = $path;
+    if ($path eq '')
+    {
+        $path = $default;
+        $bscPathArg = '+';
+    }
+
+    @bscPath = split(':', $path);
+    my @defaultPath = split(':', $default);
+    for (my $i = 0; $i <= $#bscPath; $i++)
+    {
+        if ($bscPath[$i] eq '+')
+        {
+            splice(@bscPath, $i, 1, @defaultPath);
+        }
+    }
+
+    if ($debug)
+    {
+        print STDERR "BSC Search Path: " . join(':', @bscPath) . "\n";
+    }
+}
+
+
+##
+## InitPreprocessor --
+##   Ideally we would just use "bsc -E" as the preprocessor.  Unfortunately,
+##   bsc allocates a license to run the preprocessor.  This can make dependence
+##   analysis exceptionally slow, especially when the flexlm server is remote.
+##   This function checks to see whether iverilog is available.  If it is,
+##   ivlpp will be used as the preprocessor.
+##
+##   The argument must be the search path from the command line (-p argument).
+##
+sub InitPreprocessor($)
+{
+    my ($path) = @_;
+
+    SetSearchPath($path);
+
+    ##
+    ## bsc -E is the default preprocessor...
+    ##
+    $preprocessor = "bsc -E -wait-for-license -p $bscPathArg";
+
+    ##
+    ## Can we fine iverilog?  If so, figure out where ivlpp is.  Unfortunately
+    ## it isn't installed on the search path.  Even worse:  the -E argument to
+    ## iverilog doesn't emit `line directives and there is no way to turn
+    ## them on from iverilog.  The code below finds ivlpp and then prepares
+    ## an environment using it.
+    ##
+    if (! open(IVL, 'iverilog -E -v -o - /dev/null 2>&1 | grep preprocess | sed \'s/^.*: //\' | sed \'s/ivlpp .*/ivlpp/\' |')) {
+        return;
+    }
+    my $ivlpp = <IVL>;
+    return if (! defined($ivlpp));
+    chomp($ivlpp);
+    return if ($ivlpp eq '');
+
+    ##
+    ## Different versions of ivlpp take input directory search list as either
+    ## arguments or in a file.
+    ##
+    if (! open(IVLPP, "${ivlpp} -h 2>&1 |")) {
+        return;
+    }
+    my $incArg = '';
+    while (<IVLPP>) {
+        chomp;
+        if (/^\s+-([A-Z])/) {
+            my $a = $1;
+            if ($a =~ /[IF]/) {
+                $incArg = $a;
+            }
+        }
+    }
+    close(IVLPP);
+
+    if ($incArg eq 'F') {
+        ##
+        ## Newer versions of ivlpp take the search path on the
+        ## command line.  Build a file describing the search path.
+        ##
+        (my $TMP, $ivlpp_tmpfile) = tempfile("/tmp/leap-bsc-mkdepend.XXXXXX");
+
+        foreach my $s (@bscPath)
+        {
+            print $TMP "I:${s}\n";
+        }
+
+        close($TMP);
+
+        $preprocessor = "${ivlpp} -L -F${ivlpp_tmpfile}";
+    }
+
+    if ($incArg eq 'I') {
+        ##
+        ## Older versions of ivlpp take the search path on the command line.
+        ##
+        $preprocessor = "${ivlpp} -L";
+        foreach my $s (@bscPath)
+        {
+            $preprocessor .= " -I${s}";
+        }
+    }
+}
+
+
+sub FindBSVFile($)
+{
+    my ($f) = @_;
+
+    ## Is file a generated file for a subdirectory?
+    if (exists($derivedBSV{$f})) {
+        return "./$f";
+    }
+
+    foreach my $s (@bscPath)
+    {
+        my $p = $s . '/' . $f;
+        return $p if (-f $p);
+    }
+
+    return undef;
+}
+
+sub FindBSVLibrary($)
+{
+    my ($f) = @_;
+
+    if (! defined$ENV{'BLUESPECDIR'}) {
+      ErrorExit("BLUESPECDIR undefined in environment.");
+    }
+
+    my $bsc_lib_dir = $ENV{'BLUESPECDIR'};
+    
+    my $p = $bsc_lib_dir . '/Prelude/' . $f;
+    return $p if (-f $p);
+
+    $p = $bsc_lib_dir . '/Libraries/' . $f;
+    return $p if (-f $p);
+
+    return undef;
+}
+
+sub NoteImport($$)
+{
+    my ($fName, $impName) = @_;
+
+    # Is it a special library?
+    return if (($impName eq "BDPI") || ($impName eq "BVI"));
+
+    # Is it a precompiled library?
+    return if (defined(FindBSVLibrary($impName . ".bo")));
+
+    my $imp = FindBSVFile($impName . ".bsv");
+    if (! defined($imp))
+    {
+        ErrorExit("Failed to find $impName imported by $fName");
+    }
+
+    print STDERR "  $fName imports $imp\n" if ($debug);
+
+    $bsvDep{$fName}{$imp} = 1;
+    ParseBSVFile($imp, 1);
+}
+
+
+##
+## Note include files by parsing the `line directive emitted by the preprocessor
+##
+sub NoteIncludes($$)
+{
+    my ($fName, $s) = @_;
+
+    ##
+    ## There may be multiple `line directives on a line.  Loop while we keep
+    ## finding them.  Using the $gotOne mechanism instead of looping while
+    ## we still see `line avoids an infinite loop in case of parser bugs.
+    ##
+    my $gotOne = 0;
+    do
+    {
+        $gotOne = 0;
+        if ($s =~ /.*`line [0-9]+ "(.+)" [0-9]+/)
+        {
+            $s =~ s/.*`line [0-9]+ ".+" [0-9]+//;
+            $gotOne = 1;
+        }
+
+        if ($s =~ /.*`line\((.+),[0-9]+,[0-9]+,[0-9]+\)/)
+        {
+            $s =~ s/.*`line\(.+,[0-9]+,[0-9]+,[0-9]+\)//;
+            $gotOne = 1;
+        }
+
+        if ($gotOne)
+        {
+            # Note dependence on include file.  First we have to find out
+            # where it is since bsc -E doesn't give a full path.
+            my $inc_base = $1;
+            my $inc = $inc_base;
+            if (! -f $inc)
+            {
+                $inc = FindBSVFile($inc);
+                if (! defined($inc))
+                {
+                    ErrorExit("Failed to find include file ${inc_base} included by $fName");
+                }
+            }
+
+            # bsc compiler emits a really ugly name for the main file with
+            # 3 slashes before the leaf.  Compare the inodes of the include
+            # file to the base name.
+            my $f_ino = (stat($fName))[1];
+            $f_ino = -1 if (! defined($f_ino));
+
+            my $i_ino = (stat($inc))[1];
+            $i_ino = -2 if (! defined($i_ino));
+
+            if ($i_ino != $f_ino)
+            {
+                #
+                # Set an entry in $bsvInc with a value of 0 to indicate just
+                # an include file, not an import.  Be careful not to change
+                # a previous import to include state.
+                #
+                if (! exists($bsvDep{$fName}{$inc}))
+                {
+                    $bsvDep{$fName}{$inc} = 0;
+                }
+            }
+        }
+    }
+    while ($gotOne);
+
+    if ($s =~ /`line/)
+    {
+        print STDERR "Failed to parse `line directive in ${fName}:\n";
+        print STDERR "  $s\n";
+    }
+}
+
+
+sub ParseBSVFile($$)
+{
+    my ($fName, $flag) = @_;
+
+    # Already parsed this file?
+    return if (exists($bsvFiles{$fName}));
+    $bsvFiles{$fName} = $flag;
+
+    print STDERR "Parsing input file ${fName}\n" if ($debug);
+
+    # Don't parse the contents of derived files.  We avoid parsing mainly because
+    # the file changes after the first build and would cause the build rule to
+    # think it needs to be rebuilt even though no rebuild is needed.  The
+    # dependence is captured through other paths.
+    #
+    # Start by stripping any leading local directory specifier.
+    my $fn = $fName;
+    $fn =~ s/^\.\///;
+    return if (exists($derivedBSV{$fn}));
+
+    ErrorExit("Can't find file $fName") if (! -f $fName);
+
+    my $inComment = 0;
+    my $BSV;
+
+    open($BSV, "${preprocessor} $fName |") or ErrorExit("Failed to open $fName");
+    while (<$BSV>)
+    {
+        chomp;
+        my $s = $_;
+
+        # Note included files
+        if ($s =~ /`line/)
+        {
+            NoteIncludes($fName, $s);
+        }
+
+        # Drop comments.  This code isn't especially smart about slashes inside
+        # quotes, multiline comments, etc.
+
+        $s =~ s/\/\/.*//;             # Drop //...
+
+        if ($inComment)
+        {
+            if ($s =~ /\*[\)\/]/)     # End with *) or */
+            {
+                $s =~ s/.*\*[\)\/]//;
+                $inComment = 0;
+            }
+        }
+
+        $s =~ s/\(\*.*\*\)//;           # Drop (*...*)
+        $s =~ s/\/\*.*\*\///;           # Drop /*...*/
+
+        $s = '' if ($inComment);
+
+        if ($s =~ /[\(\/]\*/)        # Note start with (* or /*
+        {
+            $s =~ s/[\(\/]\*.*//;
+            $inComment = 1;
+        }
+
+        # Simplify lines.  Turn all whitespace into single spaces, no leading spaces.
+        $s =~ s/^\s*//;
+        $s =~ s/\s+/ /g;
+
+        # Finally ready to look for import statements
+        if ($s =~ /^import /)
+        {
+            # Skip non-Bluespec imports
+            if ($s =~ / \= module /)
+            {
+            }
+            else
+            {
+                my $imp = $s;
+                $imp =~ s/^import //;
+                $imp =~ s/[:; ].*//;
+                $imp =~ s/^"//;
+                $imp =~ s/"$//;
+                NoteImport($fName, $imp);
+            }
+        }
+    }
+    close($BSV);
+}
+
+
+sub PrintBODep($$)
+{
+    my ($tgt, $src) = @_;
+
+    print "${tgt}: ${src}\n";
+
+    # Hack for wrapper log files (two pass compilation for soft connections)
+    if (${tgt} =~ '(.*)_Wrapper\.bo$') {
+        print "${1}_Wrapper.log: ${src}\n";
+    }
+}
+
+
+my $pathArg = '';
+
+if (! GetOptions('bdir=s' => \$bscBDir,
+                 'debug!' => \$debug,
+                 'derived=s' => \$derived,
+                 'p=s' => \$pathArg))
+{
+    Usage();
+}
+Usage() if ($#ARGV < 0);
+
+InitPreprocessor($pathArg);
+if ($debug) {
+    print STDERR "Preprocessor: ${preprocessor}\n";
+}
+
+##
+## Build a hash of derived BSV files.  We won't claim that the .depends file
+## depends on them.  If we did, there would be a circular dependence.
+##
+if (defined($derived))
+{
+    foreach my $d (split(' ', $derived))
+    {
+        $derivedBSV{$d} = 1;
+    }
+}
+
+foreach my $bsv (@ARGV)
+{
+    ParseBSVFile($bsv, 0);
+}
+
+if (defined($ivlpp_tmpfile)) {
+    unlink($ivlpp_tmpfile);
+}
+
+##
+## Emit dependence rules
+##
+foreach my $bsv (keys %bsvFiles)
+{
+    
+    my $bo = $bsv;
+    $bo =~ s/\.bsv$/.bo/;
+    $bo =~ s/(.*)\///g;
+    my $bdir = $1;
+    $bdir = defined($bdir) ? $bdir . '/' : '';
+        
+    my $localBsv = $bsv;
+    $localBsv =~ s/^\.\///;
+    if (! exists($derivedBSV{$localBsv})) {
+        PrintBODep("${bdir}${bscBDir}/${bo}", $bsv);
+    }
+
+    foreach my $dep (keys %{$bsvDep{$bsv}})
+    {
+        ## Each file depends on the imported .bsv source files and the files
+        ## built from those sources
+
+        if ($bsvDep{$bsv}{$dep} != 0)
+        {
+            # For imports add dependence on built object
+            my $d = $dep;
+            $d =~ s/(.*)\///g;
+            my $ddir = $1;
+            $d =~ s/\.bsv$/.bo/;
+            PrintBODep("${bdir}${bscBDir}/${bo}", "${ddir}/${bscBDir}/${d}");
+        }
+        else {
+            PrintBODep("${bdir}${bscBDir}/${bo}", $dep);
+        }
+
+    }
+    print "\n";
+}

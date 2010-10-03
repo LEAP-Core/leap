@@ -1,0 +1,1211 @@
+
+----------
+jsemer      Date: Sun Oct  3 12:53:21 EDT 2010  CSN: CSN-leap-1
+                  Sun Oct  3 16:53:21 UTC 2010
+
+
+Directory .
+ configure                 Locally Added               0 
+ Makefile.in               Locally Added               0 
+
+Directory include
+ config.h.in               Locally Added               0 
+
+Directory .
+ include/                  Locally Added               0 
+ configure.in              Locally Added               0 
+
+Directory scripts
+ depcomp                   Locally Added               0 
+ compile                   Locally Added               0 
+ missing                   Locally Added               0 
+ install-sh                Locally Added               0 
+
+Directory .
+ scripts/                  Locally Added               0 
+
+Directory libperl
+ Leap/                     Locally Added               0 
+
+Directory libperl/Leap
+ lib/                      Locally Added               0 
+
+Directory libperl/Leap/lib
+ Leap/                     Locally Added               0 
+
+Directory libperl/Leap/lib/Leap
+ RRR.pm                    Locally Added               0 
+ DictBuilder.pm            Locally Added               0 
+ RRR/                      Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR
+ Method/                   Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR/Method
+ Base.pm                   Locally Added               0 
+ BSV.pm                    Locally Added               0 
+ CPP.pm                    Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR
+ Arglist/                  Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR/Arglist
+ Base.pm                   Locally Added               0 
+ BSV.pm                    Locally Added               0 
+ CPP.pm                    Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR
+ Server/                   Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ Base.pm                   Locally Added               0 
+ BSV.pm                    Locally Added               0 
+ CPP.pm                    Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR
+ Collection.pm             Locally Added               0 
+ Service.pm                Locally Added               0 
+ Type.pm                   Locally Added               0 
+ Identifier.pm             Locally Added               0 
+ Argument.pm               Locally Added               0 
+ Numeral.pm                Locally Added               0 
+ Client/                   Locally Added               0 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ Base.pm                   Locally Added               0 
+ BSV.pm                    Locally Added               0 
+ CPP.pm                    Locally Added               0 
+
+Directory libperl/Leap/lib/Leap
+ Xilinx.pm                 Locally Added               0 
+ Util.pm                   Locally Added               0 
+ Templates.pm              Locally Added               0 
+ Build.pm                  Locally Added               0 
+ Bluespec.pm               Locally Added               0 
+
+Directory libperl/Leap/lib
+ Leap.pm                   Locally Added               0 
+
+Directory libperl/Leap
+ MANIFEST                  Locally Added               0 
+ Makefile.PL               Locally Added               0 
+ README                    Locally Added               0 
+
+Directory libperl
+ Makefile.in               Locally Added               0 
+ Makefile.am               Locally Added               0 
+ README                    Locally Added               0 
+
+Directory .
+ libperl/                  Locally Added               0 
+
+Directory tools
+ leap/                     Locally Added               0 
+
+Directory tools/leap
+ Makefile.in               Locally Added               0 
+ leap-front-panel/         Locally Added               0 
+
+Directory tools/leap/leap-front-panel
+ Makefile.in               Locally Added               0 
+ leap_front_panel.ui       Locally Added               0 
+ Makefile.am               Locally Added               0 
+ leap_front_panel.ui.h     Locally Added               0 
+ leap_front_panel_header.pl Locally Added               0 
+
+Directory tools/leap
+ Makefile.am               Locally Added               0 
+
+Directory tools
+ Makefile.in               Locally Added               0 
+ scripts/                  Locally Added               0 
+
+Directory tools/scripts
+ leap-configure            Locally Added               0 
+ leap-dict                 Locally Added               0 
+ Makefile.in               Locally Added               0 
+ leap-xilinx-summary       Locally Added               0 
+ leap-gen-black-box        Locally Added               0 
+ leap-connect              Locally Added               0 
+ leap-rrr-stubgen          Locally Added               0 
+ Makefile.am               Locally Added               0 
+ leap-bsc-mkdepend         Locally Added               0 
+ bmark/                    Locally Added               0 
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Added               0 
+ setup-bmark               Locally Added               0 
+
+Directory tools
+ Makefile.am               Locally Added               0 
+
+Directory .
+ tools/                    Locally Added               0 
+
+Directory experiments
+ leap/                     Locally Added               0 
+
+Directory experiments/leap
+ regression/               Locally Added               0 
+
+Directory experiments/leap/regression
+ regression.models         Locally Added               0 
+ regression.benchmarks     Locally Added               0 
+
+Directory experiments/leap
+ demos/                    Locally Added               0 
+
+Directory experiments/leap/demos
+ demos.benchmarks          Locally Added               0 
+ demos.models              Locally Added               0 
+
+Directory experiments/leap
+ quick/                    Locally Added               0 
+
+Directory experiments/leap/quick
+ quick.benchmarks          Locally Added               0 
+ quick.models              Locally Added               0 
+
+Directory experiments/leap
+ nightly/                  Locally Added               0 
+
+Directory experiments/leap/nightly
+ nightly.models            Locally Added               0 
+ nightly.benchmarks        Locally Added               0 
+
+Directory .
+ experiments/              Locally Added               0 
+
+Directory config/pm/leap
+ demos/                    Locally Added               0 
+
+Directory config/pm/leap/demos
+ test/                     Locally Added               0 
+
+Directory config/pm/leap/demos/test
+ alu_test/                 Locally Added               0 
+
+Directory config/pm/leap/demos/test/alu_test
+ alu_test_hybrid_htg.apm   Locally Added               0 
+ alu_test_hybrid_exe.apm   Locally Added               0 
+
+Directory config/pm/leap/demos/test
+ bram_test/                Locally Added               0 
+
+Directory config/pm/leap/demos/test/bram_test
+ bram_test_hybrid_htg.apm  Locally Added               0 
+ bram_test_hybrid_exe.apm  Locally Added               0 
+
+Directory config/pm/leap/demos/test
+ pipeline_test/            Locally Added               0 
+
+Directory config/pm/leap/demos/test/pipeline_test
+ pipeline_test_shared_rule_htg.apm Locally Added               0 
+ pipeline_test_shared_rule_routed_exe.apm Locally Added               0 
+ pipeline_test_shared_rule_routed_htg.apm Locally Added               0 
+ pipeline_test_private_rule_exe.apm Locally Added               0 
+ pipeline_test_private_rule_htg.apm Locally Added               0 
+ pipeline_test_duplicate_modules_exe.apm Locally Added               0 
+ pipeline_test_duplicate_modules_htg.apm Locally Added               0 
+ pipeline_test_stage_ctrl_unguarded_exe.apm Locally Added               0 
+ pipeline_test_stage_ctrl_unguarded_htg.apm Locally Added               0 
+ pipeline_test_stage_ctrl_exe.apm Locally Added               0 
+ pipeline_test_stage_ctrl_htg.apm Locally Added               0 
+ pipeline_test_shared_rule_exe.apm Locally Added               0 
+
+Directory config/pm/leap/demos/test
+ fp_test/                  Locally Added               0 
+
+Directory config/pm/leap/demos/test/fp_test
+ fp_test_cvt_i_to_s.apm    Locally Added               0 
+
+Directory config/pm/leap/demos/test
+ interconnect_test/        Locally Added               0 
+
+Directory config/pm/leap/demos/test/interconnect_test
+ interconnect_test_hybrid_exe.apm Locally Added               0 
+
+Directory config/pm/leap/demos/test
+ mem_test/                 Locally Added               0 
+
+Directory config/pm/leap/demos/test/mem_test
+ mem_test_hybrid_nopvt_exe.apm Locally Added               0 
+ mem_test_hybrid_nopvt_htg.apm Locally Added               0 
+ mem_test_hybrid_nopvt_acp.apm Locally Added               0 
+ mem_test_hybrid_exe.apm   Locally Added               0 
+ mem_test_hybrid_htg.apm   Locally Added               0 
+ mem_test_hybrid_acp.apm   Locally Added               0 
+
+Directory config/pm/leap/demos
+ hello/                    Locally Added               0 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_arriaII.apm  Locally Added               0 
+ hello_hybrid_exe.apm      Locally Added               0 
+ hello_hybrid_htg.apm      Locally Added               0 
+ hello_hybrid_cyloneIII.apm Locally Added               0 
+ hello_hybrid_xup2.apm     Locally Added               0 
+
+Directory config/pm/leap/demos
+ context_test/             Locally Added               0 
+
+Directory config/pm/leap/demos/context_test
+ traffic_light_synth_exe.apm Locally Added               0 
+
+Directory config/pm/leap/demos
+ debugger/                 Locally Added               0 
+
+Directory config/pm/leap/demos/debugger
+ sram_debugger_nallatech_acp.apm Locally Added               0 
+ nallatech_fake_sram_debugger.apm Locally Added               0 
+ sram_debugger_htg.apm     Locally Added               0 
+ jtag_htg_debugger.apm     Locally Added               0 
+
+Directory config/pm/leap/demos
+ traffic_light/            Locally Added               0 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_nosynth.apm Locally Added               0 
+ traffic_light_xup_synth.apm Locally Added               0 
+ traffic_light_htg_v5_pcie_synth.apm Locally Added               0 
+ traffic_light_arriaII_nosynth.apm Locally Added               0 
+ traffic_light_exe_nosynth.apm Locally Added               0 
+ traffic_light_arriaII_synth.apm Locally Added               0 
+ traffic_light_exe_synth.apm Locally Added               0 
+ traffic_light_acp_synth.apm Locally Added               0 
+
+Directory config/pm/leap/demos
+ fir_filter/               Locally Added               0 
+
+Directory config/pm/leap/demos/fir_filter
+ fir_filter_hw_exe.apm     Locally Added               0 
+ fir_filter_sw.apm         Locally Added               0 
+
+Directory config/pm/leap/demos
+ rrrtest/                  Locally Added               0 
+
+Directory config/pm/leap/demos/rrrtest
+ rrrtest_hybrid_htg-synplify.apm Locally Added               0 
+ rrrtest_hybrid_acp_nallatech.apm Locally Added               0 
+ rrrtest_hybrid_arriaII.apm Locally Added               0 
+ rrrtest_hybrid_exe.apm    Locally Added               0 
+ rrrtest_hybrid_htg.apm    Locally Added               0 
+ rrrtest_hybrid_htg_jtag.apm Locally Added               0 
+ rrrtest_hybrid_acp_jtag.apm Locally Added               0 
+ rrrtest_hybrid_acp_arches.apm Locally Added               0 
+ rrrtest_hybrid_xup.apm    Locally Added               0 
+
+Directory config/pm/leap/demos
+ multiplier/               Locally Added               0 
+
+Directory config/pm/leap/demos/multiplier
+ multiplier_exe.apm        Locally Added               0 
+
+Directory config/pm/leap/demos
+ switch_to_led/            Locally Added               0 
+
+Directory config/pm/leap/demos/switch_to_led
+ multiplier4x4_exe.apm     Locally Added               0 
+ echo4x4_xup.apm           Locally Added               0 
+ adder4x4_xup.apm          Locally Added               0 
+ square4x4_xup.apm         Locally Added               0 
+ echo4x4_exe.apm           Locally Added               0 
+ echo4x4_htg.apm           Locally Added               0 
+ adder4x4_exe.apm          Locally Added               0 
+ square4x4_exe.apm         Locally Added               0 
+ multiplier4x4_xup.apm     Locally Added               0 
+
+Directory config/pm/leap/demos
+ shmem/                    Locally Added               0 
+
+Directory config/pm/leap/demos/shmem
+ shmem_hybrid_htg.apm      Locally Added               0 
+
+Directory config/pm/leap/demos
+ chantest/                 Locally Added               0 
+
+Directory config/pm/leap/demos/chantest
+ chantest08_hybrid_exe.apm Locally Added               0 
+ chantest16_hybrid_acp_nallatech.apm Locally Added               0 
+ chantest08_hybrid_acp_nallatech.apm Locally Added               0 
+ chantest16_hybrid_exe.apm Locally Added               0 
+
+Directory config/pm/leap/demos
+ simple/                   Locally Added               0 
+
+Directory config/pm/leap/demos/simple
+ multiplier_exe.apm        Locally Added               0 
+ switch2led_exe.apm        Locally Added               0 
+ echo_exe.apm              Locally Added               0 
+
+Directory config/pm/leap/demos
+ devtest/                  Locally Added               0 
+
+Directory config/pm/leap/demos/devtest
+ devtest_hybrid_exe.apm    Locally Added               0 
+ devtest_hybrid_htg.apm    Locally Added               0 
+
+Directory config/pm
+ hasim/                    Locally Added               0 
+
+Directory config/pm/hasim
+ submodels/                Locally Added               0 
+
+Directory config/pm/hasim/submodels
+ controller/               Locally Added               0 
+
+Directory config/pm/hasim/submodels/controller
+ hybrid_standard_controller.apm Locally Added               0 
+ hybrid_basic_controller.apm Locally Added               0 
+ hardware_null_controller.apm Locally Added               0 
+ hybrid_pure_bluespec_controller.apm Locally Added               0 
+
+Directory config/pm/hasim/submodels
+ platform-services/        Locally Added               0 
+
+Directory config/pm/hasim/submodels/platform-services
+ standard-platform-services.apm Locally Added               0 
+ standard-platform-null-mem.apm Locally Added               0 
+
+Directory config/pm/hasim/submodels
+ fpgaenv/                  Locally Added               0 
+ common/                   Locally Added               0 
+
+Directory config/pm/hasim/submodels/common
+ hasim_common.apm          Locally Added               0 
+ soft-services.apm         Locally Added               0 
+ project-common-default.apm Locally Added               0 
+ soft-connections-lib.apm  Locally Added               0 
+ hasim-model-services.apm  Locally Added               0 
+ soft-connections-lib-context.apm Locally Added               0 
+
+Directory config/bm
+ leap/                     Locally Added               0 
+
+Directory config/bm/leap
+ demos.cfx                 Locally Added               0 
+
+Directory modules
+ model/                    Locally Added               0 
+
+Directory modules/model
+ Makefile.sub.template     Locally Added               0 
+ SCons.dict.template       Locally Added               0 
+ pure_bluespec_main.cpp    Locally Added               0 
+ pure_bluespec_model.awb   Locally Added               0 
+ pure_bluespec_hybrid_model.awb Locally Added               0 
+ SCons.sw.template         Locally Added               0 
+ pure_bluespec_main.h      Locally Added               0 
+ default_software_system.h Locally Added               0 
+ Makefile.top.template     Locally Added               0 
+ hasim_model.awb           Locally Added               0 
+ hasim_hwonly_model.awb    Locally Added               0 
+ hybrid_system.awb         Locally Added               0 
+ SCons.top.template        Locally Added               0 
+ SCons.iface.template      Locally Added               0 
+ main.cpp                  Locally Added               0 
+ pure_bluespec_model.bsv   Locally Added               0 
+ hardware-done.h           Locally Added               0 
+ Makefile.include.template Locally Added               0 
+ hasim_model.bsv           Locally Added               0 
+ default_software_system.awb Locally Added               0 
+ main.h                    Locally Added               0 
+ SCons.hw.template         Locally Added               0 
+
+Directory modules
+ hasim/                    Locally Added               0 
+
+Directory modules/hasim
+ controller/               Locally Added               0 
+
+Directory modules/hasim/controller
+ local_controllers/        Locally Added               0 
+
+Directory modules/hasim/controller/local_controllers
+ local-controllers-standard.awb Locally Added               0 
+ module/                   Locally Added               0 
+
+Directory modules/hasim/controller/local_controllers/module
+ local-controller-module-standard.awb Locally Added               0 
+ local-controller-module-standard.bsv Locally Added               0 
+ local-controller-module.dic Locally Added               0 
+
+Directory modules/hasim/controller
+ controller-pure.h         Locally Added               0 
+ controller-pure-hybrid.awb Locally Added               0 
+ controller-basic.cpp      Locally Added               0 
+ controller-null.bsv       Locally Added               0 
+ starter/                  Locally Added               0 
+
+Directory modules/hasim/controller/starter
+ null-starter.h            Locally Added               0 
+ hybrid-basic-starter.cpp  Locally Added               0 
+ hybrid-null-starter.awb   Locally Added               0 
+ null-starter.awb          Locally Added               0 
+ hybrid-basic-starter-services.rrr Locally Added               0 
+ hybrid-basic-starter.h    Locally Added               0 
+ hybrid-basic-starter.awb  Locally Added               0 
+ hybrid-basic-starter.bsv  Locally Added               0 
+ null-starter.cpp          Locally Added               0 
+
+Directory modules/hasim/controller
+ controller-pure.bsv       Locally Added               0 
+ command_switches/         Locally Added               0 
+
+Directory modules/hasim/controller/command_switches
+ command-switch-processor.h Locally Added               0 
+ default-switches.h        Locally Added               0 
+ command-switches.cpp      Locally Added               0 
+ standard-command-switches.awb Locally Added               0 
+ command-switches.h        Locally Added               0 
+ command-switch-processor.cpp Locally Added               0 
+ default-switches.cpp      Locally Added               0 
+
+Directory modules/hasim/controller
+ controller-basic.h        Locally Added               0 
+ controller-standard.awb   Locally Added               0 
+ controller-basic-hybrid.awb Locally Added               0 
+ controller-basic.bsv      Locally Added               0 
+ controller-standard.cpp   Locally Added               0 
+ controller-standard.h     Locally Added               0 
+ controller-standard.bsv   Locally Added               0 
+ controller-pure.cpp       Locally Added               0 
+ controller-null-hardware-only.awb Locally Added               0 
+ central_controllers/      Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers
+ central-controllers-standard.h Locally Added               0 
+ central-controllers-standard.awb Locally Added               0 
+ central-controllers-standard.bsv Locally Added               0 
+ central-controllers-basic.awb Locally Added               0 
+ params/                   Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers/params
+ params-controller-hybrid.cpp Locally Added               0 
+ params-controller-hybrid.rrr Locally Added               0 
+ params-controller-hybrid.h Locally Added               0 
+ params-controller-hybrid.awb Locally Added               0 
+ params-controller-hybrid.bsv Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers
+ events/                   Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers/events
+ events-controller-hybrid.cpp Locally Added               0 
+ events-controller.rrr     Locally Added               0 
+ events-controller-hybrid.h Locally Added               0 
+ events-controller-hybrid.awb Locally Added               0 
+ events-controller-hybrid.bsv Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers
+ central-controllers-basic.bsv Locally Added               0 
+ module/                   Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers/module
+ module-controller-streams.dic Locally Added               0 
+ module-controller-streamid.dic Locally Added               0 
+ module-controller-standard.awb Locally Added               0 
+ module-controller-standard.bsv Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers
+ assertions/               Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers/assertions
+ assertions-controller.rrr Locally Added               0 
+ assertions-controller-hybrid.h Locally Added               0 
+ assertions-controller-hybrid.awb Locally Added               0 
+ assertions-controller-hybrid.bsv Locally Added               0 
+ assertions-controller-hybrid.cpp Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers
+ debug_scan/               Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers/debug_scan
+ debug-scan-controller-hybrid.awb Locally Added               0 
+ debug-scan-controller-hybrid.bsv Locally Added               0 
+ debug-scan-controller-hybrid.cpp Locally Added               0 
+ debug-scan-controller.rrr Locally Added               0 
+ debug-scan-controller-hybrid.h Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers
+ central-controllers-standard.cpp Locally Added               0 
+ stats/                    Locally Added               0 
+
+Directory modules/hasim/controller/central_controllers/stats
+ stats-controller-hybrid.cpp Locally Added               0 
+ stats-controller.rrr      Locally Added               0 
+ stats-controller-hybrid.h Locally Added               0 
+ stats-controller-hybrid.awb Locally Added               0 
+ stats-controller-hybrid.bsv Locally Added               0 
+
+Directory modules/hasim
+ util/                     Locally Added               0 
+
+Directory modules/hasim/util
+ platform-services/        Locally Added               0 
+
+Directory modules/hasim/util/platform-services
+ mem-services/             Locally Added               0 
+
+Directory modules/hasim/util/platform-services/mem-services
+ scratchpad-memory-service/ Locally Added               0 
+
+Directory modules/hasim/util/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Added               0 
+ scratchpad-memory-service.bsv Locally Added               0 
+ platform-scratchpad-multi-cached-memory.bsv Locally Added               0 
+ scratchpad-memory-service.bsh Locally Added               0 
+ platform-scratchpad-memory-utils.bsv Locally Added               0 
+ platform-scratchpad-memory.bsv Locally Added               0 
+ scratchpad-memory-service.dic Locally Added               0 
+
+Directory modules/hasim/util/platform-services/mem-services
+ mem-services-standard.awb Locally Added               0 
+ mem-services-standard.bsv Locally Added               0 
+ central-cache-service/    Locally Added               0 
+
+Directory modules/hasim/util/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Added               0 
+ central-cache-service.bsv Locally Added               0 
+ central-cache-service.bsh Locally Added               0 
+ platform-central-cache.bsv Locally Added               0 
+ central-cache-service.dic Locally Added               0 
+
+Directory modules/hasim/util/platform-services/mem-services
+ mem-services-standard.bsh Locally Added               0 
+ shared-memory-service/    Locally Added               0 
+
+Directory modules/hasim/util/platform-services/mem-services/shared-memory-service
+ shared-memory-service.awb Locally Added               0 
+ shared-memory-service.bsv Locally Added               0 
+ shared-memory-service.bsh Locally Added               0 
+
+Directory modules/hasim/util/platform-services
+ platform-services-null-mem.awb Locally Added               0 
+ starter-service/          Locally Added               0 
+
+Directory modules/hasim/util/platform-services/starter-service
+ starter-service.awb       Locally Added               0 
+ starter-service.bsv       Locally Added               0 
+ starter-service.bsh       Locally Added               0 
+
+Directory modules/hasim/util/platform-services
+ platform-services-null-mem.bsv Locally Added               0 
+ front-panel-service/      Locally Added               0 
+
+Directory modules/hasim/util/platform-services/front-panel-service
+ front-panel-service.awb   Locally Added               0 
+ front-panel-service.bsv   Locally Added               0 
+ front-panel-service.bsh   Locally Added               0 
+
+Directory modules/hasim/util/platform-services
+ platform-services-null.awb Locally Added               0 
+ platform-services-null.bsv Locally Added               0 
+ common-services/          Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services
+ common-services-standard.awb Locally Added               0 
+ common-services-standard.bsv Locally Added               0 
+ common-services-standard.bsh Locally Added               0 
+ dynamic-parameters-service/ Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-local.bsv Locally Added               0 
+ dynamic-parameters-service.awb Locally Added               0 
+ dynamic-parameters-service.bsv Locally Added               0 
+ dynamic-parameters-service.bsh Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services
+ common-services-standard.dic Locally Added               0 
+ debug-scan-service/       Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Added               0 
+ debug-scan-service.bsh    Locally Added               0 
+ debug-scan-local.bsv      Locally Added               0 
+ debug-scan-service.awb    Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services
+ assertions-service/       Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services/assertions-service
+ assertions-service.awb    Locally Added               0 
+ assertions-service.bsv    Locally Added               0 
+ assertions-service.bsh    Locally Added               0 
+ assertions-local.bsv      Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services
+ stats-service/            Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Added               0 
+ stats-service.awb         Locally Added               0 
+ stats-service.bsv         Locally Added               0 
+ stats-service.bsh         Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services
+ streams-service/          Locally Added               0 
+
+Directory modules/hasim/util/platform-services/common-services/streams-service
+ streams-service.awb       Locally Added               0 
+ streams-service.bsv       Locally Added               0 
+ streams-service.bsh       Locally Added               0 
+
+Directory modules/hasim/util/platform-services
+ platform-services-standard.awb Locally Added               0 
+ platform-services-standard.bsv Locally Added               0 
+
+Directory modules/hasim/util
+ smart-synthesis-boundaries/ Locally Added               0 
+
+Directory modules/hasim/util/smart-synthesis-boundaries
+ with-connections.bsv      Locally Added               0 
+ module-context/           Locally Added               0 
+
+Directory modules/hasim/util/smart-synthesis-boundaries/module-context
+ with-connections.bsv      Locally Added               0 
+ bury-connections.bsv      Locally Added               0 
+ smart-synth-boundaries.awb Locally Added               0 
+ expose-connections.bsv    Locally Added               0 
+
+Directory modules/hasim/util/smart-synthesis-boundaries
+ bury-connections.bsv      Locally Added               0 
+ smart-synth-boundaries.awb Locally Added               0 
+ expose-connections.bsv    Locally Added               0 
+
+Directory modules
+ bluespec/                 Locally Added               0 
+
+Directory modules/bluespec
+ system/                   Locally Added               0 
+
+Directory modules/bluespec/system
+ demos/                    Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ counter/                  Locally Added               0 
+
+Directory modules/bluespec/system/demos/counter
+ mkCounter.bsv             Locally Added               0 
+ counter_system.txt        Locally Added               0 
+ counter-system.cpp        Locally Added               0 
+ counter-system.h          Locally Added               0 
+ counter_system.awb        Locally Added               0 
+ System.bsv                Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ channel-integrity-test/   Locally Added               0 
+
+Directory modules/bluespec/system/demos/channel-integrity-test
+ chan-test.bsv             Locally Added               0 
+ chan-test-server.h        Locally Added               0 
+ chan-test-16.awb          Locally Added               0 
+ chan-test.rrr             Locally Added               0 
+ chan-test-16.cpp          Locally Added               0 
+ chan-test.awb             Locally Added               0 
+ chan-test-server-16.cpp   Locally Added               0 
+ chan-test-16.h            Locally Added               0 
+ chan-test-16.bsv          Locally Added               0 
+ chan-test-server-16.h     Locally Added               0 
+ chan-test.txt             Locally Added               0 
+ chan-test.cpp             Locally Added               0 
+ chan-test-server.cpp      Locally Added               0 
+ chan-test.h               Locally Added               0 
+ chan-test-16.rrr          Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ hello/                    Locally Added               0 
+
+Directory modules/bluespec/system/demos/hello
+ hello.txt                 Locally Added               0 
+ hello.cpp                 Locally Added               0 
+ hello_streams_messages.dic Locally Added               0 
+ hello.h                   Locally Added               0 
+ hello.awb                 Locally Added               0 
+ hello_streams_id.dic      Locally Added               0 
+ hello.bsv                 Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ fir-filter/               Locally Added               0 
+
+Directory modules/bluespec/system/demos/fir-filter
+ sw-only/                  Locally Added               0 
+
+Directory modules/bluespec/system/demos/fir-filter/sw-only
+ fixed.h                   Locally Added               0 
+ fir-filter-system.cpp     Locally Added               0 
+ fir-filter-system.h       Locally Added               0 
+ fir-filter-system.awb     Locally Added               0 
+ fir-filter-system.bsv     Locally Added               0 
+
+Directory modules/bluespec/system/demos/fir-filter
+ hw-only/                  Locally Added               0 
+
+Directory modules/bluespec/system/demos/fir-filter/hw-only
+ fir.in                    Locally Added               0 
+ fir-filter-system.cpp     Locally Added               0 
+ fir-filter-system.h       Locally Added               0 
+ fir-filter-system.awb     Locally Added               0 
+ fir-filter-system.bsv     Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ rrrtest/                  Locally Added               0 
+
+Directory modules/bluespec/system/demos/rrrtest
+ rrrtest-server.h          Locally Added               0 
+ rrrtest.txt               Locally Added               0 
+ rrrtest.cpp               Locally Added               0 
+ rrrtest.rrr               Locally Added               0 
+ rrrtest-server.cpp        Locally Added               0 
+ rrrtest.h                 Locally Added               0 
+ rrrtest.awb               Locally Added               0 
+ rrrtest.bsv               Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ multiplier/               Locally Added               0 
+
+Directory modules/bluespec/system/demos/multiplier
+ Multiplier.bsv            Locally Added               0 
+ multiplier-system.txt     Locally Added               0 
+ multiplier-system.cpp     Locally Added               0 
+ System.bsv                Locally Added               0 
+ mult_system.awb           Locally Added               0 
+ multiplier-system.h       Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ shmem-test/               Locally Added               0 
+
+Directory modules/bluespec/system/demos/shmem-test
+ shmem-test.bsv            Locally Added               0 
+ shmem-test.cpp            Locally Added               0 
+ shmem-test.rrr            Locally Added               0 
+ shmem-test.h              Locally Added               0 
+ shmem-test.awb            Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ debuggers/                Locally Added               0 
+
+Directory modules/bluespec/system/demos/debuggers
+ platform-debugger.bsv     Locally Added               0 
+ platform-debugger.dic     Locally Added               0 
+ platform-debugger.txt     Locally Added               0 
+ platform-debugger.cpp     Locally Added               0 
+ platform-debugger.rrr     Locally Added               0 
+ platform-debugger.h       Locally Added               0 
+ platform-debugger.awb     Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ switch2led/               Locally Added               0 
+
+Directory modules/bluespec/system/demos/switch2led
+ switch2led-system.h       Locally Added               0 
+ switch2led_system.awb     Locally Added               0 
+ switch2led_system.txt     Locally Added               0 
+ switch2led-system.cpp     Locally Added               0 
+ System.bsv                Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ template/                 Locally Added               0 
+
+Directory modules/bluespec/system/demos/template
+ hybrid_application.txt    Locally Added               0 
+ hybrid_application.cpp    Locally Added               0 
+ hybrid_application_streams_messages.dic Locally Added               0 
+ hybrid_application.h      Locally Added               0 
+ hybrid_application.awb    Locally Added               0 
+ hybrid_application_streams_id.dic Locally Added               0 
+ hybrid_application.bsv    Locally Added               0 
+
+Directory modules/bluespec/system/demos
+ devtest/                  Locally Added               0 
+
+Directory modules/bluespec/system/demos/devtest
+ devtest.cpp               Locally Added               0 
+ devtest-streams-id.dic    Locally Added               0 
+ devtest.h                 Locally Added               0 
+ devtest.awb               Locally Added               0 
+ devtest.bsv               Locally Added               0 
+ devtest.txt               Locally Added               0 
+ devtest-streams-messages.dic Locally Added               0 
+
+Directory modules/bluespec
+ common/                   Locally Added               0 
+
+Directory modules/bluespec/common
+ project-common-hybrid.awb Locally Added               0 
+ soft_clock/               Locally Added               0 
+
+Directory modules/bluespec/common/soft_clock
+ basic-clock.awb           Locally Added               0 
+ basic-clock.bsv           Locally Added               0 
+ basic-clock-lib.awb       Locally Added               0 
+ basic-clock-lib.bsv       Locally Added               0 
+
+Directory modules/bluespec/common
+ base/                     Locally Added               0 
+
+Directory modules/bluespec/common/base
+ bluespec_common.prj       Locally Added               0 
+ bluespec_base.awb         Locally Added               0 
+
+Directory modules/bluespec/common
+ null/                     Locally Added               0 
+
+Directory modules/bluespec/common/null
+ bluespec_null.awb         Locally Added               0 
+
+Directory modules/bluespec/common
+ soft_connections/         Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections
+ Connected_Module.bsv      Locally Added               0 
+ alg/                      Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/alg
+ typed/                    Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/alg/typed
+ ConnectionHelper.bsv      Locally Added               0 
+ soft_connections_alg.awb  Locally Added               0 
+ ConnectionAlg.bsv         Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections
+ soft_connections.awb      Locally Added               0 
+ token-ring.bsv            Locally Added               0 
+ module-context/           Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/module-context
+ connection-matching.bsv   Locally Added               0 
+ transmittable.bsv         Locally Added               0 
+ alg/                      Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/module-context/alg
+ connect-stations-tree.bsv Locally Added               0 
+ connect-top-level.bsv     Locally Added               0 
+ connect-multicasts.bsv    Locally Added               0 
+ connection-alg-module-context.awb Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/module-context
+ connection-shared-interconnect.bsv Locally Added               0 
+ connection-helper.bsv     Locally Added               0 
+ token-ring.bsv            Locally Added               0 
+ soft-connections-module-context.awb Locally Added               0 
+ connection-backwards-compat.bsv Locally Added               0 
+ connection-context.bsv    Locally Added               0 
+ connections.bsv           Locally Added               0 
+ connected-module.bsv      Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections
+ soft-service/             Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/soft-service
+ connection-matching.bsv   Locally Added               0 
+ connected-common.bsv      Locally Added               0 
+ connection-shared-interconnect.bsv Locally Added               0 
+ bury-connections.bsv      Locally Added               0 
+ soft-connections-common-module-context.awb Locally Added               0 
+ soft_connections_backward_deps.bsh Locally Added               0 
+ transmittable.bsv         Locally Added               0 
+ alg/                      Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/soft-service/alg
+ connect_stations_tree.bsv Locally Added               0 
+ connect_multicasts.bsv    Locally Added               0 
+ connect_top_level.bsv     Locally Added               0 
+ connection-alg-module-context.awb Locally Added               0 
+ expose_connections.bsv    Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections/soft-service
+ connection-helper.bsv     Locally Added               0 
+ with_connections.bsv      Locally Added               0 
+ token-ring.bsv            Locally Added               0 
+ soft-connections-module-context.awb Locally Added               0 
+ connection-backwards-compat.bsv Locally Added               0 
+ connection-context.bsv    Locally Added               0 
+ connections.bsv           Locally Added               0 
+ connected-module.bsv      Locally Added               0 
+
+Directory modules/bluespec/common/soft_connections
+ soft_connections_lib.awb  Locally Added               0 
+ Connections.bsv           Locally Added               0 
+
+Directory modules/bluespec/common
+ soft_services/            Locally Added               0 
+
+Directory modules/bluespec/common/soft_services
+ softServicesLib.bsv       Locally Added               0 
+ smart_synth_boundaries.bsv Locally Added               0 
+ soft_services_deps.awb    Locally Added               0 
+ smart_synthesis_boundaries.bsv Locally Added               0 
+ soft_services_sc_deps.bsh Locally Added               0 
+ soft_services_SConn_SClock/ Locally Added               0 
+
+Directory modules/bluespec/common/soft_services/soft_services_SConn_SClock
+ soft_service_impl_deps.bsh Locally Added               0 
+ soft_services.awb         Locally Added               0 
+ soft_service_lib_deps.bsh Locally Added               0 
+ soft_services_defs.bsv    Locally Added               0 
+ soft_services_deps_small.awb Locally Added               0 
+ soft_services_lib_deps.bsh Locally Added               0 
+
+Directory modules/bluespec/common/soft_services
+ soft_services_lib.awb     Locally Added               0 
+ soft_services_SConn/      Locally Added               0 
+
+Directory modules/bluespec/common/soft_services/soft_services_SConn
+ soft_services_soft_conn.bsv Locally Added               0 
+ soft_service_impl_deps.bsh Locally Added               0 
+ soft_service_lib_deps.bsh Locally Added               0 
+ soft_services_deps_small.awb Locally Added               0 
+ soft_services_small.awb   Locally Added               0 
+
+Directory modules/bluespec
+ util/                     Locally Added               0 
+
+Directory modules/bluespec/util
+ physical-interconnects/   Locally Added               0 
+
+Directory modules/bluespec/util/physical-interconnects
+ shared-tree/              Locally Added               0 
+
+Directory modules/bluespec/util/physical-interconnects/shared-tree
+ tree-routing-table.bsv    Locally Added               0 
+ tree-helper.bsv           Locally Added               0 
+ tree-interface.bsv        Locally Added               0 
+ tree-station.bsv          Locally Added               0 
+ shared-tree.awb           Locally Added               0 
+
+Directory modules
+ system/                   Locally Added               0 
+
+Directory modules/system
+ test/                     Locally Added               0 
+
+Directory modules/system/test
+ alu_test/                 Locally Added               0 
+
+Directory modules/system/test/alu_test
+ alu-test-streamid.dic     Locally Added               0 
+ alu-test.awb              Locally Added               0 
+ alu-test.bsv              Locally Added               0 
+ alu-test-streams.dic      Locally Added               0 
+
+Directory modules/system/test
+ bram_test/                Locally Added               0 
+
+Directory modules/system/test/bram_test
+ bram-test.awb             Locally Added               0 
+ bram-test.bsv             Locally Added               0 
+ bram-test.dic             Locally Added               0 
+
+Directory modules/system/test
+ fp_test/                  Locally Added               0 
+
+Directory modules/system/test/fp_test
+ fp-test-streamid.dic      Locally Added               0 
+ fp-test.awb               Locally Added               0 
+ fp-test.bsv               Locally Added               0 
+ fp-test-streams.dic       Locally Added               0 
+
+Directory modules/system/test
+ shared_pipeline_test/     Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test
+ private-rule/             Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test/private-rule
+ pipeline-private-rule.awb Locally Added               0 
+ pipeline-private-rule.bsv Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-pipeline-test.bsv  Locally Added               0 
+ duplicate-modules/        Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test/duplicate-modules
+ pipeline-duplicate-modules.awb Locally Added               0 
+ pipeline-duplicate-modules.bsv Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-tree/              Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test/shared-tree
+ pipeline-shared-tree.bsv  Locally Added               0 
+ pipeline-shared-tree.awb  Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-pipeline-test.dic  Locally Added               0 
+ stage-ctrl/               Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test/stage-ctrl
+ pipeline-stage-ctrl.awb   Locally Added               0 
+ pipeline-stage-ctrl.bsv   Locally Added               0 
+ stage-controller.bsv      Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test
+ common/                   Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test/common
+ pipetest-common.awb       Locally Added               0 
+ pipetest-common.bsv       Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-rule/              Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test/shared-rule
+ pipeline-shared-rule.awb  Locally Added               0 
+ pipeline-shared-rule.bsv  Locally Added               0 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-pipeline-test.awb  Locally Added               0 
+
+Directory modules/system/test
+ interconnect_test/        Locally Added               0 
+
+Directory modules/system/test/interconnect_test
+ interconnect-test.awb     Locally Added               0 
+ interconnect-test.bsv     Locally Added               0 
+ interconnect-test-streams.dic Locally Added               0 
+ interconnect-test-streamid.dic Locally Added               0 
+
+Directory modules/system/test
+ mem_test/                 Locally Added               0 
+
+Directory modules/system/test/mem_test
+ mem-test.awb              Locally Added               0 
+ mem-test.bsv              Locally Added               0 
+ mem-test.dic              Locally Added               0 
+
+Directory modules/system
+ afu_system/               Locally Added               0 
+
+Directory modules/system/afu_system
+ pass-through/             Locally Added               0 
+
+Directory modules/system/afu_system/pass-through
+ afu_pass_through_alg.awb  Locally Added               0 
+ afu_pass_through_alg.bsv  Locally Added               0 
+
+Directory modules/system/afu_system
+ afu_system.awb            Locally Added               0 
+ afu_system.bsv            Locally Added               0 
+ add1/                     Locally Added               0 
+
+Directory modules/system/afu_system/add1
+ afu_add1_alg.awb          Locally Added               0 
+ afu_add1_alg.bsv          Locally Added               0 
+
+Directory modules/system
+ dme_system/               Locally Added               0 
+
+Directory modules/system/dme_system
+ dme_system.awb            Locally Added               0 
+ dme_system.bsv            Locally Added               0 
+ no-afu/                   Locally Added               0 
+
+Directory modules/system/dme_system/no-afu
+ dme_no_afu.awb            Locally Added               0 
+ dme_no_afu.bsv            Locally Added               0 
+
+Directory modules/system
+ traffic_light_system/     Locally Added               0 
+
+Directory modules/system/traffic_light_system
+ traffic_light_system.awb  Locally Added               0 
+ traffic_light_system.txt  Locally Added               0 
+ hasim_traffic_light_function/ Locally Added               0 
+
+Directory modules/system/traffic_light_system/hasim_traffic_light_function
+ hasim_traffic_light_function.awb Locally Added               0 
+ hasim_traffic_light_function_synth.awb Locally Added               0 
+ TL0.bsv                   Locally Added               0 
+
+Directory modules/system/traffic_light_system
+ System.bsv                Locally Added               0 
+
+Directory modules/system
+ mulitplier_system/        Locally Added               0 
+
+Directory modules/system/mulitplier_system
+ multiplier_system.awb     Locally Added               0 
+ multiplier_system.bsv     Locally Added               0 
+ multiplier_system.txt     Locally Added               0 
+
+Directory modules/system
+ switch_to_led_system/     Locally Added               0 
+
+Directory modules/system/switch_to_led_system
+ switch_to_led_system.awb  Locally Added               0 
+ switch_to_led_system.bsv  Locally Added               0 
+ switch_to_led_system.txt  Locally Added               0 
+ calculation4x4/           Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ adder/                    Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4/adder
+ adder4x4.awb              Locally Added               0 
+ adder4x4.bsv              Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ square/                   Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4/square
+ square4x4.awb             Locally Added               0 
+ square4x4.bsv             Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ multiplier/               Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4/multiplier
+ multiplier4x4.bsv         Locally Added               0 
+ multiplier4x4.awb         Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ echo/                     Locally Added               0 
+
+Directory modules/system/switch_to_led_system/calculation4x4/echo
+ echo4x4.awb               Locally Added               0 
+ echo4x4.bsv               Locally Added               0 
+
+Directory modules
+ README                    Locally Added               0 
+
+Directory .
+ Makefile.am               Locally Added               0 
+
+Directory base
+ leap-config.cpp           Locally Added               0 
+ leap-config.h             Locally Added               0 
+
+Directory .
+ base/                     Locally Added               0 
+ aclocal.m4                Locally Added               0 
+ ./                        Locally Modified            1 
+
+Initial cut at a Leap package, which extracts the non-modeling
+components from the HAsim package and copies them here. This 
+includes the build tools, non-modeling specific modules and 
+submodels and the non-model demo designs. Changes include renaming
+the build tools to leap-* from hasim-* and renaming the perl 
+library to Leap:: from HAsim::. 
+
+To use the Leap tools/modules one should check out the Leap package
+and have a sufficiently new verion of the awb package installed
+so that the leap-* tools are defined (in asimstarter). Finally,
+the model (.apm file) must use the type 'Leap'.
+
+To ease the transition from the modules in the HAsim package to
+those in the Leap package, the modules and submodels continue to 
+live in the the same relative (uniondir) directory (this includes 
+the use of some hasim/ subdirectories in the Leap pacakge). That 
+means that the uniondir mechanism will pick out the files from the
+first package in the SEARCHPATH - preferably Leap. Checking out 
+Leap after HAsim should result in the correct behavior.
+
+Note further that all the modules and submodels in the Leap package
+currently continue to exist in the HAsim package. This means that 
+users who checkout HAsim and not Leap should be unaffected by 
+changes in the Leap package. Soon, however, use of the HAsim package
+without the Leap package will be deprecated as new functionality 
+will only be added to the Leap tools and eventually redundant files
+in the HAsim package will be deleted. 

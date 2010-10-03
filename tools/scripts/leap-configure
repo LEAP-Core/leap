@@ -1,0 +1,1840 @@
+#!/usr/bin/env perl
+# -*- perl -*-
+
+# *****************************************************************
+# *                                                               *
+# *   Copyright (c) (Fill in here)                                *
+# *                                                               *
+# *****************************************************************
+
+#
+# Author:  Martha Mercaldi
+#
+
+use File::Basename;
+use File::Spec;
+use Getopt::Long;
+use IO::File;
+
+use Asim;
+use AsimShell;
+
+use Leap;
+
+use Data::Dumper;
+
+use warnings;
+use strict;
+
+#
+# Turn on warnings
+#
+$^W = 1;
+
+##
+## Dynamic param arrays are initialized by make_bsvfiles() and used later
+##
+my %dynamic_params;
+my %all_params;
+
+
+############################################################
+# command line handling
+
+my $status;
+
+my $help = 0;
+my $debug = 0;
+
+# only one of the following command flags should be set
+my $configure = 0;
+my $nuke = 0;
+my $setup = 0;
+my $build = 0;
+my $run = 0;
+
+# command options
+my $buildopt = "all";
+my $builddir = undef;
+my $benchmark = undef;
+my $rundir = undef;
+my $model = undef;
+my $runopt = "";
+
+
+my $private = 1;
+my $public = 1;
+my $relative = 0;
+
+$status = GetOptions( "private!"    => \$private,
+                      "public!"     => \$public,
+                      "relative!"   => \$relative,
+                      "debug"       => \$debug,
+                      "configure"   => \$configure,
+                      "nuke"        => \$nuke,
+                      "setup"       => \$setup,
+                      "build"       => \$build,
+                      "run"         => \$run,
+		      "model=s"     => \$model,
+		      "builddir=s"  => \$builddir,
+		      "benchmark=s" => \$benchmark,
+		      "rundir=s"    => \$rundir,
+                      "buildopt:s"  => \$buildopt,
+		      "runopt:s"    => \$runopt,
+                      "help"        => \$help
+		      );
+		      
+my $prog = basename($0);
+
+if (!$status) {
+    Leap::Util::WARN_AND_DIE("Illegal argument, try '$prog --help'");
+}
+
+if ($help) {
+    system "perldoc $0";
+    exit 0;
+}
+
+
+my $num_commands = $configure + $nuke + $build + $setup + $run;
+if ($num_commands != 1) {
+    print STDERR "$prog: Must supply exactly one command:\n";
+    print STDERR "\t-configure\n";
+    print STDERR "\t-nuke\n";
+    print STDERR "\t-build\n";
+    print STDERR "\t-setup\n";
+    print STDERR "\t-run\n";
+    exit 0;
+}
+
+if (!defined($model)) {
+  $model = $ARGV[0];
+}
+
+
+############################################################
+# main body of script
+
+select STDERR; $| = 1;
+select STDOUT; $| = 1;
+
+Asim::init()
+    || die("Unable to initialize Asim::\n");
+
+
+print "Opening... $model\n" if $debug;
+    
+
+if ($configure) {
+    print "Configuring build tree for $model . . . \n";
+    $status = configure_build_tree($model);
+} elsif ($nuke) {
+    print "Nuking build tree. . . \n";
+    $status = delete_build_tree($model);
+} elsif ($build) {
+    print "Compiling build tree. . . \n";
+    $status = build_build_tree($model);
+} elsif ($setup) {
+    print "Setting up benchmark. . . \n";
+    $status = setup_benchmark($model, $benchmark);
+} elsif ($run) {
+    print "Running model. . . \n";
+    $status = run_model($model, $benchmark);
+}
+
+if ($status) {
+    print "Done\n";
+    exit(0);
+}
+else {
+    print "leap-configure exiting with errors\n";
+    exit(1);
+}
+
+############################################################
+# run_model
+sub run_model {
+    my $modelfile = shift;
+    my $benchmarkfile = shift;
+
+    my $model = Asim::Model->new($modelfile);
+    my $sys_status;
+
+    if (!defined($benchmarkfile)) {
+      print "Undefined Benchmark for running.";
+      return 0;
+    }
+
+    if (!defined($rundir)) {
+      $rundir = $model->run_dir($benchmarkfile);
+    }
+
+    my $exe = Leap::Util::path_append($rundir, "run $runopt");
+
+    $sys_status = system("cd $rundir; $exe");
+
+    return ($sys_status == 0);
+}
+
+############################################################
+# setup_benchmark
+sub setup_benchmark {
+    my $modelfile = shift;
+    my $benchmarkfile = shift;
+
+    my $model = Asim::Model->new($modelfile);
+    my $sys_status;
+
+    if (!defined($benchmarkfile)) {
+      print "Undefined Benchmark for setup.";
+      return 0;
+    }
+
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+    if (!defined($rundir)) {
+      $rundir = $model->run_dir($benchmarkfile);
+    }
+
+    #Actually create rundir
+
+    my $benchmark = Asim::Benchmark->new($benchmarkfile);
+    if (! defined($benchmark)) {
+        print "Failed to open benchmark file $benchmarkfile";
+        return 0;
+    }
+
+    my $setup_command = $benchmark->setup_command();
+    my $setup_args = $benchmark->setup_args();
+    my $srcdir = dirname($setup_command);
+
+    # Create the run dir
+    $sys_status = system("rm -rf $rundir");
+    if ($sys_status) {
+      print "Could not remove rundir ($rundir)\n";
+      return 0;
+    }
+
+    $sys_status = system("mkdir -p ${rundir}/config");
+    if ($sys_status) {
+      print "Could not create config in rundir ($rundir)\n";
+      return 0;
+    }
+
+    my $feed_arg = '';
+    if (${benchmark}->feeder() ne '') {
+        $feed_arg = "--feeder " . ${benchmark}->feeder();
+    }
+
+    my $relmodeldir = "${builddir}";
+    $relmodeldir = File::Spec->abs2rel($relmodeldir, $rundir);
+
+    # Add a .bsc link to the model directory.  This is needed for Bluesim.
+    system("cd ${rundir}; ln -fs ${relmodeldir}/.bsc .bsc");
+
+    my $model_name = Leap::Build::get_model_name($model);
+
+    ##
+    ## Add the runtime initialization stub
+    ##
+    ##   The output of this file must be simple so it can be parsed in multiple
+    ##   scripting languages.  For /bin/sh it should just be loadable.  For
+    ##   Perl or Python it should be just a series of assignments.
+    ##
+    open(STUB, "> ${rundir}/config/env.sh") or Leap::Util::WARN_AND_DIE("Failed to open ${rundir}/config/env.sh");
+    print STUB "#!/bin/sh\n";
+    print STUB "#\n";
+    print STUB "# Generated automatically by leap-configure\n";
+    print STUB "#\n\n";
+    print STUB "modelDir=\"${relmodeldir}\"\n";
+    print STUB "model=\"${model_name}\"\n";
+    print STUB "workload=\"" . basename($rundir) . "\"\n";
+    print STUB "feeder=\"" . ${benchmark}->feeder() . "\"\n";
+    print STUB "genFlags=\"" . ${benchmark}->general_flags() . "\"\n";
+    print STUB "sysFlags=\"" . ${benchmark}->system_flags() . "\"\n";
+    print STUB "feedFlags=\"" . ${benchmark}->feeder_flags() . "\"\n";
+    close(STUB);
+
+
+    # Invoke the setup script
+    my $cmd = "env ASIM_CONFIG_MODEL=$model_name $setup_command $feed_arg $setup_args $srcdir $rundir";
+
+    print STDOUT "COMMAND: $cmd\n";
+    $sys_status = system($cmd);
+    if ($sys_status) {
+      print "Command failed\n";
+      return 0;
+    }
+
+    return 1;
+}
+
+############################################################
+# build_build_tree
+
+sub build_build_tree {
+    my $modelfile = shift;
+
+    my $model = Asim::Model->new($modelfile);
+    my $sys_status;
+    
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+    
+    ## NOTE: make target should come from argument to leap-configure
+    $sys_status = system("make -C $builddir $buildopt");
+
+    return ($sys_status == 0);
+}
+
+############################################################
+# delete_build_tree
+sub delete_build_tree {
+    my $modelfile = shift;
+
+    my $model = Asim::Model->new($modelfile);
+    my $sys_status;
+
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+
+    my $above_builddir = $builddir;
+    $above_builddir =~ s/\/pm$//g; # strip off pm directory to make parent first
+    $sys_status = system("rm -fr $above_builddir");
+
+    return ($sys_status == 0);
+}
+
+
+############################################################
+# configure_build_tree: Open a model produce build tree,
+#                       populated with Makefiles, for it 
+sub configure_build_tree {
+    my $modelfile = shift;
+
+    my $model = Asim::Model->new($modelfile);
+    my $status;
+
+    if (defined(&Asim::Model::embed_submodels)) {
+      print "Using Asim::Model embed_submodels\n";
+      $model->embed_submodels();
+    } else {
+      print "Using Asim::Model without embed_submodels\n";
+    }
+
+    # (0) validate model structure
+    validate_model($model) || return 0;
+
+    # (1) make directories
+    make_dirs($model) || return 0;
+
+
+    # (2a) make synthesized bsv files
+    make_bsvfiles($model);
+
+    # (2) make symlinks
+    make_symlinks($model);
+
+    # (3) generate makefiles from templates
+    generate_makefile_include($model);
+    generate_makefile_top($model);
+    generate_makefile_sub($model);
+
+    # (4) generate files needed by Xilinx tools
+    Leap::Xilinx::generate_files_xilinx($model, $builddir);
+    Leap::Xilinx::generate_files_synplify($model, $builddir);
+
+    # (5) make interface files
+    make_iface($model);
+
+    return 1;
+}
+
+############################################################
+# validate_model: Validate model structure
+
+my %required_modules;
+
+sub validate_model {
+    my $model = shift;
+
+    undef %required_modules;
+    my $result = __validate_model($model->modelroot(), "");
+    undef %required_modules;
+    return $result;
+}
+
+sub __validate_model {
+    my $module = shift;
+    my $module_tree = shift;
+
+    my $result = 1;
+
+    my $provides = $module->provides();
+
+    if (exists($required_modules{$provides})) {
+        print STDERR "Module ${provides} is required twice:\n";
+        print STDERR "    $required_modules{$provides} and\n";
+        print STDERR "    ${module_tree}\n";
+        $result = 0;
+    }
+
+    if ($result) {
+        $required_modules{$provides} = $module_tree;
+        $module_tree .= "/$provides";
+        foreach my $child ($module->submodules()) {
+            $result &= __validate_model($child, $module_tree);
+        }
+    }
+
+    return $result;
+}
+
+############################################################
+# make_dirs: Make directories for build tree
+sub make_dirs {
+    my $model = shift;
+
+    my $root = $model->modelroot();
+    my $sys_status;
+
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+
+    my $dir = Leap::Util::path_append($builddir,$Leap::Xilinx::tmp_xilinx_dir);
+    $sys_status = system("mkdir -p " . $dir);
+    $sys_status = system("mkdir -p " . $dir . "/xst_hdp");
+
+    my $bdir = Leap::Util::path_append($builddir, $Leap::Bluespec::tmp_bsc_dir);
+    $sys_status |= system("mkdir -p " . $bdir);
+
+    # Hardware (hw) tree.
+    my $hwdir = Leap::Util::path_append($builddir, "hw");
+
+    $sys_status |= __make_dirs($root, $hwdir);
+    $sys_status |= system("mkdir -p " . ${hwdir} . "/include/asim/provides");
+
+    __make_wrappers($root, $hwdir, 1);
+
+    # Software (sw) tree.
+    my $swdir = Leap::Util::path_append($builddir, "sw");
+
+    $sys_status |= __make_dirs($root, $swdir);
+    $sys_status |= system("mkdir -p " . ${swdir} . "/include/asim/provides");
+    $sys_status |= system("mkdir -p " . ${swdir} . "/include/asim/restricted");
+
+    # Setup directory for scons library files
+    $sys_status |= system("mkdir -p " . Leap::Util::path_append($builddir, "site_scons"));
+    if ($sys_status) {
+      print "Could not create site_scons dir\n";
+      return 0;
+    }
+
+    if ($sys_status != 0) {
+      print "Directory creation failed somewhere in $builddir\n";
+      return 0;
+    }
+
+    return 1;
+}
+
+############################################################
+# __make_dirs: Recursively make directories for build tree
+sub __make_dirs {
+    my $module = shift;
+    my $parent_dir = shift;
+
+    my $my_dir = Leap::Build::get_module_build_dir($module,$parent_dir);
+    my $sys_status = 0;
+
+    if (Leap::Build::is_synthesis_boundary($module)) {
+	$sys_status |= system("mkdir -p $my_dir");
+
+        my $bdir = Leap::Util::path_append($my_dir, $Leap::Bluespec::tmp_bsc_dir);
+        $sys_status |= system("mkdir -p " . $bdir);
+    }
+
+    ## recurse
+    Leap::Build::check_submodules_defined($module);
+
+    foreach my $child ($module->submodules()) {
+        $sys_status |= __make_dirs($child, $my_dir);
+    }
+
+    return $sys_status;
+}
+
+############################################################
+# __make_wrappers: Recursively make wrappers for synthesis boundaries
+sub __make_wrappers {
+    my $module = shift;
+    my $parent_dir = shift;
+    my $isroot = shift;
+
+    my $my_dir = Leap::Build::get_module_build_dir($module, $parent_dir);
+    if (Leap::Build::is_synthesis_boundary($module)) {
+        my $metatype = $module->provides();
+        my $synth_id = Leap::Build::get_synthesis_boundary_name($module);
+
+        # How many instances of the synthesis boundary?
+        my $n_instances = Leap::Build::synthesis_instances($module);
+        if ($n_instances == 0) {
+            # Not specified.  Just one with basic interface.
+            generate_wrapper($module, $my_dir, $isroot, $metatype, $synth_id);
+        }
+        else {
+            # Multiple instances
+            for (my $i = 0; $i < $n_instances; $i++) {
+                generate_wrapper($module, $my_dir, $isroot,
+                                 $metatype . "_$i",
+                                 $synth_id . "($i, $n_instances)");
+            }
+        }
+
+        $isroot = 0;
+    } 
+    
+    ## recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+        __make_wrappers($child, $my_dir, $isroot);
+    }
+    
+    return 1;
+}
+
+############################################################
+# init_sim_config_file:  Create and write header to sim_config.h
+sub init_sim_config_file($)
+{
+    my $sconfig = shift;
+    my $sim_config = new IO::File($sconfig, 'w') or
+        die("Failed to create $sconfig");
+
+    $sim_config->print("//\n");
+    $sim_config->print("// Synthesized header file for module parameters\n");
+    $sim_config->print("//\n");
+    $sim_config->print("//   This file was created by " . basename($0) . "\n");
+    $sim_config->print("//\n");
+    $sim_config->print("\n");
+
+    $sim_config->print("#ifndef Register\n");
+    $sim_config->print("#define Register(NAME,DESC,TYPE,VAR,VAL)\n");
+    $sim_config->print("#endif\n\n");
+
+    $sim_config->print("#ifndef Declare\n");
+    $sim_config->print("#define Declare(DECL)\n");
+    $sim_config->print("#endif\n\n");
+
+    $sim_config->print("#ifndef RegisterDyn\n");
+    $sim_config->print("#define RegisterDyn(NAME,DESC,TYPE,VAR)\n");
+    $sim_config->print("#endif\n\n");
+
+    $sim_config->print("#ifndef RegisterDynDict\n");
+    $sim_config->print("#define RegisterDynDict(VAR,DICT_ENTRY)\n");
+    $sim_config->print("#endif\n\n");
+
+    return $sim_config;
+}
+
+############################################################
+# dyn_params:  set up include files for parameter registration
+sub dyn_params($)
+{
+    my $model = shift;
+
+    ##
+    ## Add some include files needed for parameter registration
+    ##
+    foreach my $fname ('config.h', 'param.h') {
+        my $base;
+        if ($fname eq 'config.h') {
+            $base = Asim::resolve("base/leap-$fname");
+        }       
+        else {
+            $base = Asim::resolve("base/$fname");
+        }
+        chomp($base);
+        if ($base ne '') {
+            system("ln -f -s $base " . Leap::Util::path_append($builddir, "sw/include/asim", $fname));
+        }
+    }
+
+    my $base_dir = Leap::Build::get_module_build_dir($model->modelroot(),
+						      Leap::Util::path_append($builddir,"sw"));
+
+
+    my $base = Asim::resolve("base/leap-config.cpp");
+    chomp($base);
+    if ($base ne '') {
+        system("ln -f -s $base ${base_dir}/config.cpp");
+    }
+
+    ##
+    ## Dynamic params
+    ##
+    open(PARAM, ">$base_dir/dynamic_params.cpp") or die("Failed to create $base_dir/dynamic_params.cpp");
+    print PARAM "//\n";
+    print PARAM "// Synthesized dynamic parameter manager\n";
+    print PARAM "//\n";
+    print PARAM "//   This file was created by " . basename($0) . "\n";
+    print PARAM "//\n";
+    print PARAM "\n";
+
+    print PARAM "#include \"asim/param.h\"\n";
+    print PARAM "#include <strings.h>\n";
+    print PARAM "#include \"asim/atoi.h\"\n\n";
+
+    foreach my $param (sort keys(%dynamic_params)) {
+        print PARAM "$dynamic_params{$param}[2] ${param} = $dynamic_params{$param}[1];\n";
+    }
+
+    print PARAM "\n";
+    print PARAM "bool SetParam(char *name, char *value)\n";
+    print PARAM "{\n";
+    print PARAM "    bool found = true;\n";
+
+    my $first = 1;
+    foreach my $param (sort keys(%dynamic_params)) {
+        if ($first) {
+            $first = 0;
+            print PARAM "    ";
+        }
+        else {
+            print PARAM "    else ";
+        }
+        print PARAM "if (strcasecmp(name, \"${param}\") == 0) {\n";
+        if ($dynamic_params{$param}[2] eq "std::string") {
+            print PARAM "        ${param} = value;\n";
+        }
+        else {
+            print PARAM "        ${param} = atoi_general_unsigned(value);\n";
+        }
+        print PARAM "    }\n";
+    }
+
+    if ($first) {
+        print PARAM "    found = false;\n";
+    }
+    else {
+        print PARAM "    else {\n        found = false;\n    }\n";
+    }
+
+    print PARAM "    return found;\n";
+    print PARAM "}\n\n";
+
+    print PARAM "void ListParams(void)\n";
+    print PARAM "{\n";
+    foreach my $param (sort keys(%dynamic_params)) {
+        my $value = $dynamic_params{$param}[1];
+        $value =~ s/"/\\"/g;
+        my $descr = $dynamic_params{$param}[3];
+        $descr =~ s/"/\\"/g;
+        print PARAM "    cout << \"    ${param}\ = \" << ${param} << '\\t' << \"${descr}\" << endl;\n";
+    }
+    print PARAM "}\n";
+
+    close(PARAM);
+}
+
+############################################################
+# make_bsvfiles: Make asim metatype bsv files
+sub make_bsvfiles {
+    my $model = shift;
+    my $root = $model->modelroot();
+
+    if (!defined($builddir)) {
+        $builddir = $model->build_dir();
+    }
+
+    ##
+    ## Parameters are all described in a sim_config.h so they can be written
+    ## to the stats file.
+    ##
+    my $sim_config = init_sim_config_file(Leap::Util::path_append($builddir,"sw/include/asim/provides/sim_config.h"));
+
+    __make_bsvfiles($root,
+                    $sim_config,
+                    Leap::Util::path_append($builddir,"hw"),
+                    Leap::Util::path_append($builddir,"hw/include/asim/provides"),
+                    Leap::Util::path_append($builddir,"sw/include/asim/provides"));
+
+    $sim_config->close();
+
+    dyn_params($model);
+
+    #
+    # Hack to link model.h to <rootprovidestype>.h.
+    # This is for legacy code that expects the root to be model.h
+    #
+    my $provides = $root->provides();
+
+    if (! -e "${builddir}/sw/include/asim/provides/model.h") {
+	system("cd ${builddir}/sw/include/asim/provides; ln -s $provides.h model.h");
+    }
+
+    return 1;
+}
+
+############################################################
+# __make_bsvfiles: Recursively make asim metatype bsv files
+sub __make_bsvfiles {
+    my $module = shift;
+    my $sim_config = shift;
+    my $parent_dir = shift;
+    my $hw_inc_dir = shift;
+    my $sw_inc_dir = shift;
+
+    # identify correct directory in build tree
+    my $my_dir = Leap::Build::get_module_build_dir($module,$parent_dir);
+
+    ##
+    ## For each module generate two files:  a .bsh header file containing
+    ## the module's parameters and a .bsv file that will be a wrapper for
+    ## compiling the module.
+    ##
+    ## Clients of the module should INCLUDE the .bsh file, which both
+    ## provides the module parameters and import's the Bluespec interface.
+    ##
+
+    my $provides = $module->provides();
+    my $description = $module->description();
+    my $bshfile = Leap::Util::path_append($hw_inc_dir,"$provides.bsh");
+    my $bsvfile = Leap::Util::path_append($my_dir,"$provides.bsv");
+    my $hfile   = Leap::Util::path_append($sw_inc_dir,"$provides.h");
+
+    my @bsv_sources = $module->sources("BSV", "PUBLIC");
+
+    $sim_config->print("Register(\"Module_${provides}\",\"provides ${provides} (${description})\",UINT64,module_${provides},true)\n");
+
+    unlink($bshfile);
+    open(BSHFILE, ">$bshfile");
+
+    # Bluespec preprocessor doesn't like '-'
+    my $safe_provides = $provides;
+    $safe_provides =~ s/-/_/g;
+
+    print BSHFILE "//\n";
+    print BSHFILE "// Synthesized header file for module: $provides\n";
+    print BSHFILE "//\n";
+    print BSHFILE "//   This file was created by " . basename($0) . "\n";
+    print BSHFILE "//\n";
+    print BSHFILE "\n";
+
+    print BSHFILE "`ifndef INCLUDED_MODULE_${safe_provides}\n";
+    print BSHFILE "`define INCLUDED_MODULE_${safe_provides}\n";
+    print BSHFILE "\n";
+
+    # add defines for parameters
+    my @p = ();
+    push(@p, $module->parameters());
+
+    foreach my $p (@p) {
+      my $pname = $p->name();
+      my $pvalue = $p->value();
+      
+      print BSHFILE "`define $pname $pvalue\n";
+
+      ## Make SYNTH_INSTANCES globally useful
+      if ($pname eq "SYNTH_INSTANCES") {
+          print BSHFILE "`define " . uc($provides) . "_$pname $pvalue\n";
+      }
+
+      ##
+      ## This hack works around a weakness in Bluespec's preprocessor.  There
+      ## is an ifdef test but no comparison (e.g. `if FOO = 0).  So we can at
+      ## least use awb parameters as preprocessor booleans, we define
+      ## a special name when the value of a predicate is 0.
+      ##
+      if ($p->isInt() && ($pvalue == 0)) {
+          print BSHFILE "`define ${pname}_Z $pvalue\n";
+      }
+    }
+    print BSHFILE "\n";
+
+    # .bsh (include) files get included in the synthesized headers.  That way
+    # a module can declare a set of public files that get included as source.
+    # Bluespec would normally import a compiled file and not see the source.
+    foreach my $f ($module->sources("BSH", "PUBLIC")) {
+        print BSHFILE "`include \"$f\"\n";
+        if ($f eq "${provides}.bsv") {
+            print STDERR "File name clash:  interface ${provides} uses a source file with the same name!\n";
+            exit(1);
+        }
+    }
+
+    if (@bsv_sources) {
+        print BSHFILE "\n";
+        print BSHFILE "`ifndef BUILDING_MODULE_${safe_provides}\n";
+        print BSHFILE "    import ${provides}::*;\n";
+        print BSHFILE "`endif\n";
+    }
+
+    print BSHFILE "\n";
+    print BSHFILE "`endif  // INCLUDED_MODULE_${safe_provides}\n";
+
+    close(BSHFILE);
+
+    unlink($bsvfile);
+    if (@bsv_sources) {
+        open(BSVFILE, ">$bsvfile");
+
+        print BSVFILE "//\n";
+        print BSVFILE "// Synthesized compilation file for module: $provides\n";
+        print BSVFILE "//\n";
+        print BSVFILE "//   This file was created by " . basename($0) . "\n";
+        print BSVFILE "//\n";
+        print BSVFILE "\n";
+
+        # Prevent circular imports
+        print BSVFILE "`define BUILDING_MODULE_${safe_provides}\n";
+        print BSVFILE "`include \"asim/provides/${provides}.bsh\"\n";
+        print BSVFILE "\n";
+
+        # Add includes of public and private bsc files.  Skip .bsh files since they
+        # were included above in the synthesized bsh file.
+        if ($public) {
+            foreach my $f ($module->sources("BSV", "PUBLIC")) {
+                print BSVFILE "`include \"$f\"\n";
+                if ($f eq "${provides}.bsv") {
+                    print STDERR "File name clash:  interface ${provides} uses a source file with the same name!\n";
+                    exit(1);
+                }
+            }
+        }
+    }
+
+    close(BSVFILE);
+
+    # C++ header
+    unlink($hfile);
+    open(HFILE, ">$hfile");
+
+    print HFILE "//\n";
+    print HFILE "// Synthesized header file for module: $provides\n";
+    print HFILE "//\n";
+    print HFILE "//   This file was created by " . basename($0) . "\n";
+    print HFILE "//\n";
+    print HFILE "\n";
+
+    print HFILE "#ifndef INCLUDED_MODULE_$provides\n";
+    print HFILE "#define INCLUDED_MODULE_$provides\n";
+    print HFILE "\n";
+
+    # add defines for parameters
+    @p = ();
+    push(@p, $module->parameters());
+
+    foreach my $p (@p) {
+        my $pname = $p->name();
+        my $pvalue = $p->value();
+      
+        ## SYNTH_BOUNDARY is a special value meaningful for hardware
+        ## and not software.  It triggers redefined symbol warnings,
+        ## so don't emit in .h files.
+        my $isSynthBoundary = ($pname eq "SYNTH_BOUNDARY");
+        my $isSynthInstances = ($pname eq "SYNTH_INSTANCES");
+
+        if (! $p->isString() && ! $p->isInt()) {
+            # Unknown parameter type
+            if (! $isSynthBoundary) {
+                print HFILE "#define $pname $pvalue\n";
+            }
+            if ($p->dynamic()) {
+                print STDERR "Dynamic parameter $provides $pname must be string or integer\n";
+                exit(1);
+            }
+        }
+        else {
+            if (exists($all_params{$pname})) {
+                print STDERR "Parameter $pname is defined twice ($all_params{$pname} and $provides)\n";
+                exit(1);
+            }
+            $all_params{$pname} = $provides;
+
+            my $type = $p->isInt() ? "UINT64" : "std::string";
+            my $descr = $p->description();
+
+            if (! $p->dynamic()) {
+                if (! $isSynthBoundary) {
+                    if ($isSynthInstances) {
+                        # Make a unique name for SYNTH_INSTANCES
+                        print HFILE "#define " . uc($provides) . "_$pname $pvalue\n";
+                    }
+                    else {
+                        print HFILE "#define $pname $pvalue\n";
+                    }
+                }
+                $sim_config->print("Register(\"Param_${pname}\",\"${descr}\",${type},param_${pname},${pvalue})\n");
+            }
+            else {
+                print HFILE "extern ${type} ${pname};\n";
+
+                $sim_config->print("Declare(extern ${type} ${pname})\n");
+                $sim_config->print("RegisterDyn(\"Param_${pname}\",\"${descr} (dynamic)\",${type},${pname})\n");
+                if ($p->isInt()) {
+                    $sim_config->print("RegisterDynDict(${pname},PARAMS_" . uc($safe_provides) . "_" . uc($pname) . ")\n");
+                }
+
+                $dynamic_params{$pname} = [$safe_provides, $pvalue, $type, $p->description()];
+            }
+        }
+    }
+    print HFILE "\n";
+
+    print HFILE "#ifndef AWB_DEFS_ONLY\n";
+
+    # add includes for all public C/C++ include files
+    if ($public) {
+        foreach my $f ($module->sources("H", "PUBLIC")) {
+            print HFILE "#include \"../restricted/${f}\"\n";
+        }
+    }
+
+    print HFILE "#endif  // AWB_DEFS_ONLY\n";
+    print HFILE "\n";
+    print HFILE "#endif  // INCLUDED_MODULE_$provides\n";
+
+    close(HFILE);
+    
+    
+    # recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+	__make_bsvfiles($child, $sim_config, $my_dir, $hw_inc_dir, $sw_inc_dir);
+    }
+
+    return 1;
+}
+
+############################################################
+# make_symlinks: Generate symlinks in build tree to source
+#                files and to model apm file (for connect script)
+sub make_symlinks {
+    my $model = shift;
+
+    my $root = $model->modelroot();
+
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+    
+    my $hw_dir = Leap::Util::path_append($builddir, "hw");
+    __make_symlinks($root, $hw_dir, undef, '^(CPP|H|DICT|RRR)$', '.*');
+    
+    my $sw_dir = Leap::Util::path_append($builddir, "sw");
+    my $restricted_dir = Leap::Util::path_append($builddir, "sw/include/asim/restricted");
+    __make_symlinks($root, $sw_dir, $restricted_dir, '^$', '^(CPP|H)$');
+
+    return 1;
+}
+
+############################################################
+# __make_symlinks: Recursively generate symlinks in build 
+#                  tree
+sub __make_symlinks {
+    my $module = shift;
+    my $parent_dir = shift;
+    my $restricted_dir = shift;
+    my $type_exclude_regexp = shift;
+    my $type_include_regexp = shift;
+
+    # identify correct directory in build tree
+    my $my_dir = Leap::Build::get_module_build_dir($module,$parent_dir);
+
+    # for each src file, generate symlink in $my_dir
+    my $base_dir = $module->base_dir();
+    my @l = ();
+    my @restr = ();
+
+    my @types = $module->source_types();
+    foreach my $t (@types) {
+        if (($t =~ /$type_include_regexp/) && ! ($t =~ /$type_exclude_regexp/)) {
+            if ($private) {
+                push(@l, $module->sources($t, "PRIVATE"));
+            }
+            if ($public) {
+                push(@l, $module->sources($t, "PUBLIC"));
+                if (defined($restricted_dir)) {
+                    push(@restr, $module->sources($t, "PUBLIC"));
+                }
+            }
+        }
+    }
+
+    foreach my $f (@l) {
+        my $src = Asim::resolve(Leap::Util::path_append($base_dir,$f));
+        my $tgt = Leap::Util::path_append($my_dir,$f);
+
+        if (! -e $src) {
+          Leap::Util::WARN_AND_DIE("Module file $f does not exist in $base_dir");
+        }
+        
+        # make src relative
+        my $relsrc = File::Spec->abs2rel($src, dirname($tgt));
+        $status = system("ln -f -s $relsrc $tgt");
+    }
+
+    ##
+    ## A second set of links in the "src/include/asim/restricted" directory
+    ## so the public include hierarchy is simpler in C++.
+    ##
+    foreach my $f (@restr) {
+        my $src = Asim::resolve(Leap::Util::path_append($base_dir,$f));
+        my $tgt = Leap::Util::path_append($restricted_dir,$f);
+
+        if (! -e $src) {
+          Leap::Util::WARN_AND_DIE("Module file $f does not exist in $base_dir");
+        }
+        
+        # make src relative
+        my $relsrc = File::Spec->abs2rel($src, dirname($tgt));
+        $status = system("ln -f -s $relsrc $tgt");
+    }
+
+    # recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+        __make_symlinks($child, $my_dir, $restricted_dir,
+                        $type_exclude_regexp, $type_include_regexp);
+    }
+
+    return 1;
+}
+
+
+sub note_builddir($) {
+    my $replacements_r = shift;
+
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+
+    # @BUILD_DIR@
+    Leap::Util::hash_set($replacements_r,'@BUILD_DIR@',$builddir);
+}
+
+############################################################
+# generate_makefile_include: Collect template replacement 
+#                            values for model, and generate
+#                            $(APM)/pm/Makefile.include
+sub generate_makefile_include {
+    my $model = shift;
+
+    my $template = Leap::Build::get_makefile_include_template($model);
+    return if (! defined($template));
+
+    my $replacements_r = Leap::Util::empty_hash_ref();
+
+    Leap::Util::common_replacements($model, $replacements_r);
+    note_builddir($replacements_r);
+
+    # gather other info recursively
+    __generate_makefile_include($model->modelroot(),"hw",$replacements_r);
+
+    my $makefile = Leap::Util::path_append($builddir,"Makefile.include");
+    Leap::Templates::do_replacements($template,$makefile,$replacements_r);
+}
+
+############################################################
+# __generate_makefile_include: Recursively collect replacements
+#                              for Makefile.include
+sub __generate_makefile_include {
+    my $module = shift;
+    my $parent_dir = shift;
+    my $replacements_r = shift;
+
+    my $my_dir = Leap::Build::get_module_build_dir($module,$parent_dir);
+    if (Leap::Build::is_synthesis_boundary($module)) {
+	# @ALL_HW_DIRS@
+	Leap::Util::hash_append($replacements_r,":",'@ALL_HW_DIRS@',$my_dir);
+    }
+
+    # recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+	__generate_makefile_include($child,$my_dir,$replacements_r);
+    }
+
+}
+
+############################################################
+# generate_makefile_top: Collect template replacement values
+#                        for model, and generate 
+#                        $(APM)/pm/Makefile
+sub generate_makefile_top {
+    my $model = shift;
+    
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+    
+    my $replacements_r = Leap::Util::empty_hash_ref();
+    
+    Leap::Util::common_replacements($model, $replacements_r);
+    note_builddir($replacements_r);
+
+    #@ROOT_DIR_MODEL@
+    my $root = $model->modelroot();
+    if (Leap::Build::is_synthesis_boundary($root)) {
+	Leap::Util::hash_set($replacements_r,'@ROOT_DIR_MODEL@',$root->provides());
+    } else {
+	Leap::Util::WARN_AND_DIE("Root module must be a synthesis boundary");
+    }
+
+    Leap::Util::hash_set($replacements_r, '@ROOT_DIR_HW@', "hw");
+    Leap::Util::hash_set($replacements_r, '@ROOT_DIR_SW@', "sw");
+
+    Leap::Util::hash_set($replacements_r, '@ROOT_DIR_HW_INC@', "hw/include");
+    Leap::Util::hash_set($replacements_r, '@ROOT_DIR_SW_INC@', "sw/include");
+
+    # gather other info recursively
+    __generate_makefile_hw_top($root,"hw",$replacements_r, 1);
+    my $isHybridModel = __generate_makefile_sw_top($root,"sw",$replacements_r, 1);
+
+    # Add generated interface include directory to ALL_HW_DIRS
+    Leap::Util::hash_append($replacements_r, ":", '@ALL_HW_DIRS@', "iface/build/include");
+    Leap::Util::hash_append($replacements_r, ":", '@ALL_HW_DIRS@', "iface/build/hw");
+
+    # Generate the makefile
+    my $template = Leap::Build::get_makefile_top_template($model);
+    if (defined($template)) {
+        my $makefile = Leap::Util::path_append($builddir,"Makefile");
+        Leap::Templates::do_replacements($template,$makefile,$replacements_r);
+    }
+
+    # Generate scons files
+    $template = Leap::Build::get_scons_root_template($model, 'top');
+    if (defined($template)) {
+        my $scons = Leap::Util::path_append($builddir, "SConstruct");
+        Leap::Templates::do_replacements($template, $scons, $replacements_r);
+    }
+
+    # Copy scons python libraries
+    # By fiat of scons, these files live in ./site_scons directory
+    # we have to set up the scons/python seach path here as well
+    
+    __generate_build_libraries($root, Leap::Util::path_append($builddir, "/site_scons/"));
+
+    ##
+    ## Add a model description stub for benchmarks
+    ##
+    ##   The output of this file must be simple so it can be parsed in multiple
+    ##   scripting languages.  For /bin/sh it should just be loadable.  For
+    ##   Perl or Python it should be just a series of assignments.
+    ##
+    mkdir("${builddir}/config");
+    open(STUB, "> ${builddir}/config/env.sh") or Leap::Util::WARN_AND_DIE("Failed to open ${builddir}/config/env.sh");
+    print STUB "#!/bin/sh\n";
+    print STUB "#\n";
+    print STUB "# Generated automatically by leap-configure\n";
+    print STUB "#\n\n";
+    print STUB "isHybridModel=${isHybridModel}\n";
+    close(STUB);
+    
+}
+
+
+############################################################
+# __generate_build_libraries: Recursively set up python modules
+#                             for inclusion in build process
+sub __generate_build_libraries {
+    my $module = shift;
+    my $base_dir = shift;
+
+    my @libraries = Leap::Build::get_scons_library($module);
+    # make ourselves a directory iff we have a library to link in
+    if(scalar(@libraries) > 0) {
+         my $sys_status = system("mkdir -p " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/"));
+         if ($sys_status) {
+            print "Could not create " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/") . "\n";
+            return 0;
+         }
+
+         #need to have __init__.py in the directory
+         #this must define the __all__ variable
+         open(INIT,"> " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py"));
+         if ($sys_status) {
+            print "Could not create " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py") . "\n";
+            return 0;
+         }        
+    
+
+        for(my $index = 0; $index < scalar(@libraries); $index++) {
+            # Make a symlink
+            my $library = $libraries[$index];
+            my $buildpath = Leap::Util::path_append($base_dir, "/" . $module->provides . "/" , basename($library));
+            my  @fileparts = split(/\./,basename($library));
+	    print INIT "from $fileparts[0] import *\n";
+            `ln -fs $library $buildpath`;
+        }
+
+        close(INIT);
+    }
+
+    #recurse on children, but do not change path.  
+    #this is due to the python naming scheme
+
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+        __generate_build_libraries($child,$base_dir);
+    }     
+}
+############################################################
+# __generate_makefile_hw_top: Recursively collect replacements
+#                             for Makefile.top
+sub __generate_makefile_hw_top {
+    my $module = shift;
+    my $parent_dir = shift;
+    my $replacements_r = shift;
+    my $is_root = shift;
+
+    my $my_dir = Leap::Build::get_module_build_dir($module,$parent_dir);
+    if (Leap::Build::is_synthesis_boundary($module)) {
+
+        ## @SYNTH_BOUNDARIES@ 
+        ## generate data structures for use in scons python code
+        my $pythonRepresentation = Leap::Build::pythonize_module($module);
+        Leap::Util::hash_append($replacements_r," ",'@SYNTH_BOUNDARIES@',$pythonRepresentation);
+        
+        # @ALL_HW_DIRS@
+        Leap::Util::hash_append($replacements_r,":",'@ALL_HW_DIRS@',$my_dir);
+
+        my $synth_instances = Leap::Build::synthesis_instances($module);
+        my $fileroot = Leap::Build::get_wrapper($module);
+          
+        if ($synth_instances == 0) {
+            # Unspecified SYNTH_INSTANCES.
+
+            # @SYNTH_WRAPPERS@
+            if ($is_root) {
+                Leap::Util::hash_set($replacements_r, '@SYNTH_TOP@', $fileroot);
+            }
+            else {
+                Leap::Util::hash_append($replacements_r," ",'@SYNTH_WRAPPERS@', $fileroot);
+            }
+
+            
+            # This stuff can be retained for now, but should eventually
+            # be replaced in the python code, as Bluespec should know it
+            # generates these files.
+
+            # @GEN_VS@ - bsc generated .v files
+            my $v_file = "$fileroot.v";
+            Leap::Util::hash_append($replacements_r," ",'@GEN_VS@',Leap::Util::path_append($my_dir, $Leap::Bluespec::tmp_bsc_dir, $v_file));
+
+            # @GEN_BAS@
+            my $ba_file = "$fileroot.ba";
+            Leap::Util::hash_append($replacements_r," ",'@GEN_BAS@',Leap::Util::path_append($my_dir, $Leap::Bluespec::tmp_bsc_dir, $ba_file));
+        }
+        else {
+            # Multiple SYNTH_INSTANCES
+            for (my $i = 0; $i < $synth_instances; $i++) {
+                my $name = "mk_" . Leap::Build::make_instance_wrapper_name($module->provides, $i);
+
+                # @SYNTH_WRAPPERS@
+                Leap::Util::hash_append($replacements_r," ",'@SYNTH_WRAPPERS@', $name);
+
+                # @GEN_VS@ - bsc generated .v files
+                my $v_file = "$name.v";
+                Leap::Util::hash_append($replacements_r," ",'@GEN_VS@',Leap::Util::path_append($my_dir, $Leap::Bluespec::tmp_bsc_dir, $v_file));
+
+                # @GEN_BAS@
+                my $ba_file = "$name.ba";
+                Leap::Util::hash_append($replacements_r," ",'@GEN_BAS@',Leap::Util::path_append($my_dir, $Leap::Bluespec::tmp_bsc_dir, $ba_file));
+            }
+        }
+
+        # @GEN_CXXS@ and @GEN_HS@ are local to the toplevel directory
+        my $cxx_file = "$fileroot.cxx";
+        Leap::Util::hash_append($replacements_r," ",'@GEN_CXXS@',Leap::Util::path_append($cxx_file));
+        my $h_file = "$fileroot.h";
+        Leap::Util::hash_append($replacements_r," ",'@GEN_HS@',Leap::Util::path_append($h_file));
+        
+        # @GEN_O_DEPS@ makes sure generated .cxx files are compiled in the right order
+        my $my_o = Leap::Build::make_module_name(Leap::Build::make_wrapper_name($module->provides()));
+        my $parent = Leap::Build::make_module_name(Leap::Build::make_wrapper_name($parent_dir));
+        $parent =~ s/.*\///;
+        if (!$is_root)
+        {
+          Leap::Util::hash_append($replacements_r," ",'@GEN_O_DEPS@',"\n\$(TMP_BSC_DIR)/$parent.o: \$(TMP_BSC_DIR)/$my_o.o\n");
+        }
+    }
+
+    foreach my $key ($module->generatedtypes()) {
+        foreach my $file ($module->generated($key)) {
+            Leap::Util::hash_append($replacements_r," ",'@GIVEN_'.$key.'S@',Leap::Util::path_append($my_dir,$Leap::Bluespec::tmp_bsc_dir,$file));
+        } 
+    }
+
+    foreach my $key ($module->sourcetypes()) {
+        foreach my $file ($module->sources($key, "*")) {
+            Leap::Util::hash_append($replacements_r," ",'@GIVEN_'.$key.'S@',Leap::Util::path_append($my_dir,$file));
+        } 
+    }
+
+    ## @BDPI_CS@
+
+    foreach my $f ($module->sources("BDPI_C", "*")) {
+        # **** HACK **** only push C files, not H files. TODO: Need a more general separation
+        #                between to-be-compiled source files and not-to-be-compiled header files
+        # **** /HACK ****
+        if ($f =~ /\.h$/) {
+            # do nothing
+        }
+        else {
+            Leap::Util::hash_append($replacements_r," ",'@BDPI_CS@',Leap::Util::path_append($my_dir, $f));
+        }
+    }
+
+    ## @SW_LIBS@
+    my $need_global_includes = 0;
+    foreach my $lib ($module->library()) {
+        my $f = Asim::resolve($lib);
+        if (defined $f) {
+            Leap::Util::hash_append($replacements_r," ",'@SW_LIBS@',$f);
+            # Automatically add library directory as an include path
+            Leap::Util::hash_append($replacements_r," ",'@SW_INC_DIRS@',Leap::Util::path_append(dirname($f),'include'));
+        }
+        else {
+            my $found_in_env = 0; 
+            #See if the user library path will resolve the library
+            #this assumes that the C code will use gcc.
+            if (exists $ENV{"LIBRARY_PATH"}) {
+                my $env_library_path = $ENV{"LIBRARY_PATH"};
+                foreach my $path (split(/:/,$env_library_path)) {
+                    chomp($path);
+                    my $f = $path. "/" . basename($lib);
+                    if( -e $f){
+                        $found_in_env = 1;
+                        Leap::Util::hash_append($replacements_r," ",'@SW_LIBS@', $f);
+                    } 
+		} 
+	    }
+
+            # Try for one last location in the installed $libdir
+            $f = Asim::Libdir() . "/" . basename($lib);
+            if (-e $f) {
+                print "AWB resolver using installed version of library $lib.\n";
+                # We found it in the install dir.
+                Leap::Util::hash_append($replacements_r," ",'@SW_LIBS@',$f);
+                $need_global_includes = 1;
+            }
+            elsif(!$found_in_env) {
+                print "AWB resolver did not find library $lib nor was it in the scope of LIBRARY_PATH.\n";
+            }
+            
+        }
+    }
+
+    ## @SW_INC_DIRS@
+    foreach my $inc ($module->include()) {
+        my $f = Asim::resolve($inc);
+        if (defined $f) {
+            Leap::Util::hash_append($replacements_r," ",'@SW_INC_DIRS@',$f);
+        }
+        else {
+            print "AWB resolver did not find include directory $inc.\n";
+        }
+    }
+
+    # Did we need to include the installed includedir?
+    if ($need_global_includes) {
+        Leap::Util::hash_append($replacements_r," ",'@SW_INC_DIRS@', Asim::Includedir());
+    }
+
+    # recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+        __generate_makefile_hw_top($child,$my_dir,$replacements_r, 0);
+    }
+
+}
+
+
+############################################################
+# __generate_makefile_hw_top: Recursively collect replacements
+#                             for Makefile.top
+#
+#     Returns 1 if the model has a software component, otherwise 0.
+#
+sub __generate_makefile_sw_top {
+    my $module = shift;
+    my $parent_dir = shift;
+    my $replacements_r = shift;
+    my $is_root = shift;
+
+    my $isHybridModel = 0;
+
+    my $my_dir = Leap::Build::get_module_build_dir($module,$parent_dir);
+
+    ## @GIVEN_CS@
+
+    foreach my $f ($module->sources("CPP", "*")) {
+        Leap::Util::hash_append($replacements_r," ",'@GIVEN_CS@',Leap::Util::path_append($my_dir, $f));
+        $isHybridModel = 1;
+    }
+
+    # recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+        $isHybridModel |= __generate_makefile_sw_top($child,$my_dir,$replacements_r, 0);
+    }
+
+    return $isHybridModel;
+}
+
+
+############################################################
+# generate_makefile_sub: Collect template replacement values
+#                        for model, and generate a Makefile
+#                        for each directory in the build tree
+#                        (one per synthesis boundary) 
+sub generate_makefile_sub {
+    my $model = shift;
+    
+    my $replacements_r = Leap::Util::empty_hash_ref();
+    Leap::Util::common_replacements($model, $replacements_r);
+
+    note_builddir($replacements_r);
+    __generate_makefile_sub($model, $model->modelroot(), "hw",
+                            Leap::Build::get_scons_root_template($model, "hw"),
+                            $replacements_r);
+    __generate_makefile_sub($model, $model->modelroot(), "sw",
+                            Leap::Build::get_scons_root_template($model, "sw"),
+                            $replacements_r);
+}
+
+############################################################
+# __generate_makefile_sub: Recursively collect template 
+#                          replacement values and generate
+#                          Makefiles, one per directory
+#                          in the build tree
+sub __generate_makefile_sub {
+    my $model = shift;
+    my $module = shift;
+    my $parent_dir = shift;
+    my $scons_template = shift;
+    my $replacements_r = shift;
+
+    my $current_replacements_r = $replacements_r;
+    my $my_dir = $parent_dir;
+
+    if (Leap::Build::is_synthesis_boundary($module)) {
+
+	# OVERRIDE non-synth-boundary settings
+	# 1. instantiate new hash for synthesis boundary
+	$current_replacements_r = Leap::Util::empty_hash_ref();
+	# 2. update path
+	$my_dir = Leap::Util::path_append($parent_dir,$module->provides());
+
+	## @DIR@
+	Leap::Util::hash_set($current_replacements_r,'@DIR@',$module->provides());
+
+	## @FULL_DIR@
+	Leap::Util::hash_set($current_replacements_r,'@FULL_DIR@',"$builddir/$my_dir");
+
+	## @DOTS_TO_MAKEFILE_INCL@
+	my $dots_path = $my_dir;
+	$dots_path =~ s/([^\/])+/../g;
+	Leap::Util::hash_set($current_replacements_r,'@DOTS_TO_MAKEFILE_INCL@',$dots_path);
+        
+        my $my_bsv;
+        my $n_instances = Leap::Build::synthesis_instances($module);
+        if ($n_instances == 0) {
+            # Number of instances not specified.  Build just one.
+            my $my_wrap = Leap::Build::make_wrapper_name($module->provides());
+            $my_bsv = "${my_wrap}.bsv";
+        }
+        else {
+            # Multiple instances.  Build all the wrapper files.
+            for (my $i = 0; $i < $n_instances; $i++) {
+                $my_bsv .= " " if ($i != 0);
+
+                my $my_wrap = Leap::Build::make_instance_wrapper_name($module->provides(), $i);
+                $my_bsv .= "${my_wrap}.bsv";
+            }
+        }
+
+        Leap::Util::hash_append($current_replacements_r," ",'@WRAPPER_BSVS@',$my_bsv);
+    }
+
+    ## @SUBDIRS@ & @SUBDIR_BAS@
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+	
+	if (Leap::Build::is_synthesis_boundary($child)) {
+	    my $subdir = $child->provides();
+	    Leap::Util::hash_append($current_replacements_r," ",'@SUBDIRS@',$subdir);
+            generate_surrogate_deps($current_replacements_r, $child, '');
+
+	}
+    }
+
+    ## FOR BOTH SYNTH & NON_SYNTH
+    ## @BSVS@ & @SRCS@ @CSRCS@
+
+    if ($model->modelroot() == $module) {
+        # At top level add a few CPP files automatically provided for the model
+        Leap::Util::hash_append($current_replacements_r, " ", '@CSRCS@', "config.cpp");
+        Leap::Util::hash_append($current_replacements_r, " ", '@CSRCS@', "dynamic_params.cpp");
+    }
+
+    my $deps = "";
+    my $mod_bsv = $module->provides() . ".bsv";
+
+    if ($private) {
+        foreach my $f ($module->sources("BSV", "PRIVATE")) {
+            Leap::Util::hash_append($current_replacements_r, " ", '@BSVS@', $f);
+            $deps = $deps . " $f";
+        }
+        foreach my $f ($module->sources("CPP", "PRIVATE")) {
+            Leap::Util::hash_append($current_replacements_r, " ", '@CSRCS@', $f);
+            # $deps = $deps . " $f";
+        }
+    }
+    if ($public) {
+        foreach my $f ($module->sources("BSV", "PUBLIC")) {
+            Leap::Util::hash_append($current_replacements_r, " ", '@BSVS@', $f);
+            $deps = $deps . " $f";
+        }
+        foreach my $f ($module->sources("CPP", "PUBLIC")) {
+            Leap::Util::hash_append($current_replacements_r, " ", '@CSRCS@', $f);
+            # $deps = $deps . " $f";
+        }
+    }
+
+    # collect BDPI-exported names
+    my @bdpi_names = Leap::Build::get_bdpi_names($module);
+    foreach my $n (@bdpi_names) {
+        my $fname = "$n.ba";
+	    Leap::Util::hash_append($current_replacements_r, " ", '@BDPI_BAS@', $fname);
+    }
+
+    # Add module to build list if it has sources that need to be built
+    if ($module->sources("BSV", "PUBLIC")) {
+        Leap::Util::hash_append($current_replacements_r, " ", '@GEN_BSVS@', $mod_bsv);
+    }
+
+    #recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+	__generate_makefile_sub($model,$child,$my_dir,$scons_template,$current_replacements_r);
+    }
+
+    if (!defined($builddir)) {
+      $builddir = $model->build_dir();
+    }
+
+    # on the way up, possibly generate makefile
+    if (Leap::Build::is_synthesis_boundary($module)) {
+        # Generate scons file
+        if (defined($scons_template)) {
+            my $scons = Leap::Util::path_append($builddir, $my_dir, "SConscript");
+            Leap::Templates::do_replacements($scons_template, $scons, $current_replacements_r);
+        }
+    }
+}
+
+
+#############################################################
+# Generate surrogate dependencies for turning wires back to
+# connections via leap-connect
+
+sub generate_surrogate_deps
+{
+  my $replacements_r = shift;
+  my $module = shift;
+  my $dir = shift;
+  
+  my $surrogate = $module->provides();
+  my $wrapper = Leap::Build::make_wrapper_name($surrogate);
+  
+  # @SURROGATE_DEPS@ ensures surrogates are re-generated as necessary
+  my $run_connection = "\$(CONNECTION_SCRIPT) \$(APM_FILE) \$@";
+  Leap::Util::hash_append($replacements_r," ",'@SURROGATE_DEPS@',"\n$dir/$surrogate.bsv: $dir/$surrogate/\$(TMP_BSC_DIR)/$wrapper.bi\n\t$run_connection\n");
+  
+#  my $child_wrap = Leap::Build::make_wrapper_name($surrogate);
+#  my $child_bsv = "${surrogate}/${child_wrap}.bsv";
+#  $child_bsv = "$dir/$child_bsv" if ($dir ne '');
+#  Leap::Util::hash_append($replacements_r," ",'@WRAPPER_BSVS@',$child_bsv);
+  
+  foreach my $child ($module->submodules()) {
+    if (Leap::Build::is_synthesis_boundary($child)) {
+      my $subdir = $child->provides();
+      my $subdir_wrapper = Leap::Build::make_wrapper_name($subdir);
+      
+      generate_surrogate_deps($replacements_r, $child, Leap::Util::path_append($dir, $surrogate));
+    }
+  }
+}
+
+
+#############################################################
+# Generate a wrapper file that turns all Connections to wires
+# at a synthesis boundary.
+
+sub generate_wrapper {
+    my $module = shift;
+    my $dirname = shift;
+    my $isroot = shift;
+    my $metatype = shift;
+    my $synth_id = shift;
+
+    my $usesmartsynthesisboundaries = 1;
+
+    my $wrapper = Leap::Build::make_wrapper_name($metatype) . ".bsv";
+    
+    my $synth_name = Leap::Build::make_wrapper_name($metatype);
+    my $module_name = Leap::Build::make_module_name($synth_name);
+
+    unlink("$dirname/$wrapper");
+    open(WRAPPER, "> $dirname/$wrapper") || return undef;
+
+    print WRAPPER "//\n// Generated automatically by leap-configure\n//\n\n";
+
+    #
+    # add defines for parameters
+    #   TBD: Share this code with leap-configure
+
+    print WRAPPER "// These are the parameters for the module\n";
+
+    my @p = ();
+    push(@p, $module->parameters());
+
+    foreach my $p (@p) {
+      my $pname = $p->name();
+      my $pvalue = $p->value();
+
+      if ($pname eq "SMART_SYNTH_BOUNDARY") {
+          $usesmartsynthesisboundaries = $pvalue;
+      }
+
+      print WRAPPER "`define $pname $pvalue\n";
+    }
+    print WRAPPER "\n";
+    print WRAPPER "// These are well-known/required leap modules\n";
+
+    if ($usesmartsynthesisboundaries) {
+      if ($isroot) {
+        print WRAPPER "import soft_connections_alg::*;\n";
+      } else { 
+        print WRAPPER "`include \"asim/provides/smart_synth_boundaries.bsh\"\n";
+      }
+      print WRAPPER "\n";
+    }
+
+    #
+    # add includes for public sources
+    #   Note: Can't just include 'provides' name since it bsc won't 
+    #         find the correct instance of the file
+    #
+
+    print WRAPPER "// import non-synthesis public files\n";
+    foreach my $file_root ($module->sources("BSV", "PUBLIC")) {
+        print WRAPPER "`include \"$file_root\"\n";
+    }
+    print WRAPPER "\n";
+
+    print WRAPPER "// import non-synthesis private files\n";
+    foreach my $file_root ($module->sources("BSV", "PRIVATE")) {
+        print WRAPPER "`include \"$file_root\"\n";
+    }
+    print WRAPPER "\n";
+
+    if ($isroot) {
+        print WRAPPER "\n";
+        print WRAPPER "// Get defintion of TOP_LEVEL_WIRES\n";
+        print WRAPPER "import physical_platform::*;\n";
+        print WRAPPER "\n";
+        print WRAPPER "(* synthesize *)\n";
+        print WRAPPER "(* no_default_clock, no_default_reset *)\n";
+        print WRAPPER "module ${module_name} (TOP_LEVEL_WIRES);\n";    
+    } else {
+        print WRAPPER "`ifndef CONNECTION_SIZES_KNOWN\n";
+        print WRAPPER "// First pass to see how large the vectors should be\n";
+        print WRAPPER "`define CON_RECV_${metatype} 100\n";
+        print WRAPPER "`define CON_SEND_${metatype} 100\n";
+        print WRAPPER "`else\n";
+        print WRAPPER "// Real build pass.  Include file built dynamically.\n";
+        print WRAPPER "`include \"${synth_name}_con_size.bsh\"\n";
+        print WRAPPER "`endif\n";
+        print WRAPPER "\n";
+        print WRAPPER "(* synthesize *)\n";
+	print WRAPPER "module ${module_name} (SoftServicesSynthesisInterface#(`CON_RECV_${metatype}, `CON_SEND_${metatype}));\n";    
+    }
+    print WRAPPER "\n";
+
+    my @child_info_vars = ();
+    print WRAPPER "    // instantiate own module\n";
+
+    if ( ! $usesmartsynthesisboundaries ) {
+      print WRAPPER "     let m <- $synth_id();\n";
+    } else {
+      if ($isroot) {
+        print WRAPPER "    let m <- instantiateWithConnections($synth_id);\n";
+      } else {
+        print WRAPPER "    let m <- instantiateSmartBoundary($synth_id);\n";
+      }
+    }
+    print WRAPPER "\n";
+
+    print WRAPPER "    return m;\n";
+    print WRAPPER "\n";
+
+    print WRAPPER "endmodule\n";
+
+    close(WRAPPER);
+}
+
+############################################################
+# make_iface: Build interface files (RRR and dictionary)
+#             in a separate tree.
+#
+sub make_iface {
+    my $model = shift;
+
+    my $template = Leap::Build::get_scons_root_template($model, "iface");
+    return if (! defined($template));
+
+    my $dir = Leap::Util::path_append($builddir, "iface");
+    $status = system("mkdir -p " . $dir);
+
+    my $replacements_r = Leap::Util::empty_hash_ref();
+
+    Leap::Util::common_replacements($model, $replacements_r);
+    note_builddir($replacements_r);
+
+    Leap::Util::hash_set($replacements_r, '@DICT_SRCS@', "src/dict/dynamic_params.dic");
+    Leap::Util::hash_set($replacements_r, '@ROOT_DIR_SW_INC@', "../sw/include");
+
+    my $dict_src_dir = Leap::Util::path_append($dir, "src/dict");
+    $status = system("mkdir -p " . $dict_src_dir);
+    make_dictionary($model, $dict_src_dir, $replacements_r);
+
+    my $rrr_src_dir = Leap::Util::path_append($dir, "src/rrr");
+    $status = system("mkdir -p " . $rrr_src_dir);
+    make_rrr($model, $rrr_src_dir, $replacements_r);
+
+    ##
+    ## Build the dynamic parameter dictionary
+    ##
+    my $params = Leap::Util::path_append($builddir, "iface/src/dict/dynamic_params.dic");
+    unlink($params);
+    open(PARAM, ">$params") or die("Failed to create $params");
+    print PARAM "//\n";
+    print PARAM "// Synthesized dynamic parameter manager\n";
+    print PARAM "//\n";
+    print PARAM "//   This file was created by " . basename($0) . "\n";
+    print PARAM "//\n";
+    print PARAM "\n";
+
+    foreach my $param (sort keys(%dynamic_params)) {
+        if ($dynamic_params{$param}[2] eq "UINT64") {
+            print PARAM "def PARAMS." . uc($dynamic_params{$param}[0]) . "." . uc($param) . " \"" . $dynamic_params{$param}[3] . "\";\n";
+        }
+    }
+
+    close(PARAM);
+
+    my $scons = Leap::Util::path_append($builddir, "iface", "SConstruct");
+    Leap::Templates::do_replacements($template, $scons, $replacements_r);
+}
+
+############################################################
+# make_dictionary: Build the dictionary in a separate tree
+#
+sub make_dictionary {
+    my $model = shift;
+    my $dir = shift;
+    my $replacements_r = shift;
+
+    # gather other info recursively
+    __make_dictionary($model->modelroot(), $dir, $replacements_r);
+}
+
+############################################################
+# __make_dictionary: recursively build dictionary links
+#
+sub __make_dictionary {
+    my $module = shift;
+    my $dir = shift;
+    my $replacements_r = shift;
+
+    my $base_dir = $module->base_dir();
+
+    # Link to dictionaries
+    my @d = $module->sources("DICT", "*");
+    foreach my $f (@d) {
+        my $src = Asim::resolve(Leap::Util::path_append($base_dir,$f));
+
+        if (! -e $src) {
+          Leap::Util::WARN_AND_DIE("Module file $f does not exist in $base_dir");
+        }
+        
+        # make src relative
+        my $relsrc = File::Spec->abs2rel($src, $dir);
+        $status = system("ln -f -s $relsrc $dir");
+
+        # Add to list of sources
+        Leap::Util::hash_append($replacements_r, " ", '@DICT_SRCS@', "src/dict/$f");
+    }
+
+    # recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+	__make_dictionary($child, $dir, $replacements_r);
+    }
+}
+
+############################################################
+# make_master_rrr_file: Make master list of RRR services
+sub make_rrr {
+    my $model = shift;
+    my $dir = shift;
+    my $replacements_r = shift;
+
+    __make_rrr($model->modelroot(), $dir, "src/rrr", $replacements_r);
+}
+
+############################################################
+# __get_rrr_files: Recursively get list of RRR files
+sub __make_rrr {
+    my $module = shift;
+    my $parent_dir = shift;
+    my $rel_dir = shift;
+    my $replacements_r = shift;
+
+    my $my_dir = Leap::Build::get_module_build_dir($module, $parent_dir);
+    my $base_dir = $module->base_dir();
+
+    $rel_dir = Leap::Build::get_module_build_dir($module, $rel_dir);
+
+    # Link to dictionaries
+    my @d = $module->sources("RRR", "*");
+    foreach my $f (@d) {
+        my $src = Asim::resolve(Leap::Util::path_append($base_dir, $f));
+
+        if (! -e $src) {
+          Leap::Util::WARN_AND_DIE("Module file $f does not exist in $base_dir");
+        }
+        
+        # make src relative
+        my $relsrc = File::Spec->abs2rel($src, $my_dir);
+        system("mkdir -p $my_dir");
+        system("ln -f -s $relsrc $my_dir");
+
+        # Add to list of sources
+        Leap::Util::hash_append($replacements_r, " ", '@RRR_SRCS@', "$rel_dir/$f");
+    }
+
+    # recurse
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+        __make_rrr($child, $my_dir, $rel_dir, $replacements_r);
+    }
+}

@@ -1,0 +1,19 @@
+
+[Global]
+SaveParameters=0
+Description=Leap Hardware-Only Null Controller
+File=hardware_null_controller
+Version=2.1
+Name=Leap Hardware-Only Null Controller
+Type=Leap
+Class=Asim::Model
+
+[Model]
+DefaultAttributes=hasim
+model=Hardware-Only Null Controller
+
+[Hardware-Only Null Controller]
+File=modules/hasim/controller/controller-null-hardware-only.awb
+Packagehint=hasim
+
+

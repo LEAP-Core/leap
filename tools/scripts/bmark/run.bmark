@@ -1,0 +1,541 @@
+#!/usr/bin/env perl
+# -*- perl -*-
+
+use strict;
+use warnings;
+use Getopt::Long qw(:config no_auto_abbrev no_ignore_case pass_through);
+use IO::Pty;
+
+#
+# Turn on warnings
+#
+$^W = 1;
+
+##
+## Benchmark run script
+##
+
+sub ExecModel($);
+sub Exec($$);
+sub CompareOutput();
+sub ReadConfig($$);
+
+
+#############################################################################
+#############################################################################
+##
+## Start by figuring out the model location and type.
+##
+#############################################################################
+#############################################################################
+
+my %config;
+
+ReadConfig("config/env.sh", 1);
+ReadConfig("$config{modelDir}/config/env.sh", 1);
+ReadConfig("$config{modelDir}/config/signature.sh", 0);
+
+##
+## Pseudo-enumeration of possible model types
+##
+my $MODEL_NONE = 0;
+my $MODEL_FPGA = 1;                     # Model runs on FPGA hardware
+my $MODEL_BLUESIM = 2;                  # Bluesim
+my $MODEL_VSIM = 3;                     # Verilog simulator
+
+my $mType = $MODEL_NONE;
+
+
+#############################################################################
+#############################################################################
+##
+## Process command line arguments
+##
+#############################################################################
+#############################################################################
+
+my $help = 0;
+my $onlyCompare = 0;
+my $noCompare = 0;
+my $forceLoad = 0;
+my $gdb = 0;
+my $noProgram = 0;
+my $noReserve = 0;
+my $funcpPrefix = "";
+my $funcpSuffix = "";
+my $noshowfp = 0;
+my $printCycle = undef;
+my $showfp = undef;
+my $bluesimCmd = undef;
+my $vcdStart = undef;
+my $vcdCycles = 20000;
+my $m5run = 0;
+
+my $status = GetOptions("help!" => \$help,
+                        "gdb!" => \$gdb,
+                        "noprogram!" => \$noProgram,
+                        "noreserve!" => \$noReserve,
+                        "force-load!" => \$forceLoad,
+                        "funcp-prefix=s" => \$funcpPrefix,
+                        "funcp-suffix=s" => \$funcpSuffix,
+                        "noshowfp!" => \$noshowfp,
+                        "onlycompare!" => \$onlyCompare,
+                        "nocompare!" => \$noCompare,
+                        "pc=s" => \$printCycle,
+                        "showfp:s" => \$showfp,
+                        "bluesim=s" => \$bluesimCmd,
+                        "vcdstart=i" => \$vcdStart,
+                        "vcdcycles=i" => \$vcdCycles,
+                        "m5!" => \$m5run,
+                       );
+
+# Put quotation marks back on arguments that have spaces since they will be
+# passed through a shell once more.
+foreach my $i ( 0 .. $#ARGV ) {
+    if (($ARGV[$i] =~ /\s/) && ! ($ARGV[$i] =~ /['"]$/)) {
+        $ARGV[$i] = '"' . $ARGV[$i] . '"';
+    }
+}
+
+if ($onlyCompare != 0) {
+    exit(CompareOutput());
+}
+
+if ($m5run != 0) {
+    $mType = $MODEL_NONE;
+}
+elsif (-f "$config{modelDir}/$config{model}_hw.errinfo") {
+    $mType = $MODEL_FPGA;
+}
+elsif (-f "$config{modelDir}/$config{model}_hw.exe") {
+    $mType = $MODEL_BLUESIM;
+}
+elsif (-f "$config{modelDir}/$config{model}_hw.vexe") {
+    $mType = $MODEL_VSIM;
+}
+else {
+    die("Can't determine model type");
+}
+
+if ($help || ! $status) {
+    print STDERR "\nArguments:\n";
+    print STDERR "   [--gdb]                 Invokes the software side in gdb\n";
+    print STDERR "   [--noprogram]           Skips the FPGA load and reservation steps\n";
+    print STDERR "   [--noreserve]           Skips the FPGA reservation steps\n";
+    print STDERR "   [--funcp-prefix=\"<prefix>\"]\n";
+    print STDERR "                           Prepend prefix to HAsim's --funcp argument\n";
+    print STDERR "   [--funcp-suffix=\"<suffix>\"]\n";
+    print STDERR "                           Append suffix to HAsim's --funcp argument\n";
+    print STDERR "   [--onlycompare]         Only compare output files (without running)\n";
+    print STDERR "   [--nocompare]           Skip comparison of output files\n";
+    print STDERR "   [--m5]                  Run workload in m5 without HAsim\n";
+
+    if ($mType == $MODEL_FPGA) {
+        print STDERR "   [--force-load]          Load a bitfile to the FPGA even if it has errors\n";
+    }
+
+    if ($mType == $MODEL_BLUESIM) {
+        print STDERR "   [--vcdstart=<cycle>]    Generate VCD dump for wave viewer (e.g. gtkwave)\n";
+        print STDERR "   [--vcdcycles=<cycles>]  VCD dump length (default = 20000)\n";
+    }
+
+    if ($config{isHybridModel}) {
+        my $cmd = "$config{modelDir}/$config{model} --help-run-append";
+        system($cmd);
+    }
+
+    exit(1);
+}
+
+#############################################################################
+#############################################################################
+##
+## Adjust model arguments
+##
+#############################################################################
+#############################################################################
+
+# Show front panel?
+if ($noshowfp) {
+    $showfp = '';
+}
+elsif (defined($showfp)) {
+    # Specified on the run command line
+    $showfp = '--showfp=gui' if ($showfp eq '');
+}
+elsif ($config{feeder} eq 'none') {
+    # For null feeder default to showing LEDs on stdout
+    $showfp = '';
+}
+else {
+    # Other models have heartbeats
+    $showfp = '';
+}
+
+my $feedFlags = "${funcpPrefix} $config{feedFlags} ${funcpSuffix}";
+
+if ($config{feeder} eq 'm5') {
+    # Tell m5 to be quiet and not to enable the remote gdb port.  Under netbatch
+    # it appears there are sometimes attempts to connect to the port, which
+    # stops simulation.
+    $feedFlags = "--quiet --remote-gdb-port=0 ${feedFlags}";
+}
+
+my $ctxFlag = "";
+if (defined($config{workloadContexts})) {
+    $ctxFlag = "--workload-contexts=$config{workloadContexts}";
+}
+
+my $cmd;
+
+if ($m5run == 0) {
+    # Normal run
+    $cmd = "$config{modelDir}/$config{model} --modeldir=$config{modelDir} --workload=$config{workload} ${showfp} --funcp=\"${feedFlags}\" $config{genFlags} ${ctxFlag}";
+    foreach my $c (@ARGV) {
+        $cmd .= " $c";
+    }
+
+    if (defined($printCycle)) {
+        $cmd .= " --pc=${printCycle}";
+    }
+}
+else {
+    if ($config{feeder} ne 'm5') {
+        die("This workload does not use m5");
+    }
+
+    # Running inside m5 without HAsim
+    my $m5cmd;
+    if (exists($ENV{M5BIN})) {
+        $m5cmd = $ENV{M5BIN};
+    }
+    else {
+        my $m5bin = "platform/m5/build/ALPHA_SE/m5." . ($gdb ? "debug" : "opt");
+        $m5cmd = `awb-resolver ${m5bin}`;
+        chomp($m5cmd);
+        die("Failed to find $m5bin") if ($m5cmd eq '');
+    }
+
+    $cmd = "${m5cmd} ${feedFlags}";
+
+    # Drop --hasim-sim
+    $cmd =~ s/--hasim-sim //;
+    # Drop escaping of quotes
+    $cmd =~ s/\\"/"/g;
+
+    $noProgram = 1;
+}
+
+#
+# Bluesim arguments
+#
+
+# Generate dump.vcd for wave viewer (e.g. gtkwave)?
+if (defined($vcdStart)) {
+    my $vcdCmd = "sim vcd on; sim step $vcdCycles; sim stop";
+    if ($vcdStart > 0) {
+        $vcdCmd = "sim step ${vcdStart}; ${vcdCmd}";
+    }
+
+    if (defined($bluesimCmd)) {
+        $bluesimCmd .= " ";
+    }
+    else {
+        $bluesimCmd = "";
+    }
+    $bluesimCmd .= "-c \"$vcdCmd\"";
+}
+
+if (defined($bluesimCmd)) {
+    $cmd .= " --bluesim=\'$bluesimCmd\'";
+}
+
+# Adjust the arguments for Bluesim if it is being invoked directly
+if (! $config{isHybridModel} && ($mType == $MODEL_BLUESIM)) {
+    $cmd =~ s/\s--/ +--/g;
+
+    # Bluesim may expect to load a program from a well known file
+    unlink('program.vmh');
+    link("program/$config{workload}.$config{ISA}.vmh", 'program.vmh');
+}
+
+
+#############################################################################
+#############################################################################
+##
+## Load the FPGA and run the model
+##
+#############################################################################
+#############################################################################
+
+#
+# Move old stats file so we are sure statistics come from this run
+#
+if (-f "$config{workload}.stats") {
+    rename("$config{workload}.stats", "$config{workload}.stats.old");
+}
+
+if ($mType == $MODEL_FPGA) {
+    if (! defined($printCycle)) {
+        # User didn't specify a cycle printing interval.  Pick one more reasonable
+        # for HW.
+        if ($config{workload} ne "null") {
+            ## FIXME:  Not all models support --pc.
+            $cmd .= " --pc=10000000";
+        }
+    }
+
+    # Load FPGA
+    $ENV{FPGA_BIT_FILE} = "$config{modelDir}/.xilinx/$config{model}_par.bit";
+
+    if (! $noProgram) {
+        if (! $forceLoad && -s "$config{modelDir}/$config{model}_hw.errinfo") {
+            print STDERR "FPGA bit file has errors:\n\n";
+            system("cat $config{modelDir}/$config{model}_hw.errinfo > /dev/stderr");
+            print STDERR "\nUse --force-load to ignore the error.\n";
+            exit(1);
+        }
+
+        if (! $noReserve) {
+            Exec("hasim-fpga-ctrl --reserve", "Failed to reserve FPGA");
+        }
+
+        # Does a download script exist to program the FPGA?
+        my $needProgram = (-f "$config{modelDir}/config/$config{model}.download");
+
+        # Is the FPGA already programmed with the correct bit file?
+        if (exists($config{signature})) {
+            my $curSignature = `hasim-fpga-ctrl --getsignature`;
+            chomp($curSignature);
+            if ($curSignature eq $config{signature}) {
+                print "FPGA is already programmed (signature match)...\n";
+                $needProgram = 0;
+            }
+        }
+
+        if ($needProgram) {
+            Exec("hasim-fpga-ctrl --program", "Failed to enter FPGA programming mode");
+            my $dir = `pwd`;
+            chomp($dir);
+            Exec("(cd $config{modelDir}; ./config/$config{model}.download ${dir}/FPGA_programming.log)", "Failed to program FPGA");
+            if (exists($config{signature})) {
+                Exec("hasim-fpga-ctrl --setsignature=$config{signature}", "Failed to set FPGA bit image signature");
+            }
+        }
+
+        Exec("hasim-fpga-ctrl --activate", "Failed to activate FPGA or driver");
+    }
+}
+
+# Run the software side or a hardware simulator
+my $run_status = 0;
+if ($config{isHybridModel} || ($mType != $MODEL_FPGA)) {
+    $run_status = ExecModel($cmd);
+}
+
+# Create a stats file for null workloads to make regression.launcher happy (HACK)
+if ( $config{workload} eq "null" ) {
+  system("touch null.stats");
+}
+
+if (-f "hasim_events.out") {
+    system("sort hasim_events.out -o hasim_events.out.$$; mv -f hasim_events.out.$$ hasim_events.out");
+}
+if (-f "$config{workload}.stats") {
+    system("sort $config{workload}.stats -o $config{workload}.stats.$$; mv -f $config{workload}.stats.$$ $config{workload}.stats");
+}
+
+if (($mType == $MODEL_FPGA) && ! $noProgram && ! $noReserve) {
+    Exec("hasim-fpga-ctrl --drop-reservation", "Failed to drop FPGA reservation");
+}
+
+if ($run_status != 0) {
+    exit($run_status);
+}
+else {
+    exit(CompareOutput());
+}
+
+
+sub ErrorExit($) {
+    my $msg = shift;
+
+    print STDERR "${msg}\n";
+
+    if (($mType == $MODEL_FPGA) && ! $noProgram && ! $noReserve) {
+        system("hasim-fpga-ctrl --drop-reservation");
+    }
+
+    exit(1);
+}
+
+
+##
+## ExecModel --
+##   This is the routine that actually invokes the model.  stdout and stderr
+##   are logged in a file.  The return value is the exit status of the model.
+##
+sub ExecModel($) {
+    my $cmd = shift;
+
+    if ($gdb) {
+        ## gdb needs stdin.  Just use system() and don't do logging.
+        system("gdb -args " . $cmd);
+        return 0;
+    }
+
+    ##
+    ## Invoke the model, but log its output both to stdout and to a file.
+    ## Use a pty so the invoked program will use line buffering instead
+    ## of fully buffered writes.  (Libc sets up stdout line buffered when
+    ## it thinks it is writing to a terminal.  It uses fully buffered
+    ## writing to a pipe.)
+    ##
+
+    my $pty = new IO::Pty;
+    my $slave = $pty->slave();
+
+    my $pid = fork();
+    die "Couldn't fork: $!" unless defined $pid;
+
+    if (! $pid) {
+        # Child process is the monitoring process
+        $pty->make_slave_controlling_terminal();
+
+        if (! open(LOG, ">$config{workload}.$config{ISA}.out")) {
+            print STDERR "Error opening log file $config{workload}.$config{ISA}.out\n";
+        }
+
+        # Unbuffered I/O loop
+        while (1) {
+            my $buf;
+            my $n = sysread($slave, $buf, 4096);
+
+            last if ($n == 0);
+
+            syswrite(STDOUT, $buf);
+            syswrite(LOG, $buf);
+        }
+
+        close(LOG);
+        exit(0);
+    }
+
+    # Bind new PTY to STDOUT (but save old STDOUT)
+    $pty->close_slave();
+    open(my $oldOut, ">&", STDOUT) or die $!;
+    open(STDOUT, ">&", $pty) or die $!;
+
+    # Run model
+    my $result = system("${cmd} 2>&1");
+
+    # Send ^d to end child logging thread
+    print "\cD";
+
+    # Return to normal STDOUT
+    close(STDOUT);
+    open(STDOUT, ">&", $oldOut) or die $!;
+    close($oldOut);
+
+    # Compute exit status of model
+    my $status = 0;
+    if ($result == -1) {
+        print STDERR "Model execution failed\n";
+        $status = 1;
+    }
+    elsif ($result & 127) {
+        print STDERR "Child died with signal " . ($result & 127) . ", " . (($result & 128) ? 'with' : 'without') . " coredump\n";
+        $status = 1;
+    }
+    elsif (($result >> 8) != 0) {
+        $status = $result >> 8;
+        print "Model exited with status $status\n";
+    }
+
+    return $status;
+}
+
+
+sub Exec($$) {
+    my $cmd = shift;
+    my $errmsg = shift;
+    
+    system($cmd);
+    if ($? == -1) {
+        ErrorExit("Failed to execute $cmd: $!");
+    }
+    elsif ($? & 127) {
+        ErrorExit("Child died with signal " . ($? & 127) . ", " . (($? & 128) ? 'with' : 'without') . " coredump");
+    }
+    elsif (($? >> 8) != 0) {
+        ErrorExit("${errmsg}");
+    }
+}
+
+
+sub CompareOutput() {
+    return 0 if ($noCompare != 0);
+    return 0 if (! exists($config{compare}) || ($config{compare} eq ''));
+
+    my $result = 0;
+
+    # For now assume each context runs the same workload
+    my $ctx = 0;
+    while ($ctx < $config{workloadContexts}) {
+        foreach my $cmp (split(':', $config{compare})) {
+            system("cd program.${ctx}; $cmp");
+            if ($? == -1) {
+                ErrorExit("Failed to execute $cmp: $!");
+            }
+            elsif ($? & 127) {
+                ErrorExit("Child died with signal " . ($? & 127) . ", " . (($? & 128) ? 'with' : 'without') . " coredump");
+            }
+            elsif (($? >> 8) != 0) {
+                $result = $? >> 8;
+            }
+        }
+
+        $ctx += 1;
+    }
+
+    if ($result == 0) {
+        print "*** Output comparison passed ***\n";
+    }
+    else {
+        print "*** Output comparison failed ***\n";
+    }
+
+    return $result;
+}
+
+
+#
+# Read the configuration file
+#
+sub ReadConfig($$) {
+    my $conf = shift;
+    my $required = shift;
+
+    my $status = open(CONFIG, "< $conf");
+    if (! $status) {
+        return if (! $required);
+        die("Failed to open $conf");
+    }
+
+    while (<CONFIG>) {
+        chomp;
+        my $t = $_;
+        $t =~ s/#.*//;
+        if ($t =~ /^\s*([^\s]+)\s*=\s*"(.*)"\s*$/) {
+            my $c = $1;
+            my $v = $2;
+            $v =~ s/^["'](.*)["']$/$1/;         # Drop quotation marks
+            $config{$c} = $v;
+        }
+        elsif ($t =~ /^\s*([^\s]+)\s*=\s*([^\s]+)\s*$/) {
+            my $c = $1;
+            my $v = $2;
+            $config{$c} = $v;
+        }
+    }
+}
