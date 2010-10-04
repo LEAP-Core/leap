@@ -1209,3 +1209,18 @@ changes in the Leap package. Soon, however, use of the HAsim package
 without the Leap package will be deprecated as new functionality 
 will only be added to the Leap tools and eventually redundant files
 in the HAsim package will be deleted. 
+
+----------
+jsemer      Date: Mon Oct  4 15:36:10 EDT 2010  CSN: CSN-leap-3
+                  Mon Oct  4 19:36:10 UTC 2010
+
+
+Directory modules/model
+ Makefile.sub.template     Locally Modified            2 
+ SCons.dict.template       Locally Modified            2 
+ SCons.top.template        Locally Modified            2 
+ SCons.iface.template      Locally Modified            2 
+ Makefile.include.template Locally Modified            2 
+ SCons.hw.template         Locally Modified            2 
+
+Switch hardwired commands from hasim-* to leap-*

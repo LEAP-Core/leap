@@ -45,7 +45,7 @@ $(FULL_DIR)/$(TMP_BSC_DIR)/build.done: $(FULL_DIR)/$(TMP_BSC_DIR)/$(WRAPPER).bi
 
 ##
 ## This rule for building a module with Bluespec is complicated only because
-## the .bsv file may not be in the local directory.  hasim-bsc-mkdepend leaves
+## the .bsv file may not be in the local directory.  leap-bsc-mkdepend leaves
 ## hints for finding source files in the .depends-bsv file.
 ##
 %.bi:
@@ -65,14 +65,14 @@ $(FULL_DIR)/$(TMP_BSC_DIR)/build.done: $(FULL_DIR)/$(TMP_BSC_DIR)/$(WRAPPER).bi
 
 ##
 ##
-## hasim-bsc-mkdepend generates dependence for .depends-bsv.
+## leap-bsc-mkdepend generates dependence for .depends-bsv.
 ##
 
 Makefile:: .depends-bsv
 
 .depends-bsv: $(GEN_BSVS)
 	@echo "Generating dependencies"
-	@hasim-bsc-mkdepend -bdir $(TMP_BSC_DIR) -derived "$(SURROGATE_BSVS)" -p +:$(ALL_LIB_DIRS) $(WRAPPER_BSVS) > .depends-bsv
+	@leap-bsc-mkdepend -bdir $(TMP_BSC_DIR) -derived "$(SURROGATE_BSVS)" -p +:$(ALL_LIB_DIRS) $(WRAPPER_BSVS) > .depends-bsv
 
 
 -include .depends-bsv

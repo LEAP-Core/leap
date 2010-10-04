@@ -75,8 +75,8 @@ def dict_emitter(target, source, env):
     src_names = ''
     for s in source:
         src_names += ' ' + str(s)
-    # Ask hasim-dict for the output names based on the input files
-    for d in os.popen('hasim-dict --querymodules' + src_names).readlines():
+    # Ask leap-dict for the output names based on the input files
+    for d in os.popen('leap-dict --querymodules' + src_names).readlines():
         #
         # Querymodules describes both targets and dependence info.  Targets
         # are the first element of each line followed by a colon and a
@@ -106,7 +106,7 @@ def dict_emitter(target, source, env):
     return target, source
 
 # Define the dictionary builder
-d_bld = Builder(action = 'hasim-dict --tgt-inc ' + dict_inc_tgt + ' --tgt-hw ' + hw_tgt + ' $SOURCES',
+d_bld = Builder(action = 'leap-dict --tgt-inc ' + dict_inc_tgt + ' --tgt-hw ' + hw_tgt + ' $SOURCES',
                 emitter = dict_emitter)
 env.Append(BUILDERS = {'DIC' : d_bld})
 
@@ -126,7 +126,7 @@ for rrr in env['DEFS']['RRR_SRCS'].split():
 #  files exist.
 tgt += env.Command(rrr_inc_tgt + '/service_ids.h',
                    env['DEFS']['RRR_SRCS'].split(),
-                   'hasim-rrr-stubgen --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')
+                   'leap-rrr-stubgen --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')
 
 #
 # Compile generated BSV stubs

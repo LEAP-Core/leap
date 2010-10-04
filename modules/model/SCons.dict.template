@@ -24,6 +24,6 @@ if src == []:
     # Nothing to do
     sys.exit(0)
 
-dict = env.Command('dict_init.h', src, 'hasim-dict $SOURCES')
+dict = env.Command('dict_init.h', src, 'leap-dict $SOURCES')
 
 Default(dict)

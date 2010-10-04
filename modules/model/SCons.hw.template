@@ -50,7 +50,7 @@ ROOT_DIR_HW_INC_REL = rebase_directory(ROOT_DIR_HW_INC, CWD_REL)
 DERIVED = ''
 if (SURROGATE_BSVS != ''):
     DERIVED = ' -derived "' + SURROGATE_BSVS + '"'
-s = os.system('hasim-bsc-mkdepend -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC_REL + ':' + ROOT_DIR_HW_INC_REL + '/asim/provides:' + ALL_LIB_DIRS_FROM_CWD + ' ' + WRAPPER_BSVS + ' > .depends-bsv')
+s = os.system('leap-bsc-mkdepend -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC_REL + ':' + ROOT_DIR_HW_INC_REL + '/asim/provides:' + ALL_LIB_DIRS_FROM_CWD + ' ' + WRAPPER_BSVS + ' > .depends-bsv')
 if (s & 0xffff) != 0:
     print 'Aborting due to dependence errors'
     sys.exit(1)
@@ -94,7 +94,7 @@ bsc = Builder(generator = compile_bo, suffix = '.bo', src_suffix = '.bsv',
               emitter = emitter_bo)
 
 # Builder for running just the compiler front end on a wrapper to find
-# the dangling connections.  This will then be passed to hasim-connect
+# the dangling connections.  This will then be passed to leap-connect
 # to determine the required connection array sizes.
 def compile_bsc_log(source, target, env, for_signature):
     ## Note -- we pipe through sed during the build to get rid of an extra
@@ -130,7 +130,7 @@ for bsv in WRAPPER_BSVS.split():
 
     # Parse the log, generate a stub file
     stub_name = bsv.replace('.bsv', '_con_size.bsh')
-    stub = env.Command(stub_name, log, 'hasim-connect --dynsize $SOURCE $TARGET')
+    stub = env.Command(stub_name, log, 'leap-connect --dynsize $SOURCE $TARGET')
 
     ##
     ## Now we are ready for the real build
@@ -167,7 +167,7 @@ for s in SUBDIRS.split():
     # Connection file derived from subdirectory build
     c = env.Command(s + '.bsv',
                     sd,
-                    'hasim-connect ' + APM_FILE + ' $TARGET')
+                    'leap-connect ' + APM_FILE + ' $TARGET')
 
     # Build rule for the connection file
     env.BSC_SUBD(TMP_BSC_DIR + '/' + s + '.bo', c)

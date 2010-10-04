@@ -16,7 +16,7 @@ defs = {
     'BSC'                : '@BSC@',
     'BSC_FLAGS'          : '@BSC_FLAGS@',
     'BUILD_DIR'          : '@BUILD_DIR@',
-    'CONNECTION_SCRIPT'  : 'hasim-connect',
+    'CONNECTION_SCRIPT'  : 'leap-connect',
     'COST_TABLE'         : '@COST_TABLE@',
     'FPGA_PART_XILINX'   : '@FPGA_PART_XILINX@',
     'GIVEN_BMMS'         : '@GIVEN_BMMS@', 
@@ -513,7 +513,7 @@ loader = env.Command(
       Delete(APM_NAME + '_hw.exe'),
       Delete(APM_NAME + '_hw.vexe'),
       '@echo "++++++++++++ Post-Place & Route ++++++++"',
-      '@' + awb_resolver('tools/scripts/hasim-xilinx-summary') + ' ' +
+      '@' + awb_resolver('tools/scripts/leap-xilinx-summary') + ' ' +
           XILINX_APM_NAME + '_map.map ' +
           XILINX_APM_NAME + '_par.par ' +
           APM_NAME + '_hw.errinfo' ])
