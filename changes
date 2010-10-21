@@ -1224,3 +1224,135 @@ Directory modules/model
  SCons.hw.template         Locally Modified            2 
 
 Switch hardwired commands from hasim-* to leap-*
+
+----------
+kfleming    Date: Thu Oct 21 12:08:54 EDT 2010  CSN: CSN-leap-4
+                  Thu Oct 21 16:08:54 UTC 2010
+
+
+Directory modules
+ project/                  Locally Added               0 
+
+Directory modules/project
+ SCons.hw.pipeline.template Locally Added               0 
+ project-pipeline.awb      Locally Added               0 
+ synopsis/                 Locally Added               0 
+
+Directory modules/project/synopsis
+ Synplify.py               Locally Added               0 
+ synplify.sdc              Locally Added               0 
+ synplify.awb              Locally Added               0 
+
+Directory modules/project
+ Utils.py                  Locally Added               0 
+ Makefile.top.template     Locally Added               0 
+ project-hybrid-main.cpp   Locally Added               0 
+ multifpga/                Locally Added               0 
+
+Directory modules/project/multifpga
+ multitest.py              Locally Added               0 
+ connection.py             Locally Added               0 
+ multilex.py               Locally Added               0 
+ platform.py               Locally Added               0 
+ environment.py            Locally Added               0 
+ multiparse.py             Locally Added               0 
+
+Directory modules/project
+ pipelines/                Locally Added               0 
+
+Directory modules/project/pipelines
+ verilog-build-pipeline.awb Locally Added               0 
+ sim-build-pipeline.awb    Locally Added               0 
+ SimulationPipeline.py     Locally Added               0 
+ VerilogPipeline.py        Locally Added               0 
+ fpga-build-pipeline.awb   Locally Added               0 
+ FPGAPipeline.py           Locally Added               0 
+
+Directory modules/project
+ project-hw.awb            Locally Added               0 
+ ProjectDependency.py      Locally Added               0 
+ project-hw-main.bsv       Locally Added               0 
+ project-hybrid.awb        Locally Added               0 
+ SCons.top.pipeline.template Locally Added               0 
+ project-sw-main.h         Locally Added               0 
+ hardware-done.h           Locally Added               0 
+ verilog/                  Locally Added               0 
+
+Directory modules/project/verilog
+ verilog.py                Locally Added               0 
+ VERILOG.PY                Locally Added               0 
+
+Directory modules/project
+ iface/                    Locally Added               0 
+
+Directory modules/project/iface
+ iface.awb                 Locally Added               0 
+ iface.py                  Locally Added               0 
+
+Directory modules/project
+ altera/                   Locally Added               0 
+
+Directory modules/project/altera
+ ALTERA_POST_SYNTH.py      Locally Added               0 
+ altera_post_synth.awb     Locally Added               0 
+
+Directory modules/project
+ ModuleList.py             Locally Added               0 
+ xilinx/                   Locally Added               0 
+
+Directory modules/project/xilinx
+ xilinx_map.awb            Locally Added               0 
+ xilinx_ucf.awb            Locally Added               0 
+ xilinx_par.awb            Locally Added               0 
+ xst.awb                   Locally Added               0 
+ XILINX_LOADER.py          Locally Added               0 
+ XILINX_BITGEN.py          Locally Added               0 
+ xst-nobasicio.awb         Locally Added               0 
+ XILINX_NGD.py             Locally Added               0 
+ XILINX_POST_SYNTH.py      Locally Added               0 
+ XSTnobasicio.py           Locally Added               0 
+ XILINX_BMM.py             Locally Added               0 
+ XILINX_UCF.py             Locally Added               0 
+ XILINX_MAP.py             Locally Added               0 
+ XILINX_PAR.py             Locally Added               0 
+ XST.py                    Locally Added               0 
+ xilinx_loader.awb         Locally Added               0 
+ xilinx_ngd.awb            Locally Added               0 
+ xilinx_bitgen.awb         Locally Added               0 
+ xilinx_post_synth.awb     Locally Added               0 
+ xilinx_bmm.awb            Locally Added               0 
+
+Directory modules/project
+ SCons.hw.template         Locally Added               0 
+ Module.py                 Locally Added               0 
+ SCons.dict.template       Locally Added               0 
+ SCons.sw.template         Locally Added               0 
+ software/                 Locally Added               0 
+
+Directory modules/project/software
+ software.py               Locally Added               0 
+ software.awb              Locally Added               0 
+
+Directory modules/project
+ SCons.sw.pipeline.template Locally Added               0 
+ project-hybrid-main.h     Locally Added               0 
+ project-sw-main.cpp       Locally Added               0 
+ SCons.top.template        Locally Added               0 
+ project-hybrid-main.bsv   Locally Added               0 
+ bluespec/                 Locally Added               0 
+
+Directory modules/project/bluespec
+ bsv-exe.awb               Locally Added               0 
+ BSV.py                    Locally Added               0 
+ bsv.awb                   Locally Added               0 
+ bluesim.py                Locally Added               0 
+ MCD.py                    Locally Added               0 
+ mcd.awb                   Locally Added               0 
+
+Directory modules/project
+ SCons.iface.template      Locally Added               0 
+ project-sw.awb            Locally Added               0 
+ CommandLine.py            Locally Added               0 
+
+
+Migrated various build scripts to leap.  
