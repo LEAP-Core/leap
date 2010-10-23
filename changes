@@ -1442,3 +1442,46 @@ Migration from hasim of commits r828,831 by kfleming
 
 Added a basic test case for XUPV5 JTAG platform and
 converted to use pcie channel.
+
+----------
+joel        Date: Sat Oct 23 14:57:02 EDT 2010  CSN: CSN-leap-7
+                  Sat Oct 23 18:57:02 UTC 2010
+
+
+Directory libperl/Leap/lib/Leap
+ Build.pm                  Locally Modified            6 
+
+Directory tools/scripts
+ leap-configure            Locally Modified            6 
+ leap-connect              Locally Modified            6 
+ leap-gen-black-box        Locally Modified            6 
+ leap-bsc-mkdepend         Locally Modified            6 
+
+Directory modules/bluespec/common/soft_connections/soft-service
+ connection-matching.bsv   Locally Modified            6 
+ connected-common.bsv      Locally Modified            6 
+ bury-connections.bsv      Locally Modified            6 
+
+Directory modules/bluespec/common/soft_connections/soft-service/alg
+ connect_multicasts.bsv    Locally Modified            6 
+ connect_top_level.bsv     Locally Modified            6 
+ expose_connections.bsv    Locally Modified            6 
+
+Directory modules/bluespec/common/soft_connections/soft-service
+ connection-helper.bsv     Locally Modified            6 
+ connection-context.bsv    Locally Modified            6 
+ connections.bsv           Locally Modified            6 
+
+Migration from hasim of r831 by kfleming
+
+Two sets of modifications - some inexorable groundwork for multifpga
+builds (in the sense that I couldn't unedit the files).  However,
+these changes are ignored by downstream tools, and do not affect code
+paths using the non-pipelined build.  There are some minor changes to
+the hasim scripts.  Most of these are generalizations of code which
+broke once I started building things from the root of the source tree,
+as opposed to intervening nodes.  I also add an option for inserting a
+hash into the generated verilog stub files.  This prevents unecessary
+rebuilds when the corresponding wrappers change, but do not modify
+thier interface.
+
