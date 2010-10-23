@@ -1356,3 +1356,76 @@ Directory modules/project
 
 
 Migrated various build scripts to leap.  
+
+----------
+joel        Date: Sat Oct 23 14:42:18 EDT 2010  CSN: CSN-leap-5
+                  Sat Oct 23 18:42:18 UTC 2010
+
+
+Directory config/pm/leap/demos/test
+ clock_test/               Locally Added               0 
+
+Directory config/pm/leap/demos/test/clock_test
+ clock_test_mem_exe.apm    Locally Added               0 
+ clock_test_exe.apm        Locally Added               0 
+ clock_test_mem_acp.apm    Locally Added               0 
+ clock_test_acp.apm        Locally Added               0 
+ clock_test_mem_synth_exe.apm Locally Added               0 
+ clock_test_mem_synth_acp.apm Locally Added               0 
+ clock_test_synth_exe.apm  Locally Added               0 
+ clock_test_synth_acp.apm  Locally Added               0 
+
+Directory modules/hasim/util/platform-services
+ platform-services-null.bsv Locally Modified            4 
+
+Directory modules/bluespec/common/soft_connections/soft-service/alg
+ expose_connections.bsv    Locally Modified            4 
+
+Directory modules/system/test
+ clock_test/               Locally Added               0 
+
+Directory modules/system/test/clock_test
+ clock.rrr                 Locally Added               0 
+ clock_test.h              Locally Added               0 
+ clock_function_pipeline/  Locally Added               0 
+
+Directory modules/system/test/clock_test/clock_function_pipeline
+ PipelineMem.dic           Locally Added               0 
+ synth_pipeline/           Locally Added               0 
+
+Directory modules/system/test/clock_test/clock_function_pipeline/synth_pipeline
+ PipelineMem.dic           Locally Added               0 
+ stage1_mem.awb            Locally Added               0 
+ stage1_mem.bsv            Locally Added               0 
+ stage1.awb                Locally Added               0 
+ pipeline.awb              Locally Added               0 
+ stage1.bsv                Locally Added               0 
+ stage2.awb                Locally Added               0 
+ pipeline.bsv              Locally Added               0 
+ stage2.bsv                Locally Added               0 
+
+Directory modules/system/test/clock_test/clock_function_pipeline
+ pipeline_mem.awb          Locally Added               0 
+ pipeline_mem.bsv          Locally Added               0 
+ pipeline.awb              Locally Added               0 
+ pipeline.bsv              Locally Added               0 
+
+Directory modules/system/test/clock_test
+ clock_test_system.awb     Locally Added               0 
+ clock_test.cpp            Locally Added               0 
+ System.bsv                Locally Added               0 
+
+Migration of hasim commits 826,829,830 by kfleming
+
+Added a more general test for MCD designs on a variety of platforms
+
+A few minor changes:
+
+  1) Added MCD testbench involving a scratchpad
+  2) Filled in MCD struct, silencing some (but not all) MCD-related warnings
+  3) Added RRR instantiation to Null Services 
+       I believe that this is what was meant in the code 
+       (given that it already included rrr.bsh)
+ 
+
+
