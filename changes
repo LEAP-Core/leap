@@ -1505,3 +1505,15 @@ Directory config/pm/leap/demos/hello
  hello_hybrid_xupV5.apm    Locally Modified            7 
 
 Convert model types from HAsim to Leap.
+
+----------
+joel        Date: Sat Oct 23 16:43:44 EDT 2010  CSN: CSN-leap-9
+                  Sat Oct 23 20:43:44 UTC 2010
+
+
+Directory config/pm/hasim/submodels/common
+ hasim_common.apm          Locally Removed             8 
+ hasim-model-services.apm  Locally Removed             8 
+
+Remove hasim-only submodels erroneously included in
+the leap package.
