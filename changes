@@ -1485,3 +1485,23 @@ hash into the generated verilog stub files.  This prevents unecessary
 rebuilds when the corresponding wrappers change, but do not modify
 thier interface.
 
+
+----------
+joel        Date: Sat Oct 23 15:01:17 EDT 2010  CSN: CSN-leap-8
+                  Sat Oct 23 19:01:17 UTC 2010
+
+
+Directory config/pm/leap/demos/test/clock_test
+ clock_test_mem_exe.apm    Locally Modified            7 
+ clock_test_exe.apm        Locally Modified            7 
+ clock_test_mem_acp.apm    Locally Modified            7 
+ clock_test_acp.apm        Locally Modified            7 
+ clock_test_mem_synth_exe.apm Locally Modified            7 
+ clock_test_mem_synth_acp.apm Locally Modified            7 
+ clock_test_synth_exe.apm  Locally Modified            7 
+ clock_test_synth_acp.apm  Locally Modified            7 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_xupV5.apm    Locally Modified            7 
+
+Convert model types from HAsim to Leap.

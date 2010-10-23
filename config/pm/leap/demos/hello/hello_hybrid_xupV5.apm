@@ -6,7 +6,7 @@ File=hello_hybrid_xupV5
 Version=2.1
 Name=Hello World for XUP v5 JTAG
 DefaultBenchmark=config/bm/bluespec/demos.cfx/benchmarks/null.cfg
-Type=HAsim
+Type=Leap
 Class=Asim::Model
 DefaultRunOpts=
 

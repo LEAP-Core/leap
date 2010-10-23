@@ -6,7 +6,7 @@ File=clock_test_synth_acp
 Version=2.1
 Name=Clock Test with Scratchpad
 DefaultBenchmark=config/bm/bluespec/demos.cfx/benchmarks/null.cfg
-Type=HAsim
+Type=Leap
 Class=Asim::Model
 DefaultRunOpts=
 
