@@ -1517,3 +1517,20 @@ Directory config/pm/hasim/submodels/common
 
 Remove hasim-only submodels erroneously included in
 the leap package.
+
+----------
+kfleming    Date: Sun Oct 24 16:00:38 PDT 2010  CSN: CSN-leap-10
+                  Sun Oct 24 23:00:38 UTC 2010
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified            9 
+
+Directory modules/project/xilinx
+ xilinx_map.awb            Locally Modified            9 
+ XILINX_MAP.py             Locally Modified            9 
+
+
+
+Added parameters/include for python files. Changed the map tool to be aware of this functionality.
+

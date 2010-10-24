@@ -20,7 +20,7 @@ class MAP():
         SCons.Script.Delete(xilinx_apm_name + '_map.ncd'),
         SCons.Script.Delete(xilinx_apm_name + '_map.ngm'),
         SCons.Script.Delete(xilinx_apm_name + '_map.psr'),
-        'map -cm balanced -timing ' + moduleList.smartguide + ' -t ' + moduleList.env['DEFS']['COST_TABLE'] + ' ' +  moduleList.env['DEFS']['MAP_OPTIONS'] + ' -logic_opt on -ol high -register_duplication -retiming on -pr b -c 100 -p ' + fpga_part_xilinx + ' -o $TARGET $SOURCE ' + xilinx_apm_name + '.pcf' ])
+        'map -cm balanced -timing ' + moduleList.smartguide + ' -t ' + moduleList.env['DEFS']['COST_TABLE'] + ' ' + MAPPER_OPTIONS + ' -logic_opt on -ol high -register_duplication -retiming on -pr b -c 100 -p ' + fpga_part_xilinx + ' -o $TARGET $SOURCE ' + xilinx_apm_name + '.pcf' ])
 
     SCons.Script.Clean(xilinx_map, moduleList.compileDirectory + '/xilinx_device_details.xml')
 

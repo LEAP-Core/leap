@@ -1175,6 +1175,19 @@ sub __generate_build_libraries {
             `ln -fs $library $buildpath`;
         }
 
+        # dump out python parameters
+        my @parameters = $module->parameters();
+
+        foreach my $p (@parameters) {
+	    my $pname = $p->name();
+	    my $pvalue = $p->value();
+
+	    if ($pname ne "SYNTH_BOUNDARY") {  
+		print INIT "$pname = $pvalue\n";
+	    }
+	}
+
+        
         close(INIT);
     }
 
