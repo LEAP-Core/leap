@@ -3,7 +3,7 @@ SUBDIRS = libperl tools
 #
 # we have non-standard install sub-targets
 #
-.phony: doc install-exec-hook install-release install-bin install-src
+.phony: doc install-exec-hook install-release install-bin install-package install-src
 
 doc:
 	cd docs; make
@@ -24,6 +24,20 @@ install-src-public: install-src
 	chmod -R o+r $(DESTDIR)$(codedir)
 	find         $(DESTDIR)$(codedir) -type d -exec chmod o+x {} \;
 
+
+#
+# This horrible sequence copies just the modules and other files needed to build 
+# models to $(codedir)
+# It also removes the .svn subdirectories in the installed tree.
+#
+install-package:
+	@rm -rf  $(DESTDIR)$(codedir)
+	$(mkinstalldirs)  $(DESTDIR)$(codedir)
+	rsync -av --exclude .svn admin        $(DESTDIR)$(codedir)
+	rsync -av --exclude .svn base         $(DESTDIR)$(codedir)
+	rsync -av --exclude .svn config       $(DESTDIR)$(codedir)
+	rsync -av --exclude .svn experiments  $(DESTDIR)$(codedir)
+	rsync -av --exclude .svn modules      $(DESTDIR)$(codedir)
 
 #
 # This horrible sequence copies the source to $(codedir) and

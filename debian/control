@@ -1,0 +1,13 @@
+Source: leap
+Section: devel
+Priority: optional
+Maintainer: Joel Emer <emer@csail.mit.edu>
+Build-Depends: debhelper (>= 7), autotools-dev, libqt-perl, libqt3-mt-dev
+Standards-Version: 3.7.2
+
+Package: leap
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, asim-core, asim-core-dev, awb, libqt-perl
+Description: AWB-based environment for Leap (leap)
+ AWB modules for the logic-based environment for application programmaing (leap)
+

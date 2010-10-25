@@ -1534,3 +1534,38 @@ Directory modules/project/xilinx
 
 Added parameters/include for python files. Changed the map tool to be aware of this functionality.
 
+
+----------
+jsemer      Date: Mon Oct 25 10:00:22 EDT 2010  CSN: CSN-leap-11
+                  Mon Oct 25 14:00:22 UTC 2010
+
+
+Directory debian
+ control                   Locally Added               0 
+ leap.dirs                 Locally Added               0 
+ compat                    Locally Added               0 
+ leap.postinst             Locally Added               0 
+ leap.preinst              Locally Added               0 
+ leap.postrm               Locally Added               0 
+ leap.prerm                Locally Added               0 
+ changelog                 Locally Added               0 
+ leap.docs                 Locally Added               0 
+ copyright                 Locally Added               0 
+ rules                     Locally Added               0 
+ README.Debian             Locally Added               0 
+
+Directory .
+ debian/                   Locally Added               0 
+ Makefile.in               Locally Modified           10 
+ README                    Locally Added               0 
+
+Directory tools/scripts
+ Makefile.in               Locally Modified           10 
+ Makefile.am               Locally Modified           10 
+
+Directory .
+ INSTALL                   Locally Added               0 
+ Makefile.am               Locally Modified           10 
+ ./                        Locally Modified           10 
+
+Initial support for debian-style install of leap package.

@@ -1,0 +1,13 @@
+usr/bin
+usr/lib
+usr/lib/perl
+usr/libexec
+usr/libexec/asim
+usr/man
+usr/man/man3
+usr/sbin
+usr/share
+usr/share/asim
+usr/share/asim/leap
+usr/share/asim/leap/HEAD
+usr/share/perl
