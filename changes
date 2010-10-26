@@ -1569,3 +1569,21 @@ Directory .
  ./                        Locally Modified           10 
 
 Initial support for debian-style install of leap package.
+
+----------
+kfleming    Date: Tue Oct 26 16:08:44 EDT 2010  CSN: CSN-leap-12
+                  Tue Oct 26 20:08:44 UTC 2010
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified           11 
+
+Directory modules/project/xilinx
+ XILINX_MAP.py             Locally Modified           11 
+
+
+Fixed bug in python includes - python __init__ is only viewable by
+modules outside a package. This meant that the parameters of a package
+were visible everywhere _except_ in the package.  We now generate a
+config.py, the zen of python recommended practice.  I think it's ugly,
+but it's workable.

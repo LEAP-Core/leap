@@ -1160,11 +1160,14 @@ sub __generate_build_libraries {
          #need to have __init__.py in the directory
          #this must define the __all__ variable
          open(INIT,"> " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py"));
+         open(CONFIG,"> " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/config.py"));
          if ($sys_status) {
             print "Could not create " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py") . "\n";
             return 0;
          }        
-    
+
+        #import the local config
+        print INIT "from config import *\n";    
 
         for(my $index = 0; $index < scalar(@libraries); $index++) {
             # Make a symlink
@@ -1183,12 +1186,13 @@ sub __generate_build_libraries {
 	    my $pvalue = $p->value();
 
 	    if ($pname ne "SYNTH_BOUNDARY") {  
-		print INIT "$pname = $pvalue\n";
+		print CONFIG "$pname = $pvalue\n";
 	    }
 	}
 
         
         close(INIT);
+        close(CONFIG);
     }
 
     #recurse on children, but do not change path.  
