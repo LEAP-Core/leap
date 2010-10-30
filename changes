@@ -1587,3 +1587,22 @@ modules outside a package. This meant that the parameters of a package
 were visible everywhere _except_ in the package.  We now generate a
 config.py, the zen of python recommended practice.  I think it's ugly,
 but it's workable.
+
+----------
+kfleming    Date: Sat Oct 30 14:24:01 EDT 2010  CSN: CSN-leap-13
+                  Sat Oct 30 18:24:01 UTC 2010
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_xupV5.apm    Locally Modified           12 
+
+Directory config/pm/leap/demos/rrrtest
+ rrrtest_hybrid_xup_v5_pcie.apm Locally Added               0 
+
+Directory modules/project
+ SCons.top.template        Locally Modified           12 
+
+
+Porting changes from hasim/platfroms to leap.  These are related to
+XUPV5 support.
+
