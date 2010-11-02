@@ -1606,3 +1606,473 @@ Directory modules/project
 Porting changes from hasim/platfroms to leap.  These are related to
 XUPV5 support.
 
+
+----------
+jsemer      Date: Tue Nov  2 15:14:54 EDT 2010  CSN: CSN-leap-14
+                  Tue Nov  2 19:14:54 UTC 2010
+
+
+Directory experiments/leap
+ demos/                    Locally Removed            13 
+
+Directory experiments/leap/demos
+ demos.benchmarks          Locally Removed            13 
+ demos.models              Locally Removed            13 
+
+Directory config/pm/leap/demos
+ test/                     Locally Removed            13 
+
+Directory config/pm/leap/demos/test
+ alu_test/                 Locally Removed            13 
+
+Directory config/pm/leap/demos/test/alu_test
+ alu_test_hybrid_htg.apm   Locally Removed            13 
+ alu_test_hybrid_exe.apm   Locally Removed            13 
+
+Directory config/pm/leap/demos/test
+ bram_test/                Locally Removed            13 
+
+Directory config/pm/leap/demos/test/bram_test
+ bram_test_hybrid_htg.apm  Locally Removed            13 
+ bram_test_hybrid_exe.apm  Locally Removed            13 
+
+Directory config/pm/leap/demos/test
+ pipeline_test/            Locally Removed            13 
+
+Directory config/pm/leap/demos/test/pipeline_test
+ pipeline_test_shared_rule_htg.apm Locally Removed            13 
+ pipeline_test_shared_rule_routed_exe.apm Locally Removed            13 
+ pipeline_test_shared_rule_routed_htg.apm Locally Removed            13 
+ pipeline_test_private_rule_exe.apm Locally Removed            13 
+ pipeline_test_private_rule_htg.apm Locally Removed            13 
+ pipeline_test_duplicate_modules_exe.apm Locally Removed            13 
+ pipeline_test_duplicate_modules_htg.apm Locally Removed            13 
+ pipeline_test_stage_ctrl_unguarded_exe.apm Locally Removed            13 
+ pipeline_test_stage_ctrl_unguarded_htg.apm Locally Removed            13 
+ pipeline_test_stage_ctrl_exe.apm Locally Removed            13 
+ pipeline_test_stage_ctrl_htg.apm Locally Removed            13 
+ pipeline_test_shared_rule_exe.apm Locally Removed            13 
+
+Directory config/pm/leap/demos/test
+ fp_test/                  Locally Removed            13 
+
+Directory config/pm/leap/demos/test/fp_test
+ fp_test_cvt_i_to_s.apm    Locally Removed            13 
+
+Directory config/pm/leap/demos/test
+ interconnect_test/        Locally Removed            13 
+
+Directory config/pm/leap/demos/test/interconnect_test
+ interconnect_test_hybrid_exe.apm Locally Removed            13 
+
+Directory config/pm/leap/demos/test
+ clock_test/               Locally Removed            13 
+
+Directory config/pm/leap/demos/test/clock_test
+ clock_test_mem_exe.apm    Locally Removed            13 
+ clock_test_exe.apm        Locally Removed            13 
+ clock_test_mem_acp.apm    Locally Removed            13 
+ clock_test_acp.apm        Locally Removed            13 
+ clock_test_mem_synth_exe.apm Locally Removed            13 
+ clock_test_mem_synth_acp.apm Locally Removed            13 
+ clock_test_synth_exe.apm  Locally Removed            13 
+ clock_test_synth_acp.apm  Locally Removed            13 
+
+Directory config/pm/leap/demos/test
+ mem_test/                 Locally Removed            13 
+
+Directory config/pm/leap/demos/test/mem_test
+ mem_test_hybrid_nopvt_exe.apm Locally Removed            13 
+ mem_test_hybrid_nopvt_htg.apm Locally Removed            13 
+ mem_test_hybrid_nopvt_acp.apm Locally Removed            13 
+ mem_test_hybrid_exe.apm   Locally Removed            13 
+ mem_test_hybrid_htg.apm   Locally Removed            13 
+ mem_test_hybrid_acp.apm   Locally Removed            13 
+
+Directory config/pm/leap/demos
+ context_test/             Locally Removed            13 
+
+Directory config/pm/leap/demos/context_test
+ traffic_light_synth_exe.apm Locally Removed            13 
+
+Directory config/pm/leap/demos
+ debugger/                 Locally Removed            13 
+
+Directory config/pm/leap/demos/debugger
+ sram_debugger_nallatech_acp.apm Locally Removed            13 
+ nallatech_fake_sram_debugger.apm Locally Removed            13 
+ sram_debugger_htg.apm     Locally Removed            13 
+ jtag_htg_debugger.apm     Locally Removed            13 
+
+Directory config/pm/leap/demos
+ fir_filter/               Locally Removed            13 
+
+Directory config/pm/leap/demos/fir_filter
+ fir_filter_hw_exe.apm     Locally Removed            13 
+ fir_filter_sw.apm         Locally Removed            13 
+
+Directory config/pm/leap/demos
+ rrrtest/                  Locally Removed            13 
+
+Directory config/pm/leap/demos/rrrtest
+ rrrtest_hybrid_htg-synplify.apm Locally Removed            13 
+ rrrtest_hybrid_acp_nallatech.apm Locally Removed            13 
+ rrrtest_hybrid_arriaII.apm Locally Removed            13 
+ rrrtest_hybrid_exe.apm    Locally Removed            13 
+ rrrtest_hybrid_htg.apm    Locally Removed            13 
+ rrrtest_hybrid_xup_v5_pcie.apm Locally Removed            13 
+ rrrtest_hybrid_htg_jtag.apm Locally Removed            13 
+ rrrtest_hybrid_acp_jtag.apm Locally Removed            13 
+ rrrtest_hybrid_acp_arches.apm Locally Removed            13 
+ rrrtest_hybrid_xup.apm    Locally Removed            13 
+
+Directory config/pm/leap/demos
+ multiplier/               Locally Removed            13 
+
+Directory config/pm/leap/demos/multiplier
+ multiplier_exe.apm        Locally Removed            13 
+
+Directory config/pm/leap/demos
+ switch_to_led/            Locally Removed            13 
+
+Directory config/pm/leap/demos/switch_to_led
+ multiplier4x4_exe.apm     Locally Removed            13 
+ echo4x4_xup.apm           Locally Removed            13 
+ adder4x4_xup.apm          Locally Removed            13 
+ square4x4_xup.apm         Locally Removed            13 
+ echo4x4_exe.apm           Locally Removed            13 
+ echo4x4_htg.apm           Locally Removed            13 
+ adder4x4_exe.apm          Locally Removed            13 
+ square4x4_exe.apm         Locally Removed            13 
+ multiplier4x4_xup.apm     Locally Removed            13 
+
+Directory config/pm/leap/demos
+ shmem/                    Locally Removed            13 
+
+Directory config/pm/leap/demos/shmem
+ shmem_hybrid_htg.apm      Locally Removed            13 
+
+Directory config/pm/leap/demos
+ chantest/                 Locally Removed            13 
+
+Directory config/pm/leap/demos/chantest
+ chantest08_hybrid_exe.apm Locally Removed            13 
+ chantest16_hybrid_acp_nallatech.apm Locally Removed            13 
+ chantest08_hybrid_acp_nallatech.apm Locally Removed            13 
+ chantest16_hybrid_exe.apm Locally Removed            13 
+
+Directory config/pm/leap/demos
+ simple/                   Locally Removed            13 
+
+Directory config/pm/leap/demos/simple
+ multiplier_exe.apm        Locally Removed            13 
+ switch2led_exe.apm        Locally Removed            13 
+ echo_exe.apm              Locally Removed            13 
+
+Directory config/pm/leap/demos
+ devtest/                  Locally Removed            13 
+
+Directory config/pm/leap/demos/devtest
+ devtest_hybrid_exe.apm    Locally Removed            13 
+ devtest_hybrid_htg.apm    Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ counter/                  Locally Removed            13 
+
+Directory modules/bluespec/system/demos/counter
+ mkCounter.bsv             Locally Removed            13 
+ counter_system.txt        Locally Removed            13 
+ counter-system.cpp        Locally Removed            13 
+ counter-system.h          Locally Removed            13 
+ counter_system.awb        Locally Removed            13 
+ System.bsv                Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ channel-integrity-test/   Locally Removed            13 
+
+Directory modules/bluespec/system/demos/channel-integrity-test
+ chan-test.bsv             Locally Removed            13 
+ chan-test-server.h        Locally Removed            13 
+ chan-test-16.awb          Locally Removed            13 
+ chan-test.rrr             Locally Removed            13 
+ chan-test-16.cpp          Locally Removed            13 
+ chan-test.awb             Locally Removed            13 
+ chan-test-server-16.cpp   Locally Removed            13 
+ chan-test-16.h            Locally Removed            13 
+ chan-test-16.bsv          Locally Removed            13 
+ chan-test.txt             Locally Removed            13 
+ chan-test-server-16.h     Locally Removed            13 
+ chan-test.cpp             Locally Removed            13 
+ chan-test-server.cpp      Locally Removed            13 
+ chan-test.h               Locally Removed            13 
+ chan-test-16.rrr          Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ fir-filter/               Locally Removed            13 
+
+Directory modules/bluespec/system/demos/fir-filter
+ sw-only/                  Locally Removed            13 
+
+Directory modules/bluespec/system/demos/fir-filter/sw-only
+ fixed.h                   Locally Removed            13 
+ fir-filter-system.cpp     Locally Removed            13 
+ fir-filter-system.h       Locally Removed            13 
+ fir-filter-system.awb     Locally Removed            13 
+ fir-filter-system.bsv     Locally Removed            13 
+
+Directory modules/bluespec/system/demos/fir-filter
+ hw-only/                  Locally Removed            13 
+
+Directory modules/bluespec/system/demos/fir-filter/hw-only
+ fir.in                    Locally Removed            13 
+ fir-filter-system.cpp     Locally Removed            13 
+ fir-filter-system.h       Locally Removed            13 
+ fir-filter-system.awb     Locally Removed            13 
+ fir-filter-system.bsv     Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ rrrtest/                  Locally Removed            13 
+
+Directory modules/bluespec/system/demos/rrrtest
+ rrrtest-server.h          Locally Removed            13 
+ rrrtest.txt               Locally Removed            13 
+ rrrtest.cpp               Locally Removed            13 
+ rrrtest.rrr               Locally Removed            13 
+ rrrtest-server.cpp        Locally Removed            13 
+ rrrtest.h                 Locally Removed            13 
+ rrrtest.awb               Locally Removed            13 
+ rrrtest.bsv               Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ multiplier/               Locally Removed            13 
+
+Directory modules/bluespec/system/demos/multiplier
+ Multiplier.bsv            Locally Removed            13 
+ multiplier-system.txt     Locally Removed            13 
+ multiplier-system.cpp     Locally Removed            13 
+ System.bsv                Locally Removed            13 
+ mult_system.awb           Locally Removed            13 
+ multiplier-system.h       Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ shmem-test/               Locally Removed            13 
+
+Directory modules/bluespec/system/demos/shmem-test
+ shmem-test.bsv            Locally Removed            13 
+ shmem-test.cpp            Locally Removed            13 
+ shmem-test.rrr            Locally Removed            13 
+ shmem-test.h              Locally Removed            13 
+ shmem-test.awb            Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ debuggers/                Locally Removed            13 
+
+Directory modules/bluespec/system/demos/debuggers
+ platform-debugger.bsv     Locally Removed            13 
+ platform-debugger.dic     Locally Removed            13 
+ platform-debugger.txt     Locally Removed            13 
+ platform-debugger.cpp     Locally Removed            13 
+ platform-debugger.rrr     Locally Removed            13 
+ platform-debugger.h       Locally Removed            13 
+ platform-debugger.awb     Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ switch2led/               Locally Removed            13 
+
+Directory modules/bluespec/system/demos/switch2led
+ switch2led-system.h       Locally Removed            13 
+ switch2led_system.awb     Locally Removed            13 
+ switch2led_system.txt     Locally Removed            13 
+ switch2led-system.cpp     Locally Removed            13 
+ System.bsv                Locally Removed            13 
+
+Directory modules/bluespec/system/demos
+ devtest/                  Locally Removed            13 
+
+Directory modules/bluespec/system/demos/devtest
+ devtest.cpp               Locally Removed            13 
+ devtest-streams-id.dic    Locally Removed            13 
+ devtest.h                 Locally Removed            13 
+ devtest.awb               Locally Removed            13 
+ devtest.bsv               Locally Removed            13 
+ devtest.txt               Locally Removed            13 
+ devtest-streams-messages.dic Locally Removed            13 
+
+Directory modules/system
+ test/                     Locally Removed            13 
+
+Directory modules/system/test
+ alu_test/                 Locally Removed            13 
+
+Directory modules/system/test/alu_test
+ alu-test-streamid.dic     Locally Removed            13 
+ alu-test.awb              Locally Removed            13 
+ alu-test.bsv              Locally Removed            13 
+ alu-test-streams.dic      Locally Removed            13 
+
+Directory modules/system/test
+ bram_test/                Locally Removed            13 
+
+Directory modules/system/test/bram_test
+ bram-test.awb             Locally Removed            13 
+ bram-test.bsv             Locally Removed            13 
+ bram-test.dic             Locally Removed            13 
+
+Directory modules/system/test
+ fp_test/                  Locally Removed            13 
+
+Directory modules/system/test/fp_test
+ fp-test-streamid.dic      Locally Removed            13 
+ fp-test.awb               Locally Removed            13 
+ fp-test.bsv               Locally Removed            13 
+ fp-test-streams.dic       Locally Removed            13 
+
+Directory modules/system/test
+ shared_pipeline_test/     Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test
+ private-rule/             Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test/private-rule
+ pipeline-private-rule.awb Locally Removed            13 
+ pipeline-private-rule.bsv Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-pipeline-test.bsv  Locally Removed            13 
+ duplicate-modules/        Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test/duplicate-modules
+ pipeline-duplicate-modules.awb Locally Removed            13 
+ pipeline-duplicate-modules.bsv Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-tree/              Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test/shared-tree
+ pipeline-shared-tree.bsv  Locally Removed            13 
+ pipeline-shared-tree.awb  Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-pipeline-test.dic  Locally Removed            13 
+ stage-ctrl/               Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test/stage-ctrl
+ pipeline-stage-ctrl.awb   Locally Removed            13 
+ pipeline-stage-ctrl.bsv   Locally Removed            13 
+ stage-controller.bsv      Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test
+ common/                   Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test/common
+ pipetest-common.awb       Locally Removed            13 
+ pipetest-common.bsv       Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-rule/              Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test/shared-rule
+ pipeline-shared-rule.awb  Locally Removed            13 
+ pipeline-shared-rule.bsv  Locally Removed            13 
+
+Directory modules/system/test/shared_pipeline_test
+ shared-pipeline-test.awb  Locally Removed            13 
+
+Directory modules/system/test
+ interconnect_test/        Locally Removed            13 
+
+Directory modules/system/test/interconnect_test
+ interconnect-test.awb     Locally Removed            13 
+ interconnect-test.bsv     Locally Removed            13 
+ interconnect-test-streams.dic Locally Removed            13 
+ interconnect-test-streamid.dic Locally Removed            13 
+
+Directory modules/system/test
+ clock_test/               Locally Removed            13 
+
+Directory modules/system/test/clock_test
+ clock.rrr                 Locally Removed            13 
+ clock_test.h              Locally Removed            13 
+ clock_function_pipeline/  Locally Removed            13 
+
+Directory modules/system/test/clock_test/clock_function_pipeline
+ PipelineMem.dic           Locally Removed            13 
+ synth_pipeline/           Locally Removed            13 
+
+Directory modules/system/test/clock_test/clock_function_pipeline/synth_pipeline
+ PipelineMem.dic           Locally Removed            13 
+ stage1_mem.awb            Locally Removed            13 
+ stage1_mem.bsv            Locally Removed            13 
+ stage1.awb                Locally Removed            13 
+ pipeline.awb              Locally Removed            13 
+ stage1.bsv                Locally Removed            13 
+ stage2.awb                Locally Removed            13 
+ pipeline.bsv              Locally Removed            13 
+ stage2.bsv                Locally Removed            13 
+
+Directory modules/system/test/clock_test/clock_function_pipeline
+ pipeline_mem.awb          Locally Removed            13 
+ pipeline_mem.bsv          Locally Removed            13 
+ pipeline.awb              Locally Removed            13 
+ pipeline.bsv              Locally Removed            13 
+
+Directory modules/system/test/clock_test
+ clock_test_system.awb     Locally Removed            13 
+ clock_test.cpp            Locally Removed            13 
+ System.bsv                Locally Removed            13 
+
+Directory modules/system/test
+ mem_test/                 Locally Removed            13 
+
+Directory modules/system/test/mem_test
+ mem-test.awb              Locally Removed            13 
+ mem-test.bsv              Locally Removed            13 
+ mem-test.dic              Locally Removed            13 
+
+Directory modules/system
+ mulitplier_system/        Locally Removed            13 
+
+Directory modules/system/mulitplier_system
+ multiplier_system.awb     Locally Removed            13 
+ multiplier_system.bsv     Locally Removed            13 
+ multiplier_system.txt     Locally Removed            13 
+
+Directory modules/system
+ switch_to_led_system/     Locally Removed            13 
+
+Directory modules/system/switch_to_led_system
+ switch_to_led_system.awb  Locally Removed            13 
+ switch_to_led_system.bsv  Locally Removed            13 
+ switch_to_led_system.txt  Locally Removed            13 
+ calculation4x4/           Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ adder/                    Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4/adder
+ adder4x4.awb              Locally Removed            13 
+ adder4x4.bsv              Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ square/                   Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4/square
+ square4x4.awb             Locally Removed            13 
+ square4x4.bsv             Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ multiplier/               Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4/multiplier
+ multiplier4x4.bsv         Locally Removed            13 
+ multiplier4x4.awb         Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4
+ echo/                     Locally Removed            13 
+
+Directory modules/system/switch_to_led_system/calculation4x4/echo
+ echo4x4.awb               Locally Removed            13 
+ echo4x4.bsv               Locally Removed            13 
+
+Moved large number of demos/examples and tests/debuggers to 
+leap-examples and leap-debug respectively.
