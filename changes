@@ -2076,3 +2076,15 @@ Directory modules/system/switch_to_led_system/calculation4x4/echo
 
 Moved large number of demos/examples and tests/debuggers to 
 leap-examples and leap-debug respectively.
+
+----------
+kfleming    Date: Tue Nov  2 21:08:50 EDT 2010  CSN: CSN-leap-15
+                  Wed Nov  3 01:08:50 UTC 2010
+
+
+Directory modules/bluespec/common/soft_connections/soft-service
+ connections.bsv           Locally Modified           14 
+
+
+Ported some typeclass instances from old SoftConnections code.
+
