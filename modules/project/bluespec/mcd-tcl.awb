@@ -1,0 +1,18 @@
+#/********************************************************************
+#* Python libraries for XST synthesis tool
+#********************************************************************/
+
+%name MCD Tool for Xilinx 
+%desc Tcl generated UCFs for MCD build 
+
+%attributes tool
+
+%provides mcd_tool
+
+%scons %library MCDTcl.py
+
+%sources -t TCL -v PRIVATE mcd.tcl
+%sources -t TCL -v PRIVATE bufg.tcl
+
+
+

@@ -2088,3 +2088,27 @@ Directory modules/bluespec/common/soft_connections/soft-service
 
 Ported some typeclass instances from old SoftConnections code.
 
+
+----------
+kfleming    Date: Fri Nov  5 14:51:37 EDT 2010  CSN: CSN-leap-16
+                  Fri Nov  5 18:51:37 UTC 2010
+
+
+Directory config/pm/hasim/submodels
+ pipelines/                Locally Added               0 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx-synplify.apm Locally Added               0 
+ build-pipeline-altera.apm Locally Added               0 
+ build-pipeline-xilinx.apm Locally Added               0 
+ build-pipeline-bluesim.apm Locally Added               0 
+
+Directory modules/project/bluespec
+ mcd.tcl                   Locally Added               0 
+ bufg.tcl                  Locally Added               0 
+ mcd-tcl.awb               Locally Added               0 
+ MCDTcl.py                 Locally Added               0 
+
+
+MCD stage now generates better clock crossing ucf statements.  We also
+generate xcf statements which prevent spurious BUFG instantiation, which was preventing larger designs from mapping sucessfully (and maybe also affecting functional correctness).
