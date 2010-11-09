@@ -2,9 +2,14 @@
 
 import os
 import sys
+
 import string
 import pygraph
-from pygraph.classes.digraph import digraph
+try:
+  from pygraph.classes.digraph import digraph
+except ImportError:
+  # don't need to do anything
+  print "Warning you should upgrade to pygraph 1.8"
 import pygraph.algorithms.sorting
 import Module
 import Utils
@@ -183,7 +188,11 @@ class ModuleList:
   # boundaries, helpful, obviously, in actually constructing things.  
   
   def graphize(self):
-    self.graph = digraph()
+    try:
+      self.graph = pygraph.digraph()
+    except (NameError, AttributeError):
+      self.graph = digraph()   
+
     modules = [self.topModule] + self.moduleList
     # first, we must add all the nodes. Only then can we add all the edges
     self.graph.add_nodes(modules)
@@ -198,7 +207,12 @@ class ModuleList:
 
       children = filter(checkParent, modules)
       for child in children:
-        self.graph.add_edge((module,child)) 
+        # due to compatibility issues, we need these try catch to pick the 
+        # right function prototype.
+        try:
+          self.graph.add_edge(module,child) 
+        except TypeError:
+          self.graph.add_edge((module,child)) 
   # and this concludes the graph build
 
 
@@ -207,7 +221,10 @@ class ModuleList:
        return pygraph.algorithms.sorting.topological_sorting(self.graph)
 
   def graphizeSynth(self):
-    self.graphSynth = digraph()
+    try:
+      self.graphSynth = pygraph.digraph()
+    except (NameError, AttributeError):
+      self.graphSynth = digraph()
     modulesUnfiltered = [self.topModule] + self.moduleList
     # first, we must add all the nodes. Only then can we add all the edges
     # filter by synthesis boundaries
@@ -224,7 +241,10 @@ class ModuleList:
 
       children = filter(checkParent, modules)
       for child in children:
-        self.graphSynth.add_edge((module,child)) 
+        try:
+          self.graph.add_edge(module,child) 
+        except TypeError:
+          self.graph.add_edge((module,child)) 
   # and this concludes the graph build
 
 

@@ -2112,3 +2112,15 @@ Directory modules/project/bluespec
 
 MCD stage now generates better clock crossing ucf statements.  We also
 generate xcf statements which prevent spurious BUFG instantiation, which was preventing larger designs from mapping sucessfully (and maybe also affecting functional correctness).
+
+----------
+kfleming    Date: Tue Nov  9 07:27:56 EST 2010  CSN: CSN-leap-17
+                  Tue Nov  9 12:27:56 UTC 2010
+
+
+Directory modules/project
+ ModuleList.py             Locally Modified           16 
+
+
+
+Added backwards compatible support for pygraph 1.6 interfaces, so that we can use the ubuntu debpackage for pipeline builds. 
