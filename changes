@@ -2135,3 +2135,28 @@ Directory modules/system/traffic_light_system
 
 
 Fixed System.bsv to use appropriate include style.
+
+----------
+jsemer      Date: Tue Nov  9 17:08:29 EST 2010  CSN: CSN-leap-19
+                  Tue Nov  9 22:08:29 UTC 2010
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_arriaII.apm  Locally Modified           18 
+ hello_hybrid_exe.apm      Locally Modified           18 
+ hello_hybrid_htg.apm      Locally Modified           18 
+ hello_hybrid_cyloneIII.apm Locally Modified           18 
+ hello_hybrid_xupV5.apm    Locally Modified           18 
+ hello_hybrid_xup2.apm     Locally Modified           18 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_nosynth.apm Locally Modified           18 
+ traffic_light_htg_v5_pcie_synth.apm Locally Modified           18 
+ traffic_light_xup_synth.apm Locally Modified           18 
+ traffic_light_arriaII_nosynth.apm Locally Modified           18 
+ traffic_light_exe_nosynth.apm Locally Modified           18 
+ traffic_light_arriaII_synth.apm Locally Modified           18 
+ traffic_light_exe_synth.apm Locally Modified           18 
+ traffic_light_acp_synth.apm Locally Modified           18 
+
+Changed path to default benchmark.
