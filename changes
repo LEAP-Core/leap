@@ -2124,3 +2124,14 @@ Directory modules/project
 
 
 Added backwards compatible support for pygraph 1.6 interfaces, so that we can use the ubuntu debpackage for pipeline builds. 
+
+----------
+kfleming    Date: Tue Nov  9 14:52:54 EST 2010  CSN: CSN-leap-18
+                  Tue Nov  9 19:52:54 UTC 2010
+
+
+Directory modules/system/traffic_light_system
+ System.bsv                Locally Modified           17 
+
+
+Fixed System.bsv to use appropriate include style.

@@ -1,7 +1,6 @@
+`include "asim/provides/soft_connections.bsh"
 
-import soft_connections::*;
-
-import traffic_light_function::*;
+`include "asim/provides/traffic_light_function.bsh"
 
 
 module [CONNECTED_MODULE] mkSystem ();
