@@ -48,10 +48,10 @@ class Synthesize(ProjectDependency):
       combinedSDC.write(sdcIn.read()+'\n')
     combinedSDC.close();
 
-    #first dump the wrapper files to the new prj 
 
-    for module in moduleList.moduleList:    
-      print 'writing wrappers:' + module.wrapperName() +'\n'
+
+
+    for module in  moduleList.synthBoundaries():    
       newPrjFile.write('add_file -verilog \"$env(BUILD_DIR)/hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
 
     # now dump all the 'VERILOG' 
@@ -100,9 +100,11 @@ class Synthesize(ProjectDependency):
 
     # Now that we've set up the world let's compile
 
+    #first dump the wrapper files to the new prj 
+
     top_netlist = moduleList.env.Command(
         [moduleList.compileDirectory + '/' +  moduleList.topModule.wrapperName() + '.edf'] + [synplifyUCF],
-        moduleList.topModule.moduleDependency['VERILOG'] + ['config/' + moduleList.apmName + '.synplify.prj'] ,
+        moduleList.getAllDependencies('VERILOG')+  moduleList.getAllDependencies('VERILOG_STUB')+ ['config/' + moduleList.apmName + '.synplify.prj'] ,
         [ SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName  + '.srr'),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName  + '_xst.xrpt'), 
           'touch ' + synplifyUCF,         

@@ -6,7 +6,7 @@ File=hello_hybrid_xupV5
 Version=2.1
 Name=Hello World for XUP v5 JTAG
 DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
-Type=HAsim
+Type=Leap
 Class=Asim::Model
 DefaultRunOpts=
 
@@ -27,11 +27,11 @@ hybrid_application=Hello World
 
 [Hello World]
 File=modules/bluespec/system/demos/hello/hello.awb
-Packagehint=hasim
+Packagehint=leap
 
 [Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=hasim
+Packagehint=leap
 
 [FPGA Environment/Params]
 MODEL_CLOCK_DIVIDER=4
@@ -45,4 +45,4 @@ application_env=Base Hybrid Application Environment
 
 [HW/SW Hybrid Pipeline Build]
 File=modules/project/project-pipeline.awb
-Packagehint=platforms
+Packagehint=leap

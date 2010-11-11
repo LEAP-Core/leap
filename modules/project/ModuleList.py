@@ -43,7 +43,7 @@ class ModuleList:
     givenVHDs = Utils.clean_split(env['DEFS']['GIVEN_VHDS'], sep = ' ') 
     self.apmName = env['DEFS']['APM_NAME']
     self.moduleList = []
-    synthBoundaries = env['DEFS']['SYNTH_BOUNDARIES']
+    modulePickle = env['DEFS']['SYNTH_BOUNDARIES']
     #We should be invoking this elsewhere?
     #self.wrapper_v = env.SConscript([env['DEFS']['ROOT_DIR_HW_MODEL'] + '/SConscript'])
 
@@ -90,21 +90,21 @@ class ModuleList:
 
     # deal with other modules
 
-    for module in self.moduleList:
-      module.moduleDependency['VERILOG'] = givenVerilogs
-      module.moduleDependency['BA'] = []
-      module.moduleDependency['VERILOG_STUB'] = []
-      module.moduleDependency['NGC'] = givenNGCs
-      module.moduleDependency['VHD'] = givenVHDs
-
-    for module in synthBoundaries:
-      # each module has a generated bsv
+    for module in modulePickle:
       # check to see if this is the top module (has no parent)
       if(module.parent == ''): 
         self.topModule = module
       else:
         self.moduleList.append(module)
       #This should be done in xst process 
+      module.moduleDependency['VERILOG'] = givenVerilogs
+      module.moduleDependency['BA'] = []
+      module.moduleDependency['VERILOG_STUB'] = []
+      module.moduleDependency['NGC'] = givenNGCs
+      module.moduleDependency['VHD'] = givenVHDs
+
+    for module in self.synthBoundaries():
+      # each module has a generated bsv
       module.moduleDependency['XST'] = ['config/' + module.wrapperName() + '.xst']
       module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/mk_' + module.name + '_Wrapper.v'] + givenVerilogs + Utils.get_bluespec_verilog(env)
       module.moduleDependency['BA'] = []

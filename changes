@@ -2160,3 +2160,24 @@ Directory config/pm/leap/demos/traffic_light
  traffic_light_acp_synth.apm Locally Modified           18 
 
 Changed path to default benchmark.
+
+----------
+kfleming    Date: Thu Nov 11 03:26:11 EST 2010  CSN: CSN-leap-20
+                  Thu Nov 11 08:26:11 UTC 2010
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_xupV5.apm    Locally Modified           19 
+
+Directory modules/project/synopsis
+ Synplify.py               Locally Modified           19 
+
+Directory modules/project
+ ModuleList.py             Locally Modified           19 
+
+
+
+Fixed some rather obvious bugs that were preventing Altera builds from
+completing.  That's all done now and bitfiles get produced.  I can
+program the boards, but I suspect that there are some permissions
+issues because I can't open nios2-terminal.  Should be fixable.
