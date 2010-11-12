@@ -2181,3 +2181,15 @@ Fixed some rather obvious bugs that were preventing Altera builds from
 completing.  That's all done now and bitfiles get produced.  I can
 program the boards, but I suspect that there are some permissions
 issues because I can't open nios2-terminal.  Should be fixable.
+
+----------
+kfleming    Date: Fri Nov 12 16:12:23 EST 2010  CSN: CSN-leap-21
+                  Fri Nov 12 21:12:23 UTC 2010
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_de2.apm      Locally Added               0 
+ hello_hybrid_de3.apm      Locally Added               0 
+
+
+Added apm for de* hello world testing.
