@@ -2193,3 +2193,15 @@ Directory config/pm/leap/demos/hello
 
 
 Added apm for de* hello world testing.
+
+----------
+kfleming    Date: Fri Nov 12 16:27:53 EST 2010  CSN: CSN-leap-22
+                  Fri Nov 12 21:27:53 UTC 2010
+
+
+Directory modules/project
+ ModuleList.py             Locally Modified           21 
+
+
+Reduced memory usage by allDependency functions in the ModuleList.
+This was crashing SCons during Synplify builds.

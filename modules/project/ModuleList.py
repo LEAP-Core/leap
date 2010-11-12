@@ -128,12 +128,17 @@ class ModuleList:
     
   def getAllDependencies(self, key):
     # we must check to see if the dependencies actually exist.
-    allDeps = []
+    # generally we have to make sure to remove duplicates
+    allDeps = [] 
     if(self.topModule.moduleDependency.has_key(key)):
-      allDeps = self.topModule.moduleDependency[key]
+      for dep in self.topModule.moduleDependency[key]:
+        if(allDeps.count(dep) == 0):
+          allDeps.append(dep)
     for module in self.moduleList:
       if(module.moduleDependency.has_key(key)):
-        allDeps += module.moduleDependency[key]
+        for dep in module.moduleDependency[key]: 
+          if(allDeps.count(dep) == 0):
+            allDeps.append(dep)
 
     if(len(allDeps) == 0):
       sys.stderr.write("Warning: no dependencies were found")
@@ -147,16 +152,19 @@ class ModuleList:
     allDesc = self.getSynthBoundaryDescendents(module)
 
     # grab my deps
+    # use hash to reduce memory usage
     allDeps = []
     for desc in allDesc:
       if(desc.moduleDependency.has_key(key)):
-        allDeps += desc.moduleDependency[key]
+        for dep in desc.moduleDependency[key]:
+          if(allDeps.count(dep) == 0):
+            allDeps.append(dep)
 
     if(len(allDeps) == 0):
       sys.stderr.write("Warning: no dependencies were found")
     
     return allDeps
-
+  
   # returns the synthesis children of a given module.
   def getSynthBoundaryChildren(self, module):
     return self.graphSynth.neighbors(module)    
