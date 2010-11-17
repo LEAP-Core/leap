@@ -71,7 +71,7 @@ proc printPaths { v_path module } {
     if {$compare == 0} {
      # the pll uses CLK OUT
      #_CLK_OUT
-      puts "$prefix${name}_CLK_OUT"
+      puts "$prefix${name}/x/CLKOUT0_BUF"
       set portlist [module ports $type]
       set submod_struct [module submods $type]
       #puts stderr "$submod_struct"

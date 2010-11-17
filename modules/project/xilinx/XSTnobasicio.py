@@ -2,7 +2,8 @@ import os
 import sys
 import SCons.Script
 from model import  *
-
+# need to pick up clock frequencies for xcf
+from clocks_device import *
 
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
@@ -19,11 +20,20 @@ class Synthesize():
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
         moduleList.topModule.moduleDependency['XCF'],
         'cat $SOURCES > $TARGET')
+      xilinx_child_xcf = moduleList.env.Command(
+        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf',
+        moduleList.topModule.moduleDependency['XCF'],
+        ['cat $SOURCES > $TARGET',
+         'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n"  >> $TARGET'])
     else:
       xilinx_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
         [],
         'touch $TARGET')
+      xilinx_child_xcf = moduleList.env.Command(
+        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
+        [],
+        'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n" > $TARGET')
 
     ## tweak top xst file
     newXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.modified.xst','w')
@@ -42,7 +52,7 @@ class Synthesize():
         oldXSTFile = open('config/' + module.wrapperName() + '.xst','r')
         newXSTFile.write(oldXSTFile.read());
         newXSTFile.write('-iobuf no\n');
-        newXSTFile.write('-uc  '+ moduleList.env['DEFS']['BUILD_DIR'] + '/' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
+        newXSTFile.write('-uc  '+ moduleList.env['DEFS']['BUILD_DIR'] + '/' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
         newXSTFile.close();
         oldXSTFile.close();
         print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
@@ -53,7 +63,7 @@ class Synthesize():
         vlog.sort()
         w = moduleList.env.Command(
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
-            vlog + vlogStubs + module.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XST'] + xilinx_xcf,
+            vlog + vlogStubs + module.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XST'] + xilinx_child_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
               SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',

@@ -151,7 +151,7 @@ SCRATCHPAD_READ_RSP
 // Number of slots in a read port's reorder buffer.  The scratchpad subsystem
 // does not guarantee to return results in order, so all clients need a ROB.
 // The ROB size limits the number of read requests in flight for a given port.
-typedef 8 SCRATCHPAD_PORT_ROB_SLOTS;
+typedef 32 SCRATCHPAD_PORT_ROB_SLOTS;
 
 // The uncached scratchpad will have more references outstanding due to latency.
 // Allow more references to be in flight.

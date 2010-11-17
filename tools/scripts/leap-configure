@@ -1148,52 +1148,53 @@ sub __generate_build_libraries {
     my $module = shift;
     my $base_dir = shift;
 
+    # We now dump all modules since python may wish to look at module params
     my @libraries = Leap::Build::get_scons_library($module);
-    # make ourselves a directory iff we have a library to link in
-    if(scalar(@libraries) > 0) {
-         my $sys_status = system("mkdir -p " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/"));
-         if ($sys_status) {
-            print "Could not create " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/") . "\n";
-            return 0;
-         }
+    
 
-         #need to have __init__.py in the directory
-         #this must define the __all__ variable
-         open(INIT,"> " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py"));
-         open(CONFIG,"> " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/config.py"));
-         if ($sys_status) {
-            print "Could not create " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py") . "\n";
-            return 0;
-         }        
+    my $sys_status = system("mkdir -p " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/"));
+    if ($sys_status) {
+	print "Could not create " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/") . "\n";
+	return 0;
+    }
+	
+    #need to have __init__.py in the directory
+    #this must define the __all__ variable
+    open(INIT,"> " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py"));
+    open(CONFIG,"> " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/config.py"));
+    if ($sys_status) {
+	print "Could not create " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/__init__.py") . "\n";
+	return 0;
+    }        
+    
+    #import the local config
+    print INIT "from config import *\n";    
 
-        #import the local config
-        print INIT "from config import *\n";    
+    for(my $index = 0; $index < scalar(@libraries); $index++) {
+	# Make a symlink
+	my $library = $libraries[$index];
+	my $buildpath = Leap::Util::path_append($base_dir, "/" . $module->provides . "/" , basename($library));
+	my  @fileparts = split(/\./,basename($library));
+	print INIT "from $fileparts[0] import *\n";
+	`ln -fs $library $buildpath`;
+    }
 
-        for(my $index = 0; $index < scalar(@libraries); $index++) {
-            # Make a symlink
-            my $library = $libraries[$index];
-            my $buildpath = Leap::Util::path_append($base_dir, "/" . $module->provides . "/" , basename($library));
-            my  @fileparts = split(/\./,basename($library));
-	    print INIT "from $fileparts[0] import *\n";
-            `ln -fs $library $buildpath`;
-        }
-
-        # dump out python parameters
-        my @parameters = $module->parameters();
-
-        foreach my $p (@parameters) {
-	    my $pname = $p->name();
-	    my $pvalue = $p->value();
-
-	    if ($pname ne "SYNTH_BOUNDARY") {  
-		print CONFIG "$pname = $pvalue\n";
-	    }
+    # dump out python parameters
+    my @parameters = $module->parameters();
+    
+    foreach my $p (@parameters) {
+	my $pname = $p->name();
+	my $pvalue = $p->value();
+	
+	if ($pname ne "SYNTH_BOUNDARY") {  
+	    print CONFIG "$pname = $pvalue\n";
 	}
+    }
 
         
-        close(INIT);
-        close(CONFIG);
-    }
+    close(INIT);
+    close(CONFIG);
+    
 
     #recurse on children, but do not change path.  
     #this is due to the python naming scheme

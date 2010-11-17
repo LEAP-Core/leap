@@ -249,10 +249,11 @@ class ModuleList:
 
       children = filter(checkParent, modules)
       for child in children:
+        print "Adding p: " + module.name + " c: " + child.name
         try:
-          self.graph.add_edge(module,child) 
+          self.graphSynth.add_edge(module,child) 
         except TypeError:
-          self.graph.add_edge((module,child)) 
+          self.graphSynth.add_edge((module,child)) 
   # and this concludes the graph build
 
 
