@@ -13,11 +13,12 @@ class NGD():
 
     # Concatenate UCF files
     #for ucf in  moduleList.topModule.moduleDependency['UCF']:
-    #  print 'ngd found ucf: ' + ucf + '\n' 
-    xilinx_ucf = moduleList.env.Command(
-      xilinx_apm_name + '.ucf',
-      moduleList.topModule.moduleDependency['UCF'],
-      'cat $SOURCES > $TARGET')
+    #  print 'ngd found ucf: ' + ucf + '\n'
+    if(len(moduleList.topModule.moduleDependency['UCF']) > 0):
+      xilinx_ucf = moduleList.env.Command(
+        xilinx_apm_name + '.ucf',
+        moduleList.topModule.moduleDependency['UCF'],
+        'cat $SOURCES > $TARGET')
 
     if len(moduleList.env['DEFS']['GIVEN_BMMS']) != 0:
       xilinx_bmm = moduleList.env.Command(
@@ -41,7 +42,7 @@ class NGD():
         # or guarantee their safety, just delete them.
         SCons.Script.Delete('xlnx_auto_0.ise'),
         SCons.Script.Delete('xlnx_auto_0_xdb'),
-        'ngdbuild -aul -p ' + fpga_part_xilinx + ' -sd ' + moduleList.env['DEFS']['ROOT_DIR_HW_MODEL'] + ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
+        'ngdbuild -aul -p ' + fpga_part_xilinx + ' -sd ' + moduleList.env['DEFS']['ROOT_DIR_HW_MODEL']+ ' -sd ' + moduleList.compileDirectory + ' -sd ' + moduleList.compileDirectory + '/coreip/' + ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
         SCons.Script.Move(moduleList.compileDirectory + '/netlist.lst', 'netlist.lst') ])
 
     moduleList.topModule.moduleDependency['NGD'] = [xilinx_ngd]

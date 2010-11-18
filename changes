@@ -2241,3 +2241,19 @@ Fixed ugly misnaming bug in module list.  XST now outputs clock
 frequency to XCF files for synthesis boundaries, hopefully improving
 synthesis quality.  mcd.tcl now emits a different path to the
 oscillator for PLL devices.
+
+----------
+kfleming    Date: Thu Nov 18 12:05:28 EST 2010  CSN: CSN-leap-25
+                  Thu Nov 18 17:05:28 UTC 2010
+
+
+Directory modules/project/synopsis
+ Synplify.py               Locally Modified           24 
+
+Directory modules/project/xilinx
+ XILINX_NGD.py             Locally Modified           24 
+
+
+Modifications to build pipeline to support more general Xilinx builds
+with Synplify.
+
