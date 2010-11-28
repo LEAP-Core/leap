@@ -690,7 +690,18 @@ uninstall-am:
 #
 # we have non-standard install sub-targets
 #
-.phony: doc install-exec-hook install-release install-bin install-package install-src
+.phony: install-indep install-arch doc install-exec-hook install-release install-bin install-package install-src
+
+#
+# Targets used when making a .deb file
+#    WARNING: These targets assume that the $(DESTDIR) starts empty!!!
+#
+install-indep:
+
+#
+# Do install and install of package
+#
+install-arch: install install-package
 
 doc:
 	cd docs; make

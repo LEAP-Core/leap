@@ -5,4 +5,25 @@ lib/Leap/Templates.pm
 lib/Leap/Util.pm
 lib/Leap/Xilinx.pm
 lib/Leap.pm
+lib/Leap/RRR.pm
+lib/Leap/RRR/Arglist/Base.pm
+lib/Leap/RRR/Arglist/BSV.pm
+lib/Leap/RRR/Arglist/CPP.pm
+lib/Leap/RRR/Argument.pm
+lib/Leap/RRR/Client/Base.pm
+lib/Leap/RRR/Client/BSV.pm
+lib/Leap/RRR/Client/CPP.pm
+lib/Leap/RRR/Collection.pm
+lib/Leap/RRR/Identifier.pm
+lib/Leap/RRR/Method/Base.pm
+lib/Leap/RRR/Method/BSV.pm
+lib/Leap/RRR/Method/CPP.pm
+lib/Leap/RRR/Numeral.pm
+lib/Leap/RRR/Server/Base.pm
+lib/Leap/RRR/Server/BSV.pm
+lib/Leap/RRR/Server/CPP.pm
+lib/Leap/RRR/Service.pm
+lib/Leap/RRR/Type.pm
+Makefile.PL
+MANIFEST
 META.yml                                 Module meta-data (added by MakeMaker)

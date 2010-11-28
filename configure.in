@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([ASIM leap], [1.0], [joel.emer@intel.com], [leap])
+AC_INIT([ASIM leap], [0.6], [joel.emer@intel.com], [leap])
 AC_PREREQ(2.59) dnl required autoconf version
 AC_CONFIG_SRCDIR([admin/packages/leap])
 dnl AC_INIT(admin/packages/leap)
@@ -12,6 +12,16 @@ AC_CONFIG_AUX_DIR(scripts)
 
 AM_INIT_AUTOMAKE([1.8.3 foreign subdir-objects]) dnl automake version + options
 AM_CONFIG_HEADER(include/config.h)
+
+#
+# Control perl install
+#
+AC_ARG_ENABLE([perl-vendor-install],
+      AC_HELP_STRING([--enable-perl-vendor-install],
+                     [Do a perl vendor install]),
+      perlinstalldirs=vendor,
+      perlinstalldirs=site)
+
 
 AC_SUBST(package)
 package=leap
@@ -55,8 +65,9 @@ dnl AC_CONFIG_FILES(libperl/Asim/lib/Asim.pm)
 # run perl MakeMaker at configure time, not make time,
 # to create the makefiles in the libperl tree:
 AC_CONFIG_COMMANDS( libperl/Leap/Makefile                                        ,
-		[cd libperl/Leap;      perl Makefile.PL PREFIX=$prefix; cd ../..], 
-		                        		       [prefix=$prefix  ])
+		[cd libperl/Leap;      perl Makefile.PL PREFIX=$prefix INSTALLDIRS=$perlinstalldirs; cd ../..], 
+                       		       [prefix=$prefix; perlinstalldirs=$perlinstalldirs  ])
+
 
 # tools top level
 AC_CONFIG_FILES(tools/Makefile)

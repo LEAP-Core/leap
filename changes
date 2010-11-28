@@ -2283,3 +2283,60 @@ requiring /bin/sh to be a reference to bash instead of dash.
 This means that on Ubuntu systems, one doesn't need to
 change the /bin/sh symbolic link to point at bash any more.
 
+
+----------
+joel        Date: Sun Nov 28 12:26:34 EST 2010  CSN: CSN-leap-27
+                  Sun Nov 28 17:26:34 UTC 2010
+
+
+Directory .
+ configure                 Locally Modified           26 
+ Makefile.in               Locally Modified           26 
+
+Directory debian
+ leap.dirs                 Locally Modified           26 
+ changelog                 Locally Modified           26 
+ rules                     Locally Modified           26 
+
+Directory .
+ configure.in              Locally Modified           26 
+
+Directory libperl/Leap/lib/Leap/RRR/Method
+ BSV.pm                    Locally Modified           26 
+ Base.pm                   Locally Modified           26 
+ CPP.pm                    Locally Modified           26 
+
+Directory libperl/Leap/lib/Leap/RRR/Arglist
+ BSV.pm                    Locally Modified           26 
+ Base.pm                   Locally Modified           26 
+ CPP.pm                    Locally Modified           26 
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ BSV.pm                    Locally Modified           26 
+ Base.pm                   Locally Modified           26 
+ CPP.pm                    Locally Modified           26 
+
+Directory libperl/Leap/lib/Leap/RRR
+ Collection.pm             Locally Modified           26 
+ Service.pm                Locally Modified           26 
+ Type.pm                   Locally Modified           26 
+ Argument.pm               Locally Modified           26 
+ Identifier.pm             Locally Modified           26 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ Base.pm                   Locally Modified           26 
+
+Directory libperl/Leap/lib/Leap/RRR
+ Numeral.pm                Locally Modified           26 
+
+Directory libperl/Leap
+ MANIFEST                  Locally Modified           26 
+
+Directory modules/hasim/util/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory-utils.bsv Locally Modified           26 
+
+Directory .
+ Makefile.am               Locally Modified           26 
+
+Improved debian install, including proper placement of
+perl libraries and fixes to some execute permissions.

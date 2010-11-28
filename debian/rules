@@ -39,7 +39,7 @@ endif
 ifneq "$(wildcard /usr/share/misc/config.guess)" ""
 	cp -f /usr/share/misc/config.guess config.guess
 endif
-	./configure $(CROSS) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info CFLAGS="$(CFLAGS)" LDFLAGS="-Wl,-z,defs"
+	./configure $(CROSS) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --sysconfdir=/etc --enable-perl-vendor-install CFLAGS="$(CFLAGS)" LDFLAGS="-Wl,-z,defs"
 
 
 #Architecture
@@ -91,12 +91,7 @@ install-arch:
 
 	# Add here commands to install the arch part of the package into
 	# debian/tmp.
-	$(MAKE) DESTDIR=$(CURDIR)/debian/leap install
-	$(MAKE) DESTDIR=$(CURDIR)/debian/leap install-package
-
-	# Somewhat draconian method of getting rid of extra perl junk, e.g, perllocal.pod
-	rm  $(CURDIR)/debian/leap/usr/lib/perl/*/perllocal.pod
-	rm  -rf $(CURDIR)/debian/leap/usr/lib/perl/*/auto/*
+	$(MAKE) DESTDIR=$(CURDIR)/debian/leap install-arch
 
 	dh_install -s
 # Must not depend on anything. This is to be called by
