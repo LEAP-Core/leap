@@ -104,6 +104,7 @@ def compile_bsc_log(source, target, env, for_signature):
           ' 2>&1 | sed \':S;/{[^}]*$/{N;bS};s/\\n/\\\\n/g\' | tee ' + str(target[0]) + ' ; test $${PIPESTATUS[0]} -eq 0'
     return cmd
 
+env['SHELL'] = 'bash' # coerce shell to be bash for command spawns
 bsc_log = Builder(generator = compile_bsc_log, suffix = '.log', src_suffix = '.bsv')
 
 # SUBD method for building generated .bsv file.  Can't use automatic

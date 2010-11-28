@@ -2257,3 +2257,29 @@ Directory modules/project/xilinx
 Modifications to build pipeline to support more general Xilinx builds
 with Synplify.
 
+
+----------
+joel        Date: Sun Nov 28 09:16:17 EST 2010  CSN: CSN-leap-26
+                  Sun Nov 28 14:16:17 UTC 2010
+
+
+Directory debian
+ changelog                 Locally Modified           25 
+
+Directory modules/project
+ SCons.hw.pipeline.template Locally Modified           25 
+ SCons.hw.template         Locally Modified           25 
+
+Directory modules/project/bluespec
+ BSV.py                    Locally Modified           25 
+
+In the SCons scripts, coerce commands in the hardware build
+to be spawned under bash insteaad of sh. This allows the bsc 
+log builder to work, even with the reference to the bash-only
+$PIPESTATUS variable.
+
+This eliminates what I believe to be the last reason for
+requiring /bin/sh to be a reference to bash instead of dash.
+This means that on Ubuntu systems, one doesn't need to
+change the /bin/sh symbolic link to point at bash any more.
+

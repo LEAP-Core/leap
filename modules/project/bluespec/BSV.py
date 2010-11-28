@@ -130,7 +130,10 @@ def build_synth_boundary(moduleList,module):
   bsc = moduleList.env.Builder(generator = compile_bo, suffix = '.bo', src_suffix = '.bsv',
                 emitter = emitter_bo)
 
+
   # This guy has to depend on children existing?
+  # and requires a bash shell
+  moduleList.env['SHELL'] = 'bash' # coerce commands to be spanwed under bash
   bsc_log = moduleList.env.Builder(generator = compile_bsc_log, suffix = '.log', src_suffix = '.bsv')      
 
   # SUBD method for building generated .bsv file.  Can't use automatic
