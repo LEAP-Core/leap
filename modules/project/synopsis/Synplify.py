@@ -100,6 +100,8 @@ class Synthesize(ProjectDependency):
     #newPrjFile.write('ucftosdc -ucf_files'+ ucfs + ' -project_name\"'+ moduleList.topModule.wrapperName() +'\"\n');
 
     newPrjFile.write('set_option -ucf ' + '$env(BUILD_DIR)/config/' + moduleList.topModule.wrapperName() + '.ucf\n');
+
+    newPrjFile.write('project -run hdl_info_gen fileorder\n');
     
     newPrjFile.write('project -run constraint_check\n');
     newPrjFile.write('project -run synthesis\n');
@@ -110,6 +112,7 @@ class Synthesize(ProjectDependency):
     if(len(moduleList.topModule.moduleDependency['UCF']) > 0):
       newPrjFile.write('ucftosdc -ucf_files "$env(BUILD_DIR)/config/' + moduleList.topModule.wrapperName() + '.ucf" -project_name '+ moduleList.topModule.wrapperName()  + '_conv -constraint_chk\n')
       newPrjFile.write('project -save "$env(BUILD_DIR)/foo.prj"\n')
+      newPrjFile.write('project -run hdl_info_gen fileorder\n');
       newPrjFile.write('project -run constraint_check\n');
       newPrjFile.write('project -run synthesis\n');
      

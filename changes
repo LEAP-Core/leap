@@ -2340,3 +2340,16 @@ Directory .
 
 Improved debian install, including proper placement of
 perl libraries and fixes to some execute permissions.
+
+----------
+kfleming    Date: Mon Nov 29 12:00:32 EST 2010  CSN: CSN-leap-28
+                  Mon Nov 29 17:00:32 UTC 2010
+
+
+Directory modules/project/synopsis
+ Synplify.py               Locally Modified           27 
+
+
+Added command for synplify to automatically detect ordering of vhdl
+files.  This is necessary for the ACP and other FGPA modules with more
+complex VHDL library dependencies. 
