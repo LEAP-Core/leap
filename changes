@@ -2353,3 +2353,636 @@ Directory modules/project/synopsis
 Added command for synplify to automatically detect ordering of vhdl
 files.  This is necessary for the ACP and other FGPA modules with more
 complex VHDL library dependencies. 
+
+----------
+mpellaue    Date: Wed Dec  1 15:04:28 EST 2010  CSN: CSN-leap-29
+                  Wed Dec  1 20:04:28 UTC 2010
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Added               0 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Added               0 
+ hasim-fpgaenv-htg-v5-pcie.apm Locally Added               0 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Added               0 
+ xup-virtual-devices.apm   Locally Added               0 
+ fpgaenv-de2-jtag.apm      Locally Added               0 
+ std-virtual-devices-null-mem.apm Locally Added               0 
+ fpgaenv-de3-jtag.apm      Locally Added               0 
+ fpgaenv-hybrid-exe.apm    Locally Added               0 
+ fpgaenv-htg-hwonly.apm    Locally Added               0 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Added               0 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Added               0 
+ fpgaenv-hybrid-exe-serial-ChanIO-loopback.apm Locally Added               0 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Added               0 
+ hasim-fpgaenv-hybrid-sim.apm Locally Added               0 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Added               0 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Added               0 
+ librl-bsv.apm             Locally Added               0 
+ hasim-fpgaenv-null.apm    Locally Added               0 
+ fpgaenv-cycloneiii-jtag.apm Locally Added               0 
+ std-virtual-devices.apm   Locally Added               0 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Added               0 
+ std-virtual-devices-local-scratchpad.apm Locally Added               0 
+
+Directory modules/bluespec
+ librl/                    Locally Added               0 
+
+Directory modules/bluespec/librl
+ storage/                  Locally Added               0 
+
+Directory modules/bluespec/librl/storage
+ cache/                    Locally Added               0 
+
+Directory modules/bluespec/librl/storage/cache
+ rl-direct-mapped-cache.bsv Locally Added               0 
+ rl-set-assoc-cache.bsv    Locally Added               0 
+ rl-cache.bsv              Locally Added               0 
+ rl-tiny-cache.bsv         Locally Added               0 
+ librl-cache.awb           Locally Added               0 
+
+Directory modules/bluespec/librl/storage
+ librl-bsv-storage.awb     Locally Added               0 
+ fifo-mem.bsv              Locally Added               0 
+ memory-heap.bsv           Locally Added               0 
+ fifo-scoreboard.bsv       Locally Added               0 
+
+Directory modules/bluespec/librl
+ librl-bsv.awb             Locally Added               0 
+ librl-bsv.bsh             Locally Added               0 
+ base/                     Locally Added               0 
+
+Directory modules/bluespec/librl/base
+ fifo-functions.bsv        Locally Added               0 
+ bluespec-common.prj       Locally Added               0 
+ bluespec-def.bsv          Locally Added               0 
+ guarded-pipelines.bsv     Locally Added               0 
+ counters.bsv              Locally Added               0 
+ debug-file.bsv            Locally Added               0 
+ README                    Locally Added               0 
+ lfsr.bsv                  Locally Added               0 
+ memory-interface.bsv      Locally Added               0 
+ counting-filter.bsv       Locally Added               0 
+ extends.bsv               Locally Added               0 
+ fifo-merge.bsv            Locally Added               0 
+ hash-bits.bsv             Locally Added               0 
+ support/                  Locally Added               0 
+
+Directory modules/bluespec/librl/base/support
+ hash-check.c              Locally Added               0 
+ README                    Locally Added               0 
+ hash-inverse.c            Locally Added               0 
+
+Directory modules/bluespec/librl/base
+ librl-bsv-base.awb        Locally Added               0 
+ memory-pack.bsv           Locally Added               0 
+
+Directory modules/bluespec/common
+ fpgaenv/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv
+ low-level-platform-interface/ Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface
+ platforms-module.h        Locally Added               0 
+ llpi.cpp                  Locally Added               0 
+ remote-memory/            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory
+ pci-express-dma/          Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/pci-express-dma
+ remote-memory-pcie-dma.cpp Locally Added               0 
+ remote-memory-pcie-dma.h  Locally Added               0 
+ remote-memory-pcie-dma.awb Locally Added               0 
+ remote-memory-pcie-dma.bsv Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory
+ null/                     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/null
+ null-remote-memory.h      Locally Added               0 
+ null-remote-memory.awb    Locally Added               0 
+ null-remote-memory.bsv    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface
+ hwonly-llpi.awb           Locally Added               0 
+ local-mem/                Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/local-mem
+ local-mem-null.awb        Locally Added               0 
+ local-mem-null.bsv        Locally Added               0 
+ local-mem-ddr2.awb        Locally Added               0 
+ local-mem-ddr2.bsv        Locally Added               0 
+ local-mem-bram.awb        Locally Added               0 
+ local-mem-interface.bsv   Locally Added               0 
+ local-mem-bram.bsv        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface
+ llpi.h                    Locally Added               0 
+ hybrid-llpi.awb           Locally Added               0 
+ llpi.bsv                  Locally Added               0 
+ platforms-module.cpp      Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv
+ virtual-platform/         Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ channelio/                Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ basic/                    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/basic
+ basic-channelio.cpp       Locally Added               0 
+ basic-channelio.h         Locally Added               0 
+ basic-channelio.awb       Locally Added               0 
+ basic-channelio.bsv       Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ physical-channel/         Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ pcie-dma/                 Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-dma
+ dma-physical-channel.cpp  Locally Added               0 
+ dma-physical-channel.h    Locally Added               0 
+ dma-physical-channel.awb  Locally Added               0 
+ dma-physical-channel.bsv  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ serial/                   Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel-loopback.bsv Locally Added               0 
+ serial-physical-channel.cpp Locally Added               0 
+ SerialStream.h            Locally Added               0 
+ PosixSignalHandler.h      Locally Added               0 
+ serial-physical-channel-8bit.cpp Locally Added               0 
+ serial-physical-channel.h Locally Added               0 
+ PosixSignalDispatcher.cpp Locally Added               0 
+ serial-physical-channel.bsv Locally Added               0 
+ serial-physical-channel-8bit.bsv Locally Added               0 
+ PosixSignalDispatcher.h   Locally Added               0 
+ serial-physical-channel-loopback.awb Locally Added               0 
+ SerialPort.cpp            Locally Added               0 
+ serial-physical-channel.awb Locally Added               0 
+ SerialStreamBuf.cpp       Locally Added               0 
+ SerialPort.h              Locally Added               0 
+ serial-physical-channel-8bit.awb Locally Added               0 
+ SerialStream.cpp          Locally Added               0 
+ SerialStreamBuf.h         Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ pcie-bluespec/            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-bluespec
+ pcie-bluespec-physical-channel.cpp Locally Added               0 
+ pcie-bluespec-physical-channel.h Locally Added               0 
+ pcie-bluespec-physical-channel.awb Locally Added               0 
+ pcie-bluespec-physical-channel.bsv Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ jtag/                     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.cpp Locally Added               0 
+ altera/                   Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/jtag/altera
+ jtag-physical-channel.cpp Locally Added               0 
+ jtag-physical-channel.h   Locally Added               0 
+ jtag-physical-channel.awb Locally Added               0 
+ jtag-physical-channel.bsv Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.h   Locally Added               0 
+ jtag-physical-channel.awb Locally Added               0 
+ jtag-physical-channel.bsv Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ pcie-csr/                 Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-csr
+ pcie-physical-channel.cpp Locally Added               0 
+ pcie-physical-channel.h   Locally Added               0 
+ pcie-physical-channel.awb Locally Added               0 
+ pcie-physical-channel.bsv Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ sim/                      Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/sim
+ sim-physical-channel.awb  Locally Added               0 
+ sim-physical-channel.bsv  Locally Added               0 
+ sim-physical-channel.cpp  Locally Added               0 
+ sim-physical-channel.h    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ unix/                     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/unix
+ unix-channelio.c          Locally Added               0 
+ unix-channelio.awb        Locally Added               0 
+ UNIXChannelIO.bsv         Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ null/                     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/null
+ null-channelio.awb        Locally Added               0 
+ NullChannelIO.bsv         Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ loopback/                 Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/loopback
+ loopback-channelio.awb    Locally Added               0 
+ loopback-channelio.bsv    Locally Added               0 
+ loopback-channelio.cpp    Locally Added               0 
+ loopback-channelio.h      Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ std-virtual-platform.cpp  Locally Added               0 
+ rrr/                      Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr
+ basic/                    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr/basic
+ basic-rrr-server.bsv      Locally Added               0 
+ basic-rrr-client.cpp      Locally Added               0 
+ arbiters.bsv              Locally Added               0 
+ basic-rrr-common.bsh      Locally Added               0 
+ basic-rrr-client.h        Locally Added               0 
+ basic-rrr-server.cpp      Locally Added               0 
+ basic-rrr-client.bsv      Locally Added               0 
+ basic-rrr.awb             Locally Added               0 
+ basic-rrr-server.h        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr
+ null/                     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr/null
+ null-rrr-client.h         Locally Added               0 
+ null-rrr-server.cpp       Locally Added               0 
+ null-rrr.awb              Locally Added               0 
+ null-rrr.bsv              Locally Added               0 
+ null-rrr-server.h         Locally Added               0 
+ null-rrr.bsh              Locally Added               0 
+ null-rrr-client.cpp       Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr
+ rrr_common/               Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr/rrr_common
+ marshaller.bsv            Locally Added               0 
+ rrr_common.awb            Locally Added               0 
+ demarshaller.bsv          Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ std-virtual-platform.h    Locally Added               0 
+ virtual-devices/          Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices.cpp   Locally Added               0 
+ starter/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/starter
+ starter-device.cpp        Locally Added               0 
+ starter-device.rrr        Locally Added               0 
+ starter-device.h          Locally Added               0 
+ starter-device.awb        Locally Added               0 
+ starter-device.bsv        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices.h     Locally Added               0 
+ front-panel/              Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ fsb_dme/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/fsb_dme
+ fsb-dme-fp.awb            Locally Added               0 
+ FSB_DME_FP.bsv            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ arriaII/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/arriaII
+ ARRIAIIFP.bsv             Locally Added               0 
+ arriaII-fp.awb            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ hybrid/                   Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/hybrid
+ hybrid-fp.cpp             Locally Added               0 
+ hybrid-fp-command-switches.cpp Locally Added               0 
+ hybrid-fp.rrr             Locally Added               0 
+ hybrid-fp.h               Locally Added               0 
+ hybrid-fp.awb             Locally Added               0 
+ hybrid-fp.bsv             Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ console/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/console
+ NullFP.bsv                Locally Added               0 
+ console-fp.awb            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ fsb_afu/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/fsb_afu
+ FSB_AFU_FP.bsv            Locally Added               0 
+ fsb-afu-fp.awb            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ graphical/                Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/graphical
+ graphical-fp.awb          Locally Added               0 
+ GraphicalFP.bsv           Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ xup/                      Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/xup
+ xup-fp.awb                Locally Added               0 
+ XUPFP.bsv                 Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ htg_v5_pcie/              Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/htg_v5_pcie
+ htg-v5-pcie-fp.awb        Locally Added               0 
+ HTGv5PCIeFP.bsv           Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ null-virtual-devices.awb  Locally Added               0 
+ std-virtual-devices.bsv   Locally Added               0 
+ common/                   Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ common-utility-devices.h  Locally Added               0 
+ common-utility-devices.awb Locally Added               0 
+ common-utility-devices.bsv Locally Added               0 
+ dynamic-parameters-device/ Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/dynamic-parameters-device
+ dynamic-parameters-device.dic Locally Added               0 
+ dynamic-parameters-device.cpp Locally Added               0 
+ dynamic-parameters-device.rrr Locally Added               0 
+ dynamic-parameters-device.h Locally Added               0 
+ dynamic-parameters-device.awb Locally Added               0 
+ dynamic-parameters-device.bsv Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ debug-scan-device/        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/debug-scan-device
+ debug-scan-device.dic     Locally Added               0 
+ debug-scan-device.cpp     Locally Added               0 
+ debug-scan-device.rrr     Locally Added               0 
+ debug-scan-device.h       Locally Added               0 
+ debug-scan-device.awb     Locally Added               0 
+ debug-scan-device.bsv     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ assertions-device/        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/assertions-device
+ assertions-device.awb     Locally Added               0 
+ assertions-device.bsv     Locally Added               0 
+ assertions-device.dic     Locally Added               0 
+ assertions-device.cpp     Locally Added               0 
+ assertions-device.rrr     Locally Added               0 
+ assertions-device.h       Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ common-utility-null.h     Locally Added               0 
+ common-utility-null.awb   Locally Added               0 
+ common-utility-devices.cpp Locally Added               0 
+ common-utility-null.bsv   Locally Added               0 
+ streams-device/           Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/streams-device
+ streams-common.bsh        Locally Added               0 
+ hybrid-streams-services.rrr Locally Added               0 
+ hybrid-streams.h          Locally Added               0 
+ hybrid-streams.awb        Locally Added               0 
+ streamid.dic              Locally Added               0 
+ hybrid-streams.bsv        Locally Added               0 
+ streams.dic               Locally Added               0 
+ hybrid-streams.cpp        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ stats-device/             Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/stats-device
+ stats-device.rrr          Locally Added               0 
+ stats-device.h            Locally Added               0 
+ stats-device.awb          Locally Added               0 
+ stats-device.bsv          Locally Added               0 
+ stats-device.dic          Locally Added               0 
+ stats-device.cpp          Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ central-cache/            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/central-cache
+ central-cache-interfaces.bsv Locally Added               0 
+ local-mem-central-cache.awb Locally Added               0 
+ local-mem-central-cache.bsv Locally Added               0 
+ central-cache-backing-store.bsv Locally Added               0 
+ null-central-cache.awb    Locally Added               0 
+ null-central-cache.bsv    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices-null-mem.awb Locally Added               0 
+ null-starter/             Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/null-starter
+ null-starter-device.awb   Locally Added               0 
+ starter-device.cpp        Locally Added               0 
+ starter-device.h          Locally Added               0 
+ starter-device.bsv        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices.dic   Locally Added               0 
+ null-virtual-devices.cpp  Locally Added               0 
+ console/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console
+ null-serial/              Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console/null-serial
+ null-serial.awb           Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console
+ graphical-serial/         Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console/graphical-serial
+ graphical-serial.awb      Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ null-virtual-devices.h    Locally Added               0 
+ std-virtual-devices.awb   Locally Added               0 
+ null-virtual-devices.bsv  Locally Added               0 
+ memory/                   Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory
+ hybrid/                   Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/hybrid
+ hybrid-mem-scratch.dic    Locally Added               0 
+ hybrid-mem-scratch.cpp    Locally Added               0 
+ hybrid-mem-scratch.rrr    Locally Added               0 
+ hybrid-mem-scratch.h      Locally Added               0 
+ hybrid-mem-scratch.awb    Locally Added               0 
+ hybrid-mem-scratch.bsv    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory
+ common/                   Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/common
+ mem-scratch-common.awb    Locally Added               0 
+ mem-scratch-common-interfaces.bsv Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory
+ local/                    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/local
+ local-mem-scratch.awb     Locally Added               0 
+ local-mem-scratch.bsv     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices-null-mem.bsv Locally Added               0 
+ shared-memory/            Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory
+ standard/                 Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory/standard
+ standard-shared-memory-server.cpp Locally Added               0 
+ standard-shared-memory.h  Locally Added               0 
+ standard-shared-memory.awb Locally Added               0 
+ standard-shared-memory.bsv Locally Added               0 
+ standard-shared-memory-server.h Locally Added               0 
+ standard-shared-memory.cpp Locally Added               0 
+ standard-shared-memory.rrr Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory
+ null/                     Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory/null
+ null-shared-memory.h      Locally Added               0 
+ null-shared-memory.awb    Locally Added               0 
+ null-shared-memory.bsv    Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ streams/                  Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/streams
+ streams-common.bsh        Locally Added               0 
+ hybrid-streams-services.rrr Locally Added               0 
+ hybrid-streams.h          Locally Added               0 
+ hybrid-streams.awb        Locally Added               0 
+ streamid.dic              Locally Added               0 
+ hybrid-streams.bsv        Locally Added               0 
+ simulation-streams.awb    Locally Added               0 
+ simulation-streams.bsv    Locally Added               0 
+ streams.dic               Locally Added               0 
+ hybrid-streams.cpp        Locally Added               0 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ std-virtual-platform.awb  Locally Added               0 
+ std-virtual-platform.bsv  Locally Added               0 
+ fast-virtual-platform.awb Locally Added               0 
+
+Directory modules/system/afu_system/pass-through
+ afu_pass_through_alg.awb  Locally Removed            28 
+ afu_pass_through_alg.bsv  Locally Removed            28 
+
+Directory modules/system/afu_system
+ afu_system.awb            Locally Removed            28 
+ afu_system.bsv            Locally Removed            28 
+
+Directory modules/system/afu_system/add1
+ afu_add1_alg.awb          Locally Removed            28 
+ afu_add1_alg.bsv          Locally Removed            28 
+
+Directory modules/system/dme_system
+ dme_system.awb            Locally Removed            28 
+ dme_system.bsv            Locally Removed            28 
+
+Directory modules/system/dme_system/no-afu
+ dme_no_afu.awb            Locally Removed            28 
+ dme_no_afu.bsv            Locally Removed            28 
+
+Directory modules
+ application-env/          Locally Added               0 
+
+Directory modules/application-env
+ hybrid/                   Locally Added               0 
+
+Directory modules/application-env/hybrid
+ base/                     Locally Added               0 
+
+Directory modules/application-env/hybrid/base
+ application-env-hybrid-base.cpp Locally Added               0 
+ application-env-hybrid-base.h Locally Added               0 
+ application-env-hybrid-base.awb Locally Added               0 
+ application-env-hybrid-base.bsv Locally Added               0 
+
+Directory modules/application-env/hybrid
+ soft-connections/         Locally Added               0 
+
+Directory modules/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.h Locally Added               0 
+ application-env-hybrid-soft-conn.awb Locally Added               0 
+ application-env-hybrid-soft-conn.bsv Locally Added               0 
+ default-sw/               Locally Added               0 
+
+Directory modules/application-env/hybrid/soft-connections/default-sw
+ connected-application-default-sw.h Locally Added               0 
+ connected-application-default-sw.awb Locally Added               0 
+ connected-application-default-sw.bsv Locally Added               0 
+
+Directory modules/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.cpp Locally Added               0 
+
+Directory modules/application-env/hybrid
+ soft-services/            Locally Added               0 
+
+Directory modules/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.cpp Locally Added               0 
+ application-env-hybrid-soft-service.h Locally Added               0 
+ application-env-hybrid-soft-service.awb Locally Added               0 
+ application-env-hybrid-soft-service.bsv Locally Added               0 
+
+Directory modules/application-env
+ hw-only/                  Locally Added               0 
+
+Directory modules/application-env/hw-only
+ base/                     Locally Added               0 
+
+Directory modules/application-env/hw-only/base
+ application-env-hw-only-base.awb Locally Added               0 
+ application-env-hw-only-base.bsv Locally Added               0 
+
+
+Moved stuff from platforms to leap:
+* librl
+* virtual_platform (including rrr, channelio, virtual_devices, llpi)
+* fpgaenv APMs
+* application_env
+
+Deleted obsolete code:
+* old dme/afu stuff
+
+At this stage, no file names or UnionDir paths have been changed. Therefore many references to hasim
+continue to exist.
+
+Michael P.
