@@ -20,4 +20,4 @@
 
 %include --type=verilog @BLUESPECDIR@/Verilog/
 
-%param DEBUG_LOG_DIR  "hasim_debug"   "Debug log directory"
+%param DEBUG_LOG_DIR  "leap_debug"   "Debug log directory"

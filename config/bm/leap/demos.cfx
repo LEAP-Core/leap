@@ -18,8 +18,8 @@ my @bmarks = ("null",
 foreach my $bmark (@bmarks) {
         $gcfg->add(name => $bmark,
                   tree => [ "benchmarks" ],
-                  setup => "tools/scripts/bmark/setup-bmark $bmark --contexts=0",
-		  feeder => "none",
+                  setup => "tools/scripts/bmark/setup-bmark $bmark",
+                  feeder => "none",
                   ccount => 800000,
                   );
    }

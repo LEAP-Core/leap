@@ -132,6 +132,7 @@ void LLPI_CLASS::KillMonitorThread()
     }
     else if (monitorAlive)
     {
+        usleep(50); // Allow non-thread-safe printouts or calls to older stdlib implementations to finish.
         pthread_cancel(monitorThreadID);
         pthread_join(monitorThreadID, NULL);
         monitorAlive = false;

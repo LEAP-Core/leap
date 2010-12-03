@@ -2986,3 +2986,34 @@ At this stage, no file names or UnionDir paths have been changed. Therefore many
 continue to exist.
 
 Michael P.
+
+----------
+mpellaue    Date: Fri Dec  3 15:16:08 EST 2010  CSN: CSN-leap-30
+                  Fri Dec  3 20:16:08 UTC 2010
+
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Modified           29 
+ setup-bmark               Locally Modified           29 
+
+Directory config/bm/leap
+ demos.cfx                 Locally Modified           29 
+
+Directory modules/bluespec/librl/base
+ librl-bsv-base.awb        Locally Modified           29 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface
+ llpi.cpp                  Locally Modified           29 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/assertions-device
+ assertions-device.cpp     Locally Modified           29 
+
+
+Change benchmark setup/run to be much simpler and not performance-model specific. 
+This is a stopgap until we implement our longterm "a.out" plan.
+
+Change "hasim_debug" directory to "leap_debug." Update locations in librl.
+
+Add LLPI pthread workaround temporarily until we can find a better longterm solution.
+
+Michael P.

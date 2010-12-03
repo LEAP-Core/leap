@@ -69,7 +69,7 @@ ASSERTIONS_DEVICE_SERVER_CLASS::Init(
     parent = p;
     
     // Open the output file
-    assertionsFile = fopen("hasim_debug/assertions.out", "w+");
+    assertionsFile = fopen("leap_debug/assertions.out", "w+");
 }
 
 // uninit: we have to write this explicitly

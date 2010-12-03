@@ -61,23 +61,18 @@ my $forceLoad = 0;
 my $gdb = 0;
 my $noProgram = 0;
 my $noReserve = 0;
-my $funcpPrefix = "";
-my $funcpSuffix = "";
 my $noshowfp = 0;
 my $printCycle = undef;
 my $showfp = undef;
 my $bluesimCmd = undef;
 my $vcdStart = undef;
 my $vcdCycles = 20000;
-my $m5run = 0;
 
 my $status = GetOptions("help!" => \$help,
                         "gdb!" => \$gdb,
                         "noprogram!" => \$noProgram,
                         "noreserve!" => \$noReserve,
                         "force-load!" => \$forceLoad,
-                        "funcp-prefix=s" => \$funcpPrefix,
-                        "funcp-suffix=s" => \$funcpSuffix,
                         "noshowfp!" => \$noshowfp,
                         "onlycompare!" => \$onlyCompare,
                         "nocompare!" => \$noCompare,
@@ -86,7 +81,6 @@ my $status = GetOptions("help!" => \$help,
                         "bluesim=s" => \$bluesimCmd,
                         "vcdstart=i" => \$vcdStart,
                         "vcdcycles=i" => \$vcdCycles,
-                        "m5!" => \$m5run,
                        );
 
 # Put quotation marks back on arguments that have spaces since they will be
@@ -99,10 +93,6 @@ foreach my $i ( 0 .. $#ARGV ) {
 
 if ($onlyCompare != 0) {
     exit(CompareOutput());
-}
-
-if ($m5run != 0) {
-    $mType = $MODEL_NONE;
 }
 elsif (-f "$config{modelDir}/$config{model}_hw.errinfo") {
     $mType = $MODEL_FPGA;
@@ -122,13 +112,8 @@ if ($help || ! $status) {
     print STDERR "   [--gdb]                 Invokes the software side in gdb\n";
     print STDERR "   [--noprogram]           Skips the FPGA load and reservation steps\n";
     print STDERR "   [--noreserve]           Skips the FPGA reservation steps\n";
-    print STDERR "   [--funcp-prefix=\"<prefix>\"]\n";
-    print STDERR "                           Prepend prefix to HAsim's --funcp argument\n";
-    print STDERR "   [--funcp-suffix=\"<suffix>\"]\n";
-    print STDERR "                           Append suffix to HAsim's --funcp argument\n";
     print STDERR "   [--onlycompare]         Only compare output files (without running)\n";
     print STDERR "   [--nocompare]           Skip comparison of output files\n";
-    print STDERR "   [--m5]                  Run workload in m5 without HAsim\n";
 
     if ($mType == $MODEL_FPGA) {
         print STDERR "   [--force-load]          Load a bitfile to the FPGA even if it has errors\n";
@@ -163,67 +148,20 @@ elsif (defined($showfp)) {
     # Specified on the run command line
     $showfp = '--showfp=gui' if ($showfp eq '');
 }
-elsif ($config{feeder} eq 'none') {
-    # For null feeder default to showing LEDs on stdout
-    $showfp = '';
-}
 else {
     # Other models have heartbeats
     $showfp = '';
 }
 
-my $feedFlags = "${funcpPrefix} $config{feedFlags} ${funcpSuffix}";
-
-if ($config{feeder} eq 'm5') {
-    # Tell m5 to be quiet and not to enable the remote gdb port.  Under netbatch
-    # it appears there are sometimes attempts to connect to the port, which
-    # stops simulation.
-    $feedFlags = "--quiet --remote-gdb-port=0 ${feedFlags}";
-}
-
-my $ctxFlag = "";
-if (defined($config{workloadContexts})) {
-    $ctxFlag = "--workload-contexts=$config{workloadContexts}";
-}
-
 my $cmd;
 
-if ($m5run == 0) {
-    # Normal run
-    $cmd = "$config{modelDir}/$config{model} --modeldir=$config{modelDir} --workload=$config{workload} ${showfp} --funcp=\"${feedFlags}\" $config{genFlags} ${ctxFlag}";
-    foreach my $c (@ARGV) {
-        $cmd .= " $c";
-    }
-
-    if (defined($printCycle)) {
-        $cmd .= " --pc=${printCycle}";
-    }
+$cmd = "$config{modelDir}/$config{model} --modeldir=$config{modelDir} --workload=$config{workload} ${showfp} $config{genFlags}";
+foreach my $c (@ARGV) {
+    $cmd .= " $c";
 }
-else {
-    if ($config{feeder} ne 'm5') {
-        die("This workload does not use m5");
-    }
 
-    # Running inside m5 without HAsim
-    my $m5cmd;
-    if (exists($ENV{M5BIN})) {
-        $m5cmd = $ENV{M5BIN};
-    }
-    else {
-        my $m5bin = "platform/m5/build/ALPHA_SE/m5." . ($gdb ? "debug" : "opt");
-        $m5cmd = `awb-resolver ${m5bin}`;
-        chomp($m5cmd);
-        die("Failed to find $m5bin") if ($m5cmd eq '');
-    }
-
-    $cmd = "${m5cmd} ${feedFlags}";
-
-    # Drop --hasim-sim
-    $cmd =~ s/--hasim-sim //;
-    # Drop escaping of quotes
-    $cmd =~ s/\\"/"/g;
-
-    $noProgram = 1;
+if (defined($printCycle)) {
+    $cmd .= " --pc=${printCycle}";
 }
 
 #
@@ -338,8 +276,8 @@ if ( $config{workload} eq "null" ) {
   system("touch null.stats");
 }
 
-if (-f "hasim_events.out") {
-    system("sort hasim_events.out -o hasim_events.out.$$; mv -f hasim_events.out.$$ hasim_events.out");
+if (-f "leap_events.out") {
+    system("sort leap_events.out -o leap_events.out.$$; mv -f leap_events.out.$$ leap_events.out");
 }
 if (-f "$config{workload}.stats") {
     system("sort $config{workload}.stats -o $config{workload}.stats.$$; mv -f $config{workload}.stats.$$ $config{workload}.stats");
@@ -402,8 +340,8 @@ sub ExecModel($) {
         # Child process is the monitoring process
         $pty->make_slave_controlling_terminal();
 
-        if (! open(LOG, ">$config{workload}.$config{ISA}.out")) {
-            print STDERR "Error opening log file $config{workload}.$config{ISA}.out\n";
+        if (! open(LOG, ">$config{workload}.out")) {
+            print STDERR "Error opening log file $config{workload}.out\n";
         }
 
         # Unbuffered I/O loop
@@ -478,12 +416,8 @@ sub CompareOutput() {
     return 0 if (! exists($config{compare}) || ($config{compare} eq ''));
 
     my $result = 0;
-
-    # For now assume each context runs the same workload
-    my $ctx = 0;
-    while ($ctx < $config{workloadContexts}) {
         foreach my $cmp (split(':', $config{compare})) {
-            system("cd program.${ctx}; $cmp");
+            system("cd program; $cmp");
             if ($? == -1) {
                 ErrorExit("Failed to execute $cmp: $!");
             }
@@ -495,8 +429,6 @@ sub CompareOutput() {
             }
         }
 
-        $ctx += 1;
-    }
 
     if ($result == 0) {
         print "*** Output comparison passed ***\n";
