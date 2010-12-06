@@ -3047,3 +3047,19 @@ Resurrected verilog build pipeline (not fully, there are still some
 mechanical steps which must be taken, like copying the vpi dynamic
 libraries.  I also modified PAR to support xilinx 12 which moved the
 placer table command line option to the map stage.  
+
+----------
+kfleming    Date: Mon Dec  6 13:13:30 EST 2010  CSN: CSN-leap-32
+                  Mon Dec  6 18:13:30 UTC 2010
+
+
+Directory modules/bluespec/librl/storage
+ fifo-mem.bsv              Locally Modified           31 
+
+
+
+Reworked the bram fifo memory clear to be in main rule.  This has two effects:
+
+1) BRAMFIFO now matches scheduling of Bluespec SizedFIFO exactly
+2) Scheduling errors related to clear method are resolved. 
+

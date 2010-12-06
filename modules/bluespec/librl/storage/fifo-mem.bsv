@@ -87,8 +87,8 @@ module mkMemoryFIFOF#(NumTypeParam#(n_ENTRIES) p, MEMORY_IFC#(Bit#(TLog#(n_ENTRI
 
     (* fire_when_enabled *)
     (* no_implicit_conditions *)
-    rule updateState (! clearReq);
-        let new_state = state;
+    rule updateState;
+        FUNC_FIFO_IDX#(n_ENTRIES) new_state = state;
         Bool made_mem_req = False;
         
         // DEQ requested?
@@ -120,6 +120,13 @@ module mkMemoryFIFOF#(NumTypeParam#(n_ENTRIES) p, MEMORY_IFC#(Bit#(TLog#(n_ENTRI
                 // Pass the new data directly to next cycle's first().
                 bypass_first = tagged Valid data;
             end
+        end
+
+        //Clear takes precendent
+        if(clearReq)
+        begin
+            new_state = funcFIFO_IDX_Init();
+            bypass_first = tagged Invalid;
         end
 
         bypassFirstVal <= bypass_first;
@@ -155,7 +162,7 @@ module mkMemoryFIFOF#(NumTypeParam#(n_ENTRIES) p, MEMORY_IFC#(Bit#(TLog#(n_ENTRI
     //
     // ====================================================================
 
-    method Action enq(t_DATA data) if (funcFIFO_IDX_notFull(state) && ! clearReq);
+    method Action enq(t_DATA data) if (funcFIFO_IDX_notFull(state));
         enqData.wset(data);
     endmethod
 
@@ -163,14 +170,12 @@ module mkMemoryFIFOF#(NumTypeParam#(n_ENTRIES) p, MEMORY_IFC#(Bit#(TLog#(n_ENTRI
         return val;
     endmethod
 
-    method Action deq() if (firstVal.wget() matches tagged Valid .val &&&
-                            ! clearReq);
+    method Action deq() if (firstVal.wget() matches tagged Valid .val);
         deqReq.send();
     endmethod
 
     method Action clear();
         clearReq.send();
-        state <= funcFIFO_IDX_Init();
     endmethod
 
     method Bool notEmpty();
