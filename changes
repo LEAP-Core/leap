@@ -3017,3 +3017,33 @@ Change "hasim_debug" directory to "leap_debug." Update locations in librl.
 Add LLPI pthread workaround temporarily until we can find a better longterm solution.
 
 Michael P.
+
+----------
+kfleming    Date: Mon Dec  6 11:32:12 EST 2010  CSN: CSN-leap-31
+                  Mon Dec  6 16:32:12 UTC 2010
+
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-verilog.apm Locally Added               0 
+ build-pipeline-bluesim.apm Locally Modified           30 
+
+Directory modules/project/pipelines
+ VerilogPipeline.py        Locally Modified           30 
+
+Directory modules/project/verilog
+ verilog.awb               Locally Added               0 
+ verilog.py                Locally Modified           30 
+
+Directory modules/project/xilinx
+ XILINX_PAR.py             Locally Modified           30 
+
+Directory modules/project/bluespec
+ BSV.py                    Locally Modified           30 
+ bsv.awb                   Locally Modified           30 
+ bluesim.py                Locally Modified           30 
+
+
+Resurrected verilog build pipeline (not fully, there are still some
+mechanical steps which must be taken, like copying the vpi dynamic
+libraries.  I also modified PAR to support xilinx 12 which moved the
+placer table command line option to the map stage.  

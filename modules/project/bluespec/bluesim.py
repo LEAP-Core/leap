@@ -14,7 +14,7 @@ class Bluesim():
     # bluesim, we should be able to do the right thing.
     APM_NAME = moduleList.env['DEFS']['APM_NAME']
     BSC = moduleList.env['DEFS']['BSC']
-    BSC_FLAGS_SIM = moduleList.env['DEFS']['BSC_FLAGS_SIM']
+    BSC_FLAGS_SIM = ' -steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule'
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'

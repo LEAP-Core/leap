@@ -16,19 +16,19 @@ model=BlueSim Build Pipeline
 
 [BlueSim Build Pipeline]
 File=modules/project/pipelines/sim-build-pipeline.awb
-Packagehint=platforms
+Packagehint=leap
 
 [BSV Bluesim Build Tool]
 File=modules/project/bluespec/bsv-exe.awb
-Packagehint=platforms
+Packagehint=leap
 
 [Interface builder]
 File=modules/project/iface/iface.awb
-Packagehint=platforms
+Packagehint=leap
 
 [Software build tool]
 File=modules/project/software/software.awb
-Packagehint=platforms
+Packagehint=leap
 
 [BlueSim Build Pipeline/Requires]
 software_tool=Software build tool
@@ -38,4 +38,7 @@ bsv_tool=BSV Build Tool (First Phase)
 
 [BSV Build Tool (First Phase)]
 File=modules/project/bluespec/bsv.awb
-Packagehint=platforms
+Packagehint=leap
+
+[BSV Build Tool (First Phase)/Params]
+BUILD_VERILOG=0
