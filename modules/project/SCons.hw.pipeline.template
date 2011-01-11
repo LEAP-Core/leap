@@ -3,7 +3,7 @@
 import os
 import string
 import sys
-from model import *
+from @ROOT_DIR_MODEL@ import *
 Import('*')
 
 

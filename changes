@@ -3063,3 +3063,26 @@ Reworked the bram fifo memory clear to be in main rule.  This has two effects:
 1) BRAMFIFO now matches scheduling of Bluespec SizedFIFO exactly
 2) Scheduling errors related to clear method are resolved. 
 
+
+----------
+pellauer    Date: Tue Jan 11 17:08:17 EST 2011  CSN: CSN-leap-33
+                  Tue Jan 11 22:08:17 UTC 2011
+
+
+Directory modules/project
+ SCons.hw.pipeline.template Locally Modified           32 
+ SCons.top.pipeline.template Locally Modified           32 
+ SCons.sw.pipeline.template Locally Modified           32 
+ project-pipeline-new.awb  Locally Added               0 
+
+
+* Add a build pipeline project that actually provides "project" instead of 
+  "model".
+  
+* Update SCons pipeline templates to import @ROOT_MODEL@ rather than a 
+  hardcoded "model."
+
+* We are now ready to start switching to project at the top level! This will
+  be done after the upcoming Leap file rearrangement.
+
+Michael P.
