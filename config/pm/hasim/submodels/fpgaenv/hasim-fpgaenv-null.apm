@@ -3,12 +3,14 @@
 SaveParameters=0
 Description=Hardware-Only Simulation Environment
 File=hasim-fpgaenv-null
-Version=2.1
+Version=2.2
 Name=Hardware-Only Simulation Environment
 Type=HAsim
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
 
 [Model]
 DefaultAttributes=bluespec
@@ -20,16 +22,16 @@ low_level_platform_interface=Low Level Platform Interface Hardware-Only
 umf=Null Unified Message Format
 
 [Standard Virtual Platform]
-File=modules/bluespec/common/fpgaenv/virtual-platform/std-virtual-platform.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
 
 [Null Channel IO Module]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/null/null-channelio.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/null/null-channelio.awb
+Packagehint=leap
 
 [FPGA Environment]
-File=modules/bluespec/common/fpgaenv/fpga-environment.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
 
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
@@ -38,12 +40,12 @@ fpga_components=Software FPGA Components
 build_pipeline=BlueSim Build Pipeline
 
 [Null RRR Module]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/null/null-rrr.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/null/null-rrr.awb
+Packagehint=leap
 
 [Standard Virtual Devices]
 File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
-Packagehint=platforms
+Packagehint=leap
 
 [Null Physical Platform]
 File=modules/bluespec/common/fpgaenv/physical-platform/null/null-physical-platfrom.awb
@@ -61,43 +63,32 @@ physical_platform_debugger=Null Physical Platform Debugger
 local_mem=NULL Local Memory Interface
 
 [Low Level Platform Interface Hardware-Only]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/hwonly-llpi.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/hwonly-llpi.awb
+Packagehint=leap
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
 Packagehint=platforms
 
 [NULL Local Memory Interface]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/local-mem/local-mem-null.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
+Packagehint=leap
 
 [RL Bluespec Library]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=platforms
+Packagehint=leap
 
 [Software FPGA Components]
 File=modules/bluespec/common/fpgaenv/fpga-components/software-fpga-components.awb
 Packagehint=platforms
 
 [RRR Common Module]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/rrr_common/rrr_common.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
 
 [Null RRR Module/Requires]
 rrr_common=RRR Common Module
 
-
-
-
-
-
-
-
-
-
-
-
 [BlueSim Build Pipeline]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-bluesim.apm
-Packagehint=platforms
+Packagehint=leap

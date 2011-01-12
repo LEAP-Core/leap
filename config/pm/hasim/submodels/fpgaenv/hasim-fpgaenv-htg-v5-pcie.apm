@@ -3,12 +3,14 @@
 SaveParameters=0
 Description=Hybrid HTG-v5-PCIe Environment
 File=hasim-fpgaenv-htg-v5-pcie
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=Hybrid HTG-v5-PCIe Environment
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
 
 [Model]
 DefaultAttributes=htg-v5-pcie htg
@@ -21,8 +23,8 @@ librl_bsv=RL Bluespec Library
 build_pipeline=FPGA Build Pipeline
 
 [Standard Virtual Platform]
-File=modules/bluespec/common/fpgaenv/virtual-platform/std-virtual-platform.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
 
 [Standard Virtual Platform/Requires]
 virtual_devices=Standard Virtual Devices
@@ -30,12 +32,12 @@ low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
 [FPGA Environment]
-File=modules/bluespec/common/fpgaenv/fpga-environment.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
 
 [Standard Virtual Devices]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/std-virtual-devices.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-virtual-devices.awb
+Packagehint=leap
 
 [HTG Virtex 5 PCIE Enabled]
 File=modules/bluespec/common/fpgaenv/physical-platform/htg_virtex5/pcie-enabled/htg-v5-pcie-enabled.awb
@@ -58,19 +60,19 @@ File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/switches
 Packagehint=platforms
 
 [RRR Clients and Servers]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/basic/basic-rrr.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/basic/basic-channelio.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=PCI-Express CSR-based Physical Channel
 
 [Low Level Platform Interface Hybrid]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/hybrid-llpi.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
 
 [Low Level Platform Interface Hybrid/Requires]
 physical_platform=HTG Virtex 5 PCIE Enabled
@@ -90,7 +92,7 @@ Packagehint=platforms
 
 [RL Bluespec Library]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=platforms
+Packagehint=leap
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
@@ -101,12 +103,12 @@ File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
 Packagehint=platforms
 
 [Local Memory Interface using DDR2 Memory]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/local-mem/local-mem-ddr2.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
+Packagehint=leap
 
 [PCI-Express CSR-based Physical Channel]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-csr/pcie-physical-channel.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/physical-channel/pcie-csr/pcie-physical-channel.awb
+Packagehint=leap
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
@@ -120,35 +122,35 @@ Packagehint=platforms
 pci_express_driver_header=Driver Header for PCIe Kernel Module
 
 [Remote Memory using PCI Express DMA]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/pci-express-dma/remote-memory-pcie-dma.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma/remote-memory-pcie-dma.awb
+Packagehint=leap
 
 [PCI Express Physical Device (mmap-based)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-new/pci-express-device-mmap.awb
 Packagehint=platforms
 
 [Null Common Devices]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/common-utility-null.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-null.awb
+Packagehint=leap
 
 [Local Memory Central Cache]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/central-cache/local-mem-central-cache.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/central-cache/local-mem-central-cache.awb
+Packagehint=leap
 
 [Null Common Devices/Requires]
 streams=Hybrid Streams
 
 [Starter Virtual Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/starter/starter-device.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
+Packagehint=leap
 
 [Hybrid Streams]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/streams/hybrid-streams.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/streams/hybrid-streams.awb
+Packagehint=leap
 
 [Null Shared Memory]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory/null/null-shared-memory.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null/null-shared-memory.awb
+Packagehint=leap
 
 [Standard Virtual Devices/Requires]
 starter_device=Starter Virtual Device
@@ -159,20 +161,20 @@ common_utility_devices=Null Common Devices
 front_panel=Hybrid Front Panel
 
 [Hybrid Front Panel]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/hybrid/hybrid-fp.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid/hybrid-fp.awb
+Packagehint=leap
 
 [Hybrid Scratchpad Memory Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/hybrid/hybrid-mem-scratch.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid/hybrid-mem-scratch.awb
+Packagehint=leap
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
 Packagehint=platforms
 
 [RRR Common Module]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/rrr_common/rrr_common.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
 
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
@@ -181,19 +183,10 @@ rrr_common=RRR Common Module
 scratchpad_memory_common=Scratchpad Memory Common Definitions
 
 [Scratchpad Memory Common Definitions]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/common/mem-scratch-common.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common/mem-scratch-common.awb
+Packagehint=leap
 
 [FPGA Build Pipeline]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
-Packagehint=platforms
-
-
-
-
-
-
-
-
-
+Packagehint=leap
 

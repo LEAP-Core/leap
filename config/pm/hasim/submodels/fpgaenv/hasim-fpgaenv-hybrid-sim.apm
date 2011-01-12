@@ -3,20 +3,22 @@
 SaveParameters=0
 Description=Hybrid Simulation Environment
 File=hasim-fpgaenv-hybrid-sim
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=Hybrid Simulation Environment
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
 
 [Model]
 DefaultAttributes=bluespec
 model=FPGA Environment
 
 [FPGA Environment]
-File=modules/bluespec/common/fpgaenv/fpga-environment.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
 
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
@@ -25,8 +27,8 @@ librl_bsv=RL Bluespec Library
 build_pipeline=BlueSim Build Pipeline
 
 [Standard Virtual Platform]
-File=modules/bluespec/common/fpgaenv/virtual-platform/std-virtual-platform.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
 
 [Standard Virtual Platform/Requires]
 virtual_devices=Standard Virtual Devices
@@ -34,27 +36,27 @@ low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
 [RRR Clients and Servers]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/basic/basic-rrr.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
 
 [Standard Virtual Devices]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/std-virtual-devices.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-virtual-devices.awb
+Packagehint=leap
 
 [Simulation Physical Channel]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/sim/sim-physical-channel.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/physical-channel/sim/sim-physical-channel.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/basic/basic-channelio.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=Simulation Physical Channel
 
 [Low Level Platform Interface Hybrid]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/hybrid-llpi.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
 
 [Low Level Platform Interface Hybrid/Requires]
 physical_platform=Simulation Physical Platform
@@ -86,12 +88,12 @@ File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debug
 Packagehint=platforms
 
 [Local Memory Interface using BRAM]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/local-mem/local-mem-bram.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
+Packagehint=leap
 
 [RL Bluespec Library]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=platforms
+Packagehint=leap
 
 [Simulation Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/simulation/sim-clocks-device.awb
@@ -107,20 +109,20 @@ LOCAL_MEM_READ_LATENCY=8
 LOCAL_MEM_ADDR_BITS=10
 
 [Null Remote Memory]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
+Packagehint=leap
 
 [Null Common Devices]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/common-utility-null.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-null.awb
+Packagehint=leap
 
 [Local Memory Central Cache]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/central-cache/local-mem-central-cache.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/central-cache/local-mem-central-cache.awb
+Packagehint=leap
 
 [Starter Virtual Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/starter/starter-device.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
+Packagehint=leap
 
 [Standard Virtual Devices/Requires]
 starter_device=Starter Virtual Device
@@ -131,31 +133,31 @@ common_utility_devices=Null Common Devices
 front_panel=Hybrid Front Panel
 
 [Hybrid Front Panel]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/hybrid/hybrid-fp.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid/hybrid-fp.awb
+Packagehint=leap
 
 [Hybrid Scratchpad Memory Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/hybrid/hybrid-mem-scratch.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid/hybrid-mem-scratch.awb
+Packagehint=leap
 
 [Null Shared Memory]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory/null/null-shared-memory.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null/null-shared-memory.awb
+Packagehint=leap
 
 [Null Common Devices/Requires]
 streams=Hybrid Streams
 
 [Hybrid Streams]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/streams/hybrid-streams.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/streams/hybrid-streams.awb
+Packagehint=leap
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
 Packagehint=platforms
 
 [RRR Common Module]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/rrr_common/rrr_common.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
 
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
@@ -164,9 +166,9 @@ rrr_common=RRR Common Module
 scratchpad_memory_common=Scratchpad Memory Common Definitions
 
 [Scratchpad Memory Common Definitions]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/common/mem-scratch-common.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common/mem-scratch-common.awb
+Packagehint=leap
 
 [BlueSim Build Pipeline]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-bluesim.apm
-Packagehint=platforms
+Packagehint=leap

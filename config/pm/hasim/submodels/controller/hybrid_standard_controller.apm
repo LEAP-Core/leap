@@ -4,48 +4,51 @@ central_controllers=Standard Central Controllers
 local_controllers=Standard Local Controllers
 starter=Hybrid Basic Starter
 command_switches=Standard Command Switches
-funcp_base_types=Functional Partition Base Types
 
 [Global]
 Type=Asim
-Version=2.1
+Version=2.2
 File=hybrid_standard_controller
 SaveParameters=0
 Class=Asim::Model
 Description=Hybrid Standard Controller
 Name=Hybrid Standard Controller
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=Hasim Standard Controller
+RootProvides=hasim_controller
 
 [Hybrid Basic Starter]
-File=modules/hasim/controller/starter/hybrid-basic-starter.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/starter/hybrid-basic-starter.awb
+Packagehint=leap
 
 [Model]
 DefaultAttributes=
 model=Hasim Standard Controller
 
 [Hasim Standard Controller]
-File=modules/hasim/controller/controller-standard.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/controller-standard.awb
+Packagehint=leap
 
 [Module Controller]
-File=modules/hasim/controller/central_controllers/module/module-controller-standard.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/module/module-controller-standard.awb
+Packagehint=leap
 
 [Hybrid Events Controller]
-File=modules/hasim/controller/central_controllers/events/events-controller-hybrid.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/events/events-controller-hybrid.awb
+Packagehint=leap
 
 [Hybrid Stats Controller]
-File=modules/hasim/controller/central_controllers/stats/stats-controller-hybrid.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/stats/stats-controller-hybrid.awb
+Packagehint=leap
 
 [Hybrid Assertions Controller]
-File=modules/hasim/controller/central_controllers/assertions/assertions-controller-hybrid.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/assertions/assertions-controller-hybrid.awb
+Packagehint=leap
 
 [Hasim Module Local Controller]
-File=modules/hasim/controller/local_controllers/module/local-controller-module-standard.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/module/local-controller-module-standard.awb
+Packagehint=leap
 
 [Standard Local Controllers/Requires]
 module_local_controller=Hasim Module Local Controller
@@ -59,25 +62,22 @@ params_controller=Hybrid Dynamic Parameters Controller
 debug_scan_controller=Hybrid Debug Scan Controller
 
 [Standard Central Controllers]
-File=modules/hasim/controller/central_controllers/central-controllers-standard.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/central-controllers-standard.awb
+Packagehint=leap
 
 [Standard Local Controllers]
-File=modules/hasim/controller/local_controllers/local-controllers-standard.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/local-controllers-standard.awb
+Packagehint=leap
 
 [Standard Command Switches]
-File=modules/hasim/controller/command_switches/standard-command-switches.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches/standard-command-switches.awb
+Packagehint=leap
 
 [Hybrid Dynamic Parameters Controller]
-File=modules/hasim/controller/central_controllers/params/params-controller-hybrid.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/params/params-controller-hybrid.awb
+Packagehint=leap
 
 [Hybrid Debug Scan Controller]
-File=modules/hasim/controller/central_controllers/debug_scan/debug-scan-controller-hybrid.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/debug-scan/debug-scan-controller-hybrid.awb
+Packagehint=leap
 
-[Functional Partition Base Types]
-File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
-Packagehint=hasim

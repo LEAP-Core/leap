@@ -3,20 +3,22 @@
 SaveParameters=0
 Description=FPGA Build Pipeline Altera
 File=build-pipeline-altera
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=FPGA Build Pipeline Altera
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=FPGA Build Pipeline
+RootProvides=build_pipeline
 
 [Model]
 DefaultAttributes=altera build pipeline
 model=FPGA Build Pipeline
 
 [FPGA Build Pipeline]
-File=modules/project/pipelines/fpga-build-pipeline.awb
-Packagehint=platforms
+File=modules/leap/build-support/build-pipelines/pipelines/fpga/fpga-build-pipeline.awb
+Packagehint=leap
 
 [FPGA Build Pipeline/Requires]
 post_synthesis_tool=Altera Post-synthesis Toolchain
@@ -27,25 +29,25 @@ iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
 
 [Simple MCD Tool]
-File=modules/project/bluespec/mcd.awb
-Packagehint=platforms
+File=modules/leap/build-support/build-pipelines/stages/mcd/mcd.awb
+Packagehint=leap
 
 [Interface builder]
-File=modules/project/iface/iface.awb
-Packagehint=platforms
+File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
+Packagehint=leap
 
 [Software build tool]
-File=modules/project/software/software.awb
-Packagehint=platforms
+File=modules/leap/build-support/build-pipelines/stages/software/software.awb
+Packagehint=leap
 
 [BSV Build Tool (First Phase)]
-File=modules/project/bluespec/bsv.awb
-Packagehint=platforms
+File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
+Packagehint=leap
 
 [Synplify Synthesis Tool]
-File=modules/project/synopsis/synplify.awb
-Packagehint=platforms
+File=modules/leap/build-support/build-pipelines/stages/synplify/synplify.awb
+Packagehint=leap
 
 [Altera Post-synthesis Toolchain]
-File=modules/project/altera/altera_post_synth.awb
-Packagehint=platforms
+File=modules/leap/build-support/build-pipelines/stages/altera/altera-post-synth.awb
+Packagehint=leap

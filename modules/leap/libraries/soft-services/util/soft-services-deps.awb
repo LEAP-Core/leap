@@ -1,0 +1,17 @@
+/********************************************************************
+ *
+ * Awb module specification
+ *
+ *******************************************************************/
+
+
+%AWB_START
+%name Soft Services Library Dependencies
+%desc Some BSH magic to maintain backwards compatibility.  There are massive hacks here.
+%provides smart_synth_boundaries
+
+%sources --t BSH --v PUBLIC soft-services-sc-deps.bsh
+
+%AWB_END
+
+

@@ -3,31 +3,33 @@
 SaveParameters=0
 Description=Build Pipeline Bluesim
 File=build-pipeline-bluesim
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=Build Pipeline Bluesim
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=BlueSim Build Pipeline
+RootProvides=build_pipeline
 
 [Model]
 DefaultAttributes=hybrid exe
 model=BlueSim Build Pipeline
 
 [BlueSim Build Pipeline]
-File=modules/project/pipelines/sim-build-pipeline.awb
+File=modules/leap/build-support/build-pipelines/pipelines/simulation/sim-build-pipeline.awb
 Packagehint=leap
 
 [BSV Bluesim Build Tool]
-File=modules/project/bluespec/bsv-exe.awb
+File=modules/leap/build-support/build-pipelines/stages/bluesim/bsv-exe.awb
 Packagehint=leap
 
 [Interface builder]
-File=modules/project/iface/iface.awb
+File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
 Packagehint=leap
 
 [Software build tool]
-File=modules/project/software/software.awb
+File=modules/leap/build-support/build-pipelines/stages/software/software.awb
 Packagehint=leap
 
 [BlueSim Build Pipeline/Requires]
@@ -37,7 +39,7 @@ bluesim_tool=BSV Bluesim Build Tool
 bsv_tool=BSV Build Tool (First Phase)
 
 [BSV Build Tool (First Phase)]
-File=modules/project/bluespec/bsv.awb
+File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
 Packagehint=leap
 
 [BSV Build Tool (First Phase)/Params]

@@ -3,12 +3,14 @@
 SaveParameters=0
 Description=Traffic Light from Bluespec Tutorial for XUP w. synthesis boundary
 File=traffic_light_arriaII_synth
-Version=2.1
+Version=2.2
 Name=Traffic Light Model - XUP with synthesis boundary
 DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
 Type=Leap
 Class=Asim::Model
 DefaultRunOpts=
+RootName=HW/SW Hybrid Pipeline Build
+RootProvides=model
 
 [Model]
 DefaultAttributes=function_as_boundary traffic_light demo connected slave hybrid project xup
@@ -16,16 +18,15 @@ model=HW/SW Hybrid Pipeline Build
 
 [FPGA Environment]
 File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-evaluation-arriaII-jtag.apm
-Packagehint=platforms
-
+Packagehint=leap
 
 [Traffic Light System with Soft Connections]
-File=modules/system/traffic_light_system/traffic_light_system.awb
+File=modules/leap/examples/traffic-light/traffic-light-system.awb
 Packagehint=leap
 
 [Default Software Connected Application]
-File=modules/application-env/hybrid/soft-connections/default-sw/connected-application-default-sw.awb
-Packagehint=platforms
+File=modules/leap/build-support/project/application-env/hybrid/soft-connections/default-sw/connected-application-default-sw.awb
+Packagehint=leap
 
 [Traffic Light System with Soft Connections/Requires]
 traffic_light_function=Traffic light function w. synthesis boundary
@@ -34,20 +35,16 @@ traffic_light_function=Traffic light function w. synthesis boundary
 hardware_system=Traffic Light System with Soft Connections
 
 [Traffic light function w. synthesis boundary]
-File=modules/system/traffic_light_system/hasim_traffic_light_function/hasim_traffic_light_function_synth.awb
+File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function-smart-synth-boundary.awb
 Packagehint=leap
-
-
 
 [Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
 Packagehint=leap
 
-
 [HW/SW Hybrid Pipeline Build]
-File=modules/project/project-pipeline.awb
-Packagehint=platforms
-
+File=modules/leap/build-support/project/project-pipeline.awb
+Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Hybrid Project Common Utilities
@@ -62,11 +59,9 @@ MODEL_CLOCK_MULTIPLIER=2
 File=config/pm/hasim/submodels/platform-services/standard-platform-null-mem.apm
 Packagehint=leap
 
-
-
 [Soft Services Hybrid Application Environment]
-File=modules/application-env/hybrid/soft-services/application-env-hybrid-soft-service.awb
-Packagehint=platforms
+File=modules/leap/build-support/project/application-env/hybrid/soft-services/application-env-hybrid-soft-service.awb
+Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 platform_services=Platform Services with No Memory Service

@@ -3,21 +3,22 @@
 SaveParameters=0
 Description=Standard Virtual Devices (No Memory Service)
 File=std-virtual-devices-null-mem
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=Standard Virtual Devices (No Memory Service)
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=Standard Virtual Devices (No Memory Service)
+RootProvides=virtual_devices
 
 [Model]
 DefaultAttributes=platforms
 model=Standard Virtual Devices (No Memory Service)
 
-
 [Starter Virtual Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/starter/starter-device.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
+Packagehint=leap
 
 [Base Common Devices/Requires]
 stats_device=Stats Device
@@ -27,28 +28,28 @@ assertions_device=Assertions Device
 debug_scan_device=Debug Scan Device
 
 [Base Common Devices]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/common-utility-devices.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-devices.awb
+Packagehint=leap
 
 [Dynamic Parameters Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/dynamic-parameters-device/dynamic-parameters-device.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device/dynamic-parameters-device.awb
+Packagehint=leap
 
 [Hybrid Streams Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/streams-device/hybrid-streams.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/streams-device/hybrid-streams.awb
+Packagehint=leap
 
 [Assertions Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/assertions-device/assertions-device.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/assertions-device/assertions-device.awb
+Packagehint=leap
 
 [Stats Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/stats-device/stats-device.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/stats-device/stats-device.awb
+Packagehint=leap
 
 [Debug Scan Device]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/debug-scan-device/debug-scan-device.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device/debug-scan-device.awb
+Packagehint=leap
 
 [Standard Virtual Devices (No Memory Service)/Requires]
 starter_device=Starter Virtual Device
@@ -56,9 +57,9 @@ common_utility_devices=Base Common Devices
 front_panel=Physical ARRIA II Front Panel
 
 [Standard Virtual Devices (No Memory Service)]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/std-virtual-devices-null-mem.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-virtual-devices-null-mem.awb
+Packagehint=leap
 
 [Physical ARRIA II Front Panel]
-File=modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/arriaII/arriaII-fp.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/arriaII/arriaII-fp.awb
+Packagehint=leap

@@ -3,25 +3,26 @@
 SaveParameters=0
 Description=Default Hybrid Project Common Utilities
 File=project-common-default
-Version=2.1
+Version=2.2
 Name=Default Hybrid Project Common Utilities
 Type=Leap
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=Hybrid Project Common Utilities
+RootProvides=project_common
 
 [Model]
 DefaultAttributes=hybrid
 model=Hybrid Project Common Utilities
 
 [Hybrid Project Common Utilities]
-File=modules/bluespec/common/project-common-hybrid.awb
-Packagehint=hasim
-
+File=modules/leap/build-support/project/project-common-hybrid.awb
+Packagehint=leap
 
 [Hybrid Project Common Utilities/Requires]
 command_switches=Standard Command Switches
 
 [Standard Command Switches]
-File=modules/hasim/controller/command_switches/standard-command-switches.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches/standard-command-switches.awb
+Packagehint=leap

@@ -3,32 +3,34 @@
 SaveParameters=0
 Description=Collection of Services Corresponding to Standard Virtual Devices
 File=standard-platform-null-mem
-Version=2.1
+Version=2.2
 Name=Standard Platform Service (No Memory Service)
 DefaultBenchmark=
 Type=Leap
 Class=Asim::Model
 DefaultRunOpts=
+RootName=Platform Services with No Memory Service
+RootProvides=platform_services
 
 [Model]
 DefaultAttributes=connected hybrid
 model=Platform Services with No Memory Service
 
 [Common Services]
-File=modules/hasim/util/platform-services/common-services/common-services-standard.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/common-services-standard.awb
+Packagehint=leap
 
 [Front Panel Service]
-File=modules/hasim/util/platform-services/front-panel-service/front-panel-service.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/front-panel-service/front-panel-service.awb
+Packagehint=leap
 
 [Starter Service]
-File=modules/hasim/util/platform-services/starter-service/starter-service.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/starter-service/starter-service.awb
+Packagehint=leap
 
 [Stats Service]
-File=modules/hasim/util/platform-services/common-services/stats-service/stats-service.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/stats-service/stats-service.awb
+Packagehint=leap
 
 [Common Services/Requires]
 stats_service=Stats Service
@@ -38,24 +40,24 @@ streams_service=Streams Service
 dynamic_parameters_service=Dynamic Parameter Service
 
 [Debug Scan Services]
-File=modules/hasim/util/platform-services/common-services/debug-scan-service/debug-scan-service.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/debug-scan-service/debug-scan-service.awb
+Packagehint=leap
 
 [Dynamic Parameter Service]
-File=modules/hasim/util/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service.awb
+Packagehint=leap
 
 [Assertions Service]
-File=modules/hasim/util/platform-services/common-services/assertions-service/assertions-service.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/assertions-service/assertions-service.awb
+Packagehint=leap
 
 [Streams Service]
-File=modules/hasim/util/platform-services/common-services/streams-service/streams-service.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/streams-service/streams-service.awb
+Packagehint=leap
 
 [Platform Services with No Memory Service]
-File=modules/hasim/util/platform-services/platform-services-null-mem.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/platform-services-null-mem.awb
+Packagehint=leap
 
 [Platform Services with No Memory Service/Requires]
 common_services=Common Services

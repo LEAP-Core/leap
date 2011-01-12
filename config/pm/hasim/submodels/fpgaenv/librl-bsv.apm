@@ -1,47 +1,27 @@
-
 [Global]
 SaveParameters=0
 Description=Reconfigurable Logic Bluespec Library
 File=librl-bsv
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=RL Bluespec Library
 Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=RL Bluespec Library
+RootProvides=librl_bsv
 
 [Model]
 DefaultAttributes=bluespec librl
 model=RL Bluespec Library
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 [RL Bluespec Library]
-File=modules/bluespec/librl/librl-bsv.awb
-Packagehint=platforms
+File=modules/leap/libraries/librl/librl-bsv.awb
+Packagehint=leap
 
 [RL Bluespec Cache Managers]
-File=modules/bluespec/librl/storage/cache/librl-cache.awb
-Packagehint=platforms
+File=modules/leap/libraries/librl/cache/librl-cache.awb
+Packagehint=leap
 
 [RL Bluespec Library/Requires]
 librl_bsv_storage=RL Bluespec Storage Library
@@ -49,9 +29,9 @@ librl_bsv_base=RL Bluespec Base Library
 librl_bsv_cache=RL Bluespec Cache Managers
 
 [RL Bluespec Storage Library]
-File=modules/bluespec/librl/storage/librl-bsv-storage.awb
-Packagehint=platforms
+File=modules/leap/libraries/librl/storage/librl-bsv-storage.awb
+Packagehint=leap
 
 [RL Bluespec Base Library]
-File=modules/bluespec/librl/base/librl-bsv-base.awb
-Packagehint=platforms
+File=modules/leap/libraries/librl/base/librl-bsv-base.awb
+Packagehint=leap

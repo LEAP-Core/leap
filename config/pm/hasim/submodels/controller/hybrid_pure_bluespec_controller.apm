@@ -3,29 +3,30 @@
 SaveParameters=0
 Description=Leap Hardware-Software Hybrid Pure Bluespec Controller
 File=hybrid_pure_bluespec_controller
-Version=2.1
+Version=2.2
 Name=Leap Hybrid Pure Bluespec Controller
 Type=Leap
 Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=Hybrid Pure Bluespec Controller
+RootProvides=hasim_controller
 
 [Model]
 DefaultAttributes=hasim
 model=Hybrid Pure Bluespec Controller
 
 [Hybrid Null Starter]
-File=modules/hasim/controller/starter/hybrid-null-starter.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/starter/hybrid-null-starter.awb
+Packagehint=leap
 
 [Standard Command Switches]
-File=modules/hasim/controller/command_switches/standard-command-switches.awb
-Packagehint=hasim
-
-
-
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches/standard-command-switches.awb
+Packagehint=leap
 
 [Hybrid Pure Bluespec Controller]
-File=modules/hasim/controller/controller-pure-hybrid.awb
-Packagehint=hasim
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/controller-pure-hybrid.awb
+Packagehint=leap
 
 [Hybrid Pure Bluespec Controller/Requires]
 starter=Hybrid Null Starter

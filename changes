@@ -3105,3 +3105,2439 @@ recursive SW configuration step in leap-configure.  The real solution
 to this problem is probably moving the SW recursion into the build
 pipeline, but that will take time. 
 
+
+----------
+pellauer    Date: Wed Jan 12 16:39:45 EST 2011  CSN: CSN-leap-35
+                  Wed Jan 12 21:39:45 UTC 2011
+
+
+Directory config/pm/hasim/submodels/controller
+ hybrid_standard_controller.apm Locally Modified           34 
+ hybrid_basic_controller.apm Locally Modified           34 
+ hardware_null_controller.apm Locally Modified           34 
+ hybrid_pure_bluespec_controller.apm Locally Modified           34 
+
+Directory config/pm/hasim/submodels/platform-services
+ standard-platform-services.apm Locally Modified           34 
+ standard-platform-null-mem.apm Locally Modified           34 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified           34 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified           34 
+ hasim-fpgaenv-htg-v5-pcie.apm Locally Modified           34 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified           34 
+ xup-virtual-devices.apm   Locally Modified           34 
+ fpgaenv-de2-jtag.apm      Locally Modified           34 
+ fpgaenv-de3-jtag.apm      Locally Modified           34 
+ std-virtual-devices-null-mem.apm Locally Modified           34 
+ fpgaenv-hybrid-exe.apm    Locally Modified           34 
+ fpgaenv-htg-hwonly.apm    Locally Modified           34 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified           34 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified           34 
+ fpgaenv-hybrid-exe-serial-ChanIO-loopback.apm Locally Modified           34 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified           34 
+ hasim-fpgaenv-hybrid-sim.apm Locally Modified           34 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified           34 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified           34 
+ librl-bsv.apm             Locally Modified           34 
+ hasim-fpgaenv-null.apm    Locally Modified           34 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified           34 
+ std-virtual-devices.apm   Locally Modified           34 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified           34 
+ std-virtual-devices-local-scratchpad.apm Locally Modified           34 
+
+Directory config/pm/hasim/submodels/common
+ soft-services.apm         Locally Modified           34 
+ project-common-default.apm Locally Modified           34 
+ soft-connections-lib.apm  Locally Modified           34 
+ soft-connections-lib-context.apm Locally Modified           34 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx-synplify.apm Locally Modified           34 
+ build-pipeline-verilog.apm Locally Modified           34 
+ build-pipeline-altera.apm Locally Modified           34 
+ build-pipeline-xilinx.apm Locally Modified           34 
+ build-pipeline-bluesim.apm Locally Modified           34 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_arriaII.apm  Locally Modified           34 
+ hello_hybrid_exe.apm      Locally Modified           34 
+ hello_hybrid_htg.apm      Locally Modified           34 
+ hello_hybrid_cyloneIII.apm Locally Modified           34 
+ hello_hybrid_xupV5.apm    Locally Modified           34 
+ hello_hybrid_de2.apm      Locally Modified           34 
+ hello_hybrid_de3.apm      Locally Modified           34 
+ hello_hybrid_xup2.apm     Locally Modified           34 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_nosynth.apm Locally Modified           34 
+ traffic_light_de2_synth.apm Locally Modified           34 
+ traffic_light_htg_v5_pcie_synth.apm Locally Modified           34 
+ traffic_light_xup_synth.apm Locally Modified           34 
+ traffic_light_arriaII_nosynth.apm Locally Modified           34 
+ traffic_light_exe_nosynth.apm Locally Modified           34 
+ traffic_light_arriaII_synth.apm Locally Modified           34 
+ traffic_light_exe_synth.apm Locally Modified           34 
+ traffic_light_acp_synth.apm Locally Modified           34 
+
+Directory modules/model
+ default_software_system.h Locally Modified           34 
+
+Directory modules
+ hasim/                    Locally Removed            34 
+
+Directory modules/hasim
+ controller/               Locally Removed            34 
+
+Directory modules/hasim/controller
+ local_controllers/        Locally Removed            34 
+
+Directory modules/hasim/controller/local_controllers
+ local-controllers-standard.awb Locally Removed            34 
+ module/                   Locally Removed            34 
+
+Directory modules/hasim/controller/local_controllers/module
+ local-controller-module-standard.awb Locally Removed            34 
+ local-controller-module-standard.bsv Locally Removed            34 
+ local-controller-module.dic Locally Removed            34 
+
+Directory modules/hasim/controller
+ controller-pure.h         Locally Removed            34 
+ controller-basic.cpp      Locally Removed            34 
+ controller-pure-hybrid.awb Locally Removed            34 
+ starter/                  Locally Removed            34 
+
+Directory modules/hasim/controller/starter
+ null-starter.h            Locally Removed            34 
+ hybrid-basic-starter.cpp  Locally Removed            34 
+ hybrid-null-starter.awb   Locally Removed            34 
+ null-starter.awb          Locally Removed            34 
+ hybrid-basic-starter-services.rrr Locally Removed            34 
+ hybrid-basic-starter.h    Locally Removed            34 
+ hybrid-basic-starter.awb  Locally Removed            34 
+ hybrid-basic-starter.bsv  Locally Removed            34 
+ null-starter.cpp          Locally Removed            34 
+
+Directory modules/hasim/controller
+ controller-null.bsv       Locally Removed            34 
+ controller-pure.bsv       Locally Removed            34 
+ command_switches/         Locally Removed            34 
+
+Directory modules/hasim/controller/command_switches
+ command-switch-processor.h Locally Removed            34 
+ default-switches.h        Locally Removed            34 
+ command-switches.cpp      Locally Removed            34 
+ command-switch-processor.cpp Locally Removed            34 
+ command-switches.h        Locally Removed            34 
+ standard-command-switches.awb Locally Removed            34 
+ default-switches.cpp      Locally Removed            34 
+
+Directory modules/hasim/controller
+ controller-basic.h        Locally Removed            34 
+ controller-basic-hybrid.awb Locally Removed            34 
+ controller-standard.awb   Locally Removed            34 
+ controller-basic.bsv      Locally Removed            34 
+ controller-standard.cpp   Locally Removed            34 
+ controller-standard.h     Locally Removed            34 
+ controller-standard.bsv   Locally Removed            34 
+ controller-pure.cpp       Locally Removed            34 
+ controller-null-hardware-only.awb Locally Removed            34 
+ central_controllers/      Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers
+ central-controllers-standard.h Locally Removed            34 
+ central-controllers-standard.awb Locally Removed            34 
+ params/                   Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers/params
+ params-controller-hybrid.cpp Locally Removed            34 
+ params-controller-hybrid.rrr Locally Removed            34 
+ params-controller-hybrid.h Locally Removed            34 
+ params-controller-hybrid.awb Locally Removed            34 
+ params-controller-hybrid.bsv Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers
+ central-controllers-basic.awb Locally Removed            34 
+ central-controllers-standard.bsv Locally Removed            34 
+ events/                   Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers/events
+ events-controller-hybrid.cpp Locally Removed            34 
+ events-controller.rrr     Locally Removed            34 
+ events-controller-hybrid.h Locally Removed            34 
+ events-controller-hybrid.awb Locally Removed            34 
+ events-controller-hybrid.bsv Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers
+ central-controllers-basic.bsv Locally Removed            34 
+ module/                   Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers/module
+ module-controller-streams.dic Locally Removed            34 
+ module-controller-streamid.dic Locally Removed            34 
+ module-controller-standard.awb Locally Removed            34 
+ module-controller-standard.bsv Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers
+ assertions/               Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers/assertions
+ assertions-controller.rrr Locally Removed            34 
+ assertions-controller-hybrid.h Locally Removed            34 
+ assertions-controller-hybrid.awb Locally Removed            34 
+ assertions-controller-hybrid.bsv Locally Removed            34 
+ assertions-controller-hybrid.cpp Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers
+ debug_scan/               Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers/debug_scan
+ debug-scan-controller-hybrid.awb Locally Removed            34 
+ debug-scan-controller-hybrid.bsv Locally Removed            34 
+ debug-scan-controller-hybrid.cpp Locally Removed            34 
+ debug-scan-controller.rrr Locally Removed            34 
+ debug-scan-controller-hybrid.h Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers
+ central-controllers-standard.cpp Locally Removed            34 
+ stats/                    Locally Removed            34 
+
+Directory modules/hasim/controller/central_controllers/stats
+ stats-controller-hybrid.cpp Locally Removed            34 
+ stats-controller.rrr      Locally Removed            34 
+ stats-controller-hybrid.h Locally Removed            34 
+ stats-controller-hybrid.awb Locally Removed            34 
+ stats-controller-hybrid.bsv Locally Removed            34 
+
+Directory modules/hasim
+ util/                     Locally Removed            34 
+
+Directory modules/hasim/util
+ platform-services/        Locally Removed            34 
+
+Directory modules/hasim/util/platform-services
+ mem-services/             Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/mem-services
+ scratchpad-memory-service/ Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Removed            34 
+ scratchpad-memory-service.bsv Locally Removed            34 
+ platform-scratchpad-multi-cached-memory.bsv Locally Removed            34 
+ platform-scratchpad-memory-utils.bsv Locally Removed            34 
+ scratchpad-memory-service.bsh Locally Removed            34 
+ platform-scratchpad-memory.bsv Locally Removed            34 
+ scratchpad-memory-service.dic Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/mem-services
+ mem-services-standard.awb Locally Removed            34 
+ mem-services-standard.bsv Locally Removed            34 
+ central-cache-service/    Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Removed            34 
+ central-cache-service.bsv Locally Removed            34 
+ central-cache-service.bsh Locally Removed            34 
+ platform-central-cache.bsv Locally Removed            34 
+ central-cache-service.dic Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/mem-services
+ mem-services-standard.bsh Locally Removed            34 
+ shared-memory-service/    Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/mem-services/shared-memory-service
+ shared-memory-service.awb Locally Removed            34 
+ shared-memory-service.bsv Locally Removed            34 
+ shared-memory-service.bsh Locally Removed            34 
+
+Directory modules/hasim/util/platform-services
+ platform-services-null-mem.awb Locally Removed            34 
+ starter-service/          Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/starter-service
+ starter-service.awb       Locally Removed            34 
+ starter-service.bsv       Locally Removed            34 
+ starter-service.bsh       Locally Removed            34 
+
+Directory modules/hasim/util/platform-services
+ platform-services-null-mem.bsv Locally Removed            34 
+ front-panel-service/      Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/front-panel-service
+ front-panel-service.awb   Locally Removed            34 
+ front-panel-service.bsv   Locally Removed            34 
+ front-panel-service.bsh   Locally Removed            34 
+
+Directory modules/hasim/util/platform-services
+ platform-services-null.awb Locally Removed            34 
+ platform-services-null.bsv Locally Removed            34 
+ common-services/          Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services
+ common-services-standard.awb Locally Removed            34 
+ common-services-standard.bsv Locally Removed            34 
+ common-services-standard.bsh Locally Removed            34 
+ dynamic-parameters-service/ Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-local.bsv Locally Removed            34 
+ dynamic-parameters-service.awb Locally Removed            34 
+ dynamic-parameters-service.bsv Locally Removed            34 
+ dynamic-parameters-service.bsh Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services
+ common-services-standard.dic Locally Removed            34 
+ debug-scan-service/       Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Removed            34 
+ debug-scan-service.bsh    Locally Removed            34 
+ debug-scan-local.bsv      Locally Removed            34 
+ debug-scan-service.awb    Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services
+ assertions-service/       Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services/assertions-service
+ assertions-service.awb    Locally Removed            34 
+ assertions-service.bsv    Locally Removed            34 
+ assertions-service.bsh    Locally Removed            34 
+ assertions-local.bsv      Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services
+ stats-service/            Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Removed            34 
+ stats-service.awb         Locally Removed            34 
+ stats-service.bsv         Locally Removed            34 
+ stats-service.bsh         Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services
+ streams-service/          Locally Removed            34 
+
+Directory modules/hasim/util/platform-services/common-services/streams-service
+ streams-service.awb       Locally Removed            34 
+ streams-service.bsv       Locally Removed            34 
+ streams-service.bsh       Locally Removed            34 
+
+Directory modules/hasim/util/platform-services
+ platform-services-standard.awb Locally Removed            34 
+ platform-services-standard.bsv Locally Removed            34 
+
+Directory modules/hasim/util
+ smart-synthesis-boundaries/ Locally Removed            34 
+
+Directory modules/hasim/util/smart-synthesis-boundaries
+ with-connections.bsv      Locally Removed            34 
+ module-context/           Locally Removed            34 
+
+Directory modules/hasim/util/smart-synthesis-boundaries/module-context
+ with-connections.bsv      Locally Removed            34 
+ bury-connections.bsv      Locally Removed            34 
+ smart-synth-boundaries.awb Locally Removed            34 
+ expose-connections.bsv    Locally Removed            34 
+
+Directory modules/hasim/util/smart-synthesis-boundaries
+ bury-connections.bsv      Locally Removed            34 
+ smart-synth-boundaries.awb Locally Removed            34 
+ expose-connections.bsv    Locally Removed            34 
+
+Directory modules/leap
+ virtual-platform/         Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ channelio/                Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio
+ basic/                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ basic-channelio.cpp       Locally Added               0 
+ basic-channelio.h         Locally Added               0 
+ basic-channelio.awb       Locally Added               0 
+ basic-channelio.bsv       Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio
+ physical-channel/         Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ pcie-dma/                 Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-dma
+ dma-physical-channel.cpp  Locally Added               0 
+ dma-physical-channel.h    Locally Added               0 
+ dma-physical-channel.awb  Locally Added               0 
+ dma-physical-channel.bsv  Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ serial/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel-loopback.bsv Locally Added               0 
+ serial-physical-channel.cpp Locally Added               0 
+ SerialStream.h            Locally Added               0 
+ PosixSignalHandler.h      Locally Added               0 
+ serial-physical-channel-8bit.cpp Locally Added               0 
+ serial-physical-channel.h Locally Added               0 
+ PosixSignalDispatcher.cpp Locally Added               0 
+ serial-physical-channel.bsv Locally Added               0 
+ serial-physical-channel-8bit.bsv Locally Added               0 
+ PosixSignalDispatcher.h   Locally Added               0 
+ serial-physical-channel-loopback.awb Locally Added               0 
+ SerialPort.cpp            Locally Added               0 
+ serial-physical-channel.awb Locally Added               0 
+ SerialStreamBuf.cpp       Locally Added               0 
+ SerialPort.h              Locally Added               0 
+ serial-physical-channel-8bit.awb Locally Added               0 
+ SerialStream.cpp          Locally Added               0 
+ SerialStreamBuf.h         Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ pcie-bluespec/            Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec
+ pcie-bluespec-physical-channel.cpp Locally Added               0 
+ pcie-bluespec-physical-channel.h Locally Added               0 
+ pcie-bluespec-physical-channel.awb Locally Added               0 
+ pcie-bluespec-physical-channel.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ jtag/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.cpp Locally Added               0 
+ altera/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag/altera
+ jtag-physical-channel.cpp Locally Added               0 
+ jtag-physical-channel.h   Locally Added               0 
+ jtag-physical-channel.awb Locally Added               0 
+ jtag-physical-channel.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.h   Locally Added               0 
+ jtag-physical-channel.awb Locally Added               0 
+ jtag-physical-channel.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ pcie-csr/                 Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-csr
+ pcie-physical-channel.cpp Locally Added               0 
+ pcie-physical-channel.h   Locally Added               0 
+ pcie-physical-channel.awb Locally Added               0 
+ pcie-physical-channel.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ sim/                      Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/sim
+ sim-physical-channel.awb  Locally Added               0 
+ sim-physical-channel.bsv  Locally Added               0 
+ sim-physical-channel.cpp  Locally Added               0 
+ sim-physical-channel.h    Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio
+ unix/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/unix
+ unix-channelio.c          Locally Added               0 
+ unix-channelio.awb        Locally Added               0 
+ UNIXChannelIO.bsv         Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/null
+ null-channelio.awb        Locally Added               0 
+ NullChannelIO.bsv         Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio
+ loopback/                 Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/loopback
+ loopback-channelio.awb    Locally Added               0 
+ loopback-channelio.bsv    Locally Added               0 
+ loopback-channelio.cpp    Locally Added               0 
+ loopback-channelio.h      Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.cpp  Locally Added               0 
+ rrr/                      Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr
+ basic/                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-server.bsv      Locally Added               0 
+ basic-rrr-client.cpp      Locally Added               0 
+ arbiters.bsv              Locally Added               0 
+ basic-rrr-common.bsh      Locally Added               0 
+ basic-rrr-client.h        Locally Added               0 
+ basic-rrr-server.cpp      Locally Added               0 
+ basic-rrr-client.bsv      Locally Added               0 
+ basic-rrr.awb             Locally Added               0 
+ basic-rrr-server.h        Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/null
+ null-rrr-client.h         Locally Added               0 
+ null-rrr-server.cpp       Locally Added               0 
+ null-rrr.awb              Locally Added               0 
+ null-rrr.bsv              Locally Added               0 
+ null-rrr-server.h         Locally Added               0 
+ null-rrr.bsh              Locally Added               0 
+ null-rrr-client.cpp       Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr
+ rrr-common/               Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ rrr-common.awb            Locally Added               0 
+ marshaller.bsv            Locally Added               0 
+ demarshaller.bsv          Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.h    Locally Added               0 
+ virtual-devices/          Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices
+ virtual-device-sets/      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/null
+ null-virtual-devices.cpp  Locally Added               0 
+ null-virtual-devices.h    Locally Added               0 
+ null-virtual-devices.awb  Locally Added               0 
+ null-virtual-devices.bsv  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets
+ std/                      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.cpp   Locally Added               0 
+ std-virtual-devices.h     Locally Added               0 
+ std-virtual-devices.awb   Locally Added               0 
+ std-virtual-devices.bsv   Locally Added               0 
+ std-virtual-devices-null-mem.awb Locally Added               0 
+ std-virtual-devices-null-mem.bsv Locally Added               0 
+ std-virtual-devices.dic   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices
+ backwards-compat/         Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat
+ controller/               Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-pure.h         Locally Added               0 
+ controller-basic.cpp      Locally Added               0 
+ controller-pure-hybrid.awb Locally Added               0 
+ starter/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/starter
+ null-starter.h            Locally Added               0 
+ hybrid-null-starter.awb   Locally Added               0 
+ hybrid-basic-starter.cpp  Locally Added               0 
+ null-starter.awb          Locally Added               0 
+ hybrid-basic-starter-services.rrr Locally Added               0 
+ hybrid-basic-starter.h    Locally Added               0 
+ hybrid-basic-starter.awb  Locally Added               0 
+ hybrid-basic-starter.bsv  Locally Added               0 
+ null-starter.cpp          Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-null.bsv       Locally Added               0 
+ controller-pure.bsv       Locally Added               0 
+ controller-basic.h        Locally Added               0 
+ controller-standard.awb   Locally Added               0 
+ controller-basic-hybrid.awb Locally Added               0 
+ controller-basic.bsv      Locally Added               0 
+ central-controllers/      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-standard.h Locally Added               0 
+ central-controllers-standard.awb Locally Added               0 
+ central-controllers-standard.bsv Locally Added               0 
+ params/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/params
+ params-controller-hybrid.cpp Locally Added               0 
+ params-controller-hybrid.rrr Locally Added               0 
+ params-controller-hybrid.h Locally Added               0 
+ params-controller-hybrid.awb Locally Added               0 
+ params-controller-hybrid.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-basic.awb Locally Added               0 
+ central-controllers-basic.bsv Locally Added               0 
+ events/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/events
+ events-controller-hybrid.cpp Locally Added               0 
+ events-controller.rrr     Locally Added               0 
+ events-controller-hybrid.h Locally Added               0 
+ events-controller-hybrid.awb Locally Added               0 
+ events-controller-hybrid.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ module/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/module
+ module-controller-streams.dic Locally Added               0 
+ module-controller-streamid.dic Locally Added               0 
+ module-controller-standard.awb Locally Added               0 
+ module-controller-standard.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ debug-scan/               Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/debug-scan
+ debug-scan-controller-hybrid.awb Locally Added               0 
+ debug-scan-controller-hybrid.bsv Locally Added               0 
+ debug-scan-controller-hybrid.cpp Locally Added               0 
+ debug-scan-controller.rrr Locally Added               0 
+ debug-scan-controller-hybrid.h Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ assertions/               Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/assertions
+ assertions-controller.rrr Locally Added               0 
+ assertions-controller-hybrid.h Locally Added               0 
+ assertions-controller-hybrid.awb Locally Added               0 
+ assertions-controller-hybrid.bsv Locally Added               0 
+ assertions-controller-hybrid.cpp Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-standard.cpp Locally Added               0 
+ stats/                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/stats
+ stats-controller-hybrid.cpp Locally Added               0 
+ stats-controller.rrr      Locally Added               0 
+ stats-controller-hybrid.h Locally Added               0 
+ stats-controller-hybrid.awb Locally Added               0 
+ stats-controller-hybrid.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ local-controllers/        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers
+ local-controllers-standard.awb Locally Added               0 
+ module/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/module
+ local-controller-module-standard.awb Locally Added               0 
+ local-controller-module-standard.bsv Locally Added               0 
+ local-controller-module.dic Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-standard.cpp   Locally Added               0 
+ command-switches/         Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches
+ command-switch-processor.h Locally Added               0 
+ default-switches.h        Locally Added               0 
+ command-switches.cpp      Locally Added               0 
+ command-switches.h        Locally Added               0 
+ standard-command-switches.awb Locally Added               0 
+ command-switch-processor.cpp Locally Added               0 
+ default-switches.cpp      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-standard.h     Locally Added               0 
+ controller-standard.bsv   Locally Added               0 
+ controller-pure.cpp       Locally Added               0 
+ controller-null-hardware-only.awb Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat
+ platform-services/        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ mem-services/             Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services
+ scratchpad-memory-service/ Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Added               0 
+ scratchpad-memory-service.bsv Locally Added               0 
+ platform-scratchpad-multi-cached-memory.bsv Locally Added               0 
+ scratchpad-memory-service.bsh Locally Added               0 
+ platform-scratchpad-memory-utils.bsv Locally Added               0 
+ platform-scratchpad-memory.bsv Locally Added               0 
+ scratchpad-memory-service.dic Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services
+ mem-services-standard.awb Locally Added               0 
+ mem-services-standard.bsv Locally Added               0 
+ central-cache-service/    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Added               0 
+ central-cache-service.bsv Locally Added               0 
+ central-cache-service.bsh Locally Added               0 
+ platform-central-cache.bsv Locally Added               0 
+ central-cache-service.dic Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services
+ mem-services-standard.bsh Locally Added               0 
+ shared-memory-service/    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services/shared-memory-service
+ shared-memory-service.awb Locally Added               0 
+ shared-memory-service.bsv Locally Added               0 
+ shared-memory-service.bsh Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-null-mem.awb Locally Added               0 
+ platform-services-null-mem.bsv Locally Added               0 
+ starter-service/          Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/starter-service
+ starter-service.awb       Locally Added               0 
+ starter-service.bsv       Locally Added               0 
+ starter-service.bsh       Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ front-panel-service/      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/front-panel-service
+ front-panel-service.awb   Locally Added               0 
+ front-panel-service.bsv   Locally Added               0 
+ front-panel-service.bsh   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-null.awb Locally Added               0 
+ platform-services-null.bsv Locally Added               0 
+ common-services/          Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ common-services-standard.awb Locally Added               0 
+ common-services-standard.bsv Locally Added               0 
+ common-services-standard.bsh Locally Added               0 
+ dynamic-parameters-service/ Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-local.bsv Locally Added               0 
+ dynamic-parameters-service.awb Locally Added               0 
+ dynamic-parameters-service.bsv Locally Added               0 
+ dynamic-parameters-service.bsh Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ common-services-standard.dic Locally Added               0 
+ debug-scan-service/       Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Added               0 
+ debug-scan-service.bsh    Locally Added               0 
+ debug-scan-local.bsv      Locally Added               0 
+ debug-scan-service.awb    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ assertions-service/       Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/assertions-service
+ assertions-service.awb    Locally Added               0 
+ assertions-service.bsv    Locally Added               0 
+ assertions-service.bsh    Locally Added               0 
+ assertions-local.bsv      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ streams-service/          Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/streams-service
+ streams-service.awb       Locally Added               0 
+ streams-service.bsv       Locally Added               0 
+ streams-service.bsh       Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ stats-service/            Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Added               0 
+ stats-service.awb         Locally Added               0 
+ stats-service.bsv         Locally Added               0 
+ stats-service.bsh         Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-standard.awb Locally Added               0 
+ platform-services-standard.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices
+ devices/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ console/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console
+ null-serial/              Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/null-serial
+ null-serial.awb           Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console
+ graphical-serial/         Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/graphical-serial
+ graphical-serial.awb      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ scratchpad-memory/        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ hybrid/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch.dic    Locally Added               0 
+ hybrid-mem-scratch.cpp    Locally Added               0 
+ hybrid-mem-scratch.rrr    Locally Added               0 
+ hybrid-mem-scratch.h      Locally Added               0 
+ hybrid-mem-scratch.awb    Locally Added               0 
+ hybrid-mem-scratch.bsv    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ common/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common.awb    Locally Added               0 
+ mem-scratch-common-interfaces.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ local/                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/local
+ local-mem-scratch.awb     Locally Added               0 
+ local-mem-scratch.bsv     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ starter/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ hybrid/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.cpp        Locally Added               0 
+ starter-device.rrr        Locally Added               0 
+ starter-device.h          Locally Added               0 
+ starter-device.awb        Locally Added               0 
+ starter-device.bsv        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ null-starter-device.awb   Locally Added               0 
+ starter-device.cpp        Locally Added               0 
+ starter-device.h          Locally Added               0 
+ starter-device.bsv        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ front-panel/              Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ arriaII/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/arriaII
+ ARRIAIIFP.bsv             Locally Added               0 
+ arriaII-fp.awb            Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ hybrid/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.cpp             Locally Added               0 
+ hybrid-fp-command-switches.cpp Locally Added               0 
+ hybrid-fp.rrr             Locally Added               0 
+ hybrid-fp.h               Locally Added               0 
+ hybrid-fp.awb             Locally Added               0 
+ hybrid-fp.bsv             Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ console/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/console
+ NullFP.bsv                Locally Added               0 
+ console-fp.awb            Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ htg-v5-pcie/              Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/htg-v5-pcie
+ htg-v5-pcie-fp.awb        Locally Added               0 
+ HTGv5PCIeFP.bsv           Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ graphical/                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/graphical
+ graphical-fp.awb          Locally Added               0 
+ GraphicalFP.bsv           Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ xup/                      Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/xup
+ xup-fp.awb                Locally Added               0 
+ XUPFP.bsv                 Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ common/                   Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.h  Locally Added               0 
+ common-utility-devices.awb Locally Added               0 
+ common-utility-devices.bsv Locally Added               0 
+ dynamic-parameters-device/ Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device
+ dynamic-parameters-device.dic Locally Added               0 
+ dynamic-parameters-device.cpp Locally Added               0 
+ dynamic-parameters-device.rrr Locally Added               0 
+ dynamic-parameters-device.h Locally Added               0 
+ dynamic-parameters-device.awb Locally Added               0 
+ dynamic-parameters-device.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ debug-scan-device/        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.dic     Locally Added               0 
+ debug-scan-device.cpp     Locally Added               0 
+ debug-scan-device.rrr     Locally Added               0 
+ debug-scan-device.h       Locally Added               0 
+ debug-scan-device.awb     Locally Added               0 
+ debug-scan-device.bsv     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ assertions-device/        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/assertions-device
+ assertions-device.awb     Locally Added               0 
+ assertions-device.bsv     Locally Added               0 
+ assertions-device.dic     Locally Added               0 
+ assertions-device.cpp     Locally Added               0 
+ assertions-device.rrr     Locally Added               0 
+ assertions-device.h       Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-null.h     Locally Added               0 
+ common-utility-null.awb   Locally Added               0 
+ common-utility-devices.cpp Locally Added               0 
+ common-utility-null.bsv   Locally Added               0 
+ streams-device/           Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/streams-device
+ streams-common.bsh        Locally Added               0 
+ hybrid-streams-services.rrr Locally Added               0 
+ hybrid-streams.h          Locally Added               0 
+ hybrid-streams.awb        Locally Added               0 
+ streamid.dic              Locally Added               0 
+ hybrid-streams.bsv        Locally Added               0 
+ streams.dic               Locally Added               0 
+ hybrid-streams.cpp        Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ stats-device/             Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/stats-device
+ stats-device.rrr          Locally Added               0 
+ stats-device.h            Locally Added               0 
+ stats-device.awb          Locally Added               0 
+ stats-device.bsv          Locally Added               0 
+ stats-device.dic          Locally Added               0 
+ stats-device.cpp          Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ central-cache/            Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ central-cache-interfaces.bsv Locally Added               0 
+ local-mem-central-cache.awb Locally Added               0 
+ local-mem-central-cache.bsv Locally Added               0 
+ central-cache-backing-store.bsv Locally Added               0 
+ null-central-cache.awb    Locally Added               0 
+ null-central-cache.bsv    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ shared-memory/            Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ standard/                 Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/standard
+ standard-shared-memory-server.cpp Locally Added               0 
+ standard-shared-memory.h  Locally Added               0 
+ standard-shared-memory.awb Locally Added               0 
+ standard-shared-memory.bsv Locally Added               0 
+ standard-shared-memory-server.h Locally Added               0 
+ standard-shared-memory.cpp Locally Added               0 
+ standard-shared-memory.rrr Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null
+ null-shared-memory.h      Locally Added               0 
+ null-shared-memory.awb    Locally Added               0 
+ null-shared-memory.bsv    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ streams/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/streams
+ streams-common.bsh        Locally Added               0 
+ hybrid-streams-services.rrr Locally Added               0 
+ hybrid-streams.h          Locally Added               0 
+ hybrid-streams.awb        Locally Added               0 
+ streamid.dic              Locally Added               0 
+ hybrid-streams.bsv        Locally Added               0 
+ simulation-streams.awb    Locally Added               0 
+ simulation-streams.bsv    Locally Added               0 
+ streams.dic               Locally Added               0 
+ hybrid-streams.cpp        Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ low-level-platform-interface/ Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ platforms-module.h        Locally Added               0 
+ llpi.cpp                  Locally Added               0 
+ remote-memory/            Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory
+ pci-express-dma/          Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma
+ remote-memory-pcie-dma.cpp Locally Added               0 
+ remote-memory-pcie-dma.h  Locally Added               0 
+ remote-memory-pcie-dma.awb Locally Added               0 
+ remote-memory-pcie-dma.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null
+ null-remote-memory.h      Locally Added               0 
+ null-remote-memory.awb    Locally Added               0 
+ null-remote-memory.bsv    Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ hwonly-llpi.awb           Locally Added               0 
+ local-mem/                Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.awb        Locally Added               0 
+ local-mem-null.bsv        Locally Added               0 
+ local-mem-ddr2.awb        Locally Added               0 
+ local-mem-ddr2.bsv        Locally Added               0 
+ local-mem-bram.awb        Locally Added               0 
+ local-mem-interface.bsv   Locally Added               0 
+ local-mem-bram.bsv        Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.h                    Locally Added               0 
+ hybrid-llpi.awb           Locally Added               0 
+ llpi.bsv                  Locally Added               0 
+ platforms-module.cpp      Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ fpga-environment.awb      Locally Added               0 
+ std-virtual-platform.awb  Locally Added               0 
+ std-virtual-platform.bsv  Locally Added               0 
+
+Directory modules/leap
+ build-support/            Locally Added               0 
+
+Directory modules/leap/build-support
+ build-pipelines/          Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines
+ stages/                   Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ bluesim/                  Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bsv-exe.awb               Locally Added               0 
+ bluesim.py                Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ bluespec/                 Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Added               0 
+ bsv.awb                   Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ mcd/                      Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/mcd
+ mcd.tcl                   Locally Added               0 
+ bufg.tcl                  Locally Added               0 
+ MCD.py                    Locally Added               0 
+ mcd.awb                   Locally Added               0 
+ mcd-tcl.awb               Locally Added               0 
+ MCDTcl.py                 Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ iface/                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Added               0 
+ iface.py                  Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ verilog/                  Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/verilog
+ verilog.awb               Locally Added               0 
+ verilog.py                Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ altera/                   Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/altera
+ altera-post-synth.awb     Locally Added               0 
+ ALTERA_POST_SYNTH.py      Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ multifpga/                Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ multitest.py              Locally Added               0 
+ connection.py             Locally Added               0 
+ multilex.py               Locally Added               0 
+ environment.py            Locally Added               0 
+ platform.py               Locally Added               0 
+ multiparse.py             Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ software/                 Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Added               0 
+ software.awb              Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ xilinx/                   Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xst.awb                   Locally Added               0 
+ xilinx-loader.awb         Locally Added               0 
+ XILINX_LOADER.py          Locally Added               0 
+ xilinx-ngd.awb            Locally Added               0 
+ xilinx-bitgen.awb         Locally Added               0 
+ XILINX_NGD.py             Locally Added               0 
+ xst-nobasicio.awb         Locally Added               0 
+ XILINX_BITGEN.py          Locally Added               0 
+ XILINX_POST_SYNTH.py      Locally Added               0 
+ XSTnobasicio.py           Locally Added               0 
+ xilinx-bmm.awb            Locally Added               0 
+ XILINX_BMM.py             Locally Added               0 
+ xilinx-ucf.awb            Locally Added               0 
+ xilinx-map.awb            Locally Added               0 
+ XILINX_UCF.py             Locally Added               0 
+ XILINX_MAP.py             Locally Added               0 
+ xilinx-par.awb            Locally Added               0 
+ XILINX_PAR.py             Locally Added               0 
+ XST.py                    Locally Added               0 
+ xilinx-post-synth.awb     Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ synplify/                 Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ Synplify.py               Locally Added               0 
+ synplify.awb              Locally Added               0 
+ synplify.sdc              Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines
+ pipelines/                Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines
+ simulation/               Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ sim-build-pipeline.awb    Locally Added               0 
+ SimulationPipeline.py     Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines
+ verilog/                  Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ verilog-build-pipeline.awb Locally Added               0 
+ VerilogPipeline.py        Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines
+ fpga/                     Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ fpga-build-pipeline.awb   Locally Added               0 
+ FPGAPipeline.py           Locally Added               0 
+
+Directory modules/leap/build-support
+ project/                  Locally Added               0 
+
+Directory modules/leap/build-support/project
+ SCons.hw.pipeline.template Locally Added               0 
+ SCons.dict.template       Locally Added               0 
+ project-pipeline.awb      Locally Added               0 
+ project-common-hybrid.awb Locally Added               0 
+ SCons.sw.template         Locally Added               0 
+ Utils.py                  Locally Added               0 
+ Makefile.top.template     Locally Added               0 
+ project-hybrid-main.cpp   Locally Added               0 
+ application-env/          Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env
+ hybrid/                   Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ base/                     Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/base
+ application-env-hybrid-base.cpp Locally Added               0 
+ application-env-hybrid-base.h Locally Added               0 
+ application-env-hybrid-base.awb Locally Added               0 
+ application-env-hybrid-base.bsv Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ soft-connections/         Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.h Locally Added               0 
+ application-env-hybrid-soft-conn.awb Locally Added               0 
+ application-env-hybrid-soft-conn.bsv Locally Added               0 
+ default-sw/               Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections/default-sw
+ connected-application-default-sw.h Locally Added               0 
+ connected-application-default-sw.awb Locally Added               0 
+ connected-application-default-sw.bsv Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.cpp Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ soft-services/            Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.cpp Locally Added               0 
+ application-env-hybrid-soft-service.h Locally Added               0 
+ application-env-hybrid-soft-service.awb Locally Added               0 
+ application-env-hybrid-soft-service.bsv Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env
+ hw-only/                  Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hw-only
+ base/                     Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hw-only/base
+ application-env-hw-only-base.awb Locally Added               0 
+ application-env-hw-only-base.bsv Locally Added               0 
+
+Directory modules/leap/build-support/project
+ project-hw.awb            Locally Added               0 
+ SCons.sw.pipeline.template Locally Added               0 
+ ProjectDependency.py      Locally Added               0 
+ project-hw-main.bsv       Locally Added               0 
+ project-hybrid.awb        Locally Added               0 
+ project-hybrid-main.h     Locally Added               0 
+ project-sw-main.cpp       Locally Added               0 
+ project-hybrid-main.bsv   Locally Added               0 
+ SCons.top.template        Locally Added               0 
+ SCons.top.pipeline.template Locally Added               0 
+ project-sw-main.h         Locally Added               0 
+ SCons.iface.template      Locally Added               0 
+ project-sw.awb            Locally Added               0 
+ hardware-done.h           Locally Added               0 
+ ModuleList.py             Locally Added               0 
+ project-pipeline-new.awb  Locally Added               0 
+ SCons.hw.template         Locally Added               0 
+ Module.py                 Locally Added               0 
+ CommandLine.py            Locally Added               0 
+
+Directory modules/leap/build-support
+ smart-synthesis-boundaries/ Locally Added               0 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ backwards-compat/         Locally Added               0 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries/backwards-compat
+ with-connections.bsv      Locally Added               0 
+ bury-connections.bsv      Locally Added               0 
+ smart-synth-boundaries.awb Locally Added               0 
+ expose-connections.bsv    Locally Added               0 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ with-connections.bsv      Locally Added               0 
+ bury-connections.bsv      Locally Added               0 
+ smart-synth-boundaries.awb Locally Added               0 
+ expose-connections.bsv    Locally Added               0 
+
+Directory modules/leap
+ libraries/                Locally Added               0 
+
+Directory modules/leap/libraries
+ librl/                    Locally Added               0 
+
+Directory modules/leap/libraries/librl
+ cache/                    Locally Added               0 
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Added               0 
+ rl-set-assoc-cache.bsv    Locally Added               0 
+ rl-cache.bsv              Locally Added               0 
+ rl-tiny-cache.bsv         Locally Added               0 
+ librl-cache.awb           Locally Added               0 
+
+Directory modules/leap/libraries/librl
+ storage/                  Locally Added               0 
+
+Directory modules/leap/libraries/librl/storage
+ librl-bsv-storage.awb     Locally Added               0 
+ fifo-mem.bsv              Locally Added               0 
+ memory-heap.bsv           Locally Added               0 
+ fifo-scoreboard.bsv       Locally Added               0 
+
+Directory modules/leap/libraries/librl
+ librl-bsv.awb             Locally Added               0 
+ librl-bsv.bsh             Locally Added               0 
+ base/                     Locally Added               0 
+
+Directory modules/leap/libraries/librl/base
+ fifo-functions.bsv        Locally Added               0 
+ bluespec-common.prj       Locally Added               0 
+ bluespec-def.bsv          Locally Added               0 
+ guarded-pipelines.bsv     Locally Added               0 
+ counters.bsv              Locally Added               0 
+ debug-file.bsv            Locally Added               0 
+ README                    Locally Added               0 
+ lfsr.bsv                  Locally Added               0 
+ memory-interface.bsv      Locally Added               0 
+ counting-filter.bsv       Locally Added               0 
+ extends.bsv               Locally Added               0 
+ fifo-merge.bsv            Locally Added               0 
+ hash-bits.bsv             Locally Added               0 
+ support/                  Locally Added               0 
+
+Directory modules/leap/libraries/librl/base/support
+ hash-check.c              Locally Added               0 
+ README                    Locally Added               0 
+ hash-inverse.c            Locally Added               0 
+
+Directory modules/leap/libraries/librl/base
+ librl-bsv-base.awb        Locally Added               0 
+ memory-pack.bsv           Locally Added               0 
+
+Directory modules/leap/libraries
+ soft-services/            Locally Added               0 
+
+Directory modules/leap/libraries/soft-services
+ services/                 Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services
+ soft-clocks/              Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-clocks
+ basic-clock.awb           Locally Added               0 
+ basic-clock.bsv           Locally Added               0 
+ basic-clock-lib.awb       Locally Added               0 
+ basic-clock-lib.bsv       Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services
+ soft-connections-backwards-compat/ Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat
+ module-context/           Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ connection-matching.bsv   Locally Added               0 
+ transmittable.bsv         Locally Added               0 
+ alg/                      Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context/alg
+ connect-stations-tree.bsv Locally Added               0 
+ connect-top-level.bsv     Locally Added               0 
+ connect-multicasts.bsv    Locally Added               0 
+ connection-alg-module-context.awb Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ connection-helper.bsv     Locally Added               0 
+ connection-shared-interconnect.bsv Locally Added               0 
+ token-ring.bsv            Locally Added               0 
+ soft-connections-module-context.awb Locally Added               0 
+ connection-backwards-compat.bsv Locally Added               0 
+ connection-context.bsv    Locally Added               0 
+ connections.bsv           Locally Added               0 
+ connected-module.bsv      Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat
+ module-collect/           Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ Connected_Module.bsv      Locally Added               0 
+ alg/                      Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg
+ typed/                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg/typed
+ ConnectionHelper.bsv      Locally Added               0 
+ soft_connections_alg.awb  Locally Added               0 
+ ConnectionAlg.bsv         Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ token-ring.bsv            Locally Added               0 
+ soft-connections-module-collect.awb Locally Added               0 
+ Connections.bsv           Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services
+ soft-connections/         Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Added               0 
+ connected-common.bsv      Locally Added               0 
+ with-connections.bsv      Locally Added               0 
+ connection-shared-interconnect.bsv Locally Added               0 
+ physical-interconnects/   Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects
+ shared-tree/              Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree
+ tree-routing-table.bsv    Locally Added               0 
+ tree-helper.bsv           Locally Added               0 
+ tree-interface.bsv        Locally Added               0 
+ tree-station.bsv          Locally Added               0 
+ shared-tree.awb           Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ bury-connections.bsv      Locally Added               0 
+ soft-connections-common-module-context.awb Locally Added               0 
+ transmittable.bsv         Locally Added               0 
+ alg/                      Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-stations-tree.bsv Locally Added               0 
+ connect-top-level.bsv     Locally Added               0 
+ connect-multicasts.bsv    Locally Added               0 
+ expose-connections.bsv    Locally Added               0 
+ connection-alg-module-context.awb Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Added               0 
+ token-ring.bsv            Locally Added               0 
+ soft-connections-lib.awb  Locally Added               0 
+ soft-connections-module-context.awb Locally Added               0 
+ connection-backwards-compat.bsv Locally Added               0 
+ connection-context.bsv    Locally Added               0 
+ connections.bsv           Locally Added               0 
+ soft-connections-backward-deps.bsh Locally Added               0 
+ connected-module.bsv      Locally Added               0 
+
+Directory modules/leap/libraries/soft-services
+ soft-service-sets/        Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets
+ soft-connections-soft-clocks/ Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-impl-deps.bsh Locally Added               0 
+ soft-services-defs.awb    Locally Added               0 
+ soft-services-deps-small.awb Locally Added               0 
+ soft-services-lib-deps.bsh Locally Added               0 
+ soft-services.awb         Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets
+ soft-connections-only/    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-only
+ soft-services-impl-deps.bsh Locally Added               0 
+ soft-services-deps-small.awb Locally Added               0 
+ soft-services-lib-deps.bsh Locally Added               0 
+ soft-services-soft-conn.bsv Locally Added               0 
+ soft-services-small.awb   Locally Added               0 
+
+Directory modules/leap/libraries/soft-services
+ util/                     Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-sc-deps.bsh Locally Added               0 
+ soft-services-lib.awb     Locally Added               0 
+ soft-services-lib.bsv     Locally Added               0 
+ soft-services-deps.awb    Locally Added               0 
+
+Directory modules/leap
+ examples/                 Locally Added               0 
+
+Directory modules/leap/examples
+ traffic-light/            Locally Added               0 
+
+Directory modules/leap/examples/traffic-light
+ traffic-light-system.txt  Locally Added               0 
+ traffic-light-function/   Locally Added               0 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function.bsv Locally Added               0 
+ traffic-light-function-smart-synth-boundary.awb Locally Added               0 
+ traffic-light-function.awb Locally Added               0 
+
+Directory modules/leap/examples/traffic-light
+ traffic-light-system.awb  Locally Added               0 
+ traffic-light-system.bsv  Locally Added               0 
+
+Directory modules/leap/examples
+ hello-world/              Locally Added               0 
+
+Directory modules/leap/examples/hello-world
+ hello-world.awb           Locally Added               0 
+ hello-world.bsv           Locally Added               0 
+ hello-world.dic           Locally Added               0 
+ hello-world.cpp           Locally Added               0 
+ README                    Locally Added               0 
+ hello-world.h             Locally Added               0 
+
+Directory modules
+ bluespec/                 Locally Removed            34 
+
+Directory modules/bluespec
+ librl/                    Locally Removed            34 
+
+Directory modules/bluespec/librl
+ storage/                  Locally Removed            34 
+
+Directory modules/bluespec/librl/storage
+ cache/                    Locally Removed            34 
+
+Directory modules/bluespec/librl/storage/cache
+ rl-direct-mapped-cache.bsv Locally Removed            34 
+ rl-set-assoc-cache.bsv    Locally Removed            34 
+ rl-cache.bsv              Locally Removed            34 
+ rl-tiny-cache.bsv         Locally Removed            34 
+ librl-cache.awb           Locally Removed            34 
+
+Directory modules/bluespec/librl/storage
+ librl-bsv-storage.awb     Locally Removed            34 
+ fifo-mem.bsv              Locally Removed            34 
+ memory-heap.bsv           Locally Removed            34 
+ fifo-scoreboard.bsv       Locally Removed            34 
+
+Directory modules/bluespec/librl
+ librl-bsv.awb             Locally Removed            34 
+ librl-bsv.bsh             Locally Removed            34 
+ base/                     Locally Removed            34 
+
+Directory modules/bluespec/librl/base
+ bluespec-common.prj       Locally Removed            34 
+ fifo-functions.bsv        Locally Removed            34 
+ bluespec-def.bsv          Locally Removed            34 
+ guarded-pipelines.bsv     Locally Removed            34 
+ counters.bsv              Locally Removed            34 
+ debug-file.bsv            Locally Removed            34 
+ README                    Locally Removed            34 
+ lfsr.bsv                  Locally Removed            34 
+ memory-interface.bsv      Locally Removed            34 
+ counting-filter.bsv       Locally Removed            34 
+ extends.bsv               Locally Removed            34 
+ fifo-merge.bsv            Locally Removed            34 
+ hash-bits.bsv             Locally Removed            34 
+ support/                  Locally Removed            34 
+
+Directory modules/bluespec/librl/base/support
+ hash-check.c              Locally Removed            34 
+ README                    Locally Removed            34 
+ hash-inverse.c            Locally Removed            34 
+
+Directory modules/bluespec/librl/base
+ librl-bsv-base.awb        Locally Removed            34 
+ memory-pack.bsv           Locally Removed            34 
+
+Directory modules/bluespec
+ system/                   Locally Removed            34 
+
+Directory modules/bluespec/system
+ demos/                    Locally Removed            34 
+
+Directory modules/bluespec/system/demos
+ hello/                    Locally Removed            34 
+
+Directory modules/bluespec/system/demos/hello
+ hello.txt                 Locally Removed            34 
+ hello.cpp                 Locally Removed            34 
+ hello_streams_messages.dic Locally Removed            34 
+ hello.h                   Locally Removed            34 
+ hello.awb                 Locally Removed            34 
+ hello_streams_id.dic      Locally Removed            34 
+ hello.bsv                 Locally Removed            34 
+
+Directory modules/bluespec/system/demos
+ template/                 Locally Removed            34 
+
+Directory modules/bluespec/system/demos/template
+ hybrid_application.txt    Locally Removed            34 
+ hybrid_application.cpp    Locally Removed            34 
+ hybrid_application_streams_messages.dic Locally Removed            34 
+ hybrid_application.h      Locally Removed            34 
+ hybrid_application.awb    Locally Removed            34 
+ hybrid_application_streams_id.dic Locally Removed            34 
+ hybrid_application.bsv    Locally Removed            34 
+
+Directory modules/bluespec
+ common/                   Locally Removed            34 
+
+Directory modules/bluespec/common
+ project-common-hybrid.awb Locally Removed            34 
+ fpgaenv/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv
+ low-level-platform-interface/ Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface
+ platforms-module.h        Locally Removed            34 
+ remote-memory/            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory
+ pci-express-dma/          Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/pci-express-dma
+ remote-memory-pcie-dma.cpp Locally Removed            34 
+ remote-memory-pcie-dma.h  Locally Removed            34 
+ remote-memory-pcie-dma.awb Locally Removed            34 
+ remote-memory-pcie-dma.bsv Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory
+ null/                     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/null
+ null-remote-memory.h      Locally Removed            34 
+ null-remote-memory.awb    Locally Removed            34 
+ null-remote-memory.bsv    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface
+ llpi.cpp                  Locally Removed            34 
+ local-mem/                Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface/local-mem
+ local-mem-null.awb        Locally Removed            34 
+ local-mem-ddr2.awb        Locally Removed            34 
+ local-mem-null.bsv        Locally Removed            34 
+ local-mem-ddr2.bsv        Locally Removed            34 
+ local-mem-bram.awb        Locally Removed            34 
+ local-mem-interface.bsv   Locally Removed            34 
+ local-mem-bram.bsv        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/low-level-platform-interface
+ hwonly-llpi.awb           Locally Removed            34 
+ llpi.h                    Locally Removed            34 
+ hybrid-llpi.awb           Locally Removed            34 
+ llpi.bsv                  Locally Removed            34 
+ platforms-module.cpp      Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv
+ virtual-platform/         Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ channelio/                Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ basic/                    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/basic
+ basic-channelio.cpp       Locally Removed            34 
+ basic-channelio.h         Locally Removed            34 
+ basic-channelio.awb       Locally Removed            34 
+ basic-channelio.bsv       Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ physical-channel/         Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ pcie-dma/                 Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-dma
+ dma-physical-channel.cpp  Locally Removed            34 
+ dma-physical-channel.h    Locally Removed            34 
+ dma-physical-channel.awb  Locally Removed            34 
+ dma-physical-channel.bsv  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ serial/                   Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel.cpp Locally Removed            34 
+ serial-physical-channel-loopback.bsv Locally Removed            34 
+ SerialStream.h            Locally Removed            34 
+ PosixSignalHandler.h      Locally Removed            34 
+ serial-physical-channel-8bit.cpp Locally Removed            34 
+ serial-physical-channel.h Locally Removed            34 
+ PosixSignalDispatcher.cpp Locally Removed            34 
+ serial-physical-channel.bsv Locally Removed            34 
+ serial-physical-channel-8bit.bsv Locally Removed            34 
+ PosixSignalDispatcher.h   Locally Removed            34 
+ serial-physical-channel-loopback.awb Locally Removed            34 
+ SerialPort.cpp            Locally Removed            34 
+ serial-physical-channel.awb Locally Removed            34 
+ SerialStreamBuf.cpp       Locally Removed            34 
+ SerialPort.h              Locally Removed            34 
+ serial-physical-channel-8bit.awb Locally Removed            34 
+ SerialStream.cpp          Locally Removed            34 
+ SerialStreamBuf.h         Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ pcie-bluespec/            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-bluespec
+ pcie-bluespec-physical-channel.cpp Locally Removed            34 
+ pcie-bluespec-physical-channel.h Locally Removed            34 
+ pcie-bluespec-physical-channel.awb Locally Removed            34 
+ pcie-bluespec-physical-channel.bsv Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ jtag/                     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.cpp Locally Removed            34 
+ altera/                   Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/jtag/altera
+ jtag-physical-channel.cpp Locally Removed            34 
+ jtag-physical-channel.h   Locally Removed            34 
+ jtag-physical-channel.awb Locally Removed            34 
+ jtag-physical-channel.bsv Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.h   Locally Removed            34 
+ jtag-physical-channel.awb Locally Removed            34 
+ jtag-physical-channel.bsv Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ pcie-csr/                 Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-csr
+ pcie-physical-channel.cpp Locally Removed            34 
+ pcie-physical-channel.h   Locally Removed            34 
+ pcie-physical-channel.awb Locally Removed            34 
+ pcie-physical-channel.bsv Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel
+ sim/                      Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/sim
+ sim-physical-channel.awb  Locally Removed            34 
+ sim-physical-channel.bsv  Locally Removed            34 
+ sim-physical-channel.cpp  Locally Removed            34 
+ sim-physical-channel.h    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ unix/                     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/unix
+ unix-channelio.c          Locally Removed            34 
+ unix-channelio.awb        Locally Removed            34 
+ UNIXChannelIO.bsv         Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ loopback/                 Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/loopback
+ loopback-channelio.awb    Locally Removed            34 
+ loopback-channelio.bsv    Locally Removed            34 
+ loopback-channelio.cpp    Locally Removed            34 
+ loopback-channelio.h      Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio
+ null/                     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/channelio/null
+ null-channelio.awb        Locally Removed            34 
+ NullChannelIO.bsv         Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ std-virtual-platform.cpp  Locally Removed            34 
+ rrr/                      Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr
+ basic/                    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr/basic
+ basic-rrr-client.cpp      Locally Removed            34 
+ basic-rrr-server.bsv      Locally Removed            34 
+ arbiters.bsv              Locally Removed            34 
+ basic-rrr-common.bsh      Locally Removed            34 
+ basic-rrr-client.h        Locally Removed            34 
+ basic-rrr-client.bsv      Locally Removed            34 
+ basic-rrr-server.cpp      Locally Removed            34 
+ basic-rrr.awb             Locally Removed            34 
+ basic-rrr-server.h        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr
+ null/                     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr/null
+ null-rrr-client.h         Locally Removed            34 
+ null-rrr-server.cpp       Locally Removed            34 
+ null-rrr.awb              Locally Removed            34 
+ null-rrr.bsv              Locally Removed            34 
+ null-rrr-server.h         Locally Removed            34 
+ null-rrr.bsh              Locally Removed            34 
+ null-rrr-client.cpp       Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr
+ rrr_common/               Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/rrr/rrr_common
+ marshaller.bsv            Locally Removed            34 
+ rrr_common.awb            Locally Removed            34 
+ demarshaller.bsv          Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ virtual-devices/          Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices.cpp   Locally Removed            34 
+ starter/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/starter
+ starter-device.cpp        Locally Removed            34 
+ starter-device.rrr        Locally Removed            34 
+ starter-device.h          Locally Removed            34 
+ starter-device.awb        Locally Removed            34 
+ starter-device.bsv        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices.h     Locally Removed            34 
+ front-panel/              Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ fsb_dme/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/fsb_dme
+ fsb-dme-fp.awb            Locally Removed            34 
+ FSB_DME_FP.bsv            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ arriaII/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/arriaII
+ ARRIAIIFP.bsv             Locally Removed            34 
+ arriaII-fp.awb            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ hybrid/                   Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/hybrid
+ hybrid-fp.cpp             Locally Removed            34 
+ hybrid-fp-command-switches.cpp Locally Removed            34 
+ hybrid-fp.rrr             Locally Removed            34 
+ hybrid-fp.h               Locally Removed            34 
+ hybrid-fp.awb             Locally Removed            34 
+ hybrid-fp.bsv             Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ console/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/console
+ NullFP.bsv                Locally Removed            34 
+ console-fp.awb            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ fsb_afu/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/fsb_afu
+ FSB_AFU_FP.bsv            Locally Removed            34 
+ fsb-afu-fp.awb            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ graphical/                Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/graphical
+ graphical-fp.awb          Locally Removed            34 
+ GraphicalFP.bsv           Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ htg_v5_pcie/              Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/htg_v5_pcie
+ htg-v5-pcie-fp.awb        Locally Removed            34 
+ HTGv5PCIeFP.bsv           Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel
+ xup/                      Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/front-panel/xup
+ xup-fp.awb                Locally Removed            34 
+ XUPFP.bsv                 Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ null-virtual-devices.awb  Locally Removed            34 
+ std-virtual-devices.bsv   Locally Removed            34 
+ common/                   Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ common-utility-devices.h  Locally Removed            34 
+ common-utility-devices.awb Locally Removed            34 
+ dynamic-parameters-device/ Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/dynamic-parameters-device
+ dynamic-parameters-device.dic Locally Removed            34 
+ dynamic-parameters-device.cpp Locally Removed            34 
+ dynamic-parameters-device.rrr Locally Removed            34 
+ dynamic-parameters-device.h Locally Removed            34 
+ dynamic-parameters-device.awb Locally Removed            34 
+ dynamic-parameters-device.bsv Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ common-utility-devices.bsv Locally Removed            34 
+ debug-scan-device/        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/debug-scan-device
+ debug-scan-device.dic     Locally Removed            34 
+ debug-scan-device.cpp     Locally Removed            34 
+ debug-scan-device.rrr     Locally Removed            34 
+ debug-scan-device.h       Locally Removed            34 
+ debug-scan-device.awb     Locally Removed            34 
+ debug-scan-device.bsv     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ assertions-device/        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/assertions-device
+ assertions-device.awb     Locally Removed            34 
+ assertions-device.bsv     Locally Removed            34 
+ assertions-device.dic     Locally Removed            34 
+ assertions-device.cpp     Locally Removed            34 
+ assertions-device.rrr     Locally Removed            34 
+ assertions-device.h       Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ common-utility-null.h     Locally Removed            34 
+ common-utility-null.awb   Locally Removed            34 
+ common-utility-devices.cpp Locally Removed            34 
+ common-utility-null.bsv   Locally Removed            34 
+ stats-device/             Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/stats-device
+ stats-device.rrr          Locally Removed            34 
+ stats-device.h            Locally Removed            34 
+ stats-device.awb          Locally Removed            34 
+ stats-device.bsv          Locally Removed            34 
+ stats-device.dic          Locally Removed            34 
+ stats-device.cpp          Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common
+ streams-device/           Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/common/streams-device
+ streams-common.bsh        Locally Removed            34 
+ hybrid-streams-services.rrr Locally Removed            34 
+ hybrid-streams.h          Locally Removed            34 
+ hybrid-streams.awb        Locally Removed            34 
+ hybrid-streams.bsv        Locally Removed            34 
+ streamid.dic              Locally Removed            34 
+ streams.dic               Locally Removed            34 
+ hybrid-streams.cpp        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ central-cache/            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/central-cache
+ central-cache-interfaces.bsv Locally Removed            34 
+ local-mem-central-cache.awb Locally Removed            34 
+ local-mem-central-cache.bsv Locally Removed            34 
+ central-cache-backing-store.bsv Locally Removed            34 
+ null-central-cache.awb    Locally Removed            34 
+ null-central-cache.bsv    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices-null-mem.awb Locally Removed            34 
+ null-starter/             Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/null-starter
+ null-starter-device.awb   Locally Removed            34 
+ starter-device.cpp        Locally Removed            34 
+ starter-device.h          Locally Removed            34 
+ starter-device.bsv        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices.dic   Locally Removed            34 
+ null-virtual-devices.cpp  Locally Removed            34 
+ console/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console
+ graphical-serial/         Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console/graphical-serial
+ graphical-serial.awb      Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console
+ null-serial/              Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/console/null-serial
+ null-serial.awb           Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ null-virtual-devices.h    Locally Removed            34 
+ std-virtual-devices.awb   Locally Removed            34 
+ null-virtual-devices.bsv  Locally Removed            34 
+ memory/                   Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory
+ hybrid/                   Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/hybrid
+ hybrid-mem-scratch.dic    Locally Removed            34 
+ hybrid-mem-scratch.cpp    Locally Removed            34 
+ hybrid-mem-scratch.rrr    Locally Removed            34 
+ hybrid-mem-scratch.h      Locally Removed            34 
+ hybrid-mem-scratch.awb    Locally Removed            34 
+ hybrid-mem-scratch.bsv    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory
+ common/                   Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/common
+ mem-scratch-common.awb    Locally Removed            34 
+ mem-scratch-common-interfaces.bsv Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory
+ local/                    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/memory/local
+ local-mem-scratch.awb     Locally Removed            34 
+ local-mem-scratch.bsv     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ std-virtual-devices-null-mem.bsv Locally Removed            34 
+ shared-memory/            Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory
+ standard/                 Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory/standard
+ standard-shared-memory-server.cpp Locally Removed            34 
+ standard-shared-memory.h  Locally Removed            34 
+ standard-shared-memory.awb Locally Removed            34 
+ standard-shared-memory.bsv Locally Removed            34 
+ standard-shared-memory-server.h Locally Removed            34 
+ standard-shared-memory.cpp Locally Removed            34 
+ standard-shared-memory.rrr Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory
+ null/                     Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/shared-memory/null
+ null-shared-memory.h      Locally Removed            34 
+ null-shared-memory.awb    Locally Removed            34 
+ null-shared-memory.bsv    Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices
+ streams/                  Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform/virtual-devices/streams
+ streams-common.bsh        Locally Removed            34 
+ hybrid-streams-services.rrr Locally Removed            34 
+ hybrid-streams.h          Locally Removed            34 
+ hybrid-streams.awb        Locally Removed            34 
+ hybrid-streams.bsv        Locally Removed            34 
+ streamid.dic              Locally Removed            34 
+ simulation-streams.awb    Locally Removed            34 
+ simulation-streams.bsv    Locally Removed            34 
+ streams.dic               Locally Removed            34 
+ hybrid-streams.cpp        Locally Removed            34 
+
+Directory modules/bluespec/common/fpgaenv/virtual-platform
+ std-virtual-platform.h    Locally Removed            34 
+ std-virtual-platform.awb  Locally Removed            34 
+ std-virtual-platform.bsv  Locally Removed            34 
+ fast-virtual-platform.awb Locally Removed            34 
+
+Directory modules/bluespec/common
+ soft_clock/               Locally Removed            34 
+
+Directory modules/bluespec/common/soft_clock
+ basic-clock.awb           Locally Removed            34 
+ basic-clock.bsv           Locally Removed            34 
+ basic-clock-lib.awb       Locally Removed            34 
+ basic-clock-lib.bsv       Locally Removed            34 
+
+Directory modules/bluespec/common
+ base/                     Locally Removed            34 
+
+Directory modules/bluespec/common/base
+ bluespec_base.awb         Locally Removed            34 
+ bluespec_common.prj       Locally Removed            34 
+
+Directory modules/bluespec/common
+ null/                     Locally Removed            34 
+
+Directory modules/bluespec/common/null
+ bluespec_null.awb         Locally Removed            34 
+
+Directory modules/bluespec/common
+ soft_connections/         Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections
+ Connected_Module.bsv      Locally Removed            34 
+ alg/                      Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/alg
+ typed/                    Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/alg/typed
+ ConnectionHelper.bsv      Locally Removed            34 
+ soft_connections_alg.awb  Locally Removed            34 
+ ConnectionAlg.bsv         Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections
+ soft_connections.awb      Locally Removed            34 
+ token-ring.bsv            Locally Removed            34 
+ module-context/           Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/module-context
+ connection-matching.bsv   Locally Removed            34 
+ transmittable.bsv         Locally Removed            34 
+ alg/                      Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/module-context/alg
+ connect-stations-tree.bsv Locally Removed            34 
+ connect-top-level.bsv     Locally Removed            34 
+ connect-multicasts.bsv    Locally Removed            34 
+ connection-alg-module-context.awb Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/module-context
+ connection-helper.bsv     Locally Removed            34 
+ connection-shared-interconnect.bsv Locally Removed            34 
+ token-ring.bsv            Locally Removed            34 
+ connection-backwards-compat.bsv Locally Removed            34 
+ soft-connections-module-context.awb Locally Removed            34 
+ connection-context.bsv    Locally Removed            34 
+ connections.bsv           Locally Removed            34 
+ connected-module.bsv      Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections
+ soft-service/             Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/soft-service
+ connection-matching.bsv   Locally Removed            34 
+ connected-common.bsv      Locally Removed            34 
+ connection-shared-interconnect.bsv Locally Removed            34 
+ bury-connections.bsv      Locally Removed            34 
+ soft-connections-common-module-context.awb Locally Removed            34 
+ soft_connections_backward_deps.bsh Locally Removed            34 
+ transmittable.bsv         Locally Removed            34 
+ alg/                      Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/soft-service/alg
+ connect_stations_tree.bsv Locally Removed            34 
+ connect_multicasts.bsv    Locally Removed            34 
+ connect_top_level.bsv     Locally Removed            34 
+ connection-alg-module-context.awb Locally Removed            34 
+ expose_connections.bsv    Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections/soft-service
+ connection-helper.bsv     Locally Removed            34 
+ token-ring.bsv            Locally Removed            34 
+ with_connections.bsv      Locally Removed            34 
+ connection-backwards-compat.bsv Locally Removed            34 
+ soft-connections-module-context.awb Locally Removed            34 
+ connection-context.bsv    Locally Removed            34 
+ connections.bsv           Locally Removed            34 
+ connected-module.bsv      Locally Removed            34 
+
+Directory modules/bluespec/common/soft_connections
+ Connections.bsv           Locally Removed            34 
+ soft_connections_lib.awb  Locally Removed            34 
+
+Directory modules/bluespec/common
+ soft_services/            Locally Removed            34 
+
+Directory modules/bluespec/common/soft_services
+ smart_synth_boundaries.bsv Locally Removed            34 
+ softServicesLib.bsv       Locally Removed            34 
+ soft_services_deps.awb    Locally Removed            34 
+ smart_synthesis_boundaries.bsv Locally Removed            34 
+ soft_services_sc_deps.bsh Locally Removed            34 
+ soft_services_SConn_SClock/ Locally Removed            34 
+
+Directory modules/bluespec/common/soft_services/soft_services_SConn_SClock
+ soft_service_impl_deps.bsh Locally Removed            34 
+ soft_services.awb         Locally Removed            34 
+ soft_service_lib_deps.bsh Locally Removed            34 
+ soft_services_defs.bsv    Locally Removed            34 
+ soft_services_deps_small.awb Locally Removed            34 
+ soft_services_lib_deps.bsh Locally Removed            34 
+
+Directory modules/bluespec/common/soft_services
+ soft_services_lib.awb     Locally Removed            34 
+ soft_services_SConn/      Locally Removed            34 
+
+Directory modules/bluespec/common/soft_services/soft_services_SConn
+ soft_services_soft_conn.bsv Locally Removed            34 
+ soft_service_impl_deps.bsh Locally Removed            34 
+ soft_service_lib_deps.bsh Locally Removed            34 
+ soft_services_deps_small.awb Locally Removed            34 
+ soft_services_small.awb   Locally Removed            34 
+
+Directory modules/bluespec
+ util/                     Locally Removed            34 
+
+Directory modules/bluespec/util
+ physical-interconnects/   Locally Removed            34 
+
+Directory modules/bluespec/util/physical-interconnects
+ shared-tree/              Locally Removed            34 
+
+Directory modules/bluespec/util/physical-interconnects/shared-tree
+ tree-routing-table.bsv    Locally Removed            34 
+ tree-helper.bsv           Locally Removed            34 
+ tree-interface.bsv        Locally Removed            34 
+ tree-station.bsv          Locally Removed            34 
+ shared-tree.awb           Locally Removed            34 
+
+Directory modules
+ system/                   Locally Removed            34 
+
+Directory modules/system
+ afu_system/               Locally Removed            34 
+
+Directory modules/system/afu_system
+ pass-through/             Locally Removed            34 
+ add1/                     Locally Removed            34 
+
+Directory modules/system
+ dme_system/               Locally Removed            34 
+
+Directory modules/system/dme_system
+ no-afu/                   Locally Removed            34 
+
+Directory modules/system
+ traffic_light_system/     Locally Removed            34 
+
+Directory modules/system/traffic_light_system
+ traffic_light_system.awb  Locally Removed            34 
+ traffic_light_system.txt  Locally Removed            34 
+ hasim_traffic_light_function/ Locally Removed            34 
+
+Directory modules/system/traffic_light_system/hasim_traffic_light_function
+ hasim_traffic_light_function.awb Locally Removed            34 
+ TL0.bsv                   Locally Removed            34 
+ hasim_traffic_light_function_synth.awb Locally Removed            34 
+
+Directory modules/system/traffic_light_system
+ System.bsv                Locally Removed            34 
+
+Directory modules
+ project/                  Locally Removed            34 
+
+Directory modules/project
+ SCons.hw.pipeline.template Locally Removed            34 
+ project-pipeline.awb      Locally Removed            34 
+ synopsis/                 Locally Removed            34 
+
+Directory modules/project/synopsis
+ Synplify.py               Locally Removed            34 
+ synplify.awb              Locally Removed            34 
+ synplify.sdc              Locally Removed            34 
+
+Directory modules/project
+ Utils.py                  Locally Removed            34 
+ pipelines/                Locally Removed            34 
+
+Directory modules/project/pipelines
+ verilog-build-pipeline.awb Locally Removed            34 
+ sim-build-pipeline.awb    Locally Removed            34 
+ SimulationPipeline.py     Locally Removed            34 
+ VerilogPipeline.py        Locally Removed            34 
+ fpga-build-pipeline.awb   Locally Removed            34 
+ FPGAPipeline.py           Locally Removed            34 
+
+Directory modules/project
+ multifpga/                Locally Removed            34 
+
+Directory modules/project/multifpga
+ multitest.py              Locally Removed            34 
+ connection.py             Locally Removed            34 
+ multilex.py               Locally Removed            34 
+ environment.py            Locally Removed            34 
+ platform.py               Locally Removed            34 
+ multiparse.py             Locally Removed            34 
+
+Directory modules/project
+ project-hybrid-main.cpp   Locally Removed            34 
+ Makefile.top.template     Locally Removed            34 
+ project-hw.awb            Locally Removed            34 
+ ProjectDependency.py      Locally Removed            34 
+ project-hw-main.bsv       Locally Removed            34 
+ project-hybrid.awb        Locally Removed            34 
+ SCons.top.pipeline.template Locally Removed            34 
+ project-sw-main.h         Locally Removed            34 
+ hardware-done.h           Locally Removed            34 
+ verilog/                  Locally Removed            34 
+
+Directory modules/project/verilog
+ verilog.awb               Locally Removed            34 
+ VERILOG.PY                Locally Removed            34 
+ verilog.py                Locally Removed            34 
+
+Directory modules/project
+ iface/                    Locally Removed            34 
+
+Directory modules/project/iface
+ iface.awb                 Locally Removed            34 
+ iface.py                  Locally Removed            34 
+
+Directory modules/project
+ ModuleList.py             Locally Removed            34 
+ altera/                   Locally Removed            34 
+
+Directory modules/project/altera
+ ALTERA_POST_SYNTH.py      Locally Removed            34 
+ altera_post_synth.awb     Locally Removed            34 
+
+Directory modules/project
+ xilinx/                   Locally Removed            34 
+
+Directory modules/project/xilinx
+ xilinx_map.awb            Locally Removed            34 
+ xilinx_ucf.awb            Locally Removed            34 
+ xilinx_par.awb            Locally Removed            34 
+ xst.awb                   Locally Removed            34 
+ XILINX_LOADER.py          Locally Removed            34 
+ XILINX_NGD.py             Locally Removed            34 
+ XILINX_BITGEN.py          Locally Removed            34 
+ xst-nobasicio.awb         Locally Removed            34 
+ XSTnobasicio.py           Locally Removed            34 
+ XILINX_POST_SYNTH.py      Locally Removed            34 
+ XILINX_BMM.py             Locally Removed            34 
+ XILINX_UCF.py             Locally Removed            34 
+ XILINX_MAP.py             Locally Removed            34 
+ XILINX_PAR.py             Locally Removed            34 
+ XST.py                    Locally Removed            34 
+ xilinx_loader.awb         Locally Removed            34 
+ xilinx_ngd.awb            Locally Removed            34 
+ xilinx_bitgen.awb         Locally Removed            34 
+ xilinx_post_synth.awb     Locally Removed            34 
+ xilinx_bmm.awb            Locally Removed            34 
+
+Directory modules/project
+ Module.py                 Locally Removed            34 
+ SCons.hw.template         Locally Removed            34 
+ SCons.dict.template       Locally Removed            34 
+ SCons.sw.template         Locally Removed            34 
+ software/                 Locally Removed            34 
+
+Directory modules/project/software
+ software.py               Locally Removed            34 
+ software.awb              Locally Removed            34 
+
+Directory modules/project
+ SCons.sw.pipeline.template Locally Removed            34 
+ project-hybrid-main.h     Locally Removed            34 
+ project-sw-main.cpp       Locally Removed            34 
+ project-hybrid-main.bsv   Locally Removed            34 
+ SCons.top.template        Locally Removed            34 
+ bluespec/                 Locally Removed            34 
+
+Directory modules/project/bluespec
+ BSV.py                    Locally Removed            34 
+ bsv-exe.awb               Locally Removed            34 
+ bsv.awb                   Locally Removed            34 
+ bufg.tcl                  Locally Removed            34 
+ mcd.tcl                   Locally Removed            34 
+ bluesim.py                Locally Removed            34 
+ MCD.py                    Locally Removed            34 
+ mcd-tcl.awb               Locally Removed            34 
+ mcd.awb                   Locally Removed            34 
+ MCDTcl.py                 Locally Removed            34 
+
+Directory modules/project
+ project-sw.awb            Locally Removed            34 
+ SCons.iface.template      Locally Removed            34 
+ project-pipeline-new.awb  Locally Removed            34 
+ CommandLine.py            Locally Removed            34 
+
+Directory modules
+ application-env/          Locally Removed            34 
+
+Directory modules/application-env
+ hybrid/                   Locally Removed            34 
+
+Directory modules/application-env/hybrid
+ base/                     Locally Removed            34 
+
+Directory modules/application-env/hybrid/base
+ application-env-hybrid-base.cpp Locally Removed            34 
+ application-env-hybrid-base.h Locally Removed            34 
+ application-env-hybrid-base.awb Locally Removed            34 
+ application-env-hybrid-base.bsv Locally Removed            34 
+
+Directory modules/application-env/hybrid
+ soft-connections/         Locally Removed            34 
+
+Directory modules/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.h Locally Removed            34 
+ application-env-hybrid-soft-conn.awb Locally Removed            34 
+ application-env-hybrid-soft-conn.bsv Locally Removed            34 
+ default-sw/               Locally Removed            34 
+
+Directory modules/application-env/hybrid/soft-connections/default-sw
+ connected-application-default-sw.h Locally Removed            34 
+ connected-application-default-sw.awb Locally Removed            34 
+ connected-application-default-sw.bsv Locally Removed            34 
+
+Directory modules/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.cpp Locally Removed            34 
+
+Directory modules/application-env/hybrid
+ soft-services/            Locally Removed            34 
+
+Directory modules/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.cpp Locally Removed            34 
+ application-env-hybrid-soft-service.h Locally Removed            34 
+ application-env-hybrid-soft-service.awb Locally Removed            34 
+ application-env-hybrid-soft-service.bsv Locally Removed            34 
+
+Directory modules/application-env
+ hw-only/                  Locally Removed            34 
+
+Directory modules/application-env/hw-only
+ base/                     Locally Removed            34 
+
+Directory modules/application-env/hw-only/base
+ application-env-hw-only-base.awb Locally Removed            34 
+ application-env-hw-only-base.bsv Locally Removed            34 
+
+
+
+* Major LEAP file reorganization to remove references to HAsim and obsolete file
+naming conventions.
+
+* In general, the content of files in this checkin are unchanged, just their
+  names and locations on disks. Two exceptions:
+  
+  A) .awb files have been updated if source file names changed.
+  B) .apm files have been updated with the new locations, and upgraded to format
+     version 2.2 to facilitate finding moved files.
+
+* Some concessions to backwards compatability has been made by keeping code
+  that is obsolete but still supported. These modules are generally placed in
+  directories called backwards-compat. Currently these files are planned to be
+  removed once code refactoring is done.
+  
+* fpga-environment.awb was mistakenly left in platforms. Now moved to LEAP.
+
+* Now that AWB better supports changed file locations, we should hopefully do
+  these reorganizations incrementally and no longer have to do monster checkins
+  on this magnitude.
+  
+Michael P.

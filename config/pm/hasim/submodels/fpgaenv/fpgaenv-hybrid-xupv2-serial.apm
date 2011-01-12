@@ -3,12 +3,14 @@
 SaveParameters=0
 Description=Hybrid XUPv2 Serial FPGA Environment
 File=fpgaenv-hybrid-xupv2-serial
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=Hybrid XUPv2 Serial FPGA Environment
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
 
 [Model]
 DefaultAttributes=bluespec xupv2
@@ -21,8 +23,8 @@ librl_bsv=RL Bluespec Library
 build_pipeline=FPGA Build Pipeline
 
 [Standard Virtual Platform]
-File=modules/bluespec/common/fpgaenv/virtual-platform/std-virtual-platform.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
 
 [Standard Virtual Platform/Requires]
 virtual_devices=Standard Virtual Devices (No Memory Service)
@@ -30,23 +32,23 @@ low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
 [FPGA Environment]
-File=modules/bluespec/common/fpgaenv/fpga-environment.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
 
 [RRR Clients and Servers]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/basic/basic-rrr.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/basic/basic-channelio.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=HiPerf Serial Physical Channel
 
 [Low Level Platform Interface Hybrid]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/hybrid-llpi.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
 
 [Low Level Platform Interface Hybrid/Requires]
 physical_platform=XUP Virtex 2 Serial
@@ -62,7 +64,7 @@ Packagehint=platforms
 
 [RL Bluespec Library]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=platforms
+Packagehint=leap
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
@@ -94,8 +96,8 @@ LOCAL_MEM_WORD_BITS=64
 LOCAL_MEM_ADDR_BITS=26
 
 [NULL Local Memory Interface]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/local-mem/local-mem-null.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
+Packagehint=leap
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
@@ -110,16 +112,16 @@ File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-vi
 Packagehint=platforms
 
 [Null Remote Memory]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
+Packagehint=leap
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
 Packagehint=platforms
 
 [RRR Common Module]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/rrr_common/rrr_common.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
 
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
@@ -129,12 +131,12 @@ File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/p
 Packagehint=platforms
 
 [HiPerf Serial Physical Channel]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/serial/serial-physical-channel-8bit.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/physical-channel/serial/serial-physical-channel-8bit.awb
+Packagehint=leap
 
 [FPGA Build Pipeline]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx-synplify.apm
-Packagehint=platforms
+Packagehint=leap
 
 [DDR SDRAM Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr/ddr-sdram-device.awb
@@ -142,5 +144,5 @@ Packagehint=platforms
 
 [Standard Virtual Devices (No Memory Service)]
 File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices-null-mem.apm
-Packagehint=platforms
+Packagehint=leap
 

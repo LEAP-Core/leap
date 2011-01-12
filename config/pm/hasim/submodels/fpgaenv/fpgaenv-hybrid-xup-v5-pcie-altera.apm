@@ -3,12 +3,14 @@
 SaveParameters=0
 Description=Hybrid Altera HTG-v5 PCIE FPGA Environment
 File=fpgaenv-hybrid-xup-v5-pcie-altera
-Version=2.1
+Version=2.2
 Type=HAsim
 Name=Hybrid Altera XUP-v5 PCIE FPGA Environment
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
 
 [Model]
 DefaultAttributes=bluespec htg-v5-jtag
@@ -17,12 +19,12 @@ model=FPGA Environment
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 5
-librl_bsv=Altera RL Bluespec Library
+librl_bsv=RL Bluespec Library
 build_pipeline=FPGA Build Pipeline
 
 [Standard Virtual Platform]
-File=modules/bluespec/common/fpgaenv/virtual-platform/std-virtual-platform.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
 
 [Standard Virtual Platform/Requires]
 virtual_devices=Standard Virtual Devices
@@ -30,27 +32,27 @@ low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
 [FPGA Environment]
-File=modules/bluespec/common/fpgaenv/fpga-environment.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
 
 [Standard Virtual Devices]
 File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
-Packagehint=platforms
+Packagehint=leap
 
 [RRR Clients and Servers]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/basic/basic-rrr.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/basic/basic-channelio.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
 
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=Bluespec PCIE Physical Channel
 
 [Low Level Platform Interface Hybrid]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/hybrid-llpi.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
 
 [Low Level Platform Interface Hybrid/Requires]
 physical_platform=XUP Virtex 5 PCIE
@@ -81,23 +83,23 @@ File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-litt
 Packagehint=platforms
 
 [RRR Common Module]
-File=modules/bluespec/common/fpgaenv/virtual-platform/rrr/rrr_common/rrr_common.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
 
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
 
 [FPGA Build Pipeline]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
-Packagehint=platforms
+Packagehint=leap
 
 [Null Remote Memory]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
+Packagehint=leap
 
 [NULL Local Memory Interface]
-File=modules/bluespec/common/fpgaenv/low-level-platform-interface/local-mem/local-mem-null.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
+Packagehint=leap
 
 [Single-Ended Crystal Clocks Device/Params]
 MODEL_CLOCK_DIVIDER=4
@@ -118,74 +120,13 @@ File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/pcie/xilinx-
 Packagehint=platforms
 
 [Bluespec PCIE Physical Channel]
-File=modules/bluespec/common/fpgaenv/virtual-platform/channelio/physical-channel/pcie-bluespec/pcie-bluespec-physical-channel.awb
-Packagehint=platforms
+File=modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec/pcie-bluespec-physical-channel.awb
+Packagehint=leap
 
 [Bluespec PCIE Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-bluespec/pcie-bluespec.awb
 Packagehint=platforms
 
-[Register Mapping Utilities]
-File=modules/bsv-libraries/bluespec/RegisterMapper/src/register_mapper.awb
-Packagehint=bsv-libraries
-
-[FIFO Utility]
-File=modules/bsv-libraries/bluespec/FIFOUtility/fifo_utility.awb
-Packagehint=bsv-libraries
-
-[Vector Utilities]
-File=modules/bsv-libraries/bluespec/VectorUtils/vector_utils.awb
-Packagehint=bsv-libraries
-
-[Altera RL Bluespec Library/Requires]
-altera_utils=Common Altera Platform Utilities
-librl_bsv_storage=RL Bluespec Storage Library
-librl_bsv_base=RL Bluespec Base Library
-librl_bsv_cache=RL Bluespec Cache Managers
-
-[Debug Utilities]
-File=modules/bsv-libraries/bluespec/Debug/debug_utils.awb
-Packagehint=bsv-libraries
-
-[RL Bluespec Storage Library]
-File=modules/bluespec/librl/storage/librl-bsv-storage.awb
-Packagehint=platforms
-
-[Avalon Bus Intefaces]
-File=modules/bsv-libraries/bluespec/Avalon/src/avalon.awb
-Packagehint=bsv-libraries
-
-[RegisterLibrary]
-File=modules/bsv-libraries/bluespec/Register/src/register_library.awb
-Packagehint=bsv-libraries
-
-[CBus Utilities]
-File=modules/bsv-libraries/bluespec/CBusUtils/c_bus_utils.awb
-Packagehint=bsv-libraries
-
-[Register Mapping Utilities/Requires]
-register_library=RegisterLibrary
-
-[RL Bluespec Cache Managers]
-File=modules/bluespec/librl/storage/cache/librl-cache.awb
-Packagehint=platforms
-
-[Altera RL Bluespec Library]
-File=modules/bsv-libraries/bluespec/librl-mit/librl-mit.awb
-Packagehint=bsv-libraries
-
-[Common Altera Platform Utilities/Requires]
-c_bus_utils=CBus Utilities
-fifo_utils=FIFO Utility
-vector_utils=Vector Utilities
-avalon=Avalon Bus Intefaces
-debug_utils=Debug Utilities
-register_mapper=Register Mapping Utilities
-
-[RL Bluespec Base Library]
-File=modules/bluespec/librl/base/librl-bsv-base.awb
-Packagehint=platforms
-
-[Common Altera Platform Utilities]
-File=modules/bluespec/common/fpgaenv/physical-platform/utils/altera/altera_utils.awb
-Packagehint=platforms
+[RL Bluespec Library]
+File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
+Packagehint=leap

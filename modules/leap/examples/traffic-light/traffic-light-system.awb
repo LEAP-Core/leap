@@ -1,0 +1,22 @@
+/********************************************************************
+ *
+ * Awb module specification
+ *
+ *******************************************************************/
+
+
+%AWB_START
+
+%name Traffic Light System with Soft Connections
+%desc Traffic Light System with Soft Connections
+
+%attributes traffic_light demo
+
+%provides hardware_system
+%requires traffic_light_function
+
+%notes traffic-light-system.txt
+
+%public traffic-light-system.bsv
+
+%AWB_END

@@ -1,0 +1,11 @@
+%name FPGA Environment
+%desc FPGA Environment
+
+%provides fpgaenv
+
+%requires librl_bsv
+%requires virtual_platform fpga_components
+%requires build_pipeline
+
+%attributes hasim
+

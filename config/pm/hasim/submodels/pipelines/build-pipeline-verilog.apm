@@ -3,35 +3,37 @@
 SaveParameters=0
 Description=Build Pipeline Verilog
 File=build-pipeline-verilog
-Version=2.1
+Version=2.2
 Type=Leap
 Name=Build Pipeline Verilog
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=IVerilog Build Pipeline
+RootProvides=build_pipeline
 
 [Model]
 DefaultAttributes=hybrid exe
 model=IVerilog Build Pipeline
 
 [Interface builder]
-File=modules/project/iface/iface.awb
+File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
 Packagehint=leap
 
 [Software build tool]
-File=modules/project/software/software.awb
+File=modules/leap/build-support/build-pipelines/stages/software/software.awb
 Packagehint=leap
 
 [BSV Build Tool (First Phase)]
-File=modules/project/bluespec/bsv.awb
+File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
 Packagehint=leap
 
 [IVerilog Build Pipeline]
-File=modules/project/pipelines/verilog-build-pipeline.awb
+File=modules/leap/build-support/build-pipelines/pipelines/verilog/verilog-build-pipeline.awb
 Packagehint=leap
 
 [Verilog Build Tool]
-File=modules/project/verilog/verilog.awb
+File=modules/leap/build-support/build-pipelines/stages/verilog/verilog.awb
 Packagehint=leap
 
 [IVerilog Build Pipeline/Requires]
