@@ -3086,3 +3086,22 @@ Directory modules/project
   be done after the upcoming Leap file rearrangement.
 
 Michael P.
+
+----------
+kfleming    Date: Wed Jan 12 18:29:57 KST 2011  CSN: CSN-leap-34
+                  Wed Jan 12 09:29:57 UTC 2011
+
+
+Directory libperl/Leap/lib/Leap
+ Templates.pm              Locally Modified           33 
+
+Directory tools/scripts
+ leap-configure            Locally Modified           33 
+
+
+Patch for the models broken by the previous check-in. This patch is
+shaky in the sense the it special cases ROOT_DIR_MODEL in the
+recursive SW configuration step in leap-configure.  The real solution
+to this problem is probably moving the SW recursion into the build
+pipeline, but that will take time. 
+

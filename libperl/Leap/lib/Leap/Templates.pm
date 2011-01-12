@@ -24,6 +24,11 @@ sub do_replacements {
     my $template = shift;
     my $dst = shift;
     my $replacements_r = shift;
+
+#    print "Generating... $dst\n" if $debug;
+#    print "================================\n" if $debug;
+#    print "$template --> $dst\n" if $debug;
+#    print "--------------------------------\n" if $debug;
     
     CORE::open(DST, "> $dst") || return undef;
     
@@ -45,10 +50,6 @@ sub do_template_replacements {
     my $dstfile = shift;
     my $replacements_r = shift;
 
-#    print "Generating... $dst\n" if $debug;
-#    print "================================\n" if $debug;
-#    print "$template --> $dst\n" if $debug;
-#    print "--------------------------------\n" if $debug;
 #    while ( my ($key, $value) = each %$replacements_r ) {
 #	print "$key => $value\n" if $debug;
 #    }

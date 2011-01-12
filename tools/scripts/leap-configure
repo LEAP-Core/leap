@@ -1082,7 +1082,8 @@ sub generate_makefile_top {
 
     #@ROOT_DIR_MODEL@
     my $root = $model->modelroot();
-    if (Leap::Build::is_synthesis_boundary($root)) {
+
+    if (Leap::Build::is_synthesis_boundary($root)) {     
 	Leap::Util::hash_set($replacements_r,'@ROOT_DIR_MODEL@',$root->provides());
     } else {
 	Leap::Util::WARN_AND_DIE("Root module must be a synthesis boundary");
@@ -1430,6 +1431,7 @@ sub generate_makefile_sub {
     Leap::Util::common_replacements($model, $replacements_r);
 
     note_builddir($replacements_r);
+
     __generate_makefile_sub($model, $model->modelroot(), "hw",
                             Leap::Build::get_scons_root_template($model, "hw"),
                             $replacements_r);
@@ -1454,14 +1456,13 @@ sub __generate_makefile_sub {
     my $my_dir = $parent_dir;
 
     if (Leap::Build::is_synthesis_boundary($module)) {
-
 	# OVERRIDE non-synth-boundary settings
 	# 1. instantiate new hash for synthesis boundary
 	$current_replacements_r = Leap::Util::empty_hash_ref();
 	# 2. update path
 	$my_dir = Leap::Util::path_append($parent_dir,$module->provides());
 
-	## @DIR@
+ 	## @DIR@
 	Leap::Util::hash_set($current_replacements_r,'@DIR@',$module->provides());
 
 	## @FULL_DIR@
@@ -1562,6 +1563,13 @@ sub __generate_makefile_sub {
 
     # on the way up, possibly generate makefile
     if (Leap::Build::is_synthesis_boundary($module)) {
+
+        ## We appear to require model root for imports
+        ## This could be classified as a hack, however.
+        #@ROOT_DIR_MODEL@
+        my $root = $model->modelroot();
+        Leap::Util::hash_set($current_replacements_r,'@ROOT_DIR_MODEL@',$root->provides());
+        print "Generating at directory: $my_dir\n";
         # Generate scons file
         if (defined($scons_template)) {
             my $scons = Leap::Util::path_append($builddir, $my_dir, "SConscript");
