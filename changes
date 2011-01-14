@@ -5566,3 +5566,19 @@ Directory modules/leap/examples/traffic-light/traffic-light-function
 
 Fixing traffic light w/o synthesis boundaries updated file name.
 
+
+----------
+kfleming    Date: Fri Jan 14 20:28:43 KST 2011  CSN: CSN-leap-38
+                  Fri Jan 14 11:28:43 UTC 2011
+
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel-loopback.awb Locally Modified           37 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connections.bsv           Locally Modified           37 
+
+
+
+Two changes here (a) removed .cc reference to silence warning in
+ModuleDB (b) added more typeclass implementations for SoftConnections.
