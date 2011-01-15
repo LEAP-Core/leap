@@ -5582,3 +5582,14 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 Two changes here (a) removed .cc reference to silence warning in
 ModuleDB (b) added more typeclass implementations for SoftConnections.
+
+----------
+kfleming    Date: Sat Jan 15 02:57:53 PST 2011  CSN: CSN-leap-39
+                  Sat Jan 15 10:57:53 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified           38 
+
+
+Quashed debug printf.  My bad.

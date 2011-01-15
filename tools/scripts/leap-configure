@@ -1569,7 +1569,6 @@ sub __generate_makefile_sub {
         #@ROOT_DIR_MODEL@
         my $root = $model->modelroot();
         Leap::Util::hash_set($current_replacements_r,'@ROOT_DIR_MODEL@',$root->provides());
-        print "Generating at directory: $my_dir\n";
         # Generate scons file
         if (defined($scons_template)) {
             my $scons = Leap::Util::path_append($builddir, $my_dir, "SConscript");
