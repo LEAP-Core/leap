@@ -15,7 +15,7 @@
 
 %public traffic-light-function.bsv
 
-%param SYNTH_BOUNDARY mkTrafficLight "name of synthesis boundary"
-%param MAX_WAIT 'd100000000 "Delay between signal changes"
+%param SYNTH_BOUNDARY mkTrafficLightFunction "name of synthesis boundary"
+%param SIGNAL_CHANGE_DELAY 'd100000000 "Delay between signal changes"
 
 %AWB_END

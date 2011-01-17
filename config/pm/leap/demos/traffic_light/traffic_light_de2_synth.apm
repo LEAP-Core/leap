@@ -65,7 +65,7 @@ fpgaenv=FPGA Environment
 application_env=Soft Services Hybrid Application Environment
 
 [Traffic light function w. synthesis boundary/Params]
-MAX_WAIT='d10000
+SIGNAL_CHANGE_DELAY='d10000
 
 [FPGA Environment/Params]
 MODEL_CLOCK_DIVIDER=1

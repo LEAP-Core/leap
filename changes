@@ -5593,3 +5593,21 @@ Directory tools/scripts
 
 
 Quashed debug printf.  My bad.
+
+----------
+mpellaue    Date: Mon Jan 17 17:06:14 EST 2011  CSN: CSN-leap-40
+                  Mon Jan 17 22:06:14 UTC 2011
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_de2_synth.apm Locally Modified           39 
+ traffic_light_exe_nosynth.apm Locally Modified           39 
+ traffic_light_exe_synth.apm Locally Modified           39 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function.bsv Locally Modified           39 
+ traffic-light-function-smart-synth-boundary.awb Locally Modified           39 
+
+
+* Fixup traffic light demo.
+

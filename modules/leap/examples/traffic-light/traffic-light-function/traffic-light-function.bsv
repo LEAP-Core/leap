@@ -55,7 +55,7 @@ TRAFFIC_LIGHT_STATE deriving (Eq, Bits);
 // ****** Module Definitions ******
 
 
-// mkTrafficLight
+// mkTrafficLightFunction
 
 // Encapsulation of the traffic light FSM.
 
@@ -63,7 +63,7 @@ TRAFFIC_LIGHT_STATE deriving (Eq, Bits);
 // uses soft connections. This allows it to communicate with other
 // modules while still having an Empty interface.
 
-module [CONNECTED_MODULE] mkTrafficLight
+module [CONNECTED_MODULE] mkTrafficLightFunction
     // interface:
         (Empty);
 

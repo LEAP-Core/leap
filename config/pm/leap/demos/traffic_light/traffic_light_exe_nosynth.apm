@@ -67,3 +67,7 @@ Packagehint=leap
 project_common=Hybrid Project Common Utilities
 fpgaenv=FPGA Environment
 application_env=Soft Services Hybrid Application Environment
+
+[Traffic light function w.o synthesis boundary/Params]
+SIGNAL_CHANGE_DELAY='d10000
+
