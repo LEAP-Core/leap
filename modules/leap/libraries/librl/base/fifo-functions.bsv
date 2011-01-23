@@ -34,7 +34,9 @@
 //
 
 import Vector::*;
-
+import FIFOLevel::*;
+import FIFO::*;
+import FIFOF::*;
 
 // ========================================================================
 // ========================================================================
@@ -388,4 +390,22 @@ function Maybe#(Bit#(TLog#(n_ENTRIES))) funcFIFO_IDX_index(FUNC_FIFO_IDX#(n_ENTR
         s = s % fromInteger(valueOf(n_ENTRIES));
         return tagged Valid truncateNP(s);
     end
+endfunction
+
+//
+// fifoCountToFifof --
+//     Compute the index of a particular position in the FIFO.
+//
+function FIFOF#(t_DATA) fifoCountToFifof (FIFOCountIfc#(t_DATA,n_ENTRIES) old_fifo);
+
+   FIFOF#(t_DATA) new_fifo = interface FIFOF#(t_DATA);
+                               method enq      = old_fifo.enq;
+                               method deq      = old_fifo.deq;
+                               method first    = old_fifo.first;
+                               method notEmpty = old_fifo.notEmpty;
+                               method notFull  = old_fifo.notFull;
+                               method clear    = old_fifo.clear;
+                             endinterface;
+
+  return new_fifo;
 endfunction

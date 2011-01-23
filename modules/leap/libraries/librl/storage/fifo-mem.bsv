@@ -22,6 +22,7 @@
 
 import FIFO::*;
 import FIFOF::*;
+import FIFOLevel::*;
 import SpecialFIFOs::*;
 
 `include "asim/provides/fpga_components.bsh"
@@ -52,23 +53,37 @@ module mkSizedBRAMFIFOF#(NumTypeParam#(n_ENTRIES) p)
     provisos (Bits#(t_DATA, t_DATA_SZ));
      
     MEMORY_IFC#(Bit#(TLog#(n_ENTRIES)), t_DATA) mem <- mkBRAMUnguarded();
-    FIFOF#(t_DATA) fifo <- mkMemoryFIFOF(p,mem);
+    FIFOCountIfc#(t_DATA,n_ENTRIES) fifo <- mkMemoryFIFOF(mem);
+    return fifoCountToFifof(fifo);
+endmodule
+
+//
+// mkSizedBRAMFIFOCount --
+//     BRAM version of a memory FIFOCountF.
+//
+module mkSizedBRAMFIFOCount
+    // Interface:
+    (FIFOCountIfc#(t_DATA,n_ENTRIES))
+    provisos (Bits#(t_DATA, t_DATA_SZ));
+
+    MEMORY_IFC#(Bit#(TLog#(n_ENTRIES)), t_DATA) mem <- mkBRAMUnguarded();
+    FIFOCountIfc#(t_DATA,n_ENTRIES) fifo <- mkMemoryFIFOF(mem);
     return fifo;
 endmodule
 
 
 //
 // mkMemoryFIFOF --
-//     Implement a FIFOF in the provided memory (e.g. BRAM).
+//     Implement a FIFOF in the provided memory (e.g. BRAM).  
 //
 //     To guarantee timing, the memory must have two characteristics:
 //         1.  Reads and writes are unguarded.
 //         2.  Read data is available one cycle following a read request.
 //
 //
-module mkMemoryFIFOF#(NumTypeParam#(n_ENTRIES) p, MEMORY_IFC#(Bit#(TLog#(n_ENTRIES)), t_DATA) mem)
+module mkMemoryFIFOF#(MEMORY_IFC#(Bit#(TLog#(n_ENTRIES)), t_DATA) mem)
     // Interface:
-    (FIFOF#(t_DATA))
+    (FIFOCountIfc#(t_DATA, n_ENTRIES))
     provisos (Bits#(t_DATA, t_DATA_SZ));
     
     Reg#(FUNC_FIFO_IDX#(n_ENTRIES)) state <- mkReg(funcFIFO_IDX_Init());
@@ -185,6 +200,11 @@ module mkMemoryFIFOF#(NumTypeParam#(n_ENTRIES) p, MEMORY_IFC#(Bit#(TLog#(n_ENTRI
     method Bool notFull();
         return funcFIFO_IDX_notFull(state);
     endmethod
+
+    method UInt#(TLog#(TAdd#(n_ENTRIES,1))) count();
+        return unpack(funcFIFO_IDX_numBusySlots(state));
+    endmethod
+
 endmodule
 
 

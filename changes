@@ -5611,3 +5611,31 @@ Directory modules/leap/examples/traffic-light/traffic-light-function
 
 * Fixup traffic light demo.
 
+
+----------
+
+----------
+
+----------
+kfleming    Date: Sun Jan 23 02:13:26 EST 2011  CSN: CSN-leap-41
+                  Sun Jan 23 07:13:26 UTC 2011
+
+
+Directory admin
+ mytags                    Locally Modified           40 
+
+Directory .
+ changes                   Locally Modified           40 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-mem.bsv              Locally Modified           40 
+
+Directory modules/leap/libraries/librl/base
+ fifo-functions.bsv        Locally Modified           40 
+
+
+Reworked memory fifo to use the FIFOCount interface.  We were already
+tracking count as part of implementation, but now it can be optionally
+exposed to the instantiator.  This was needed for implementing
+rudimentary flow control to work around the rrr sw-handle thread's
+deadlock issues.  I really wish it had non-blcoking writes.
