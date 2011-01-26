@@ -5639,3 +5639,14 @@ tracking count as part of implementation, but now it can be optionally
 exposed to the instantiator.  This was needed for implementing
 rudimentary flow control to work around the rrr sw-handle thread's
 deadlock issues.  I really wish it had non-blcoking writes.
+
+----------
+kfleming    Date: Wed Jan 26 16:23:05 KST 2011  CSN: CSN-leap-42
+                  Wed Jan 26 07:23:05 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_PAR.py             Locally Modified           41 
+
+
+Upgraded the error message for Xilinx par.

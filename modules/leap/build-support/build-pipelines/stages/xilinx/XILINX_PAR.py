@@ -18,7 +18,7 @@ def getXilinxVersion():
   xilinx_ostream.close()
 
   if xilinx_version == 0:
-    print "Failed to get Bluespec compiler version"
+    print "Failed to get Xilinx par version, is it in your path?"
     sys.exit(1)
 
   return xilinx_version
