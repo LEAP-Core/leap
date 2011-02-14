@@ -16,9 +16,6 @@ RootProvides=model
 DefaultAttributes=function_as_boundary traffic_light demo connected slave hybrid project
 model=HW/SW Hybrid Pipeline Build
 
-[FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech-no-cache.apm
-Packagehint=platforms-acp
 
 [Traffic Light System with Soft Connections]
 File=modules/leap/examples/traffic-light/traffic-light-system.awb
@@ -38,21 +35,15 @@ hardware_system=Traffic Light System with Soft Connections
 File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function-smart-synth-boundary.awb
 Packagehint=leap
 
-[Platform Services]
-File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
-Packagehint=leap
 
-[Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
-project_common=Hybrid Project Common Utilities
-fpgaenv=FPGA Environment
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)
 application_env=Soft Services Hybrid Application Environment
 
 [Soft Services Hybrid Application Environment]
@@ -60,7 +51,7 @@ File=modules/leap/build-support/project/application-env/hybrid/soft-services/app
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
-platform_services=Platform Services
+platform_services=Standard Platform Services
 soft_services=Soft Services
 connected_application=Default Software Connected Application
 
@@ -68,5 +59,18 @@ connected_application=Default Software Connected Application
 File=config/pm/hasim/submodels/common/soft-services.apm
 Packagehint=leap
 
-[FPGA Environment/Params]
+
+[Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)/Params]
 MODEL_CLOCK_DIVIDER=8
+
+[Standard Platform Services]
+File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
+Packagehint=leap
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)]
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech-no-cache.apm
+Packagehint=platforms-acp

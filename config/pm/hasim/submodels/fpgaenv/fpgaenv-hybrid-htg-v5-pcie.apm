@@ -19,15 +19,15 @@ model=FPGA Environment
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 5
-librl_bsv=RL Bluespec Library
-build_pipeline=FPGA Build Pipeline
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices
+virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
@@ -35,9 +35,6 @@ umf=Little-Endian Unified Message Format
 File=modules/leap/virtual-platform/fpga-environment.awb
 Packagehint=leap
 
-[Standard Virtual Devices]
-File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
-Packagehint=leap
 
 [HTG Virtex 5 PCIE Enabled]
 File=modules/bluespec/common/fpgaenv/physical-platform/htg_virtex5/pcie-enabled/htg-v5-pcie-enabled.awb
@@ -90,9 +87,6 @@ Packagehint=platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr2-sdram/ddr2-sdram-device.awb
 Packagehint=platforms
 
-[RL Bluespec Library]
-File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=leap
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
@@ -140,7 +134,16 @@ Packagehint=leap
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
 
-[FPGA Build Pipeline]
+
+
+[FPGA Build Pipeline Xilinx]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
 Packagehint=leap
 
+[Standard Virtual Devices Submodel]
+File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
+File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
+Packagehint=leap

@@ -16,9 +16,6 @@ RootProvides=model
 DefaultAttributes=hello unconnected hybrid project xup
 model=HW/SW Hybrid Pipeline Build
 
-[FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-xupv2-serial.apm
-Packagehint=leap
 
 [Base Hybrid Application Environment]
 File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
@@ -31,19 +28,25 @@ hybrid_application=Hello World
 File=modules/leap/examples/hello-world/hello-world.awb
 Packagehint=leap
 
-[FPGA Environment/Params]
-MODEL_CLOCK_MULTIPLIER=2
 
-[Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
-project_common=Hybrid Project Common Utilities
-fpgaenv=FPGA Environment
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid XUPv2 Serial FPGA Environment
 application_env=Base Hybrid Application Environment
 
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
 
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Hybrid XUPv2 Serial FPGA Environment]
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-xupv2-serial.apm
+Packagehint=leap
+
+[Hybrid XUPv2 Serial FPGA Environment/Params]
+MODEL_CLOCK_MULTIPLIER=2

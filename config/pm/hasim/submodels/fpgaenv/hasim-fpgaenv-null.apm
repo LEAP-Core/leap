@@ -17,7 +17,7 @@ DefaultAttributes=bluespec
 model=FPGA Environment
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices
+virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hardware-Only
 umf=Null Unified Message Format
 
@@ -35,17 +35,14 @@ Packagehint=leap
 
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
-librl_bsv=RL Bluespec Library
+librl_bsv=RL Bluespec Library Submodel
 fpga_components=Software FPGA Components
-build_pipeline=BlueSim Build Pipeline
+build_pipeline=Build Pipeline Bluesim
 
 [Null RRR Module]
 File=modules/leap/virtual-platform/rrr/null/null-rrr.awb
 Packagehint=leap
 
-[Standard Virtual Devices]
-File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
-Packagehint=leap
 
 [Null Physical Platform]
 File=modules/bluespec/common/fpgaenv/physical-platform/null/null-physical-platfrom.awb
@@ -74,9 +71,6 @@ Packagehint=platforms
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
 
-[RL Bluespec Library]
-File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=leap
 
 [Software FPGA Components]
 File=modules/bluespec/common/fpgaenv/fpga-components/software-fpga-components.awb
@@ -89,6 +83,15 @@ Packagehint=leap
 [Null RRR Module/Requires]
 rrr_common=RRR Common Module
 
-[BlueSim Build Pipeline]
+
+[Build Pipeline Bluesim]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-bluesim.apm
+Packagehint=leap
+
+[Standard Virtual Devices Submodel]
+File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
+File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap

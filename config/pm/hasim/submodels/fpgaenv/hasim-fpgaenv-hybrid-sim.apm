@@ -23,8 +23,8 @@ Packagehint=leap
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Software FPGA Components
-librl_bsv=RL Bluespec Library
-build_pipeline=BlueSim Build Pipeline
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=Build Pipeline Bluesim
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
@@ -91,9 +91,6 @@ Packagehint=platforms
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
 Packagehint=leap
 
-[RL Bluespec Library]
-File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=leap
 
 [Simulation Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/simulation/sim-clocks-device.awb
@@ -169,6 +166,11 @@ scratchpad_memory_common=Scratchpad Memory Common Definitions
 File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common/mem-scratch-common.awb
 Packagehint=leap
 
-[BlueSim Build Pipeline]
+
+[RL Bluespec Library Submodel]
+File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
+Packagehint=leap
+
+[Build Pipeline Bluesim]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-bluesim.apm
 Packagehint=leap

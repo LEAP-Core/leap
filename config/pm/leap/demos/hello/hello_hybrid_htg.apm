@@ -16,9 +16,6 @@ RootProvides=model
 DefaultAttributes=hello unconnected hybrid project htg
 model=HW/SW Hybrid Project Foundation
 
-[FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-htg-v5-pcie.apm
-Packagehint=leap
 
 [Base Hybrid Application Environment]
 File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
@@ -36,10 +33,15 @@ File=modules/leap/examples/hello-world/hello-world.awb
 Packagehint=leap
 
 [HW/SW Hybrid Project Foundation/Requires]
-fpgaenv=FPGA Environment
+fpgaenv=Hybrid HTG-v5-PCIe FPGA Environment
 application_env=Base Hybrid Application Environment
-project_common=Hybrid Project Common Utilities
+project_common=Default Hybrid Project Common Utilities
 
-[Hybrid Project Common Utilities]
+
+[Default Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Hybrid HTG-v5-PCIe FPGA Environment]
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-htg-v5-pcie.apm
 Packagehint=leap

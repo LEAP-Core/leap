@@ -16,9 +16,6 @@ RootProvides=model
 DefaultAttributes=function_as_boundary traffic_light demo connected slave hybrid project xup
 model=HW/SW Hybrid Pipeline Build
 
-[FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-evaluation-arriaII-jtag.apm
-Packagehint=leap
 
 [Traffic Light System with Soft Connections]
 File=modules/leap/examples/traffic-light/traffic-light-system.awb
@@ -38,36 +35,43 @@ hardware_system=Traffic Light System with Soft Connections
 File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function-smart-synth-boundary.awb
 Packagehint=leap
 
-[Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
-project_common=Hybrid Project Common Utilities
-fpgaenv=FPGA Environment
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid evaluation-arriaII-JTAG FPGA Environment
 application_env=Soft Services Hybrid Application Environment
 
-[FPGA Environment/Params]
-MODEL_CLOCK_DIVIDER=5
-MODEL_CLOCK_MULTIPLIER=2
 
-[Platform Services with No Memory Service]
-File=config/pm/hasim/submodels/platform-services/standard-platform-null-mem.apm
-Packagehint=leap
 
 [Soft Services Hybrid Application Environment]
 File=modules/leap/build-support/project/application-env/hybrid/soft-services/application-env-hybrid-soft-service.awb
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
-platform_services=Platform Services with No Memory Service
+platform_services=Standard Platform Service (No Memory Service)
 soft_services=Soft Services
 connected_application=Default Software Connected Application
 
 [Soft Services]
 File=config/pm/hasim/submodels/common/soft-services.apm
+Packagehint=leap
+
+[Hybrid evaluation-arriaII-JTAG FPGA Environment/Params]
+MODEL_CLOCK_DIVIDER=5
+MODEL_CLOCK_MULTIPLIER=2
+
+[Standard Platform Service (No Memory Service)]
+File=config/pm/hasim/submodels/platform-services/standard-platform-null-mem.apm
+Packagehint=leap
+
+[Hybrid evaluation-arriaII-JTAG FPGA Environment]
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-evaluation-arriaII-jtag.apm
+Packagehint=leap
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/hasim/submodels/common/project-common-default.apm
 Packagehint=leap

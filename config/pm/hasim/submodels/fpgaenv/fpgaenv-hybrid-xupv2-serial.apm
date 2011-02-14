@@ -19,15 +19,15 @@ model=FPGA Environment
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 2
-librl_bsv=RL Bluespec Library
-build_pipeline=FPGA Build Pipeline
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx (Synplify)
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices (No Memory Service)
+virtual_devices=Standard Virtual Devices (No Memory Service) Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
@@ -62,9 +62,6 @@ remote_memory=Null Remote Memory
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
 Packagehint=platforms
 
-[RL Bluespec Library]
-File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
-Packagehint=leap
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
@@ -134,15 +131,21 @@ Packagehint=platforms
 File=modules/leap/virtual-platform/channelio/physical-channel/serial/serial-physical-channel-8bit.awb
 Packagehint=leap
 
-[FPGA Build Pipeline]
-File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx-synplify.apm
-Packagehint=leap
 
 [DDR SDRAM Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr/ddr-sdram-device.awb
 Packagehint=platforms
 
-[Standard Virtual Devices (No Memory Service)]
+
+
+[FPGA Build Pipeline Xilinx (Synplify)]
+File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx-synplify.apm
+Packagehint=leap
+
+[Standard Virtual Devices (No Memory Service) Submodel]
 File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices-null-mem.apm
 Packagehint=leap
 
+[RL Bluespec Library Submodel]
+File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
+Packagehint=leap

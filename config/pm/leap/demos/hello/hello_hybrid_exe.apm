@@ -16,9 +16,6 @@ RootProvides=model
 DefaultAttributes=hello unconnected hybrid project exe
 model=HW/SW Hybrid Project Foundation
 
-[FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
-Packagehint=leap
 
 [HW/SW Hybrid Project Foundation]
 File=modules/leap/build-support/project/project-hybrid.awb
@@ -33,13 +30,18 @@ File=modules/leap/build-support/project/application-env/hybrid/base/application-
 Packagehint=leap
 
 [HW/SW Hybrid Project Foundation/Requires]
-fpgaenv=FPGA Environment
+fpgaenv=Hybrid Simulation FPGA Environment
 application_env=Base Hybrid Application Environment
-project_common=Hybrid Project Common Utilities
+project_common=Default Hybrid Project Common Utilities
 
 [Base Hybrid Application Environment/Requires]
 hybrid_application=Hello World
 
-[Hybrid Project Common Utilities]
+
+[Default Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Hybrid Simulation FPGA Environment]
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
 Packagehint=leap

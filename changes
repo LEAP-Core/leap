@@ -5683,3 +5683,57 @@ Directory config/pm/hasim/submodels/fpgaenv
 * The next step is to update all models that have the stale name before any
   actual movement of files begins.
 
+
+----------
+pellauer    Date: Mon Feb 14 14:56:08 MST 2011  CSN: CSN-leap-45
+                  Mon Feb 14 21:56:08 UTC 2011
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified           44 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified           44 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified           44 
+ hasim-fpgaenv-htg-v5-pcie.apm Locally Modified           44 
+ fpgaenv-de2-jtag.apm      Locally Modified           44 
+ fpgaenv-de3-jtag.apm      Locally Modified           44 
+ fpgaenv-htg-hwonly.apm    Locally Modified           44 
+ fpgaenv-hybrid-exe.apm    Locally Modified           44 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified           44 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified           44 
+ fpgaenv-hybrid-exe-serial-ChanIO-loopback.apm Locally Modified           44 
+ hasim-fpgaenv-hybrid-sim.apm Locally Modified           44 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified           44 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified           44 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified           44 
+ hasim-fpgaenv-null.apm    Locally Modified           44 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified           44 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified           44 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_arriaII.apm  Locally Modified           44 
+ hello_hybrid_exe.apm      Locally Modified           44 
+ hello_hybrid_htg.apm      Locally Modified           44 
+ hello_hybrid_acp.apm      Locally Modified           44 
+ hello_hybrid_cyloneIII.apm Locally Modified           44 
+ hello_hybrid_xupV5.apm    Locally Modified           44 
+ hello_hybrid_de2.apm      Locally Modified           44 
+ hello_hybrid_de3.apm      Locally Modified           44 
+ hello_hybrid_xup2.apm     Locally Modified           44 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_nosynth.apm Locally Modified           44 
+ traffic_light_de2_synth.apm Locally Modified           44 
+ traffic_light_htg_v5_pcie_synth.apm Locally Modified           44 
+ traffic_light_xup_synth.apm Locally Modified           44 
+ traffic_light_arriaII_nosynth.apm Locally Modified           44 
+ traffic_light_exe_nosynth.apm Locally Modified           44 
+ traffic_light_arriaII_synth.apm Locally Modified           44 
+ traffic_light_exe_synth.apm Locally Modified           44 
+ traffic_light_acp_synth.apm Locally Modified           44 
+
+
+* Updating LEAP's .apm files to fix the "submodel" bug. Also these models now
+  correctly use the updated names of librl and virtual_devices changed in the
+  previous check in.
+  
+Michael P.

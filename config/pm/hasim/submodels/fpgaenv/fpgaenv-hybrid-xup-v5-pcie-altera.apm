@@ -19,15 +19,15 @@ model=FPGA Environment
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 5
-librl_bsv=RL Bluespec Library
-build_pipeline=FPGA Build Pipeline
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices
+virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
@@ -35,9 +35,6 @@ umf=Little-Endian Unified Message Format
 File=modules/leap/virtual-platform/fpga-environment.awb
 Packagehint=leap
 
-[Standard Virtual Devices]
-File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
-Packagehint=leap
 
 [RRR Clients and Servers]
 File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
@@ -89,9 +86,6 @@ Packagehint=leap
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
 
-[FPGA Build Pipeline]
-File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
-Packagehint=leap
 
 [Null Remote Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
@@ -127,6 +121,15 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-bluespec/pcie-bluespec.awb
 Packagehint=platforms
 
-[RL Bluespec Library]
+
+[FPGA Build Pipeline Xilinx]
+File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
+Packagehint=leap
+
+[Standard Virtual Devices Submodel]
+File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap

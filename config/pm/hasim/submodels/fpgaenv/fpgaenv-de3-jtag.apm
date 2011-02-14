@@ -19,15 +19,15 @@ model=FPGA Environment
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for ArriaII
-librl_bsv=RL Bluespec Library
-build_pipeline=FPGA Build Pipeline
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Altera
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices (No Memory Service)
+virtual_devices=Standard Virtual Devices (No Memory Service) Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
@@ -112,16 +112,10 @@ Packagehint=platforms
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
 
-[Standard Virtual Devices (No Memory Service)]
-File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices-null-mem.apm
-Packagehint=leap
 
 [Single-Ended Crystal Clocks Device (ALTERA)/Params]
 MODEL_CLOCK_MULTIPLIER=2
 
-[FPGA Build Pipeline]
-File=config/pm/hasim/submodels/pipelines/build-pipeline-altera.apm
-Packagehint=leap
 
 [Altera JTAG Physical Channel]
 File=modules/leap/virtual-platform/channelio/physical-channel/jtag/altera/jtag-physical-channel.awb
@@ -131,6 +125,15 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/de3/altera-de3-jtag.awb
 Packagehint=platforms
 
-[RL Bluespec Library]
+
+[FPGA Build Pipeline Altera]
+File=config/pm/hasim/submodels/pipelines/build-pipeline-altera.apm
+Packagehint=leap
+
+[Standard Virtual Devices (No Memory Service) Submodel]
+File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices-null-mem.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap
