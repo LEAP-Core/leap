@@ -5663,3 +5663,23 @@ Directory config/pm/leap/demos/hello
 * Re-adding deleted hello world for ACP. It's still an open question which
   repository this should live in.
 
+
+----------
+pellauer    Date: Mon Feb 14 14:40:58 MST 2011  CSN: CSN-leap-44
+                  Mon Feb 14 21:40:58 UTC 2011
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ std-virtual-devices-null-mem.apm Locally Modified           43 
+ librl-bsv.apm             Locally Modified           43 
+ std-virtual-devices.apm   Locally Modified           43 
+ std-virtual-devices-local-scratchpad.apm Locally Modified           43 
+
+
+* Updating submodels where the Name of the submodel happened to be the same as
+  the %name of the root .awb file. This could lead to massive confusion if the
+  submodel ever changes location (as we hope it will).
+  
+* The next step is to update all models that have the stale name before any
+  actual movement of files begins.
+
