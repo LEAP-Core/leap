@@ -5737,3 +5737,15 @@ Directory config/pm/leap/demos/traffic_light
   previous check in.
   
 Michael P.
+
+----------
+kfleming    Date: Mon Feb 21 18:13:34 EST 2011  CSN: CSN-leap-46
+                  Mon Feb 21 23:13:34 UTC 2011
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified           45 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Added               0 
+
+
+Added xupv5 serial device.  Since serial is a general device, I reorganized it depend on a platform-specific ucf.  Some more work is needed.  1) we need to ensure a constant 100Mhz clock - this is not an issue for XUPv5 and XUPv2, but other platforms may not have an available 100Mhz oscillator.  2) I need more robust flow control enable/disable as some platforms, including XUPv5, do not support HW flow control.  

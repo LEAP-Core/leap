@@ -62,7 +62,6 @@ remote_memory=Null Remote Memory
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
 Packagehint=platforms
 
-
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
 Packagehint=platforms
@@ -131,12 +130,9 @@ Packagehint=platforms
 File=modules/leap/virtual-platform/channelio/physical-channel/serial/serial-physical-channel-8bit.awb
 Packagehint=leap
 
-
 [DDR SDRAM Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr/ddr-sdram-device.awb
 Packagehint=platforms
-
-
 
 [FPGA Build Pipeline Xilinx (Synplify)]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx-synplify.apm
@@ -149,3 +145,10 @@ Packagehint=leap
 [RL Bluespec Library Submodel]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap
+
+[Serial Physical Device XUPV2 UCF]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/ucf/serial-device-ucf-xupv2.awb
+Packagehint=platforms
+
+[Serial Physical Device (physical)/Requires]
+serial_device_ucf=Serial Physical Device XUPV2 UCF
