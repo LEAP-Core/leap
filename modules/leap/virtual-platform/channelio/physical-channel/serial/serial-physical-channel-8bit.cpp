@@ -38,6 +38,7 @@
 #include "SerialPort.h"
 
 #include "asim/provides/physical_channel.h"
+#include "asim/provides/serial_device_ucf.h"
 #include "asim/provides/umf.h"
 
 using namespace std;
@@ -94,9 +95,14 @@ void intializePort(LibSerial::SerialStream *serial_port, FILE *errfd) {
       exit(1) ;
     }
     //
-    // Turn on hardware flow control.
+    // Adjust flow control.
     //
-    serial_port->SetFlowControl(  LibSerial::SerialStreamBuf::FLOW_CONTROL_HARD ) ;
+    if( HW_FLOW_CONTROL ) {
+        serial_port->SetFlowControl(  LibSerial::SerialStreamBuf::FLOW_CONTROL_HARD ) ;
+    } else {
+        serial_port->SetFlowControl(  LibSerial::SerialStreamBuf::FLOW_CONTROL_NONE ) ;
+    }
+
     if ( ! serial_port->good() ) 
     {
         fprintf(errfd,"Error: Could not open set HW Flow Control.\n");

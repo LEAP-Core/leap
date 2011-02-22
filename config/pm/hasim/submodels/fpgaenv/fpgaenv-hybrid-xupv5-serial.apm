@@ -2,7 +2,7 @@
 [Global]
 SaveParameters=0
 Description=Hybrid HTG-v5 Serial FPGA Environment
-File=fpgaenv-hybrid-xup-v5-pcie-serial
+File=fpgaenv-hybrid-xupv5-serial
 Version=2.2
 Type=HAsim
 Name=Hybrid XUP-v5 Serial FPGA Environment
@@ -97,7 +97,6 @@ Packagehint=leap
 LOCAL_MEM_WORDS_PER_LINE=4
 LOCAL_MEM_WORD_BITS=64
 LOCAL_MEM_ADDR_BITS=26
-
 
 [FPGA Build Pipeline Xilinx]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm

@@ -5749,3 +5749,18 @@ Directory config/pm/hasim/submodels/fpgaenv
 
 
 Added xupv5 serial device.  Since serial is a general device, I reorganized it depend on a platform-specific ucf.  Some more work is needed.  1) we need to ensure a constant 100Mhz clock - this is not an issue for XUPv5 and XUPv2, but other platforms may not have an available 100Mhz oscillator.  2) I need more robust flow control enable/disable as some platforms, including XUPv5, do not support HW flow control.  
+
+----------
+kfleming    Date: Tue Feb 22 16:38:48 EST 2011  CSN: CSN-leap-47
+                  Tue Feb 22 21:38:48 UTC 2011
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified           46 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel-8bit.cpp Locally Modified           46 
+
+
+
+Added driver support for enabling/disabling HW flow control as parameter of serial device
