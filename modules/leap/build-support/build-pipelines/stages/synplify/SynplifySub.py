@@ -73,16 +73,6 @@ class Synthesize(ProjectDependency):
        prjFile = open('config/' + moduleList.apmName  + '.synplify.prj','r');  
        newPrjFile = open('config/' + module.wrapperName()  + '.modified.synplify.prj','w');  
 
-       #build unified sdc 
-       combinedSDC = open(moduleList.compileDirectory + '/' + moduleList.apmName + '.sdc','w')
-       combinedSDC.write('set_hierarchy_separator {/}\n')
-       for sdc in moduleList.getAllDependencies('SDC'):
-         sdcIn = open(sdc,'r')
-         combinedSDC.write(sdcIn.read()+'\n')
-       combinedSDC.close();
-
-
-
 
        newPrjFile.write('add_file -verilog \"$env(BUILD_DIR)/hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
 
@@ -108,12 +98,6 @@ class Synthesize(ProjectDependency):
 
        newPrjFile.write(prjFile.read())
 
-
-       # add in global constraints files
-       # i think i only need to constrain the clocks?
-       newPrjFile.write('add_file -constraint  \"$env(BUILD_DIR)/' + moduleList.compileDirectory + '/' + moduleList.apmName + '.sdc\"\n')
-       newPrjFile.write('set_option -constraint -enable  \"$env(BUILD_DIR)/' + moduleList.compileDirectory + '/' + moduleList.apmName + '.sdc\"\n')
-
        #write the tail end of the options file to actually do the synthesis
      
        newPrjFile.write('set_option -top_module '+ module.wrapperName() +'\n')
@@ -121,8 +105,7 @@ class Synthesize(ProjectDependency):
 
 
 
-       #newPrjFile.write('set_option -ucf ' + '$env(BUILD_DIR)/config/' + moduleList.topModule.wrapperName() + '.ucf\n');
-
+       
        newPrjFile.write('project -run hdl_info_gen fileorder\n');
     
        newPrjFile.write('project -run constraint_check\n');

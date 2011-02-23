@@ -5804,3 +5804,13 @@ ACP and XUPV5-PCIE.
 
 Also, I fixed a unportable symlink bug.  Python files are now linked
 with relative symlinks.
+
+----------
+kfleming    Date: Wed Feb 23 18:30:48 EST 2011  CSN: CSN-leap-49
+                  Wed Feb 23 23:30:48 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ SynplifySub.py            Locally Modified           48 
+
+Hybrid Synplify does not appear to need timing constraints at this time. 
