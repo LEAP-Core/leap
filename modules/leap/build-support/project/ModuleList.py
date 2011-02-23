@@ -249,7 +249,7 @@ class ModuleList:
 
       children = filter(checkParent, modules)
       for child in children:
-        print "Adding p: " + module.name + " c: " + child.name
+        #print "Adding p: " + module.name + " c: " + child.name
         try:
           self.graphSynth.add_edge(module,child) 
         except TypeError:

@@ -1,0 +1,13 @@
+#/********************************************************************
+#* Python libraries for Synplify synthesis tool
+#********************************************************************/
+
+%name Synplify/XST Synthesis Tool
+%desc Synplify/XST Synthesis Tool
+%attributes tool
+
+%provides synthesis_tool
+
+%scons %library SynplifySub.py
+%sources -t SDC -v PRIVATE synplify.sdc
+

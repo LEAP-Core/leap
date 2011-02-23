@@ -5764,3 +5764,43 @@ Directory modules/leap/virtual-platform/channelio/physical-channel/serial
 
 
 Added driver support for enabling/disabling HW flow control as parameter of serial device
+
+----------
+kfleming    Date: Wed Feb 23 14:51:28 EST 2011  CSN: CSN-leap-48
+                  Wed Feb 23 19:51:28 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified           47 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified           47 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx-synplify.apm Locally Modified           47 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_acp.apm      Locally Modified           47 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_MAP.py             Locally Modified           47 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ synplify-sub.awb          Locally Added               0 
+ SynplifySub.py            Locally Added               0 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified           47 
+
+
+
+Added new Synplify/XST hybrid build pipeline stage.  I gave up on an
+entirely synplify-based solution -- the ucf files were killing me.
+Rather now, we use XST to build the root model and Synplify to build
+the synthesis boundaries.  This method is a good comprimise - things
+like ucf can be shared and we still get most of the benefit of
+synplify.  Using this pipeline, I have produced working bitfiles for
+ACP and XUPV5-PCIE.
+
+Also, I fixed a unportable symlink bug.  Python files are now linked
+with relative symlinks.

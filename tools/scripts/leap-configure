@@ -1174,10 +1174,13 @@ sub __generate_build_libraries {
     for(my $index = 0; $index < scalar(@libraries); $index++) {
 	# Make a symlink
 	my $library = $libraries[$index];
-	my $buildpath = Leap::Util::path_append($base_dir, "/" . $module->provides . "/" , basename($library));
+        my $targetdir = Leap::Util::path_append($base_dir, $module->provides);
+        # rebase the simlink for portability
+        my $relsrc = File::Spec->abs2rel($library, $targetdir);
+	my $buildpath = Leap::Util::path_append($targetdir , basename($library));
 	my  @fileparts = split(/\./,basename($library));
 	print INIT "from $fileparts[0] import *\n";
-	`ln -fs $library $buildpath`;
+	`ln -fs $relsrc $buildpath`;
     }
 
     # dump out python parameters

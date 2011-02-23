@@ -14,9 +14,6 @@ class MAP():
 
     fpga_part_xilinx = moduleList.env['DEFS']['FPGA_PART_XILINX']
     xilinx_apm_name = moduleList.compileDirectory + '/' + moduleList.apmName          
-    pprint.pprint(globals())
-    pprint.pprint(locals())
-
 
     # Map
     xilinx_map = moduleList.env.Command(

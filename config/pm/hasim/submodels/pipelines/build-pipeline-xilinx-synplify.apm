@@ -34,7 +34,7 @@ Packagehint=leap
 
 [FPGA Build Pipeline/Requires]
 post_synthesis_tool=Xilinx Post-synthesis Toolchain
-synthesis_tool=Synplify Synthesis Tool
+synthesis_tool=Synplify/XST Synthesis Tool
 mcd_tool=Simple MCD Tool
 software_tool=Software build tool
 iface_tool=Interface builder
@@ -75,6 +75,7 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
 Packagehint=leap
 
-[Synplify Synthesis Tool]
-File=modules/leap/build-support/build-pipelines/stages/synplify/synplify.awb
+
+[Synplify/XST Synthesis Tool]
+File=modules/leap/build-support/build-pipelines/stages/synplify/synplify-sub.awb
 Packagehint=leap
