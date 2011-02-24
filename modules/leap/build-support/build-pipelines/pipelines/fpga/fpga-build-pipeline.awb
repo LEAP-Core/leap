@@ -13,5 +13,6 @@
 %requires synthesis_tool
 %requires post_synthesis_tool
 %requires mcd_tool
+%requires fpga_program_tool
 
 %scons %library FPGAPipeline.py

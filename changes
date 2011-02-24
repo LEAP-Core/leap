@@ -5814,3 +5814,26 @@ Directory modules/leap/build-support/build-pipelines/stages/synplify
  SynplifySub.py            Locally Modified           48 
 
 Hybrid Synplify does not appear to need timing constraints at this time. 
+
+----------
+kfleming    Date: Thu Feb 24 16:09:17 EST 2011  CSN: CSN-leap-50
+                  Thu Feb 24 21:09:17 UTC 2011
+
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx-synplify.apm Locally Modified           49 
+ build-pipeline-xilinx.apm Locally Modified           49 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ fpgaprog/                 Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
+ FPGAProg.py               Locally Added               0 
+ fpgaprog.awb              Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ fpga-build-pipeline.awb   Locally Modified           49 
+ FPGAPipeline.py           Locally Modified           49 
+
+
+Added a compile time generated hook to propagate information about the FPGA target to hasim-fpga-control.  

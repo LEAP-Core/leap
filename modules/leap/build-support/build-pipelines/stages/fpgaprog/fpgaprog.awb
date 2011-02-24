@@ -1,0 +1,8 @@
+%name FPGA Programming Tool
+%desc Communicates data about the FPGA environment to the run script
+%attributes tool
+
+%provides fpga_program_tool
+
+%scons %library FPGAProg.py
+

@@ -39,6 +39,7 @@ mcd_tool=Simple MCD Tool
 software_tool=Software build tool
 iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
+fpga_program_tool=FPGA Programming Tool
 
 [Xilinx Post-synthesis Toolchain]
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-post-synth.awb
@@ -75,7 +76,10 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
 Packagehint=leap
 
-
 [Synplify/XST Synthesis Tool]
 File=modules/leap/build-support/build-pipelines/stages/synplify/synplify-sub.awb
+Packagehint=leap
+
+[FPGA Programming Tool]
+File=modules/leap/build-support/build-pipelines/stages/fpgaprog/fpgaprog.awb
 Packagehint=leap
