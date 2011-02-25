@@ -5877,3 +5877,16 @@ Directory tools/scripts/bmark
 
 
 Added better default handling.
+
+----------
+kfleming    Date: Fri Feb 25 12:12:15 EST 2011  CSN: CSN-leap-55
+                  Fri Feb 25 17:12:15 UTC 2011
+
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Modified           54 
+
+
+Fixed sense error in code checking for new configuration parameters
+SOFT_RESET and FPGA_PLATFORM.  Previously, SOFT_RESET would be set to
+1 whether it was defined or not.
