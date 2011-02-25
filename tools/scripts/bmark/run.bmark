@@ -33,6 +33,7 @@ my %config;
 
 ReadConfig("config/env.sh", 1);
 ReadConfig("$config{modelDir}/config/env.sh", 1);
+ReadConfig("$config{modelDir}/config/fpga.sh", 0);
 ReadConfig("$config{modelDir}/config/signature.sh", 0);
 
 ##
@@ -261,7 +262,11 @@ if ($mType == $MODEL_FPGA) {
             }
         }
 
-        Exec("hasim-fpga-ctrl --activate", "Failed to activate FPGA or driver");
+        if($config{FPGA} eq "DEFAULT") {
+            Exec("hasim-fpga-ctrl --activate", "Failed to activate FPGA or driver");
+        } else {
+            Exec("hasim-fpga-ctrl --configure $config{FPGA}", "Failed to activate FPGA or driver");
+        }
     }
 }
 

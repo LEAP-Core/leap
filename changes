@@ -5837,3 +5837,13 @@ Directory modules/leap/build-support/build-pipelines/pipelines/fpga
 
 
 Added a compile time generated hook to propagate information about the FPGA target to hasim-fpga-control.  
+
+----------
+kfleming    Date: Thu Feb 24 19:13:23 EST 2011  CSN: CSN-leap-51
+                  Fri Feb 25 00:13:23 UTC 2011
+
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Modified           50 
+
+Modified run.bmark to use the new platform-specific configuration hook.
