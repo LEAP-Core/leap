@@ -17,4 +17,6 @@
 %sources -t CPP -v PUBLIC   SerialStream.cpp
 %sources -t H   -v PUBLIC   SerialStream.h
 
+%param SOFT_RESET 0 "Does this channel support soft reset?"
+
 

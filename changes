@@ -5890,3 +5890,16 @@ Directory tools/scripts/bmark
 Fixed sense error in code checking for new configuration parameters
 SOFT_RESET and FPGA_PLATFORM.  Previously, SOFT_RESET would be set to
 1 whether it was defined or not.
+
+----------
+kfleming    Date: Fri Feb 25 13:58:20 EST 2011  CSN: CSN-leap-56
+                  Fri Feb 25 18:58:20 UTC 2011
+
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel.awb Locally Modified           55 
+ serial-physical-channel-8bit.awb Locally Modified           55 
+
+
+
+Serial channels do not support soft reset at this time.
