@@ -5847,3 +5847,22 @@ Directory tools/scripts/bmark
  run.bmark                 Locally Modified           50 
 
 Modified run.bmark to use the new platform-specific configuration hook.
+
+----------
+kfleming    Date: Thu Feb 24 19:45:29 EST 2011  CSN: CSN-leap-52
+                  Fri Feb 25 00:45:29 UTC 2011
+
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Modified           51 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec
+ pcie-bluespec-physical-channel.awb Locally Modified           51 
+
+Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
+ FPGAProg.py               Locally Modified           51 
+
+
+Modifed run to ignore soft reset on those platforms which do not
+support that feature, and retargeted FPGAProg's environment file.
+

@@ -242,8 +242,8 @@ if ($mType == $MODEL_FPGA) {
         # Does a download script exist to program the FPGA?
         my $needProgram = (-f "$config{modelDir}/config/$config{model}.download");
 
-        # Is the FPGA already programmed with the correct bit file?
-        if (exists($config{signature})) {
+        # Is the FPGA already programmed with the correct bit file and does it support soft reset?
+        if (exists($config{signature}) && $config{SOFT_RESET}) {
             my $curSignature = `hasim-fpga-ctrl --getsignature`;
             chomp($curSignature);
             if ($curSignature eq $config{signature}) {

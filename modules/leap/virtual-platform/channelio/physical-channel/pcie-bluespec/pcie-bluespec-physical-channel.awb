@@ -8,8 +8,5 @@
 %sources -t H   -v PUBLIC   pcie-bluespec-physical-channel.h
 %sources -t CPP -v PUBLIC   pcie-bluespec-physical-channel.cpp
 
-
-
-
-
+%param SOFT_RESET 0 "Does this channel support soft reset?"
 
