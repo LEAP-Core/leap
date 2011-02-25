@@ -36,6 +36,16 @@ ReadConfig("$config{modelDir}/config/env.sh", 1);
 ReadConfig("$config{modelDir}/config/fpga.sh", 0);
 ReadConfig("$config{modelDir}/config/signature.sh", 0);
 
+## For legacy codes fill in the expected parameters
+## This can be removed on switch to build pipline 
+if(!$config{SOFT_RESET}) {
+  $config{SOFT_RESET} = 1;
+}
+
+if(!$config{FPGA_PLATFORM}) {
+  $config{FPGA_PLATFORM} = "DEFAULT";
+}
+
 ##
 ## Pseudo-enumeration of possible model types
 ##
