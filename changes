@@ -5903,3 +5903,17 @@ Directory modules/leap/virtual-platform/channelio/physical-channel/serial
 
 
 Serial channels do not support soft reset at this time.
+
+----------
+kfleming    Date: Mon Feb 28 14:45:27 EST 2011  CSN: CSN-leap-58
+                  Mon Feb 28 19:45:27 UTC 2011
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified           57 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-altera.apm Locally Modified           57 
+
+
+PCIE-SATA now uses hybrid build and altera build now has fpga program

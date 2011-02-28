@@ -19,8 +19,8 @@ model=FPGA Environment
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 5
-librl_bsv=RL Bluespec Library Submodel
-build_pipeline=FPGA Build Pipeline Xilinx
+librl_bsv=Altera RL Bluespec Library
+build_pipeline=FPGA Build Pipeline Xilinx (Synplify)
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
@@ -95,16 +95,9 @@ LOCAL_MEM_WORDS_PER_LINE=4
 LOCAL_MEM_WORD_BITS=64
 LOCAL_MEM_ADDR_BITS=26
 
-[FPGA Build Pipeline Xilinx]
-File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
-Packagehint=leap
 
 [Standard Virtual Devices Submodel]
 File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
-Packagehint=leap
-
-[RL Bluespec Library Submodel]
-File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap
 
 [Bluespec SATA Device]
@@ -117,7 +110,6 @@ Packagehint=leap
 
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=Bluespec PCIE Physical Channel
-
 
 [XUP Virtex 5 PCIE SATA]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/pcie-sata/xilinx-xup-pcie-sata.awb
@@ -135,4 +127,73 @@ Packagehint=platforms
 
 [Bluespec PCIE Physical Channel]
 File=modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec/pcie-bluespec-physical-channel.awb
+Packagehint=leap
+
+[Register Mapping Utilities]
+File=modules/bsv-libraries/bluespec/RegisterMapper/src/register_mapper.awb
+Packagehint=bsv-libraries
+
+[FIFO Utility]
+File=modules/bsv-libraries/bluespec/FIFOUtility/fifo_utility.awb
+Packagehint=bsv-libraries
+
+[Vector Utilities]
+File=modules/bsv-libraries/bluespec/VectorUtils/vector_utils.awb
+Packagehint=bsv-libraries
+
+[Altera RL Bluespec Library/Requires]
+altera_utils=Common Altera Platform Utilities
+librl_bsv_storage=RL Bluespec Storage Library
+librl_bsv_base=RL Bluespec Base Library
+librl_bsv_cache=RL Bluespec Cache Managers
+
+[Debug Utilities]
+File=modules/bsv-libraries/bluespec/Debug/debug_utils.awb
+Packagehint=bsv-libraries
+
+[RL Bluespec Storage Library]
+File=modules/leap/libraries/librl/storage/librl-bsv-storage.awb
+Packagehint=leap
+
+[Avalon Bus Intefaces]
+File=modules/bsv-libraries/bluespec/Avalon/src/avalon.awb
+Packagehint=bsv-libraries
+
+[RegisterLibrary]
+File=modules/bsv-libraries/bluespec/Register/src/register_library.awb
+Packagehint=bsv-libraries
+
+[CBus Utilities]
+File=modules/bsv-libraries/bluespec/CBusUtils/c_bus_utils.awb
+Packagehint=bsv-libraries
+
+[Register Mapping Utilities/Requires]
+register_library=RegisterLibrary
+
+[RL Bluespec Cache Managers]
+File=modules/leap/libraries/librl/cache/librl-cache.awb
+Packagehint=leap
+
+[Altera RL Bluespec Library]
+File=modules/bsv-libraries/bluespec/librl-mit/librl-mit.awb
+Packagehint=bsv-libraries
+
+[Common Altera Platform Utilities/Requires]
+c_bus_utils=CBus Utilities
+fifo_utils=FIFO Utility
+vector_utils=Vector Utilities
+avalon=Avalon Bus Intefaces
+debug_utils=Debug Utilities
+register_mapper=Register Mapping Utilities
+
+[RL Bluespec Base Library]
+File=modules/leap/libraries/librl/base/librl-bsv-base.awb
+Packagehint=leap
+
+[Common Altera Platform Utilities]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/altera/altera_utils.awb
+Packagehint=platforms
+
+[FPGA Build Pipeline Xilinx (Synplify)]
+File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx-synplify.apm
 Packagehint=leap

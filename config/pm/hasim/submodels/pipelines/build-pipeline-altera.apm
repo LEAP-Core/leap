@@ -27,6 +27,7 @@ mcd_tool=Simple MCD Tool
 software_tool=Software build tool
 iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
+fpga_program_tool=FPGA Programming Tool
 
 [Simple MCD Tool]
 File=modules/leap/build-support/build-pipelines/stages/mcd/mcd.awb
@@ -50,4 +51,8 @@ Packagehint=leap
 
 [Altera Post-synthesis Toolchain]
 File=modules/leap/build-support/build-pipelines/stages/altera/altera-post-synth.awb
+Packagehint=leap
+
+[FPGA Programming Tool]
+File=modules/leap/build-support/build-pipelines/stages/fpgaprog/fpgaprog.awb
 Packagehint=leap
