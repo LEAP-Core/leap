@@ -13,6 +13,7 @@ except ImportError:
 import pygraph.algorithms.sorting
 import Module
 import Utils
+from config import *
 
 def checkSynth(module):
   return module.isSynthBoundary
@@ -32,8 +33,7 @@ class ModuleList:
 
   def __init__(self, env, arguments):
       # do a pattern match on the synth boundary paths, which we need to build
-      # the module structures
-    print "constructing moduleList\n"
+      # the module structure
     self.env = env
     self.arguments = arguments
     self.buildDirectory = env['DEFS']['BUILD_DIR']
@@ -140,7 +140,7 @@ class ModuleList:
           if(allDeps.count(dep) == 0):
             allDeps.append(dep)
 
-    if(len(allDeps) == 0):
+    if(len(allDeps) == 0 and BUILD_PIPELINE_DEBUG == 1):
       sys.stderr.write("Warning: no dependencies were found")
 
     return allDeps
@@ -160,7 +160,7 @@ class ModuleList:
           if(allDeps.count(dep) == 0):
             allDeps.append(dep)
 
-    if(len(allDeps) == 0):
+    if(len(allDeps) == 0 and BUILD_PIPELINE_DEBUG == 1):
       sys.stderr.write("Warning: no dependencies were found")
     
     return allDeps

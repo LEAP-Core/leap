@@ -5,11 +5,11 @@ import sys
 import string
 from model import  *
 from bsv_tool import *
+from config import *
 
 class Bluesim():
 
   def __init__(self, moduleList):
-    print "Alive in Bluesim" 
     # get rid of this at some point - since we know we're in 
     # bluesim, we should be able to do the right thing.
     APM_NAME = moduleList.env['DEFS']['APM_NAME']
@@ -51,7 +51,9 @@ class Bluesim():
     #   APM_NAME must be the software side, if there is one.  If there isn't, then
     #   it must be the Bluesim image.
     #
-    print "ModuleList desp : " + str(moduleList.swExe)
+    if(BLUESIM_DEBUG == 1):
+      print "ModuleList desp : " + str(moduleList.swExe)
+
     exe = moduleList.env.Command(
         APM_NAME + '_hw.exe',
         sbin + moduleList.swExe,

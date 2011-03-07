@@ -241,7 +241,10 @@ class BSV():
                            MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
                            '')
       env.Precious(bld_ba)
-      print "Name: " + module.name
+     
+      if(BSV_DEBUG == 1):
+        print "Name: " + module.name
+
       # we also generate all this synth boundary's GEN_BAS
       gen_ba = moduleList.getSynthBoundaryDependencies(module, 'GEN_BAS')
       # dress them with the correct directory

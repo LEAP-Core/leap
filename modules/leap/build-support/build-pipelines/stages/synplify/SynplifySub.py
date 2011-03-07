@@ -4,6 +4,7 @@ import SCons.Script
 from model import  *
 # need to get the model clock frequency
 from clocks_device import  *
+from config import  *
 
 
 #this might be better implemented as a 'Node' in scons, but 
@@ -34,8 +35,15 @@ def _generate_synplify_include(file):
 
   return 'add_file -'+ type +' \"'+ directoryFix + file + '\"\n'
 
+def _filter_file_add(file):
+  #Check for relative/absolute path   
+  output = ''
+  for line in file.readlines():
+    output += re.sub('add_file.*$','',line)
+    if(SYNPLIFY_DEBUG == 1):
+      print 'converted ' + line + 'to ' + re.sub('add_file.*$','',line)
 
-
+  return output;
 
 class Synthesize(ProjectDependency):
   def __init__(self, moduleList):
@@ -82,8 +90,9 @@ class Synthesize(ProjectDependency):
          if(type(file) is str):
            newPrjFile.write(_generate_synplify_include(file))        
          else:
-           print type(file)
-           print "is not a string"
+           if(SYNPLIFY_DEBUG == 1):
+             print type(file)
+             print "is not a string"
 
        #Set up new implementation
   
@@ -96,7 +105,7 @@ class Synthesize(ProjectDependency):
        #dump synplify options file
        # MAYBE NOT A GOOD IDEA
 
-       newPrjFile.write(prjFile.read())
+       newPrjFile.write(_filter_file_add(prjFile))
 
        #write the tail end of the options file to actually do the synthesis
      

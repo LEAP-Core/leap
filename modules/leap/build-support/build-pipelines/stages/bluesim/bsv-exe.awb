@@ -13,3 +13,7 @@
 
 %param CLEAN_BSV 1 "Clean BSV intermediate files on rebuild"
 
+%param BLUESIM_DEBUG 0 "Bluesim build debug"
+
+
+

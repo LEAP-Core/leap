@@ -6,7 +6,7 @@ from model import  *
 #I want to get something working before exploring that path
 
 def getXilinxVersion():
-  # What is the Bluespec compiler version?
+  # What is the Xilinx Tool version?
   xilinx_version = 0
   
   xilinx_ostream = os.popen('par -help')

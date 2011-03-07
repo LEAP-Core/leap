@@ -5931,3 +5931,35 @@ Backported some typeclass instances from soft-service to
 soft-connection so that newer codes can still build with the old build
 script.  This is part of an effort to debug the bsv-build dependency
 issue in the build pipeline, but it's also generally useful.
+
+----------
+kfleming    Date: Mon Mar  7 12:53:50 EST 2011  CSN: CSN-leap-60
+                  Mon Mar  7 17:53:50 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bsv-exe.awb               Locally Modified           59 
+ bluesim.py                Locally Modified           59 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified           59 
+ bsv.awb                   Locally Modified           59 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xst.awb                   Locally Modified           59 
+ XILINX_PAR.py             Locally Modified           59 
+ XST.py                    Locally Modified           59 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ synplify.awb              Locally Modified           59 
+ synplify-sub.awb          Locally Modified           59 
+ SynplifySub.py            Locally Modified           59 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified           59 
+ ModuleList.py             Locally Modified           59 
+ project-pipeline-new.awb  Locally Modified           59 
+
+
+
+Removed the bulk of spurious prints in the build pipelines.  The useful ones are now switched by debug flags. 

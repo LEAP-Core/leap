@@ -2,6 +2,7 @@ import os
 import sys
 import SCons.Script
 from model import  *
+from config import  *
 
 
 #this might be better implemented as a 'Node' in scons, but 
@@ -13,8 +14,9 @@ class Synthesize():
     # string together the xcf, sort of like the ucf
     # Concatenate UCF files
     if('XCF' in moduleList.topModule.moduleDependency and len(moduleList.topModule.moduleDependency['XCF']) > 0):
-      for xcf in  moduleList.topModule.moduleDependency['XCF']:
-        print 'xst found xcf: ' + xcf + '\n' 
+      if(XST_DEBUG == 1):
+        for xcf in  moduleList.topModule.moduleDependency['XCF']:
+          print 'xst found xcf: ' + xcf + '\n' 
       xilinx_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
         moduleList.topModule.moduleDependency['XCF'],
@@ -34,12 +36,13 @@ class Synthesize():
     newXSTFile.close();
     oldXSTFile.close();
 
-    print 'synthBoundaries:'
-    for module in moduleList.synthBoundaries():    
-      print module.name + ' '
-      print module.moduleDependency['VERILOG']
+    if(XST_DEBUG == 1):
+      print 'synthBoundaries:'
+      for module in moduleList.synthBoundaries():    
+        print module.name + ' '
+        print module.moduleDependency['VERILOG']
 
-    print moduleList.getAllDependencies('VERILOG_STUB')   
+      print moduleList.getAllDependencies('VERILOG_STUB')   
     
 
     for module in moduleList.synthBoundaries():    
@@ -74,7 +77,7 @@ class Synthesize():
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
            os.environ['BLUESPECDIR'] + '/bin/basicinout ' + 'hw/' + moduleList.topModule.buildPath + '/.bsc/' + moduleList.topModule.wrapperName() + '.v',     #patch top verilog
-          'xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
+          'xst -instyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
           '@echo xst ' + moduleList.apmName + ' build complete.' ])    
 
     moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
