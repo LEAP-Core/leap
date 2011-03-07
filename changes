@@ -5917,3 +5917,17 @@ Directory config/pm/hasim/submodels/pipelines
 
 
 PCIE-SATA now uses hybrid build and altera build now has fpga program
+
+----------
+kfleming    Date: Mon Mar  7 12:21:56 EST 2011  CSN: CSN-leap-59
+                  Mon Mar  7 17:21:56 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ Connections.bsv           Locally Modified           58 
+
+
+Backported some typeclass instances from soft-service to
+soft-connection so that newer codes can still build with the old build
+script.  This is part of an effort to debug the bsv-build dependency
+issue in the build pipeline, but it's also generally useful.

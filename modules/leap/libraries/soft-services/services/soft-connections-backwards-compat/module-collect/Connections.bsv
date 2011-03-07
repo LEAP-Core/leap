@@ -622,7 +622,7 @@ module [Connected_Module] mkConnection_Chain#(Integer chain_num)
 
 endmodule
 
-//Helper functions
+//mkConnection is concise and easy to use. 
 
 instance Connectable#(Get#(data_t),Connection_Send#(data_t));
   module mkConnection#(Get#(data_t) server,
@@ -636,6 +636,46 @@ instance Connectable#(Get#(data_t),Connection_Send#(data_t));
   endmodule
 endinstance
 
+instance Connectable#(Connection_Send#(data_t),Get#(data_t));
+  module mkConnection#(Connection_Send#(data_t) client, 
+                       Get#(data_t) server) (Empty);
+
+    rule connect;
+      let data <- server.get();
+      client.send(data);
+    endrule
+
+  endmodule
+endinstance
+
+
+instance Connectable#(function ActionValue#(data_t) f(),
+                      Connection_Send#(data_t));
+  module mkConnection#(function ActionValue#(data_t) f(),
+                       Connection_Send#(data_t) client) (Empty);
+
+    rule connect;
+      let data <- f();
+      client.send(data);
+    endrule
+
+  endmodule
+endinstance
+
+instance Connectable#(Connection_Send#(data_t),
+                      function ActionValue#(data_t) f());
+  module mkConnection#(Connection_Send#(data_t) client,
+                       function ActionValue#(data_t) f()) (Empty);
+
+    rule connect;
+      let data <- f();
+      client.send(data);
+    endrule
+
+  endmodule
+endinstance
+
+
 instance Connectable#(Connection_Receive#(data_t),Put#(data_t));
   module mkConnection#(Connection_Receive#(data_t) server,
                        Put#(data_t) client) (Empty);
@@ -648,3 +688,40 @@ instance Connectable#(Connection_Receive#(data_t),Put#(data_t));
   endmodule
 endinstance
 
+instance Connectable#(Put#(data_t), Connection_Receive#(data_t));
+  module mkConnection#(Put#(data_t) client, 
+                       Connection_Receive#(data_t) server) (Empty);
+
+    rule connect;
+      server.deq();
+      client.put(server.receive());
+    endrule
+
+  endmodule
+endinstance
+
+
+instance Connectable#(Connection_Receive#(data_t),function Action f(data_t t));
+  module mkConnection#(Connection_Receive#(data_t) server,
+                       function Action f(data_t t)) (Empty);
+
+    rule connect;
+      server.deq();
+      f(server.receive());
+    endrule
+
+  endmodule
+endinstance
+
+instance Connectable#(function Action f(data_t t), 
+                      Connection_Receive#(data_t));
+  module mkConnection#(function Action f(data_t t),
+                       Connection_Receive#(data_t) server) (Empty);
+
+    rule connect;
+      server.deq();
+      f(server.receive());
+    endrule
+
+  endmodule
+endinstance
