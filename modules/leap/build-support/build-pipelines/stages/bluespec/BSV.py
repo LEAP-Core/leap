@@ -147,14 +147,19 @@ class BSV():
 
     def compile_bo_bsc_base(target):
       bdir = os.path.dirname(str(target[0]))
+      # kill the bo target first ?
       lib_dirs = bsc_bdir_prune(env,ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
-      return BSC + ' ' + self.BSC_FLAGS + ' -p +:' + \
+      return  BSC + ' ' + self.BSC_FLAGS + ' -p +:' + \
            ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/asim/provides:' + \
            lib_dirs + ':' + TMP_BSC_DIR + ' -bdir ' + bdir + \
            ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir
 
     def compile_bo(source, target, env, for_signature):
       cmd = compile_bo_bsc_base(target) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
+      return cmd
+
+    def compile_rm_bo(source, target, env, for_signature):
+      cmd = 'rm -f ' + str(target[0]) + ' ; ' + compile_bo_bsc_base(target) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
       return cmd
 
 
@@ -180,7 +185,7 @@ class BSV():
     for bsv in BSVS + GEN_BSVS:
       bsc_builds += env.BSC(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + bsv)
 
-    # we must making him depend on his children (NOT his children't children!)
+    # we must making him depend on his children (NOT his children's children!)
     child_v = []
     for child in synth_children:
       child_v.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + get_child_v(child))
@@ -209,7 +214,11 @@ class BSV():
       ## Now we are ready for the real build
       ##
       wrapper_bo = env.BSC(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + bsv)
+      # if we rebuild the wrapper, we also need to rebuild the parent bo
+      upper_bo = MODULE_PATH + '/../' + TMP_BSC_DIR + '/' + bsv.replace('_Wrapper.bsv', '.bo')
+      print 'Adding dep: ' + upper_bo + '\n'
       moduleList.env.Depends(wrapper_bo, stub)
+      moduleList.env.Depends(upper_bo, wrapper_bo)
 
       ##
       ## The mk_<wrapper>.v file is really built by the Wrapper() builder
@@ -219,29 +228,22 @@ class BSV():
       ## to keep SCons from deleting the .v file.  I tried an Alias()
       ## first, but that didn't work.
       ##
-      bld_v = env.Command(MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.v'),
-                          MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
-                          '')
-      env.Precious(bld_v)
-
       # we also generate all this synth boundary's GEN_VS
       gen_v = moduleList.getSynthBoundaryDependencies(module, 'GEN_VS')
-      # dress them with the correct directory
       ext_gen_v = []
       for v in gen_v:
         ext_gen_v += [MODULE_PATH + TMP_BSC_DIR + '/' + v]
 
+      bld_v = env.Command([MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.v')] + ext_gen_v,
+                          MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
+                          '')
+      env.Precious(bld_v)
+
+
+
       if(BUILD_VERILOG == 1):
         module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
-      ##
-      ## Do the same for .ba
-      ##
-      bld_ba = env.Command(MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba'),
-                           MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
-                           '')
-      env.Precious(bld_ba)
-     
       if(BSV_DEBUG == 1):
         print "Name: " + module.name
 
@@ -251,9 +253,19 @@ class BSV():
       ext_gen_ba = []
       for ba in gen_ba:
         ext_gen_ba += [MODULE_PATH + TMP_BSC_DIR + '/' + ba]    
-      module.moduleDependency['BA'] += [bld_ba] + [ext_gen_ba]
 
 
+      ##
+      ## Do the same for .ba
+      ##
+      bld_ba = env.Command([MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba')] + ext_gen_ba,
+                           MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
+                           '')
+      module.moduleDependency['BA'] += [bld_ba] 
+      env.Precious(bld_ba)
+     
+
+    
       ##
       ## Build the Xst black-box stub.
       ##

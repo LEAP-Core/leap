@@ -33,6 +33,10 @@ class Bluesim():
         TMP_BSC_DIR + ' ' + moduleList.env['DEFS']['GEN_BAS'] + ' ' + moduleList.env['DEFS']['GIVEN_BAS'] + \
         ' ' + moduleList.env['DEFS']['BDPI_CS']
 
+    if(BLUESIM_DEBUG == 1):
+      for ba in moduleList.getAllDependencies('BA'):
+        print 'BA dep: ' + str(ba) + '\n'
+
     sbin = moduleList.env.Command(
         TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
         moduleList.getAllDependencies('BA') + 

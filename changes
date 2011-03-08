@@ -5963,3 +5963,24 @@ Directory modules/leap/build-support/project
 
 
 Removed the bulk of spurious prints in the build pipelines.  The useful ones are now switched by debug flags. 
+
+----------
+kfleming    Date: Tue Mar  8 15:14:15 EST 2011  CSN: CSN-leap-61
+                  Tue Mar  8 20:14:15 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified           60 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified           60 
+
+
+Fixes two problems in the pipeline build Bluespec stage:
+
+1. Wrapper bo rebuilds need to force stub bo rebuilds
+2. Bluespec-style synth boundaries need to force bluesim/verilog rebuilds.
+
+The fix involves adding appropriate dependencies to ensure that these rebuilds occur.
+
+
