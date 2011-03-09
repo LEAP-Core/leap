@@ -5984,3 +5984,14 @@ Fixes two problems in the pipeline build Bluespec stage:
 The fix involves adding appropriate dependencies to ensure that these rebuilds occur.
 
 
+
+----------
+kfleming    Date: Tue Mar  8 22:31:39 EST 2011  CSN: CSN-leap-62
+                  Wed Mar  9 03:31:39 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified           61 
+
+
+Guarded debug print in BSV build. 

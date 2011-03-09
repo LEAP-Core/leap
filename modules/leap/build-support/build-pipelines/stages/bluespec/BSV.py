@@ -216,7 +216,8 @@ class BSV():
       wrapper_bo = env.BSC(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + bsv)
       # if we rebuild the wrapper, we also need to rebuild the parent bo
       upper_bo = MODULE_PATH + '/../' + TMP_BSC_DIR + '/' + bsv.replace('_Wrapper.bsv', '.bo')
-      print 'Adding dep: ' + upper_bo + '\n'
+      if(BSV_DEBUG == 1):
+        print 'Adding dep: ' + upper_bo + '\n'
       moduleList.env.Depends(wrapper_bo, stub)
       moduleList.env.Depends(upper_bo, wrapper_bo)
 
