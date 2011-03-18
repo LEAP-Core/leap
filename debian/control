@@ -6,8 +6,26 @@ Build-Depends: debhelper (>= 7), autotools-dev, libqt-perl, libqt3-mt-dev
 Standards-Version: 3.7.2
 
 Package: leap
+Architecture: all
+Depends: leap-11.03
+Description: Dependency package for Leap FPGA environment
+ Dependency package for the Leap FPGA environment
+Section: devel
+
+Package: leap-11.03
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, leap-bin
+Description: Sharable package for the LEAP
+  AWB modules for the logic-based environment for application programmaing (leap)
+Section: devel
+
+Package: leap-bin
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, asim-core, asim-core-dev, awb, libqt-perl
-Description: AWB-based environment for Leap (leap)
- AWB modules for the logic-based environment for application programmaing (leap)
+Recommends: libterm-readline-gnu-perl
+Replaces: leap (<= 0.6.0)
+Breaks: leap (<= 0.6.0)
+Description: Executables for the LEAP FPGA environement
+ Core executables for LEAP FPGA environment
+Section: devel
 

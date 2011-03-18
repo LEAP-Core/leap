@@ -91,7 +91,9 @@ install-arch:
 
 	# Add here commands to install the arch part of the package into
 	# debian/tmp.
-	$(MAKE) DESTDIR=$(CURDIR)/debian/leap install-arch
+	$(MAKE) DESTDIR=$(CURDIR)/debian/leap-bin install-arch
+
+	$(MAKE) DESTDIR=$(CURDIR)/debian/leap-11.03 install-package
 
 	dh_install -s
 # Must not depend on anything. This is to be called by

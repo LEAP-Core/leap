@@ -5995,3 +5995,35 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
 
 
 Guarded debug print in BSV build. 
+
+----------
+jsemer      Date: Thu Mar 17 22:47:46 EDT 2011  CSN: CSN-leap-63
+                  Fri Mar 18 02:47:46 UTC 2011
+
+
+Directory .
+ Makefile.in               Locally Modified           62 
+
+Directory debian
+ control                   Locally Modified           62 
+ leap.dirs                 Locally Removed            62 
+ leap-11.03.dirs           Locally Added               0 
+ leap-bin.dirs             Locally Added               - 
+ changelog                 Locally Modified           62 
+ rules                     Locally Modified           62 
+ leap.postinst             Locally Removed            62 
+ leap.preinst              Locally Removed            62 
+ leap.postrm               Locally Removed            62 
+ leap.prerm                Locally Removed            62 
+ leap.docs                 Locally Removed            62 
+ leap-bin.postinst         Locally Added               - 
+ leap-bin.postrm           Locally Added               - 
+ leap-bin.preinst          Locally Added               - 
+ leap-bin.prerm            Locally Added               - 
+ leap-bin.docs             Locally Added               - 
+
+Directory .
+ debian/                   Locally Modified           62 
+ Makefile.am               Locally Modified           62 
+
+Changes for building debian packages for release 11.03.

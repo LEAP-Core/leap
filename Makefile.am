@@ -14,7 +14,7 @@ install-indep:
 #
 # Do install and install of package
 #
-install-arch: install install-package
+install-arch: install
 
 
 doc:

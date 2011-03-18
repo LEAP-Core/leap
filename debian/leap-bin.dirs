@@ -4,8 +4,4 @@ usr/lib/perl
 usr/libexec
 usr/libexec/asim
 usr/sbin
-usr/share
-usr/share/asim
-usr/share/asim/leap
-usr/share/asim/leap/HEAD
 usr/share/perl
