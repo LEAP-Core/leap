@@ -6027,3 +6027,13 @@ Directory .
  Makefile.am               Locally Modified           62 
 
 Changes for building debian packages for release 11.03.
+
+----------
+jsemer      Date: Fri Mar 25 16:40:58 EDT 2011  CSN: CSN-leap-65
+                  Fri Mar 25 20:40:58 UTC 2011
+
+
+Directory debian
+ changelog                 Locally Modified           64 
+
+Update debian packaging to reflect start of work on release 11.04.
