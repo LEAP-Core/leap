@@ -6049,3 +6049,14 @@ Directory modules/leap/build-support/project
 The updated m5 no longer appends python code to the end of the binary.  Instead,
 code is stored in statically constructed arrays as the program starts.  The
 build rules are thus simpler.
+
+----------
+mcadler     Date: Mon Apr  4 19:15:10 EDT 2011  CSN: CSN-leap-67
+                  Mon Apr  4 23:15:10 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified           66 
+
+An attempt to get the build pipeline working with the new m5.  I can't actually
+build anything here, so it isn't carefully tested.
