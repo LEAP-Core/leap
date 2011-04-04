@@ -6037,3 +6037,15 @@ Directory debian
  changelog                 Locally Modified           64 
 
 Update debian packaging to reflect start of work on release 11.04.
+
+----------
+mcadler     Date: Mon Apr  4 18:30:07 EDT 2011  CSN: CSN-leap-66
+                  Mon Apr  4 22:30:07 UTC 2011
+
+
+Directory modules/leap/build-support/project
+ SCons.top.template        Locally Modified           65 
+
+The updated m5 no longer appends python code to the end of the binary.  Instead,
+code is stored in statically constructed arrays as the program starts.  The
+build rules are thus simpler.
