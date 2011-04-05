@@ -6060,3 +6060,15 @@ Directory modules/leap/build-support/build-pipelines/stages/software
 
 An attempt to get the build pipeline working with the new m5.  I can't actually
 build anything here, so it isn't carefully tested.
+
+----------
+mpellaue    Date: Tue Apr  5 14:08:49 EDT 2011  CSN: CSN-leap-68
+                  Tue Apr  5 18:08:49 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified           67 
+
+
+* Fix for how software.py checks for presence of the DEBUG flag.
+

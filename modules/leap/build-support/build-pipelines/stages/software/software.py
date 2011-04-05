@@ -43,7 +43,7 @@ class Software():
             cc_flags += ' -DASIM_ENABLE_TRACE'
         cc_flags += ' -DAPM_NAME=\\"' + moduleList.apmName + '\\"'
     
-        if (DEBUG):
+        if (getDebug(moduleList)):
             copt_flags = '-ggdb3 '
         else:
             copt_flags = '-g -O2 '
@@ -79,7 +79,7 @@ class Software():
     
                 # Second, store the m5 library in whole_libs
                 if (m5_lib != ''):
-                    if (DEBUG):
+                    if (getDebug(moduleList)):
                         # Swap the optimized m5 library for a debugging one
                         m5_lib = os.path.join(os.path.dirname(m5_lib), 'libm5_debug.a')
                     whole_libs += [ m5_lib ]
