@@ -86,14 +86,33 @@ sub create_dynsize_bsh {
     my @conns = parse_dangling_connections($log_file);
     my $sends = 0;
     my $recvs = 0;
-    foreach my $conn_r (@conns) {
-        if ($conn_r->[0] eq "Send") {
-            $sends += 1;
-        } elsif ($conn_r->[0] eq "Rec") {
-            $recvs += 1;
-        } else {
-            DIE("Unrecognized type of dangling connection: $1\n");
-        }     
+    my $send_multis = 0;
+    my $recv_multis = 0;
+
+    if ($softservices) {
+        for (my $i = 0; $i < scalar(@conns); $i++) {
+            if ($conns[$i]->{"sc_type"} eq "Send") {
+                $sends += 1;
+            } elsif ($conns[$i]->{"sc_type"} eq "Recv") {
+                $recvs += 1;
+            } elsif ($conns[$i]->{"sc_type"} eq "RecvMulti") {
+                $recv_multis += 1;
+            } elsif ($conns[$i]->{"sc_type"} eq "SendMulti") {
+                $send_multis += 1;
+            } else {
+                DIE("Soft Serices: Unrecognized type of dangling connection: $1\n");
+            }
+        }
+    } else {
+        foreach $conn_r (@conns) {
+            if ($conn_r->[0] eq "Send") {
+                $sends += 1;
+            } elsif ($conn_r->[0] eq "Rec") {
+                $recvs += 1;
+            } else {
+                DIE("Unrecognized type of dangling connection: $1\n");
+            }
+        }
     }
 
     open(SIZES, "> $tgt_file") or die("Failed to open $tgt_file for writing");
@@ -106,6 +125,14 @@ sub create_dynsize_bsh {
     print SIZES "`ifndef CON_SEND_${metatype}\n";
     print SIZES "`define CON_SEND_${metatype} ${sends}\n";
     print SIZES "`endif\n";
+    if ($softservices) {
+        print SIZES "`ifndef CON_RECV_MULTI_${metatype}\n";
+        print SIZES "`define CON_RECV_MULTI_${metatype} ${recv_multis}\n";
+        print SIZES "`endif\n\n";
+        print SIZES "`ifndef CON_SEND_MULTI_${metatype}\n";
+        print SIZES "`define CON_SEND_MULTI_${metatype} ${send_multis}\n";
+        print SIZES "`endif\n";    
+    }
     close(SIZES);
 }
 
@@ -196,50 +223,65 @@ sub add_connections {
     my $mk_wrapper = make_module_name(make_wrapper_name($metatype));
 
     # Soft services must route through the model clock...
-    if($softservices) {
-	print $of "    // 1.  obtain model clock from context\n";
-        print $of "    SoftServicesContext ctxt <- getContext();\n";
-        print $of "    LOGICAL_CLOCK_INFO model_clock = getIt(ctxt);\n";
-       	print $of "    // 2. instantiate wrapper\n";
-	print $of "    SoftServicesSynthesisInterface#(`CON_RECV_${metatype}, `CON_SEND_${metatype}) $wrap_var <- $mk_wrapper(clocked_by model_clock.clk, reset_by model_clock.rst);\n";
+    if ($softservices) {
+	print $of "    // Obtain model clock from context\n";
+        print $of "    LOGICAL_CLOCK_INFO model_clock <- getContext();\n";
+       	print $of "    // Instantiate wrapper using the correct clock.\n";
+	print $of "    SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}) $wrap_var <- $mk_wrapper(clocked_by model_clock.clk, reset_by model_clock.rst);\n";
+        print $of "    // Begin: Register Soft Connections\n";
+        print $of "    let connections = tpl_1($wrap_var.services);\n";
+        my @conns = parse_dangling_connections($logfile_name);
+        for (my $i = 0; $i < scalar(@conns); $i++) {
+            my $conname = $conns[$i]->{"name"};
+            my $contype = $conns[$i]->{"type"};
+            my $conidx  = $conns[$i]->{"idx"};
+            my $conplat = $conns[$i]->{"platform"};
+            my $conopt  = $conns[$i]->{"optional"};
+
+            if ($conns[$i]->{"sc_type"} eq "Send") {
+                print $of "    registerSend(LOGICAL_SEND_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoing[$conidx] });\n";
+            } elsif ($conns[$i]->{"sc_type"} eq "Recv") {
+                print $of "    registerRecv(LOGICAL_RECV_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.incoming[$conidx] });\n";
+            } elsif ($conns[$i]->{"sc_type"} eq "SendMulti") {
+                print $of "    registerSendMulti(LOGICAL_SEND_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoingMultis[$conidx] });\n";
+            } elsif ($conns[$i]->{"sc_type"} eq "RecvMulti") {
+                print $of "    registerRecvMulti(LOGICAL_RECV_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.incomingMultis[$conidx] });\n";
+            }
+        }
+       
+        print $of "// End: Register Soft Connections\n";
 
     } 
     else {
 	print $of "    // 1. instantiate wrapper\n";
 	print $of "    WithConnections#(`CON_RECV_${metatype}, `CON_SEND_${metatype}) $wrap_var <- $mk_wrapper();\n";
-   }
-    print $of "    // 2. log sends & recvs\n";
-    my @conns = parse_dangling_connections($logfile_name);
-    my @sends_exprs = ();
-    my @recvs_exprs = ();
+        print $of "    // 2. log sends & recvs\n";
+        my @conns = parse_dangling_connections($logfile_name);
+        my @sends_exprs = ();
+        my @recvs_exprs = ();
 
-    
-     foreach my $conn_r (@conns) {
-	my $expr = "";
-        if($softservices) {
-            $expr = "tuple4(\"" . $conn_r->[3] . "\", \"" . $conn_r->[1] . "\", \"" . $conn_r->[4] . "\", "  . $conn_r->[2] . ")";
-	} else {
-	    $expr = "tuple3(\"" . $conn_r->[3] . "\", \"" . $conn_r->[1] . "\", " . $conn_r->[2] . ")";
-	}
-        if ($conn_r->[0] eq "Send") {
-            push (@sends_exprs, $expr);
-        } elsif ($conn_r->[0] eq "Rec") {
-            push (@recvs_exprs, $expr);
-        } else {
-            DIE("Unrecognized type of dangling connection: $1\n");
-        }     
+        foreach my $conn_r (@conns) {
+	    my $expr = "tuple3(\"" . $conn_r->[3] . "\", \"" . $conn_r->[1] . "\", " . $conn_r->[2] . ")";
+            if ($conn_r->[0] eq "Send") {
+                push (@sends_exprs, $expr);
+            } elsif ($conn_r->[0] eq "Rec") {
+                push (@recvs_exprs, $expr);
+            } else {
+                DIE("Unrecognized type of dangling connection: $1\n");
+            }     
+        }
+
+        my $sends_var = "dsends_" . $metatype;
+        my $recvs_var = "drecvs_" . $metatype;
+
+        my $sends_cons = get_cons_expr(@sends_exprs);
+        my $recvs_cons = get_cons_expr(@recvs_exprs);
+
+        print $of "    let $sends_var = $sends_cons;\n";
+        print $of "    let $recvs_var = $recvs_cons;\n";
+
+        print $of "    addConnections($wrap_var, $sends_var, $recvs_var);\n\n";
     }
-
-    my $sends_var = "dsends_" . $metatype;
-    my $recvs_var = "drecvs_" . $metatype;
-
-    my $sends_cons = get_cons_expr(@sends_exprs);
-    my $recvs_cons = get_cons_expr(@recvs_exprs);
-
-    print $of "    let $sends_var = $sends_cons;\n";
-    print $of "    let $recvs_var = $recvs_cons;\n";
-
-    print $of "    addConnections($wrap_var, $sends_var, $recvs_var);\n\n";
 }
 
 
@@ -342,13 +384,20 @@ sub parse_dangling_connections {
     CORE::open(LOG, "< $log_file") || return undef;
     while (my $line = <LOG>) {
         if ($line =~ /^Compilation message: .*: Dangling /) {
-            if($softservices) {
-	        if ($line =~ /.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+)/) {                   
-		    my @connection = ($1,$2,$3,$4,$5);
-		    push(@conns, [@connection]);
+            if ($softservices) {
+	        if ($line =~ /.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\w+)/) {
+		    my %connection = (
+                        sc_type => $1,
+                        name => $4,
+                        type => $2,
+                        idx => $3,
+                        platform => $5,
+                        optional => $6
+                    );
+		    push(@conns, \%connection);
 		}
 		else {
-		    DIE("SoftServices: Malformed dangling connection message");
+		    DIE("Soft Services: Malformed dangling connection message");
 		}
 	    } else { #Backwards compatibility
 	        if ($line =~ /.*Dangling (\w+) {(.*)} \[(\d+)\]: (\w+)/) {

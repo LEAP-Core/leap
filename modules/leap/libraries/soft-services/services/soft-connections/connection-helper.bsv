@@ -5,9 +5,9 @@ import Connectable::*;
 
 // Connections can be hooked up using the standard mkConnection function
 
-instance Connectable#(PHYSICAL_CONNECTION_OUT, PHYSICAL_CONNECTION_IN);
+instance Connectable#(CONNECTION_OUT#(t_MSG), CONNECTION_IN#(t_MSG));
 
-  function m#(Empty) mkConnection(PHYSICAL_CONNECTION_OUT cout, PHYSICAL_CONNECTION_IN cin)
+  function m#(Empty) mkConnection(CONNECTION_OUT#(t_MSG) cout, CONNECTION_IN#(t_MSG) cin)
     provisos (IsModule#(m, c));
   
     return connectOutToIn(cout, cin);
@@ -16,9 +16,9 @@ instance Connectable#(PHYSICAL_CONNECTION_OUT, PHYSICAL_CONNECTION_IN);
 
 endinstance
 
-instance Connectable#(PHYSICAL_CONNECTION_IN, PHYSICAL_CONNECTION_OUT);
+instance Connectable#(CONNECTION_IN#(t_MSG), CONNECTION_OUT#(t_MSG));
 
-  function m#(Empty) mkConnection(PHYSICAL_CONNECTION_IN cin, PHYSICAL_CONNECTION_OUT cout)
+  function m#(Empty) mkConnection(CONNECTION_IN#(t_MSG) cin, CONNECTION_OUT#(t_MSG) cout)
     provisos (IsModule#(m, c));
   
     return connectOutToIn(cout, cin);
@@ -78,9 +78,29 @@ instance Matchable#(LOGICAL_SEND_INFO);
   endfunction
 endinstance
 
+instance Matchable#(LOGICAL_RECV_MULTI_INFO);
+  function String getLogicalName(LOGICAL_RECV_MULTI_INFO rinfo);
+    return rinfo.logicalName;
+  endfunction
+
+  function String getComputePlatform(LOGICAL_RECV_MULTI_INFO rinfo);
+    return rinfo.computePlatform;
+  endfunction
+endinstance
+
+instance Matchable#(LOGICAL_SEND_MULTI_INFO);
+  function String getLogicalName(LOGICAL_SEND_MULTI_INFO sinfo);
+    return sinfo.logicalName;
+  endfunction
+
+  function String getComputePlatform(LOGICAL_SEND_MULTI_INFO sinfo);
+    return sinfo.computePlatform;
+  endfunction
+endinstance
+
 function Bool nameMatches(r rinfo, s sinfo)
-  provisos(Matchable#(r),
-           Matchable#(s));
+  provisos (Matchable#(r),
+            Matchable#(s));
   
   return (getLogicalName(sinfo) == getLogicalName(rinfo)) && 
          (getComputePlatform(sinfo) == getComputePlatform(rinfo));
@@ -88,56 +108,23 @@ function Bool nameMatches(r rinfo, s sinfo)
 endfunction
 
 function Bool nameDoesNotMatch(r rinfo, s sinfo)
-  provisos(Matchable#(r),
-           Matchable#(s));
+  provisos (Matchable#(r),
+            Matchable#(s));
   
   return !nameMatches(rinfo,sinfo);
 endfunction
 
-instance Eq#(PHYSICAL_CONNECTION_OUT);
-
-    function \== (PHYSICAL_CONNECTION_OUT x, PHYSICAL_CONNECTION_OUT y) = False;
-    function \/= (PHYSICAL_CONNECTION_OUT x, PHYSICAL_CONNECTION_OUT y) = True;
-
-endinstance
-
-instance Eq#(PHYSICAL_CONNECTION_IN);
-
-    function \== (PHYSICAL_CONNECTION_IN x, PHYSICAL_CONNECTION_IN y) = False;
-    function \/= (PHYSICAL_CONNECTION_IN x, PHYSICAL_CONNECTION_IN y) = True;
-
-endinstance
-
-instance Eq#(STATION);
-
-    function \== (STATION x, STATION y) = False;
-    function \/= (STATION x, STATION y) = True;
-
-endinstance
-
-
-function Bool sendIsOneToMany(LOGICAL_SEND_INFO sinfo);
-
-  return sinfo.oneToMany;
-
+function Bool primNameMatches(String rinfo, s sinfo)
+  provisos (Matchable#(s));
+  
+  return (rinfo == getLogicalName(sinfo));
+ 
 endfunction
 
-function Bool recvIsManyToOne(LOGICAL_RECV_INFO rinfo);
-
-  return rinfo.manyToOne;
-
-endfunction
-
-function Bool sendIsNotOneToMany(LOGICAL_SEND_INFO sinfo);
-
-  return !sinfo.oneToMany;
-
-endfunction
-
-function Bool recvIsNotManyToOne(LOGICAL_RECV_INFO rinfo);
-
-  return !rinfo.manyToOne;
-
+function Bool primNameDoesNotMatch(String rinfo, s sinfo)
+  provisos (Matchable#(s));
+  
+  return !primNameMatches(rinfo, sinfo);
 endfunction
 
 // connectOutToIn
@@ -145,14 +132,13 @@ endfunction
 // This is the module that actually performs the connection between two
 // physical endpoints. This is for 1-to-1 communication only.
 
-module connectOutToIn#(PHYSICAL_CONNECTION_OUT cout, PHYSICAL_CONNECTION_IN cin) ();
+module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin) ();
   
-
-  if(sameFamily(cin.clock,cout.clock) && (cin.reset == cout.reset))
+  if(sameFamily(cin.clock,cout.clock))
   begin
-      rule trySend (True);
+      rule trySend (cout.notEmpty());
           // Try to move the data
-          let x = cout.first();
+          Bit#(t_MSG_SIZE) x = cout.first();
           cin.try(x);
       endrule
 
@@ -164,6 +150,7 @@ module connectOutToIn#(PHYSICAL_CONNECTION_OUT cout, PHYSICAL_CONNECTION_IN cin)
   end
   else
   begin
+
       messageM("CrossDomain@ Found");
 
       // choose a size large enough to cover latency of fifo
@@ -172,21 +159,23 @@ module connectOutToIn#(PHYSICAL_CONNECTION_OUT cout, PHYSICAL_CONNECTION_IN cin)
                                    cout.reset,
                                    cin.clock);
 
-      rule receive;
-          let x = cout.first();
+      rule receive (cout.notEmpty() && domainFIFO.notFull());
+          Bit#(t_MSG_SIZE) x = cout.first();
           domainFIFO.enq(x);
           cout.deq();
       endrule
   
-      rule trySend;
+      rule trySend (domainFIFO.notEmpty());
           cin.try(domainFIFO.first());
       endrule
 
       rule succeedSend(cin.success());
-          domainFIFO.deq;
+          domainFIFO.deq();
       endrule
   end
+
 endmodule
+
 
 module printSend#(LOGICAL_SEND_INFO send) (Empty);
   messageM("Send: " + send.logicalName + " " + send.computePlatform);

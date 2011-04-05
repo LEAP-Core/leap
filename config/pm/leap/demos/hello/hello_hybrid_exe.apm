@@ -9,17 +9,13 @@ DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
 Type=Leap
 Class=Asim::Model
 DefaultRunOpts=
-RootName=HW/SW Hybrid Project Foundation
+RootName=HW/SW Hybrid Pipeline Build
 RootProvides=model
 
 [Model]
 DefaultAttributes=hello unconnected hybrid project exe
-model=HW/SW Hybrid Project Foundation
+model=HW/SW Hybrid Pipeline Build
 
-
-[HW/SW Hybrid Project Foundation]
-File=modules/leap/build-support/project/project-hybrid.awb
-Packagehint=leap
 
 [Hello World]
 File=modules/leap/examples/hello-world/hello-world.awb
@@ -29,14 +25,9 @@ Packagehint=leap
 File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
 Packagehint=leap
 
-[HW/SW Hybrid Project Foundation/Requires]
-fpgaenv=Hybrid Simulation FPGA Environment
-application_env=Base Hybrid Application Environment
-project_common=Default Hybrid Project Common Utilities
 
 [Base Hybrid Application Environment/Requires]
 hybrid_application=Hello World
-
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
@@ -44,4 +35,13 @@ Packagehint=leap
 
 [Hybrid Simulation FPGA Environment]
 File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
+Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid Simulation FPGA Environment
+application_env=Base Hybrid Application Environment
+
+[HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap

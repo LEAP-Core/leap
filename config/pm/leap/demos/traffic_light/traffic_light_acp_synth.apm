@@ -16,7 +16,6 @@ RootProvides=model
 DefaultAttributes=function_as_boundary traffic_light demo connected slave hybrid project
 model=HW/SW Hybrid Pipeline Build
 
-
 [Traffic Light System with Soft Connections]
 File=modules/leap/examples/traffic-light/traffic-light-system.awb
 Packagehint=leap
@@ -35,8 +34,6 @@ hardware_system=Traffic Light System with Soft Connections
 File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function-smart-synth-boundary.awb
 Packagehint=leap
 
-
-
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
@@ -52,12 +49,8 @@ Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 platform_services=Standard Platform Services
-soft_services=Soft Services
+soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
-
-[Soft Services]
-File=config/pm/hasim/submodels/common/soft-services.apm
-Packagehint=leap
 
 
 [Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)/Params]
@@ -74,3 +67,7 @@ Packagehint=leap
 [Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)]
 File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech-no-cache.apm
 Packagehint=platforms-acp
+
+[Soft Services Submodel]
+File=config/pm/hasim/submodels/common/soft-services.apm
+Packagehint=leap

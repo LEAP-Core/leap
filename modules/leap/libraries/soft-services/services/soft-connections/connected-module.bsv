@@ -14,11 +14,5 @@ import Clocks::*;
 //                                                                //
 //----------------------------------------------------------------//
 
-// let's define a sub module context for the cases in which we want to process 
-// the old module context.  This will make life a bit easier
-typedef ModuleContext#(LOGICAL_CONNECTION_INFO) SoftConnectionModule;
-
-typedef SoftServicesModule ConnectedModule;
-typedef ConnectedModule Connected_Module;
-typedef Connected_Module CONNECTED_MODULE;
+typedef SOFT_SERVICES_MODULE CONNECTED_MODULE;
 

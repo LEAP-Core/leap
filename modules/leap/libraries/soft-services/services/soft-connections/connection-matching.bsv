@@ -10,92 +10,88 @@ import Clocks::*;
 // Adds a new send/recv. First try to find existing matches, 
 // then either connect it or add it to the unmatched list.
 
-module [SoftConnectionModule] registerSend#(LOGICAL_SEND_INFO new_send) ();
+module [t_CONTEXT] registerSend#(LOGICAL_SEND_INFO new_send) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
-    if (!new_send.oneToMany)
-    begin
-        // See if we can find our partner.
-        let recvs <- getUnmatchedRecvs();
-        let m_match <- findMatchingRecv(new_send, recvs);
+    // See if we can find our partner.
+    let recvs <- getUnmatchedRecvs();
+    let m_match <- findMatchingRecv(new_send, recvs);
 
-        case (m_match) matches
-            tagged Invalid:   
-            begin
+    case (m_match) matches
+        tagged Invalid:   
+        begin
 
-                // No match. Add the send to the list.
-                addUnmatchedSend(new_send);
+            // No match. Add the send to the list.
+            addUnmatchedSend(new_send);
 
-            end
-            tagged Valid .recv:
-            begin
-                
-                if (!recv.manyToOne)
-                begin
-                    // A 1-to-1 match! Attempt to connect them.
-                    connect(new_send, recv);
+        end
+        tagged Valid .recv:
+        begin
 
-                    // The receive is no longer unmatched, so remove it from the list.
-                    removeUnmatchedRecv(recv);
-                end
-                else
-                begin
-                    // Defer connecting until the partner is found.
-                    addUnmatchedSend(new_send);
-                end
+            // A 1-to-1 match! Attempt to connect them.
+            connect(new_send, recv);
 
-            end
-        endcase
-    end
-    else
-    begin
-        // Defer one to many send to the very top level.
-        addUnmatchedSend(new_send);
-    end
+            // The receive is no longer unmatched, so remove it from the list.
+            removeUnmatchedRecv(recv);
+
+        end
+    endcase
 
 endmodule
 
-module [SoftConnectionModule] registerRecv#(LOGICAL_RECV_INFO new_recv) ();
+module [t_CONTEXT] registerSendMulti#(LOGICAL_SEND_MULTI_INFO new_send) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
-    if (!new_recv.manyToOne)
-    begin
-        // See if we can find our partner.
-        let sends <- getUnmatchedSends();
-        let m_match <- findMatchingSend(new_recv, sends);
-
-        case (m_match) matches
-            tagged Invalid:   
-            begin
-
-                // No match. Add the recv to the list.
-                addUnmatchedRecv(new_recv);
-
-            end
-            tagged Valid .send:
-            begin
-                if (!send.oneToMany)
-                begin
-                    // A match! Attempt to connect them.
-                    connect(send, new_recv);
-
-                    // The send is no longer unmatched, so remove it from the list.
-                    removeUnmatchedSend(send);
-                end
-                else
-                begin
-                    // Defer connecting until the partner is found.
-                    addUnmatchedRecv(new_recv);
-                end
-
-            end
-        endcase
-    end
-    else
-    begin
-        // Defer many to one recvs to the very top level.
-        addUnmatchedRecv(new_recv);
-    end
+    // Defer one to many send to the very top level.
+    addUnmatchedSendMulti(new_send);
 
 endmodule
+
+module [t_CONTEXT] registerRecv#(LOGICAL_RECV_INFO new_recv) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    // See if we can find our partner.
+    let sends <- getUnmatchedSends();
+    let m_match <- findMatchingSend(new_recv, sends);
+
+    case (m_match) matches
+        tagged Invalid:   
+        begin
+
+            // No match. Add the recv to the list.
+            addUnmatchedRecv(new_recv);
+
+        end
+        tagged Valid .send:
+        begin
+
+            // A match! Attempt to connect them.
+            connect(send, new_recv);
+
+            // The send is no longer unmatched, so remove it from the list.
+            removeUnmatchedSend(send);
+
+        end
+    endcase
+
+endmodule
+
+module [t_CONTEXT] registerRecvMulti#(LOGICAL_RECV_MULTI_INFO new_recv) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    // Defer many to one recvs to the very top level.
+    addUnmatchedRecvMulti(new_recv);
+
+endmodule
+
 
 // BACKWARDS COMPATABILITY: Connection Chains
 
@@ -103,7 +99,10 @@ endmodule
 // that are then divorced from their physical topology. Until that day arrives
 // a Logical and Physical chain is the same thing.
 
-module [SoftConnectionModule] registerChain#(LOGICAL_CHAIN_INFO new_link) ();
+module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
     // See what existing links are out there.
     let idx = new_link.logicalIdx;
@@ -153,17 +152,21 @@ endmodule
 // Logical stations can have sends and receives associated with them.
 // These functions handle that.
 
-module [SoftConnectionModule] registerSendToStation#(LOGICAL_SEND_INFO new_send, String station_name) ();
+module [t_CONTEXT] registerSendToStation#(LOGICAL_SEND_INFO new_send, String station_name) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
     // Get the station info.
-    let st_info <- findStationInfo(station_name);
+    let infos <- getStationInfos();
+    let st_info = findStationInfo(station_name, infos);
     
     // Check to see if the counterpart recv is already at this station.
     // If so let's just make them point-to-point.
 
     let m_match <- findMatchingRecv(new_send, st_info.registeredRecvs);
     
-    if (m_match matches tagged Valid .recv &&& !new_send.oneToMany &&& !recv.manyToOne)
+    if (m_match matches tagged Valid .recv)
     begin
     
         // A match! Attempt to connect them.
@@ -186,17 +189,38 @@ module [SoftConnectionModule] registerSendToStation#(LOGICAL_SEND_INFO new_send,
 
 endmodule
 
-module [SoftConnectionModule] registerRecvToStation#(LOGICAL_RECV_INFO new_recv, String station_name) ();
+module [t_CONTEXT] registerSendMultiToStation#(LOGICAL_SEND_MULTI_INFO new_send, String station_name) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
     // Get the station info.
-    let st_info <- findStationInfo(station_name);
+    let infos <- getStationInfos();
+    let st_info = findStationInfo(station_name, infos);
+    
+    // Add the send to the station's list.
+    st_info.registeredSendMultis = List::cons(new_send, st_info.registeredSendMultis);
+
+    // Update the registry.
+    updateStationInfo(station_name, st_info);
+
+endmodule
+
+module [t_CONTEXT] registerRecvToStation#(LOGICAL_RECV_INFO new_recv, String station_name) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    // Get the station info.
+    let infos <- getStationInfos();
+    let st_info = findStationInfo(station_name, infos);
     
     // Check to see if the counterpart recv is already at this station.
     // If so let's just make them point-to-point.
 
     let m_match <- findMatchingSend(new_recv, st_info.registeredSends);
     
-    if (m_match matches tagged Valid .send &&& !send.oneToMany &&& !new_recv.manyToOne)
+    if (m_match matches tagged Valid .send)
     begin
         
         // A match! Attempt to connect them.
@@ -219,23 +243,45 @@ module [SoftConnectionModule] registerRecvToStation#(LOGICAL_RECV_INFO new_recv,
 
 endmodule
 
+module [t_CONTEXT] registerRecvMultiToStation#(LOGICAL_RECV_MULTI_INFO new_recv, String station_name) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    // Get the station info.
+    let infos <- getStationInfos();
+    let st_info = findStationInfo(station_name, infos);
+    
+    // No match. Add the recv to the station's list.
+    st_info.registeredRecvMultis = List::cons(new_recv, st_info.registeredRecvMultis);
+
+    // Update the registry.
+    updateStationInfo(station_name, st_info);
+    
+endmodule
+
 // Register a new logical station. Initially it has now children.
 // Currently network type and station type are just strings.
 // Later they could be more complex data types.
 
-module [SoftConnectionModule] registerStation#(String station_name, String network_name, String station_type) ();
+module [t_CONTEXT] registerStation#(String station_name, String network_name, String station_type) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
     
     // Make a fresh station info.
     let new_st_info = STATION_INFO 
                       {
-                           stationName:     station_name,
-                           networkName:     network_name,
-                           stationType:     station_type,
-                           childrenNames:   List::nil,
-                           registeredSends: List::nil, 
-                           registeredRecvs: List::nil
+                           stationName:          station_name,
+                           networkName:          network_name,
+                           stationType:          station_type,
+                           childrenNames:        List::nil,
+                           registeredSends:      List::nil, 
+                           registeredRecvs:      List::nil,
+                           registeredSendMultis: List::nil, 
+                           registeredRecvMultis: List::nil
                       };
-    
+
     let st_infos <- getStationInfos();
     putStationInfos(List::cons(new_st_info, st_infos));
 
@@ -243,9 +289,13 @@ endmodule
 
 // Add a child station to an existing station. IE for trees and so forth.
 
-module [SoftConnectionModule] registerChildToStation#(String parentName, String childName) ();
+module [t_CONTEXT] registerChildToStation#(String parentName, String childName) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
-    let parent_info <- findStationInfo(parentName);
+    let infos <- getStationInfos();
+    let parent_info = findStationInfo(parentName, infos);
         
     parent_info.childrenNames = List::cons(childName, parent_info.childrenNames);
     
@@ -258,7 +308,10 @@ endmodule
 // Find the match for the given name. If there's more than one match 
 // then this is a serious error that should end the world.
 
-module [SoftConnectionModule] findMatchingRecv#(LOGICAL_SEND_INFO send, List#(LOGICAL_RECV_INFO) recvs) (Maybe#(LOGICAL_RECV_INFO));
+module [t_CONTEXT] findMatchingRecv#(LOGICAL_SEND_INFO send, List#(LOGICAL_RECV_INFO) recvs) (Maybe#(LOGICAL_RECV_INFO))
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
   let recv_matches = List::filter(nameMatches(send), recvs);
   
@@ -289,7 +342,10 @@ module [SoftConnectionModule] findMatchingRecv#(LOGICAL_SEND_INFO send, List#(LO
 
 endmodule
 
-module [SoftConnectionModule] findMatchingSend#(LOGICAL_RECV_INFO recv, List#(LOGICAL_SEND_INFO) sends) (Maybe#(LOGICAL_SEND_INFO));
+module [t_CONTEXT] findMatchingSend#(LOGICAL_RECV_INFO recv, List#(LOGICAL_SEND_INFO) sends) (Maybe#(LOGICAL_SEND_INFO))
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
   let send_matches = List::filter(nameMatches(recv), sends);
   
@@ -324,38 +380,32 @@ endmodule
 // Find all matches for the given name and remove them from the list.
 // Useful for manyToOne/oneToMany connections.
 
-module [SoftConnectionModule] findAllMatchingRecvs#(LOGICAL_SEND_INFO send) (List#(LOGICAL_RECV_INFO));
+function (List#(t_CONN)) findAllMatching(String name, List#(t_CONN) conns) provisos (Matchable#(t_CONN));
 
-  let recvs <- getUnmatchedRecvs();
+  let conn_matches = List::filter(primNameMatches(name), conns);
 
-  let recv_matches = List::filter(nameMatches(send), recvs);
-  let remaining = List::filter(nameDoesNotMatch(send), recvs);
-  putUnmatchedRecvs(remaining);
+  return conn_matches;
 
-  return recv_matches;
+endfunction
 
-endmodule
+function (List#(t_CONN)) findAllNotMatching(String name, List#(t_CONN) conns) provisos (Matchable#(t_CONN));
 
-module [SoftConnectionModule] findAllMatchingSends#(LOGICAL_RECV_INFO recv) (List#(LOGICAL_SEND_INFO));
+  let conn_matches = List::filter(primNameDoesNotMatch(name), conns);
 
-  let sends <- getUnmatchedSends();
+  return conn_matches;
 
-  let send_matches = List::filter(nameMatches(recv), sends);
-  let remaining = List::filter(nameDoesNotMatch(recv), sends);
-  putUnmatchedSends(remaining);
-
-  return send_matches;
-
-endmodule
+endfunction
 
 
 // connect
 
 // Do the actual business of connecting a 1-to-1 send to a receive.
 
-module [SoftConnectionModule] connect#(LOGICAL_SEND_INFO csend, LOGICAL_RECV_INFO crecv) ();
+module [t_CONTEXT] connect#(LOGICAL_SEND_INFO csend, LOGICAL_RECV_INFO crecv) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
 
-   
     // Make sure connections match or consumer is receiving it as void
     if (csend.logicalType != crecv.logicalType && crecv.logicalType != "")
     begin

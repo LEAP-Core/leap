@@ -1700,13 +1700,15 @@ sub generate_wrapper {
         print WRAPPER "// First pass to see how large the vectors should be\n";
         print WRAPPER "`define CON_RECV_${metatype} 100\n";
         print WRAPPER "`define CON_SEND_${metatype} 100\n";
+        print WRAPPER "`define CON_RECV_MULTI_${metatype} 50\n";
+        print WRAPPER "`define CON_SEND_MULTI_${metatype} 50\n";
         print WRAPPER "`else\n";
         print WRAPPER "// Real build pass.  Include file built dynamically.\n";
         print WRAPPER "`include \"${synth_name}_con_size.bsh\"\n";
         print WRAPPER "`endif\n";
         print WRAPPER "\n";
         print WRAPPER "(* synthesize *)\n";
-	print WRAPPER "module ${module_name} (SoftServicesSynthesisInterface#(`CON_RECV_${metatype}, `CON_SEND_${metatype}));\n";    
+	print WRAPPER "module ${module_name} (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}));\n";    
     }
     print WRAPPER "\n";
 

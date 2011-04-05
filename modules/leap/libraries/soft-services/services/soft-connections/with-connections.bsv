@@ -17,20 +17,24 @@
 //
 
 import Vector::*;
-import ModuleCollect::*;
 import List::*;
 
 //The interface of a module with Connections
-interface WITH_CONNECTIONS#(parameter numeric type numIn,
-                            parameter numeric type numOut);
+interface WITH_CONNECTIONS#(parameter numeric type t_NUM_IN,
+                            parameter numeric type t_NUM_OUT,
+                            parameter numeric type t_NUM_IN_MULTI,
+                            parameter numeric type t_NUM_OUT_MULTI);
 
-  interface Vector#(numIn, PHYSICAL_CONNECTION_IN)  incoming;
-  interface Vector#(numOut, PHYSICAL_CONNECTION_OUT) outgoing;
-  interface Vector#(CON_NUM_CHAINS, PHYSICAL_CONNECTION_INOUT) chains;
+  interface Vector#(t_NUM_IN, PHYSICAL_CONNECTION_IN)  incoming;
+  interface Vector#(t_NUM_OUT, PHYSICAL_CONNECTION_OUT) outgoing;
+  interface Vector#(t_NUM_IN, PHYSICAL_CONNECTION_IN_MULTI)  incomingMultis;
+  interface Vector#(t_NUM_OUT, PHYSICAL_CONNECTION_OUT_MULTI) outgoingMultis;
+
+  interface Vector#(CON_NUM_CHAINS, PHYSICAL_CHAIN) chains;
 
 endinterface
 
 // Backwards compatability:
-typedef WITH_CONNECTIONS#(nI, nO) WithConnections#(parameter numeric type nI, parameter numeric type nO);
+typedef WITH_CONNECTIONS#(nI, nO, 0, 0) WithConnections#(parameter numeric type nI, parameter numeric type nO);
 
 

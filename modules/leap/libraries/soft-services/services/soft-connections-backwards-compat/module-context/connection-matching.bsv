@@ -7,90 +7,73 @@ import Clocks::*;
 // Adds a new send/recv. First try to find existing matches, 
 // then either connect it or add it to the unmatched list.
 
-module [ConnectedModule] registerSend#(LOGICAL_SEND_INFO new_send) ();
+module [CONNECTED_MODULE] registerSend#(LOGICAL_SEND_INFO new_send) ();
 
-    if (!new_send.oneToMany)
-    begin
-        // See if we can find our partner.
-        let recvs <- getUnmatchedRecvs();
-        let m_match <- findMatchingRecv(new_send.logicalName, recvs);
+    // See if we can find our partner.
+    let recvs <- getUnmatchedRecvs();
+    let m_match <- findMatchingRecv(new_send.logicalName, recvs);
 
-        case (m_match) matches
-            tagged Invalid:   
-            begin
+    case (m_match) matches
+        tagged Invalid:   
+        begin
 
-                // No match. Add the send to the list.
-                addUnmatchedSend(new_send);
+            // No match. Add the send to the list.
+            addUnmatchedSend(new_send);
 
-            end
-            tagged Valid .recv:
-            begin
-                
-                if (!recv.manyToOne)
-                begin
-                    // A 1-to-1 match! Attempt to connect them.
-                    connect(new_send, recv);
+        end
+        tagged Valid .recv:
+        begin
 
-                    // The receive is no longer unmatched, so remove it from the list.
-                    removeUnmatchedRecv(recv.logicalName);
-                end
-                else
-                begin
-                    // Defer connecting until the partner is found.
-                    addUnmatchedSend(new_send);
-                end
+            // A 1-to-1 match! Attempt to connect them.
+            connect(new_send, recv);
 
-            end
-        endcase
-    end
-    else
-    begin
-        // Defer one to many send to the very top level.
-        addUnmatchedSend(new_send);
-    end
+            // The receive is no longer unmatched, so remove it from the list.
+            removeUnmatchedRecv(recv.logicalName);
+
+        end
+    endcase
 
 endmodule
 
-module [ConnectedModule] registerRecv#(LOGICAL_RECV_INFO new_recv) ();
+module [CONNECTED_MODULE] registerSendMulti#(LOGICAL_SEND_MULTI_INFO new_send) ();
 
-    if (!new_recv.manyToOne)
-    begin
-        // See if we can find our partner.
-        let sends <- getUnmatchedSends();
-        let m_match <- findMatchingSend(new_recv.logicalName, sends);
+    // Defer one to many send to the very top level.
+    addUnmatchedSendMulti(new_send);
 
-        case (m_match) matches
-            tagged Invalid:   
-            begin
+endmodule
 
-                // No match. Add the recv to the list.
-                addUnmatchedRecv(new_recv);
+module [CONNECTED_MODULE] registerRecv#(LOGICAL_RECV_INFO new_recv) ();
 
-            end
-            tagged Valid .send:
-            begin
-                if (!send.oneToMany)
-                begin
-                    // A match! Attempt to connect them.
-                    connect(send, new_recv);
+    // See if we can find our partner.
+    let sends <- getUnmatchedSends();
+    let m_match <- findMatchingSend(new_recv.logicalName, sends);
 
-                    // The send is no longer unmatched, so remove it from the list.
-                    removeUnmatchedSend(send.logicalName);
-                end
-                else
-                begin
-                    // Defer connecting until the partner is found.
-                    addUnmatchedRecv(new_recv);
-                end
+    case (m_match) matches
+        tagged Invalid:   
+        begin
 
-            end
-        endcase
-    end
-    else
-    begin
-        // Defer many to one recvs to the very top level.
-        addUnmatchedRecv(new_recv);
-    end
+            // No match. Add the recv to the list.
+            addUnmatchedRecv(new_recv);
+
+        end
+        tagged Valid .send:
+        begin
+
+            // A match! Attempt to connect them.
+            connect(send, new_recv);
+
+            // The send is no longer unmatched, so remove it from the list.
+            removeUnmatchedSend(send.logicalName);
+
+        end
+    endcase
+
+endmodule
+
+module [CONNECTED_MODULE] registerRecvMulti#(LOGICAL_RECV_MULTI_INFO new_recv) ();
+
+    // Defer many to one recvs to the very top level.
+    addUnmatchedRecvMulti(new_recv);
 
 endmodule
 
@@ -100,7 +83,7 @@ endmodule
 // that are then divorced from their physical topology. Until that day arrives
 // a Logical and Physical chain is the same thing.
 
-module [ConnectedModule] registerChain#(LOGICAL_CHAIN_INFO new_link) ();
+module [CONNECTED_MODULE] registerChain#(LOGICAL_CHAIN_INFO new_link) ();
 
     // See what existing links are out there.
     let idx = new_link.logicalIdx;
@@ -150,7 +133,7 @@ endmodule
 // Logical stations can have sends and receives associated with them.
 // These functions handle that.
 
-module [ConnectedModule] registerSendToStation#(LOGICAL_SEND_INFO new_send, String station_name) ();
+module [CONNECTED_MODULE] registerSendToStation#(LOGICAL_SEND_INFO new_send, String station_name) ();
 
     // Get the station info.
     let st_info <- findStationInfo(station_name);
@@ -160,14 +143,17 @@ module [ConnectedModule] registerSendToStation#(LOGICAL_SEND_INFO new_send, Stri
 
     let m_match <- findMatchingRecv(new_send.logicalName, st_info.registeredRecvs);
     
-    if (m_match matches tagged Valid .recv &&& !new_send.oneToMany &&& !recv.manyToOne)
+    if (m_match matches tagged Valid .recv)
     begin
     
         // A match! Attempt to connect them.
         connect(new_send, recv);
         
-        // The send is no longer unmatched, so remove it from the list.
-        removeUnmatchedRecv(new_send.logicalName);
+        // The recv is no longer unmatched, so remove it from the list.
+        st_info.registeredRecvs = List::filter(recvNameDoesNotMatch(new_send.logicalName), st_info.registeredRecvs);
+
+        // Update the registry.
+        updateStationInfo(station_name, st_info);
         
     end
     else
@@ -183,7 +169,22 @@ module [ConnectedModule] registerSendToStation#(LOGICAL_SEND_INFO new_send, Stri
 
 endmodule
 
-module [ConnectedModule] registerRecvToStation#(LOGICAL_RECV_INFO new_recv, String station_name) ();
+
+module [CONNECTED_MODULE] registerSendMultiToStation#(LOGICAL_SEND_MULTI_INFO new_send, String station_name) ();
+
+    // Get the station info.
+    let st_info <- findStationInfo(station_name);
+    
+    // Add the send to the station's list.
+    st_info.registeredSendMultis = List::cons(new_send, st_info.registeredSendMultis);
+
+    // Update the registry.
+    updateStationInfo(station_name, st_info);
+
+endmodule
+
+
+module [CONNECTED_MODULE] registerRecvToStation#(LOGICAL_RECV_INFO new_recv, String station_name) ();
 
     // Get the station info.
     let st_info <- findStationInfo(station_name);
@@ -193,14 +194,17 @@ module [ConnectedModule] registerRecvToStation#(LOGICAL_RECV_INFO new_recv, Stri
 
     let m_match <- findMatchingSend(new_recv.logicalName, st_info.registeredSends);
     
-    if (m_match matches tagged Valid .send &&& !send.oneToMany &&& !new_recv.manyToOne)
+    if (m_match matches tagged Valid .send)
     begin
         
         // A match! Attempt to connect them.
         connect(send, new_recv);
         
         // The send is no longer unmatched, so remove it from the list.
-        removeUnmatchedSend(new_recv.logicalName);
+        st_info.registeredSends = List::filter(sendNameDoesNotMatch(new_recv.logicalName), st_info.registeredSends);
+
+        // Update the registry.
+        updateStationInfo(station_name, st_info);
     
     end
     else
@@ -216,21 +220,38 @@ module [ConnectedModule] registerRecvToStation#(LOGICAL_RECV_INFO new_recv, Stri
 
 endmodule
 
-// Register a new logical station. Initially it has now children.
+
+module [CONNECTED_MODULE] registerRecvMultiToStation#(LOGICAL_RECV_MULTI_INFO new_recv, String station_name) ();
+
+    // Get the station info.
+    let st_info <- findStationInfo(station_name);
+    
+    // No match. Add the recv to the station's list.
+    st_info.registeredRecvMultis = List::cons(new_recv, st_info.registeredRecvMultis);
+
+    // Update the registry.
+    updateStationInfo(station_name, st_info);
+    
+endmodule
+
+
+// Register a new logical station. Initially it has no children.
 // Currently network type and station type are just strings.
 // Later they could be more complex data types.
 
-module [ConnectedModule] registerStation#(String station_name, String network_name, String station_type) ();
+module [CONNECTED_MODULE] registerStation#(String station_name, String network_name, String station_type) ();
     
     // Make a fresh station info.
     let new_st_info = STATION_INFO 
                       {
-                           stationName:     station_name,
-                           networkName:     network_name,
-                           stationType:     station_type,
-                           childrenNames:   List::nil,
-                           registeredSends: List::nil, 
-                           registeredRecvs: List::nil
+                           stationName:          station_name,
+                           networkName:          network_name,
+                           stationType:          station_type,
+                           childrenNames:        List::nil,
+                           registeredSends:      List::nil, 
+                           registeredRecvs:      List::nil,
+                           registeredSendMultis: List::nil, 
+                           registeredRecvMultis: List::nil
                       };
     
     let st_infos <- getStationInfos();
@@ -240,7 +261,7 @@ endmodule
 
 // Add a child station to an existing station. IE for trees and so forth.
 
-module [ConnectedModule] registerChildToStation#(String parentName, String childName) ();
+module [CONNECTED_MODULE] registerChildToStation#(String parentName, String childName) ();
 
     let parent_info <- findStationInfo(parentName);
         
@@ -255,7 +276,7 @@ endmodule
 // Find the match for the given name. If there's more than one match 
 // then this is a serious error that should end the world.
 
-module [ConnectedModule] findMatchingRecv#(String sname, List#(LOGICAL_RECV_INFO) recvs) (Maybe#(LOGICAL_RECV_INFO));
+module [CONNECTED_MODULE] findMatchingRecv#(String sname, List#(LOGICAL_RECV_INFO) recvs) (Maybe#(LOGICAL_RECV_INFO));
 
   let recv_matches = List::filter(recvNameMatches(sname), recvs);
   
@@ -286,7 +307,7 @@ module [ConnectedModule] findMatchingRecv#(String sname, List#(LOGICAL_RECV_INFO
 
 endmodule
 
-module [ConnectedModule] findMatchingSend#(String rname, List#(LOGICAL_SEND_INFO) sends) (Maybe#(LOGICAL_SEND_INFO));
+module [CONNECTED_MODULE] findMatchingSend#(String rname, List#(LOGICAL_SEND_INFO) sends) (Maybe#(LOGICAL_SEND_INFO));
 
   let send_matches = List::filter(sendNameMatches(rname), sends);
   
@@ -321,7 +342,7 @@ endmodule
 // Find all matches for the given name and remove them from the list.
 // Useful for manyToOne/oneToMany connections.
 
-module [ConnectedModule] findAllMatchingRecvs#(String sname) (List#(LOGICAL_RECV_INFO));
+module [CONNECTED_MODULE] findAllMatchingRecvs#(String sname) (List#(LOGICAL_RECV_INFO));
 
   let recvs <- getUnmatchedRecvs();
 
@@ -333,7 +354,7 @@ module [ConnectedModule] findAllMatchingRecvs#(String sname) (List#(LOGICAL_RECV
 
 endmodule
 
-module [ConnectedModule] findAllMatchingSends#(String rname) (List#(LOGICAL_SEND_INFO));
+module [CONNECTED_MODULE] findAllMatchingSends#(String rname) (List#(LOGICAL_SEND_INFO));
 
   let sends <- getUnmatchedSends();
 
@@ -346,11 +367,35 @@ module [ConnectedModule] findAllMatchingSends#(String rname) (List#(LOGICAL_SEND
 endmodule
 
 
+module [CONNECTED_MODULE] findAllMatchingRecvMultis#(String sname) (List#(LOGICAL_RECV_MULTI_INFO));
+
+  let recvs <- getUnmatchedRecvMultis();
+
+  let recv_matches = List::filter(recvMultiNameMatches(sname), recvs);
+  let remaining = List::filter(recvMultiNameDoesNotMatch(sname), recvs);
+  putUnmatchedRecvMultis(remaining);
+
+  return recv_matches;
+
+endmodule
+
+module [CONNECTED_MODULE] findAllMatchingSendMultis#(String rname) (List#(LOGICAL_SEND_MULTI_INFO));
+
+  let sends <- getUnmatchedSendMultis();
+
+  let send_matches = List::filter(sendMultiNameMatches(rname), sends);
+  let remaining = List::filter(sendMultiNameDoesNotMatch(rname), sends);
+  putUnmatchedSendMultis(remaining);
+
+  return send_matches;
+
+endmodule
+
 // connect
 
 // Do the actual business of connecting a 1-to-1 send to a receive.
 
-module [ConnectedModule] connect#(LOGICAL_SEND_INFO csend, LOGICAL_RECV_INFO crecv) ();
+module [CONNECTED_MODULE] connect#(LOGICAL_SEND_INFO csend, LOGICAL_RECV_INFO crecv) ();
 
    
     // Make sure connections match or consumer is receiving it as void
@@ -382,7 +427,7 @@ module connectOutToIn#(PHYSICAL_CONNECTION_OUT cout, PHYSICAL_CONNECTION_IN cin)
   
   if(sameFamily(cin.clock,cout.clock))
   begin
-      rule trySend (True);
+      rule trySend (cout.notEmpty());
           // Try to move the data
           let x = cout.first();
           cin.try(x);
@@ -396,6 +441,7 @@ module connectOutToIn#(PHYSICAL_CONNECTION_OUT cout, PHYSICAL_CONNECTION_IN cin)
   end
   else
   begin
+
       messageM("CrossDomain@ Found");
 
       // choose a size large enough to cover latency of fifo
@@ -404,18 +450,19 @@ module connectOutToIn#(PHYSICAL_CONNECTION_OUT cout, PHYSICAL_CONNECTION_IN cin)
                                    cout.reset,
                                    cin.clock);
 
-      rule receive;
+      rule receive (cout.notEmpty() && domainFIFO.notFull());
           let x = cout.first();
           domainFIFO.enq(x);
           cout.deq();
       endrule
   
-      rule trySend;
+      rule trySend (domainFIFO.notEmpty());
           cin.try(domainFIFO.first());
       endrule
 
       rule succeedSend(cin.success());
-          domainFIFO.deq;
+          domainFIFO.deq();
       endrule
   end
+
 endmodule

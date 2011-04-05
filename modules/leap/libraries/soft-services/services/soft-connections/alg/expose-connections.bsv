@@ -22,79 +22,108 @@ import FIFOF::*;
 //toWithConnections :: [ConnectionData] -> Module WithConnections
 
 
-module [Module] toWithConnections#(LOGICAL_CONNECTION_INFO ctx)       (WITH_CONNECTIONS#(numIn, numOut));
+module toWithConnections#(LOGICAL_CONNECTION_INFO ctx)       (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI));
 
-  let outs     <- exposeDanglingSends(ctx.unmatchedSends);
-  let ins      <- exposeDanglingRecvs(ctx.unmatchedRecvs);
+    let outs      <- exposeDanglingSends(ctx.unmatchedSends);
+    let ins       <- exposeDanglingRecvs(ctx.unmatchedRecvs);
+    let outMultis <- exposeDanglingSendMultis(ctx.unmatchedSendMultis);
+    let inMultis  <- exposeDanglingRecvMultis(ctx.unmatchedRecvMultis);
 
-  Vector#(CON_NUM_CHAINS, PHYSICAL_CONNECTION_INOUT) chns = newVector();
-  
-  // For every chain, we must expose it to the next level.
-  for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)
-  begin
-     let links = ctx.chains[x];
-     if (List::isNull(links))
-     begin
+    Vector#(CON_NUM_CHAINS, PHYSICAL_CHAIN) chns = newVector();
 
-        // If a particular chain is empty for this synthesis boundary
-        // make a dummy link that is just a pass-through.
-        messageM("Exposing Chain: [" + integerToString(x) + "] as Pass-Through.");
-        let dummy <- mkPassThrough();
-        chns[x] = (interface PHYSICAL_CONNECTION_INOUT;
-                       interface incoming = dummy.incoming;
-                       interface outgoing = dummy.outgoing;
-                   endinterface);
+    // For every chain, we must expose it to the next level.
+    for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)
+    begin
+       let links = ctx.chains[x];
+       if (List::isNull(links))
+       begin
 
-     end
-     else
-     begin
+          // If a particular chain is empty for this synthesis boundary
+          // make a dummy link that is just a pass-through.
+          messageM("Exposing Chain: [" + integerToString(x) + "] as Pass-Through.");
+          let dummy <- mkPassThrough();
+          chns[x] = (interface PHYSICAL_CHAIN;
+                         interface incoming = dummy.incoming;
+                         interface outgoing = dummy.outgoing;
+                     endinterface);
 
-        // For non-empty chains, we connect to the head of the first link
-        // and the tail of the last link. (These could be the same link if
-        // there was only one.)
-        messageM("Exposing Chain: [" + integerToString(x) + "]");
-        let latest_link = List::head(links);
-        let earliest_link = List::last(links);
-        chns[x] = (interface PHYSICAL_CONNECTION_INOUT;
-                       interface incoming = latest_link.incoming;
-                       interface outgoing = earliest_link.outgoing;
-                   endinterface);
+       end
+       else
+       begin
 
-     end
-  end
-  
-  interface outgoing = outs;
-  interface incoming = ins;
-  interface chains = chns;
+          // For non-empty chains, we connect to the head of the first link
+          // and the tail of the last link. (These could be the same link if
+          // there was only one.)
+          messageM("Exposing Chain: [" + integerToString(x) + "]");
+          let latest_link = List::head(links);
+          let earliest_link = List::last(links);
+          chns[x] = (interface PHYSICAL_CHAIN;
+                         interface incoming = latest_link.incoming;
+                         interface outgoing = earliest_link.outgoing;
+                     endinterface);
+
+       end
+    end
+
+    interface outgoing = outs;
+    interface incoming = ins;
+    interface outgoingMultis = outMultis;
+    interface incomingMultis = inMultis;
+    interface chains = chns;
   
 endmodule  
 
-instance ExposableContext#(LOGICAL_CONNECTION_INFO,WITH_CONNECTIONS#(numIn, numOut));
+instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
 
-module [Module] exposeContext#(LOGICAL_CONNECTION_INFO ctx) (WITH_CONNECTIONS#(numIn, numOut));
+    module initializeServiceContext (LOGICAL_CONNECTION_INFO); 
+        let sReset <- exposeCurrentReset();
+        return LOGICAL_CONNECTION_INFO 
+             {
+                 unmatchedSends: tagged Nil,
+                 unmatchedRecvs: tagged Nil,
+                 unmatchedSendMultis: tagged Nil,
+                 unmatchedRecvMultis: tagged Nil,
+                 chains: Vector::replicate(tagged Nil),
+                 stations: tagged Nil,
+                 stationStack: tagged Nil,
+                 rootStationName: "InvalidRootStation",
+                 softReset: sReset
+             };
+    endmodule
 
-  let rst <- exposeCurrentReset();
-  let clk <- exposeCurrentClock();
+    module finalizeServiceContext#(LOGICAL_CONNECTION_INFO m) (Empty);
 
-  // TODO: hasim-connect doesn't know about multicasts or stations yet.
-  // Therefore for now we just connect them at every synthesis boundary
-  // as if it were the toplevel.
-  
-  // In the future hasim-connect will know about these and we'll do something
-  // different - more akin to how Chains are today.
-  
-  // Until then this allows them to work within a synthesis boundary, but not
-  // across synthesis boundaries.
-  match {.new_context2, .m4} <- runWithContext(ctx, connectMulticasts(clk));
+       let finalModule <- finalizeSoftConnection(m);   
 
-  match {.final_context, .m5} <- runWithContext(new_context2, connectStationsTree(clk));
-  
-  let x <- toWithConnections(ctx);
-  return x;
+    endmodule
 
-endmodule
 endinstance
 
+instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI));
+
+    module exposeServiceContext#(LOGICAL_CONNECTION_INFO ctx) (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI));
+
+        let rst <- exposeCurrentReset();
+        let clk <- exposeCurrentClock();
+
+        // TODO: leap-connect doesn't know about multicasts or stations yet.
+        // Therefore for now we just connect them at every synthesis boundary
+        // as if it were the toplevel.
+
+        // In the future leap-connect will know about these and we'll do something
+        // different - more akin to how Chains are today.
+
+        // Until then this allows them to work within a synthesis boundary, but not
+        // across synthesis boundaries.
+        connectMulticasts(clk, ctx);
+        connectStationsTree(clk, ctx);
+
+        let x <- toWithConnections(ctx);
+        return x;
+
+    endmodule
+
+endinstance
 
 // Expose dangling sends to other synthesis boundaries via compilation messages
 
@@ -109,22 +138,24 @@ module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends) (Vector#(n, PHYSICA
   for (Integer x = 0; x < length(dsends); x = x + 1)
   begin
     if (cur_out >= valueof(n))
-      error("ERROR: Too many dangling Send Connections (max " + integerToString(valueof(n)) + "). Increase the numOut parameter to WithConnections.");
+      error("ERROR: Too many dangling Send Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_OUT parameter to WithConnections.");
 
     let cur = dsends[x];
-    messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform);
+    let opt = (cur.optional) ? "True" : "False";
+    messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt);
     res[cur_out] = cur.outgoing;
     cur_out = cur_out + 1;
   end
   
   // Zero out unused dangling sends
   for (Integer x = cur_out; x < valueOf(n); x = x + 1)
-    res[x] = PHYSICAL_CONNECTION_OUT{clock:noClock,
-                                     reset:noReset,
-                                     deq:?,
-                                     first:?,
-                                     notEmpty:?
-                                    };
+    res[x] = (interface PHYSICAL_CONNECTION_OUT
+                  interface clock = noClock;
+                  interface reset = noReset;
+                  method Action deq() = noAction;
+                  method PHYSICAL_CONNECTION_DATA first() = 0;
+                  method Bool notEmpty() = False;
+               endinterface);
   
   return res;
   
@@ -143,42 +174,106 @@ module exposeDanglingRecvs#(List#(LOGICAL_RECV_INFO) drecvs) (Vector#(n, PHYSICA
   for (Integer x = 0; x < length(drecvs); x = x + 1)
   begin
     if (cur_in >= valueof(n))
-      error("ERROR: Too many dangling Receive Connections (max " + integerToString(valueof(n)) + "). Increase the numIn parameter to WithConnections.");
+      error("ERROR: Too many dangling Receive Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_IN parameter to WithConnections.");
 
     let cur = drecvs[x];
-    messageM("Dangling Rec {" + cur.logicalType + "} [" + integerToString(cur_in) + "]:" + cur.logicalName+ ":" + cur.computePlatform);
+    let opt = (cur.optional) ? "True" : "False";
+    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_in) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt);
     res[cur_in] = cur.incoming;
     cur_in = cur_in + 1;
   end
   
   //Zero out unused dangling recvs
   for (Integer x = cur_in; x < valueOf(n); x = x + 1)
-    res[x] = PHYSICAL_CONNECTION_IN{clock:noClock,
-                                    reset:noReset,
-                                    success: ?,
-                                    try: ? };
+    res[x] = (interface PHYSICAL_CONNECTION_IN
+                 interface clock = noClock;
+                 interface reset = noReset;
+                 method Bool success() = False;
+                 method Action try(PHYSICAL_CONNECTION_DATA d) = noAction;
+               endinterface);
   
   return res;
 
 endmodule
   
+
+module exposeDanglingSendMultis#(List#(LOGICAL_SEND_MULTI_INFO) dsends) (Vector#(n, PHYSICAL_CONNECTION_OUT_MULTI));
+
+  Vector#(n, PHYSICAL_CONNECTION_OUT_MULTI) res = newVector();
+  Integer cur_out = 0;
+
+  // Output a compilation message and tie it to the next free outport
+  for (Integer x = 0; x < length(dsends); x = x + 1)
+  begin
+    if (cur_out >= valueof(n))
+      error("ERROR: Too many dangling SendMulti Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_OUT_MULTI parameter to WithConnections.");
+
+    let cur = dsends[x];
+    messageM("Dangling SendMulti {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform);
+    res[cur_out] = cur.outgoing;
+    cur_out = cur_out + 1;
+  end
+  
+  // Zero out unused dangling send multis
+  for (Integer x = cur_out; x < valueOf(n); x = x + 1)
+    res[x] = (interface PHYSICAL_CONNECTION_OUT_MULTI
+                  interface clock = noClock;
+                  interface reset = noReset;
+                  method Action deq() = noAction;
+                  method Tuple2#(CONNECTION_TAG, PHYSICAL_CONNECTION_DATA) first() = tuple2(tagged CONNECTION_ROUTED 0, 0);
+                  method Bool notEmpty() = False;
+               endinterface);
+  
+  return res;
+  
+endmodule
+
+module exposeDanglingRecvMultis#(List#(LOGICAL_RECV_MULTI_INFO) drecvs) (Vector#(n, PHYSICAL_CONNECTION_IN_MULTI));
+
+  Vector#(n, PHYSICAL_CONNECTION_IN_MULTI) res = newVector();
+  Integer cur_in = 0;
+  
+  // Output a compilation message and tie it to the next free inport
+  for (Integer x = 0; x < length(drecvs); x = x + 1)
+  begin
+    if (cur_in >= valueof(n))
+      error("ERROR: Too many dangling Receive Multi Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_IN_MULTI parameter to WithConnections.");
+
+    let cur = drecvs[x];
+    messageM("Dangling RecvMulti {" + cur.logicalType + "} [" + integerToString(cur_in) + "]:" + cur.logicalName+ ":" + cur.computePlatform);
+    res[cur_in] = cur.incoming;
+    cur_in = cur_in + 1;
+  end
+  
+  // Zero out unused dangling recv multis
+  for (Integer x = cur_in; x < valueOf(n); x = x + 1)
+    res[x] = (interface PHYSICAL_CONNECTION_IN_MULTI
+                 interface clock = noClock;
+                 interface reset = noReset;
+                 method Bool success() = False;
+                 method Action try(CONNECTION_IDX x, PHYSICAL_CONNECTION_DATA d) = noAction;
+               endinterface);
+  
+  return res;
+
+endmodule
   
 
 //If there are no links then it's just a pass-through queue
 module mkPassThrough
     //interface:
-                (PHYSICAL_CONNECTION_INOUT);
+                (PHYSICAL_CHAIN);
 
   // Local Clock and reset
   Clock localClock <- exposeCurrentClock();
   Reset localReset <- exposeCurrentReset();
 
-  FIFOF#(PHYSICAL_CONNECTION_DATA) passQ <- mkFIFOF();
+  FIFOF#(PHYSICAL_CHAIN_DATA) passQ <- mkFIFOF();
   PulseWire enW <- mkPulseWire();
   
-  interface PHYSICAL_CONNECTION_IN incoming;
+  interface PHYSICAL_CHAIN_IN incoming;
 
-    method Action try(PHYSICAL_CONNECTION_DATA d);
+    method Action try(PHYSICAL_CHAIN_DATA d);
       passQ.enq(d);
       enW.send();
     endmethod
@@ -193,10 +288,10 @@ module mkPassThrough
   endinterface
 
   // A physical outgoing connection
-  interface PHYSICAL_CONNECTION_OUT outgoing;
+  interface PHYSICAL_CHAIN_OUT outgoing;
 
     method Bool notEmpty() = passQ.notEmpty();
-    method PHYSICAL_CONNECTION_DATA first() = passQ.first();
+    method PHYSICAL_CHAIN_DATA first() = passQ.first();
     method Action deq() = passQ.deq();
 
     interface Clock clock = localClock;

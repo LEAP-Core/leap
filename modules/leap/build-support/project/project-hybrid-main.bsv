@@ -8,8 +8,8 @@ import Clocks::*;
 `include "asim/provides/physical_platform.bsh"
 `include "asim/provides/clocks_device.bsh"
 
-module mkModel
-    //interface:
+module [Module] mkModel
+    // interface:
         (TOP_LEVEL_WIRES);
 
     // The Model is instantiated inside a NULL (noClock) clock domain,

@@ -62,6 +62,19 @@ function Bool recvNameMatches(String sname, LOGICAL_RECV_INFO rinfo);
 endfunction
 
 
+function Bool sendMultiNameMatches(String rname, LOGICAL_SEND_MULTI_INFO sinfo);
+
+  return (sinfo.logicalName == rname);
+
+endfunction
+
+function Bool recvMultiNameMatches(String sname, LOGICAL_RECV_MULTI_INFO rinfo);
+
+  return (rinfo.logicalName == sname);
+
+endfunction
+
+
 function Bool sendNameDoesNotMatch(String rname, LOGICAL_SEND_INFO sinfo);
 
   return (sinfo.logicalName != rname);
@@ -74,6 +87,21 @@ function Bool recvNameDoesNotMatch(String sname, LOGICAL_RECV_INFO rinfo);
 
 endfunction
 
+function Bool sendMultiNameDoesNotMatch(String rname, LOGICAL_SEND_MULTI_INFO sinfo);
+
+  return (sinfo.logicalName != rname);
+
+endfunction
+
+function Bool recvMultiNameDoesNotMatch(String sname, LOGICAL_RECV_MULTI_INFO rinfo);
+
+  return (rinfo.logicalName != sname);
+
+endfunction
+
+function String getSendMultiName(LOGICAL_SEND_MULTI_INFO csend) = csend.logicalName();
+function String getRecvMultiName(LOGICAL_RECV_MULTI_INFO crecv) = crecv.logicalName();
+/*
 instance Eq#(PHYSICAL_CONNECTION_OUT);
 
     function \== (PHYSICAL_CONNECTION_OUT x, PHYSICAL_CONNECTION_OUT y) = False;
@@ -94,28 +122,4 @@ instance Eq#(STATION);
     function \/= (STATION x, STATION y) = True;
 
 endinstance
-
-
-function Bool sendIsOneToMany(LOGICAL_SEND_INFO sinfo);
-
-  return sinfo.oneToMany;
-
-endfunction
-
-function Bool recvIsManyToOne(LOGICAL_RECV_INFO rinfo);
-
-  return rinfo.manyToOne;
-
-endfunction
-
-function Bool sendIsNotOneToMany(LOGICAL_SEND_INFO sinfo);
-
-  return !sinfo.oneToMany;
-
-endfunction
-
-function Bool recvIsNotManyToOne(LOGICAL_RECV_INFO rinfo);
-
-  return !rinfo.manyToOne;
-
-endfunction
+*/

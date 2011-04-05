@@ -10,6 +10,9 @@
 // interfaces seen by the user.
 
 
+// Legacy typdefs
+typedef CONNECTED_MODULE Connected_Module;
+typedef CONNECTED_MODULE ConnectedModule;
 
 //The data type that is sent in connections
 typedef `CON_CWIDTH PHYSICAL_CONNECTION_SIZE;
@@ -18,33 +21,29 @@ typedef Bit#(PHYSICAL_CONNECTION_SIZE) CON_Data;
 typedef `CON_CHAIN_CWIDTH CON_CHAIN_DATA_SZ;
 typedef Bit#(CON_CHAIN_DATA_SZ) CON_CHAIN_Data;
 
-typedef `CON_NUMCHAINS CON_NumChains;
-
 // Legacy naming conventions
+
+typedef CONNECTION_SEND#(t) Connection_Send#(type t);
+typedef CONNECTION_RECV#(t) Connection_Receive#(type t);
 
 module [ConnectedModule] mkConnection_Send#(String name) (Connection_Send#(t_MSG))
     provisos
-        (Bits#(t_MSG, t_MSG_SIZE),
-         Transmittable#(t_MSG));
+        (Bits#(t_MSG, t_MSG_SIZE));
 
-   let m <- liftSCM(mkPhysicalConnectionSend(name, Invalid, False, False));
+   let m <- mkConnectionSend(name);
    return m;
 
 endmodule
 
 module [ConnectedModule] mkConnection_Receive#(String name) (Connection_Receive#(t_MSG))
     provisos
-        (Bits#(t_MSG, t_MSG_SIZE),
-         Transmittable#(t_MSG));
+        (Bits#(t_MSG, t_MSG_SIZE));
 
-   let m <- liftSCM(mkPhysicalConnectionRecv(name, Invalid, False, False));
+   let m <- mkConnectionRecv(name);
    return m;
 
 endmodule
 
-
-typedef CONNECTION_SEND#(t) Connection_Send#(type t);
-typedef CONNECTION_RECV#(t) Connection_Receive#(type t);
 
 interface Connection_Server#(type req_T, type resp_T);
 
@@ -62,9 +61,7 @@ module [ConnectedModule] mkConnection_Server#(String server_name)
                 (Connection_Server#(t_REQ, t_RSP))
     provisos
             (Bits#(t_REQ, t_REQ_SIZE),
-	     Bits#(t_RSP, t_RSP_SIZE),
-	     Transmittable#(t_REQ),
-	     Transmittable#(t_RSP));
+	     Bits#(t_RSP, t_RSP_SIZE));
 
   CONNECTION_SERVER#(t_REQ, t_RSP) s <- mkConnectionServer(server_name);
 
@@ -91,9 +88,7 @@ module [ConnectedModule] mkConnection_Client#(String client_name)
                 (Connection_Client#(t_REQ, t_RSP))
     provisos
             (Bits#(t_REQ, t_REQ_SIZE),
-	     Bits#(t_RSP, t_RSP_SIZE),
-	     Transmittable#(t_REQ),
-	     Transmittable#(t_RSP));
+	     Bits#(t_RSP, t_RSP_SIZE));
 
   CONNECTION_CLIENT#(t_REQ, t_RSP) c <- mkConnectionClient(client_name);
 
@@ -118,12 +113,11 @@ interface Connection_Chain#(type msg_T);
 endinterface
 
 
-module [Connected_Module] mkConnection_Chain#(Integer chain_num)
+module [ConnectedModule] mkConnection_Chain#(Integer chain_num)
     //interface:
 		(Connection_Chain#(msg_T))
     provisos
-	    (Bits#(msg_T, msg_SZ),
-	   Transmittable#(msg_T));
+	    (Bits#(msg_T, msg_SZ));
 
   // Local Clock and reset
   Clock localClock <- exposeCurrentClock();
@@ -133,11 +127,12 @@ module [Connected_Module] mkConnection_Chain#(Integer chain_num)
   PulseWire      enW    <- mkPulseWire();
   FIFOF#(msg_T)  q       <- mkFIFOF();
 
-  let inc = (interface PHYSICAL_CONNECTION_IN;
+  let inc = (interface PHYSICAL_CHAIN_IN;
 
                // Part 1 of the anti-method to get(). Unmarshall the data and send it on the wire.
                method Action try(x);
-                 dataW.wset(unmarshall(x));
+                 Bit#(msg_SZ) tmp = truncateNP(x);
+                 dataW.wset(unpack(tmp));
                endmethod
 
                // Part 2 of the anti-method to get(). If someone actually was listening, then the get() succeeded.
@@ -150,10 +145,13 @@ module [Connected_Module] mkConnection_Chain#(Integer chain_num)
               
      	     endinterface);
 
-  let outg = (interface PHYSICAL_CONNECTION_OUT;
+  let outg = (interface PHYSICAL_CHAIN_OUT;
 
                // Trying to transmit something means marshalling up the first thing in the queue.
-	       method PHYSICAL_CONNECTION_DATA first() = marshall(q.first());
+	       method PHYSICAL_CHAIN_DATA first();
+                 Bit#(msg_SZ) tmp = pack(q.first());
+                 return zeroExtendNP(tmp);
+               endmethod
 
                // Sometimes its useful to have an explicit notEmpty
                method Bool notEmpty() = q.notEmpty();
@@ -181,7 +179,7 @@ module [Connected_Module] mkConnection_Chain#(Integer chain_num)
       };
 
   // Register the chain
-  liftSCM(registerChain(info));
+  registerChain(info);
 
   method msg_T peekFromPrev() if (dataW.wget() matches tagged Valid .val);
     return val;
@@ -208,43 +206,5 @@ module [Connected_Module] mkConnection_Chain#(Integer chain_num)
     return val;
 
   endmethod
-
-endmodule
-
-module [ConnectedModule] mkConnectionServerOptional#(String server_name)
-    //interface:
-                (Connection_Server#(t_REQ, t_RSP))
-    provisos
-            (Bits#(t_REQ, t_REQ_SIZE),
-	     Bits#(t_RSP, t_RSP_SIZE),
-	     Transmittable#(t_REQ),
-	     Transmittable#(t_RSP));
-
-  CONNECTION_SERVER#(t_REQ, t_RSP) s <- liftSCM(mkPhysicalConnectionServer(server_name, Invalid, False, True));
-
-  method Bool   reqNotEmpty() = s.reqNotEmpty();
-  method t_REQ  getReq() = s.getReq();
-  method Action deq() = s.deq();
-  method Action makeResp(t_RSP data) = s.makeRsp(data);
-  method Bool   respNotFull() = s.rspNotFull();
-
-endmodule
-
-module [ConnectedModule] mkConnectionClientOptional#(String client_name)
-    //interface:
-                (Connection_Client#(t_REQ, t_RSP))
-    provisos
-            (Bits#(t_REQ, t_REQ_SIZE),
-	     Bits#(t_RSP, t_RSP_SIZE),
-	     Transmittable#(t_REQ),
-	     Transmittable#(t_RSP));
-
-  CONNECTION_CLIENT#(t_REQ, t_RSP) c <- liftSCM(mkPhysicalConnectionClient(client_name, Invalid, False, True));
-
-  method Action makeReq(t_REQ data) = c.makeReq(data);
-  method Bool   respNotEmpty() = c.rspNotEmpty();
-  method t_RSP  getResp() = c.getRsp();
-  method Action deq() = c.deq();
-  method Bool   reqNotFull() = c.reqNotFull();
 
 endmodule

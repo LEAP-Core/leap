@@ -6072,3 +6072,138 @@ Directory modules/leap/build-support/build-pipelines/stages/software
 
 * Fix for how software.py checks for presence of the DEBUG flag.
 
+
+----------
+mpellaue    Date: Tue Apr  5 15:34:15 EDT 2011  CSN: CSN-leap-69
+                  Tue Apr  5 19:34:15 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified           68 
+ leap-connect              Locally Modified           68 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified           68 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified           68 
+
+Directory config/pm/hasim/submodels/common
+ soft-services.apm         Locally Modified           68 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_exe.apm      Locally Modified           68 
+ hello_hybrid_htg.apm      Locally Modified           68 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_synth.apm Locally Modified           68 
+ traffic_light_acp_synth.apm Locally Modified           68 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services/central-cache-service
+ central-cache-service.bsv Locally Modified           68 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.bsv Locally Modified           68 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified           68 
+ ModuleList.py             Locally Modified           68 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ bury-connections.bsv      Locally Modified           68 
+ expose-connections.bsv    Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-clocks
+ basic-clock.bsv           Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified           68 
+ connected-common.bsv      Locally Modified           68 
+ with-connections.bsv      Locally Modified           68 
+ connection-shared-interconnect.bsv Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree
+ tree-routing-table.bsv    Locally Modified           68 
+ tree-helper.bsv           Locally Modified           68 
+ tree-interface.bsv        Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ bury-connections.bsv      Locally Modified           68 
+ soft-connections-common-module-context.awb Locally Modified           68 
+ connection-dispatchers.bsv Locally Added               0 
+ transmittable.bsv         Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-stations-tree.bsv Locally Modified           68 
+ connect-top-level.bsv     Locally Modified           68 
+ connect-multicasts.bsv    Locally Modified           68 
+ expose-connections.bsv    Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified           68 
+ token-ring.bsv            Locally Modified           68 
+ connection-backwards-compat.bsv Locally Modified           68 
+ soft-connections-module-context.awb Locally Modified           68 
+ connection-context.bsv    Locally Modified           68 
+ connections.bsv           Locally Modified           68 
+ connection-implementation.bsv Locally Added               0 
+ connection-vectors.bsv    Locally Added               0 
+ connected-module.bsv      Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ connection-matching.bsv   Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context/alg
+ connect-stations-tree.bsv Locally Modified           68 
+ connect-top-level.bsv     Locally Modified           68 
+ connect-multicasts.bsv    Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ connection-helper.bsv     Locally Modified           68 
+ connection-shared-interconnect.bsv Locally Modified           68 
+ connection-backwards-compat.bsv Locally Modified           68 
+ soft-connections-module-context.awb Locally Modified           68 
+ connection-context.bsv    Locally Modified           68 
+ connections.bsv           Locally Modified           68 
+ connected-module.bsv      Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-defs.bsv    Locally Modified           68 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.bsv     Locally Modified           68 
+
+
+* Reorganization of Soft Services using ModuleContext's built in support for 
+  HList. This cleans up the definitions of individual services and removes the 
+  need for lifting. Soft services are now defined by two typeclasses:
+  SOFT_SERVICE, and SYNTHESIZABLE_SOFT_SERVICE.
+  
+* This reorganization probably could be taken even farther to remove some of the 
+  dependencies in the "soft_services_lib -> soft_conn_lib -> soft_services -> 
+  soft_conn -> soft_services_defs" dependence chain. However this is left to a
+  future checkin as this revision already changes quite a lot.
+  
+* Port the "chunking of connections" to the soft service version of soft 
+  connections.
+
+* Support for multicast soft connections across synthesis boundaries is now
+  included in leap-connect (using the new SOFT_SERVICES typeclasses above).
+  
+* Optional connections are now supported across synthesis boundaries by
+  leap-connect.  
+
+* Support for stations and trees is now enabled, but is not yet supported
+  across synthesis boundaries.
+
+* General cleanup and refactoring of Soft Connections code using new
+  Dispatcher functions.
+
+* With these changes the build pipeline now works with every known model.
+
+* Change all models in leap to use the "Hybrid HW/SW Pipeline Project". The
+  old monolithic SConscipt is still left for backwards compatability for now.
+  
+* Update all models in leap to use full Soft Services instead of just soft
+  connections.
+
+* Remove some references to "bsv-libraries" fork of librl-mit. This seems to be
+  harmless.

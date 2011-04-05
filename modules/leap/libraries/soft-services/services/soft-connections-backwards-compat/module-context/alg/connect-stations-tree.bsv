@@ -4,7 +4,7 @@
 // Find the root station, then connect all of its children together,
 // building the routing tables as we go.
 
-module [ConnectedModule] connectStationsTree#(Clock c) ();
+module [CONNECTED_MODULE] connectStationsTree#(Clock c) ();
 
     let root_name <- getRootStationName();
     List#(STATION_INFO) sts <- getParentlessStations();
@@ -40,14 +40,14 @@ endmodule
 // describing all connections attached it, and all of its children. These infos allow us to build
 // a routing table at each node.
 
-module [ConnectedModule] mkStationTree#(STATION_INFO info) (Tuple2#(PHYSICAL_STATION, PHYSICAL_STATION_INFO));
+module [CONNECTED_MODULE] mkStationTree#(STATION_INFO info) (Tuple2#(PHYSICAL_STATION, PHYSICAL_STATION_INFO));
 
     // Examine the current node's children.
     List#(String) children = info.childrenNames;
     if (List::isNull(children))
     begin
         // Current node is s a leaf.
-        let phys_station_info <- initRoutingTableLeaf(info.registeredRecvs, info.registeredSends);
+        let phys_station_info <- initRoutingTableLeaf(info.registeredRecvs, info.registeredSends, info.registeredRecvMultis, info.registeredSendMultis);
         messageM("Creating Physical Station: " + info.stationName + "(Leaf).");
         for (Integer x = 0; x < List::length(info.registeredRecvs); x = x + 1)
         begin
@@ -57,10 +57,18 @@ module [ConnectedModule] mkStationTree#(STATION_INFO info) (Tuple2#(PHYSICAL_STA
         begin
             messageM("    Registering Send: " + info.registeredSends[x].logicalName);
         end
+        for (Integer x = 0; x < List::length(info.registeredRecvMultis); x = x + 1)
+        begin
+            messageM("    Registering Recv Multi: " + info.registeredRecvMultis[x].logicalName);
+        end
+        for (Integer x = 0; x < List::length(info.registeredSendMultis); x = x + 1)
+        begin
+            messageM("    Registering Send Multi: " + info.registeredSendMultis[x].logicalName);
+        end
         printStationInfo(phys_station_info);
         // Make wrappers for the sends and receives to make them look like mini-stations.
         // This simplifies the code since there's only one type of thing to deal with.
-        let wrappers <- mkConnStationWrappers(info.registeredRecvs, info.registeredSends);
+        let wrappers <- mkConnStationWrappers(info.registeredRecvs, info.registeredSends, info.registeredRecvMultis, info.registeredSendMultis);
         // Instantiate a physical station based on the routing table and the wrappers.
         let m <- mkPhysicalStation(wrappers, phys_station_info.routingTable);
         return tuple2(m, phys_station_info);
@@ -100,6 +108,8 @@ module [ConnectedModule] mkStationTree#(STATION_INFO info) (Tuple2#(PHYSICAL_STA
                 {
                     outgoingInfo: nil,
                     incomingInfo: cons(info.registeredRecvs[x], nil),
+                    outgoingMultiInfo: nil,
+                    incomingMultiInfo: nil,
                     routingTable: ?
                 };
             phys_children_info = List::cons(recv_info, phys_children_info);
@@ -115,10 +125,46 @@ module [ConnectedModule] mkStationTree#(STATION_INFO info) (Tuple2#(PHYSICAL_STA
                 {
                     outgoingInfo: cons(info.registeredSends[x], nil),
                     incomingInfo: nil,
+                    outgoingMultiInfo: nil,
+                    incomingMultiInfo: nil,
                     routingTable: ?
                 };
             phys_children_info = List::cons(send_info, phys_children_info);
             let wrapper <- mkSendStationWrapper(info.registeredSends[x].outgoing);
+            phys_children = List::cons(wrapper, phys_children);
+        end
+
+        for (Integer x = 0; x < List::length(info.registeredRecvMultis); x = x + 1)
+        begin
+            messageM("    Registering Recv Multi: " + info.registeredRecvMultis[x].logicalName);
+            let recv_info = 
+                PHYSICAL_STATION_INFO
+                {
+                    outgoingInfo: nil,
+                    incomingInfo: nil,
+                    outgoingMultiInfo: nil,
+                    incomingMultiInfo: cons(info.registeredRecvMultis[x], nil),
+                    routingTable: ?
+                };
+            phys_children_info = List::cons(recv_info, phys_children_info);
+            let wrapper <- mkRecvMultiStationWrapper(info.registeredRecvMultis[x].incoming);
+            phys_children = List::cons(wrapper, phys_children);
+        end
+
+        for (Integer x = 0; x < List::length(info.registeredSendMultis); x = x + 1)
+        begin
+            messageM("    Registering Send Multi: " + info.registeredSendMultis[x].logicalName);
+            let send_info = 
+                PHYSICAL_STATION_INFO
+                {
+                    outgoingInfo: nil,
+                    incomingInfo: nil,
+                    outgoingMultiInfo: cons(info.registeredSendMultis[x], nil),
+                    incomingMultiInfo: nil,
+                    routingTable: ?
+                };
+            phys_children_info = List::cons(send_info, phys_children_info);
+            let wrapper <- mkSendMultiStationWrapper(info.registeredSendMultis[x].outgoing);
             phys_children = List::cons(wrapper, phys_children);
         end
 
@@ -163,7 +209,7 @@ endfunction
 
 // Helper function to filter for all parentless stations.
 
-module [ConnectedModule] getParentlessStations (List#(STATION_INFO));
+module [CONNECTED_MODULE] getParentlessStations (List#(STATION_INFO));
 
     let sts <- getStationInfos();
     return List::filter(isParentlessStation(sts), sts);

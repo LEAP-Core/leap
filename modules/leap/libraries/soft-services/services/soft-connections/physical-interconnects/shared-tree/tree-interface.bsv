@@ -150,6 +150,8 @@ typedef struct
     ROUTING_TABLE routingTable;
     List#(LOGICAL_SEND_INFO) outgoingInfo;
     List#(LOGICAL_RECV_INFO) incomingInfo;
+    List#(LOGICAL_SEND_MULTI_INFO) outgoingMultiInfo;
+    List#(LOGICAL_RECV_MULTI_INFO) incomingMultiInfo;
 }
     PHYSICAL_STATION_INFO;
 

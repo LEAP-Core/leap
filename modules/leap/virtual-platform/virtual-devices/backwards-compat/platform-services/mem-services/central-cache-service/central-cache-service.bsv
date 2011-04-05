@@ -48,8 +48,8 @@ module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
     //
     // ====================================================================
 
-    Vector#(CENTRAL_CACHE_N_CLIENTS, Connection_Server#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)) link_cache = newVector();
-    Vector#(CENTRAL_CACHE_N_CLIENTS, Connection_Client#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)) link_cache_backing = newVector();
+    Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_SERVER#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)) link_cache = newVector();
+    Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_CLIENT#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)) link_cache_backing = newVector();
 
     for (Integer p = 0; p < valueOf(CENTRAL_CACHE_N_CLIENTS); p = p + 1)
     begin
@@ -83,7 +83,7 @@ module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
                     // the cache.
                     rule recvCentralCacheData (True);
                         let d <- centralCache.clientPorts[p].readResp();
-                        link_cache[p].makeResp(tagged CENTRAL_CACHE_READ d);
+                        link_cache[p].makeRsp(tagged CENTRAL_CACHE_READ d);
                     endrule
                 endrules);
 
@@ -92,7 +92,7 @@ module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
                     // Flush or invalidate ACK response
                     rule recvCentralCacheFlushAck (True);
                         let d <- centralCache.clientPorts[p].invalOrFlushWait();
-                        link_cache[p].makeResp(tagged CENTRAL_CACHE_FLUSH_ACK False);
+                        link_cache[p].makeRsp(tagged CENTRAL_CACHE_FLUSH_ACK False);
                     endrule
                 endrules);
 
@@ -142,7 +142,7 @@ module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
             // Backing storage responses
             //
             rule recvCentralCacheBackingResp (True);
-                let resp = link_cache_backing[p].getResp();
+                let resp = link_cache_backing[p].getRsp();
                 link_cache_backing[p].deq();
 
                 case (resp) matches

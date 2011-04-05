@@ -1,3 +1,5 @@
+import ModuleContext::*;
+
 `include "asim/provides/virtual_platform.bsh"
 `include "asim/provides/soft_connections_alg.bsh"
 `include "asim/provides/soft_services_lib.bsh"
@@ -12,7 +14,7 @@
 // A wrapper which instantiates the Soft Platform Interface and 
 // the application. All soft connections are connected above.
 
-module [CONNECTED_MODULE] mkWrappedApplication#(VIRTUAL_PLATFORM vp)
+module [SOFT_SERVICES_MODULE] mkWrappedApplication#(VIRTUAL_PLATFORM vp)
     // interface:
         ();
     
@@ -25,12 +27,12 @@ endmodule
 
 // The actual application env instantiates the wrapper.
 
-module mkApplicationEnv#(VIRTUAL_PLATFORM vp)
+module [Module] mkApplicationEnv#(VIRTUAL_PLATFORM vp)
     // interface:
         ();
     
     // Instantiate the wrapper and connect all soft connections.
     // Dangling connections are errors.
-    let wr <- liftModule(instantiateWithConnections(mkWrappedApplication(vp)));
+    instantiateWithConnections(mkWrappedApplication(vp));
 
 endmodule

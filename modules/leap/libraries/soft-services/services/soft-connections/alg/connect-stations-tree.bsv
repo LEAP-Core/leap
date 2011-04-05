@@ -1,7 +1,4 @@
-import Vector::*;
-import ModuleContext::*;
 import List::*;
-import HList::*;
 import FIFOF::*;
 
 `include "asim/provides/soft_connections.bsh"
@@ -17,10 +14,11 @@ import FIFOF::*;
 // Find the root station, then connect all of its children together,
 // building the routing tables as we go.
 
-module [SoftConnectionModule] connectStationsTree#(Clock c) ();
+module connectStationsTree#(Clock c, LOGICAL_CONNECTION_INFO info) ();
 
-    let root_name <- getRootStationName();
-    List#(STATION_INFO) sts <- getParentlessStations();
+    let root_name = info.rootStationName;
+    List#(STATION_INFO) sts = getParentlessStations(info.stations);
+    /* NOTE: THIS SEEMS LIKE NONSENSE
     // First of all, all parentless stations become
     // children of the actual root.
     while (!List::isNull(sts))
@@ -30,18 +28,19 @@ module [SoftConnectionModule] connectStationsTree#(Clock c) ();
         if (cur.stationName != root_name)
             registerChildToStation(root_name, cur.stationName);
     end
+    */
     
     // Now, see if there's an actual tree to connect.
     if (root_name != "InvalidRootStation")
     begin
-        let root_info <- findStationInfo(root_name);
-        let soft_reset <- getSoftReset();
+        let root_info = findStationInfo(root_name, info.stations);
+        let soft_reset = info.softReset;
         // Recursively connect all the stations together in a tree.
-        match {.r, .r_info} <- mkStationTree(root_info, clocked_by c, reset_by soft_reset);
+        match {.r, .r_info} <- mkStationTree(root_info, info, clocked_by c, reset_by soft_reset);
         // Add an empty root that drops everything routed to it.
         // This allows the existing root node to not be a special case
         // whe it comes to routing broadcasts and the like.
-        mkEmptyRoot(r);    
+        mkEmptyRoot(r, clocked_by c, reset_by soft_reset);    
     end
     
 endmodule
@@ -53,27 +52,35 @@ endmodule
 // describing all connections attached it, and all of its children. These infos allow us to build
 // a routing table at each node.
 
-module [SoftConnectionModule] mkStationTree#(STATION_INFO info) (Tuple2#(PHYSICAL_STATION, PHYSICAL_STATION_INFO));
+module mkStationTree#(STATION_INFO st_info, LOGICAL_CONNECTION_INFO info) (Tuple2#(PHYSICAL_STATION, PHYSICAL_STATION_INFO));
 
     // Examine the current node's children.
-    List#(String) children = info.childrenNames;
+    List#(String) children = st_info.childrenNames;
     if (List::isNull(children))
     begin
         // Current node is s a leaf.
-        let phys_station_info <- initRoutingTableLeaf(info.registeredRecvs, info.registeredSends);
-        messageM("Creating Physical Station: " + info.stationName + "(Leaf).");
-        for (Integer x = 0; x < List::length(info.registeredRecvs); x = x + 1)
+        let phys_station_info <- initRoutingTableLeaf(st_info.registeredRecvs, st_info.registeredSends, st_info.registeredRecvMultis, st_info.registeredSendMultis);
+        messageM("Creating Physical Station: " + st_info.stationName + "(Leaf).");
+        for (Integer x = 0; x < List::length(st_info.registeredRecvs); x = x + 1)
         begin
-            messageM("    Registering Recv: " + info.registeredRecvs[x].logicalName);
+            messageM("    Registering Recv: " + st_info.registeredRecvs[x].logicalName);
         end
-        for (Integer x = 0; x < List::length(info.registeredSends); x = x + 1)
+        for (Integer x = 0; x < List::length(st_info.registeredSends); x = x + 1)
         begin
-            messageM("    Registering Send: " + info.registeredSends[x].logicalName);
+            messageM("    Registering Send: " + st_info.registeredSends[x].logicalName);
+        end
+        for (Integer x = 0; x < List::length(st_info.registeredRecvMultis); x = x + 1)
+        begin
+            messageM("    Registering Recv Multi: " + st_info.registeredRecvMultis[x].logicalName);
+        end
+        for (Integer x = 0; x < List::length(st_info.registeredSendMultis); x = x + 1)
+        begin
+            messageM("    Registering Send Multi: " + st_info.registeredSendMultis[x].logicalName);
         end
         printStationInfo(phys_station_info);
         // Make wrappers for the sends and receives to make them look like mini-stations.
         // This simplifies the code since there's only one type of thing to deal with.
-        let wrappers <- mkConnStationWrappers(info.registeredRecvs, info.registeredSends);
+        let wrappers <- mkConnStationWrappers(st_info.registeredRecvs, st_info.registeredSends, st_info.registeredRecvMultis, st_info.registeredSendMultis);
         // Instantiate a physical station based on the routing table and the wrappers.
         let m <- mkPhysicalStation(wrappers, phys_station_info.routingTable);
         return tuple2(m, phys_station_info);
@@ -92,46 +99,84 @@ module [SoftConnectionModule] mkStationTree#(STATION_INFO info) (Tuple2#(PHYSICA
             let cur_child = List::head(children);
             children = List::tail(children);
 
-            let child_info <- findStationInfo(cur_child);
-            match {.c, .c_info} <- mkStationTree(child_info);
+            let child_info = findStationInfo(cur_child, info.stations);
+            match {.c, .c_info} <- mkStationTree(child_info, info);
             phys_children = List::cons(c, phys_children);
             phys_children_info = List::cons(c_info, phys_children_info);
         end
 
-        messageM("Creating Physical Station: " + info.stationName);
+        messageM("Creating Physical Station: " + st_info.stationName);
 
-        for (Integer x = 0; x < List::length(info.childrenNames); x = x + 1)
+        for (Integer x = 0; x < List::length(st_info.childrenNames); x = x + 1)
         begin
-            messageM("    Registering Child: " + info.childrenNames[x]);
+            messageM("    Registering Child: " + st_info.childrenNames[x]);
         end
 
-        for (Integer x = 0; x < List::length(info.registeredRecvs); x = x + 1)
+        for (Integer x = 0; x < List::length(st_info.registeredRecvs); x = x + 1)
         begin
-            messageM("    Registering Recv: " + info.registeredRecvs[x].logicalName);
+            messageM("    Registering Recv: " + st_info.registeredRecvs[x].logicalName);
             let recv_info = 
                 PHYSICAL_STATION_INFO
                 {
                     outgoingInfo: List::nil,
-                    incomingInfo: List::cons(info.registeredRecvs[x], List::nil),
+                    incomingInfo: List::cons(st_info.registeredRecvs[x], List::nil),
+                    outgoingMultiInfo: List::nil,
+                    incomingMultiInfo: List::nil,
                     routingTable: ?
                 };
             phys_children_info = List::cons(recv_info, phys_children_info);
-            let wrapper <- mkRecvStationWrapper(info.registeredRecvs[x].incoming);
+            let wrapper <- mkRecvStationWrapper(st_info.registeredRecvs[x].incoming);
             phys_children = List::cons(wrapper, phys_children);
         end
 
-        for (Integer x = 0; x < List::length(info.registeredSends); x = x + 1)
+        for (Integer x = 0; x < List::length(st_info.registeredSends); x = x + 1)
         begin
-            messageM("    Registering Send: " + info.registeredSends[x].logicalName);
+            messageM("    Registering Send: " + st_info.registeredSends[x].logicalName);
             let send_info = 
                 PHYSICAL_STATION_INFO
                 {
-                    outgoingInfo: List::cons(info.registeredSends[x], List::nil),
+                    outgoingInfo: List::cons(st_info.registeredSends[x], List::nil),
                     incomingInfo: List::nil,
+                    outgoingMultiInfo: List::nil,
+                    incomingMultiInfo: List::nil,
                     routingTable: ?
                 };
             phys_children_info = List::cons(send_info, phys_children_info);
-            let wrapper <- mkSendStationWrapper(info.registeredSends[x].outgoing);
+            let wrapper <- mkSendStationWrapper(st_info.registeredSends[x].outgoing);
+            phys_children = List::cons(wrapper, phys_children);
+        end
+
+        for (Integer x = 0; x < List::length(st_info.registeredRecvMultis); x = x + 1)
+        begin
+            messageM("    Registering Recv Multi: " + st_info.registeredRecvMultis[x].logicalName);
+            let recv_info = 
+                PHYSICAL_STATION_INFO
+                {
+                    outgoingInfo: List::nil,
+                    incomingInfo: List::nil,
+                    outgoingMultiInfo: List::nil,
+                    incomingMultiInfo: List::cons(st_info.registeredRecvMultis[x], List::nil),
+                    routingTable: ?
+                };
+            phys_children_info = List::cons(recv_info, phys_children_info);
+            let wrapper <- mkRecvMultiStationWrapper(st_info.registeredRecvMultis[x].incoming);
+            phys_children = List::cons(wrapper, phys_children);
+        end
+
+        for (Integer x = 0; x < List::length(st_info.registeredSendMultis); x = x + 1)
+        begin
+            messageM("    Registering Send Multi: " + st_info.registeredSendMultis[x].logicalName);
+            let send_info = 
+                PHYSICAL_STATION_INFO
+                {
+                    outgoingInfo: List::nil,
+                    incomingInfo: List::nil,
+                    outgoingMultiInfo: List::cons(st_info.registeredSendMultis[x], List::nil),
+                    incomingMultiInfo: List::nil,
+                    routingTable: ?
+                };
+            phys_children_info = List::cons(send_info, phys_children_info);
+            let wrapper <- mkSendMultiStationWrapper(st_info.registeredSendMultis[x].outgoing);
             phys_children = List::cons(wrapper, phys_children);
         end
 
@@ -176,9 +221,8 @@ endfunction
 
 // Helper function to filter for all parentless stations.
 
-module [SoftConnectionModule] getParentlessStations (List#(STATION_INFO));
+function List#(STATION_INFO) getParentlessStations(List#(STATION_INFO) sts);
 
-    let sts <- getStationInfos();
     return List::filter(isParentlessStation(sts), sts);
 
-endmodule
+endfunction

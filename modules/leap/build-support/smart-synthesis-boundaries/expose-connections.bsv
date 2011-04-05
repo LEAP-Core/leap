@@ -18,49 +18,55 @@
 
 import FIFOF::*;
 import ModuleContext::*;
-import soft_connections::*;
-import soft_connections_alg::*;
 
-// Instantiate a module with connections exposed
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/soft_connections_alg.bsh"
 
-module [Module] instantiateSmartBoundary#(Connected_Module#(inter_T) m) (WITH_CONNECTIONS#(numIn, numOut, inter_T));
+// Instantiate a module with connections exposed via "messageM".
+// This will be parsed by the "leap-connect" script and passed to the
+// instantiator of t_IFC via a generated "surrogate" module.
 
-  let ctx = freshContext;
-  
-  // Gotta set the initial soft reset to an actual reset line 
-  // in order to keep things happy.
-  let rst <- exposeCurrentReset();
-  ctx.softReset = rst;
-  let clk <- exposeCurrentClock();
+// Note: This MUST be of module type [Module].
 
-  match {.new_context, .m2} <- runWithContext(ctx, m);
-  
-  // TODO: hasim-connect doesn't know about multicasts or stations yet.
-  // Therefore for now we just connect them at every synthesis boundary
-  // as if it were the toplevel.
-  
-  // In the future hasim-connect will know about these and we'll do something
-  // different - more akin to how Chains are today.
-  
-  // Until then this allows them to work within a synthesis boundary, but not
-  // across synthesis boundaries.
-  match {.new_context2, .m4} <- runWithContext(new_context, connectMulticasts(clk));
+module [Module] instantiateSmartBoundary#(CONNECTED_MODULE#(t_IFC) m) 
+    // interface:
+    (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_IFC));
 
-  match {.final_context, .m5} <- runWithContext(new_context2, connectStationsTree(clk));
-  
-  let x <- toWithConnections(new_context, m2);
-  return x;
+    let ctx = freshContext;
+
+    // Gotta set the initial soft reset to an actual reset line 
+    // in order to keep things happy.
+    let rst <- exposeCurrentReset();
+    ctx.softReset = rst;
+    let clk <- exposeCurrentClock();
+
+    match {.new_context, .m2} <- runWithContext(ctx, m);
+
+    // TODO: leap-connect doesn't know about multicasts or stations yet.
+    // Therefore for now we just connect them at every synthesis boundary
+    // as if it were the toplevel.
+
+    // In the future hasim-connect will know about these and we'll do something
+    // different - more akin to how Chains are today.
+
+    // Until then this allows them to work within a synthesis boundary, but not
+    // across synthesis boundaries.
+    match {.new_context2, .m4} <- runWithContext(new_context, connectMulticasts(clk));
+
+    match {.final_context, .m5} <- runWithContext(new_context2, connectStationsTree(clk));
+
+    let x <- toWithConnections(new_context, m2);
+    return x;
 
 endmodule
 
 // Connect soft connections as normal, but dangling connections are not an error
-// Instead they're exposed as a WithConnections interface and messages are entered
+// Instead they're exposed as a WITH_CONNECTIONS interface and messages are entered
 // into the compilation log recording their address index.
 // Connection Chains are not "tied off" but exposed as head and tail
 
-//toWithConnections :: [ConnectionData] -> Module WithConnections
 
-module [Module] toWithConnections#(LOGICAL_CONNECTION_INFO ctx, inter_T i)       (WITH_CONNECTIONS#(numIn, numOut, inter_T));
+module [Module] toWithConnections#(LOGICAL_CONNECTION_INFO ctx, t_IFC i)       (WITH_CONNECTIONS#(t_NUM_OUT, t_NUM_IN, t_IFC));
 
   let outs     <- exposeDanglingSends(ctx.unmatchedSends);
   let ins      <- exposeDanglingRecvs(ctx.unmatchedRecvs);
@@ -122,7 +128,7 @@ module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends) (Vector#(n, PHYSICA
   for (Integer x = 0; x < length(dsends); x = x + 1)
   begin
     if (cur_out >= valueof(n))
-      error("ERROR: Too many dangling Send Connections (max " + integerToString(valueof(n)) + "). Increase the numOut parameter to WithConnections.");
+      error("ERROR: Too many dangling Send Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_OUT parameter to WithConnections.");
 
     let cur = dsends[x];
     messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]: " + cur.logicalName);
@@ -132,7 +138,7 @@ module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends) (Vector#(n, PHYSICA
   
   // Zero out unused dangling sends
   for (Integer x = cur_out; x < valueOf(n); x = x + 1)
-    res[x] = PHYSICAL_CONNECTION_OUT{clock:noClock,reset:noReset};
+    res[x] = PHYSICAL_CONNECTION_OUT{clock:noClock,reset:noReset}; // XXX this line reads like black magic.
   
   return res;
   
@@ -151,7 +157,7 @@ module exposeDanglingRecvs#(List#(LOGICAL_RECV_INFO) drecvs) (Vector#(n, PHYSICA
   for (Integer x = 0; x < length(drecvs); x = x + 1)
   begin
     if (cur_in >= valueof(n))
-      error("ERROR: Too many dangling Receive Connections (max " + integerToString(valueof(n)) + "). Increase the numIn parameter to WithConnections.");
+      error("ERROR: Too many dangling Receive Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_IN parameter to WithConnections.");
 
     let cur = drecvs[x];
     messageM("Dangling Rec {" + cur.logicalType + "} [" + integerToString(cur_in) + "]: " + cur.logicalName);
@@ -161,7 +167,7 @@ module exposeDanglingRecvs#(List#(LOGICAL_RECV_INFO) drecvs) (Vector#(n, PHYSICA
   
   //Zero out unused dangling recvs
   for (Integer x = cur_in; x < valueOf(n); x = x + 1)
-    res[x] = PHYSICAL_CONNECTION_IN{clock:noClock,reset:noReset};
+    res[x] = PHYSICAL_CONNECTION_IN{clock:noClock,reset:noReset}; // XXX This line reads like black magic.
   
   return res;
 

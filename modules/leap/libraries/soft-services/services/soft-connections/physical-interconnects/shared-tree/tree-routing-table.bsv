@@ -91,7 +91,7 @@ module initRoutingTable#(List#(PHYSICAL_STATION_INFO) children_infos)
                     matched_routes[idx] = True;
 
                     // One of our children needs it... but is it a multicast?
-                    if (send_info.oneToMany)
+                    if (False) // TODO: unify new multicast organization here (send_info.oneToMany)
                     begin
                     
                         // Yes, so we need to send to our parent, in case they have more listeners.
@@ -210,7 +210,9 @@ module initRoutingTable#(List#(PHYSICAL_STATION_INFO) children_infos)
         {
             routingTable: route_table,
             outgoingInfo: outgoing_infos,
-            incomingInfo: incoming_infos
+            incomingInfo: incoming_infos,
+            outgoingMultiInfo: nil, // TODO: Define this
+            incomingMultiInfo: nil  // TODO: Define this
         };
     
     return station_info;
@@ -316,7 +318,9 @@ endmodule
 // Then we can use our normal routing table function.
 
 module initRoutingTableLeaf#(List#(LOGICAL_RECV_INFO) recvs,
-                             List#(LOGICAL_SEND_INFO) sends) (PHYSICAL_STATION_INFO);
+                             List#(LOGICAL_SEND_INFO) sends,
+                             List#(LOGICAL_RECV_MULTI_INFO) recv_multis,
+                             List#(LOGICAL_SEND_MULTI_INFO) send_multis) (PHYSICAL_STATION_INFO);
 
 
     List#(PHYSICAL_STATION_INFO) stations = List::nil;
@@ -329,6 +333,8 @@ module initRoutingTableLeaf#(List#(LOGICAL_RECV_INFO) recvs,
             {
                 outgoingInfo: nil,
                 incomingInfo: cons(recvs[x], nil),
+                outgoingMultiInfo: nil,
+                incomingMultiInfo: nil,
                 routingTable: ?
             };
         stations = append(stations, cons(rinfo, nil));
@@ -342,6 +348,38 @@ module initRoutingTableLeaf#(List#(LOGICAL_RECV_INFO) recvs,
             {
                 outgoingInfo: cons(sends[x], nil),
                 incomingInfo: nil,
+                outgoingMultiInfo: nil,
+                incomingMultiInfo: nil,
+                routingTable: ?
+            };
+        stations = append(stations, cons(sinfo, nil));
+    end
+
+    for (Integer x = 0; x < length(recv_multis); x = x + 1)
+    begin
+
+        let rinfo = 
+            PHYSICAL_STATION_INFO
+            {
+                outgoingInfo: nil,
+                incomingInfo: nil,
+                outgoingMultiInfo: nil,
+                incomingMultiInfo: cons(recv_multis[x], nil),
+                routingTable: ?
+            };
+        stations = append(stations, cons(rinfo, nil));
+    end
+
+    for (Integer x = 0; x < length(send_multis); x = x + 1)
+    begin
+
+        let sinfo = 
+            PHYSICAL_STATION_INFO
+            {
+                outgoingInfo: nil,
+                incomingInfo: nil,
+                outgoingMultiInfo: cons(send_multis[x], nil),
+                incomingMultiInfo: nil,
                 routingTable: ?
             };
         stations = append(stations, cons(sinfo, nil));
@@ -353,7 +391,7 @@ module initRoutingTableLeaf#(List#(LOGICAL_RECV_INFO) recvs,
 
 endmodule
 
-module  mkConnStationWrappers#(List#(LOGICAL_RECV_INFO) recvs, List#(LOGICAL_SEND_INFO) sends) (List#(PHYSICAL_STATION));
+module  mkConnStationWrappers#(List#(LOGICAL_RECV_INFO) recvs, List#(LOGICAL_SEND_INFO) sends, List#(LOGICAL_RECV_MULTI_INFO) recv_multis, List#(LOGICAL_SEND_MULTI_INFO) send_multis) (List#(PHYSICAL_STATION));
 
     List#(PHYSICAL_STATION) stations = List::nil;
 
@@ -366,6 +404,18 @@ module  mkConnStationWrappers#(List#(LOGICAL_RECV_INFO) recvs, List#(LOGICAL_SEN
     for (Integer x = 0; x < length(sends); x = x + 1)
     begin
         let station <- mkSendStationWrapper(sends[x].outgoing);
+        stations = append(stations, cons(station, nil));
+    end
+
+    for (Integer x = 0; x < length(recv_multis); x = x + 1)
+    begin
+        let station <- mkRecvMultiStationWrapper(recv_multis[x].incoming);
+        stations = append(stations, cons(station, nil));
+    end
+
+    for (Integer x = 0; x < length(send_multis); x = x + 1)
+    begin
+        let station <- mkSendMultiStationWrapper(send_multis[x].outgoing);
         stations = append(stations, cons(station, nil));
     end
 
@@ -425,6 +475,77 @@ module mkRecvStationWrapper#(PHYSICAL_CONNECTION_IN physical_recv)
     interface PHYSICAL_STATION_IN incoming;
 
         method Action enq(MESSAGE_DOWN msg);
+            q.enq(msg.payload);
+        endmethod
+
+    endinterface
+
+    interface PHYSICAL_STATION_OUT outgoing;
+
+       method MESSAGE_UP first() if (False) = ?;
+       method Bool notEmpty() = False;
+       method Action deq() = noAction;
+
+    endinterface
+
+endmodule
+
+module mkSendMultiStationWrapper#(PHYSICAL_CONNECTION_OUT_MULTI physical_send)
+    // interface:
+        (PHYSICAL_STATION);
+
+    interface PHYSICAL_STATION_IN incoming;
+
+        method Action enq(MESSAGE_DOWN msg);
+            noAction;
+        endmethod
+
+    endinterface
+
+    interface PHYSICAL_STATION_OUT outgoing;
+
+       method MESSAGE_UP first();
+
+            match {.inc_tag, .inc_msg} = physical_send.first();
+            // XXX we ignore the tag. Everything is currently a broadcast.
+            // TODO: unify this system with the new multicast organization.
+            let msg =
+                MESSAGE_UP
+                {
+                    origin: 0,
+                    payload: truncate(inc_msg)
+                };
+
+            return msg;
+
+       endmethod
+
+       method Bool notEmpty() = physical_send.notEmpty();
+       method Action deq() = physical_send.deq();
+
+    endinterface
+
+endmodule
+
+module mkRecvMultiStationWrapper#(PHYSICAL_CONNECTION_IN_MULTI physical_recv)
+    // interface:
+        (PHYSICAL_STATION);
+
+    FIFOF#(PHYSICAL_PAYLOAD) q <- mkUGFIFOF();
+
+    rule try (q.notEmpty);
+        // XXX all tags are currently zero.
+        // TODO: unify this system with the new multicast organization.
+        physical_recv.try(0, zeroExtend(q.first));
+    endrule
+    
+    rule success (physical_recv.success);
+        q.deq();
+    endrule
+
+    interface PHYSICAL_STATION_IN incoming;
+
+        method Action enq(MESSAGE_DOWN msg) if (q.notFull());
             q.enq(msg.payload);
         endmethod
 

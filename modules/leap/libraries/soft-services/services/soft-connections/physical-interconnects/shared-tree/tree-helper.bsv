@@ -30,7 +30,7 @@
 
 module mkEmptyRoot#(PHYSICAL_STATION st) ();
 
-    rule dropInc (st.outgoing.notEmpty);
+    rule dropInc (st.outgoing.notEmpty());
         st.outgoing.deq();
     endrule
 

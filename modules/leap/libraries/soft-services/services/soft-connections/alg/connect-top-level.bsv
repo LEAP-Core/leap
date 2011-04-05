@@ -17,41 +17,26 @@ import HList::*;
 
 // For backwards compatability we also still handle chains.
 
-instance FinalizableContext#(LOGICAL_CONNECTION_INFO);
-
-  module [Module] finalizeContext#(LOGICAL_CONNECTION_INFO m) (Empty);
-    
-   let finalModule <- finalizeSoftConnection(m);   
- 
-  endmodule
-
-endinstance
-
-
-module [Module] finalizeSoftConnection#(LOGICAL_CONNECTION_INFO m) (Empty);
-  // Build context of Connected_Module
+module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
 
   Clock clk <- exposeCurrentClock();
 
   // Backwards compatability: Connect all chains in the resulting context.
-  match {.new_context2, .m3} <- runWithContext(m, connectChains(clk)); 
-  printRecvs(new_context2.unmatchedRecvs);
-  printSends(new_context2.unmatchedSends);
+  connectChains(clk, info.chains); 
+
   // Connect all broadcasts in the resulting context.
-  match {.new_context3, .m4} <- runWithContext(new_context2, connectMulticasts(clk));
-  printRecvs(new_context2.unmatchedRecvs);
-  printSends(new_context2.unmatchedSends);
+  match {.unmatched_sends, .unmatched_recvs} <- connectMulticasts(clk, info);
+
   // Connect all trees in the resulting context.
   // Eventually more physical interconnects will be supported.
-  match {.final_context, .m5} <- runWithContext(new_context3, connectStationsTree(clk));
-  printRecvs(new_context2.unmatchedRecvs);
-  printSends(new_context2.unmatchedSends);
+  connectStationsTree(clk, info);
+
   // Error out if there are dangling connections
   Bool error_occurred = False;
   // Final Dangling sends
-  for (Integer x = 0; x < List::length(final_context.unmatchedSends); x = x + 1)
+  for (Integer x = 0; x < List::length(unmatched_sends); x = x + 1)
   begin
-    let cur = final_context.unmatchedSends[x];
+    let cur = unmatched_sends[x];
     if (!cur.optional)
       begin
         messageM("ERROR: Unmatched logical send: " +  cur.logicalName);
@@ -60,9 +45,9 @@ module [Module] finalizeSoftConnection#(LOGICAL_CONNECTION_INFO m) (Empty);
   end
 
   // Final Dangling recvs
-  for (Integer x = 0; x < List::length(final_context.unmatchedRecvs); x = x + 1)
+  for (Integer x = 0; x < List::length(unmatched_recvs); x = x + 1)
   begin
-    let cur = final_context.unmatchedRecvs[x];
+    let cur = unmatched_recvs[x];
     if (!cur.optional)
       begin
         messageM("ERROR: Unmatched logical receive: " + cur.logicalName);
@@ -80,13 +65,13 @@ endmodule
 
 // Backwards Compatability: Connection Chains
 
-module [SoftConnectionModule] connectChains#(Clock c) ();
+module connectChains#(Clock c, Vector#(CON_NUM_CHAINS, List#(LOGICAL_CHAIN_INFO)) chains) ();
 
     for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)
     begin
 		
         // Iterate through the chains.
-        let chn <- getChain(x);
+        let chn = chains[x];
         
         // Close non-nil chains off.
         if (!List::isNull(chn))
@@ -108,9 +93,3 @@ module [SoftConnectionModule] connectChains#(Clock c) ();
     end
     
 endmodule
-
-
-
-// Need to provide some code for exposing connections not at the top level. 
-// this should at some point be merged with the above. \
-

@@ -19,7 +19,7 @@ model=FPGA Environment
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 5
-librl_bsv=Altera RL Bluespec Library
+librl_bsv=RL Bluespec Library Submodel
 build_pipeline=FPGA Build Pipeline Xilinx
 
 [Standard Virtual Platform]
@@ -128,67 +128,20 @@ File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
 Packagehint=leap
 
 
-[Register Mapping Utilities]
-File=modules/bsv-libraries/bluespec/RegisterMapper/src/register_mapper.awb
-Packagehint=bsv-libraries
 
-[FIFO Utility]
-File=modules/bsv-libraries/bluespec/FIFOUtility/fifo_utility.awb
-Packagehint=bsv-libraries
 
-[Vector Utilities]
-File=modules/bsv-libraries/bluespec/VectorUtils/vector_utils.awb
-Packagehint=bsv-libraries
 
-[Altera RL Bluespec Library/Requires]
-altera_utils=Common Altera Platform Utilities
-librl_bsv_storage=RL Bluespec Storage Library
-librl_bsv_base=RL Bluespec Base Library
-librl_bsv_cache=RL Bluespec Cache Managers
 
-[Debug Utilities]
-File=modules/bsv-libraries/bluespec/Debug/debug_utils.awb
-Packagehint=bsv-libraries
 
-[RL Bluespec Storage Library]
-File=modules/leap/libraries/librl/storage/librl-bsv-storage.awb
+
+
+
+
+
+
+
+
+
+[RL Bluespec Library Submodel]
+File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap
-
-[Avalon Bus Intefaces]
-File=modules/bsv-libraries/bluespec/Avalon/src/avalon.awb
-Packagehint=bsv-libraries
-
-[RegisterLibrary]
-File=modules/bsv-libraries/bluespec/Register/src/register_library.awb
-Packagehint=bsv-libraries
-
-[CBus Utilities]
-File=modules/bsv-libraries/bluespec/CBusUtils/c_bus_utils.awb
-Packagehint=bsv-libraries
-
-[Register Mapping Utilities/Requires]
-register_library=RegisterLibrary
-
-[RL Bluespec Cache Managers]
-File=modules/leap/libraries/librl/cache/librl-cache.awb
-Packagehint=leap
-
-[Altera RL Bluespec Library]
-File=modules/bsv-libraries/bluespec/librl-mit/librl-mit.awb
-Packagehint=bsv-libraries
-
-[Common Altera Platform Utilities/Requires]
-c_bus_utils=CBus Utilities
-fifo_utils=FIFO Utility
-vector_utils=Vector Utilities
-avalon=Avalon Bus Intefaces
-debug_utils=Debug Utilities
-register_mapper=Register Mapping Utilities
-
-[RL Bluespec Base Library]
-File=modules/leap/libraries/librl/base/librl-bsv-base.awb
-Packagehint=leap
-
-[Common Altera Platform Utilities]
-File=modules/bluespec/common/fpgaenv/physical-platform/utils/altera/altera_utils.awb
-Packagehint=platforms

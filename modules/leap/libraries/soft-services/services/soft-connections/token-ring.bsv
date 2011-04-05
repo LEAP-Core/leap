@@ -60,7 +60,7 @@ TOKEN_RING_MSG#(type t_NODE_ID, type t_MSG)
 //     WARNING:  there must be a node with a NODE_ID of 0.  The token starts
 //               on this node.
 //
-module [Connected_Module] mkConnection_TokenRingNode#(Integer chainNum,
+module [CONNECTED_MODULE] mkConnection_TokenRingNode#(Integer chainNum,
                                                       t_NODE_ID myID)
     // Interface:
     (Connection_TokenRing#(t_NODE_ID, t_MSG))

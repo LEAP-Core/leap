@@ -13,7 +13,7 @@ import ModuleContext::*;
 // For backwards compatability we also still handle chains.
 
 
-module [Module] instantiateWithConnections#(Connected_Module#(t_IFC) m) (t_IFC);
+module [Module] instantiateWithConnections#(CONNECTED_MODULE#(t_IFC) m) (t_IFC);
 
   // Get a fresh context.
   let ctx = freshContext;
@@ -74,7 +74,7 @@ endmodule
 
 // Backwards Compatability: Connection Chains
 
-module [ConnectedModule] connectChains#(Clock c) ();
+module [CONNECTED_MODULE] connectChains#(Clock c) ();
 
     for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)
     begin

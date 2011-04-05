@@ -9,7 +9,8 @@ try:
   from pygraph.classes.digraph import digraph
 except ImportError:
   # don't need to do anything
-  print "Warning you should upgrade to pygraph 1.8"
+  print "\n"
+  # print "Warning you should upgrade to pygraph 1.8"
 import pygraph.algorithms.sorting
 import Module
 import Utils
