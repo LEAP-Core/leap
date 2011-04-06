@@ -6207,3 +6207,14 @@ Directory modules/leap/libraries/soft-services/util
 
 * Remove some references to "bsv-libraries" fork of librl-mit. This seems to be
   harmless.
+
+----------
+mpellaue    Date: Wed Apr  6 11:42:14 EDT 2011  CSN: CSN-leap-70
+                  Wed Apr  6 15:42:14 UTC 2011
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified           69 
+
+
+* Fixing a dumb typo in leap-connect.

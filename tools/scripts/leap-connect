@@ -241,11 +241,11 @@ sub add_connections {
             if ($conns[$i]->{"sc_type"} eq "Send") {
                 print $of "    registerSend(LOGICAL_SEND_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoing[$conidx] });\n";
             } elsif ($conns[$i]->{"sc_type"} eq "Recv") {
-                print $of "    registerRecv(LOGICAL_RECV_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.incoming[$conidx] });\n";
+                print $of "    registerRecv(LOGICAL_RECV_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, incoming: connections.incoming[$conidx] });\n";
             } elsif ($conns[$i]->{"sc_type"} eq "SendMulti") {
                 print $of "    registerSendMulti(LOGICAL_SEND_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoingMultis[$conidx] });\n";
             } elsif ($conns[$i]->{"sc_type"} eq "RecvMulti") {
-                print $of "    registerRecvMulti(LOGICAL_RECV_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.incomingMultis[$conidx] });\n";
+                print $of "    registerRecvMulti(LOGICAL_RECV_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, incoming: connections.incomingMultis[$conidx] });\n";
             }
         }
        
