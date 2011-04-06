@@ -420,7 +420,7 @@ endmodule
 
 module [Connected_Module] mkConnectionClientOptional#(String portname)
     //interface:
-                (Connection_Client#(req_T, resp_T))
+                (CONNECTION_CLIENT#(req_T, resp_T))
     provisos
             (Bits#(req_T,  req_SZ),
 	     Bits#(resp_T, resp_SZ));
@@ -439,11 +439,11 @@ module [Connected_Module] mkConnectionClientOptional#(String portname)
     reqconn.send(data);
   endmethod
   
-  method Bool respNotEmpty();
+  method Bool rspNotEmpty();
     return respconn.notEmpty();
   endmethod
   
-  method resp_T getResp();
+  method resp_T getRsp();
     return respconn.receive();
   endmethod
 
@@ -490,7 +490,7 @@ endmodule
 
 module [Connected_Module] mkConnectionServerOptional#(String portname)
     //interface:
-                (Connection_Server#(req_T, resp_T))
+                (CONNECTION_SERVER#(req_T, resp_T))
     provisos
             (Bits#(req_T,  req_SZ),
 	     Bits#(resp_T, resp_SZ));
@@ -501,11 +501,11 @@ module [Connected_Module] mkConnectionServerOptional#(String portname)
   Connection_Receive#(req_T) reqconn <- mkConnectionRecvOptional(recvname);
   Connection_Send#(resp_T) respconn <- mkConnectionSendOptional(sendname);
 
-  method Bool respNotFull();
+  method Bool rspNotFull();
     return respconn.notFull();
   endmethod
   
-  method Action makeResp(resp_T data);
+  method Action makeRsp(resp_T data);
     respconn.send(data);
   endmethod
   
@@ -725,3 +725,31 @@ instance Connectable#(function Action f(data_t t),
 
   endmodule
 endinstance
+
+// Forwards-compatability
+
+typedef Connection_Send#(t_MSG) CONNECTION_SEND#(type t_MSG);
+typedef Connection_Receive#(t_MSG) CONNECTION_RECV#(type t_MSG);
+
+interface CONNECTION_CLIENT#(type t_REQ, type t_RSP);
+
+  method Action makeReq(t_REQ data);
+  method Bool   reqNotFull();
+
+  method Bool   rspNotEmpty();
+  method t_RSP  getRsp();
+  method Action deq();
+  
+endinterface
+
+interface CONNECTION_SERVER#(type t_REQ, type t_RSP);
+
+  method t_REQ  getReq();
+  method Bool   reqNotEmpty();
+  method Action deq();
+
+  method Action makeRsp(t_RSP data);
+  method Bool   rspNotFull();
+  
+endinterface
+

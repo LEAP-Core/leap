@@ -6218,3 +6218,25 @@ Directory tools/scripts
 
 
 * Fixing a dumb typo in leap-connect.
+
+----------
+mpellaue    Date: Wed Apr  6 13:55:02 EDT 2011  CSN: CSN-leap-71
+                  Wed Apr  6 17:55:02 UTC 2011
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified           70 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries/backwards-compat
+ with-connections.bsv      Locally Modified           70 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ Connections.bsv           Locally Modified           70 
+
+
+* Backporting some forwards-compatability from the new scheme into the
+  non-soft services soft connections.
+
+* Compiling HAsim's alpha_unpipelined_exe model with the build pipeline & soft
+  services is currently resulting in an internal compiler error. This
+  change will allow regressions to pass until this is resolved.

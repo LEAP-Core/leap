@@ -37,4 +37,4 @@ interface WithConnections#(parameter numeric type numIn,
 
 endinterface
 
-typedef WithConnections#(nI,nO) SoftServicesSynthesisInterface#(parameter numeric type nI, parameter numeric type nO);
+typedef WithConnections#(nI,nO) SOFT_SERVICES_SYNTHESIS_BOUNDARY#(parameter numeric type nI, parameter numeric type nO, parameter numeric type nMI, parameter numeric type nMO);

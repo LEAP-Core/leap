@@ -132,6 +132,13 @@ sub create_dynsize_bsh {
         print SIZES "`ifndef CON_SEND_MULTI_${metatype}\n";
         print SIZES "`define CON_SEND_MULTI_${metatype} ${send_multis}\n";
         print SIZES "`endif\n";    
+    } else {
+        print SIZES "`ifndef CON_RECV_MULTI_${metatype}\n";
+        print SIZES "`define CON_RECV_MULTI_${metatype} 0\n";
+        print SIZES "`endif\n\n";
+        print SIZES "`ifndef CON_SEND_MULTI_${metatype}\n";
+        print SIZES "`define CON_SEND_MULTI_${metatype} 0\n";
+        print SIZES "`endif\n";
     }
     close(SIZES);
 }
