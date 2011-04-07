@@ -24,6 +24,7 @@
  * @brief Standard virtual devices
  */
  
+#include "asim/syntax.h"
 #include "asim/provides/virtual_devices.h"
 #include "asim/provides/starter_device.h"
 

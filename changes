@@ -6240,3 +6240,22 @@ Directory modules/leap/libraries/soft-services/services/soft-connections-backwar
 * Compiling HAsim's alpha_unpipelined_exe model with the build pipeline & soft
   services is currently resulting in an internal compiler error. This
   change will allow regressions to pass until this is resolved.
+
+----------
+mcadler     Date: Wed Apr  6 22:02:40 EDT 2011  CSN: CSN-leap-72
+                  Thu Apr  7 02:02:40 UTC 2011
+
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.cpp  Locally Modified           71 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.cpp                  Locally Modified           71 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.cpp   Locally Modified           71 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.cpp Locally Modified           71 
+
+Need syntax.h to support dynamic params.

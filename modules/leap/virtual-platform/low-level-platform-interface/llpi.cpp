@@ -18,6 +18,7 @@
 
 #include <signal.h>
 
+#include "asim/syntax.h"
 #include "asim/provides/low_level_platform_interface.h"
 #include "asim/provides/umf.h"
 

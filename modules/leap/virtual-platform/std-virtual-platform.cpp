@@ -24,6 +24,7 @@
  * @brief Standard virtual platform interface
  */
 
+#include "asim/syntax.h"
 #include "asim/provides/virtual_platform.h"
 
 VIRTUAL_PLATFORM_CLASS::VIRTUAL_PLATFORM_CLASS() :

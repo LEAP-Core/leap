@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#include "application-env-hybrid-soft-conn.h"
-
+#include "asim/syntax.h"
 #include "asim/provides/virtual_platform.h"
+
+#include "application-env-hybrid-soft-conn.h"
 
 APPLICATION_ENV_CLASS::APPLICATION_ENV_CLASS(VIRTUAL_PLATFORM vp) : 
     app(new CONNECTED_APPLICATION_CLASS(vp))
