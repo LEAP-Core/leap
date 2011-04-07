@@ -6259,3 +6259,14 @@ Directory modules/leap/build-support/project/application-env/hybrid/soft-connect
  application-env-hybrid-soft-conn.cpp Locally Modified           71 
 
 Need syntax.h to support dynamic params.
+
+----------
+kfleming    Date: Thu Apr  7 19:14:50 EDT 2011  CSN: CSN-leap-73
+                  Thu Apr  7 23:14:50 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_PAR.py             Locally Modified           72 
+
+
+Added support for multi-threaded par. 

@@ -30,8 +30,10 @@ class PAR():
 
     # xilinx changed the -t option in versions greater than 12.1
     placer_table = ' -t ' + moduleList.env['DEFS']['COST_TABLE'] + ' '
+    multi_thread = ''
     if(xilinx_version > 120):
       placer_table = ' '
+      multi_thread = '-mt 4 ' 
 
     fpga_part_xilinx = moduleList.env['DEFS']['FPGA_PART_XILINX']
     xilinx_apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
@@ -46,7 +48,7 @@ class PAR():
         SCons.Script.Delete(xilinx_apm_name + '_par.xpi'),
         SCons.Script.Delete(xilinx_apm_name + '_par_pad.csv'),
         SCons.Script.Delete(xilinx_apm_name + '_par_pad.txt'),
-        'par -w -ol high ' + moduleList.smartguide + placer_table + xilinx_apm_name + '_map.ncd $TARGET ' + xilinx_apm_name + '.pcf',
+        'par -w -ol high ' + moduleList.smartguide + placer_table + multi_thread + xilinx_apm_name + '_map.ncd $TARGET ' + xilinx_apm_name + '.pcf',
         SCons.Script.Copy(moduleList.smartguide_cache_dir + '/' + moduleList.smartguide_cache_file, '$TARGET') ])
 
     moduleList.topModule.moduleDependency['PAR'] = [xilinx_par]
