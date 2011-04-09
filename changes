@@ -6270,3 +6270,25 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 
 Added support for multi-threaded par. 
+
+----------
+joel        Date: Sat Apr  9 13:46:45 EDT 2011  CSN: CSN-leap-74
+                  Sat Apr  9 17:46:45 UTC 2011
+
+
+Directory .
+ configure                 Locally Modified           73 
+
+Directory debian
+ control                   Locally Modified           73 
+ leap-11.03.dirs           Locally Removed            73 
+ changelog                 Locally Modified           73 
+ rules                     Locally Modified           73 
+
+Directory .
+ Makefile.in               Locally Modified           73 
+ configure.in              Locally Modified           73 
+ Makefile.am               Locally Modified           73 
+
+Support for release v11.04. Primarly moving location of
+shared package to $PREFIX/usr/share/asim/asimcore/<version>.

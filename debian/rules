@@ -13,6 +13,10 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+# Set the release name for the <package>-<release> .deb file
+#RELEASE = $(shell $(MAKE) print-release-name | sed 's/v//' )
+RELEASE = 11.04
+
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
@@ -25,10 +29,6 @@ CROSS= --build $(DEB_BUILD_GNU_TYPE) --host $(DEB_HOST_GNU_TYPE)
 else
 CROSS= --build $(DEB_BUILD_GNU_TYPE)
 endif
-
-
-
-
 
 config.status: configure
 	dh_testdir
@@ -93,7 +93,7 @@ install-arch:
 	# debian/tmp.
 	$(MAKE) DESTDIR=$(CURDIR)/debian/leap-bin install-arch
 
-	$(MAKE) DESTDIR=$(CURDIR)/debian/leap-11.03 install-package
+	$(MAKE) DESTDIR=$(CURDIR)/debian/leap-$(RELEASE) install-package
 
 	dh_install -s
 # Must not depend on anything. This is to be called by

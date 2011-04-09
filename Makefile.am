@@ -3,7 +3,7 @@ SUBDIRS = libperl tools
 #
 # we have non-standard install sub-targets
 #
-.phony: install-indep install-arch doc install-exec-hook install-release install-bin install-package install-src
+.phony: install-indep install-arch doc install-exec-hook install-release install-bin install-package install-src print-release-name
 
 #
 # Targets used when making a .deb file
@@ -76,3 +76,10 @@ EXTRA_DIST = admin config include libperl tools Makefile changes
 dist-hook:
 	make -C $(distdir) distclean
 	find $(distdir) -name CVS -depth -exec rm -rf {} \;
+
+
+#
+# Utility target to print the release being built
+#
+print-release-name:
+	@echo ${release}

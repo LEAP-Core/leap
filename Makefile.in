@@ -34,8 +34,9 @@ POST_UNINSTALL = :
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure \
-	$(top_srcdir)/include/config.h.in INSTALL scripts/compile \
-	scripts/depcomp scripts/install-sh scripts/missing
+	$(top_srcdir)/include/config.h.in INSTALL config.guess \
+	config.sub scripts/compile scripts/depcomp scripts/install-sh \
+	scripts/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -689,7 +690,7 @@ uninstall-am:
 #
 # we have non-standard install sub-targets
 #
-.phony: install-indep install-arch doc install-exec-hook install-release install-bin install-package install-src
+.phony: install-indep install-arch doc install-exec-hook install-release install-bin install-package install-src print-release-name
 
 #
 # Targets used when making a .deb file
@@ -752,6 +753,12 @@ install-src:
 dist-hook:
 	make -C $(distdir) distclean
 	find $(distdir) -name CVS -depth -exec rm -rf {} \;
+
+#
+# Utility target to print the release being built
+#
+print-release-name:
+	@echo ${release}
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

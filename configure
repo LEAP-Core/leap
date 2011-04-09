@@ -2380,7 +2380,7 @@ configdir='${sysconfdir}/asim/${release}'
 
 
 
-packagedir='${datadir}/asim'
+packagedir='${datadir}/asim/packages'
 
 
 
@@ -2388,7 +2388,9 @@ codedir='${packagedir}/${package}/${release}'
 
 
 # This is where architecture dependent info is placed
-tooldir='${libexecdir}/asim/${release}'
+#tooldir='${libexecdir}/asim/${release}'
+# For now we always treat the release for tools as HEAD
+tooldir='${libexecdir}/asim/HEAD'
 
 
 ac_ext=c
