@@ -58,7 +58,9 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
     PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE, PHYSICAL_DEVICES);
     ~PHYSICAL_CHANNEL_CLASS();
-    
+
+    void Init();
+
     UMF_MESSAGE Read();             // blocking read
     UMF_MESSAGE TryRead();          // non-blocking read
     void        Write(UMF_MESSAGE); // write

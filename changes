@@ -6292,3 +6292,31 @@ Directory .
 
 Support for release v11.04. Primarly moving location of
 shared package to $PREFIX/usr/share/asim/asimcore/<version>.
+
+----------
+mcadler     Date: Sun Apr 10 21:52:46 EDT 2011  CSN: CSN-leap-75
+                  Mon Apr 11 01:52:46 UTC 2011
+
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Modified           74 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified           74 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_htg_v5_pcie_synth.apm Locally Modified           74 
+ traffic_light_exe_nosynth.apm Locally Modified           74 
+ traffic_light_exe_synth.apm Locally Modified           74 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-csr
+ pcie-physical-channel.cpp Locally Modified           74 
+ pcie-physical-channel.h   Locally Modified           74 
+
+Directory modules/leap/build-support/project
+ SCons.top.template        Locally Modified           74 
+
+- Run script uses the new leap-fpga-ctrl interface that supports allocation
+  among multiple FPGAs on a single host.
+- PCIe physical channel must delay opening the device until Init() instead
+  of in the constructor so that dynamic parameters have their values.

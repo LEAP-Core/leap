@@ -16,7 +16,6 @@ RootProvides=model
 DefaultAttributes=function_not_as_boundary traffic_light demo connected slave hybrid project exe
 model=HW/SW Hybrid Pipeline Build
 
-
 [Traffic Light System with Soft Connections]
 File=modules/leap/examples/traffic-light/traffic-light-system.awb
 Packagehint=leap
@@ -35,20 +34,15 @@ hardware_system=Traffic Light System with Soft Connections
 File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function.awb
 Packagehint=leap
 
-
-
 [Soft Services Hybrid Application Environment]
 File=modules/leap/build-support/project/application-env/hybrid/soft-services/application-env-hybrid-soft-service.awb
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 platform_services=Standard Platform Services
-soft_services=Soft Services
+soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
 
-[Soft Services]
-File=config/pm/hasim/submodels/common/soft-services.apm
-Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
@@ -62,7 +56,6 @@ application_env=Soft Services Hybrid Application Environment
 [Traffic light function w.o synthesis boundary/Params]
 SIGNAL_CHANGE_DELAY='d10000
 
-
 [Standard Platform Services]
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap
@@ -73,4 +66,8 @@ Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Soft Services Submodel]
+File=config/pm/hasim/submodels/common/soft-services.apm
 Packagehint=leap

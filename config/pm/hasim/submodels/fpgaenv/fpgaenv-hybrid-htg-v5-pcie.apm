@@ -35,7 +35,6 @@ umf=Little-Endian Unified Message Format
 File=modules/leap/virtual-platform/fpga-environment.awb
 Packagehint=leap
 
-
 [HTG Virtex 5 PCIE Enabled]
 File=modules/bluespec/common/fpgaenv/physical-platform/htg_virtex5/pcie-enabled/htg-v5-pcie-enabled.awb
 Packagehint=platforms
@@ -80,13 +79,12 @@ local_mem=Local Memory Interface using DDR2 Memory
 remote_memory=Remote Memory using PCI Express DMA
 
 [Driver Header for PCIe Kernel Module]
-File=drivers/linux/hasim/kernel/pchnl_if.awb
+File=drivers/linux/hasim/kernel-pcie-virtex5/pchnl_if.awb
 Packagehint=platforms
 
 [DDR2 SDRAM Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr2-sdram/ddr2-sdram-device.awb
 Packagehint=platforms
-
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
@@ -133,8 +131,6 @@ Packagehint=leap
 
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
-
-
 
 [FPGA Build Pipeline Xilinx]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm

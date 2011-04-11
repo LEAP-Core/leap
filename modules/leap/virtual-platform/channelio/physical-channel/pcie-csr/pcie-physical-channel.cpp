@@ -56,6 +56,19 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
     h2fHeadCache = CSR_H2F_BUF_START;
     h2fTail      = CSR_H2F_BUF_START;
 
+    pthread_mutex_init(&channelLock, NULL);
+}
+
+// destructor
+PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
+{
+}
+
+void
+PHYSICAL_CHANNEL_CLASS::Init()
+{
+    pciExpressDevice->Init();
+
     CSR_DATA data;
     do
     {
@@ -85,13 +98,6 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
     // update pointers
     pciExpressDevice->WriteSystemCSR(genIID() | (OP_UPDATE_F2HHEAD << 16) | (f2hHead << 8));
     pciExpressDevice->WriteSystemCSR(genIID() | (OP_UPDATE_H2FTAIL << 16) | (h2fTail << 8));
-
-    pthread_mutex_init(&channelLock, NULL);
-}
-
-// destructor
-PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
-{
 }
 
 // blocking read
