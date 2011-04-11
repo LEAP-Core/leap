@@ -6320,3 +6320,13 @@ Directory modules/leap/build-support/project
   among multiple FPGAs on a single host.
 - PCIe physical channel must delay opening the device until Init() instead
   of in the constructor so that dynamic parameters have their values.
+
+----------
+mcadler     Date: Mon Apr 11 07:17:14 EDT 2011  CSN: CSN-leap-76
+                  Mon Apr 11 11:17:14 UTC 2011
+
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Modified           75 
+
+Note DEFAULT FPGA class.
