@@ -6330,3 +6330,47 @@ Directory tools/scripts/bmark
  run.bmark                 Locally Modified           75 
 
 Note DEFAULT FPGA class.
+
+----------
+jsemer      Date: Tue Apr 12 17:54:08 EDT 2011  CSN: CSN-leap-77
+                  Tue Apr 12 21:54:08 UTC 2011
+
+
+Directory .
+ configure                 Locally Modified           76 
+
+Directory aux-scripts
+ depcomp                   Locally Added               - 
+ compile                   Locally Added               - 
+ missing                   Locally Added               - 
+ install-sh                Locally Added               - 
+
+Directory .
+ aux-scripts/              Locally Added               0 
+
+Directory debian
+ changelog                 Locally Modified           76 
+
+Directory .
+ Makefile.in               Locally Modified           76 
+ configure.in              Locally Modified           76 
+
+Directory scripts
+ depcomp                   Locally Removed            76 
+ compile                   Locally Removed            76 
+ missing                   Locally Removed            76 
+ install-sh                Locally Removed            76 
+
+Directory tools/scripts/bmark
+ run.bmark                 Locally Removed            76 
+ setup-bmark               Locally Removed            76 
+
+Directory config/bm/leap
+ demos.cfx                 Locally Modified           76 
+
+Directory .
+ Makefile.am               Locally Modified           76 
+
+Move autoconf scripts from scripts/ to aux-scripts/. Put
+benchmark setup/run scripts in scripts/ and copy them
+to the system-wide package on an install.

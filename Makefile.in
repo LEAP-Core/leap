@@ -34,9 +34,9 @@ POST_UNINSTALL = :
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure \
-	$(top_srcdir)/include/config.h.in INSTALL config.guess \
-	config.sub scripts/compile scripts/depcomp scripts/install-sh \
-	scripts/missing
+	$(top_srcdir)/include/config.h.in INSTALL aux-scripts/compile \
+	aux-scripts/depcomp aux-scripts/install-sh aux-scripts/missing \
+	config.guess config.sub
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -734,6 +734,7 @@ install-package:
 	rsync -av --exclude .svn config       $(DESTDIR)$(codedir)
 	rsync -av --exclude .svn experiments  $(DESTDIR)$(codedir)
 	rsync -av --exclude .svn modules      $(DESTDIR)$(codedir)
+	rsync -av --exclude .svn scripts      $(DESTDIR)$(codedir)
 
 #
 # This horrible sequence copies the source to $(codedir) and

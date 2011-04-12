@@ -1,7 +1,7 @@
-leap (11.04~svn20110409r074+lucid) lucid; urgency=low
+leap (11.04~svn20110411r075+lucid) lucid; urgency=low
 
   [ Joel Emer ]
   * r065
      Start of working on v11.04 release
 
- -- Joel Emer <joel@emer.org>  Sat, 09 Apr 2011 12:22:31 -0400
+ -- Joel Emer <jsemer@intel.com>  Mon, 11 Apr 2011 17:54:41 -0400
