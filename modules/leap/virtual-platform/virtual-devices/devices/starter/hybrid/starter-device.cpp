@@ -1,15 +1,32 @@
+//
+// Copyright (C) 2011 Intel Corporation
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
 
+#include "asim/syntax.h"
 #include "asim/atomic.h"
 
 #include "asim/rrr/service_ids.h"
 #include "asim/provides/starter_device.h"
-
-// Temporarily control the Stat Dumping.
-//#include "asim/provides/stats_device.h"
+#include "asim/provides/application_env.h"
 
 #include "asim/ioformat.h"
 
@@ -132,5 +149,8 @@ STARTER_DEVICE_SERVER_CLASS::Start()
     pthread_mutex_unlock(&hardwareStatusLock);
 
     // call client stub
-    clientStub->Start(0);
+    if (PLATFORM_SERVICES_AVAILABLE)
+    {
+        clientStub->Start(0);
+    }
 }

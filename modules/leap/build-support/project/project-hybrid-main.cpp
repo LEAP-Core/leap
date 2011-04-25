@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     // The user can use a parameter to indicate the hardware never 
     // terminates (IE because it's a pure server).
     
-    if (WAIT_FOR_HARDWARE && !hardwareFinished)
+    if (PLATFORM_SERVICES_AVAILABLE && !hardwareFinished)
     {
         // We need to wait for it and it's not finished.
         // So we'll wait to receive the signal from the VP.

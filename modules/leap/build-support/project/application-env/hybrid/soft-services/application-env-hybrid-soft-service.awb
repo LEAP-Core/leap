@@ -12,3 +12,5 @@
 %public  application-env-hybrid-soft-service.bsv
 %public  application-env-hybrid-soft-service.h
 %private application-env-hybrid-soft-service.cpp
+
+%param PLATFORM_SERVICES_AVAILABLE  1     "1 = Platform services are available."

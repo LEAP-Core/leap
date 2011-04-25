@@ -151,3 +151,6 @@ class Synthesize(ProjectDependency):
 
     moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
     SCons.Script.Clean(top_netlist, topSRP)
+
+    # Alias for synthesis
+    moduleList.env.Alias('synth', [top_netlist])

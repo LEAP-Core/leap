@@ -28,6 +28,3 @@
 
 %param SMART_SYNTH_BOUNDARY 0        "use smart synthesis boundaries"
 %param SYNTH_BOUNDARY       mkModel  "name of synthesis boundary"
-
-
-%param WAIT_FOR_HARDWARE    1         "1 = SW application waits for done signal from hardware."

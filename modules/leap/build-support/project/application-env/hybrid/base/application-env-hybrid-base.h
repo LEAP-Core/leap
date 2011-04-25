@@ -2,6 +2,7 @@
 #ifndef __APPLICATION_ENV__
 #define __APPLICATION_ENV__
 
+#include "asim/syntax.h"
 #include "asim/provides/virtual_platform.h"
 #include "asim/provides/hybrid_application.h"
 

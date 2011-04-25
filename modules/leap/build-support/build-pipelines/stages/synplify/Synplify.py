@@ -143,3 +143,5 @@ class Synthesize(ProjectDependency):
 
     moduleList.topModule.moduleDependency['SYNTHESIS'] = top_netlist
 
+    # Alias for synthesis
+    moduleList.env.Alias('synth', [top_netlist])

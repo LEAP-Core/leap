@@ -6374,3 +6374,57 @@ Directory .
 Move autoconf scripts from scripts/ to aux-scripts/. Put
 benchmark setup/run scripts in scripts/ and copy them
 to the system-wide package on an install.
+
+----------
+mcadler     Date: Mon Apr 25 18:34:45 EDT 2011  CSN: CSN-leap-78
+                  Mon Apr 25 22:34:45 UTC 2011
+
+
+Directory modules/model
+ hasim_model.awb           Locally Modified           77 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.cpp        Locally Modified           77 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device
+ dynamic-parameters-device.cpp Locally Modified           77 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XSTnobasicio.py           Locally Modified           77 
+ XST.py                    Locally Modified           77 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ Synplify.py               Locally Modified           77 
+ SynplifySub.py            Locally Modified           77 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified           77 
+ project-hybrid-main.cpp   Locally Modified           77 
+
+Directory modules/leap/build-support/project/application-env/hybrid/base
+ application-env-hybrid-base.h Locally Modified           77 
+ application-env-hybrid-base.awb Locally Modified           77 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.awb Locally Modified           77 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.awb Locally Modified           77 
+
+Directory modules/leap/build-support/project
+ project-hybrid.awb        Locally Modified           77 
+ project-pipeline-new.awb  Locally Modified           77 
+
+- WAIT_FOR_HARDWARE was an old, partial solution to the configuration in which
+  unconnected applications define platform service devices on the software side
+  but don't instantiate the hardware side.  WAIT_FOR_HARDWARE was the starter
+  service.  Dynamic parameters have the same problem.  Applications that use
+  software-side dynamic parameters were trying to send them to the hardware
+  side and deadlocking.
+
+  Drop WAIT_FOR_HARDWARE.  Instead, add PLATFORM_SERVICES_AVAILABLE to all
+  application environments.
+
+- Add a 'synth' build target to all FPGA synthesis SCons rules.  This is
+  a convenient target for a single build that will be the basis of multiple
+  cost table place and route attempts.

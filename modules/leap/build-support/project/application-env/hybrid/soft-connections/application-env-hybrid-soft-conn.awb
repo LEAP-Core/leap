@@ -13,5 +13,4 @@
 %public  application-env-hybrid-soft-conn.h
 %private application-env-hybrid-soft-conn.cpp
 
-
-
+%param PLATFORM_SERVICES_AVAILABLE  1     "1 = Platform services are available."
