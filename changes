@@ -6428,3 +6428,14 @@ Directory modules/leap/build-support/project
 - Add a 'synth' build target to all FPGA synthesis SCons rules.  This is
   a convenient target for a single build that will be the basis of multiple
   cost table place and route attempts.
+
+----------
+mcadler     Date: Fri Apr 29 16:37:17 EDT 2011  CSN: CSN-leap-79
+                  Fri Apr 29 20:37:17 UTC 2011
+
+
+Directory libperl/Leap/lib/Leap
+ Util.pm                   Locally Modified           78 
+
+The latest bsc doesn't permit -sim and -verilog to be specified at the final
+Bluesim build step.

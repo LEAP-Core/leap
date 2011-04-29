@@ -112,7 +112,7 @@ sub common_replacements($$) {
 
     # remove-dollar kills simulation builds
     Leap::Util::hash_set($replacements_r,'@BSC_FLAGS_SIM@',
-                          ' -steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -verilog ');
+                          ' -steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule ');
 
 
 }
