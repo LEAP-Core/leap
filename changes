@@ -6450,3 +6450,39 @@ Directory tools/scripts
 
 
 * Clean up error handling when config.h or param.h are not found.
+
+----------
+pellauer    Date: Wed May  4 16:44:21 EDT 2011  CSN: CSN-leap-81
+                  Wed May  4 20:44:21 UTC 2011
+
+
+Directory modules
+ model/                    Locally Removed            80 
+
+Directory modules/model
+ Makefile.sub.template     Locally Removed            80 
+ SCons.dict.template       Locally Removed            80 
+ pure_bluespec_main.cpp    Locally Removed            80 
+ pure_bluespec_model.awb   Locally Removed            80 
+ pure_bluespec_hybrid_model.awb Locally Removed            80 
+ SCons.sw.template         Locally Removed            80 
+ pure_bluespec_main.h      Locally Removed            80 
+ default_software_system.h Locally Removed            80 
+ Makefile.top.template     Locally Removed            80 
+ hasim_model.awb           Locally Removed            80 
+ hasim_hwonly_model.awb    Locally Removed            80 
+ hybrid_system.awb         Locally Removed            80 
+ SCons.top.template        Locally Removed            80 
+ main.cpp                  Locally Removed            80 
+ SCons.iface.template      Locally Removed            80 
+ hardware-done.h           Locally Removed            80 
+ pure_bluespec_model.bsv   Locally Removed            80 
+ Makefile.include.template Locally Removed            80 
+ hasim_model.bsv           Locally Removed            80 
+ default_software_system.awb Locally Removed            80 
+ main.h                    Locally Removed            80 
+ SCons.hw.template         Locally Removed            80 
+
+
+* Removing duplicate "model" directory that was kept for backwards 
+  compatability. No longer used anywhere obvious.
