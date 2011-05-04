@@ -6439,3 +6439,14 @@ Directory libperl/Leap/lib/Leap
 
 The latest bsc doesn't permit -sim and -verilog to be specified at the final
 Bluesim build step.
+
+----------
+pellauer    Date: Wed May  4 16:20:45 EDT 2011  CSN: CSN-leap-80
+                  Wed May  4 20:20:45 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified           79 
+
+
+* Clean up error handling when config.h or param.h are not found.

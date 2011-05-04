@@ -554,13 +554,23 @@ sub dyn_params($)
         my $base;
         if ($fname eq 'config.h') {
             $base = Asim::resolve("base/leap-$fname");
+            if (not defined($base)) {
+                print "Could not resolve file base/leap-$fname. Is SEARCHPATH in awb.config wrong?\n";
+                exit(1);
+            }
         }       
         else {
             $base = Asim::resolve("base/$fname");
+            if (not defined($base)) {
+                print "Could not resolve file base/$fname. Is SEARCHPATH in awb.config wrong?\n";
+                exit(1);
+            }
         }
-        chomp($base);
-        if ($base ne '') {
-            system("ln -f -s $base " . Leap::Util::path_append($builddir, "sw/include/asim", $fname));
+        if (defined($base)) {
+            chomp($base);
+            if ($base ne '') {
+                system("ln -f -s $base " . Leap::Util::path_append($builddir, "sw/include/asim", $fname));
+            }
         }
     }
 
