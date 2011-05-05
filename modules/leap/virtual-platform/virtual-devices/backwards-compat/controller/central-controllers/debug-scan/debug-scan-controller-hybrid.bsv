@@ -18,7 +18,6 @@
 
 import FIFO::*;
 
-`include "asim/provides/hasim_common.bsh"
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
 
@@ -46,7 +45,7 @@ endinterface
 //
 // Manage debug scan ring.
 //
-module [Connected_Module] mkDebugScanController
+module [CONNECTED_MODULE] mkDebugScanController
     // interface:
     (DEBUG_SCAN_CONTROLLER);
 

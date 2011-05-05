@@ -1,6 +1,6 @@
 %name Hybrid Pure Bluespec Controller
 %desc Hybrid Pure Bluespec Controller
-%attributes hasim
+%attributes leap
 
 %provides hasim_controller
 

@@ -68,7 +68,7 @@ interface SHARED_MEMORY;
     method ActionValue#(SHARED_MEMORY_DATA) readLineResp();
     method Action                           writeLine(SHARED_MEMORY_ADDRESS addr,
                                                       SHARED_MEMORY_DATA    data);
-    
+
     // burst interface -- assumption: burst word == single word
     method Action                           readBurstReq(SHARED_MEMORY_ADDRESS      addr,
                                                          SHARED_MEMORY_BURST_LENGTH len);
@@ -76,7 +76,7 @@ interface SHARED_MEMORY;
     method Action                           writeBurstReq(SHARED_MEMORY_ADDRESS      addr,
                                                           SHARED_MEMORY_BURST_LENGTH len);
     method Action                           writeBurstData(SHARED_MEMORY_DATA data);    
-        
+
 endinterface
 
 // ============== mkSharedMemory Module ===============
@@ -90,7 +90,7 @@ module mkSharedMemory#(LowLevelPlatformInterface llpi)
     // stubs
     ServerStub_SHARED_MEMORY server_stub <- mkServerStub_SHARED_MEMORY(llpi.rrrServer);
     ClientStub_SHARED_MEMORY client_stub <- mkClientStub_SHARED_MEMORY(llpi.rrrClient);
-    
+
     // TLB
     Reg#(REMOTE_MEMORY_PHYSICAL_ADDRESS) theOnlyPhysicalAddress <- mkReg(0);
 
@@ -103,80 +103,80 @@ module mkSharedMemory#(LowLevelPlatformInterface llpi)
     // translation macros
     function REMOTE_MEMORY_PHYSICAL_ADDRESS va_to_pa(SHARED_MEMORY_ADDRESS addr) =
         (theOnlyPhysicalAddress | zeroExtend(addr));
-        
+
     //
     // Rules
     //
-    
+
     // Wait for translation push from software
-    
+
     rule wait_for_translation (state == STATE_init);
-        
+
         let pa <- server_stub.acceptRequest_UpdateTranslation();
         theOnlyPhysicalAddress <= pa;
-        
+
         server_stub.sendResponse_UpdateTranslation(?);
 
         state <= STATE_ready;
-        
+
     endrule
-    
+
     //
     // Methods
     //
-    
+
     // line interface
-    
+
     method Action readLineReq(SHARED_MEMORY_ADDRESS addr) if (state == STATE_ready);
-        
+
         remoteMemory.readLineReq(va_to_pa(addr));
-        
+
     endmethod
 
     method ActionValue#(SHARED_MEMORY_DATA) readLineResp() if (state == STATE_ready);
-        
+
         let data <- remoteMemory.readLineResp();
         return data;
-        
+
     endmethod
-        
+
     method Action writeLine(SHARED_MEMORY_ADDRESS addr,
                             SHARED_MEMORY_DATA    data) if (state == STATE_ready);
 
         remoteMemory.writeLine(va_to_pa(addr), data);
-        
+
     endmethod
-    
+
     // burst interface
-    
+
     method Action readBurstReq(SHARED_MEMORY_ADDRESS      addr,
                                SHARED_MEMORY_BURST_LENGTH nwords) if (state == STATE_ready);
 
         remoteMemory.readBurstReq(va_to_pa(addr), nwords);
-        
+
     endmethod
 
     method ActionValue#(SHARED_MEMORY_DATA) readBurstResp() if (state == STATE_ready);
-        
+
         let data <- remoteMemory.readBurstResp();    
         return data;
-        
+
     endmethod
-    
+
     // for burst writes, the first data word can only be written in the cycle following
     // the initial write request. Probably easy to optimize this.
-    
+
     method Action writeBurstReq(SHARED_MEMORY_ADDRESS      addr,
                                 SHARED_MEMORY_BURST_LENGTH len) if (state == STATE_ready);
-        
+
         remoteMemory.writeBurstReq(va_to_pa(addr), len);
-        
+
     endmethod
-        
+
     method Action writeBurstData(SHARED_MEMORY_DATA data) if (state == STATE_ready);
 
         remoteMemory.writeBurstData(data);
-        
-    endmethod    
-    
+
+    endmethod
+
 endmodule

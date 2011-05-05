@@ -11,7 +11,7 @@
 # %desc Hybrid Streams 
 # %provides streams
 #
-# %attributes hasim
+# %attributes leap
 #
 # %sources -t BSH  -v PRIVATE streams-common.bsh
 # %sources -t BSV  -v PUBLIC  hybrid-streams.bsv

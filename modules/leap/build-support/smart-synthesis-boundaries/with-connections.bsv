@@ -20,17 +20,17 @@ import Vector::*;
 import ModuleCollect::*;
 import List::*;
 
-import soft_connections::*;
+`include "asim/provides/soft_connections.bsh"
 
 //The interface of a module with Connections
 interface WITH_CONNECTIONS#(parameter numeric type numIn,
-                           parameter numeric type numOut,
-                           parameter type orig_T);
+                            parameter numeric type numOut,
+                            parameter type orig_T);
 
-  interface Vector#(numIn, PHYSICAL_CONNECTION_IN)  incoming;
-  interface Vector#(numOut, PHYSICAL_CONNECTION_OUT) outgoing;
-  interface Vector#(CON_NUM_CHAINS, PHYSICAL_CONNECTION_INOUT) chains;
-  interface orig_T device;
+    interface Vector#(numIn, PHYSICAL_CONNECTION_IN)  incoming;
+    interface Vector#(numOut, PHYSICAL_CONNECTION_OUT) outgoing;
+    interface Vector#(CON_NUM_CHAINS, PHYSICAL_CONNECTION_INOUT) chains;
+    interface orig_T device;
 
 endinterface
 

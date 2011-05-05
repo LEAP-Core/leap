@@ -3,7 +3,7 @@
 %desc Hybrid Basic Starter
 %provides starter
 
-%attributes hasim
+%attributes leap
 
 %sources -t BSV -v PUBLIC     hybrid-basic-starter.bsv
 %sources -t H   -v PUBLIC     hybrid-basic-starter.h

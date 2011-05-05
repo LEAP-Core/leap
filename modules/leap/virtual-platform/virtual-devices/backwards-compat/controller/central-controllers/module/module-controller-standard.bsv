@@ -16,12 +16,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-//BSV library imports
+// BSV library imports
 import PrimArray::*;
 import Connectable::*;
 import FIFO::*;
 
-//HASim library imports
+// Leap library imports
 
 `include "asim/provides/hasim_common.bsh"
 `include "asim/provides/hasim_modellib.bsh"
@@ -32,6 +32,7 @@ import FIFO::*;
 
 `include "asim/provides/starter.bsh"
 `include "asim/provides/streams.bsh"
+
 `include "asim/dict/RINGID.bsh"
 `include "asim/dict/STREAMS.bsh"
 `include "asim/dict/STREAMID.bsh"
@@ -66,7 +67,7 @@ CON_STATE
     deriving (Eq, Bits);
 
 // mkModuleController
-module [HASIM_MODULE] mkModuleController#(Connection_Send#(STREAMS_REQUEST) link_streams)
+module [CONNECTED_MODULE] mkModuleController#(Connection_Send#(STREAMS_REQUEST) link_streams)
     // interface:
         (MODULE_CONTROLLER);
 

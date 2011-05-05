@@ -16,12 +16,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/hasim_common.bsh"
+`include "asim/provides/soft_connections.bsh"
 `include "asim/provides/central_controllers.bsh"
 
 //=============== Basic Controller ===============
 
-module [HASIM_MODULE] mkController();
+module [CONNECTED_MODULE] mkController();
     // instantiate all the sub-controllers
     CENTRAL_CONTROLLERS centralControllers <- mkCentralControllers();
 endmodule

@@ -11,7 +11,7 @@
 # %desc Shared Tree Physical Interconnect
 # %provides physical_interconnect
 #
-# %attributes hasim
+# %attributes leap
 #
 # %public tree-interface.bsv tree-helper.bsv tree-routing-table.bsv tree-station.bsv
 

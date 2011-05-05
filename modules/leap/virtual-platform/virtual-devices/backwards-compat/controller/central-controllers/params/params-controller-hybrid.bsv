@@ -23,7 +23,6 @@
 // @author Michael Adler
 //
 
-`include "asim/provides/hasim_common.bsh"
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/rrr.bsh"
 
@@ -64,7 +63,7 @@ typedef struct
 
 // Abstracts all communication from the main controller to individual stat counters.
 
-module [Connected_Module] mkParamsController
+module [CONNECTED_MODULE] mkParamsController
     //interface:
                 (PARAMS_CONTROLLER);
 

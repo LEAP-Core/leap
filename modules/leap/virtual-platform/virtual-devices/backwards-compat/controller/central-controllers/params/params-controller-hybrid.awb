@@ -3,7 +3,7 @@
 
 %provides params_controller
 
-%attributes hasim
+%attributes leap
 
 %sources -v PUBLIC  params-controller-hybrid.bsv
 %sources -v PUBLIC  params-controller-hybrid.h

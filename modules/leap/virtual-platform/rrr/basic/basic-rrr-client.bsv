@@ -21,10 +21,11 @@
 import Vector::*;
 import FIFOF::*;
 
-`include "channelio.bsh"
-`include "rrr.bsh"
+`include "asim/provides/channelio.bsh"
+`include "asim/provides/rrr.bsh"
+`include "asim/provides/umf.bsh"
+
 `include "asim/rrr/service_ids.bsh"
-`include "umf.bsh"
 
 // RRR Client
 
@@ -67,9 +68,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
         // create a new request port and link it to the FIFO
         req_ports[s] = interface CLIENT_REQUEST_PORT
                            method Action write(UMF_PACKET data);
-        
                                requestQueues[s].enq(data);
-                           
                            endmethod
                        endinterface;
 
@@ -80,15 +79,14 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
                                 UMF_PACKET val = responseQueues[s].first();
                                 responseQueues[s].deq();
                                 return val;
-                            
                             endmethod
                         endinterface;
     end
-    
+
     // === arbiters ===
-    
+
     ARBITER#(`NUM_SERVICES) arbiter <- mkRoundRobinArbiter();
-    
+
     // === other state ===
 
     Reg#(UMF_MSG_LENGTH) requestChunksRemaining  <- mkReg(0);
@@ -130,7 +128,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
     // ==============================================================
     //                          Request Rules
     // ==============================================================
-    
+
     //
     // Start writing new message.  The write_request_newmsg rule is broken
     // into two parts in order to help Bluespec generate a significantly simpler
@@ -156,7 +154,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
         newMsgQIdx <= arbiter.arbitrate(request);
 
     endrule
-    
+
     //
     // Second half -- consume a value from the chosen responseQueue.  If the
     // rule fails to fire because the channel write port is full it will fire
@@ -192,7 +190,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
         endrule
 
     end
-    
+
     // continue writing message
     rule write_request_continue (requestChunksRemaining != 0);
 

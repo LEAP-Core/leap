@@ -59,7 +59,7 @@ endinterface
 //     ASSERTIONS.FOO.BAR in the dictionary gets an ID ASSERTIONS_FOO_BAR and
 //     belongs to node ID ASSERTIONS_FOO__BASE.
 //
-module [Connected_Module] mkAssertionNode#(ASSERTIONS_DICT_TYPE baseID)
+module [CONNECTED_MODULE] mkAssertionNode#(ASSERTIONS_DICT_TYPE baseID)
     // interface:
         (ASSERTION_NODE);
 

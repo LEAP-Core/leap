@@ -18,7 +18,6 @@
 
 import FIFO::*;
 
-`include "asim/provides/hasim_common.bsh"
 `include "asim/provides/soft_connections.bsh"
 
 `include "asim/provides/rrr.bsh"
@@ -44,7 +43,7 @@ endinterface
 
 // A module which serially passes Assertion failures back to the software.
 
-module [Connected_Module] mkAssertionsController
+module [CONNECTED_MODULE] mkAssertionsController
     // interface:
         (ASSERTIONS_CONTROLLER);
 

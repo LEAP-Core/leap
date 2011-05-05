@@ -1,7 +1,7 @@
 # -*-Python-*-
 
 ##
-## SCons script for building HAsim dictionaries
+## SCons script for building Leap dictionaries
 ##
 
 import os

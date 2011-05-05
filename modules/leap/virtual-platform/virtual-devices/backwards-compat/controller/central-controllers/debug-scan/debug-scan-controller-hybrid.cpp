@@ -29,7 +29,6 @@
 #include <cmath>
 
 #include "asim/rrr/service_ids.h"
-#include "asim/provides/hasim_common.h"
 #include "asim/provides/command_switches.h"
 
 #include "asim/provides/debug_scan_controller.h"

@@ -12,7 +12,7 @@
 # %provides assertions_controller
 #
 #
-# %attributes hasim
+# %attributes leap
 #
 # %sources -t BSV  -v PUBLIC assertions-controller-hybrid.bsv
 # %sources -t H    -v PUBLIC assertions-controller-hybrid.h

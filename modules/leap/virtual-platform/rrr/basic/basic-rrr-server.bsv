@@ -19,10 +19,11 @@
 import Vector::*;
 import FIFOF::*;
 
-`include "channelio.bsh"
-`include "rrr.bsh"
+`include "asim/provides/channelio.bsh"
+`include "asim/provides/rrr.bsh"
+`include "asim/provides/umf.bsh"
+
 `include "asim/rrr/service_ids.bsh"
-`include "umf.bsh"
 
 // RRR Server: my job is to scan channelio for incoming requests and queue
 // them in service-private internal buffers. Services will periodically probe
@@ -88,9 +89,9 @@ module mkRRRServer#(CHANNEL_IO channel) (RRR_SERVER);
     end
 
     // === arbiters ===
-    
+
     ARBITER#(`NUM_SERVICES) arbiter <- mkRoundRobinArbiter();
-    
+
     // === other state ===
 
     Reg#(UMF_MSG_LENGTH) requestChunksRemaining  <- mkReg(0);
@@ -132,7 +133,7 @@ module mkRRRServer#(CHANNEL_IO channel) (RRR_SERVER);
     // ==============================================================
     //                          Response Rules
     // ==============================================================
-    
+
     //
     // Start writing new message.  The write_response_newmsg rule is broken
     // into two parts in order to help Bluespec generate a significantly simpler
@@ -158,7 +159,7 @@ module mkRRRServer#(CHANNEL_IO channel) (RRR_SERVER);
         newMsgQIdx <= arbiter.arbitrate(request);
 
     endrule
-    
+
     //
     // Second half -- consume a value from the chosen responseQueue.  If the
     // rule fails to fire because the channel write port is full it will fire

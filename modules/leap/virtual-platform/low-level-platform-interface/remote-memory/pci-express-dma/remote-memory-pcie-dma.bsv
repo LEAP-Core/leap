@@ -23,8 +23,8 @@
 import FIFOF::*;
 import FIFOLevel::*;
 
-`include "physical_platform.bsh"
-`include "pci_express_device.bsh"
+`include "asim/provides/physical_platform.bsh"
+`include "asim/provides/pci_express_device.bsh"
 
 // types
 typedef enum

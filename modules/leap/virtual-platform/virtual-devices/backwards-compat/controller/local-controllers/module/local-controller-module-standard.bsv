@@ -57,7 +57,7 @@ typedef enum
 LC_STATE
     deriving (Eq, Bits);
 
-module [HASIM_MODULE] mkLocalController
+module [CONNECTED_MODULE] mkLocalController
 
     // parameters:
     #(

@@ -1,6 +1,6 @@
 %name Hybrid Basic Controller
 %desc Hybrid Basic Controller
-%attributes hasim
+%attributes leap
 
 %provides hasim_controller
 

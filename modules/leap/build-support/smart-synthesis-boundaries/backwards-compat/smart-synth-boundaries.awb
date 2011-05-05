@@ -11,7 +11,7 @@
 # %desc Smart Synthesis Boundaries
 # %provides smart_synth_boundaries
 #
-# %attributes hasim
+# %attributes leap
 #
 # %public with-connections.bsv expose-connections.bsv bury-connections.bsv
 #

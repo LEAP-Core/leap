@@ -18,7 +18,6 @@
 
 import Vector::*;
 
-`include "asim/provides/hasim_common.bsh"
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
 
@@ -55,7 +54,7 @@ typedef Bit#(TAdd#(`HEARTBEAT_TRIGGER_BIT, 1)) HEARTBEAT_MODEL_CYCLES;
 
 // ================ Standard Controller ===============
 
-module [HASIM_MODULE] mkController ();
+module [CONNECTED_MODULE] mkController ();
 
     TIMEP_DEBUG_FILE_MULTICTX debugLog <- mkTIMEPDebugFile_MultiCtx("controller.out");
 

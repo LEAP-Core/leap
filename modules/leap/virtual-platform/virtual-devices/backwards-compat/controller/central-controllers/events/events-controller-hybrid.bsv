@@ -2,16 +2,17 @@ import FIFO::*;
 import Counter::*;
 import Vector::*;
 
-import hasim_common::*;
-import librl_bsv_base::*;
-import hasim_modellib::*;
-import soft_connections::*;
+`include "asim/provides/hasim_common.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
+`include "asim/provides/hasim_modellib.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/streams.bsh"
+`include "asim/provides/rrr.bsh"
+
 `include "asim/dict/RINGID.bsh"
 `include "asim/dict/STREAMID.bsh"
 `include "asim/dict/EVENTS.bsh"
 
-`include "asim/provides/streams.bsh"
-`include "rrr.bsh"
 `include "asim/rrr/service_ids.bsh"
 `include "asim/rrr/remote_client_stub_EVENTS.bsh"
 
@@ -61,7 +62,7 @@ typedef enum
 
 // A module which uses RRR to communicate events to software.
 
-module [Connected_Module] mkEventsController#(Connection_Send#(STREAMS_REQUEST) link_streams)
+module [CONNECTED_MODULE] mkEventsController#(Connection_Send#(STREAMS_REQUEST) link_streams)
     //interface:
                 (EVENTS_CONTROLLER);
 

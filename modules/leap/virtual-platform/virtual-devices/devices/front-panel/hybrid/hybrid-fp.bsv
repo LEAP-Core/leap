@@ -16,9 +16,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "low_level_platform_interface.bsh"
-`include "rrr.bsh"
-`include "physical_platform.bsh"
+`include "asim/provides/low_level_platform_interface.bsh"
+`include "asim/provides/rrr.bsh"
+`include "asim/provides/physical_platform.bsh"
 
 `include "asim/rrr/service_ids.bsh"
 `include "asim/rrr/server_stub_FRONT_PANEL.bsh"

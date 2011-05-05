@@ -11,6 +11,6 @@
 # %desc Standard Local Controllers
 # %provides local_controllers
 #
-# %attributes hasim
+# %attributes leap
 #
 # %requires module_local_controller

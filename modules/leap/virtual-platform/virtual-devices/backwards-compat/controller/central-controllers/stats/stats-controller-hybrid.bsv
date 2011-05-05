@@ -18,8 +18,7 @@
 
 import FIFO::*;
 
-import hasim_common::*;
-import soft_connections::*;
+`include "asim/provides/soft_connections.bsh"
 
 `include "asim/provides/rrr.bsh"
 
@@ -79,7 +78,7 @@ typedef enum
 
 // Abstracts all communication from the main controller to individual stat counters.
 
-module [Connected_Module] mkStatsController
+module [CONNECTED_MODULE] mkStatsController
     //interface:
                 (STATS_CONTROLLER);
 

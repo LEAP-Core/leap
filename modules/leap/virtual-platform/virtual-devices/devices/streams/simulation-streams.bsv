@@ -1,5 +1,5 @@
-`include "rrr.bsh"
-`include "low_level_platform_interface.bsh"
+`include "asim/provides/rrr.bsh"
+`include "asim/provides/low_level_platform_interface.bsh"
 
 `include "streams-common.bsh"
 

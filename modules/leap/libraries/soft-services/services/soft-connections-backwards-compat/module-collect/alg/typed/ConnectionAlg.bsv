@@ -6,7 +6,7 @@ import FIFO::*;
 import ModuleCollect::*;
 import Connectable::*;
 
-import soft_connections::*;
+`include "asim/provides/soft_connections.bsh"
 
 //Instantiate a top-level module where dangling connections are errors
 

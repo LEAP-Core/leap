@@ -18,5 +18,5 @@
 
 //=============== Basic Controller ===============
 
-module [HASIM_MODULE] mkController();
+module [CONNECTED_MODULE] mkController();
 endmodule

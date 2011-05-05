@@ -6,7 +6,7 @@
 
 %name Hardware-Only Null Controller
 %desc Hardware-Only Null Controller
-%attributes hasim
+%attributes leap
 
 %provides hasim_controller
 

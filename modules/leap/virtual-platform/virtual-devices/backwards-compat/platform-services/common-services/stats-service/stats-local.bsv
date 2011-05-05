@@ -62,7 +62,7 @@ endinterface
 //     Public module for the STAT single statistic interface.  Implement it
 //     using the code for the vector interface.
 //
-module [Connected_Module] mkStatCounter#(STATS_DICT_TYPE statID)
+module [CONNECTED_MODULE] mkStatCounter#(STATS_DICT_TYPE statID)
     // interface:
     (STAT);
 
@@ -80,7 +80,7 @@ endmodule
 //     single statID into an array.  The arrayIdx values must be unique
 //     for a given statID.
 //
-module [Connected_Module] mkStatCounterArrayElement#(STATS_DICT_TYPE statID,
+module [CONNECTED_MODULE] mkStatCounterArrayElement#(STATS_DICT_TYPE statID,
                                                      STAT_VECTOR_INDEX arrayIdx)
     // interface:
     (STAT);
@@ -102,7 +102,7 @@ endmodule
 //     *** This method is the only way to instantiate multiple buckets ***
 //     *** for a single statistic ID.                                  ***
 //
-module [Connected_Module] mkStatCounter_MultiEntry#(STATS_DICT_TYPE statID)
+module [CONNECTED_MODULE] mkStatCounter_MultiEntry#(STATS_DICT_TYPE statID)
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
@@ -118,7 +118,7 @@ endmodule
 // mkStatCounter_Vector --
 //     Public module for the STAT_VECTOR multiple instance IDs interface.
 //
-module [Connected_Module] mkStatCounter_Vector#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs)
+module [CONNECTED_MODULE] mkStatCounter_Vector#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs)
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
@@ -142,7 +142,7 @@ endmodule
 //     counters from independent ring stops into a logical array in
 //     software.
 //
-module [Connected_Module] mkStatCounterArray_Vector#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs,
+module [CONNECTED_MODULE] mkStatCounterArray_Vector#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs,
                                                      STAT_VECTOR_INDEX arrayIdx)
     // interface:
     (STAT_VECTOR#(n_STATS))
@@ -207,7 +207,7 @@ STAT_TYPE
 //     Vector of individual statistics.  When singleID is true all entries share
 //     the same ID.
 //
-module [Connected_Module] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs,
+module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs,
                                                     STAT_TYPE statType)
     // interface:
     (STAT_VECTOR#(n_STATS))
@@ -423,7 +423,7 @@ module [Connected_Module] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
 endmodule
 
 
-module [Connected_Module] mkStatCounterVec_Disabled#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs)
+module [CONNECTED_MODULE] mkStatCounterVec_Disabled#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs)
     // interface:
     (STAT_VECTOR#(n_STATS));
 

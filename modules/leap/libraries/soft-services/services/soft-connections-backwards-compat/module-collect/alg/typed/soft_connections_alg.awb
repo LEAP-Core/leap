@@ -11,7 +11,7 @@
 # %desc Soft Connection Algorithm
 # %provides soft_connections_alg
 #
-# %attributes hasim
+# %attributes leap
 #
 # %public ConnectionHelper.bsv ConnectionAlg.bsv
 #

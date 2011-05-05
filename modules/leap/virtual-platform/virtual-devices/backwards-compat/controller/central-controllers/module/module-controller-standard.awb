@@ -11,7 +11,7 @@
 # %desc Module Controller
 # %provides module_controller
 #
-# %attributes hasim
+# %attributes leap
 #
 # %sources -t BSV -v PUBLIC module-controller-standard.bsv 
 #

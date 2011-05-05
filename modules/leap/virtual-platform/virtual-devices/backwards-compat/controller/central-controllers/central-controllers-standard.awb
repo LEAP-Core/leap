@@ -2,7 +2,7 @@
 %desc Standard Central Controllers Grouping
 %provides central_controllers
 
-%attributes hasim
+%attributes leap
 
 %requires module_controller
 %requires events_controller

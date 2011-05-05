@@ -3,7 +3,7 @@
 %desc Null Starter Virtual Device
 %provides starter_device
 
-%attributes hasim
+%attributes leap
 
 %sources -t BSV -v PUBLIC     starter-device.bsv
 %sources -t H   -v PUBLIC     starter-device.h

@@ -11,7 +11,7 @@
 # %desc Prints Dictionary-defined messages when instructed by HW.
 # %provides streams_device
 #
-# %attributes hasim
+# %attributes leap
 #
 # %sources -t BSH  -v PRIVATE streams-common.bsh
 # %sources -t BSV  -v PUBLIC  hybrid-streams.bsv

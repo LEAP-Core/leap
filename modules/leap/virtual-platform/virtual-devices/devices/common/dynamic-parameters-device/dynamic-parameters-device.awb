@@ -3,7 +3,7 @@
 %desc Sends values set on the command line to HW.
 %provides dynamic_parameters_device
 
-%attributes hasim
+%attributes leap
 
 %sources -t BSV -v PUBLIC  dynamic-parameters-device.bsv
 %sources -t H   -v PUBLIC  dynamic-parameters-device.h

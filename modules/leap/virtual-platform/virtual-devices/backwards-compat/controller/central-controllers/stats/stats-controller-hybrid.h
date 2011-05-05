@@ -22,7 +22,6 @@
 #include <bitset>
 
 #include "platforms-module.h"
-#include "asim/provides/hasim_common.h"
 #include "asim/provides/rrr.h"
 
 #include "asim/dict/STATS.h"

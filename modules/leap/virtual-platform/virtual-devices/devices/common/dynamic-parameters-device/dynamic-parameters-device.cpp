@@ -35,7 +35,7 @@
 // dictionary entries.  Two arrays are built instead of using a struct to save
 // space since values pointers are 64 bits and dictionary entries are 32 bits.
 //
-// sim_config.h is built by hasim-configure and depends on macros to give
+// sim_config.h is built by leap-configure and depends on macros to give
 // information about parameters.  We define the macro multiple times to build
 // the table.
 //

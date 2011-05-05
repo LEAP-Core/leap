@@ -6,7 +6,6 @@
 #include "asim/atomic.h"
 
 #include "asim/rrr/service_ids.h"
-#include "asim/provides/hasim_common.h"
 #include "asim/provides/starter.h"
 #include "asim/provides/command_switches.h"
 #include "asim/provides/central_controllers.h"

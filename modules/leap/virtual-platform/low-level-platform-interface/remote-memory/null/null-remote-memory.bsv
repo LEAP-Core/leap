@@ -23,11 +23,11 @@
 `include "asim/provides/physical_platform.bsh"
 
 interface REMOTE_MEMORY;
-    
+
 endinterface
 
 module mkRemoteMemory#(PHYSICAL_DRIVERS drivers)
     // interface
         (REMOTE_MEMORY);
-    
+
 endmodule

@@ -9,7 +9,7 @@
 %requires local_controllers
 
 
-%attributes hasim
+%attributes leap
 
 %sources -t BSV -v PUBLIC  controller-standard.bsv 
 %sources -t H   -v PUBLIC  controller-standard.h

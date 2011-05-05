@@ -16,7 +16,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-//Re-bury connections which have been exposed at synthesis boundaries
+// Re-bury connections which have been exposed at synthesis boundaries
 
 typedef Tuple3#(String, String, Integer) ConMap;
 

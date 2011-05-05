@@ -5,7 +5,7 @@ import GetPut::*;
 
 //------------------------- Connections --------------------------//
 //                                                                //
-// Connections are the plumbing of HAsim. They represent basic	  //
+// Connections are the plumbing of Leap. They represent basic	  //
 // point-to-point communication. The advantage over traditional   //
 // Bluespec Connectables is that they are easier to use, are	  //
 // connected automatically, and can easily be extended to include //

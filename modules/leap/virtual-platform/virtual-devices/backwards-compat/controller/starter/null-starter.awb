@@ -11,7 +11,7 @@
 # %desc Null Starter for Hardware-Only models
 # %provides starter
 #
-# %attributes hasim
+# %attributes leap
 #
 # %sources -t BSV -v PUBLIC null-starter.bsv
 #

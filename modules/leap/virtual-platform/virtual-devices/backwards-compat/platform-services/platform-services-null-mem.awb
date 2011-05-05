@@ -3,7 +3,7 @@
 
 %provides platform_services
 
-%attributes hasim
+%attributes leap
 
 %public platform-services-null-mem.bsv
 

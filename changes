@@ -6486,3 +6486,296 @@ Directory modules/model
 
 * Removing duplicate "model" directory that was kept for backwards 
   compatability. No longer used anywhere obvious.
+
+----------
+pellauer    Date: Thu May  5 17:02:37 EDT 2011  CSN: CSN-leap-82
+                  Thu May  5 21:02:37 UTC 2011
+
+
+Directory modules/leap/virtual-platform/channelio/basic
+ basic-channelio.bsv       Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-dma
+ dma-physical-channel.bsv  Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel-loopback.bsv Locally Modified           81 
+ serial-physical-channel.bsv Locally Modified           81 
+ serial-physical-channel-8bit.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec
+ pcie-bluespec-physical-channel.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag/altera
+ jtag-physical-channel.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-csr
+ pcie-physical-channel.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/sim
+ sim-physical-channel.bsv  Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/unix
+ unix-channelio.c          Locally Modified           81 
+ UNIXChannelIO.bsv         Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/loopback
+ loopback-channelio.bsv    Locally Modified           81 
+
+Directory modules/leap/virtual-platform/channelio/null
+ NullChannelIO.bsv         Locally Modified           81 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-server.bsv      Locally Modified           81 
+ basic-rrr-client.bsv      Locally Modified           81 
+
+Directory modules/leap/virtual-platform/rrr/null
+ null-rrr.bsv              Locally Modified           81 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma
+ remote-memory-pcie-dma.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null
+ null-remote-memory.bsv    Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/null
+ null-virtual-devices.bsv  Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.bsv   Locally Modified           81 
+ std-virtual-devices-null-mem.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-pure-hybrid.awb Locally Modified           81 
+ controller-null.bsv       Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/starter
+ hybrid-basic-starter.cpp  Locally Modified           81 
+ hybrid-null-starter.awb   Locally Modified           81 
+ null-starter.awb          Locally Modified           81 
+ hybrid-basic-starter.awb  Locally Modified           81 
+ hybrid-basic-starter.bsv  Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-pure.bsv       Locally Modified           81 
+ controller-standard.awb   Locally Modified           81 
+ controller-basic-hybrid.awb Locally Modified           81 
+ controller-basic.bsv      Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-standard.awb Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/params
+ params-controller-hybrid.cpp Locally Modified           81 
+ params-controller-hybrid.awb Locally Modified           81 
+ params-controller-hybrid.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-basic.awb Locally Modified           81 
+ central-controllers-standard.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/events
+ events-controller-hybrid.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-basic.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/module
+ module-controller-standard.awb Locally Modified           81 
+ module-controller-standard.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/debug-scan
+ debug-scan-controller-hybrid.awb Locally Modified           81 
+ debug-scan-controller-hybrid.bsv Locally Modified           81 
+ debug-scan-controller-hybrid.cpp Locally Modified           81 
+ debug-scan-controller-hybrid.h Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/assertions
+ assertions-controller-hybrid.awb Locally Modified           81 
+ assertions-controller-hybrid.bsv Locally Modified           81 
+ assertions-controller-hybrid.cpp Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/stats
+ stats-controller-hybrid.cpp Locally Modified           81 
+ stats-controller-hybrid.h Locally Modified           81 
+ stats-controller-hybrid.awb Locally Modified           81 
+ stats-controller-hybrid.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers
+ local-controllers-standard.awb Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/module
+ local-controller-module-standard.awb Locally Modified           81 
+ local-controller-module-standard.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-standard.bsv   Locally Modified           81 
+ controller-null-hardware-only.awb Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-null-mem.awb Locally Modified           81 
+ platform-services-null.awb Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-local.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-standard.awb Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.awb        Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ null-starter-device.awb   Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/arriaII
+ ARRIAIIFP.bsv             Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.bsv             Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/console
+ NullFP.bsv                Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/htg-v5-pcie
+ HTGv5PCIeFP.bsv           Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/graphical
+ GraphicalFP.bsv           Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/xup
+ XUPFP.bsv                 Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device
+ dynamic-parameters-device.cpp Locally Modified           81 
+ dynamic-parameters-device.awb Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.awb     Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/streams-device
+ hybrid-streams.awb        Locally Modified           81 
+ hybrid-streams.bsv        Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/standard
+ standard-shared-memory.bsv Locally Modified           81 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/streams
+ hybrid-streams.awb        Locally Modified           81 
+ hybrid-streams.bsv        Locally Modified           81 
+ simulation-streams.awb    Locally Modified           81 
+ simulation-streams.bsv    Locally Modified           81 
+
+Directory modules/leap/virtual-platform
+ fpga-environment.awb      Locally Modified           81 
+
+Directory modules/leap/build-support/project
+ SCons.dict.template       Locally Modified           81 
+
+Directory modules/leap/build-support/project/application-env/hybrid/base
+ application-env-hybrid-base.bsv Locally Modified           81 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ application-env-hybrid-soft-conn.bsv Locally Modified           81 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections/default-sw
+ connected-application-default-sw.bsv Locally Modified           81 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.bsv Locally Modified           81 
+
+Directory modules/leap/build-support/project/application-env/hw-only/base
+ application-env-hw-only-base.bsv Locally Modified           81 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified           81 
+ SCons.iface.template      Locally Modified           81 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries/backwards-compat
+ with-connections.bsv      Locally Modified           81 
+ bury-connections.bsv      Locally Modified           81 
+ smart-synth-boundaries.awb Locally Modified           81 
+ expose-connections.bsv    Locally Modified           81 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ with-connections.bsv      Locally Modified           81 
+ bury-connections.bsv      Locally Modified           81 
+ expose-connections.bsv    Locally Modified           81 
+
+Directory modules/leap/libraries/librl/base
+ guarded-pipelines.bsv     Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/services/soft-clocks
+ basic-clock.bsv           Locally Modified           81 
+ basic-clock-lib.bsv       Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified           81 
+ connected-common.bsv      Locally Modified           81 
+ connection-shared-interconnect.bsv Locally Removed            81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree
+ shared-tree.awb           Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ bury-connections.bsv      Locally Modified           81 
+ connection-dispatchers.bsv Locally Modified           81 
+ transmittable.bsv         Locally Removed            81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-stations-tree.bsv Locally Modified           81 
+ connect-top-level.bsv     Locally Modified           81 
+ connect-multicasts.bsv    Locally Modified           81 
+ expose-connections.bsv    Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified           81 
+ connection-backwards-compat.bsv Locally Modified           81 
+ connection-context.bsv    Locally Modified           81 
+ connections.bsv           Locally Modified           81 
+ connection-vectors.bsv    Locally Modified           81 
+ connection-implementation.bsv Locally Modified           81 
+ connected-module.bsv      Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ token-ring.bsv            Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg/typed
+ soft_connections_alg.awb  Locally Modified           81 
+ ConnectionAlg.bsv         Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ token-ring.bsv            Locally Modified           81 
+ Connections.bsv           Locally Modified           81 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-sc-deps.bsh Locally Modified           81 
+ soft-services-lib.bsv     Locally Modified           81 
+
+Directory modules/leap/examples/traffic-light
+ traffic-light-system.bsv  Locally Modified           81 
+
+
+* Code cleanup in preparation for release. This basically means:
+** Stricter adherence to coding/indenting conventions.
+** Use of `include "asim/provides/foo.bsh" instead of "import foo::*"
+** Adding copyright header to every code file.
+** Replace older syntax like "Connected_Module" with new version. (Though no
+   backwards compatability typedefs have been removed at this time.)
+
+* Remove some empty files.
+
+* Remove some lingering references to hasim (mostly in attributes)
+
+* Remaining TODOs before release:
+** Allow "asim/provides" to be replaced with "awb/provides"
+** More READMEs and better documentation.

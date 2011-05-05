@@ -26,7 +26,6 @@
 #include <string.h>
 #include <iostream>
 
-#include "asim/provides/hasim_common.h"
 #include "asim/provides/assertions_controller.h"
 #include "asim/rrr/service_ids.h"
 
@@ -70,7 +69,7 @@ ASSERTIONS_SERVER_CLASS::Init(
     parent = p;
     
     // Open the output file
-    assertionsFile = fopen("hasim_debug/hasim_assertions.out", "w+");
+    assertionsFile = fopen("leap_debug/leap_assertions.out", "w+");
 }
 
 // uninit: we have to write this explicitly
@@ -134,7 +133,7 @@ ASSERTIONS_SERVER_CLASS::Assert(
             // if severity is great, end the simulation.
             if (severity > ASSERT_WARNING)
             {
-                cerr << "ERROR: Fatal HAsim assertion failure.\n";
+                cerr << "ERROR: Fatal Leap assertion failure.\n";
                 cerr << "MESSAGE: " << assert_msg << "\n";
                 CallbackExit(1);
             }

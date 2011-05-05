@@ -12,7 +12,7 @@
 # %provides stats_controller
 #
 #
-# %attributes hasim
+# %attributes leap
 #
 # %sources -t BSV -v PUBLIC  stats-controller-hybrid.bsv
 # %sources -t H   -v PUBLIC  stats-controller-hybrid.h

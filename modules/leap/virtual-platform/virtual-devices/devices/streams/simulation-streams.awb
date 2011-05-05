@@ -11,7 +11,7 @@
 # %desc Simulation Streams
 # %provides streams
 #
-# %attributes hasim
+# %attributes leap
 #
 # %sources -t BSH -v PRIVATE streams-common.bsh
 # %sources -t BSV -v PUBLIC  simulation-streams.bsv

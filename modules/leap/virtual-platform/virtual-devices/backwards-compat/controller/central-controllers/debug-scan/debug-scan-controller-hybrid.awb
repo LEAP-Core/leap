@@ -2,7 +2,7 @@
 %desc Hybrid Debug Scan Controller
 %provides debug_scan_controller
 
-%attributes hasim
+%attributes leap
 
 %public  debug-scan-controller-hybrid.bsv
 %public  debug-scan-controller-hybrid.h

@@ -72,7 +72,7 @@ unsigned char cio_open(unsigned char programID)
         dup2(CHILD_WRITE, 1);
 
         /* exec */
-        execlp("hasim-front-panel", "hasim-front-panel", NULL);
+        execlp("leap-front-panel", "leap-front-panel", NULL);
     }
     else
     {

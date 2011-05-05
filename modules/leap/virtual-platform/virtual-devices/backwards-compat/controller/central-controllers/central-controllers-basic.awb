@@ -2,7 +2,7 @@
 %desc Basic Central Controllers Grouping
 %provides central_controllers
 
-%attributes hasim
+%attributes leap
 
 %requires assertions_controller
 %requires params_controller

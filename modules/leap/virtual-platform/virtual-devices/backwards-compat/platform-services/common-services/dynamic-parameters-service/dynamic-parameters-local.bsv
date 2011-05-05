@@ -80,7 +80,7 @@ typedef union tagged
 // pass through.  Each individual parameter (see mkDynamicParameter below)
 // connects to a ring stop and snoops for incoming updates.
 //
-module [Connected_Module] mkDynamicParameterNode
+module [CONNECTED_MODULE] mkDynamicParameterNode
     //interface:
         (PARAMETER_NODE);
 
@@ -164,7 +164,7 @@ endmodule
 //
 // Object for an individual parameter.
 //
-module [Connected_Module] mkDynamicParameter#(PARAMS_DICT_TYPE myID, PARAMETER_NODE paramNode)
+module [CONNECTED_MODULE] mkDynamicParameter#(PARAMS_DICT_TYPE myID, PARAMETER_NODE paramNode)
     //interface:
         (Param#(bits)) provisos (Add#(a__, bits, 64));
 

@@ -19,9 +19,9 @@
 import FIFOF::*;
 import Vector::*;
 
-`include "unix_pipe_device.bsh"
-`include "physical_platform.bsh"
-`include "umf.bsh"
+`include "asim/provides/unix_pipe_device.bsh"
+`include "asim/provides/physical_platform.bsh"
+`include "asim/provides/umf.bsh"
 
 // physical channel interface
 interface PHYSICAL_CHANNEL;

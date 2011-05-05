@@ -16,9 +16,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "physical_platform.bsh"
-`include "pcie_device.bsh"
-`include "umf.bsh"
+`include "asim/provides/physical_platform.bsh"
+`include "asim/provides/pcie_device.bsh"
+`include "asim/provides/umf.bsh"
 
 // ============== Physical Channel ===============
 
