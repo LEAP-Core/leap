@@ -67,10 +67,10 @@ while (<PAR>)
 
     ## ACP
     # Really need to parse multiple lines to figure these out...
-    $clock_type = 'Base ' if (/\|m_vp_llpi_phys_plat_nallatech/);
-    $clock_type = 'LVDS ' if (/\| m_vp_llpi_phys_plat_nallatech_\|     10/);
-    $clock_type = 'RAM  ' if (/\| m_vp_llpi_phys_plat_nallatech_\|      5/);
-    $clock_type = 'Model' if (/\|  m_vp_llpi_phys_plat_nallatech/);
+    $clock_type = 'Base ' if (/\|TS_clk100p/);
+    $clock_type = 'LVDS ' if (/\| TS_m_vp_llpi_phys_plat_nallate\|     10/);
+    $clock_type = 'RAM  ' if (/\| TS_m_vp_llpi_phys_plat_nallate\|      5/);
+    $clock_type = 'Model' if (/\|  TS_m_vp_llpi_phys_plat_nallat/);
 
     if (defined($clock_type))
     {

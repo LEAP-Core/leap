@@ -31,15 +31,6 @@ instance SOFT_SERVICE#(LOGICAL_CLOCK_INFO);
 
         let clock <- exposeCurrentClock();
         let reset <- exposeCurrentReset();
-        // If the model clock frequency and the crystal clock frequency don't square
-        // we should bail out.  
-
-        if(`MODEL_CLOCK_FREQ != `CRYSTAL_CLOCK_FREQ*
-                                `MODEL_CLOCK_MULTIPLIER/
-                                `MODEL_CLOCK_DIVIDER)
-          begin
-            errorM("ERROR: Model Clock Frequency and Calculated frequency not equivalent");
-          end
 
         return LOGICAL_CLOCK_INFO {clk: clock, rst: reset};
 

@@ -94,7 +94,7 @@ proc printPaths { v_path module } {
     if {$compare == 0} {
      # the pll uses CLK OUT
      #_CLK_OUT
-      puts "$prefix${name}/cntr\[0\]"
+      puts "$prefix${name}/cntr_0_01"
       set portlist [module ports $type]
     }
     

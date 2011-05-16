@@ -6791,3 +6791,33 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
 
 Added a tool for the multifpga parser.  This still needs a function
 for invoking it from the build pipeline.  That's coming soon.
+
+----------
+mcadler     Date: Mon May 16 15:34:39 EDT 2011  CSN: CSN-leap-84
+                  Mon May 16 19:34:39 UTC 2011
+
+
+Directory tools/scripts
+ leap-xilinx-summary       Locally Modified           83 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/null
+ null-virtual-devices.h    Locally Modified           83 
+
+Directory modules/leap/build-support/build-pipelines/stages/mcd
+ mcd.tcl                   Locally Modified           83 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.h Locally Modified           83 
+
+Directory modules/leap/libraries/soft-services/services/soft-clocks
+ basic-clock.bsv           Locally Modified           83 
+
+- Divided clock Verilog name was computed incorrectly.  (At least for all the
+  models I tried.)
+
+- Stop testing that the multiplier and divider match the target frequency
+  in basic-clock.bsv.  The multiplier and divider are completely ignored.
+  We should stop using explicit multipliers and dividers since we have code
+  to compute them given an input and target frequency.
+
+- Update the code for printing clock details for ACP.

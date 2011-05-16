@@ -27,6 +27,7 @@
 #ifndef __STD_VIRTUAL_DEVICES_h__
 #define __STD_VIRTUAL_DEVICES_h__
 
+#include "asim/syntax.h"
 #include "asim/provides/low_level_platform_interface.h"
 
 typedef class VIRTUAL_DEVICES_CLASS *VIRTUAL_DEVICES;
