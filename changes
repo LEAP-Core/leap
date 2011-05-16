@@ -6779,3 +6779,15 @@ Directory modules/leap/examples/traffic-light
 * Remaining TODOs before release:
 ** Allow "asim/provides" to be replaced with "awb/provides"
 ** More READMEs and better documentation.
+
+----------
+kfleming    Date: Mon May 16 10:08:45 EDT 2011  CSN: CSN-leap-83
+                  Mon May 16 14:08:45 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ multi_fpga_parse.awb      Locally Added               0 
+
+
+Added a tool for the multifpga parser.  This still needs a function
+for invoking it from the build pipeline.  That's coming soon.
