@@ -8,9 +8,9 @@ yacc.yacc()
 
 errors = [1,1,1,1,1,1]
 
-platform0 = ' platform FPGA0; FPGA1 -> drivers.fromfpga1; FPGA1 <- drivers.tofpga1; endplatform '
+platform0 = ' platform FPGA0 fpga0.apm; FPGA1 -> drivers.fromfpga1; FPGA1 <- drivers.tofpga1; endplatform '
 
-platform1 = ' platform FPGA1; FPGA0 -> drivers.fromfpga0; FPGA0 <- drivers.fromfpga0;endplatform '
+platform1 = ' platform FPGA1 fpga1.apm; FPGA0 -> drivers.fromfpga0; FPGA0 <- drivers.fromfpga0;endplatform '
 
 try:
     res = yacc.parse(platform0)
@@ -27,11 +27,11 @@ except (IndexError,SyntaxError):
 if(res.getPathLength('FPGA0','FPGA1') == 1):
     errors[1] = 0
 
-platform0 = ' platform FPGA0; FPGA1 -> drivers.fromfpga1; FPGA2 <- drivers.tofpga2; endplatform\n '
+platform0 = ' platform FPGA0 fpga0.apm; FPGA1 -> drivers.fromfpga1; FPGA2 <- drivers.tofpga2; endplatform\n '
 
-platform1 = ' platform FPGA1; FPGA0 <- drivers.tofpga0; FPGA2 -> drivers.fromfpga2;endplatform\n '
+platform1 = ' platform FPGA1 fpga1.apm; FPGA0 <- drivers.tofpga0; FPGA2 -> drivers.fromfpga2;endplatform\n '
 
-platform2 = ' platform FPGA2; FPGA0 -> drivers.fromfpga0; FPGA1 <- drivers.tofpga1; endplatform\n '
+platform2 = ' platform FPGA2 fpga2.apm; FPGA0 -> drivers.fromfpga0; FPGA1 <- drivers.tofpga1; endplatform\n '
 
 res = yacc.parse(platform0 + platform1 + platform2)
 
@@ -49,13 +49,13 @@ if(res.getPathLength('FPGA0','FPGA1') == 2 and
 
 # Add a fourth link in the ring
 
-platform0 = ' platform FPGA0; FPGA1 -> drivers.fromfpga1; FPGA3 <- drivers.tofpga3; endplatform\n '
+platform0 = ' platform FPGA0 fpga0.apm; FPGA1 -> drivers.fromfpga1; FPGA3 <- drivers.tofpga3; endplatform\n '
 
-platform1 = ' platform FPGA1; FPGA2 -> drivers.fromfpga2; FPGA0 <- drivers.tofpga0; endplatform\n '
+platform1 = ' platform FPGA1 fpga1.apm; FPGA2 -> drivers.fromfpga2; FPGA0 <- drivers.tofpga0; endplatform\n '
 
-platform2 = ' platform FPGA2; FPGA3 -> drivers.fromfpga3; FPGA1 <- drivers.tofpga1; endplatform\n '
+platform2 = ' platform FPGA2 fpga2.apm; FPGA3 -> drivers.fromfpga3; FPGA1 <- drivers.tofpga1; endplatform\n '
 
-platform3 = ' platform FPGA3; FPGA0 -> drivers.fromfpga0; FPGA2 <- drivers.tofpga2; endplatform\n '
+platform3 = ' platform FPGA3 fpga3.apm; FPGA0 -> drivers.fromfpga0; FPGA2 <- drivers.tofpga2; endplatform\n '
 
 res = yacc.parse(platform0 + platform1 + platform2 + platform3)
 
@@ -75,11 +75,11 @@ if(tables[0]['FPGA1']['FPGA2'] == 'drivers.tofpga0' and
 
 # check that frontend correctly handles 
 
-platform0 = ' platform unknown; FPGA1 -> drivers.fromfpga1; FPGA2 <- drivers.tofpga2; endplatform\n '
+platform0 = ' platform unknown unknown.apm; FPGA1 -> drivers.fromfpga1; FPGA2 <- drivers.tofpga2; endplatform\n '
 
-platform1 = ' platform FPGA1; unknown <- drivers.tofpga0; FPGA2 -> drivers.fromfpga2;endplatform\n '
+platform1 = ' platform FPGA1 fpga1.apm; unknown <- drivers.tofpga0; FPGA2 -> drivers.fromfpga2;endplatform\n '
 
-platform2 = ' platform FPGA2; unknown -> drivers.fromfpga0; FPGA1 <- drivers.tofpga1; endplatform\n '
+platform2 = ' platform FPGA2 fpga2.apm; unknown -> drivers.fromfpga0; FPGA1 <- drivers.tofpga1; endplatform\n '
 
 try:
     res = yacc.parse(platform0 + platform1 + platform2)

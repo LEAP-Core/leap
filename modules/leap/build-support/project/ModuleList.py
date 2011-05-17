@@ -146,6 +146,25 @@ class ModuleList:
 
     return allDeps
 
+  def getAllDependenciesWithPaths(self, key):
+    # we must check to see if the dependencies actually exist.
+    # generally we have to make sure to remove duplicates
+    allDeps = [] 
+    if(self.topModule.moduleDependency.has_key(key)):
+      for dep in self.topModule.moduleDependency[key]:
+        if(allDeps.count(dep) == 0):
+          allDeps.append(self.topModule.buildPath + '/' + dep)
+    for module in self.moduleList:
+      if(module.moduleDependency.has_key(key)):
+        for dep in module.moduleDependency[key]: 
+          if(allDeps.count(dep) == 0):
+            allDeps.append(module.buildPath + '/' + dep)
+
+    if(len(allDeps) == 0 and BUILD_PIPELINE_DEBUG == 1):
+      sys.stderr.write("Warning: no dependencies were found")
+
+    return allDeps
+
   # walk down the source tree from the given module to its leaves, 
   # which are either true leaves or underlying synth boundaries. 
   def getSynthBoundaryDependencies(self, module, key):

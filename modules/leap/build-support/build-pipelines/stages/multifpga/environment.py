@@ -4,7 +4,7 @@ from platform import *
 # Import pygraph We'll need it at some point
 import pygraph
 
-class Environment(object):
+class FPGAEnvironment(object):
 
     def __init__(self,platformList):
         self.platforms = {}
@@ -18,6 +18,9 @@ class Environment(object):
 
     def getPlatform(self,name):
         return self.platforms[name]
+
+    def getPlatformNames(self):
+        return self.platforms.keys()
 
     # build a graph. This will make life easier
     # graph legalization consists of ensuring that if a platform claims to 

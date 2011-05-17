@@ -2,7 +2,7 @@
 #* Generic FPGA build pipeline
 #********************************************************************/
 
-%name multiFPGA Build Pipeline
+%name multiFPGA Parser Build Stage
 %desc FPGA Build Pipeline
 %attributes tool
 
@@ -13,3 +13,7 @@
 %scons %library multilex.py
 %scons %library multiparse.py
 %scons %library platform.py
+%scons %library connection.py
+%scons %library tool.py
+
+

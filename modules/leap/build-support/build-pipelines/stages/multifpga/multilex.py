@@ -11,17 +11,18 @@ reserved = {
     }
 
 tokens = [ 'RARROW', 'LARROW', 'SEMICOLON',
-           'NAME', 'PERIOD',
+           'NAME', 'PERIOD', 'FSLASH'
          ] + list(reserved.values())
 
 
 t_RARROW = r'->'
 t_LARROW = r'<-'
 t_PERIOD = r'\.'
+t_FSLASH = r'/'
 t_SEMICOLON = r';'
 t_PLATFORM = r'platform'
 t_ENDPLATFORM = r'endplatform'
-t_ENDPLATFORM = r'unknown'
+#t_ENDPLATFORM = r'unknown'
 
 def t_NAME(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'

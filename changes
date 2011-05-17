@@ -6821,3 +6821,30 @@ Directory modules/leap/libraries/soft-services/services/soft-clocks
   to compute them given an input and target frequency.
 
 - Update the code for printing clock details for ACP.
+
+----------
+kfleming    Date: Tue May 17 14:56:07 EDT 2011  CSN: CSN-leap-85
+                  Tue May 17 18:56:07 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ multitest.py              Locally Modified           84 
+ tool.py                   Locally Added               0 
+ multi_fpga_parse.awb      Locally Modified           84 
+ multilex.py               Locally Modified           84 
+ environment.py            Locally Modified           84 
+ platform.py               Locally Modified           84 
+ multiparse.py             Locally Modified           84 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified           84 
+
+
+
+Added a new function to retrieve build tree paths for files in
+ModulList.  This could probably be a little more parametric.
+
+Also, uppgraded the multi-fpga parser to the point that it can be used
+in an apm as part of the multifpga build pipeline.  This pipeline
+currently resides in a development repository so as not to pollute the
+main line codes.
