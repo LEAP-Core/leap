@@ -6848,3 +6848,16 @@ Also, uppgraded the multi-fpga parser to the point that it can be used
 in an apm as part of the multifpga build pipeline.  This pipeline
 currently resides in a development repository so as not to pollute the
 main line codes.
+
+----------
+kfleming    Date: Wed May 18 12:59:42 EDT 2011  CSN: CSN-leap-86
+                  Wed May 18 16:59:42 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified           85 
+
+
+Extended the multifpga build tool to set up the platform apm in
+private directory.  This is a stepping stone on the road to multifpga
+compilation.
