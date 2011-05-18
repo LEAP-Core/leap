@@ -7,3 +7,4 @@
 
 %public streams-service.bsh
 %public streams-service.bsv 
+%public streams-local.bsv

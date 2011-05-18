@@ -6861,3 +6861,19 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
 Extended the multifpga build tool to set up the platform apm in
 private directory.  This is a stepping stone on the road to multifpga
 compilation.
+
+----------
+mcadler     Date: Wed May 18 17:34:43 EDT 2011  CSN: CSN-leap-87
+                  Wed May 18 21:34:43 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ common-services-standard.dic Locally Modified           86 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/streams-service
+ streams-local.bsv         Locally Added               0 
+ streams-service.awb       Locally Modified           86 
+ streams-service.bsv       Locally Modified           86 
+
+Turn the streams service into a ring instead of a single soft connection.
+Now it supports multiple clients instead of a single writer.
