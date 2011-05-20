@@ -66,24 +66,22 @@ class Software():
             ## constructores.
             ##
 
-            if (getDebug(moduleList)):
-                # First, remove the m5 library from the main list of libraries
-                m5_lib = ''
-                tmp_libs = []
-                for lib in libs:
-                    if (os.path.basename(lib) == 'libm5_opt.a'):
-                        m5_lib = lib
-                    else:
-                        tmp_libs += [ lib ]
-                libs = tmp_libs
-    
-                # Second, store the m5 library in whole_libs
-                if (m5_lib != ''):
-                    if (getDebug(moduleList)):
-                        # Swap the optimized m5 library for a debugging one
-                        m5_lib = os.path.join(os.path.dirname(m5_lib), 'libm5_debug.a')
-                    whole_libs += [ m5_lib ]
+            # First, remove the m5 library from the main list of libraries
+            m5_lib = ''
+            tmp_libs = []
+            for lib in libs:
+                if (os.path.basename(lib) == 'libm5_opt.a'):
+                    m5_lib = lib
+                else:
+                    tmp_libs += [ lib ]
+            libs = tmp_libs
 
+            # Second, store the m5 library in whole_libs
+            if (m5_lib != ''):
+                if (getDebug(moduleList)):
+                    # Swap the optimized m5 library for a debugging one
+                    m5_lib = os.path.join(os.path.dirname(m5_lib), 'libm5_debug.a')
+                whole_libs += [ m5_lib ]
 
         # CPPPATH defines both gcc include path and dependence path for
         # SCons.  The '#' forces paths to be relative to the root of the build.

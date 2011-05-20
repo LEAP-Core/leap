@@ -40,7 +40,7 @@ class Synthesize():
     oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst','r')
     newXSTFile.write(oldXSTFile.read());
     newXSTFile.write('-iobuf yes\n');
-    newXSTFile.write('-uc ' + moduleList.env['DEFS']['BUILD_DIR'] + '/'+ moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
+    newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
     newXSTFile.close();
     oldXSTFile.close();
 
@@ -52,7 +52,7 @@ class Synthesize():
         oldXSTFile = open('config/' + module.wrapperName() + '.xst','r')
         newXSTFile.write(oldXSTFile.read());
         newXSTFile.write('-iobuf no\n');
-        newXSTFile.write('-uc  '+ moduleList.env['DEFS']['BUILD_DIR'] + '/' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
+        newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
         newXSTFile.close();
         oldXSTFile.close();
         print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])

@@ -6877,3 +6877,17 @@ Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platfor
 
 Turn the streams service into a ring instead of a single soft connection.
 Now it supports multiple clients instead of a single writer.
+
+----------
+mcadler     Date: Fri May 20 11:57:03 EDT 2011  CSN: CSN-leap-88
+                  Fri May 20 15:57:03 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified           87 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XSTnobasicio.py           Locally Modified           87 
+
+- Make M5 link correctly
+- Fix path in pure Xilinx xst build.
