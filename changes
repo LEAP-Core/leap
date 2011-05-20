@@ -6891,3 +6891,16 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 - Make M5 link correctly
 - Fix path in pure Xilinx xst build.
+
+----------
+kfleming    Date: Fri May 20 13:49:59 EDT 2011  CSN: CSN-leap-89
+                  Fri May 20 17:49:59 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context-multifpga.awb Locally Added               0 
+
+
+Added an awb for multifpga soft connections. We need an extra
+parameter and a couple of extra files.  I am creating a second awb to
+avoid putting switches in the baseline code.
