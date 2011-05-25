@@ -14,4 +14,4 @@ class Build(ProjectDependency):
     Iface(moduleList)
     BSV(moduleList)
     Software(moduleList)
-    Verilog(moduleList)
+    Verilog(moduleList, True)

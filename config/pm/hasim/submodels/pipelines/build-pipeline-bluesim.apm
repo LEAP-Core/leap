@@ -37,6 +37,7 @@ software_tool=Software build tool
 iface_tool=Interface builder
 bluesim_tool=BSV Bluesim Build Tool
 bsv_tool=BSV Build Tool (First Phase)
+verilog_tool=Verilog Build Tool
 
 [BSV Build Tool (First Phase)]
 File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
@@ -44,3 +45,7 @@ Packagehint=leap
 
 [BSV Build Tool (First Phase)/Params]
 BUILD_VERILOG=0
+
+[Verilog Build Tool]
+File=modules/leap/build-support/build-pipelines/stages/verilog/verilog.awb
+Packagehint=leap

@@ -15,6 +15,7 @@ class Bluesim():
     APM_NAME = moduleList.env['DEFS']['APM_NAME']
     BSC = moduleList.env['DEFS']['BSC']
     BSC_FLAGS_SIM = ' -steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule'
+
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'
@@ -33,9 +34,9 @@ class Bluesim():
         TMP_BSC_DIR + ' ' + moduleList.env['DEFS']['GEN_BAS'] + ' ' + moduleList.env['DEFS']['GIVEN_BAS'] + \
         ' ' + moduleList.env['DEFS']['BDPI_CS']
 
-    if(BLUESIM_DEBUG == 1):
-      for ba in moduleList.getAllDependencies('BA'):
-        print 'BA dep: ' + str(ba) + '\n'
+    if (getBuildPipelineDebug(moduleList) != 0):
+        for ba in moduleList.getAllDependencies('BA'):
+            print 'BA dep: ' + str(ba) + '\n'
 
     sbin = moduleList.env.Command(
         TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
@@ -55,8 +56,8 @@ class Bluesim():
     #   APM_NAME must be the software side, if there is one.  If there isn't, then
     #   it must be the Bluesim image.
     #
-    if(BLUESIM_DEBUG == 1):
-      print "ModuleList desp : " + str(moduleList.swExe)
+    if (getBuildPipelineDebug(moduleList) != 0):
+        print "ModuleList desp : " + str(moduleList.swExe)
 
     exe = moduleList.env.Command(
         APM_NAME + '_hw.exe',

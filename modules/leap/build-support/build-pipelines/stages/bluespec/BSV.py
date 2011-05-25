@@ -216,8 +216,10 @@ class BSV():
       wrapper_bo = env.BSC(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + bsv)
       # if we rebuild the wrapper, we also need to rebuild the parent bo
       upper_bo = MODULE_PATH + '/../' + TMP_BSC_DIR + '/' + bsv.replace('_Wrapper.bsv', '.bo')
-      if(BSV_DEBUG == 1):
-        print 'Adding dep: ' + upper_bo + '\n'
+
+      if (getBuildPipelineDebug(moduleList) != 0):
+          print 'Adding dep: ' + upper_bo + '\n'
+
       moduleList.env.Depends(wrapper_bo, stub)
       moduleList.env.Depends(upper_bo, wrapper_bo)
 
@@ -245,8 +247,8 @@ class BSV():
       if(BUILD_VERILOG == 1):
         module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
-      if(BSV_DEBUG == 1):
-        print "Name: " + module.name
+      if (getBuildPipelineDebug(moduleList) != 0):
+          print "Name: " + module.name
 
       # we also generate all this synth boundary's GEN_BAS
       gen_ba = moduleList.getSynthBoundaryDependencies(module, 'GEN_BAS')

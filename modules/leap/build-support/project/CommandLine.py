@@ -5,6 +5,7 @@ import os
 import sys
 import string
 import Utils
+from config import *
 
 
 ##
@@ -30,8 +31,19 @@ def getTrace(moduleList):
     return TRACE
     
 
+##
+## Model emits events?
+##
 def getEvents(moduleList):
     enable_events = int(moduleList.arguments.get('EVENTS', -1))
     if (enable_events == -1):
         enable_events = int(Utils.awb_resolver('-config=events'))
     return enable_events
+
+
+##
+## Build pipeline debug state (emit messages during build)
+##
+def getBuildPipelineDebug(moduleList):
+    return max(int(moduleList.arguments.get('BUILD_PIPELINE_DEBUG', 0)),
+               BUILD_PIPELINE_DEBUG)

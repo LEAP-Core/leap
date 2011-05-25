@@ -10,5 +10,3 @@
 
 %scons %library Synplify.py
 %sources -t SDC -v PRIVATE synplify.sdc
-
-%param SYNPLIFY_DEBUG 0 "Synplify build debug"

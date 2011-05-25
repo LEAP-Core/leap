@@ -40,7 +40,7 @@ def _filter_file_add(file):
   output = ''
   for line in file.readlines():
     output += re.sub('add_file.*$','',line)
-    if(SYNPLIFY_DEBUG == 1):
+    if (getBuildPipelineDebug(moduleList) != 0):
       print 'converted ' + line + 'to ' + re.sub('add_file.*$','',line)
 
   return output;
@@ -90,7 +90,7 @@ class Synthesize(ProjectDependency):
          if(type(file) is str):
            newPrjFile.write(_generate_synplify_include(file))        
          else:
-           if(SYNPLIFY_DEBUG == 1):
+           if(getBuildPipelineDebug(moduleList) != 0):
              print type(file)
              print "is not a string"
 
@@ -127,7 +127,10 @@ class Synthesize(ProjectDependency):
 
        sub_netlist = moduleList.env.Command(
         [moduleList.compileDirectory + '/' +  module.wrapperName() + '.edf'],
-        moduleList.getAllDependencies('VERILOG')+  moduleList.getAllDependencies('VERILOG_STUB')+ ['config/' + moduleList.apmName + '.synplify.prj'],
+        moduleList.getAllDependencies('VERILOG') +
+        moduleList.getAllDependencies('VERILOG_STUB') +
+        moduleList.getAllDependencies('VERILOG_LIB') +
+        ['config/' + moduleList.apmName + '.synplify.prj'],
         [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName()  + '.srr'),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName()  + '_xst.xrpt'), 
           'synplify_pro -batch config/' + module.wrapperName() + '.modified.synplify.prj' ])
@@ -142,7 +145,12 @@ class Synthesize(ProjectDependency):
 
     top_netlist = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.ngc',
-        moduleList.topModule.moduleDependency['VERILOG'] +  moduleList.getAllDependencies('VERILOG_STUB') + moduleList.topModule.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XCF'] + xilinx_xcf + synthDeps,
+        moduleList.topModule.moduleDependency['VERILOG'] +
+        moduleList.getAllDependencies('VERILOG_STUB') +
+        moduleList.getAllDependencies('VERILOG_LIB') +
+        moduleList.topModule.moduleDependency['XST'] +
+        moduleList.topModule.moduleDependency['XCF'] +
+        xilinx_xcf + synthDeps,
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
 

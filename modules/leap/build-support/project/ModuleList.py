@@ -14,6 +14,7 @@ except ImportError:
 import pygraph.algorithms.sorting
 import Module
 import Utils
+from CommandLine import *
 from config import *
 
 def checkSynth(module):
@@ -101,21 +102,24 @@ class ModuleList:
       module.moduleDependency['VERILOG'] = givenVerilogs
       module.moduleDependency['BA'] = []
       module.moduleDependency['VERILOG_STUB'] = []
+      module.moduleDependency['VERILOG_LIB'] = []
       module.moduleDependency['NGC'] = givenNGCs
       module.moduleDependency['VHD'] = givenVHDs
 
     for module in self.synthBoundaries():
       # each module has a generated bsv
       module.moduleDependency['XST'] = ['config/' + module.wrapperName() + '.xst']
-      module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/mk_' + module.name + '_Wrapper.v'] + givenVerilogs + Utils.get_bluespec_verilog(env)
+      module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/mk_' + module.name + '_Wrapper.v'] + givenVerilogs
+      module.moduleDependency['VERILOG_LIB'] = Utils.get_bluespec_verilog(env)
       module.moduleDependency['BA'] = []
 
 
     #Notice that we call get_bluespec_verilog here this will
     #eventually called by the BLUESPEC build rule
     self.topModule.moduleDependency['XST'] = ['config/' + self.topModule.wrapperName() + '.xst']
-    self.topModule.moduleDependency['VERILOG'] = ['hw/' + self.topModule.buildPath + '/.bsc/mk_' + self.topModule.name + '_Wrapper.v'] + givenVerilogs + Utils.get_bluespec_verilog(env)
+    self.topModule.moduleDependency['VERILOG'] = ['hw/' + self.topModule.buildPath + '/.bsc/mk_' + self.topModule.name + '_Wrapper.v'] + givenVerilogs
     self.topModule.moduleDependency['VERILOG_STUB'] = []
+    self.topModule.moduleDependency['VERILOG_LIB'] =  Utils.get_bluespec_verilog(env)
     self.topModule.moduleDependency['NGC'] = givenNGCs
     self.topModule.moduleDependency['VHD'] = givenVHDs
     self.topModule.moduleDependency['UCF'] =  Utils.clean_split(self.env['DEFS']['GIVEN_UCFS'], sep = ' ')
@@ -134,17 +138,19 @@ class ModuleList:
     if(self.topModule.moduleDependency.has_key(key)):
       for dep in self.topModule.moduleDependency[key]:
         if(allDeps.count(dep) == 0):
-          allDeps.append(dep)
+          allDeps.extend([dep] if isinstance(dep, str) else dep)
     for module in self.moduleList:
       if(module.moduleDependency.has_key(key)):
         for dep in module.moduleDependency[key]: 
           if(allDeps.count(dep) == 0):
-            allDeps.append(dep)
+            allDeps.extend([dep] if isinstance(dep, str) else dep)
 
-    if(len(allDeps) == 0 and BUILD_PIPELINE_DEBUG == 1):
+    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
 
-    return allDeps
+    # Return a list of unique entries, in the process converting SCons
+    # dependence entries to strings.
+    return list(set([str(dep) for dep in allDeps]))
 
   def getAllDependenciesWithPaths(self, key):
     # we must check to see if the dependencies actually exist.
@@ -160,7 +166,7 @@ class ModuleList:
           if(allDeps.count(dep) == 0):
             allDeps.append(module.buildPath + '/' + dep)
 
-    if(len(allDeps) == 0 and BUILD_PIPELINE_DEBUG == 1):
+    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
 
     return allDeps
@@ -178,9 +184,9 @@ class ModuleList:
       if(desc.moduleDependency.has_key(key)):
         for dep in desc.moduleDependency[key]:
           if(allDeps.count(dep) == 0):
-            allDeps.append(dep)
+            allDeps.extend([dep] if isinstance(dep, str) else dep)
 
-    if(len(allDeps) == 0 and BUILD_PIPELINE_DEBUG == 1):
+    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
     
     return allDeps

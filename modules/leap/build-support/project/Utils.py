@@ -98,7 +98,9 @@ def get_bluespec_verilog(env):
     #print fileList
     fileArray = clean_split(fileList, sep = '\n')
     for file in fileArray:
-        if((file != 'main.v') and (file != 'ConstrainedRandom.v')):
+        if ((file[-2:] == '.v') and
+            (file != 'main.v') and
+            (file != 'ConstrainedRandom.v')):
             resultArray.append(bluespecdir + '/Verilog/' + file)
     return resultArray
 

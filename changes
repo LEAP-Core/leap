@@ -6904,3 +6904,56 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 Added an awb for multifpga soft connections. We need an extra
 parameter and a couple of extra files.  I am creating a second awb to
 avoid putting switches in the baseline code.
+
+----------
+mcadler     Date: Tue May 24 22:40:25 EDT 2011  CSN: CSN-leap-90
+                  Wed May 25 02:40:25 UTC 2011
+
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-bluesim.apm Locally Modified           89 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bsv-exe.awb               Locally Modified           89 
+ bluesim.py                Locally Modified           89 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified           89 
+ bsv.awb                   Locally Modified           89 
+
+Directory modules/leap/build-support/build-pipelines/stages/verilog
+ verilog.py                Locally Modified           89 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xst.awb                   Locally Modified           89 
+ XSTnobasicio.py           Locally Modified           89 
+ XST.py                    Locally Modified           89 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ synplify.awb              Locally Modified           89 
+ synplify-sub.awb          Locally Modified           89 
+ SynplifySub.py            Locally Modified           89 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ sim-build-pipeline.awb    Locally Modified           89 
+ SimulationPipeline.py     Locally Modified           89 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ VerilogPipeline.py        Locally Modified           89 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified           89 
+ ModuleList.py             Locally Modified           89 
+ CommandLine.py            Locally Modified           89 
+
+- Consolidate SCons debug printing in a single method (getBuildPipelineDebug)
+  that allows requesting debug printing either on the SCons command line
+  or by an AWB parameter.
+- Debug parameter (BUILD_PIPELINE_DEBUG) is an integer.  The higher the number,
+  the more detail may be emitted.
+- Make the Verilog simulation build work:
+  - Break out Bluespec Verilog libraries into a separate dependency group.
+  - getAllDependencies now returns a unique list.
+- Bluesim build now can build a Verilog simulator target instead using
+  the SCons "vexe" target.  This is most often useful for switching to
+  waveform debugging to match the generated .v file variable names.

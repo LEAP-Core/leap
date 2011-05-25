@@ -11,5 +11,6 @@
 %requires iface_tool
 %requires software_tool
 %requires bluesim_tool
+%requires verilog_tool
 
 %scons %library SimulationPipeline.py

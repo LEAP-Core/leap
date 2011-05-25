@@ -14,7 +14,7 @@ class Synthesize():
     # string together the xcf, sort of like the ucf
     # Concatenate UCF files
     if('XCF' in moduleList.topModule.moduleDependency and len(moduleList.topModule.moduleDependency['XCF']) > 0):
-      if(XST_DEBUG == 1):
+      if(getBuildPipelineDebug(moduleList) != 0):
         for xcf in  moduleList.topModule.moduleDependency['XCF']:
           print 'xst found xcf: ' + xcf + '\n' 
       xilinx_xcf = moduleList.env.Command(
@@ -36,13 +36,14 @@ class Synthesize():
     newXSTFile.close();
     oldXSTFile.close();
 
-    if(XST_DEBUG == 1):
+    if(getBuildPipelineDebug(moduleList) != 0):
       print 'synthBoundaries:'
       for module in moduleList.synthBoundaries():    
         print module.name + ' '
         print module.moduleDependency['VERILOG']
 
-      print moduleList.getAllDependencies('VERILOG_STUB')   
+      print moduleList.getAllDependencies('VERILOG_STUB')
+      print moduleList.getAllDependencies('VERILOG_LIB')
     
 
     for module in moduleList.synthBoundaries():    
@@ -57,7 +58,11 @@ class Synthesize():
         oldXSTFile.close();
         w = moduleList.env.Command(
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
-            module.moduleDependency['VERILOG'] + moduleList.getAllDependencies('VERILOG_STUB')  + module.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XST']+xilinx_xcf,
+            module.moduleDependency['VERILOG'] +
+            moduleList.getAllDependencies('VERILOG_STUB') +
+            moduleList.getAllDependencies('VERILOG_LIB') +
+            module.moduleDependency['XST'] +
+            moduleList.topModule.moduleDependency['XST']+xilinx_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
               SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
@@ -73,7 +78,11 @@ class Synthesize():
 
     top_netlist = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.ngc',
-        moduleList.topModule.moduleDependency['VERILOG'] +  moduleList.getAllDependencies('VERILOG_STUB') + moduleList.topModule.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XCF'] + xilinx_xcf ,
+        moduleList.topModule.moduleDependency['VERILOG'] +
+        moduleList.getAllDependencies('VERILOG_STUB') +
+        moduleList.getAllDependencies('VERILOG_LIB') +
+        moduleList.topModule.moduleDependency['XST'] +
+        moduleList.topModule.moduleDependency['XCF'] + xilinx_xcf,
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
            os.environ['BLUESPECDIR'] + '/bin/basicinout ' + 'hw/' + moduleList.topModule.buildPath + '/.bsc/' + moduleList.topModule.wrapperName() + '.v',     #patch top verilog

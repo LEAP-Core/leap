@@ -9,5 +9,3 @@
 %provides synthesis_tool
 
 %scons %library XST.py
-
-%param XST_DEBUG 0 "XST build debug"

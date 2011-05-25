@@ -61,9 +61,11 @@ class Synthesize():
         vlogStubs.sort()
         vlog = module.moduleDependency['VERILOG']
         vlog.sort()
+        vlogLib = moduleList.getAllDependencies('VERILOG_LIB')
+        vlogLib.sort()
         w = moduleList.env.Command(
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
-            vlog + vlogStubs + module.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XST'] + xilinx_child_xcf,
+            vlog + vlogStubs + vlogLib + module.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XST'] + xilinx_child_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
               SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
@@ -79,7 +81,11 @@ class Synthesize():
 
     top_netlist = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.ngc',
-        moduleList.topModule.moduleDependency['VERILOG'] +  moduleList.getAllDependencies('VERILOG_STUB') + moduleList.topModule.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XCF'] + xilinx_xcf ,
+        moduleList.topModule.moduleDependency['VERILOG'] +
+        moduleList.getAllDependencies('VERILOG_STUB') +
+        moduleList.getAllDependencies('VERILOG_LIB') +
+        moduleList.topModule.moduleDependency['XST'] +
+        moduleList.topModule.moduleDependency['XCF'] + xilinx_xcf,
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
 
