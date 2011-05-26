@@ -548,7 +548,7 @@ xilinx_par = env.Command(
       Delete(XILINX_APM_NAME + '_par.xpi'),
       Delete(XILINX_APM_NAME + '_par_pad.csv'),
       Delete(XILINX_APM_NAME + '_par_pad.txt'),
-      'par -w -ol high ' + smartguide + ' -t ' + env['DEFS']['COST_TABLE'] + ' ' + XILINX_APM_NAME + '_map.ncd $TARGET ' + XILINX_APM_NAME + '.pcf',
+      'par -w -ol high ' + smartguide + ' ' + XILINX_APM_NAME + '_map.ncd $TARGET ' + XILINX_APM_NAME + '.pcf',
       Copy(smartguide_cache_dir + '/' + smartguide_cache_file, '$TARGET') ])
 
 

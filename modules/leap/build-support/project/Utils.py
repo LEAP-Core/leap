@@ -86,8 +86,8 @@ def awb_resolver(arg):
     return one_line_cmd("awb-resolver " + arg)
 
 ##
-## one_line_cmd --
-##     Issue a shell command and return the first line of output
+## get_bluespec_verilog --
+##     Return a list of Verilog files from the Bluespec compiler release.
 ##
 def get_bluespec_verilog(env):
     resultArray = []
@@ -103,6 +103,22 @@ def get_bluespec_verilog(env):
             (file != 'ConstrainedRandom.v')):
             resultArray.append(bluespecdir + '/Verilog/' + file)
     return resultArray
+
+
+##
+## get_bluespec_xcf --
+##     Return a list of XCF files associated with Bluespec provided libraries.
+##
+def get_bluespec_xcf(env):
+    bluespecdir = env['ENV']['BLUESPECDIR']
+
+    # Bluespec only provides board-specific XCF files, but for now they are
+    # all the same.  Find one.
+    xcf = bluespecdir + '/board_support/xilinx/XUPV5/default.xcf.template'
+    if os.path.exists(xcf):
+        return [ xcf ];
+    else:
+        return [];
 
 
 def getBluespecVersion():

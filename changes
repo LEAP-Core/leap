@@ -6957,3 +6957,18 @@ Directory modules/leap/build-support/project
 - Bluesim build now can build a Verilog simulator target instead using
   the SCons "vexe" target.  This is most often useful for switching to
   waveform debugging to match the generated .v file variable names.
+
+----------
+mcadler     Date: Wed May 25 22:13:13 EDT 2011  CSN: CSN-leap-91
+                  Thu May 26 02:13:13 UTC 2011
+
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified           90 
+ SCons.top.template        Locally Modified           90 
+ ModuleList.py             Locally Modified           90 
+
+- Remove cost table argument for par.  New Xilinx tools don't allow it.
+- Add Bluespec-supplied XCF file to build pipeline.  Bluespec should do
+  a better job providing a base template.  For now, we just use the
+  XUPV5 version since templates for all current boards are identical.
