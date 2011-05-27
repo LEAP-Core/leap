@@ -20,35 +20,32 @@ class COMMAND_SWITCH_CLASS
 {
     private:
         COMMAND_SWITCH nextProcessor;
-        char *switchName;
-        int   argType;
+        const char* switchName;
+        int argType;
 
     public:
-        
         static COMMAND_SWITCH switchProcessors;
 
-        COMMAND_SWITCH_CLASS(char* switch_name, int arg_type);
+        COMMAND_SWITCH_CLASS(const char* switch_name, int arg_type);
         ~COMMAND_SWITCH_CLASS() {}
-        
-        char* GetSwitchName() { return switchName; }
+
+        const char* GetSwitchName() { return switchName; }
         int GetArgType() { return argType; }
         COMMAND_SWITCH GetNextProcessor() { return nextProcessor; }
-        
+
         virtual void ProcessSwitch(char *arg) {}
         virtual bool ShowSwitch(char *buff) { return false; }
 };
 
 // COMMAND_SWITCH_VOID
 
-// a flag which is either present or not. 
+// a flag which is either present or not.
 // It takes no arguments from the user.
 
 class COMMAND_SWITCH_VOID_CLASS : public COMMAND_SWITCH_CLASS
 {
-
     public:
-       
-        COMMAND_SWITCH_VOID_CLASS(char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, no_argument) {}
+        COMMAND_SWITCH_VOID_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, no_argument) {}
         ~COMMAND_SWITCH_VOID_CLASS() {}
 
         void ProcessSwitch(char *arg) { ProcessSwitchVoid(); }
@@ -61,12 +58,10 @@ class COMMAND_SWITCH_VOID_CLASS : public COMMAND_SWITCH_CLASS
 
 class COMMAND_SWITCH_INT_CLASS : public COMMAND_SWITCH_CLASS
 {
-
     public:
-       
-        COMMAND_SWITCH_INT_CLASS(char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
+        COMMAND_SWITCH_INT_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
         ~COMMAND_SWITCH_INT_CLASS() {}
-        
+
         void ProcessSwitch(char *arg) { ProcessSwitchInt(atoi_general_unsigned(arg)); }
         virtual void ProcessSwitchInt(int arg_val) {}
 };
@@ -77,12 +72,10 @@ class COMMAND_SWITCH_INT_CLASS : public COMMAND_SWITCH_CLASS
 
 class COMMAND_SWITCH_FP_CLASS : public COMMAND_SWITCH_CLASS
 {
-
     public:
-       
-        COMMAND_SWITCH_FP_CLASS(char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
+        COMMAND_SWITCH_FP_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
         ~COMMAND_SWITCH_FP_CLASS() {}
-        
+
         void ProcessSwitch(char *arg) { ProcessSwitchFp(atof(arg)); }
         virtual void ProcessSwitchFp(double arg_val) {}
 };
@@ -93,12 +86,10 @@ class COMMAND_SWITCH_FP_CLASS : public COMMAND_SWITCH_CLASS
 
 class COMMAND_SWITCH_STRING_CLASS : public COMMAND_SWITCH_CLASS
 {
-
     public:
-       
-        COMMAND_SWITCH_STRING_CLASS(char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
+        COMMAND_SWITCH_STRING_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
         ~COMMAND_SWITCH_STRING_CLASS() {}
-        
+
         void ProcessSwitch(char *arg) { ProcessSwitchString(arg); }
         virtual void ProcessSwitchString(char *arg_val) {}
 };
@@ -111,14 +102,12 @@ class COMMAND_SWITCH_STRING_CLASS : public COMMAND_SWITCH_CLASS
 
 class COMMAND_SWITCH_OPTIONAL_INT_CLASS : public COMMAND_SWITCH_CLASS
 {
-
     public:
-       
-        COMMAND_SWITCH_OPTIONAL_INT_CLASS(char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, optional_argument) {}
+        COMMAND_SWITCH_OPTIONAL_INT_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, optional_argument) {}
         ~COMMAND_SWITCH_OPTIONAL_INT_CLASS() {}
 
         void ProcessSwitch(char *arg) { if (arg == NULL) ProcessSwitchVoid(); else ProcessSwitchInt(atoi_general_unsigned(arg)); }
-        
+
         virtual void ProcessSwitchVoid() {}
         virtual void ProcessSwitchInt(int arg_val) {}
 };
@@ -131,14 +120,12 @@ class COMMAND_SWITCH_OPTIONAL_INT_CLASS : public COMMAND_SWITCH_CLASS
 
 class COMMAND_SWITCH_OPTIONAL_STRING_CLASS : public COMMAND_SWITCH_CLASS
 {
-
     public:
-       
-        COMMAND_SWITCH_OPTIONAL_STRING_CLASS(char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, optional_argument) {}
+        COMMAND_SWITCH_OPTIONAL_STRING_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, optional_argument) {}
         ~COMMAND_SWITCH_OPTIONAL_STRING_CLASS() {}
-        
+
         void ProcessSwitch(char *arg) { if (arg == NULL) ProcessSwitchVoid(); else ProcessSwitchString(arg); }
-        
+
         virtual void ProcessSwitchVoid() {}
         virtual void ProcessSwitchString(char *arg_val) {}
 };
@@ -156,13 +143,13 @@ class COMMAND_SWITCH_LIST_CLASS : public COMMAND_SWITCH_CLASS
         vector<string> ParseStringToArgs(const string& line);
 
     public:
-       
-        COMMAND_SWITCH_LIST_CLASS(char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
+        COMMAND_SWITCH_LIST_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
         ~COMMAND_SWITCH_LIST_CLASS() {}
-        
-        void ProcessSwitch(char *arg);
-        
+
+        void ProcessSwitch(const char *arg);
+
         virtual void ProcessSwitchList(int switch_argc, char **switch_argv) {}
 };
 
 #endif
+

@@ -6983,3 +6983,19 @@ Directory tools/scripts
 
 
 * Update leap-connect so chains work across synthesis boundaries again.
+
+----------
+yvbaida     Date: Fri May 27 23:38:52 MSD 2011  CSN: CSN-leap-93
+                  Fri May 27 19:38:52 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches
+ command-switch-processor.h Locally Modified           92 
+ default-switches.h        Locally Modified           92 
+ command-switches.cpp      Locally Modified           92 
+ command-switch-processor.cpp Locally Modified           92 
+ command-switches.h        Locally Modified           92 
+
+
+Elimination of deprecated conversions from char* to string, which are causing warnings with gcc 4.*
+

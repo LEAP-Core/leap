@@ -14,7 +14,7 @@ class HELP_SWITCH_CLASS : public COMMAND_SWITCH_VOID_CLASS
     private:
         COMMAND_SWITCH_PROCESSOR proc;
     public:
-        HELP_SWITCH_CLASS(char* helpflag, COMMAND_SWITCH_PROCESSOR p);
+        HELP_SWITCH_CLASS(const char* helpflag, COMMAND_SWITCH_PROCESSOR p);
         ~HELP_SWITCH_CLASS();
         
         void ProcessSwitchVoid();

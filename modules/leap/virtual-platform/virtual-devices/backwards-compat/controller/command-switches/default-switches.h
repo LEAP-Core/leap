@@ -9,12 +9,12 @@ class MODEL_DIR_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
     public:
         MODEL_DIR_SWITCH_CLASS();
         ~MODEL_DIR_SWITCH_CLASS() {}
-        char* ModelDir() { return modelDir; }
-        
+        const char* ModelDir() { return modelDir; }
+
         void ProcessSwitchString(char* arg);
         bool ShowSwitch(char* buff);
     private:
-        char* modelDir;
+        const char* modelDir;
 
 };
 
@@ -23,12 +23,12 @@ class WORKLOAD_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
     public:
         WORKLOAD_SWITCH_CLASS();
         ~WORKLOAD_SWITCH_CLASS() {}
-        char* Workload() { return workload; }
-        
+        const char* Workload() { return workload; }
+
         void ProcessSwitchString(char* arg);
         bool ShowSwitch(char* buff);
     private:
-        char* workload;
+        const char* workload;
 
 };
 
@@ -39,7 +39,7 @@ class FUNCP_SWITCH_CLASS : public COMMAND_SWITCH_LIST_CLASS
         ~FUNCP_SWITCH_CLASS() {}
         int FuncPlatformArgc() { return funcpArgc; }
         char** FuncPlatformArgv() { return funcpArgv; }
-        
+
         void ProcessSwitchList(int argv, char** argc);
         bool ShowSwitch(char* buff);
     private:
@@ -53,7 +53,7 @@ class DYN_PARAM_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
     public:
         DYN_PARAM_SWITCH_CLASS();
         ~DYN_PARAM_SWITCH_CLASS() {}
-        
+
         void ProcessSwitchString(char* arg);
         bool ShowSwitch(char* buff);
 };
@@ -63,7 +63,7 @@ class LISTPARAM_SWITCH_CLASS : public COMMAND_SWITCH_VOID_CLASS
     public:
         LISTPARAM_SWITCH_CLASS();
         ~LISTPARAM_SWITCH_CLASS() {}
-        
+
         void ProcessSwitchVoid();
         bool ShowSwitch(char* buff);
 };
@@ -73,7 +73,7 @@ class HASIM_TRACE_FLAG_CLASS : public COMMAND_SWITCH_STRING_CLASS
     public:
         HASIM_TRACE_FLAG_CLASS();
         ~HASIM_TRACE_FLAG_CLASS() {}
-        
+
         void ProcessSwitchString(char* arg);
         bool ShowSwitch(char* buff);
 };
@@ -82,8 +82,8 @@ typedef class GLOBAL_ARGS_CLASS* GLOBAL_ARGS;
 class GLOBAL_ARGS_CLASS
 {
   public:
-    char *ModelDir() { return modelDirSwitch.ModelDir(); };
-    char *Workload() { return workloadSwitch.Workload(); };
+    const char *ModelDir() { return modelDirSwitch.ModelDir(); };
+    const char *Workload() { return workloadSwitch.Workload(); };
     int FuncPlatformArgc() { return funcpSwitch.FuncPlatformArgc(); }
     char **FuncPlatformArgv() { return funcpSwitch.FuncPlatformArgv(); }
 
@@ -109,3 +109,4 @@ class GLOBAL_ARGS_CLASS
 };
 
 #endif
+

@@ -5,7 +5,7 @@
 
 COMMAND_SWITCH COMMAND_SWITCH_CLASS::switchProcessors = NULL;
 
-COMMAND_SWITCH_CLASS::COMMAND_SWITCH_CLASS(char* switch_name, int arg_type) : 
+COMMAND_SWITCH_CLASS::COMMAND_SWITCH_CLASS(const char* switch_name, int arg_type) : 
     switchName(switch_name), 
     argType(arg_type), 
     nextProcessor(COMMAND_SWITCH_CLASS::switchProcessors) 
@@ -14,7 +14,7 @@ COMMAND_SWITCH_CLASS::COMMAND_SWITCH_CLASS(char* switch_name, int arg_type) :
 }
 
 void
-COMMAND_SWITCH_LIST_CLASS::ProcessSwitch(char* arg)
+COMMAND_SWITCH_LIST_CLASS::ProcessSwitch(const char* arg)
 {
     // Convert arguments to an argv array
     vector<string> av = ParseStringToArgs(arg);
@@ -66,3 +66,4 @@ COMMAND_SWITCH_LIST_CLASS::ParseStringToArgs(const string& line)
 
     return result;
 }
+

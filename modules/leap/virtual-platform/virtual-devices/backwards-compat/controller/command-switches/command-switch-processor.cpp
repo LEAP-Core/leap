@@ -9,7 +9,7 @@
 #include "command-switch-processor.h"
 
 // Handle printing out the help messages.
-HELP_SWITCH_CLASS::HELP_SWITCH_CLASS(char* helpflag, COMMAND_SWITCH_PROCESSOR p) : 
+HELP_SWITCH_CLASS::HELP_SWITCH_CLASS(const char* helpflag, COMMAND_SWITCH_PROCESSOR p) : 
     COMMAND_SWITCH_VOID_CLASS(helpflag), 
     proc(p)
 {
