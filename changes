@@ -6972,3 +6972,14 @@ Directory modules/leap/build-support/project
 - Add Bluespec-supplied XCF file to build pipeline.  Bluespec should do
   a better job providing a base template.  For now, we just use the
   XUPV5 version since templates for all current boards are identical.
+
+----------
+pellauer    Date: Thu May 26 22:33:08 EDT 2011  CSN: CSN-leap-92
+                  Fri May 27 02:33:08 UTC 2011
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified           91 
+
+
+* Update leap-connect so chains work across synthesis boundaries again.

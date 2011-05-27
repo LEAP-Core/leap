@@ -255,8 +255,20 @@ sub add_connections {
                 print $of "    registerRecvMulti(LOGICAL_RECV_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, incoming: connections.incomingMultis[$conidx] });\n";
             }
         }
-       
-        print $of "// End: Register Soft Connections\n";
+        print $of "    // Backwards Compatability: Connection Chains\n";
+        print $of "    for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)\n";
+        print $of "    begin\n";
+        print $of "        let info =\n";
+        print $of "            LOGICAL_CHAIN_INFO\n";
+        print $of "            {\n";
+        print $of "                logicalIdx: x,\n";
+        print $of "                logicalType: \"\",\n";
+        print $of "                incoming: connections.chains[x].incoming,\n";
+        print $of "                outgoing: connections.chains[x].outgoing\n";
+        print $of "            };\n";
+        print $of "        registerChain(info);\n";
+        print $of "    end\n";
+        print $of "    // End: Register Soft Connections\n";
 
     } 
     else {
