@@ -1,0 +1,12 @@
+
+%name ViCo Virtual Channel Multiplexer
+%desc ViCo Virtual Channel Multiplexer
+
+%provides channelio
+
+%requires physical_channel
+
+%sources -t BSV -v PUBLIC   basic-channelio.bsv
+
+%param CIO_NUM_CHANNELS     2   "Number of virtual duplex channels"
+

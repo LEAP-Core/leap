@@ -21,6 +21,7 @@
 
 #
 # Author:  Angshuman Parashar
+#          Roman Khvatov      (added ViCo mode support)
 #
 
 package Leap::RRR::Server::CPP;
@@ -282,6 +283,113 @@ sub print_stub
     print $file "};\n";
     print $file "\n";
 
+    # end the stub, close primary gate
+    print $file "#endif\n";
+    print $file "\n";
+
+    # print types-only gate
+    print $file "#endif\n";
+}
+
+##
+## print stub into a given file in cpp (ViCo mode)
+##
+sub print_stub_vico
+{
+    # capture params
+    my $self   = shift;
+    my $file   = shift;
+
+    # make sure it's a Bluespec target
+    if ($self->{lang} ne "cpp")
+    {
+        die "CPP server asked to print non-CPP stub: " . $self->{lang};
+    } 
+
+    # determine if we should write stub at all
+    if ($#{ $self->{methodlist} } == -1)
+    {
+        return;
+    }
+
+    # Print it here, because some macros used even in type definition section
+    print $file "#include \"asim/restricted/vico_rrr_layer.h\"\n";
+
+    #
+    # Types section
+    #
+
+    print $file "//\n";
+    print $file "// Types\n";
+    print $file "//\n";
+    print $file "\n";
+
+    # gate type-printing if only stub was requested
+    print $file "#ifndef STUB_ONLY\n";
+    print $file "\n";
+
+    # primary types gate
+    print $file "#ifndef __" . $self->name() . "_SERVER_TYPES__\n";
+    print $file "#define __" . $self->name() . "_SERVER_TYPES__\n";
+    print $file "\n";
+
+    print $file "VICO_RRR_SERVER_START_TDEFS(" . $self->name() . ")\n";
+
+    # print types
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        $method->print_types($file);
+    }
+    print $file "\n";
+    print $file "VICO_RRR_SERVER_END_TDEFS(" . $self->name() . ")\n";
+
+    # close primary types gate
+    print $file "#endif\n";
+    print $file "\n";
+
+    # close stub-only gate
+    print $file "#endif\n";
+    print $file "\n";
+
+    #
+    # Stub section
+    #
+
+    print $file "//\n";
+    print $file "// Stub\n";
+    print $file "//\n";
+    print $file "\n";
+
+    # gate stub-printing if only types were requested
+    print $file "#ifndef TYPES_ONLY\n";
+    print $file "\n";
+
+    # defines and includes
+    print $file "#ifndef __" . $self->name() . "_SERVER_STUB__\n";
+    print $file "#define __" . $self->name() . "_SERVER_STUB__\n";
+    print $file "\n";
+
+    # start creating the server class
+    print $file "VICO_RRR_SERVER_START_CLASS(" . $self->name() . ")\n";
+
+    # server methods
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        print $file "\n";
+        $method->print_server_definition_vico($file, "    ");
+    }
+
+    print $file "VICO_RRR_SERVER_START_METHODS_LIST(" . $self->name() . ")\n";
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        $method->print_server_list_entry_vico($file, "    ");
+    }
+    print $file "VICO_RRR_SERVER_END_METHODS_LIST(" . $self->name() . ")\n";
+
+    # close the class
+    print $file "VICO_RRR_SERVER_END_CLASS(" . $self->name() . ")\n";
+
+   
     # end the stub, close primary gate
     print $file "#endif\n";
     print $file "\n";

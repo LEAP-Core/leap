@@ -21,6 +21,7 @@
 
 #
 # Author:  Angshuman Parashar
+#          Roman Khvatov      (added ViCo mode support)
 #
 
 package Leap::RRR::Service;
@@ -183,6 +184,32 @@ sub print_server_stub
 }
 
 ##
+## print server stub for a given target into a given file (ViCo mode)
+##
+sub print_server_stub_vico
+{
+    # capture params
+    my $self   = shift;
+    my $file   = shift;
+    my $target = shift;
+
+    # for each entry in my list of servers...
+    foreach my $server (@{ $self->{serverlist} })
+    {
+        # look for the specified target name. It is guaranteed that
+        # each server in this list will have a unique target name.
+        if ($server->target() eq $target)
+        {
+            # ask the server to print out a stub
+            $server->print_stub_vico($file);
+        }
+
+        # NOTE: we are guaranteed to only print one stub
+        # for a given target
+    }
+}
+
+##
 ## do we need to generate a server connections for this service and target?
 ##
 sub needs_server_connections
@@ -292,6 +319,32 @@ sub print_client_stub
         {
             # ask the client to print out a stub
             $client->print_stub($file);
+        }
+
+        # NOTE: we are guaranteed to only print one stub
+        # for a given target
+    }
+}
+
+##
+## print client stub for a given target into a given file
+##
+sub print_client_stub_vico
+{
+    # capture params
+    my $self   = shift;
+    my $file   = shift;
+    my $target = shift;
+
+    # for each entry in my list of clients...
+    foreach my $client (@{ $self->{clientlist} })
+    {
+        # look for the specified target name. It is guaranteed that
+        # each client in this list will have a unique target name.
+        if ($client->target() eq $target)
+        {
+            # ask the client to print out a stub
+            $client->print_stub_vico($file);
         }
 
         # NOTE: we are guaranteed to only print one stub

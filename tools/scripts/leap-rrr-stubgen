@@ -9,6 +9,7 @@
 
 #
 # Author:  Angshuman Parashar
+#          Roman Khvatov      (added ViCo mode support)
 #
 
 use warnings;
@@ -34,6 +35,7 @@ my $usage = "usage: leap-rrr-stubgen\n" .
             "           -type      (client | server)\n" .
             "           -incdirs   (colon separate include directory list)\n" .
             "           -odir <outputdir>\n" .
+            "           -vico      - turn on ViCo mode\n".
             "           INPUTFILE\n";
 
 my $mode = "";
@@ -41,12 +43,14 @@ my $target = "";
 my $type = "";
 my $incdirs = "";
 my $odir = "";
+my $vico=0;
 
 GetOptions("mode=s"      => \$mode,
            "target=s"    => \$target,
            "type=s"      => \$type,
            "incdirs=s"   => \$incdirs,
-           "odir=s"      => \$odir);
+           "odir=s"      => \$odir,
+           "vico"        => \$vico);
 
 my @serviceTable;
 
@@ -193,6 +197,16 @@ if ($mode eq "stub")
     open(my $ohandle_bsh, "> ${odir}/service_ids.bsh") ||
         die "stubgen: unable to open output file ${odir}/service_ids.bsh";
     print_service_ids($ohandle_h, $ohandle_bsh, @serviceTable);
+
+    ##
+    ## ViCo SCE-MI config
+    ##
+    if ($vico)
+    {
+    	open (my $scemif, ">${odir}/service_scemi_cfg.scemi") ||
+    	     die "stubgen: unable to open output file ${odir}/service_scemi_cfg.scemi";
+    	print_scemi_cfg($scemif,@serviceTable);
+    }
 }
 elsif ($mode eq "names")
 {
@@ -333,6 +347,76 @@ sub print_service_ids
     print $ofile_bsh "\`endif // __RRR_SERVICE_IDS__\n";
 }
 
+
+# Round argument up to UMF_MESSAGE_CHUNK size (hardcoded to 32) !!!
+sub RoundUp
+{
+ my $arg=$_[0];
+
+ return ($arg+63)&~63;
+}
+
+############################################################
+# print_scemi_cfg: given a parsed service table, print
+#                  SCE-MI config file (for ViCo mode)
+sub print_scemi_cfg
+{
+    my $ofile = shift;
+    my @serviceTable = @_;
+
+    print $ofile "//\n";
+    print $ofile "// Synthesized confg file created by leap-rrr-stubgen\n";
+    print $ofile "//\n\n";
+
+    my $serviceID = 0;
+    foreach my $service (@serviceTable)
+    {
+        my $serv_name = $service->name();
+
+        for my $self (@{$service->{serverlist}})
+        {
+        	next unless $self->target() eq 'sw';
+        	my $id=0;
+            foreach my $method (@{ $self->{methodlist} })
+            {
+                my $real_id = $id + ($serviceID<<4);
+                printf $ofile "*SCE-MI: MessageOutPort / \$RRR/$serv_name/s/%s_in PortWidth %d _ID %d _NOTS 1\n",
+                  $method->name(),RoundUp($method->inargs()->bitsize()),$real_id+0x20000;
+                if ($method->outargs()->num()>0)
+                {
+                    printf $ofile "*SCE-MI: MessageInPort  / \$RRR/$serv_name/s/%s_out PortWidth %d _ID %d _NOTS 1\n",
+                      $method->name(),RoundUp($method->outargs()->bitsize()),$real_id;
+                }
+                ++$id;
+            }
+            last;
+        }
+
+        for my $self (@{$service->{clientlist}})
+        {
+        	next unless $self->target() eq 'sw';
+        	my $id=0;
+            foreach my $method (@{ $self->{methodlist} })
+            {
+                my $real_id = $id + ($serviceID<<4);
+                printf $ofile "*SCE-MI: MessageInPort  / \$RRR/$serv_name/c/%s_out PortWidth %d _ID %d _NOTS 1\n",
+                  $method->name(),RoundUp($method->inargs()->bitsize()),$real_id+0x1000;
+                if ($method->outargs()->num()>0)
+                {
+                    printf $ofile "*SCE-MI: MessageOutPort / \$RRR/$serv_name/c/%s_in PortWidth %d _ID %d _NOTS 1\n",
+                      $method->name(),RoundUp($method->outargs()->bitsize()),$real_id+0x21000;
+                }
+                ++$id;
+            }
+            last;
+        }
+
+        $serviceID = $serviceID + 1;
+    }
+
+
+}
+
 ################################################################
 # print_server_stub: given a parsed service table, print out a
 #                    full server stub for a given target
@@ -343,7 +427,14 @@ sub print_server_stub
     my $service = shift;
 
     # ask the service to print the actual module
-    $service->print_server_stub($file, $target);
+    if ($vico && $target eq 'sw')
+    {
+	    $service->print_server_stub_vico($file, $target);
+    }
+    else
+    {
+    	$service->print_server_stub($file, $target);
+    }
 }
 
 ############################################################
@@ -431,7 +522,14 @@ sub print_client_stub
     my $service = shift;
 
     # ask the service to print the actual module
-    $service->print_client_stub($file, $target);
+    if ($vico && $target eq 'sw')
+    {
+	    $service->print_client_stub_vico($file, $target);
+    }
+    else
+    {
+    	$service->print_client_stub($file, $target);
+    }
 }
 
 ############################################################

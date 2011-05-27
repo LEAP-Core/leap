@@ -21,6 +21,7 @@
 
 #
 # Author:  Angshuman Parashar
+#          Roman Khvatov      (added ViCo mode support)
 #
 
 package Leap::RRR::Arglist::CPP;
@@ -76,6 +77,17 @@ sub _semi_deep_copy
 
     return $target;
 }
+
+
+##
+## return true if type is simple (not structure)
+##
+sub is_singletype
+{
+    my $self = shift;
+    return ($#{ $self->{args} } == 0);
+}
+
 
 ##
 ## return a type string for the lone element in the arg list
@@ -175,6 +187,82 @@ sub makecalllist
     }
 
     return $string;
+}
+
+##
+## crerate a string with unpack code (ViCo)
+##
+sub makeunp_vico
+{
+    my $self = shift;
+    my $dlm  = shift;
+
+    my @rv;
+    my $acc_width=0;
+    my $total_width=$self->bitsize();
+
+    foreach my $arg (@{ $self->{args} })
+    {
+    	my $width = $arg->type()->size_bsv();
+    	push(@rv,$arg->string_cpp() ."= VICO_RRR_UNP($width,$acc_width,$total_width);");
+    	$acc_width+=$width;
+    }
+    return join($dlm,@rv);
+}
+
+##
+## crerate a string with cpy code (ViCo)
+##
+sub makecpy_vico
+{
+    my $self = shift;
+    my $pref = shift;
+    my $dlm  = shift;
+
+    my @rv;
+
+    if ($self->is_singletype())
+    {
+        	push(@rv,$pref." = ".$self->{args}->[0]->name()->string());
+    }
+    else
+    {
+        foreach my $arg (@{ $self->{args} })
+        {
+        	push(@rv,$pref.'.'.$arg->name()->string() ." = ". $arg->name()->string().";");
+        }
+    }
+    return join($dlm,@rv);
+}
+
+sub makepck_vico
+{
+    my $self = shift;
+    my $pref = shift;
+    my $dlm  = shift;
+
+    my @rv;
+    my $acc_width=0;
+    my $total_width=$self->bitsize();
+
+    foreach my $arg (@{ $self->{args} })
+    {
+    	my $width = $arg->type()->size_bsv();
+    	unless ($pref)
+    	{
+	    	push(@rv,'VICO_RRR_PCK('.$arg->name()->string().",$width,$acc_width,$total_width);");
+    	}
+    	elsif ($self->is_singletype())
+    	{
+	    	push(@rv,"VICO_RRR_PCK($pref,$width,$acc_width,$total_width);");
+    	}
+    	else
+    	{
+	    	push(@rv,"VICO_RRR_PCK($pref.".$arg->name()->string().",$width,$acc_width,$total_width);");
+	    }
+    	$acc_width+=$width;
+    }
+    return join($dlm,@rv);
 }
 
 ##

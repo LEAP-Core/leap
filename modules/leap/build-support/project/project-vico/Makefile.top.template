@@ -1,0 +1,39 @@
+#!/usr/bin/make --no-keep-going -f
+
+##
+## The real work is done by SCons.  This file just defines the standard targets
+## and invokes SCons.
+##
+
+ARGS= -Q
+
+ifdef DEBUG
+    ARGS+= DEBUG=$(DEBUG)
+endif
+ifdef OPT
+    ARGS+= OPT=$(OPT)
+endif
+ifdef SILENT
+    ARGS+= SILENT=$(SILENT)
+endif
+
+.PHONY: all
+all:
+	scons $(ARGS)
+
+.PHONY: exe
+exe:
+	scons exe $(ARGS)
+
+.PHONY: vexe
+vexe:
+	scons vexe $(ARGS)
+
+.PHONY: bit
+bit:
+	scons bit $(ARGS)
+
+.PHONY: clean
+clean:
+	scons -c $(ARGS)
+

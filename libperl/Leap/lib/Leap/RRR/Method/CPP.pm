@@ -21,6 +21,7 @@
 
 #
 # Author:  Angshuman Parashar
+#          Roman Khvatov      (added ViCo mode support)
 #
 
 package Leap::RRR::Method::CPP;
@@ -236,6 +237,55 @@ sub print_client_definition
     print $file $indent . "}\n";
 }
 
+##
+## print client method definition (ViCo mode)
+##
+sub print_client_definition_vico
+{
+    my $self   = shift;
+    my $file   = shift;
+    my $indent = shift;
+
+    my $is_void_method = $self->outargs()->num() <= 0;
+
+    printf $file "#define VICO_RRR_CLIENT_IARGS_TN ".$self->inargs()->makelist()."\n";
+    printf $file "#define VICO_RRR_CLIENT_IARGS_N ".$self->inargs()->makecalllist()."\n";
+    printf $file "#define VICO_RRR_CLIENT_IARGS_PACK \\\n".$self->inargs()->makepck_vico('',"\\\n")."\n";
+    if (!$is_void_method)
+    {
+	    printf $file "#define VICO_RRR_CLIENT_OARGS_TN ".$self->outargs()->makelist()."\n";
+	    printf $file "#define VICO_RRR_CLIENT_OARGS_N ".$self->outargs()->makecalllist()."\n";
+	   	printf $file "#define VICO_RRR_CLIENT_OARGS_UNP \\\n".$self->outargs()->makeunp_vico("\\\n")."\n";
+	   	printf $file "#define VICO_RRR_CLIENT_OARGS_CPY \\\n".$self->outargs()->makecpy_vico('vico_rrr_ctx->ret_val',"\\\n")."\n";
+	}
+
+    printf $file $indent."VICO_RRR_CLIENT_MAKE_METHOD%s(%s,%s)\n",$is_void_method?"_V":"",$self->{servicename},$self->name();
+
+    printf $file "#undef VICO_RRR_CLIENT_IARGS_TN\n";
+    printf $file "#undef VICO_RRR_CLIENT_IARGS_N\n";
+    printf $file "#undef VICO_RRR_CLIENT_IARGS_PACK\n";
+   	if (!$is_void_method)
+   	{
+	   	printf $file "#undef VICO_RRR_CLIENT_OARGS_UNP\n";
+	   	printf $file "#undef VICO_RRR_CLIENT_OARGS_TN\n";
+	   	printf $file "#undef VICO_RRR_CLIENT_OARGS_N\n";
+	   	printf $file "#undef VICO_RRR_CLIENT_OARGS_CPY\n";
+	}
+}
+
+##
+## list client method entry (ViCo mode)
+##
+sub print_client_list_entry_vico
+{
+    my $self   = shift;
+    my $file   = shift;
+    my $indent = shift;
+
+    my $is_void_method = $self->outargs()->num() <= 0;
+    printf $file $indent."VICO_RRR_CLIENT_ML_METHOD%s(%s,%s)\n",$is_void_method?"_V":"",$self->{servicename},$self->name();
+}
+
 #######################################
 ##             SERVER                ##
 #######################################
@@ -331,5 +381,43 @@ sub print_server_case_block
     print $file $indent . "    break;\n";
     print $file $indent . "}\n";
 }
+
+##
+## print server method definition (ViCo mode)
+##
+sub print_server_definition_vico
+{
+    my $self   = shift;
+    my $file   = shift;
+    my $indent = shift;
+
+    my $is_void_method = $self->outargs()->num() <= 0;
+
+    printf $file "#define VICO_RRR_SERVER_ARGS_TN ".$self->inargs()->makelist()."\n";
+    printf $file "#define VICO_RRR_SERVER_ARGS_N ".$self->inargs()->makecalllist()."\n";
+    printf $file "#define VICO_RRR_SERVER_ARGS_UNP \\\n".$self->inargs()->makeunp_vico("\\\n")."\n";
+   	printf $file "#define VICO_RRR_SERVER_ARGS_PACK \\\n".$self->outargs()->makepck_vico('vico_ret_var',"\\\n")."\n" if (!$is_void_method);
+
+    printf $file $indent."VICO_RRR_SERVER_GENERATE_METHOD%s(%s,%s)\n",$is_void_method?"_V":"",$self->{servicename},$self->name();
+
+    printf $file "#undef VICO_RRR_SERVER_ARGS_TN\n";
+    printf $file "#undef VICO_RRR_SERVER_ARGS_N\n";
+    printf $file "#undef VICO_RRR_SERVER_ARGS_UNP\n";
+   	printf $file "#undef VICO_RRR_SERVER_ARGS_PACK\n" if (!$is_void_method);    
+}
+
+##
+## list server method entry (ViCo mode)
+##
+sub print_server_list_entry_vico
+{
+    my $self   = shift;
+    my $file   = shift;
+    my $indent = shift;
+
+    my $is_void_method = $self->outargs()->num() <= 0;
+    printf $file $indent."VICO_RRR_SERVER_ML_METHOD%s(%s,%s)\n",$is_void_method?"_V":"",$self->{servicename},$self->name();
+}
+
 
 1;

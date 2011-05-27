@@ -1,0 +1,18 @@
+#/********************************************************************
+#* Awb module specification
+#********************************************************************/
+
+%name ViCo headers
+%desc Header files required to build an ViCo-based model
+%attributes hybrid vico
+
+%provides vico_headers
+
+%public  vico_rrr_layer.h
+%public  scemi.h
+%public  scemi_errors.h
+%public  vico_be_lib.h
+%public  vico_fw.h
+%public  vico_extra.h
+
+%library libvico.so

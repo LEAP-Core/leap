@@ -21,6 +21,7 @@
 
 #
 # Author:  Angshuman Parashar
+#          Roman Khvatov       (added bitsize method)
 #
 
 package Leap::RRR::Arglist::Base;
@@ -118,6 +119,22 @@ sub num
     my $self = shift;
 
     return ($#{ $self->{args} } + 1);
+}
+
+
+##
+## return the sie of args in bits
+##
+sub bitsize
+{
+    my $self = shift;
+    my $total_width=0;
+
+    foreach my $arg (@{ $self->{args} })
+    {
+    	$total_width+=$arg->type()->size_bsv();
+    }
+    return $total_width;
 }
 
 1;

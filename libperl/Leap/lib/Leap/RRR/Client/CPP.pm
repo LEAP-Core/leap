@@ -21,6 +21,7 @@
 
 #
 # Author:  Angshuman Parashar
+#          Roman Khvatov      (added ViCo mode support)
 #
 
 package Leap::RRR::Client::CPP;
@@ -167,6 +168,70 @@ sub print_stub
     # close the class
     print $file "};\n";
     print $file "\n";
+
+    # end the stub file
+    print $file "#endif\n";
+}
+
+
+##
+## print stub into a given file in cpp
+##
+sub print_stub_vico
+{
+    # capture params
+    my $self   = shift;
+    my $file   = shift;
+
+    # make sure it's a Bluespec target
+    if ($self->{lang} ne "cpp")
+    {
+        die "CPP client asked to print non-CPP stub: " . $self->{lang};
+    } 
+
+    # determine if we should write stub at all
+    if ($#{ $self->{methodlist} } == -1)
+    {
+        return;
+    }
+
+    # defines and includes
+    print $file "#ifndef __" . $self->name() . "_CLIENT_STUB__\n";
+    print $file "#define __" . $self->name() . "_CLIENT_STUB__\n";
+    print $file "\n";
+
+    print $file "#include \"asim/restricted/vico_rrr_layer.h\"\n";
+    print $file "\n";
+
+    print $file "VICO_RRR_CLIENT_START_TDEFS(" . $self->name() . ")\n";
+    
+    # print types
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        $method->print_types($file);
+    }
+    print $file "\n";
+    print $file "VICO_RRR_CLIENT_END_TDEFS(" . $self->name() . ")\n";
+
+    # start creating the client class
+    print $file "VICO_RRR_CLIENT_START_CLASS(" . $self->name() . ")\n";
+
+    # client methods
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        print $file "\n";
+        $method->print_client_definition_vico($file, "    ");
+    }
+
+    print $file "VICO_RRR_CLIENT_START_METHODS_LIST(" . $self->name() . ")\n";
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        $method->print_client_list_entry_vico($file, "    ");
+    }
+    print $file "VICO_RRR_CLIENT_END_METHODS_LIST(" . $self->name() . ")\n";
+
+    # close the class
+    print $file "VICO_RRR_CLIENT_END_CLASS(" . $self->name() . ")\n";
 
     # end the stub file
     print $file "#endif\n";

@@ -1,0 +1,18 @@
+%name ViCo Low Level Platform Interface Hybrid
+%desc ViCo Low Level Platform Interface for Hybrid Models
+
+%provides low_level_platform_interface
+
+%requires vico_headers
+%requires rrr
+%requires channelio
+%requires local_mem
+%requires remote_memory
+%requires physical_platform
+%requires physical_platform_debugger
+
+%public  llpi.bsv
+%public  llpi.h
+%private llpi.cpp
+%public  platforms-module.h
+%private platforms-module.cpp
