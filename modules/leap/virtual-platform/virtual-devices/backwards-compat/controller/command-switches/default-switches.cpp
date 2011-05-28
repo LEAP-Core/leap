@@ -13,7 +13,7 @@ MODEL_DIR_SWITCH_CLASS::MODEL_DIR_SWITCH_CLASS() :
 }
 
 void
-MODEL_DIR_SWITCH_CLASS::ProcessSwitchString(char *arg)
+MODEL_DIR_SWITCH_CLASS::ProcessSwitchString(const char *arg)
 {
     modelDir = strdup(arg);
 }
@@ -32,7 +32,7 @@ WORKLOAD_SWITCH_CLASS::WORKLOAD_SWITCH_CLASS() :
 }
 
 void
-WORKLOAD_SWITCH_CLASS::ProcessSwitchString(char *arg)
+WORKLOAD_SWITCH_CLASS::ProcessSwitchString(const char *arg)
 {
     workload = strdup(arg);
 }
@@ -73,7 +73,7 @@ DYN_PARAM_SWITCH_CLASS::DYN_PARAM_SWITCH_CLASS() :
 }
 
 void
-DYN_PARAM_SWITCH_CLASS::ProcessSwitchString(char *arg)
+DYN_PARAM_SWITCH_CLASS::ProcessSwitchString(const char *arg)
 {
     char *name = strdup(arg);
     char *eq = index(name, '=');
@@ -138,7 +138,7 @@ HASIM_TRACE_FLAG_CLASS::HASIM_TRACE_FLAG_CLASS() :
 }
 
 void
-HASIM_TRACE_FLAG_CLASS::ProcessSwitchString(char *command) 
+HASIM_TRACE_FLAG_CLASS::ProcessSwitchString(const char *command) 
 {
     string regex;
     int level;

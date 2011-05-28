@@ -11,7 +11,7 @@ class MODEL_DIR_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
         ~MODEL_DIR_SWITCH_CLASS() {}
         const char* ModelDir() { return modelDir; }
 
-        void ProcessSwitchString(char* arg);
+        void ProcessSwitchString(const char* arg);
         bool ShowSwitch(char* buff);
     private:
         const char* modelDir;
@@ -25,7 +25,7 @@ class WORKLOAD_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
         ~WORKLOAD_SWITCH_CLASS() {}
         const char* Workload() { return workload; }
 
-        void ProcessSwitchString(char* arg);
+        void ProcessSwitchString(const char* arg);
         bool ShowSwitch(char* buff);
     private:
         const char* workload;
@@ -54,7 +54,7 @@ class DYN_PARAM_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
         DYN_PARAM_SWITCH_CLASS();
         ~DYN_PARAM_SWITCH_CLASS() {}
 
-        void ProcessSwitchString(char* arg);
+        void ProcessSwitchString(const char* arg);
         bool ShowSwitch(char* buff);
 };
 
@@ -74,7 +74,7 @@ class HASIM_TRACE_FLAG_CLASS : public COMMAND_SWITCH_STRING_CLASS
         HASIM_TRACE_FLAG_CLASS();
         ~HASIM_TRACE_FLAG_CLASS() {}
 
-        void ProcessSwitchString(char* arg);
+        void ProcessSwitchString(const char* arg);
         bool ShowSwitch(char* buff);
 };
 
@@ -87,14 +87,14 @@ class GLOBAL_ARGS_CLASS
     int FuncPlatformArgc() { return funcpSwitch.FuncPlatformArgc(); }
     char **FuncPlatformArgv() { return funcpSwitch.FuncPlatformArgv(); }
 
-    void SetExecutableName(char* name) { executableName = name; }
-    char* ExecutableName() { return executableName; }
+    void SetExecutableName(const char* name) { executableName = name; }
+    const char* ExecutableName() { return executableName; }
 
     GLOBAL_ARGS_CLASS();
     ~GLOBAL_ARGS_CLASS();
 
   private:
-    char* executableName; // Name of executable (argv[0])
+    const char* executableName; // Name of executable (argv[0])
     MODEL_DIR_SWITCH_CLASS modelDirSwitch; // Model (pm) directory
     WORKLOAD_SWITCH_CLASS  workloadSwitch; // Name of the workload (affects stats file name)
 

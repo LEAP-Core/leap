@@ -6999,3 +6999,17 @@ Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/control
 
 Elimination of deprecated conversions from char* to string, which are causing warnings with gcc 4.*
 
+
+----------
+mcadler     Date: Sat May 28 11:00:45 EDT 2011  CSN: CSN-leap-95
+                  Sat May 28 15:00:45 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches
+ default-switches.h        Locally Modified           94 
+ command-switches.h        Locally Modified           94 
+ default-switches.cpp      Locally Modified           94 
+
+Fix last check-in that added const to command processing char* inputs.
+The new signatures didn't match the virtual function defintion and the default
+methods were being called.
