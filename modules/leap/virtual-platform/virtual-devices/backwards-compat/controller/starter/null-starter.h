@@ -1,7 +1,7 @@
 #ifndef _STARTER_
 #define _STARTER_
 
-#include "asim/provides/low_level_platform_interface.h"
+#include "awb/provides/low_level_platform_interface.h"
 
 // this module provides both client and service functionalities
 

@@ -16,8 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/fpga_components.bsh"
-`include "asim/provides/clocks_device.bsh"
+`include "awb/provides/fpga_components.bsh"
+`include "awb/provides/clocks_device.bsh"
 // Need the lib seperation to work out AWB dependencies correctly.
 
 typedef UserClock LOGICAL_CLOCK_INFO;

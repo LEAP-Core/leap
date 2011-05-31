@@ -1,8 +1,8 @@
 `ifndef __STREAMS_COMMON__
 `define __STREAMS_COMMON__
 
-`include "asim/dict/STREAMS.bsh"
-`include "asim/dict/STREAMID.bsh"
+`include "awb/dict/STREAMS.bsh"
+`include "awb/dict/STREAMID.bsh"
 
 typedef struct
 {

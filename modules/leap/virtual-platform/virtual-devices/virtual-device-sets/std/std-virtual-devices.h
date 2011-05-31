@@ -29,9 +29,9 @@
 
 #include <pthread.h>
 
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/starter_device.h"
-#include "asim/provides/common_utility_devices.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/starter_device.h"
+#include "awb/provides/common_utility_devices.h"
 
 typedef class VIRTUAL_DEVICES_CLASS *VIRTUAL_DEVICES;
 

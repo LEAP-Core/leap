@@ -9,7 +9,7 @@ class Iface():
   def __init__(self, moduleList):
     cmd = ''
     if os.path.isfile('iface/SConstruct'):
-        cmd = 'cd iface; scons'
+        cmd = 'cd iface; scons; ln -s awb build/include/asim'
     if moduleList.env.GetOption('clean'):
         cmd += ' -c'
     s = os.system(cmd)

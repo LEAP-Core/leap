@@ -1,8 +1,8 @@
 
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/front_panel.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/front_panel.bsh"
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 
 

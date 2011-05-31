@@ -18,13 +18,13 @@
 
 import FIFO::*;
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
-`include "asim/provides/rrr.bsh"
+`include "awb/provides/rrr.bsh"
 
-`include "asim/rrr/remote_client_stub_STATS.bsh"
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/STATS.bsh"
+`include "awb/rrr/remote_client_stub_STATS.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/STATS.bsh"
 
 // STATS_CONTROLLER: Control all the stats throughout the hardware model.
 

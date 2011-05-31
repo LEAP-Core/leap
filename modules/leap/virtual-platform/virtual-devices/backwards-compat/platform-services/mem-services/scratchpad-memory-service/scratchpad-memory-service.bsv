@@ -18,16 +18,16 @@
 
 import Arbiter::*;
 
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/scratchpad_memory.bsh"
-`include "asim/provides/scratchpad_memory_common.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/scratchpad_memory.bsh"
+`include "awb/provides/scratchpad_memory_common.bsh"
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/common_services.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/common_services.bsh"
 
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
-`include "asim/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
+`include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 
 module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)

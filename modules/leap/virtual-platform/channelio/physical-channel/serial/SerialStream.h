@@ -12,7 +12,7 @@
 #include <fstream>
 #include <cassert>
 #include "SerialStreamBuf.h"
-//#include "asim/provides/physical_platform.h"
+//#include "awb/provides/physical_platform.h"
 
 extern "C++" {
   namespace LibSerial {

@@ -18,8 +18,8 @@
 
 #include <iostream>
 
-#include "asim/provides/rrr.h"
-#include "asim/provides/model.h" // FIXME should be project
+#include "awb/provides/rrr.h"
+#include "awb/provides/model.h" // FIXME should be project
 
 #define CHANNEL_ID  1
 

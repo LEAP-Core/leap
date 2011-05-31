@@ -164,7 +164,7 @@ sub EmitH($$$) {
     ##
     foreach my $subName ($dict->GetSortedDictionaryNames()) {
         my $sd = $dict->GetDictionary($subName);
-        print $of "#include \"asim/dict/${m}_" . $sd->GetName() . ".h\"\n";
+        print $of "#include \"awb/dict/${m}_" . $sd->GetName() . ".h\"\n";
     }
     print $of "\n";
 
@@ -329,7 +329,7 @@ sub EmitBSH($$$) {
     ##
     foreach my $subName ($dict->GetSortedDictionaryNames()) {
         my $sd = $dict->GetDictionary($subName);
-        print $of "`include \"asim/dict/${m}_" . $sd->GetName() . ".bsh\"\n";
+        print $of "`include \"awb/dict/${m}_" . $sd->GetName() . ".bsh\"\n";
     }
     print $of "\n";
 
@@ -385,7 +385,7 @@ sub EmitBSV($$$) {
 
     print $of "`define IMPORTED_MODULE_DICT_${m}\n\n";
 
-    print $of "`include \"asim/dict/${m}.bsh\"\n\n";
+    print $of "`include \"awb/dict/${m}.bsh\"\n\n";
 
     ##
     ## Unlike the C++ code that emits a definition at most once, the Bluespec
@@ -447,7 +447,7 @@ sub EmitInit_Recursive {
         my $sd = $dict->GetDictionary($n);
         my $name = $sd->GetName();
 
-        print $of "#include \"asim/dict/${prefix}${name}.h\"\n";
+        print $of "#include \"awb/dict/${prefix}${name}.h\"\n";
 
         EmitInit_Recursive($of, "${prefix}${name}_", $sd);
     }
@@ -729,7 +729,7 @@ sub ParseInputFile($) {
     my $cmd = "cpp $searchpath -D AWB_DEFS_ONLY";
 
     # First update dependence file
-    system("$cmd -M -MT build/include/asim/rrr/service_ids.h -MF .depends-dic-" . basename($filename) . " $filename");
+    system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-dic-" . basename($filename) . " $filename");
 
     ## Pass the input file through cpp
     open(IF, "$cmd $filename |") || die "Failed to open $filename";

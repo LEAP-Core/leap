@@ -23,17 +23,17 @@
 import FIFO::*;
 import SpecialFIFOs::*;
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/librl_bsv_cache.bsh"
-`include "asim/provides/central_cache.bsh"
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
+`include "awb/provides/central_cache.bsh"
+`include "awb/provides/fpga_components.bsh"
 
-`include "asim/provides/virtual_devices.bsh"
+`include "awb/provides/virtual_devices.bsh"
 
-`include "asim/dict/PARAMS_CENTRAL_CACHE_SERVICE.bsh"
-`include "asim/dict/STATS_CENTRAL_CACHE_SERVICE.bsh"
+`include "awb/dict/PARAMS_CENTRAL_CACHE_SERVICE.bsh"
+`include "awb/dict/STATS_CENTRAL_CACHE_SERVICE.bsh"
 
-`include "asim/dict/VDEV.bsh"
+`include "awb/dict/VDEV.bsh"
 `ifdef VDEV_CACHE__BASE
 `define CACHE_BASE `VDEV_CACHE__BASE
 `else

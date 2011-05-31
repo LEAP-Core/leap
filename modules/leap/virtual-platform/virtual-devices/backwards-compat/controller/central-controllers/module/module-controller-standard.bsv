@@ -23,19 +23,19 @@ import FIFO::*;
 
 // Leap library imports
 
-`include "asim/provides/hasim_common.bsh"
-`include "asim/provides/hasim_modellib.bsh"
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/platform_interface.bsh"
-`include "asim/provides/front_panel.bsh"
-`include "asim/provides/module_local_controller.bsh"
+`include "awb/provides/hasim_common.bsh"
+`include "awb/provides/hasim_modellib.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/platform_interface.bsh"
+`include "awb/provides/front_panel.bsh"
+`include "awb/provides/module_local_controller.bsh"
 
-`include "asim/provides/starter.bsh"
-`include "asim/provides/streams.bsh"
+`include "awb/provides/starter.bsh"
+`include "awb/provides/streams.bsh"
 
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/STREAMS.bsh"
-`include "asim/dict/STREAMID.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/STREAMS.bsh"
+`include "awb/dict/STREAMID.bsh"
 
 // ************* Module Controller **************
 

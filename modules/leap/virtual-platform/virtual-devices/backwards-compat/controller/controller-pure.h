@@ -5,9 +5,9 @@
 #include <pthread.h>
 
 #include "platforms-module.h"
-#include "asim/provides/starter.h"
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/model.h"
+#include "awb/provides/starter.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/model.h"
 
 
 // controller

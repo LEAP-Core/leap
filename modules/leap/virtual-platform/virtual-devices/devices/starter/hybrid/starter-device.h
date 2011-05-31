@@ -5,11 +5,11 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/rrr.h"
-#include "asim/provides/starter_device.h"
-#include "asim/provides/model.h"
-#include "asim/rrr/client_stub_STARTER_DEVICE.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/rrr.h"
+#include "awb/provides/starter_device.h"
+#include "awb/provides/model.h"
+#include "awb/rrr/client_stub_STARTER_DEVICE.h"
 
 
 // this module provides both client and server functionalities
@@ -65,7 +65,7 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 
 
 // server stub
-#include "asim/rrr/server_stub_STARTER_DEVICE.h"
+#include "awb/rrr/server_stub_STARTER_DEVICE.h"
 
 // our STARTER_DEVICE_SERVER class is itself the main STARTER class
 typedef STARTER_DEVICE_SERVER_CLASS STARTER_DEVICE_CLASS;

@@ -20,7 +20,7 @@ import Vector::*;
 import ModuleCollect::*;
 import List::*;
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 //The interface of a module with Connections
 interface WITH_CONNECTIONS#(parameter numeric type numIn,

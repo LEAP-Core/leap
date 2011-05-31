@@ -1,9 +1,9 @@
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/librl_bsv_cache.bsh"
-`include "asim/provides/local_mem.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
+`include "awb/provides/local_mem.bsh"
 
-`include "asim/dict/VDEV.bsh"
+`include "awb/dict/VDEV.bsh"
 
 
 // ========================================================================

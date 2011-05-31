@@ -19,8 +19,8 @@
 import Vector::*;
 
 
-`include "asim/provides/channelio.bsh"
-`include "asim/provides/umf.bsh"
+`include "awb/provides/channelio.bsh"
+`include "awb/provides/umf.bsh"
 
 `define NUM_SERVICES 0
 

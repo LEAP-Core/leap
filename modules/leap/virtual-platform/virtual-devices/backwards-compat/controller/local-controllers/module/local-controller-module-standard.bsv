@@ -29,12 +29,12 @@ import FIFO::*;
 
 // Project imports
 
-`include "asim/provides/hasim_common.bsh"
-`include "asim/provides/hasim_modellib.bsh"
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/hasim_common.bsh"
+`include "awb/provides/hasim_modellib.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/fpga_components.bsh"
 
-`include "asim/dict/RINGID.bsh"
+`include "awb/dict/RINGID.bsh"
 
 
 // t_NUM_INSTANCES is number of instances to control.

@@ -19,8 +19,8 @@
 #ifndef __REMOTE_MEMORY__
 #define __REMOTE_MEMORY__
 
-#include "asim/provides/pci_express_device.h"
-#include "asim/provides/physical_platform.h"
+#include "awb/provides/pci_express_device.h"
+#include "awb/provides/physical_platform.h"
 
 #include <vector>
 

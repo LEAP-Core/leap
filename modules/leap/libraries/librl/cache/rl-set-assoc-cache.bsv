@@ -40,9 +40,9 @@ import SpecialFIFOs::*;
 
 // Project foundation imports.
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/librl_bsv_storage.bsh"
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
+`include "awb/provides/fpga_components.bsh"
 
 
 // ===================================================================

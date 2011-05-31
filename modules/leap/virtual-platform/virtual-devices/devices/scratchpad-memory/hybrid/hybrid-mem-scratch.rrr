@@ -1,4 +1,4 @@
-#include "asim/provides/scratchpad_memory.h"
+#include "awb/provides/scratchpad_memory.h"
 
 // ***
 // For now fix the data size at 64 bits until the RRR type system is more flexible.

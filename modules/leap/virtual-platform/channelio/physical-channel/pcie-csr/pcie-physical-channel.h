@@ -21,9 +21,9 @@
 
 #include <pthread.h>
 
-#include "asim/provides/umf.h"
-#include "asim/provides/pci_express_device.h"
-#include "asim/provides/physical_platform.h"
+#include "awb/provides/umf.h"
+#include "awb/provides/pci_express_device.h"
+#include "awb/provides/physical_platform.h"
 
 // ============================================
 //               Physical Channel              

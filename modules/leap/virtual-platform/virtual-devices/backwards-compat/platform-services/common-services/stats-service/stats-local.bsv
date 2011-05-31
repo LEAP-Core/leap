@@ -20,16 +20,16 @@ import FIFO::*;
 import Counter::*;
 import Vector::*;
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/stats_device.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/stats_device.bsh"
 
 //AWB Parameters
 //name:                  default:
 //STATS_ENABLED   True
 //STATS_SIZE      32
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/STATS.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/STATS.bsh"
 
 //
 // Various statistics interfaces:

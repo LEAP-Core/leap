@@ -21,11 +21,11 @@
 #include <iostream>
 #include <sys/mman.h>
 
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/command_switches.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/command_switches.h"
 #include "asim/ioformat.h"
 
-#include "asim/provides/shared_memory.h"
+#include "awb/provides/shared_memory.h"
 
 using namespace std;
 

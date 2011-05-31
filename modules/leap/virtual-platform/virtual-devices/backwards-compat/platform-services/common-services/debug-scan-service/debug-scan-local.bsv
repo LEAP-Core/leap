@@ -20,12 +20,12 @@ import FIFO::*;
 import Counter::*;
 import Vector::*;
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/debug_scan_device.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/debug_scan_device.bsh"
 
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/DEBUG_SCAN.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/DEBUG_SCAN.bsh"
 
 //
 // Debug scan nodes accept any size data to scan out by breaking the data

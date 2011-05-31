@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "asim/provides/hasim_controller.h"
+#include "awb/provides/hasim_controller.h"
 
 
 using namespace std;

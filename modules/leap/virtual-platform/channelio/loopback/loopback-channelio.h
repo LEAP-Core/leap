@@ -5,8 +5,8 @@
 #include <pthread.h>
 
 #include "platforms-module.h"
-#include "asim/provides/umf.h"
-#include "asim/provides/physical_channel.h"
+#include "awb/provides/umf.h"
+#include "awb/provides/physical_channel.h"
 
 using namespace std;
 

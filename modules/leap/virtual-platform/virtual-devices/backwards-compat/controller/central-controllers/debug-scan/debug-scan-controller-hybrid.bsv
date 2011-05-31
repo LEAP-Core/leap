@@ -18,12 +18,12 @@
 
 import FIFO::*;
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/fpga_components.bsh"
 
-`include "asim/rrr/remote_client_stub_DEBUG_SCAN.bsh"
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/DEBUG_SCAN.bsh"
+`include "awb/rrr/remote_client_stub_DEBUG_SCAN.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/DEBUG_SCAN.bsh"
 
 //
 // Debug scan is a ring of nodes that scan out debug state to the host when

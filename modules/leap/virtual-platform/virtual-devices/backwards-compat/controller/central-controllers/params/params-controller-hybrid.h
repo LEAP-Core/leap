@@ -29,8 +29,8 @@
 #include <stdio.h>
 
 #include "platforms-module.h"
-#include "asim/provides/rrr.h"
-#include "asim/rrr/client_stub_PARAMS.h"
+#include "awb/provides/rrr.h"
+#include "awb/rrr/client_stub_PARAMS.h"
 
 // PARAMS_CONTROLLER has no RRR server functionalities. Why then is the code
 // structured like an RRR server (with self-instantiation etc.)? FIXME

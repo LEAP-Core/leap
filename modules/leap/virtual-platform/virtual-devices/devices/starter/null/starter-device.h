@@ -5,9 +5,9 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/starter_device.h"
-#include "asim/provides/model.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/starter_device.h"
+#include "awb/provides/model.h"
 
 
 // this module provides both client and server functionalities

@@ -27,8 +27,8 @@ BSC_FLAGS_VERILOG = env['DEFS']['BSC_FLAGS_VERILOG']
 TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
 
 inc_tgt = 'build/include'
-dict_inc_tgt = inc_tgt + '/asim/dict'
-rrr_inc_tgt = inc_tgt + '/asim/rrr'
+dict_inc_tgt = inc_tgt + '/awb/dict'
+rrr_inc_tgt = inc_tgt + '/awb/rrr'
 hw_tgt = 'build/hw'
 
 if env.GetOption('clean'):
@@ -182,3 +182,9 @@ for bsv in all_gen_bsv:
 #
 if tgt != []:
     Default(tgt)
+
+#
+# Backwards compatability link
+#
+if not env.GetOption('clean'):
+    os.system('ln -s awb build/include/asim')

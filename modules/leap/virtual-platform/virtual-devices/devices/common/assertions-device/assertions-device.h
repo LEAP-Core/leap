@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 #include "platforms-module.h"
-#include "asim/provides/rrr.h"
+#include "awb/provides/rrr.h"
 
 // this module handles reporting assertion failures.
 
@@ -55,7 +55,7 @@ class ASSERTIONS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 };
 
 // server stub
-#include "asim/rrr/server_stub_ASSERTIONS.h"
+#include "awb/rrr/server_stub_ASSERTIONS.h"
 
 // all functionalities of the assertions io are completely implemented
 // by the ASSERTIONS_DEVICE_SERVER class

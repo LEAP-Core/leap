@@ -24,10 +24,10 @@
  * @brief Standard virtual platform interface
  */
 
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/clocks_device.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/clocks_device.bsh"
 
 interface VIRTUAL_PLATFORM;
 

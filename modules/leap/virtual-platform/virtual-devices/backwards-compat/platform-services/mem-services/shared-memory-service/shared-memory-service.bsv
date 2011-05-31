@@ -1,8 +1,8 @@
 
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/shared_memory.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/shared_memory.bsh"
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 
 module [CONNECTED_MODULE] mkSharedMemoryService#(VIRTUAL_DEVICES vdevs)

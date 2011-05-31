@@ -1,9 +1,9 @@
 #ifndef _HYBRID_STREAMS_DEVICE_
 #define _HYBRID_STREAMS_DEVICE_
 
-#include "asim/provides/rrr.h"
-#include "asim/dict/STREAMS.h"
-#include "asim/dict/STREAMID.h"
+#include "awb/provides/rrr.h"
+#include "awb/dict/STREAMS.h"
+#include "awb/dict/STREAMID.h"
 
 // constants
 const int MAX_STREAMS_DEVICE = (1 << STREAMID_DICT_BITS);
@@ -57,6 +57,6 @@ class STREAMS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     void RegisterCallback(int, STREAMS_DEVICE_CALLBACK_MODULE);
 };
 
-#include "asim/rrr/server_stub_STREAMS.h"
+#include "awb/rrr/server_stub_STREAMS.h"
 
 #endif

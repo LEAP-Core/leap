@@ -6,11 +6,11 @@
 
 #include "command-switches.h"
 
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/rrr.h"
-#include "asim/provides/funcp_base_types.h"
-#include "asim/provides/starter.h"
-#include "asim/rrr/client_stub_STARTER.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/rrr.h"
+#include "awb/provides/funcp_base_types.h"
+#include "awb/provides/starter.h"
+#include "awb/rrr/client_stub_STARTER.h"
 
 // this module provides both client and service functionalities
 
@@ -173,7 +173,7 @@ class STARTER_SERVER_CLASS: public RRR_SERVER_CLASS,
 
 
 // server stub
-#include "asim/rrr/server_stub_STARTER.h"
+#include "awb/rrr/server_stub_STARTER.h"
 
 // our STARTER_SERVER class is itself the main STARTER class
 typedef STARTER_SERVER_CLASS STARTER_CLASS;

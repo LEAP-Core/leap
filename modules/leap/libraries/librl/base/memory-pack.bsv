@@ -34,7 +34,7 @@ import FIFOF::*;
 import SpecialFIFOs::*;
 
 
-`include "asim/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
 
 //
 // Number of slots in read state buffers.  This value controls the number

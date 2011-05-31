@@ -16,7 +16,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/soft_connections_common.bsh"
+`include "awb/provides/soft_connections_common.bsh"
 
 // Backwards compatability
 

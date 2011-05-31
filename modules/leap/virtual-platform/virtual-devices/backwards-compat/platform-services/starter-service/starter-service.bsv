@@ -1,8 +1,8 @@
 
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/starter_device.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/starter_device.bsh"
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 
 module [CONNECTED_MODULE] mkStarterService#(VIRTUAL_DEVICES vdevs)

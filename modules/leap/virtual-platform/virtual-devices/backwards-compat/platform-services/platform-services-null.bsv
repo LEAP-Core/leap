@@ -18,13 +18,13 @@
 
 import Vector::*;
 
-`include "asim/provides/virtual_platform.bsh"
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/rrr.bsh"
-`include "asim/rrr/server_connections.bsh"
-`include "asim/rrr/client_connections.bsh"
+`include "awb/provides/virtual_platform.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/rrr.bsh"
+`include "awb/rrr/server_connections.bsh"
+`include "awb/rrr/client_connections.bsh"
 
 //
 // mkPlatformInterface: Wrap the LLPI and virtual devices in soft connections.

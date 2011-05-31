@@ -8,11 +8,11 @@
 #include <string.h>
 #include <iostream>
 
-#include "asim/provides/streams.h"
-#include "asim/rrr/service_ids.h"
+#include "awb/provides/streams.h"
+#include "awb/rrr/service_ids.h"
 
-#include "asim/dict/STREAMS.h"
-#include "asim/dict/STREAMID.h"
+#include "awb/dict/STREAMS.h"
+#include "awb/dict/STREAMID.h"
 
 #define SERVICE_ID       STREAMS_SERVICE_ID
 

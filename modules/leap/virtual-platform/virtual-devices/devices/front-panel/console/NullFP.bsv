@@ -16,7 +16,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/low_level_platform_interface.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
 
 typedef Bit#(4) FRONTP_LEDS;
 typedef SizeOf#(FRONTP_LEDS) FRONTP_NUM_LEDS;

@@ -3,9 +3,9 @@
 #include <iostream>
 
 #include "controller-standard.h"
-#include "asim/provides/starter.h"
-#include "asim/provides/command_switches.h"
-#include "asim/provides/software_system.h"
+#include "awb/provides/starter.h"
+#include "awb/provides/command_switches.h"
+#include "awb/provides/software_system.h"
 
 using namespace std;
 

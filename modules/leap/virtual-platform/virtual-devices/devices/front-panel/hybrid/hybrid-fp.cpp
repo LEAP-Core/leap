@@ -7,10 +7,10 @@
 #include <signal.h>
 #include <string.h>
 
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/rrr.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/rrr.h"
 
-#include "asim/provides/front_panel.h"
+#include "awb/provides/front_panel.h"
 
 #define SERVICE_ID FRONT_PANEL_SERVICE_ID
 

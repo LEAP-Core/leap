@@ -23,13 +23,13 @@
 // @author Michael Adler
 //
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/rrr.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/rrr.bsh"
 
-`include "asim/rrr/remote_server_stub_PARAMS.bsh"
+`include "awb/rrr/remote_server_stub_PARAMS.bsh"
 
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/PARAMS.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/PARAMS.bsh"
 
 // PARAMS_CONTROLLER: Control all the params throughout the hardware model.
 

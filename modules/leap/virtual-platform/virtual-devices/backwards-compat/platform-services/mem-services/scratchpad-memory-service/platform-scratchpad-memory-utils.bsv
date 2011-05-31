@@ -18,9 +18,9 @@
 
 // Should I really be including these?
 // I probably just want stats....
-`include "asim/provides/stats_service.bsh"
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/librl_bsv_cache.bsh"
+`include "awb/provides/stats_service.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
 
 // SCRATCHPAD_CACHE_CONSTRUCTOR
 

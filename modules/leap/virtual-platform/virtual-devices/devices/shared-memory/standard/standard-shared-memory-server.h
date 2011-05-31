@@ -21,7 +21,7 @@
 
 #include <map>
 
-#include "asim/provides/rrr.h"
+#include "awb/provides/rrr.h"
 
 // Page Table entry
 
@@ -68,6 +68,6 @@ class SHARED_MEMORY_SERVER_CLASS: public RRR_SERVER_CLASS,
     UINT64 GetTranslation(UINT8 dummy);
 };
 
-#include "asim/rrr/server_stub_SHARED_MEMORY.h"
+#include "awb/rrr/server_stub_SHARED_MEMORY.h"
 
 #endif

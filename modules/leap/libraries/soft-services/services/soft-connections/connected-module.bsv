@@ -21,7 +21,7 @@ import Connectable::*;
 import Vector::*;
 import Clocks::*;
 
-`include "asim/provides/soft_connections_common.bsh"
+`include "awb/provides/soft_connections_common.bsh"
 
 
 //------------------ Connection Information ----------------------//

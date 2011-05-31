@@ -16,8 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/virtual_platform.bsh"
-`include "asim/provides/hybrid_application.bsh"
+`include "awb/provides/virtual_platform.bsh"
+`include "awb/provides/hybrid_application.bsh"
 
 module mkApplicationEnv#(VIRTUAL_PLATFORM vp)
     // interface:

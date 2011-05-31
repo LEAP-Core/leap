@@ -116,13 +116,13 @@ sub print_stub
 
     if ($self->{ifc} eq "connection")
     {
-        print $file "`include \"asim/provides/soft_connections.bsh\"\n";
+        print $file "`include \"awb/provides/soft_connections.bsh\"\n";
     }
-    print $file "`include \"asim/provides/rrr.bsh\"\n";
-    print $file "`include \"asim/provides/rrr_common.bsh\"\n";
-    print $file "`include \"asim/provides/umf.bsh\"\n";
+    print $file "`include \"awb/provides/rrr.bsh\"\n";
+    print $file "`include \"awb/provides/rrr_common.bsh\"\n";
+    print $file "`include \"awb/provides/umf.bsh\"\n";
     print $file "\n";
-    print $file "`include \"asim/rrr/service_ids.bsh\"\n";
+    print $file "`include \"awb/rrr/service_ids.bsh\"\n";
     print $file "\n";
 
     # compute max request and response bitwidths

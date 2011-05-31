@@ -16,13 +16,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/rrr.bsh"
-`include "asim/provides/channelio.bsh"
-`include "asim/provides/local_mem.bsh"
-`include "asim/provides/remote_memory.bsh"
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/physical_platform_debugger.bsh"
-`include "asim/provides/clocks_device.bsh"
+`include "awb/provides/rrr.bsh"
+`include "awb/provides/channelio.bsh"
+`include "awb/provides/local_mem.bsh"
+`include "awb/provides/remote_memory.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/physical_platform_debugger.bsh"
+`include "awb/provides/clocks_device.bsh"
 
 // LowLevelPlatformInterface
 

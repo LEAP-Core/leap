@@ -2,7 +2,7 @@
 #include <pthread.h>
 
 #include "asim/syntax.h"
-#include "asim/provides/virtual_platform.h"
+#include "awb/provides/virtual_platform.h"
 
 #include "application-env-hybrid-soft-conn.h"
 

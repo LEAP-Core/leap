@@ -19,9 +19,9 @@
 import FIFOF::*;
 import Vector::*;
 
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/physical_channel.bsh"
-`include "asim/provides/umf.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/physical_channel.bsh"
+`include "awb/provides/umf.bsh"
 
 // read/write port interfaces
 interface CIOReadPort;

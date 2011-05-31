@@ -1,5 +1,5 @@
-#include "asim/provides/hasim_common.h"
-#include "asim/provides/funcp_base_types.h"
+#include "awb/provides/hasim_common.h"
+#include "awb/provides/funcp_base_types.h"
 
 service STARTER
 {

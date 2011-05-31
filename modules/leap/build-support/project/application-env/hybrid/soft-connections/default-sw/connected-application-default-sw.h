@@ -2,7 +2,7 @@
 #ifndef __CONNECTED_APPLICATION__
 #define __CONNECTED_APPLICATION__
 
-#include "asim/provides/virtual_platform.h"
+#include "awb/provides/virtual_platform.h"
 
 // Default software does nothing and immediately returns 0;
 

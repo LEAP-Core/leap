@@ -18,9 +18,9 @@
 
 import ModuleContext::*;
 
-`include "asim/provides/soft_services.bsh"
-`include "asim/provides/soft_services_lib.bsh"
-`include "asim/provides/soft_connections_common.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_connections_common.bsh"
 
 // ****** Connection Context Support Functions ******
 

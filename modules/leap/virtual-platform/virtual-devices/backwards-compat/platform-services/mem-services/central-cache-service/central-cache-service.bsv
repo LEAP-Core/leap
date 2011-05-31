@@ -1,15 +1,15 @@
 import Vector::*;
 
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/central_cache.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/central_cache.bsh"
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/common_services.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/common_services.bsh"
 
 
-`include "asim/dict/STATS_CENTRAL_CACHE_SERVICE.bsh"
-`include "asim/dict/PARAMS_CENTRAL_CACHE_SERVICE.bsh"
-`include "asim/dict/DEBUG_SCAN_CENTRAL_CACHE_SERVICE.bsh"
+`include "awb/dict/STATS_CENTRAL_CACHE_SERVICE.bsh"
+`include "awb/dict/PARAMS_CENTRAL_CACHE_SERVICE.bsh"
+`include "awb/dict/DEBUG_SCAN_CENTRAL_CACHE_SERVICE.bsh"
 
 module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
     // interface:

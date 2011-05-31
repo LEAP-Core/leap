@@ -23,7 +23,7 @@
 // @author Angshuman Parashar
 //
 
-#include "asim/provides/hybrid_application.h"
+#include "awb/provides/hybrid_application.h"
 
 using namespace std;
 

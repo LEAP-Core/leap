@@ -16,14 +16,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/virtual_platform.bsh"
-`include "asim/provides/virtual_devices.bsh"
-`include "asim/provides/common_utility_devices.bsh"
-`include "asim/provides/streams_device.bsh"
-`include "asim/provides/starter_device.bsh"
+`include "awb/provides/virtual_platform.bsh"
+`include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/common_utility_devices.bsh"
+`include "awb/provides/streams_device.bsh"
+`include "awb/provides/starter_device.bsh"
 
-`include "asim/dict/STREAMID.bsh"
-`include "asim/dict/STREAMS.bsh"
+`include "awb/dict/STREAMID.bsh"
+`include "awb/dict/STREAMS.bsh"
 
 typedef enum 
 {

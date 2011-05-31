@@ -28,7 +28,7 @@
 
 #include <iostream>
 
-#include "asim/provides/virtual_platform.h"
+#include "awb/provides/virtual_platform.h"
 
 typedef class HYBRID_APPLICATION_CLASS* HYBRID_APPLICATION;
 class HYBRID_APPLICATION_CLASS

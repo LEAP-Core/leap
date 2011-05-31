@@ -12,8 +12,8 @@
 #include <stdio.h>
 
 #include "platforms-module.h"
-#include "asim/provides/rrr.h"
-#include "asim/rrr/client_stub_PARAMS.h"
+#include "awb/provides/rrr.h"
+#include "awb/rrr/client_stub_PARAMS.h"
 
 typedef class DYNAMIC_PARAMS_DEVICE_CLASS* DYNAMIC_PARAMS_DEVICE;
 

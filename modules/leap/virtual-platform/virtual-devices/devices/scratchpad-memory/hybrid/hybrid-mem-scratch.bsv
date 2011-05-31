@@ -25,19 +25,19 @@ import FIFO::*;
 import FIFOF::*;
 import Vector::*;
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/local_mem.bsh"
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/central_cache.bsh"
-`include "asim/provides/fpga_components.bsh"
-`include "asim/provides/librl_bsv_storage.bsh"
-`include "asim/provides/scratchpad_memory_common.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/local_mem.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/central_cache.bsh"
+`include "awb/provides/fpga_components.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
+`include "awb/provides/scratchpad_memory_common.bsh"
 
-`include "asim/rrr/service_ids.bsh"
-`include "asim/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"
-`include "asim/rrr/server_stub_SCRATCHPAD_MEMORY.bsh"
-`include "asim/dict/VDEV_CACHE.bsh"
+`include "awb/rrr/service_ids.bsh"
+`include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"
+`include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.bsh"
+`include "awb/dict/VDEV_CACHE.bsh"
 
 
 //

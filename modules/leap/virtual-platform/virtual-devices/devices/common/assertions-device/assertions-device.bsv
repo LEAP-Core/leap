@@ -19,12 +19,12 @@
 import FIFO::*;
 import Vector::*;
 
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/rrr.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/rrr.bsh"
 
-`include "asim/rrr/client_stub_ASSERTIONS.bsh"
-`include "asim/rrr/service_ids.bsh"
-`include "asim/dict/ASSERTIONS.bsh"
+`include "awb/rrr/client_stub_ASSERTIONS.bsh"
+`include "awb/rrr/service_ids.bsh"
+`include "awb/dict/ASSERTIONS.bsh"
 
 // Assertions
 

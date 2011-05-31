@@ -16,11 +16,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/rrr.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/rrr.bsh"
 
-`include "asim/rrr/client_stub_STARTER_DEVICE.bsh"
-`include "asim/rrr/server_stub_STARTER_DEVICE.bsh"
+`include "awb/rrr/client_stub_STARTER_DEVICE.bsh"
+`include "awb/rrr/server_stub_STARTER_DEVICE.bsh"
 
 // Starter
 interface STARTER;

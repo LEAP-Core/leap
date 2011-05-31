@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "platforms-module.h"
-#include "asim/provides/channelio.h"
+#include "awb/provides/channelio.h"
 
 #define MAX_SERVICES            64
 

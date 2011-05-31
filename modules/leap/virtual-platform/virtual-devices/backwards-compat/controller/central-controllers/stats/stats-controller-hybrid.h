@@ -22,9 +22,9 @@
 #include <bitset>
 
 #include "platforms-module.h"
-#include "asim/provides/rrr.h"
+#include "awb/provides/rrr.h"
 
-#include "asim/dict/STATS.h"
+#include "awb/dict/STATS.h"
 
 // this module handles gathering statistics. 
 // Eventually this will interact with standard tools.
@@ -66,7 +66,7 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
 };
 
 // server stub
-#include "asim/rrr/server_stub_STATS.h"
+#include "awb/rrr/server_stub_STATS.h"
 
 // all functionalities of the stats controller are completely implemented
 // by the STATS_SERVER class

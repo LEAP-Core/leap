@@ -18,11 +18,11 @@
 
 import Clocks::*;
 
-`include "asim/provides/model.bsh"
-`include "asim/provides/application_env.bsh"
+`include "awb/provides/model.bsh"
+`include "awb/provides/application_env.bsh"
 
 // TODO: better story on command line args
-`include "asim/provides/command_switches.bsh"
+`include "awb/provides/command_switches.bsh"
 
 module mkModel
     //interface:

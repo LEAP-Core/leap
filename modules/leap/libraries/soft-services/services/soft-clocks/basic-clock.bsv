@@ -19,11 +19,11 @@
 import Clocks::*;
 import ModuleContext::*;
 
-`include "asim/provides/fpga_components.bsh"
-`include "asim/provides/clocks_device.bsh"
-`include "asim/provides/soft_services_lib.bsh"
-`include "asim/provides/soft_services.bsh"
-`include "asim/provides/soft_clocks_lib.bsh"
+`include "awb/provides/fpga_components.bsh"
+`include "awb/provides/clocks_device.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_clocks_lib.bsh"
 
 instance SOFT_SERVICE#(LOGICAL_CLOCK_INFO);
 

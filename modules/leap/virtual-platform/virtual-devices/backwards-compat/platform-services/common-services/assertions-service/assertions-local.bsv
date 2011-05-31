@@ -19,11 +19,11 @@
 import Vector::*;
 import FIFOF::*;
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/assertions_device.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/assertions_device.bsh"
 
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/ASSERTIONS.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/ASSERTIONS.bsh"
 
 // Assertions
 

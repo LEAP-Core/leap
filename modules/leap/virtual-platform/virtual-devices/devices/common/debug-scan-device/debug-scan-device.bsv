@@ -18,13 +18,13 @@
 
 import FIFO::*;
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/low_level_platform_interface.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
 
-`include "asim/dict/DEBUG_SCAN.bsh"
+`include "awb/dict/DEBUG_SCAN.bsh"
 
-`include "asim/rrr/client_stub_DEBUG_SCAN.bsh"
-`include "asim/rrr/server_stub_DEBUG_SCAN.bsh"
+`include "awb/rrr/client_stub_DEBUG_SCAN.bsh"
+`include "awb/rrr/server_stub_DEBUG_SCAN.bsh"
 
 //
 // Debug scan is a set of nodes that scan out debug state to the host when

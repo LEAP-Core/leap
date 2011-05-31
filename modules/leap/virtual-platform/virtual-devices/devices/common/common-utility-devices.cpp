@@ -1,7 +1,7 @@
-#include "asim/rrr/service_ids.h"
+#include "awb/rrr/service_ids.h"
 
-#include "asim/provides/common_utility_devices.h"
-#include "asim/provides/stats_device.h"
+#include "awb/provides/common_utility_devices.h"
+#include "awb/provides/stats_device.h"
 
 using namespace std;
 

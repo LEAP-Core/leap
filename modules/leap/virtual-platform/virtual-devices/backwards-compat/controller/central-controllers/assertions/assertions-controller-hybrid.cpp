@@ -26,10 +26,10 @@
 #include <string.h>
 #include <iostream>
 
-#include "asim/provides/assertions_controller.h"
-#include "asim/rrr/service_ids.h"
+#include "awb/provides/assertions_controller.h"
+#include "awb/rrr/service_ids.h"
 
-#include "asim/dict/ASSERTIONS.h"
+#include "awb/dict/ASSERTIONS.h"
 
 using namespace std;
 

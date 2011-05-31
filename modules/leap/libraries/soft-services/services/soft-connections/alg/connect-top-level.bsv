@@ -21,11 +21,11 @@ import Clocks::*;
 import ModuleContext::*;
 import HList::*;
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/physical_interconnect.bsh"
-`include "asim/provides/soft_connections_common.bsh"
-`include "asim/provides/soft_services.bsh"
-`include "asim/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/physical_interconnect.bsh"
+`include "awb/provides/soft_connections_common.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
 
 
 // instatiateWithConnections

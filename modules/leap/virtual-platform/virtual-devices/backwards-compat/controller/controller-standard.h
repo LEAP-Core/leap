@@ -5,9 +5,9 @@
 #include <pthread.h>
 
 #include "platforms-module.h"
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/central_controllers.h"
-#include "asim/provides/software_system.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/central_controllers.h"
+#include "awb/provides/software_system.h"
 
 // controller
 typedef class CONTROLLER_CLASS* CONTROLLER;

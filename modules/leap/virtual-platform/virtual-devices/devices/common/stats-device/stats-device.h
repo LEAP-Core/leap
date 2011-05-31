@@ -19,11 +19,11 @@
 #include <list>
 
 #include "platforms-module.h"
-#include "asim/provides/rrr.h"
+#include "awb/provides/rrr.h"
 
-#include "asim/rrr/client_stub_STATS.h"
+#include "awb/rrr/client_stub_STATS.h"
 
-#include "asim/dict/STATS.h"
+#include "awb/dict/STATS.h"
 
 // A class which represents a stat. Stats can actually be vectors.
 // We represent these vectors as linked lists since the HW may
@@ -105,7 +105,7 @@ class STATS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 };
 
 // server stub
-#include "asim/rrr/server_stub_STATS.h"
+#include "awb/rrr/server_stub_STATS.h"
 
 // all functionalities of the stats controller are completely implemented
 // by the STATS_DEVICE_SERVER class

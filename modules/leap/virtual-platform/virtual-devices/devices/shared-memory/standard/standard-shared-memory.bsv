@@ -16,13 +16,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/rrr.bsh"
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/remote_memory.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/rrr.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/remote_memory.bsh"
 
-`include "asim/rrr/server_stub_SHARED_MEMORY.bsh"
-`include "asim/rrr/client_stub_SHARED_MEMORY.bsh"
+`include "awb/rrr/server_stub_SHARED_MEMORY.bsh"
+`include "awb/rrr/client_stub_SHARED_MEMORY.bsh"
 
 // types
 typedef enum

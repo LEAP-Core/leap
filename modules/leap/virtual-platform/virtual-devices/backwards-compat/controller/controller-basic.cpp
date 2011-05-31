@@ -2,8 +2,8 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "asim/provides/software_system.h"
-#include "asim/provides/params_controller.h"
+#include "awb/provides/software_system.h"
+#include "awb/provides/params_controller.h"
 #include "controller-basic.h"
 
 

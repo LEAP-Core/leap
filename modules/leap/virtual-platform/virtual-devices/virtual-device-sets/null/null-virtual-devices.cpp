@@ -24,7 +24,7 @@
  * @brief Standard virtual devices
  */
 
-#include "asim/provides/virtual_devices.h" 
+#include "awb/provides/virtual_devices.h" 
 
 VIRTUAL_DEVICES_CLASS::VIRTUAL_DEVICES_CLASS(LLPI llpi)
 {

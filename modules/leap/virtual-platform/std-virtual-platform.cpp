@@ -25,7 +25,7 @@
  */
 
 #include "asim/syntax.h"
-#include "asim/provides/virtual_platform.h"
+#include "awb/provides/virtual_platform.h"
 
 VIRTUAL_PLATFORM_CLASS::VIRTUAL_PLATFORM_CLASS() :
     llpint( new LLPI_CLASS() ), 

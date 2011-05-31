@@ -28,16 +28,15 @@
 
 #include "asim/syntax.h"
 
-#include "asim/dict/init.h"
+#include "awb/dict/init.h"
 
-#include "asim/provides/virtual_platform.h"
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/virtual_devices.h"
-#include "asim/provides/starter_device.h"
-#include "asim/provides/application_env.h"
-#include "asim/provides/command_switches.h"
-#include "asim/provides/model.h"
-
+#include "awb/provides/virtual_platform.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/virtual_devices.h"
+#include "awb/provides/starter_device.h"
+#include "awb/provides/application_env.h"
+#include "awb/provides/command_switches.h"
+#include "awb/provides/model.h"
 
 // =======================================
 //           PROJECT MAIN

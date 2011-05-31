@@ -263,7 +263,7 @@ sub parse_rrr_file
     my $cmd = "cpp $searchpath -D AWB_DEFS_ONLY -P";
 
     # First update dependence file
-    system("$cmd -M -MT build/include/asim/rrr/service_ids.h -MF .depends-rrr-" . basename($filename) . " $filename");
+    system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-rrr-" . basename($filename) . " $filename");
 
     # open input RRR file and read it into a string
     CORE::open(RRRFILE, "$cmd $filename |") || die "stubgen: unable to open input file $filename";
@@ -463,7 +463,7 @@ sub print_server_connections
     print $file "`include \"rrr.bsh\"\n";
     print $file "`include \"channelio.bsh\"\n";
     print $file "`include \"umf.bsh\"\n";
-    print $file "`include \"asim/rrr/service_ids.bsh\"\n";
+    print $file "`include \"awb/rrr/service_ids.bsh\"\n";
     print $file "\n";
 
     # DELETEME: we don't talk to stubs any more, we talk directly to the RRR client manager
@@ -473,7 +473,7 @@ sub print_server_connections
     #     my $servicename = $service->name();
     #     if ($service->needs_server_connections($target))
     #     {
-    #         print $file "`include \"asim/rrr/server_stub_$servicename.bsh\"\n";
+    #         print $file "`include \"awb/rrr/server_stub_$servicename.bsh\"\n";
     #     }
     # }
     # print $file "\n";
@@ -558,8 +558,8 @@ sub print_client_connections
     print $file "`include \"rrr.bsh\"\n";
     print $file "`include \"channelio.bsh\"\n";
     print $file "`include \"umf.bsh\"\n";
-    print $file "`include \"asim/rrr/service_ids.bsh\"\n";
-    # DELETEME print $file "`include \"asim/rrr/client_control_ids.bsh\"\n";
+    print $file "`include \"awb/rrr/service_ids.bsh\"\n";
+    # DELETEME print $file "`include \"awb/rrr/client_control_ids.bsh\"\n";
     print $file "\n";
 
     # DELETEME: we don't talk to stubs any more, we talk directly to the RRR client manager
@@ -569,7 +569,7 @@ sub print_client_connections
     #     my $servicename = $service->name();
     #     if ($service->needs_client_connections($target))
     #     {
-    #         print $file "`include \"asim/rrr/client_stub_$servicename.bsh\"\n";
+    #         print $file "`include \"awb/rrr/client_stub_$servicename.bsh\"\n";
     #     }
     # }
     # print $file "\n";

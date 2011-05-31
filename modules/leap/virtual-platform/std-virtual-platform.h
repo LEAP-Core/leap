@@ -29,8 +29,8 @@
 
 #include <pthread.h>
 
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/virtual_devices.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/virtual_devices.h"
 
 typedef class VIRTUAL_PLATFORM_CLASS *VIRTUAL_PLATFORM;
 

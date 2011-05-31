@@ -24,11 +24,11 @@
 // @author Michael Adler
 //
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/dynamic_parameters_device.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/dynamic_parameters_device.bsh"
 
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/PARAMS.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/PARAMS.bsh"
 
 //
 // PARAMETER_NODE

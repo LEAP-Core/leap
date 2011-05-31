@@ -23,15 +23,15 @@
 #include "asim/mesg.h"
 #include "asim/trace.h"
 
-#include "asim/provides/physical_channel.h"
-#include "asim/provides/rrr.h"
-#include "asim/dict/VDEV.h"
+#include "awb/provides/physical_channel.h"
+#include "awb/provides/rrr.h"
+#include "awb/dict/VDEV.h"
 
-#include "asim/rrr/client_stub_SCRATCHPAD_MEMORY.h"
+#include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.h"
 
 // Get the data types from the scratchpad RRR definition
 #define TYPES_ONLY
-#include "asim/rrr/server_stub_SCRATCHPAD_MEMORY.h"
+#include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.h"
 #undef TYPES_ONLY
 
 // This hack deals with the case that no scratchpad regions are defined...
@@ -119,6 +119,6 @@ class SCRATCHPAD_MEMORY_SERVER_CLASS: public RRR_SERVER_CLASS,
 };
 
 // Now that the server class is defined the RRR wrapper can be loaded.
-#include "asim/rrr/server_stub_SCRATCHPAD_MEMORY.h"
+#include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.h"
 
 #endif

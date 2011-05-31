@@ -20,7 +20,7 @@ import Vector::*;
 import ModuleCollect::*;
 import List::*;
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 // Chain 0: Events
 // Chain 1: Stats

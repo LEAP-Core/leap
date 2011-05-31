@@ -20,9 +20,9 @@
 #define __SHARED_MEMORY__
 
 #include "platforms-module.h"
-#include "asim/provides/low_level_platform_interface.h"
+#include "awb/provides/low_level_platform_interface.h"
 
-#include "asim/rrr/client_stub_SHARED_MEMORY.h"
+#include "awb/rrr/client_stub_SHARED_MEMORY.h"
 
 typedef UINT64 SHARED_MEMORY_DATA;
 

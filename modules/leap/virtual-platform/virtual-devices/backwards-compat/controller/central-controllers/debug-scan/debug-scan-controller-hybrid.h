@@ -22,9 +22,9 @@
 #include <bitset>
 
 #include "platforms-module.h"
-#include "asim/provides/rrr.h"
+#include "awb/provides/rrr.h"
 
-#include "asim/dict/DEBUG_SCAN.h"
+#include "awb/dict/DEBUG_SCAN.h"
 
 //
 // Manage debug scan chain coming from the hardware.
@@ -69,7 +69,7 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
 };
 
 // server stub
-#include "asim/rrr/server_stub_DEBUG_SCAN.h"
+#include "awb/rrr/server_stub_DEBUG_SCAN.h"
 
 // all functionalities of the stats controller are completely implemented
 // by the DEBUG_SCAN_SERVER class

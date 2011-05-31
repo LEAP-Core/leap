@@ -25,8 +25,8 @@ import FIFOF::*;
 import FIFOLevel::*;
 import SpecialFIFOs::*;
 
-`include "asim/provides/fpga_components.bsh"
-`include "asim/provides/librl_bsv_base.bsh"
+`include "awb/provides/fpga_components.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
 
 
 //

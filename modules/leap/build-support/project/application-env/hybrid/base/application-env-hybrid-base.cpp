@@ -3,8 +3,8 @@
 
 #include "application-env-hybrid-base.h"
 
-#include "asim/provides/virtual_platform.h"
-#include "asim/provides/hybrid_application.h"
+#include "awb/provides/virtual_platform.h"
+#include "awb/provides/hybrid_application.h"
 
 APPLICATION_ENV_CLASS::APPLICATION_ENV_CLASS(VIRTUAL_PLATFORM vp) : 
     app(new HYBRID_APPLICATION_CLASS(vp))

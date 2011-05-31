@@ -32,10 +32,10 @@
 #include "asim/syntax.h"
 #include "asim/config.h"
 
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/command_switches.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/command_switches.h"
 
-#include "asim/provides/stats_device.h"
+#include "awb/provides/stats_device.h"
 
 using namespace std;
 

@@ -18,13 +18,13 @@
 
 import FIFO::*;
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/rrr.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/rrr.bsh"
 
-`include "asim/rrr/client_stub_STATS.bsh"
-`include "asim/rrr/server_stub_STATS.bsh"
-`include "asim/dict/STATS.bsh"
+`include "awb/rrr/client_stub_STATS.bsh"
+`include "awb/rrr/server_stub_STATS.bsh"
+`include "awb/dict/STATS.bsh"
 
 typedef Bit#(`STATS_SIZE) STAT_VALUE;
 typedef 8 STAT_VECTOR_INDEX_SZ;

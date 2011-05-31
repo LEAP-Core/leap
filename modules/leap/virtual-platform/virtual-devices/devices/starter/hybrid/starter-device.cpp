@@ -24,9 +24,9 @@
 #include "asim/syntax.h"
 #include "asim/atomic.h"
 
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/starter_device.h"
-#include "asim/provides/application_env.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/starter_device.h"
+#include "awb/provides/application_env.h"
 
 #include "asim/ioformat.h"
 

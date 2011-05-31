@@ -21,9 +21,9 @@
 
 #include <stdio.h>
 
-#include "asim/provides/umf.h"
-#include "asim/provides/physical_platform.h"
-#include "asim/provides/pcie_device.h"
+#include "awb/provides/umf.h"
+#include "awb/provides/physical_platform.h"
+#include "awb/provides/pcie_device.h"
 
 
 // ============================================

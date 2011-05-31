@@ -17,8 +17,8 @@
 //
 
 
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/streams.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/streams.bsh"
 
 // A set of useful IO services.
 

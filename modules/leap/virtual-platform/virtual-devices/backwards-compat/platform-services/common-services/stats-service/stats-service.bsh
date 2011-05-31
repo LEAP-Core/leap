@@ -1,3 +1,3 @@
 
 // Include base device
-`include "asim/provides/stats_device.bsh"
+`include "awb/provides/stats_device.bsh"

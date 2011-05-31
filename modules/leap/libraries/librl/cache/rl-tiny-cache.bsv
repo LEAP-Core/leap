@@ -31,7 +31,7 @@ import Vector::*;
 
 // Project foundation imports.
 
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/fpga_components.bsh"
 
 
 // ===================================================================

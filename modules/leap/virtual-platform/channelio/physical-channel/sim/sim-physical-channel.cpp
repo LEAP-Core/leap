@@ -28,7 +28,7 @@
 #include <string.h>
 #include <iostream>
 
-#include "asim/provides/physical_channel.h"
+#include "awb/provides/physical_channel.h"
 
 using namespace std;
 

@@ -1,11 +1,11 @@
 #ifndef __HYBRID_FRONT_PANEL__
 #define __HYBRID_FRONT_PANEL__
 
-#include "asim/provides/rrr.h"
+#include "awb/provides/rrr.h"
 
 #include "command-switches.h"
 
-#include "asim/rrr/client_stub_FRONT_PANEL.h"
+#include "awb/rrr/client_stub_FRONT_PANEL.h"
 
 #define SELECT_TIMEOUT      1000
 #define DIALOG_PACKET_SIZE  4
@@ -78,6 +78,6 @@ class FRONT_PANEL_SERVER_CLASS: public RRR_SERVER_CLASS,
     void    UpdateLEDs(UINT8 state);
 };
 
-#include "asim/rrr/server_stub_FRONT_PANEL.h"
+#include "awb/rrr/server_stub_FRONT_PANEL.h"
 
 #endif

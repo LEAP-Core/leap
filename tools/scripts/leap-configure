@@ -416,7 +416,8 @@ sub make_dirs {
     my $hwdir = Leap::Util::path_append($builddir, "hw");
 
     $sys_status |= __make_dirs($root, $hwdir);
-    $sys_status |= system("mkdir -p " . ${hwdir} . "/include/asim/provides");
+    $sys_status |= system("mkdir -p " . ${hwdir} . "/include/awb/provides");
+    $sys_status |= system("ln -s " . ${hwdir} . "/include/awb " . ${hwdir} . "/include/asim");
 
     __make_wrappers($root, $hwdir, 1);
 
@@ -424,8 +425,9 @@ sub make_dirs {
     my $swdir = Leap::Util::path_append($builddir, "sw");
 
     $sys_status |= __make_dirs($root, $swdir);
-    $sys_status |= system("mkdir -p " . ${swdir} . "/include/asim/provides");
-    $sys_status |= system("mkdir -p " . ${swdir} . "/include/asim/restricted");
+    $sys_status |= system("mkdir -p " . ${swdir} . "/include/awb/provides");
+    $sys_status |= system("mkdir -p " . ${swdir} . "/include/awb/restricted");
+    $sys_status |= system("ln -s " . ${swdir} . "/include/awb " . ${swdir} . "/include/asim");
 
     # Setup directory for scons library files
     $sys_status |= system("mkdir -p " . Leap::Util::path_append($builddir, "site_scons"));
@@ -569,7 +571,7 @@ sub dyn_params($)
         if (defined($base)) {
             chomp($base);
             if ($base ne '') {
-                system("ln -f -s $base " . Leap::Util::path_append($builddir, "sw/include/asim", $fname));
+                system("ln -f -s $base " . Leap::Util::path_append($builddir, "sw/include/awb", $fname));
             }
         }
     }
@@ -652,7 +654,7 @@ sub dyn_params($)
 }
 
 ############################################################
-# make_bsvfiles: Make asim metatype bsv files
+# make_bsvfiles: Make awb metatype bsv files
 sub make_bsvfiles {
     my $model = shift;
     my $root = $model->modelroot();
@@ -665,13 +667,13 @@ sub make_bsvfiles {
     ## Parameters are all described in a sim_config.h so they can be written
     ## to the stats file.
     ##
-    my $sim_config = init_sim_config_file(Leap::Util::path_append($builddir,"sw/include/asim/provides/sim_config.h"));
+    my $sim_config = init_sim_config_file(Leap::Util::path_append($builddir,"sw/include/awb/provides/sim_config.h"));
 
     __make_bsvfiles($root,
                     $sim_config,
                     Leap::Util::path_append($builddir,"hw"),
-                    Leap::Util::path_append($builddir,"hw/include/asim/provides"),
-                    Leap::Util::path_append($builddir,"sw/include/asim/provides"));
+                    Leap::Util::path_append($builddir,"hw/include/awb/provides"),
+                    Leap::Util::path_append($builddir,"sw/include/awb/provides"));
 
     $sim_config->close();
 
@@ -683,15 +685,15 @@ sub make_bsvfiles {
     #
     my $provides = $root->provides();
 
-    if (! -e "${builddir}/sw/include/asim/provides/model.h") {
-	system("cd ${builddir}/sw/include/asim/provides; ln -s $provides.h model.h");
+    if (! -e "${builddir}/sw/include/awb/provides/model.h") {
+	system("cd ${builddir}/sw/include/awb/provides; ln -s $provides.h model.h");
     }
 
     return 1;
 }
 
 ############################################################
-# __make_bsvfiles: Recursively make asim metatype bsv files
+# __make_bsvfiles: Recursively make awb metatype bsv files
 sub __make_bsvfiles {
     my $module = shift;
     my $sim_config = shift;
@@ -802,7 +804,7 @@ sub __make_bsvfiles {
 
         # Prevent circular imports
         print BSVFILE "`define BUILDING_MODULE_${safe_provides}\n";
-        print BSVFILE "`include \"asim/provides/${provides}.bsh\"\n";
+        print BSVFILE "`include \"awb/provides/${provides}.bsh\"\n";
         print BSVFILE "\n";
 
         # Add includes of public and private bsc files.  Skip .bsh files since they
@@ -939,7 +941,7 @@ sub make_symlinks {
     __make_symlinks($root, $hw_dir, undef, '^(CPP|H|DICT|RRR)$', '.*');
     
     my $sw_dir = Leap::Util::path_append($builddir, "sw");
-    my $restricted_dir = Leap::Util::path_append($builddir, "sw/include/asim/restricted");
+    my $restricted_dir = Leap::Util::path_append($builddir, "sw/include/awb/restricted");
     __make_symlinks($root, $sw_dir, $restricted_dir, '^$', '^(CPP|H)$');
 
     return 1;
@@ -992,7 +994,7 @@ sub __make_symlinks {
     }
 
     ##
-    ## A second set of links in the "src/include/asim/restricted" directory
+    ## A second set of links in the "src/include/awb/restricted" directory
     ## so the public include hierarchy is simpler in C++.
     ##
     foreach my $f (@restr) {
@@ -1672,9 +1674,9 @@ sub generate_wrapper {
 
     if ($usesmartsynthesisboundaries) {
       if ($isroot) {
-        print WRAPPER "import soft_connections_alg::*;\n";
-      } else { 
-        print WRAPPER "`include \"asim/provides/smart_synth_boundaries.bsh\"\n";
+        print WRAPPER "`include \"awb/provides/soft_connections_alg.bsh\"\n";
+      } else {
+        print WRAPPER "`include \"awb/provides/smart_synth_boundaries.bsh\"\n";
       }
       print WRAPPER "\n";
     }

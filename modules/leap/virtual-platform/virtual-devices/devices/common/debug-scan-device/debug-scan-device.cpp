@@ -28,10 +28,10 @@
 #include <iostream>
 #include <cmath>
 
-#include "asim/rrr/service_ids.h"
-#include "asim/dict/DEBUG_SCAN.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/dict/DEBUG_SCAN.h"
 
-#include "asim/provides/debug_scan_device.h"
+#include "awb/provides/debug_scan_device.h"
 
 using namespace std;
 

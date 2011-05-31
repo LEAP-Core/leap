@@ -6,10 +6,10 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/rrr.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/rrr.h"
 
-#include "asim/provides/shared_memory.h"
+#include "awb/provides/shared_memory.h"
 
 // service instantiation
 SHARED_MEMORY_SERVER_CLASS SHARED_MEMORY_SERVER_CLASS::instance;

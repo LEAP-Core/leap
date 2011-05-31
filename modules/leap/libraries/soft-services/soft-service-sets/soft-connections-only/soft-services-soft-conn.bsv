@@ -1,7 +1,7 @@
 import HList::*;
 import ModuleContext::*;
 
-`include "asim/provides/soft_connections_common.bsh"
+`include "awb/provides/soft_connections_common.bsh"
 
 typedef ModuleContext#(HList1#(LOGICAL_CONNECTION_INFO)) SoftServicesModule;
 

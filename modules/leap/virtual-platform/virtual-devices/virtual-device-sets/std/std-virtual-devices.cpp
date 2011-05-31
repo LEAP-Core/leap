@@ -25,8 +25,8 @@
  */
  
 #include "asim/syntax.h"
-#include "asim/provides/virtual_devices.h"
-#include "asim/provides/starter_device.h"
+#include "awb/provides/virtual_devices.h"
+#include "awb/provides/starter_device.h"
 
 VIRTUAL_DEVICES_CLASS::VIRTUAL_DEVICES_CLASS(LLPI llpi) :
     commonUtilities(new COMMON_UTILITY_DEVICES_CLASS())

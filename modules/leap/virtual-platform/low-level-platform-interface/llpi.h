@@ -20,11 +20,11 @@
 #define __LLPI__
 
 #include "platforms-module.h"
-#include "asim/provides/physical_platform.h"
-#include "asim/provides/remote_memory.h"
-#include "asim/provides/channelio.h"
-#include "asim/provides/rrr.h"
-#include "asim/provides/physical_platform_debugger.h"
+#include "awb/provides/physical_platform.h"
+#include "awb/provides/remote_memory.h"
+#include "awb/provides/channelio.h"
+#include "awb/provides/rrr.h"
+#include "awb/provides/physical_platform_debugger.h"
 
 // Low Level Platform Interface
 

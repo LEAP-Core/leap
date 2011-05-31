@@ -28,10 +28,10 @@ import FIFOF::*;
 import Vector::*;
 
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/fpga_components.bsh"
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/physical_platform.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/fpga_components.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/physical_platform.bsh"
 
 
 

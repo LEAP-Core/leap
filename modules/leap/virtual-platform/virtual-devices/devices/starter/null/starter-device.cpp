@@ -5,10 +5,10 @@
 
 #include "asim/atomic.h"
 
-#include "asim/provides/starter_device.h"
+#include "awb/provides/starter_device.h"
 
 // Temporarily control the Stat Dumping.
-//#include "asim/provides/stats_device.h"
+//#include "awb/provides/stats_device.h"
 
 #include "asim/ioformat.h"
 

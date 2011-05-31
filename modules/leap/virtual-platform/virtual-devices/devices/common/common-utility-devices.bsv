@@ -17,13 +17,13 @@
 //
 
 
-`include "asim/provides/low_level_platform_interface.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
 
-`include "asim/provides/streams_device.bsh"
-`include "asim/provides/dynamic_parameters_device.bsh"
-`include "asim/provides/debug_scan_device.bsh"
-`include "asim/provides/assertions_device.bsh"
-`include "asim/provides/stats_device.bsh"
+`include "awb/provides/streams_device.bsh"
+`include "awb/provides/dynamic_parameters_device.bsh"
+`include "awb/provides/debug_scan_device.bsh"
+`include "awb/provides/assertions_device.bsh"
+`include "awb/provides/stats_device.bsh"
 
 // A set of useful IO services.
 

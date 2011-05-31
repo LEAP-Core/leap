@@ -19,8 +19,8 @@
 #include <signal.h>
 
 #include "asim/syntax.h"
-#include "asim/provides/low_level_platform_interface.h"
-#include "asim/provides/umf.h"
+#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/umf.h"
 
 //
 // FIXME: Applications in which the client thread forces the monitor

@@ -16,11 +16,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
-`include "asim/provides/streams.bsh"
-`include "asim/provides/assertions_controller.bsh"
-`include "asim/provides/params_controller.bsh"
+`include "awb/provides/streams.bsh"
+`include "awb/provides/assertions_controller.bsh"
+`include "awb/provides/params_controller.bsh"
 
 
 interface CENTRAL_CONTROLLERS;

@@ -1,10 +1,10 @@
-`include "asim/provides/rrr.bsh"
-`include "asim/provides/low_level_platform_interface.bsh"
+`include "awb/provides/rrr.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
 
 `include "streams-common.bsh"
 
-`include "asim/dict/STREAMS.bsh"
-`include "asim/dict/STREAMID.bsh"
+`include "awb/dict/STREAMS.bsh"
+`include "awb/dict/STREAMID.bsh"
 
 // Streams
 interface Streams;

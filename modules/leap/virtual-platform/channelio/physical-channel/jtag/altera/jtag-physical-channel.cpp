@@ -34,8 +34,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include "asim/provides/physical_channel.h"
-#include "asim/provides/umf.h"
+#include "awb/provides/physical_channel.h"
+#include "awb/provides/umf.h"
 
 using namespace std;
 

@@ -2,8 +2,8 @@ import FIFOF::*;
 import Clocks::*;
 import ModuleContext::*;
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/physical_interconnect.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/physical_interconnect.bsh"
 
 // instatiateWithConnections
 // Connect all remaining connections at the top-level. 

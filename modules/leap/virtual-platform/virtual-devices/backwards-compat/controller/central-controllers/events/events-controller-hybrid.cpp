@@ -29,10 +29,10 @@
 #include "asim/syntax.h"
 #include "asim/mesg.h"
 
-#include "asim/provides/events_controller.h"
-#include "asim/rrr/service_ids.h"
+#include "awb/provides/events_controller.h"
+#include "awb/rrr/service_ids.h"
 
-#include "asim/dict/EVENTS.h"
+#include "awb/dict/EVENTS.h"
 
 using namespace std;
 

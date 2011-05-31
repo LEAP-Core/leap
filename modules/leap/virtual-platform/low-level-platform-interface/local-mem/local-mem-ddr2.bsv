@@ -31,9 +31,9 @@ import FIFO::*;
 import SpecialFIFOs::*;
 import Vector::*;
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/ddr2_device.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/ddr2_device.bsh"
 
 // ========================================================================
 //

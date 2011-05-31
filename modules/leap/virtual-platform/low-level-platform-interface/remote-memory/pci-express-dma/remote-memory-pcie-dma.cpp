@@ -11,7 +11,7 @@
 #include <string.h>
 #include <iostream>
 
-#include "asim/provides/remote_memory.h"
+#include "awb/provides/remote_memory.h"
 
 using namespace std;
 

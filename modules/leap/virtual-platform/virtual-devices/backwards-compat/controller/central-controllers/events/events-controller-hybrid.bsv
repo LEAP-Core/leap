@@ -2,19 +2,19 @@ import FIFO::*;
 import Counter::*;
 import Vector::*;
 
-`include "asim/provides/hasim_common.bsh"
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/hasim_modellib.bsh"
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/streams.bsh"
-`include "asim/provides/rrr.bsh"
+`include "awb/provides/hasim_common.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/hasim_modellib.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/streams.bsh"
+`include "awb/provides/rrr.bsh"
 
-`include "asim/dict/RINGID.bsh"
-`include "asim/dict/STREAMID.bsh"
-`include "asim/dict/EVENTS.bsh"
+`include "awb/dict/RINGID.bsh"
+`include "awb/dict/STREAMID.bsh"
+`include "awb/dict/EVENTS.bsh"
 
-`include "asim/rrr/service_ids.bsh"
-`include "asim/rrr/remote_client_stub_EVENTS.bsh"
+`include "awb/rrr/service_ids.bsh"
+`include "awb/rrr/remote_client_stub_EVENTS.bsh"
 
 // EVENTS_CONTROLLER
 

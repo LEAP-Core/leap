@@ -19,8 +19,8 @@
 import List::*;
 import ModuleContext::*;
 
-`include "asim/provides/soft_services.bsh"
-`include "asim/provides/soft_connections_common.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections_common.bsh"
 
 // Some kind soul (leap-connect) has already put the external metadata
 // into the environment, so this file is empty.

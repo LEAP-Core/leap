@@ -19,8 +19,8 @@
 #ifndef __PHYSICAL_CHANNEL__
 #define __PHYSICAL_CHANNEL__
 
-#include "asim/provides/umf.h"
-#include "asim/provides/physical_platform.h"
+#include "awb/provides/umf.h"
+#include "awb/provides/physical_platform.h"
 
 // ============================================
 //               Physical Channel              

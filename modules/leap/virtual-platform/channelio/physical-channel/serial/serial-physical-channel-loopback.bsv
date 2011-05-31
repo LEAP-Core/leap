@@ -16,9 +16,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/serial_device.bsh"
-`include "asim/provides/umf.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/serial_device.bsh"
+`include "awb/provides/umf.bsh"
 
 import FIFO::*;
 

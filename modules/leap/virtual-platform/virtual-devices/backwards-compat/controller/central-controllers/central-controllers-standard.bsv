@@ -1,12 +1,12 @@
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
-`include "asim/provides/streams.bsh"
-`include "asim/provides/stats_controller.bsh"
-`include "asim/provides/debug_scan_controller.bsh"
-`include "asim/provides/events_controller.bsh"
-`include "asim/provides/assertions_controller.bsh"
-`include "asim/provides/params_controller.bsh"
-`include "asim/provides/module_controller.bsh"
+`include "awb/provides/streams.bsh"
+`include "awb/provides/stats_controller.bsh"
+`include "awb/provides/debug_scan_controller.bsh"
+`include "awb/provides/events_controller.bsh"
+`include "awb/provides/assertions_controller.bsh"
+`include "awb/provides/params_controller.bsh"
+`include "awb/provides/module_controller.bsh"
 
 interface CENTRAL_CONTROLLERS;
 

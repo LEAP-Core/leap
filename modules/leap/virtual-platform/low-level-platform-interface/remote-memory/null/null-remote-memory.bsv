@@ -20,7 +20,7 @@
 // Null Remote Memory
 //
 
-`include "asim/provides/physical_platform.bsh"
+`include "awb/provides/physical_platform.bsh"
 
 interface REMOTE_MEMORY;
 

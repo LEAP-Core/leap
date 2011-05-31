@@ -19,8 +19,8 @@
 import FIFOF::*;
 import ModuleContext::*;
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/soft_connections_alg.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections_alg.bsh"
 
 // Instantiate a module with connections exposed via "messageM".
 // This will be parsed by the "leap-connect" script and passed to the

@@ -26,14 +26,14 @@ import SpecialFIFOs::*;
 import Vector::*;
 
 
-`include "asim/provides/librl_bsv_base.bsh"
-`include "asim/provides/librl_bsv_cache.bsh"
-`include "asim/provides/scratchpad_memory.bsh"
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
+`include "awb/provides/scratchpad_memory.bsh"
+`include "awb/provides/fpga_components.bsh"
 
-`include "asim/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
+`include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
-`include "asim/dict/VDEV.bsh"
+`include "awb/dict/VDEV.bsh"
 `ifndef VDEV_SCRATCH__BASE
 `define VDEV_SCRATCH__BASE 0
 `endif

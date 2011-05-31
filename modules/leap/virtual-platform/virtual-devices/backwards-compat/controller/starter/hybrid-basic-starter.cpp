@@ -5,12 +5,12 @@
 
 #include "asim/atomic.h"
 
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/starter.h"
-#include "asim/provides/command_switches.h"
-#include "asim/provides/central_controllers.h"
-#include "asim/provides/hasim_controller.h"
-#include "asim/provides/hasim_modellib.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/starter.h"
+#include "awb/provides/command_switches.h"
+#include "awb/provides/central_controllers.h"
+#include "awb/provides/hasim_controller.h"
+#include "awb/provides/hasim_modellib.h"
 
 #include "asim/ioformat.h"
 

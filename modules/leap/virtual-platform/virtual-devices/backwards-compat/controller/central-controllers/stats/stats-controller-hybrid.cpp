@@ -28,10 +28,10 @@
 #include <iostream>
 #include <cmath>
 
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/command_switches.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/command_switches.h"
 
-#include "asim/provides/stats_controller.h"
+#include "awb/provides/stats_controller.h"
 
 using namespace std;
 

@@ -16,10 +16,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/front_panel.bsh"
-`include "asim/provides/starter_device.bsh"
-`include "asim/provides/common_utility_devices.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/front_panel.bsh"
+`include "awb/provides/starter_device.bsh"
+`include "awb/provides/common_utility_devices.bsh"
 
 interface VIRTUAL_DEVICES;
 

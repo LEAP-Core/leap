@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 
-#include "asim/provides/dynamic_parameters_device.h"
+#include "awb/provides/dynamic_parameters_device.h"
 
 typedef class COMMON_UTILITY_DEVICES_CLASS* COMMON_UTILITY_DEVICES;
 

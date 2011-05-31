@@ -165,9 +165,9 @@ sub print_stub
     print $file "#define __" . $self->name() . "_SERVER_STUB__\n";
     print $file "\n";
 
-    print $file "#include \"asim/provides/low_level_platform_interface.h\"\n";
-    print $file "#include \"asim/provides/rrr.h\"\n";
-    print $file "#include \"asim/rrr/service_ids.h\"\n";
+    print $file "#include \"awb/provides/low_level_platform_interface.h\"\n";
+    print $file "#include \"awb/provides/rrr.h\"\n";
+    print $file "#include \"awb/rrr/service_ids.h\"\n";
     print $file "\n";
     
     # assign method IDs

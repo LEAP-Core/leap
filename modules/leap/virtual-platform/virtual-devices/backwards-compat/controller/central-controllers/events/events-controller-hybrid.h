@@ -22,7 +22,7 @@
 #include <stdio.h>
 
 #include "platforms-module.h"
-#include "asim/provides/rrr.h"
+#include "awb/provides/rrr.h"
 
 // this module handles events and will eventually interact with DRAL.
 
@@ -58,7 +58,7 @@ class EVENTS_SERVER_CLASS: public RRR_SERVER_CLASS,
 };
 
 // server stub
-#include "asim/rrr/server_stub_EVENTS.h"
+#include "awb/rrr/server_stub_EVENTS.h"
 
 // all functionalities of the event controller are completely implemented
 // by the EVENTS_SERVER

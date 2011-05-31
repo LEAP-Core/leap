@@ -33,9 +33,9 @@
 #include <errno.h>
 #include <sys/mman.h>
 
-#include "asim/provides/model.h"
-#include "asim/provides/scratchpad_memory.h"
-#include "asim/rrr/service_ids.h"
+#include "awb/provides/model.h"
+#include "awb/provides/scratchpad_memory.h"
+#include "awb/rrr/service_ids.h"
 
 // service instantiation
 SCRATCHPAD_MEMORY_SERVER_CLASS SCRATCHPAD_MEMORY_SERVER_CLASS::instance;

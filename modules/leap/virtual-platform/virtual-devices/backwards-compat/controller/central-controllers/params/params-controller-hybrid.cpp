@@ -35,11 +35,11 @@
 
 #include "asim/syntax.h"
 #include "asim/mesg.h"
-#include "asim/rrr/service_ids.h"
-#include "asim/provides/command_switches.h"
-#include "asim/provides/params_controller.h"
+#include "awb/rrr/service_ids.h"
+#include "awb/provides/command_switches.h"
+#include "awb/provides/params_controller.h"
 
-#include "asim/dict/PARAMS.h"
+#include "awb/dict/PARAMS.h"
 
 //
 // This code builds parallel arrays for mapping dynamic parameter values to
@@ -60,7 +60,7 @@
 #define RegisterDynDict(VAR,DICT_ENTRY) DICT_ENTRY,
 static UINT32 paramDictIDs[] =
 {
-#include "asim/provides/sim_config.h"
+#include "awb/provides/sim_config.h"
 0
 };
 
@@ -69,7 +69,7 @@ static UINT32 paramDictIDs[] =
 //
 #undef RegisterDynDict
 #define RegisterDynDict(VAR,DICT_ENTRY) extern UINT64 VAR;
-#include "asim/provides/sim_config.h"
+#include "awb/provides/sim_config.h"
 
 //
 // Dynamic parameter pointer array
@@ -79,7 +79,7 @@ static UINT32 paramDictIDs[] =
 typedef UINT64 *DYN_PARAM_PTR;
 static DYN_PARAM_PTR paramValues[] =
 {
-#include "asim/provides/sim_config.h"
+#include "awb/provides/sim_config.h"
 NULL
 };
 

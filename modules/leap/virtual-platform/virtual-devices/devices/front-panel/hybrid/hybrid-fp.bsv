@@ -16,13 +16,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "asim/provides/low_level_platform_interface.bsh"
-`include "asim/provides/rrr.bsh"
-`include "asim/provides/physical_platform.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/rrr.bsh"
+`include "awb/provides/physical_platform.bsh"
 
-`include "asim/rrr/service_ids.bsh"
-`include "asim/rrr/server_stub_FRONT_PANEL.bsh"
-`include "asim/rrr/client_stub_FRONT_PANEL.bsh"
+`include "awb/rrr/service_ids.bsh"
+`include "awb/rrr/server_stub_FRONT_PANEL.bsh"
+`include "awb/rrr/client_stub_FRONT_PANEL.bsh"
 
 `define FP_POLL_INTERVAL    1000
 

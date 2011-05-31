@@ -18,17 +18,17 @@
 
 import Vector::*;
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/fpga_components.bsh"
 
-`include "asim/provides/central_controllers.bsh"
-`include "asim/provides/module_controller.bsh"
-`include "asim/provides/events_controller.bsh"
-`include "asim/provides/stats_controller.bsh"
-`include "asim/provides/debug_scan_controller.bsh"
-`include "asim/provides/params_controller.bsh"
-`include "asim/provides/assertions_controller.bsh"
-`include "asim/provides/starter.bsh"
+`include "awb/provides/central_controllers.bsh"
+`include "awb/provides/module_controller.bsh"
+`include "awb/provides/events_controller.bsh"
+`include "awb/provides/stats_controller.bsh"
+`include "awb/provides/debug_scan_controller.bsh"
+`include "awb/provides/params_controller.bsh"
+`include "awb/provides/assertions_controller.bsh"
+`include "awb/provides/starter.bsh"
 
 typedef CONTEXT_ID                             CONTROL_MODEL_CYCLE_MSG;
 typedef Tuple2#(CONTEXT_ID, MODEL_NUM_COMMITS) CONTROL_MODEL_COMMIT_MSG;

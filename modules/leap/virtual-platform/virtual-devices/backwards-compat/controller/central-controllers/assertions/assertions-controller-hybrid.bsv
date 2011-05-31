@@ -18,14 +18,14 @@
 
 import FIFO::*;
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
-`include "asim/provides/rrr.bsh"
+`include "awb/provides/rrr.bsh"
 
-`include "asim/rrr/remote_client_stub_ASSERTIONS.bsh"
-`include "asim/rrr/service_ids.bsh"
-`include "asim/dict/ASSERTIONS.bsh"
-`include "asim/dict/RINGID.bsh"
+`include "awb/rrr/remote_client_stub_ASSERTIONS.bsh"
+`include "awb/rrr/service_ids.bsh"
+`include "awb/dict/ASSERTIONS.bsh"
+`include "awb/dict/RINGID.bsh"
 
 // AssertionsController
 //

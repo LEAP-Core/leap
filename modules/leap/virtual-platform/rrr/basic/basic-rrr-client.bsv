@@ -21,11 +21,11 @@
 import Vector::*;
 import FIFOF::*;
 
-`include "asim/provides/channelio.bsh"
-`include "asim/provides/rrr.bsh"
-`include "asim/provides/umf.bsh"
+`include "awb/provides/channelio.bsh"
+`include "awb/provides/rrr.bsh"
+`include "awb/provides/umf.bsh"
 
-`include "asim/rrr/service_ids.bsh"
+`include "awb/rrr/service_ids.bsh"
 
 // RRR Client
 

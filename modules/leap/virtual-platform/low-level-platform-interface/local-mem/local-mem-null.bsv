@@ -20,8 +20,8 @@
 // NULL local memory.
 //
 
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/fpga_components.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/fpga_components.bsh"
 
 
 typedef `LOCAL_MEM_ADDR_BITS LOCAL_MEM_ADDR_SZ;

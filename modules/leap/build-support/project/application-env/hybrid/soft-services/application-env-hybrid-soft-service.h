@@ -3,8 +3,9 @@
 #define __APPLICATION_ENV__
 
 #include "asim/syntax.h"
-#include "asim/provides/virtual_platform.h"
-#include "asim/provides/connected_application.h"
+#include "awb/provides/virtual_platform.h"
+#include "awb/provides/connected_application.h"
+
 
 typedef class APPLICATION_ENV_CLASS* APPLICATION_ENV;
 class APPLICATION_ENV_CLASS

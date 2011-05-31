@@ -18,10 +18,10 @@
 
 import FIFOF::*;
 
-`include "asim/provides/physical_platform.bsh"
-`include "asim/provides/pci_express_device.bsh"
-`include "asim/provides/led_device.bsh"
-`include "asim/provides/umf.bsh"
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/pci_express_device.bsh"
+`include "awb/provides/led_device.bsh"
+`include "awb/provides/umf.bsh"
 
 // types
 typedef enum

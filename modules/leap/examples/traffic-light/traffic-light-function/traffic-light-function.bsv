@@ -33,8 +33,8 @@
 
 // ****** Includes of LEAP platform ******
 
-`include "asim/provides/soft_connections.bsh"
-`include "asim/provides/front_panel_service.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/front_panel_service.bsh"
 
 
 // ****** Datatype Definitions ******

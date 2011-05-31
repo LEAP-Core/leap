@@ -1,8 +1,8 @@
-`include "asim/provides/rrr.bsh"
-`include "asim/provides/low_level_platform_interface.bsh"
+`include "awb/provides/rrr.bsh"
+`include "awb/provides/low_level_platform_interface.bsh"
 
-`include "asim/rrr/service_ids.bsh"
-`include "asim/rrr/client_stub_STREAMS.bsh"
+`include "awb/rrr/service_ids.bsh"
+`include "awb/rrr/client_stub_STREAMS.bsh"
 
 `include "streams-common.bsh"
 

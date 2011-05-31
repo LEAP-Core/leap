@@ -21,7 +21,7 @@
 
 // Interface definitions and typedefs for the tree interconnect topology.
 
-`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 // Parameters from AWB.
 typedef Bit#(`TREE_STATION_IDX_SIZE)  STATION_IDX;

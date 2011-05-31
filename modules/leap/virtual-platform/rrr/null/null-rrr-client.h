@@ -4,7 +4,7 @@
 #include <queue>
 #include <pthread.h>
 
-#include "asim/provides/channelio.h"
+#include "awb/provides/channelio.h"
 
 using namespace std;
 

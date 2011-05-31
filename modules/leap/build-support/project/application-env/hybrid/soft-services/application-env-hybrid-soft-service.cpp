@@ -3,7 +3,7 @@
 
 #include "application-env-hybrid-soft-service.h"
 
-#include "asim/provides/virtual_platform.h"
+#include "awb/provides/virtual_platform.h"
 
 APPLICATION_ENV_CLASS::APPLICATION_ENV_CLASS(VIRTUAL_PLATFORM vp) : 
     app(new CONNECTED_APPLICATION_CLASS(vp))

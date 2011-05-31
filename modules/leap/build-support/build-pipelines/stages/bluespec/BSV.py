@@ -106,7 +106,7 @@ class BSV():
     if (SURROGATE_BSVS != ''):
       DERIVED = ' -derived "' + SURROGATE_BSVS + '"'
   
-    s = os.system('leap-bsc-mkdepend -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC_REL + ':' + ROOT_DIR_HW_INC_REL + '/asim/provides:' + ALL_LIB_DIRS_FROM_CWD + ' ' + WRAPPER_BSVS + ' > ' + MODULE_PATH + '.depends-bsv')
+    s = os.system('leap-bsc-mkdepend -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC_REL + ':' + ROOT_DIR_HW_INC_REL + '/awb/provides:' + ALL_LIB_DIRS_FROM_CWD + ' ' + WRAPPER_BSVS + ' > ' + MODULE_PATH + '.depends-bsv')
     if (s & 0xffff) != 0:
       print 'Aborting due to dependence errors'
       sys.exit(1)
@@ -150,7 +150,7 @@ class BSV():
       # kill the bo target first ?
       lib_dirs = bsc_bdir_prune(env,ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
       return  BSC + ' ' + self.BSC_FLAGS + ' -p +:' + \
-           ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/asim/provides:' + \
+           ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/awb/provides:' + \
            lib_dirs + ':' + TMP_BSC_DIR + ' -bdir ' + bdir + \
            ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir
 
