@@ -58,6 +58,7 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     // client methods
     void Start();
+    void WaitForHardware();
   
 
 };

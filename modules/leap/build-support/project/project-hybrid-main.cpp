@@ -32,6 +32,8 @@
 
 #include "asim/provides/virtual_platform.h"
 #include "asim/provides/low_level_platform_interface.h"
+#include "asim/provides/virtual_devices.h"
+#include "asim/provides/starter_device.h"
 #include "asim/provides/application_env.h"
 #include "asim/provides/command_switches.h"
 #include "asim/provides/model.h"
@@ -74,24 +76,18 @@ int main(int argc, char *argv[])
     int ret_val = appEnv->RunApp(argc, argv);
 
     // Application's Main() exited => wait for hardware to be done.
-    // The user can use a parameter to indicate the hardware never 
-    // terminates (IE because it's a pure server).
+    // If the starter service is not available then we assume
+    // the hardware never terminates (IE because it's a pure server).
     
-    if (PLATFORM_SERVICES_AVAILABLE && !hardwareFinished)
+    if (PLATFORM_SERVICES_AVAILABLE)
     {
-        // We need to wait for it and it's not finished.
-        // So we'll wait to receive the signal from the VP.
-
-        // cout << "Waiting for HW..." << endl;
-        pthread_mutex_lock(&hardwareStatusLock);
-        pthread_cond_wait(&hardwareFinishedSignal, &hardwareStatusLock);
-        pthread_mutex_unlock(&hardwareStatusLock);
+        STARTER_DEVICE_CLASS::GetInstance()->WaitForHardware();
     }
 
-    // cout << "HW is done." << endl;
     // Cleanup and exit
     delete appEnv;
     delete vp;
 
+    //cout << "SW: Goodbye" << endl;
     return ret_val;
 }

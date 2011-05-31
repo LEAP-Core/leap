@@ -101,11 +101,6 @@ void
 STARTER_DEVICE_SERVER_CLASS::End(
     UINT8 exit_code)
 {
-    // Temporarily disabled:
-    // cout << "        starting stats dump... ";
-    // STATS_DEVICE_SERVER_CLASS::GetInstance()->DumpStats();
-    // STATS_DEVICE_SERVER_CLASS::GetInstance()->EmitFile();
-    // cout << "done." << endl;
 
     // Set that the hardware is finished.
     // Signal any listening thread that might be listening.
@@ -149,8 +144,22 @@ STARTER_DEVICE_SERVER_CLASS::Start()
     pthread_mutex_unlock(&hardwareStatusLock);
 
     // call client stub
-    if (PLATFORM_SERVICES_AVAILABLE)
+    clientStub->Start(0);
+}
+
+// client: WaitForHardware
+void
+STARTER_DEVICE_SERVER_CLASS::WaitForHardware()
+{
+    if (!hardwareFinished)
     {
-        clientStub->Start(0);
+        // We need to wait for it and it's not finished.
+        // So we'll wait to receive the signal from the VP.
+
+        //cout << "Waiting for HW..." << endl;
+        pthread_mutex_lock(&hardwareStatusLock);
+        pthread_cond_wait(&hardwareFinishedSignal, &hardwareStatusLock);
+        pthread_mutex_unlock(&hardwareStatusLock);
     }
+    //cout << "HW is done." << endl;
 }

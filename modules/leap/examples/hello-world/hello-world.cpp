@@ -48,6 +48,10 @@ HYBRID_APPLICATION_CLASS::Init()
 void
 HYBRID_APPLICATION_CLASS::Main()
 {
+    // Print a message
     cout << "Hello, World! This is software speaking." << endl;
+    // Wait for the hardware to exit. If it is done before us
+    // this will just instantly return.
+    STARTER_DEVICE_CLASS::GetInstance()->WaitForHardware();
     return;
 }
