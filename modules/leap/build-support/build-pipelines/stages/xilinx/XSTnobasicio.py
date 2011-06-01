@@ -13,16 +13,20 @@ class Synthesize():
 
     # string together the xcf, sort of like the ucf
     # Concatenate UCF files
-    if('XCF' in moduleList.topModule.moduleDependency and len(moduleList.topModule.moduleDependency['XCF']) > 0):
-      for xcf in  moduleList.topModule.moduleDependency['XCF']:
-        print 'xst found xcf: ' + xcf + '\n' 
+    xcfSrcs = moduleList.getAllDependencies('XCF')
+    if (len(xcfSrcs) > 0):
+      if (getBuildPipelineDebug(moduleList) != 0):
+        for xcf in xcfSrcs:
+          print 'xst found xcf: ' + xcf
+
       xilinx_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
-        moduleList.topModule.moduleDependency['XCF'],
+        xcfSrcs,
         'cat $SOURCES > $TARGET')
+
       xilinx_child_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf',
-        moduleList.topModule.moduleDependency['XCF'],
+        xcfSrcs,
         ['cat $SOURCES > $TARGET',
          'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n"  >> $TARGET'])
     else:
@@ -30,6 +34,7 @@ class Synthesize():
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
         [],
         'touch $TARGET')
+
       xilinx_child_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
         [],
@@ -55,7 +60,10 @@ class Synthesize():
         newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
         newXSTFile.close();
         oldXSTFile.close();
-        print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
+
+        if (getBuildPipelineDebug(moduleList) != 0):
+            print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
+
         # need to sort these?  SCons complains about it.
         vlogStubs = moduleList.getAllDependencies('VERILOG_STUB')
         vlogStubs.sort()
@@ -69,7 +77,7 @@ class Synthesize():
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
               SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
-              '@echo xst ' + moduleList.compileDirectory + ' build complete.' ])
+              '@echo xst ' + module.wrapperName() + ' build complete.' ])
 
         module.moduleDependency['SYNTHESIS'] = [w]
         SCons.Script.Clean(w,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
@@ -85,12 +93,12 @@ class Synthesize():
         moduleList.getAllDependencies('VERILOG_STUB') +
         moduleList.getAllDependencies('VERILOG_LIB') +
         moduleList.topModule.moduleDependency['XST'] +
-        moduleList.topModule.moduleDependency['XCF'] + xilinx_xcf,
+        xilinx_xcf,
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
 
           'xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
-          '@echo xst ' + moduleList.apmName + ' build complete.' ])    
+          '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 
     moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
     SCons.Script.Clean(top_netlist, topSRP)

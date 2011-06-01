@@ -33,7 +33,7 @@ class NGD():
 
     xilinx_ngd = moduleList.env.Command(
       xilinx_apm_name + '.ngd',
-      moduleList.getAllDependencies('SYNTHESIS') + xilinx_ucf + xilinx_bmm,
+      moduleList.topModule.moduleDependency['SYNTHESIS'],
       [ SCons.Script.Delete(xilinx_apm_name + '.bld'),
         SCons.Script.Delete(xilinx_apm_name + '_ngdbuild.xrpt'),
         # Xilinx project files are created automatically by Xilinx tools, but not
@@ -42,8 +42,13 @@ class NGD():
         # or guarantee their safety, just delete them.
         SCons.Script.Delete('xlnx_auto_0.ise'),
         SCons.Script.Delete('xlnx_auto_0_xdb'),
-        'ngdbuild -aul -p ' + fpga_part_xilinx + ' -sd ' + moduleList.env['DEFS']['ROOT_DIR_HW_MODEL']+ ' -sd ' + moduleList.compileDirectory + ' -sd ' + moduleList.compileDirectory + '/coreip/' + ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
+        'ngdbuild -aul -aut -p ' + fpga_part_xilinx + ' -sd ' + moduleList.env['DEFS']['ROOT_DIR_HW_MODEL']+ ' -sd ' + moduleList.compileDirectory + ' -sd ' + moduleList.compileDirectory + '/coreip/' + ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
         SCons.Script.Move(moduleList.compileDirectory + '/netlist.lst', 'netlist.lst') ])
+
+    moduleList.env.Depends(xilinx_ngd,
+                           moduleList.getAllDependencies('SYNTHESIS') +
+                           xilinx_ucf +
+                           xilinx_bmm)
 
     moduleList.topModule.moduleDependency['NGD'] = [xilinx_ngd]
       

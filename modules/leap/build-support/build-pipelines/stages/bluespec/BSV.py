@@ -44,7 +44,7 @@ class BSV():
     
 
     moduleList.env.BuildDir(TMP_BSC_DIR, '.', duplicate=0)
-    moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
+    moduleList.env['ENV']['BUILD_DIR'] = os.getcwd()
 
 
   def build_synth_boundary(self,moduleList,module):

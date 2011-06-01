@@ -14,7 +14,7 @@ def _generate_synplify_include(file):
   #Check for relative/absolute path
   directoryFix = ''
   if(not re.search('^\s*/',file)):
-    directoryFix = '$env(BUILD_DIR)/'
+    directoryFix = '../'
 
   type = 'unknown'
 
@@ -35,7 +35,7 @@ def _generate_synplify_include(file):
 
   return 'add_file -'+ type +' \"'+ directoryFix + file + '\"\n'
 
-def _filter_file_add(file):
+def _filter_file_add(file, moduleList):
   #Check for relative/absolute path   
   output = ''
   for line in file.readlines():
@@ -68,9 +68,12 @@ class Synthesize(ProjectDependency):
     oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst','r')
     newXSTFile.write(oldXSTFile.read());
     newXSTFile.write('-iobuf yes\n');
-    newXSTFile.write('-uc ' + moduleList.env['DEFS']['BUILD_DIR'] + '/'+ moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
+    newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n');
     newXSTFile.close();
     oldXSTFile.close();
+
+    if (getBuildPipelineDebug(moduleList) != 0):
+        print "Env BUILD_DIR = " + moduleList.env['ENV']['BUILD_DIR']
 
     synthDeps = []
 
@@ -82,10 +85,14 @@ class Synthesize(ProjectDependency):
        newPrjFile = open('config/' + module.wrapperName()  + '.modified.synplify.prj','w');  
 
 
-       newPrjFile.write('add_file -verilog \"$env(BUILD_DIR)/hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
+       newPrjFile.write('add_file -verilog \"../hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
 
        # now dump all the 'VERILOG' 
-       fileArray = moduleList.getAllDependencies('VERILOG') + moduleList.getAllDependencies('VHD') + moduleList.getAllDependencies('NGC') + ['config/' + moduleList.topModule.wrapperName() + '.ucf'] 
+       fileArray = moduleList.getAllDependencies('VERILOG') + \
+                   moduleList.getAllDependencies('VERILOG_LIB') + \
+                   moduleList.getAllDependencies('VHD') + \
+                   moduleList.getAllDependencies('NGC') + \
+                   ['config/' + moduleList.topModule.wrapperName() + '.ucf'] 
        for file in fileArray:
          if(type(file) is str):
            newPrjFile.write(_generate_synplify_include(file))        
@@ -105,7 +112,7 @@ class Synthesize(ProjectDependency):
        #dump synplify options file
        # MAYBE NOT A GOOD IDEA
 
-       newPrjFile.write(_filter_file_add(prjFile))
+       newPrjFile.write(_filter_file_add(prjFile, moduleList))
 
        #write the tail end of the options file to actually do the synthesis
      
@@ -133,7 +140,7 @@ class Synthesize(ProjectDependency):
         ['config/' + moduleList.apmName + '.synplify.prj'],
         [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName()  + '.srr'),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName()  + '_xst.xrpt'), 
-          'synplify_pro -batch config/' + module.wrapperName() + '.modified.synplify.prj' ])
+          'synplify_pro -batch -license_wait config/' + module.wrapperName() + '.modified.synplify.prj' ])
        SCons.Script.Clean(sub_netlist,moduleList.compileDirectory + '/' + module.wrapperName() + '.srr')
        SCons.Script.Clean(sub_netlist,'config/' + module.wrapperName() + '.modified.synplify.prj')
 

@@ -7538,3 +7538,36 @@ Directory modules/leap/examples/hello-world
 * Update all files in Leap to the new convention.
 
 * Ensure all #includes are using the correct convention.
+
+----------
+mcadler     Date: Wed Jun  1 09:24:43 EDT 2011  CSN: CSN-leap-98
+                  Wed Jun  1 13:24:43 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified           97 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_NGD.py             Locally Modified           97 
+ XSTnobasicio.py           Locally Modified           97 
+ XILINX_MAP.py             Locally Modified           97 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ SynplifySub.py            Locally Modified           97 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-common-module-context.awb Locally Modified           97 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ soft-connections-module-context.awb Locally Modified           97 
+
+Build pipeline changes for synthesis:
+
+- Set the working directory properly during BSV (needed by Synplify)
+- Set the source files correctly for ngdbuild
+- Support multiple XCF files
+- Fix Synplify (with Xst top level) build.
+- Still broken:  Synplify does not work in parallel due to file conflicts.
+
+- Change default ring data width to 128 bits instead of 320.  This was the
+  default with the old system.
