@@ -7571,3 +7571,13 @@ Build pipeline changes for synthesis:
 
 - Change default ring data width to 128 bits instead of 320.  This was the
   default with the old system.
+
+----------
+mcadler     Date: Wed Jun  1 09:46:03 EDT 2011  CSN: CSN-leap-99
+                  Wed Jun  1 13:46:03 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified           98 
+
+Fix links to awb from legacy asim include path.
