@@ -186,5 +186,5 @@ if tgt != []:
 #
 # Backwards compatability link
 #
-if not env.GetOption('clean'):
-    os.system('ln -s awb build/include/asim')
+if not env.GetOption('clean') and not os.path.exists('build/include/asim'):
+    os.symlink('awb', 'build/include/asim')

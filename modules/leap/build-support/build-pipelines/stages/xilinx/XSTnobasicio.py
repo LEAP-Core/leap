@@ -41,8 +41,9 @@ class Synthesize():
         'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n" > $TARGET')
 
     ## tweak top xst file
-    newXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.modified.xst','w')
-    oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst','r')
+    topXSTPath = 'config/' + moduleList.topModule.wrapperName() + '.modified.xst'
+    newXSTFile = open(topXSTPath, 'w')
+    oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst', 'r')
     newXSTFile.write(oldXSTFile.read());
     newXSTFile.write('-iobuf yes\n');
     newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
@@ -53,8 +54,9 @@ class Synthesize():
     for module in moduleList.synthBoundaries():    
         # we must tweak the xst files of the internal module list
         # to prevent the insertion of iobuffers
-        newXSTFile = open('config/' + module.wrapperName() + '.modified.xst','w')
-        oldXSTFile = open('config/' + module.wrapperName() + '.xst','r')
+        newXSTPath = 'config/' + module.wrapperName() + '.modified.xst'
+        newXSTFile = open(newXSTPath, 'w')
+        oldXSTFile = open('config/' + module.wrapperName() + '.xst', 'r')
         newXSTFile.write(oldXSTFile.read());
         newXSTFile.write('-iobuf no\n');
         newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
@@ -73,7 +75,11 @@ class Synthesize():
         vlogLib.sort()
         w = moduleList.env.Command(
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
-            vlog + vlogStubs + vlogLib + module.moduleDependency['XST'] + moduleList.topModule.moduleDependency['XST'] + xilinx_child_xcf,
+            vlog + vlogStubs + vlogLib +
+            module.moduleDependency['XST'] +
+            moduleList.topModule.moduleDependency['XST'] +
+            [ newXSTPath ] +
+            xilinx_child_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
               SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
@@ -93,6 +99,7 @@ class Synthesize():
         moduleList.getAllDependencies('VERILOG_STUB') +
         moduleList.getAllDependencies('VERILOG_LIB') +
         moduleList.topModule.moduleDependency['XST'] +
+        [ topXSTPath ] +
         xilinx_xcf,
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
