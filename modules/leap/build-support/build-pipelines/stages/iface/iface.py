@@ -8,7 +8,7 @@ class Iface():
 
   def __init__(self, moduleList):
     # Create link for legacy asim include tree
-    if not os.path.exists('iface/build/include/asim'):
+    if os.path.exists('iface/build/include') and not os.path.exists('iface/build/include/asim'):
       os.symlink('awb', 'iface/build/include/asim')
 
     if os.path.isfile('iface/SConstruct'):

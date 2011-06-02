@@ -7599,3 +7599,13 @@ Directory modules/leap/build-support/project
 - Fix the way legacy asim -> awb links are made in the iface tree.  Links
   worked the first time but failed on subsequent builds in the same directory.
 - Make the xst builds depend on the modified xst control file.
+
+----------
+mcadler     Date: Wed Jun  1 23:06:51 EDT 2011  CSN: CSN-leap-101
+                  Thu Jun  2 03:06:51 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          100 
+
+Another tweak to the legacy asim link in iface.
