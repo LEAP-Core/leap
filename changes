@@ -7609,3 +7609,48 @@ Directory modules/leap/build-support/build-pipelines/stages/iface
  iface.py                  Locally Modified          100 
 
 Another tweak to the legacy asim link in iface.
+
+----------
+mcadler     Date: Thu Jun  2 15:50:25 EDT 2011  CSN: CSN-leap-102
+                  Thu Jun  2 19:50:25 UTC 2011
+
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx.apm Locally Modified          101 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.h          Locally Modified          101 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ bluespec.xcf              Locally Added               0 
+ xst.awb                   Locally Removed           101 
+ xst-nobasicio.awb         Locally Removed           101 
+ XSTnobasicio.py           Locally Removed           101 
+ xilinx-xst.awb            Locally Added               0 
+ XILINX_XST.py             Locally Added               0 
+ XST.py                    Locally Removed           101 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          101 
+
+Finally, the build process appears to be stable with the new Bluespec compiler.
+
+- Merged the Xst build pipeline controllers into a single module, controlled
+  by an awb parameter.  They differed by only a single line, either running
+  Bluespec's basicinout on the top level Verilog or not.
+- Add an Xst command to treat Verilog case statements as parallel.  It is
+  enabled by default, but can be turned off with an awb parameter.
+
+- Bluespec now requires that an XCF file be applied to Xst builds in order to
+  get correct results.  Unfortunately, there are Xst bugs triggered by the
+  Bluespec default version.  (The usual Xst mishandling of RegFile storage.)
+  Our LUTRAM implementation works around all known bugs, but the Bluespec
+  XCF file interferes.
+
+  I thought about modifying the XCF file in the Bluespec compiler's directory,
+  but concluded that was a bad idea since every user would have to fix his
+  own Bluespec installation.  Instead, I added bluespec.xcf here.  If the file
+  ever becomes compiler-version specific we can manage that in the build
+  pipeline.
+
+So far, these rules have been tested with ISE version 11.5.

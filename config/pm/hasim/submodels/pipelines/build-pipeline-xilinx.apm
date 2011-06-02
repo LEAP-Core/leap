@@ -34,7 +34,7 @@ Packagehint=leap
 
 [FPGA Build Pipeline/Requires]
 post_synthesis_tool=Xilinx Post-synthesis Toolchain
-synthesis_tool=XST Synthesis Tool - no basicio run
+synthesis_tool=XST Synthesis Tool
 mcd_tool=MCD Tool for Xilinx
 software_tool=Software build tool
 iface_tool=Interface builder
@@ -72,9 +72,6 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
 Packagehint=leap
 
-[XST Synthesis Tool - no basicio run]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xst-nobasicio.awb
-Packagehint=leap
 
 [MCD Tool for Xilinx]
 File=modules/leap/build-support/build-pipelines/stages/mcd/mcd-tcl.awb
@@ -82,4 +79,8 @@ Packagehint=leap
 
 [FPGA Programming Tool]
 File=modules/leap/build-support/build-pipelines/stages/fpgaprog/fpgaprog.awb
+Packagehint=leap
+
+[XST Synthesis Tool]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-xst.awb
 Packagehint=leap

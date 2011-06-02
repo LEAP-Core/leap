@@ -4,6 +4,7 @@ import SCons.Script
 from model import  *
 # need to pick up clock frequencies for xcf
 from clocks_device import *
+from config import *
 
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
@@ -45,6 +46,8 @@ class Synthesize():
     newXSTFile = open(topXSTPath, 'w')
     oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst', 'r')
     newXSTFile.write(oldXSTFile.read());
+    if XST_PARALLEL_CASE:
+        newXSTFile.write('-vlgcase parallel\n');
     newXSTFile.write('-iobuf yes\n');
     newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
     newXSTFile.close();
@@ -58,6 +61,8 @@ class Synthesize():
         newXSTFile = open(newXSTPath, 'w')
         oldXSTFile = open('config/' + module.wrapperName() + '.xst', 'r')
         newXSTFile.write(oldXSTFile.read());
+        if XST_PARALLEL_CASE:
+            newXSTFile.write('-vlgcase parallel\n');
         newXSTFile.write('-iobuf no\n');
         newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
         newXSTFile.close();
@@ -89,7 +94,10 @@ class Synthesize():
         SCons.Script.Clean(w,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
     
 
-
+    if XST_BLUESPEC_BASICINOUT:
+        basicio_cmd = env['ENV']['BLUESPECDIR'] + '/bin/basicinout ' + 'hw/' + moduleList.topModule.buildPath + '/.bsc/' + moduleList.topModule.wrapperName() + '.v',     #patch top verilog
+    else:
+        basicio_cmd = '@echo Bluespec basicinout disabled'
 
     topSRP = moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.srp'
 
@@ -103,7 +111,7 @@ class Synthesize():
         xilinx_xcf,
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
-
+          basicio_cmd,
           'xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
           '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 

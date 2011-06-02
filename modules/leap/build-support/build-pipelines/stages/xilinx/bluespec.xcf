@@ -1,0 +1,26 @@
+##
+## This file is taken from the Bluespec compiler's lib/board_support/xilinx
+## tree.  We don't use the file directly because it must be modified to
+## work in the LEAP environment.
+##
+
+## Removed RegFile because LEAP already handles this case in the LUTRAM code.
+## Declaring the RegFile distributed has its own set of problems, exposing
+## a number of Xst bugs.  We have found cases in which declaring RAM
+## distributed still results, incorrectly, in block RAM being allocated.
+## We have also seen cases in which declaring the RAM distributed ultimately
+## triggers errors in map, which complains about anonymous LUTs being
+## dropped.
+##
+# BEGIN MODEL RegFile
+#  NET arr  ram_style=distributed ;
+# END;
+
+BEGIN MODEL MakeClock
+  NET CLK_OUT     clock_signal=yes ;
+  NET current_clk keep=true;
+END;
+
+BEGIN MODEL SizedFIFO
+  NET arr  ram_style=distributed ;
+END;

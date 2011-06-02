@@ -24,7 +24,6 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
                             public PLATFORMS_MODULE_CLASS
 
 {
-
   public:
     STARTER_DEVICE_SERVER_CLASS();
     ~STARTER_DEVICE_SERVER_CLASS();
@@ -45,8 +44,7 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     // client methods
     void Start();
-  
-
+    void WaitForHardware() {};
 };
 
 // our STARTER_DEVICE_SERVER class is itself the main STARTER class
