@@ -46,21 +46,33 @@ interface RRR_CLIENT;
     interface Vector#(`NUM_SERVICES, CLIENT_RESPONSE_PORT) responsePorts;
 endinterface
 
+interface ARBITED_CLIENT#(numeric type n);
+    interface Vector#(n, CLIENT_REQUEST_PORT)  requestPorts;
+    interface Vector#(n, CLIENT_RESPONSE_PORT) responsePorts;
+endinterface
+
 // client
 module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
+  ARBITED_CLIENT#(`NUM_SERVICES) client <- mkArbitedClient(channel);
+  interface requestPorts = client.requestPorts;
+  interface responsePorts = client.responsePorts;
+endmodule
+
+module mkArbitedClient#(CHANNEL_IO channel) (ARBITED_CLIENT#(n))
+    provisos(Add#(1,xxx,n));
 
     // ==============================================================
     //                        Ports and Queues
     // ==============================================================
 
     // create request/response buffers and link them to ports
-    FIFOF#(UMF_PACKET)                     requestQueues[`NUM_SERVICES];
-    Vector#(`NUM_SERVICES, CLIENT_REQUEST_PORT) req_ports = newVector();
+    FIFOF#(UMF_PACKET)                     requestQueues[valueof(n)];
+    Vector#(n, CLIENT_REQUEST_PORT) req_ports = newVector();
 
-    FIFOF#(UMF_PACKET)                      responseQueues[`NUM_SERVICES];
-    Vector#(`NUM_SERVICES, CLIENT_RESPONSE_PORT) resp_ports = newVector();
+    FIFOF#(UMF_PACKET)                      responseQueues[valueof(n)];
+    Vector#(n, CLIENT_RESPONSE_PORT) resp_ports = newVector();
 
-    for (Integer s = 0; s < `NUM_SERVICES; s = s + 1)
+    for (Integer s = 0; s < valueof(n); s = s + 1)
     begin
         requestQueues[s]  <- mkFIFOF();
         responseQueues[s] <- mkFIFOF();
@@ -85,7 +97,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
 
     // === arbiters ===
 
-    ARBITER#(`NUM_SERVICES) arbiter <- mkRoundRobinArbiter();
+    ARBITER#(n) arbiter <- mkRoundRobinArbiter();
 
     // === other state ===
 
@@ -137,7 +149,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
     // whether a requestQueue has data.
     //
 
-    Wire#(Maybe#(UInt#(TLog#(`NUM_SERVICES)))) newMsgQIdx <- mkDWire(tagged Invalid);
+    Wire#(Maybe#(UInt#(TLog#(n)))) newMsgQIdx <- mkDWire(tagged Invalid);
 
     //
     // First half -- pick an incoming requestQueue
@@ -145,8 +157,8 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
     rule write_request_newmsg1 (requestChunksRemaining == 0);
 
         // arbitrate
-        Bit#(`NUM_SERVICES) request = '0;
-        for (Integer s = 0; s < `NUM_SERVICES; s = s + 1)
+        Bit#(n) request = '0;
+        for (Integer s = 0; s < valueof(n); s = s + 1)
         begin
             request[s] = pack(requestQueues[s].notEmpty());
         end
@@ -160,7 +172,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
     // rule fails to fire because the channel write port is full it will fire
     // again later after being reselected by the first half.
     //
-    for (Integer s = 0; s < `NUM_SERVICES; s = s + 1)
+    for (Integer s = 0; s < valueof(n); s = s + 1)
     begin
         rule write_request_newmsg2 (newMsgQIdx matches tagged Valid .idx &&&
                                     fromInteger(s) == idx &&&

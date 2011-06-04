@@ -7654,3 +7654,15 @@ Finally, the build process appears to be stable with the new Bluespec compiler.
   pipeline.
 
 So far, these rules have been tested with ISE version 11.5.
+
+----------
+kfleming    Date: Fri Jun  3 23:04:32 EDT 2011  CSN: CSN-leap-103
+                  Sat Jun  4 03:04:32 UTC 2011
+
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-server.bsv      Locally Modified          102 
+ basic-rrr-client.bsv      Locally Modified          102 
+
+
+Refactored rrr-client and rrr-server as wrapper functions build off a parameterized module.  
