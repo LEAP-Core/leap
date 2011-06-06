@@ -7666,3 +7666,18 @@ Directory modules/leap/virtual-platform/rrr/basic
 
 
 Refactored rrr-client and rrr-server as wrapper functions build off a parameterized module.  
+
+----------
+mcadler     Date: Mon Jun  6 16:43:20 EDT 2011  CSN: CSN-leap-104
+                  Mon Jun  6 20:43:20 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/streams-service
+ streams-local.bsv         Locally Modified          103 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-xst.awb            Locally Modified          103 
+ XILINX_XST.py             Locally Modified          103 
+
+- Add option to disable IOBUF insertion at top level.
+- Add NULL streams connection.

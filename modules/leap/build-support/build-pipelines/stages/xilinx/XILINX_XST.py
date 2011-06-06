@@ -48,7 +48,10 @@ class Synthesize():
     newXSTFile.write(oldXSTFile.read());
     if XST_PARALLEL_CASE:
         newXSTFile.write('-vlgcase parallel\n');
-    newXSTFile.write('-iobuf yes\n');
+    if XST_INSERT_IOBUF:
+        newXSTFile.write('-iobuf yes\n');
+    else:
+        newXSTFile.write('-iobuf no\n');
     newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
     newXSTFile.close();
     oldXSTFile.close();

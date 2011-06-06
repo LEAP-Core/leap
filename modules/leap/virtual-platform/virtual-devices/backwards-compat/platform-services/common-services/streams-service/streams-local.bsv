@@ -100,3 +100,31 @@ module [CONNECTED_MODULE] mkStreamsClient#(STREAMID_DICT_TYPE streamID)
                                    payload1: payload1 });
     endmethod
 endmodule
+
+
+module mkStreamsClient_Disabled
+    // Interface:
+    (STREAMS_CLIENT);
+
+    //
+    // send --
+    //     Accept new local message.
+    //
+    method Action send(STREAMS_DICT_TYPE string_id,
+                       Bit#(32) payload0,
+                       Bit#(32) payload1);
+        noAction;
+    endmethod
+
+    
+    //
+    // sendAs --
+    //     Accept new local message with non-default stream ID
+    //
+    method Action sendAs(STREAMID_DICT_TYPE stream_id,
+                         STREAMS_DICT_TYPE string_id,
+                         Bit#(32) payload0,
+                         Bit#(32) payload1);
+        noAction;
+    endmethod
+endmodule
