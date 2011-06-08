@@ -7681,3 +7681,20 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 - Add option to disable IOBUF insertion at top level.
 - Add NULL streams connection.
+
+----------
+mpellaue    Date: Wed Jun  8 10:58:15 EDT 2011  CSN: CSN-leap-105
+                  Wed Jun  8 14:58:15 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          104 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-backwards-compat.bsv Locally Modified          104 
+
+
+* Switch Chains to UGFIFOs internally. This matches mkConnectionSend/Recv and
+  fixes a degenerate case of chains of length 1 causing conflicts.
+
+Michael P.

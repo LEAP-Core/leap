@@ -285,7 +285,7 @@ module mkPassThrough
   Clock localClock <- exposeCurrentClock();
   Reset localReset <- exposeCurrentReset();
 
-  FIFOF#(PHYSICAL_CHAIN_DATA) passQ <- mkFIFOF();
+  FIFOF#(PHYSICAL_CHAIN_DATA) passQ <- mkUGFIFOF();
   PulseWire enW <- mkPulseWire();
   
   interface PHYSICAL_CHAIN_IN incoming;

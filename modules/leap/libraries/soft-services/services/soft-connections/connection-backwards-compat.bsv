@@ -143,7 +143,7 @@ module [ConnectedModule] mkConnection_Chain#(Integer chain_num)
 
   RWire#(msg_T)  dataW  <- mkRWire();
   PulseWire      enW    <- mkPulseWire();
-  FIFOF#(msg_T)  q       <- mkFIFOF();
+  FIFOF#(msg_T)  q       <- mkUGFIFOF();
 
   let inc = (interface PHYSICAL_CHAIN_IN;
 
@@ -204,17 +204,12 @@ module [ConnectedModule] mkConnection_Chain#(Integer chain_num)
   endmethod 
 
   method Bool recvNotEmpty();
-    Bool retVal = False;
-    if(dataW.wget() matches tagged Valid .val)
-      begin
-        retVal = True;
-      end
-    return retVal;
+    return isValid(dataW.wget());
   endmethod 
 
   method sendNotFull = q.notFull;
 
-  method Action sendToNext(msg_T data);
+  method Action sendToNext(msg_T data) if (q.notFull());
     q.enq(data);
   endmethod
 
