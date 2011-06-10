@@ -417,7 +417,7 @@ sub make_dirs {
 
     $sys_status |= __make_dirs($root, $hwdir);
     $sys_status |= system("mkdir -p " . ${hwdir} . "/include/awb/provides");
-    $sys_status |= system("ln -s awb " . ${hwdir} . "/include/asim");
+    $sys_status |= system("ln -sfn awb " . ${hwdir} . "/include/asim");
 
     __make_wrappers($root, $hwdir, 1);
 
@@ -427,7 +427,7 @@ sub make_dirs {
     $sys_status |= __make_dirs($root, $swdir);
     $sys_status |= system("mkdir -p " . ${swdir} . "/include/awb/provides");
     $sys_status |= system("mkdir -p " . ${swdir} . "/include/awb/restricted");
-    $sys_status |= system("ln -s awb " . ${swdir} . "/include/asim");
+    $sys_status |= system("ln -sfn awb " . ${swdir} . "/include/asim");
 
     # Setup directory for scons library files
     $sys_status |= system("mkdir -p " . Leap::Util::path_append($builddir, "site_scons"));

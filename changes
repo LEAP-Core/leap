@@ -7698,3 +7698,14 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
   fixes a degenerate case of chains of length 1 causing conflicts.
 
 Michael P.
+
+----------
+mpellaue    Date: Fri Jun 10 15:16:07 EDT 2011  CSN: CSN-leap-106
+                  Fri Jun 10 19:16:07 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          105 
+
+
+* Add "fn" flags to "ln -s" so that re-configuring a model doesn't break.
