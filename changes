@@ -8666,3 +8666,18 @@ Directory config/pm/hasim/submodels/fpgaenv
 
 
 * Update Altera platforms to use the unified single-ended clock device.
+
+----------
+pellauer    Date: Tue Jun 14 17:06:32 EDT 2011  CSN: CSN-leap-113
+                  Tue Jun 14 21:06:32 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.cpp        Locally Modified          112 
+ starter-device.h          Locally Modified          112 
+ starter-device.bsv        Locally Modified          112 
+ README                    Locally Modified          112 
+
+
+* Attempt to fix broken Null starter device. It's possible that it's actually
+beyond hope and should be deprecated.
