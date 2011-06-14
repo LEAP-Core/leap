@@ -60,7 +60,7 @@ File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-litt
 Packagehint=leap-platforms
 
 [ArriaII GX JTAG/Requires]
-clocks_device=Single-Ended Crystal Clocks Device (ALTERA)
+clocks_device=Simulation Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
 jtag_device=Altera JTAG
@@ -104,16 +104,11 @@ Packagehint=leap
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
 
-[Single-Ended Crystal Clocks Device (ALTERA)]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device-altera.awb
-Packagehint=leap-platforms
 
 [NULL Local Memory Interface]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
 
-[Single-Ended Crystal Clocks Device (ALTERA)/Params]
-MODEL_CLOCK_MULTIPLIER=2
 
 [Altera JTAG Physical Channel]
 File=modules/leap/virtual-platform/physical-channel/jtag/altera/jtag-physical-channel.awb
@@ -134,3 +129,7 @@ Packagehint=leap
 [RL Bluespec Library Submodel]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap
+
+[Simulation Clocks Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/simulation/sim-clocks-device.awb
+Packagehint=leap-platforms

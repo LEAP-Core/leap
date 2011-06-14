@@ -8652,3 +8652,17 @@ virtual-platform/virtual-devices/devices/console/*
 virtual-platform/low-level-platform-interface/hwonly-llpi.awb
 virtual-platform/channelio/unix/*
 virtual-platform/channelio/loopback/*
+
+----------
+pellauer    Date: Tue Jun 14 15:02:48 EDT 2011  CSN: CSN-leap-112
+                  Tue Jun 14 19:02:48 UTC 2011
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified          111 
+ fpgaenv-de2-jtag.apm      Locally Modified          111 
+ fpgaenv-de3-jtag.apm      Locally Modified          111 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified          111 
+
+
+* Update Altera platforms to use the unified single-ended clock device.
