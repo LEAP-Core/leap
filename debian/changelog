@@ -1,4 +1,9 @@
-leap (11.04~svn20110411r075+lucid) lucid; urgency=low
+leap (11.06+fixes~svn20110614r110+lucid) lucid; urgency=low
+
+  [ Michael Pellauer ]
+  * r110
+     Branch for v11.06 release. This release will work a bit differently than
+     past releases because of deprecated file cleanup.
 
   [ Joel Emer ]
   * r065

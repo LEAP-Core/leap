@@ -8652,3 +8652,18 @@ virtual-platform/virtual-devices/devices/console/*
 virtual-platform/low-level-platform-interface/hwonly-llpi.awb
 virtual-platform/channelio/unix/*
 virtual-platform/channelio/loopback/*
+
+----------
+pellauer    Date: Tue Jun 14 13:53:25 EDT 2011  CSN: CSN-leap-111
+                  Tue Jun 14 17:53:25 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          110 
+ changelog                 Locally Modified          110 
+
+Directory admin/packages
+ leap                      Locally Modified          110 
+
+
+* Update branch's administrative files.
