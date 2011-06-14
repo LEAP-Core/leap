@@ -1,0 +1,6 @@
+This directory contains alternative implementations of the Remote Memory module,
+which represents an abstraction layer for a shared memory space between HW and
+SW.
+
+null/               Empty remote memory for platforms with no capability.
+pci-express-dma/    Remote memory using PCI Express DMA.

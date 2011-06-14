@@ -1,0 +1,4 @@
+Interface Stage
+
+This stage deals with generating stub files for HW/SW interaction, for example
+for RRR and Dictionaries.

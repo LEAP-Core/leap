@@ -1,0 +1,16 @@
+Front Panel Service
+
+This module wraps the LEAP Front Panel Virtual Device in Soft Connections.
+
+There is assumed to be one writer of the LEDs, and one reader of the buttons &
+switches in the system, so no Connection Chains are used. Instead the following
+soft connections are defined:
+
+
+    Connection_Receive#(FRONTP_MASKED_LEDS) linkLEDs     <- mkConnectionRecvOptional("fpga_leds");
+    Connection_Send#(FRONTP_SWITCHES)       linkSwitches <- mkConnectionSendOptional("fpga_switches");
+    Connection_Send#(FRONTP_BUTTON_INFO)    linkButtons  <- mkConnectionSendOptional("fpga_buttons");
+
+Modules in the application may define the duals of these connections to access
+the device. Since the connections are optional, no error occurs if they
+are unused.

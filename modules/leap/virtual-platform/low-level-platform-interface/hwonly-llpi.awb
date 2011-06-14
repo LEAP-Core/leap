@@ -5,4 +5,6 @@
 
 %requires rrr channelio local_mem physical_platform physical_platform_debugger
 
+%notes README
+
 %public llpi.bsv

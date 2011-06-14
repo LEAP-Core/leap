@@ -1,0 +1,7 @@
+Null RRR
+
+This version of the RRR module provides all interfaces needed by LLPI,
+but is empty and does not transfer data between HW & SW.
+
+This can be useful for platforms with limited capability, or for platform
+bring-up.

@@ -1,0 +1,17 @@
+Common Utility Devices
+
+This is a collection of devices that are generally useful across every
+HW/SW hybrid application (assertions, stats, etc). It is somewhat analagous
+to "stdlib" in C.
+
+A null variant is provided, but is probably only useful for extremely
+degenerate platforms.
+
+All of these devices make extensive use of LEAP Dictionaries and RRR.
+
+assertions-device/          Handles dynamic assertion failures from the FPGA.
+debug-scan-device/          Scans out relevant FPGA state on demand (deadlock)
+dynamic-parameters-device/  Allows SW to send runtime parameters to HW.
+stats-device/               Read out relevant statistics when a run finishes.
+streams-device/             Allows the HW to perform basic print-outs.
+

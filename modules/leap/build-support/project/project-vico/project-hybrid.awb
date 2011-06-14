@@ -2,8 +2,8 @@
 #* Awb module specification
 #********************************************************************/
 
-%name VIP HW/SW ViCo Hybrid Project Foundation
-%desc VIP HW/SW ViCo Hybrid Project Foundation
+%name HW/SW ViCo Hybrid Project Foundation
+%desc HW/SW ViCo Hybrid Project Foundation
 %attributes hybrid vico project
 
 %provides model
@@ -12,13 +12,14 @@
 %requires fpgaenv
 %requires project_common
 
+%notes README
+
 %public  project-vico-hybrid-main.bsv
 %public  project-vico-hybrid-main.h
 %private project-vico-hybrid-main.cpp
 %public  hardware-done.h
 
-%library /p/asim/x86_64_linux26/share/asim/simcore/HEAD/lib/libasim/libasim.so
-%include /p/asim/x86_64_linux26/share/asim/simcore/HEAD/lib/libasim/include
+%library libasim.so
 
 %makefile Makefile.top.template
 %scons %top   SCons.top.template

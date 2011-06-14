@@ -7,5 +7,7 @@
 %requires virtual_platform fpga_components
 %requires build_pipeline
 
+%notes README
+
 %attributes leap
 

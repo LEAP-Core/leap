@@ -1,0 +1,18 @@
+Assertions Device
+
+This device allows the HW to report dynamic assertion failures. When a failing
+condition is noticed, SW is alerted using RRR, and then is responsible for
+reacting based on the severity of the assertion.
+
+When a HW system defines multiple assertions, they should be defined using the 
+ASSERTIONS dictionary. For example:
+
+def ASSERTIONS.MYMODULENAME.UNEXPECTED_VALUE "MYMODULENAME: Received unexpected value!";
+
+For efficiency, assertions are reported to the device in vectors (default size 
+16). Note that multiple assertions can fail at once, and that the order that
+they are printed by software is dependent on the order they appear in the
+dictionary.
+
+HW/SW applications that use Soft Services can interact with the assertions
+device using Platform Services, instead of interfacing with the device directly.

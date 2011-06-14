@@ -13,6 +13,8 @@
 
 %attributes bluespec
 
+%notes README
+
 %public basic-clock-lib.bsv 
 
 %AWB_END

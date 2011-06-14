@@ -1,0 +1,10 @@
+Central Cache
+
+The central cache module represents a large cache that is implemented using
+the Local Memory device abstraction. Lines are read to and from the Local Memory
+as efficiently as possible.
+
+Multiple clients can access the same cache, and will be given logically 
+independent ports.
+
+A null variant is provided for applications that do not need a HW-only cache.

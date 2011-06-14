@@ -7709,3 +7709,946 @@ Directory tools/scripts
 
 
 * Add "fn" flags to "ln -s" so that re-configuring a model doesn't break.
+
+----------
+pellauer    Date: Tue Jun 14 12:30:37 EDT 2011  CSN: CSN-leap-107
+                  Tue Jun 14 16:30:37 UTC 2011
+
+
+Directory config/pm/hasim/submodels/controller
+ hybrid_standard_controller.apm Locally Modified          106 
+ hybrid_basic_controller.apm Locally Modified          106 
+ hybrid_pure_bluespec_controller.apm Locally Modified          106 
+
+Directory config/pm/hasim/submodels/platform-services
+ standard-platform-services.apm Locally Modified          106 
+ standard-platform-null-mem.apm Locally Modified          106 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified          106 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          106 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified          106 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          106 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified          106 
+ hasim-fpgaenv-htg-v5-pcie.apm Locally Modified          106 
+ fpgaenv-de2-jtag.apm      Locally Modified          106 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          106 
+ fpgaenv-de3-jtag.apm      Locally Modified          106 
+ fpgaenv-hybrid-exe.apm    Locally Modified          106 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          106 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          106 
+ fpgaenv-hybrid-exe-serial-ChanIO-loopback.apm Locally Modified          106 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified          106 
+ hasim-fpgaenv-hybrid-sim.apm Locally Modified          106 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          106 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          106 
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          106 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified          106 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          106 
+
+Directory config/pm/hasim/submodels/common
+ soft-services.apm         Locally Modified          106 
+ project-common-default.apm Locally Modified          106 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_nosynth.apm Locally Modified          106 
+ traffic_light_de2_synth.apm Locally Modified          106 
+ traffic_light_htg_v5_pcie_synth.apm Locally Modified          106 
+ traffic_light_xup_synth.apm Locally Modified          106 
+ traffic_light_arriaII_nosynth.apm Locally Modified          106 
+ traffic_light_exe_nosynth.apm Locally Modified          106 
+ traffic_light_arriaII_synth.apm Locally Modified          106 
+ traffic_light_exe_synth.apm Locally Modified          106 
+ traffic_light_acp_synth.apm Locally Modified          106 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ hw-only-channelio.awb     Locally Added               - 
+ vico-channelio.awb        Locally Removed           106 
+ basic-channelio.awb       Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio
+ physical-channel/         Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ pcie-dma/                 Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-dma
+ dma-physical-channel.cpp  Locally Removed           106 
+ dma-physical-channel.h    Locally Removed           106 
+ dma-physical-channel.awb  Locally Removed           106 
+ dma-physical-channel.bsv  Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ serial/                   Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/serial
+ serial-physical-channel.cpp Locally Removed           106 
+ serial-physical-channel-loopback.bsv Locally Removed           106 
+ SerialStream.h            Locally Removed           106 
+ PosixSignalHandler.h      Locally Removed           106 
+ serial-physical-channel-8bit.cpp Locally Removed           106 
+ serial-physical-channel.h Locally Removed           106 
+ PosixSignalDispatcher.cpp Locally Removed           106 
+ serial-physical-channel.bsv Locally Removed           106 
+ serial-physical-channel-8bit.bsv Locally Removed           106 
+ PosixSignalDispatcher.h   Locally Removed           106 
+ serial-physical-channel-loopback.awb Locally Removed           106 
+ SerialPort.cpp            Locally Removed           106 
+ serial-physical-channel.awb Locally Removed           106 
+ SerialStreamBuf.cpp       Locally Removed           106 
+ SerialPort.h              Locally Removed           106 
+ serial-physical-channel-8bit.awb Locally Removed           106 
+ SerialStream.cpp          Locally Removed           106 
+ SerialStreamBuf.h         Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ pcie-bluespec/            Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec
+ pcie-bluespec-physical-channel.cpp Locally Removed           106 
+ pcie-bluespec-physical-channel.h Locally Removed           106 
+ pcie-bluespec-physical-channel.awb Locally Removed           106 
+ pcie-bluespec-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ pcie/                     Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie
+ pcie-physical-channel.cpp Locally Removed           106 
+ pcie-physical-channel.h   Locally Removed           106 
+ pcie-physical-channel.awb Locally Removed           106 
+ pcie-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ jtag/                     Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.cpp Locally Removed           106 
+ altera/                   Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag/altera
+ jtag-physical-channel.cpp Locally Removed           106 
+ jtag-physical-channel.h   Locally Removed           106 
+ jtag-physical-channel.awb Locally Removed           106 
+ jtag-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/jtag
+ jtag-physical-channel.h   Locally Removed           106 
+ jtag-physical-channel.awb Locally Removed           106 
+ jtag-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ pcie-csr/                 Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/pcie-csr
+ pcie-physical-channel.cpp Locally Removed           106 
+ pcie-physical-channel.h   Locally Removed           106 
+ pcie-physical-channel.awb Locally Removed           106 
+ pcie-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel
+ sim/                      Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/physical-channel/sim
+ sim-physical-channel.awb  Locally Removed           106 
+ sim-physical-channel.bsv  Locally Removed           106 
+ sim-physical-channel.cpp  Locally Removed           106 
+ sim-physical-channel.h    Locally Removed           106 
+
+Directory modules/leap/virtual-platform/channelio/unix
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/loopback
+ loopback-channelio.awb    Locally Modified          106 
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/null
+ null-channelio.awb        Locally Modified          106 
+ null-channelio.bsv        Locally Added               - 
+ NullChannelIO.bsv         Locally Removed           106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel
+ pcie-dma/                 Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie-dma
+ dma-physical-channel.cpp  Locally Removed           106 
+ dma-physical-channel.h    Locally Removed           106 
+ dma-physical-channel.awb  Locally Removed           106 
+ dma-physical-channel.bsv  Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/serial
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel
+ pcie-bluespec/            Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie-bluespec
+ pcie-bluespec-physical-channel.cpp Locally Removed           106 
+ pcie-bluespec-physical-channel.h Locally Removed           106 
+ pcie-bluespec-physical-channel.awb Locally Removed           106 
+ pcie-bluespec-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ pcie-physical-channel.cpp Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/dma
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ pcie-physical-channel.h   Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/csr
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/passthrough
+ pcie-physical-channel.cpp Locally Removed           106 
+ pcie-physical-channel.h   Locally Removed           106 
+ pcie-passthrough-physical-channel.cpp Locally Added               - 
+ pcie-physical-channel.awb Locally Removed           106 
+ pcie-physical-channel.bsv Locally Removed           106 
+ pcie-passthrough-physical-channel.h Locally Added               - 
+ pcie-passthrough-physical-channel.awb Locally Added               - 
+ README                    Locally Added               0 
+ pcie-passthrough-physical-channel.bsv Locally Added               - 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ pcie-physical-channel.awb Locally Removed           106 
+ pcie-physical-channel.bsv Locally Removed           106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag
+ jtag-physical-channel.cpp Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag/altera
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag
+ jtag-physical-channel.h   Locally Removed           106 
+ generic/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag/generic
+ jtag-physical-channel.cpp Locally Added               - 
+ jtag-physical-channel.h   Locally Added               - 
+ jtag-physical-channel.awb Locally Added               - 
+ README                    Locally Added               0 
+ jtag-physical-channel.bsv Locally Added               - 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag
+ jtag-physical-channel.awb Locally Removed           106 
+ README                    Locally Added               0 
+ jtag-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel
+ pcie-csr/                 Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie-csr
+ pcie-physical-channel.cpp Locally Removed           106 
+ pcie-physical-channel.h   Locally Removed           106 
+ pcie-physical-channel.awb Locally Removed           106 
+ pcie-physical-channel.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ hw-only-rrr.awb           Locally Added               - 
+ vico-rrr.awb              Locally Removed           106 
+ basic-rrr.awb             Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/null
+ null-rrr.awb              Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ rrr-common.awb            Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma
+ remote-memory-pcie-dma.awb Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null
+ null-remote-memory.awb    Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.awb        Locally Modified          106 
+ local-mem-ddr2.awb        Locally Modified          106 
+ local-mem-bram.awb        Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ hwonly-llpi.awb           Locally Modified          106 
+ vico-llpi.awb             Locally Modified          106 
+ hybrid-llpi.awb           Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/null
+ null-virtual-devices.awb  Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.awb   Locally Modified          106 
+ std-virtual-devices-null-mem.awb Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ starter/                  Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/starter
+ null-starter.h            Locally Removed           106 
+ hybrid-basic-starter.cpp  Locally Removed           106 
+ hybrid-null-starter.awb   Locally Removed           106 
+ null-starter.awb          Locally Removed           106 
+ hybrid-basic-starter-services.rrr Locally Removed           106 
+ hybrid-basic-starter.h    Locally Removed           106 
+ hybrid-basic-starter.awb  Locally Removed           106 
+ hybrid-basic-starter.bsv  Locally Removed           106 
+ null-starter.cpp          Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ DEPRECATED                Locally Added               0 
+ command-switches/         Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches
+ command-switch-processor.h Locally Removed           106 
+ default-switches.h        Locally Removed           106 
+ command-switches.cpp      Locally Removed           106 
+ command-switch-processor.cpp Locally Removed           106 
+ command-switches.h        Locally Removed           106 
+ standard-command-switches.awb Locally Removed           106 
+ default-switches.cpp      Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat
+ platform-services/        Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ mem-services/             Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services
+ scratchpad-memory-service/ Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Removed           106 
+ scratchpad-memory-service.bsv Locally Removed           106 
+ platform-scratchpad-multi-cached-memory.bsv Locally Removed           106 
+ platform-scratchpad-memory-utils.bsv Locally Removed           106 
+ scratchpad-memory-service.bsh Locally Removed           106 
+ platform-scratchpad-memory.bsv Locally Removed           106 
+ scratchpad-memory-service.dic Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services
+ mem-services-standard.awb Locally Removed           106 
+ mem-services-standard.bsv Locally Removed           106 
+ central-cache-service/    Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Removed           106 
+ central-cache-service.bsv Locally Removed           106 
+ central-cache-service.bsh Locally Removed           106 
+ platform-central-cache.bsv Locally Removed           106 
+ central-cache-service.dic Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services
+ mem-services-standard.bsh Locally Removed           106 
+ shared-memory-service/    Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/mem-services/shared-memory-service
+ shared-memory-service.awb Locally Removed           106 
+ shared-memory-service.bsv Locally Removed           106 
+ shared-memory-service.bsh Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-null-mem.awb Locally Removed           106 
+ starter-service/          Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/starter-service
+ starter-service.awb       Locally Removed           106 
+ starter-service.bsv       Locally Removed           106 
+ starter-service.bsh       Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-null-mem.bsv Locally Removed           106 
+ front-panel-service/      Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/front-panel-service
+ front-panel-service.awb   Locally Removed           106 
+ front-panel-service.bsv   Locally Removed           106 
+ front-panel-service.bsh   Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-null.awb Locally Removed           106 
+ platform-services-null.bsv Locally Removed           106 
+ common-services/          Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ common-services-standard.awb Locally Removed           106 
+ common-services-standard.bsv Locally Removed           106 
+ common-services-standard.bsh Locally Removed           106 
+ dynamic-parameters-service/ Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-local.bsv Locally Removed           106 
+ dynamic-parameters-service.awb Locally Removed           106 
+ dynamic-parameters-service.bsv Locally Removed           106 
+ dynamic-parameters-service.bsh Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ common-services-standard.dic Locally Removed           106 
+ debug-scan-service/       Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Removed           106 
+ debug-scan-service.bsh    Locally Removed           106 
+ debug-scan-local.bsv      Locally Removed           106 
+ debug-scan-service.awb    Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ assertions-service/       Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/assertions-service
+ assertions-service.awb    Locally Removed           106 
+ assertions-service.bsv    Locally Removed           106 
+ assertions-service.bsh    Locally Removed           106 
+ assertions-local.bsv      Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ stats-service/            Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Removed           106 
+ stats-service.awb         Locally Removed           106 
+ stats-service.bsv         Locally Removed           106 
+ stats-service.bsh         Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services
+ streams-service/          Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/streams-service
+ streams-local.bsv         Locally Removed           106 
+ streams-service.awb       Locally Removed           106 
+ streams-service.bsv       Locally Removed           106 
+ streams-service.bsh       Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services
+ platform-services-standard.awb Locally Removed           106 
+ platform-services-standard.bsv Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/graphical-serial
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/null-serial
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch.awb    Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common.awb    Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/local
+ local-mem-scratch.awb     Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.awb        Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ null-starter-device.awb   Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/arriaII
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.awb             Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/console
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/htg-v5-pcie
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/graphical
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/xup
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.awb Locally Modified          106 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device
+ dynamic-parameters-device.awb Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.awb     Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/assertions-device
+ assertions-device.awb     Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-null.awb   Locally Modified          106 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/stats-device
+ stats-device.awb          Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/streams-device
+ hybrid-streams.awb        Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ central-cache-interfaces.bsv Locally Modified          106 
+ local-mem-central-cache.awb Locally Modified          106 
+ null-central-cache.awb    Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/standard
+ standard-shared-memory.awb Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null
+ null-shared-memory.awb    Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ README                    Locally Added               0 
+ streams/                  Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/streams
+ streams-common.bsh        Locally Removed           106 
+ hybrid-streams-services.rrr Locally Removed           106 
+ hybrid-streams.h          Locally Removed           106 
+ hybrid-streams.awb        Locally Removed           106 
+ hybrid-streams.bsv        Locally Removed           106 
+ streamid.dic              Locally Removed           106 
+ simulation-streams.awb    Locally Removed           106 
+ simulation-streams.bsv    Locally Removed           106 
+ streams.dic               Locally Removed           106 
+ hybrid-streams.cpp        Locally Removed           106 
+
+Directory modules/leap/virtual-platform/virtual-devices
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ fpga-environment.awb      Locally Modified          106 
+ std-virtual-platform.awb  Locally Modified          106 
+
+Directory modules/leap/virtual-platform/vico-headers
+ vico-headers.awb          Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bsv-exe.awb               Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ bsv.awb                   Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/mcd
+ mcd-tcl.awb               Locally Modified          106 
+ mcd.awb                   Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
+ fpgaprog.awb              Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/verilog
+ verilog.awb               Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/altera
+ altera-post-synth.awb     Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ multi_fpga_parse.awb      Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.awb              Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-loader.awb         Locally Modified          106 
+ xilinx-bitgen.awb         Locally Modified          106 
+ xilinx-ngd.awb            Locally Modified          106 
+ xilinx-bmm.awb            Locally Modified          106 
+ README                    Locally Added               0 
+ xilinx-ucf.awb            Locally Modified          106 
+ xilinx-map.awb            Locally Modified          106 
+ xilinx-xst.awb            Locally Modified          106 
+ xilinx-par.awb            Locally Modified          106 
+ xilinx-post-synth.awb     Locally Modified          106 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ synplify.awb              Locally Modified          106 
+ synplify-sub.awb          Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ sim-build-pipeline.awb    Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ verilog-build-pipeline.awb Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ fpga-build-pipeline.awb   Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified          106 
+ project-common-hybrid.awb Locally Modified          106 
+
+Directory modules/leap/build-support/project/application-env
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/base
+ application-env-hybrid-base.awb Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ DEPRECATED                Locally Added               0 
+ default-sw/               Locally Removed           106 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections/default-sw
+ connected-application-default-sw.h Locally Removed           106 
+ connected-application-default-sw.awb Locally Removed           106 
+ connected-application-default-sw.bsv Locally Removed           106 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.awb Locally Modified          106 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services/default-sw
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hw-only
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/hw-only/base
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/build-support/project
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/project/project-vico
+ project-hybrid.awb        Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries/backwards-compat
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/build-support
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/librl/cache
+ librl-cache.awb           Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/librl/storage
+ librl-bsv-storage.awb     Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/librl
+ librl-bsv.awb             Locally Modified          106 
+
+Directory modules/leap/libraries/librl/base
+ README                    Locally Modified          106 
+ librl-bsv-base.awb        Locally Modified          106 
+
+Directory modules/leap/libraries/librl
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/command-switches
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/front-panel-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/streams-service
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-clocks
+ basic-clock.awb           Locally Modified          106 
+ basic-clock-lib.awb       Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree
+ shared-tree.awb           Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ README                    Locally Added               0 
+ soft-connections-common-module-context.awb Locally Modified          106 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connection-alg-module-context.awb Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-lib.awb  Locally Modified          106 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context/alg
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg/typed
+ DEPRECATED                Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-deps-small.awb Locally Modified          106 
+ soft-services.awb         Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-only
+ soft-services-deps-small.awb Locally Modified          106 
+ soft-services-small.awb   Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.awb     Locally Modified          106 
+ soft-services-deps.awb    Locally Modified          106 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries
+ README                    Locally Added               0 
+
+Directory modules/leap
+ README                    Locally Modified          106 
+
+Directory modules/leap/examples/traffic-light
+ traffic-light-system.txt  Locally Removed           106 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function-smart-synth-boundary.awb Locally Modified          106 
+ README                    Locally Added               0 
+ traffic-light-function.awb Locally Modified          106 
+
+Directory modules/leap/examples/traffic-light
+ traffic-light-system.awb  Locally Modified          106 
+ README                    Locally Added               - 
+
+Directory modules/leap/examples
+ README                    Locally Added               0 
+
+
+
+* Add over 100 README files. Each directory has a README file. Currently the
+  quality of the README file varies based on the importance of the module and
+  my understanding of its operation. Priority is given to "application-facing"
+  APIs like Stats, Params, RRR, etc. Still, there is obviously room to improve
+  many of these. I will be bothering original authors for contributions.
+  
+* Mark over 60 files as deprecated. These files will not make it into the next
+  LEAP release. To find which files are deprecated "grep -r DEPRECATED *". If
+  a directory contains a file named DEPRECATED in place of a README then the 
+  entire directory is deprecated.
+
+* A few files whose deprecated status is still under investigation are marked
+  "DEPRECATED?" in their associated README files.
+
+* No deprecated files are actually deleted in this release, but there 
+  is some reorganization:
+  ** Physical channel directories, especially pcie.
+  ** Command-line switches is now in libraries/
+  ** Platform services is now in libraries/
+  ** Clean up some misc. file name conventions.
+  
+* There were two copies of the Streams device. Delete the extraneous one.
+
+* Rename some ViCo modules to the more general "Hardware-Only" name, since
+  they can be used with any platform that does not require a software component.
+
+* Rename ViCo Physical Channel to "Passthrough" since it can be used for 
+  any physical device that exposes UMF FIFOs.
+
+* Add some copyright notices to misc. files.
+
+* Update .awb files with new READMEs as %notes.
+
+* Update .apm files so they are not stale.
+
+* Next steps: create a branch which is a "release candidate" and does not
+  contain deprecated files. This will give people an opportunity to complain
+  if something was wrongly marked as deprecated.
+
+* List of files whose deprecated status is under investigation. These are all
+  related to soft services dependencies....
+libraries/soft-services/util/soft-services-deps.awb
+libraries/soft-services/util/soft-services-sc-deps.bsh
+libraries/soft-services/services/soft-connections/connected-module.bsv
+libraries/soft-services/services/soft-connections/soft-connections-backward-deps.bsh
+libraries/soft-services/services/soft-connections/soft-connections-common-module-context.awb
+libraries/soft-services/services/soft-connections/soft-connections-lib.awb
+libraries/soft-services/services/soft-connections/soft-connections-module-context-multifpga.awb
+libraries/soft-services/services/soft-connections/with-connections.bsv
+
+* Complete list of deprecated modules and files:
+build-support/project/application-env/hw-only/*
+build-support/project/application-env/hybrid/soft-connections/*
+build-support/project/SCons.dict.template       
+build-support/project/SCons.hw.template         
+build-support/project/SCons.sw.template         
+build-support/project/SCons.top.template        
+build-support/project/project-hw-main.bsv       
+build-support/project/project-hw.awb            
+build-support/project/project-hybrid.awb        
+build-support/project/project-pipeline-new.awb  
+build-support/project/project-sw-main.cpp       
+build-support/project/project-sw-main.h         
+build-support/project/project-sw.awb            
+build-support/smart-synthesis-boundaries/*
+libraries/librl/base/bluespec-common.prj
+libraries/soft-services/services/soft-connections-backwards-compat/*
+virtual-platform/physical-channel/pcie/bluespec/*
+virtual-platform/virtual-devices/backwards-compat/*
+virtual-platform/virtual-devices/devices/front-panel/xup/*
+virtual-platform/virtual-devices/devices/front-panel/htg-v5-pcie/*
+virtual-platform/virtual-devices/devices/front-panel/graphical/*
+virtual-platform/virtual-devices/devices/front-panel/console/*
+virtual-platform/virtual-devices/devices/front-panel/arriaII/*
+virtual-platform/virtual-devices/devices/console/*
+virtual-platform/low-level-platform-interface/hwonly-llpi.awb
+virtual-platform/channelio/unix/*
+virtual-platform/channelio/loopback/*

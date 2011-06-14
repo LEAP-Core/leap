@@ -1,0 +1,8 @@
+Hybrid Scratchpad Memory Device
+
+This module implements LEAP Scratchpad Memory, which combines multiple
+independent private memories onto the same cache hierarchy. LEAP RRR
+is used to access SW memory as a secondary backing-store when the HW
+local memory is too small.
+
+See [FPGA 2011] for a complete description.

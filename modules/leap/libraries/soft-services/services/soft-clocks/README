@@ -1,0 +1,10 @@
+Soft Clocks
+
+The Soft Clocks module allows the user to make a clock that is implicitly
+carried around between modules.
+
+In the future it could support naming of different clocks.
+
+The soft_clocks_lib module contains basic typedef info needed to work out 
+dependencies correctly with the soft-services sets.
+ 

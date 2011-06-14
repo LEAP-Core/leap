@@ -1,0 +1,4 @@
+Verilog Build Pipeline
+
+This module represents a build pipeline for Verilog simulation 
+(vcs, iverilog, etc.)

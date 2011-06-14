@@ -5,6 +5,8 @@
 
 %requires rrr_common
 
+%notes README
+
 %sources -t BSV -v PUBLIC  basic-rrr-client.bsv
 %sources -t BSV -v PUBLIC  basic-rrr-server.bsv
 %sources -t BSH -v PUBLIC  basic-rrr-common.bsh

@@ -1,0 +1,12 @@
+%name NULL Platform Services
+%desc Translates Virtual Devices into Soft Connections
+
+%provides platform_services
+
+%requires  starter_service
+
+%attributes leap
+
+%notes README
+
+%public platform-services-null.bsv

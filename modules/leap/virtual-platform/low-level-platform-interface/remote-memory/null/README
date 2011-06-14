@@ -1,0 +1,4 @@
+Null Remote Memory
+
+This module represents a non-existant Remote Memory abstraction, useful for
+platforms that do not have this capability.

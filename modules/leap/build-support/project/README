@@ -1,0 +1,41 @@
+HW/SW Hybrid Project Foundation
+
+This module is the top-level module that represents the root of a HW/SW Hybrid
+application using LEAP. As such it is responspible for:
+
+A) Providing the top-level SCons files and python libraries for compilation.
+B) Instantiating the LEAP virtual platform.
+C) Invoking handling of command-line switches.
+D) Instantiating the user application, starting the FPGA, and invoking Main().
+
+This is supported by Project Common, a module representing utilities
+commonly useful to all projects.
+
+CommandLine.py              Inteprets build parameters for Scons.
+Module.py                   Python class representing an AWB module.
+ModuleList.py               Python class representing an AWB APM tree.
+ProjectDependency.py        Tracks dependencies.
+Utils.py                    Miscellaneous utility functions.
+
+SCons.dict.template         DEPRECATED
+SCons.hw.pipeline.template  SCons invocation of HW build pipeline.
+SCons.hw.template           DEPRECATED
+SCons.iface.template        SCons invocation of HW/SW interface build pipeline.
+SCons.sw.pipeline.template  SCons invocation of SW build pipeline.
+SCons.sw.template           DEPRECATED
+SCons.top.pipeline.template Top-level SCons script.
+SCons.top.template          DEPRECATED
+Makefile.top.template       Empty makefile just invokes SCons.
+
+hardware-done.h             A SW utility for noticing when the FPGA is finished.
+project-hw-main.bsv         DEPRECATED
+project-hw.awb              DEPRECATED
+project-hybrid-main.bsv     Top-level HW file, instantiates app and platform.
+project-hybrid-main.{h,cpp} Top-level SW file, instantiates platform, calls main
+project-hybrid.awb          DEPRECATED
+project-pipeline-new.awb    DEPRECATED
+project-sw-main.cpp         DEPRECATED
+project-sw-main.h           DEPRECATED
+project-sw.awb              DEPRECATED
+
+project-vico/               Project using ViCo co-simulation.

@@ -1,0 +1,32 @@
+Dynamic Parameters Service
+
+This service wraps the Dynamic Parameters Virtual Device in Soft Connections.
+
+Connection Chains are used so that multiple parameters can be efficiently
+connected to the virtual device without multiplexing.
+
+First, dynamic parameters are defined in a module's AWB file:
+
+%param --dynamic INITIAL_PC 1000 "Initial value of the program counter.";
+%param --dynamic USE_PREFETCH 1 "Should fetch use pre-fetching?";
+
+These are then used to generate LEAP dictionary entries during configuraion.
+The module's %provides type is used (capitalized) to distinguish the dictionary
+hierarchy.
+
+`include "awb/dict/FETCH.bsh"
+
+For efficiency, many parameters are grouped together into nodes. All parameters
+at a node must share the same LEAP dictionary hierarchy. The node is then passed
+with the LEAP dictionary parameter to the module constructor:
+
+let paramNode <-mkDynamicParameterNode(`PARAMS_FETCH);
+let initialPC <- mkDynamicParameter(`PARAMS_FETCH_INITIAL_PC, paramNode);
+let usePrefetch <- mkDynamicParameter(`PARAMS_FETCH_USE_PREFETCH, paramNode)
+
+Dynamic parameters are then defined to have an _read() method so that they
+may be accessed directly:
+
+    rule doFetch (True);
+        if (usePrefetch == 1)
+        ...

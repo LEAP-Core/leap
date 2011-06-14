@@ -3,6 +3,8 @@
 
 %provides remote_memory
 
+%notes README
+
 %public  remote-memory-pcie-dma.bsv
 %public  remote-memory-pcie-dma.h
 %private remote-memory-pcie-dma.cpp

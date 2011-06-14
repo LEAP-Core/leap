@@ -1,0 +1,19 @@
+Hybrid Starter Device
+
+This virtual devices is responsible for synchronizing the start and end of
+a run of a HW/SW Hybrid application.
+
+SW can invoke two methods:
+
+Start()             // Tell the FPGA to begin.
+WaitForHardware()   // Block until the FPGA calls end.
+
+HW can invoke two methods via RRR:
+
+Heartbeat()         // Periodically let SW know HW has not deadlocked.
+End()               // Tell the SW that the FPGA is finished.
+
+For applications where the HW acts as a "pure server" that simply processes
+requests, it may be useful to omit the call to WaitForHardware().
+
+

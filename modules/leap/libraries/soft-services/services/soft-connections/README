@@ -1,0 +1,65 @@
+Soft Connections (3.0)
+
+This module defines Soft Connections, a communication hierachy that can be
+implicitly passed between hardware modules, thus furthering plug-and-play
+modularity. Furthermore, it allows the logical communication topology to 
+be divorced from the physical communication toplogy.
+
+See [DAC 2008] for a complete description.
+
+alg/                        Algorithm for connecting soft connections together.
+physical-interconnects/     Physical interconnect topologies like trees.
+
+bury-connections.bsv
+    * DEPRECATED
+
+connected-common.bsv
+    * Type definitions for Soft Connections Service.
+
+connected-module.bsv
+    * DEPRECATED*
+
+connection-backwards-compat.bsv
+    * Defintions for backwards compatability with previous versions.
+
+connection-context.bsv
+    * Helper functions for dealing with the Soft Connections Context.
+
+connection-dispatchers.bsv
+    * Unified constructors that choose the appropriate physical implementation.
+
+connection-helper.bsv
+    * Miscellaneous helper functions.
+
+connection-implementation.bsv
+    * Implementation of the unified soft connections constructors.
+
+connection-matching.bsv
+    * Functions for matching logical connection halves together.
+
+connection-vectors.bsv
+    * Takes extremely wide connection data types and breaks them into a vector.
+
+connections.bsv
+    * Main constructors called by the user.
+
+soft-connections-backward-deps.bsh
+    * DEPRECATED?
+
+soft-connections-common-module-context.awb
+    * DEPRECATED?
+
+soft-connections-lib.awb
+    * DEPREDCATED?
+
+soft-connections-module-context-multifpga.awb
+    * DEPRECATED?
+
+soft-connections-module-context.awb
+    * Main soft connections module.
+
+token-ring.bsv
+    * Use Connection Chains to construct a token ring.
+
+with-connections.bsv
+    * DEPRECATED?

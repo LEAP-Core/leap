@@ -35,7 +35,6 @@ umf=Little-Endian Unified Message Format
 File=modules/leap/virtual-platform/fpga-environment.awb
 Packagehint=leap
 
-
 [RRR Clients and Servers]
 File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
 Packagehint=leap
@@ -59,26 +58,25 @@ physical_platform_debugger=Null Physical Platform Debugger
 local_mem=NULL Local Memory Interface
 remote_memory=Null Remote Memory
 
-
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Hardware FPGA Components for Virtex 5]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Common Module]
 File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
@@ -87,14 +85,13 @@ Packagehint=leap
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
 
-
 [JTAG Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/jtag/jtag-physical-channel.awb
+File=modules/leap/virtual-platform/physical-channel/jtag/generic/jtag-physical-channel.awb
 Packagehint=leap
 
 [Xilinx JTAG Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/jtag/xilinx/jtag-device-physical.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Remote Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
@@ -107,7 +104,7 @@ jtag_device=Xilinx JTAG Physical Device
 
 [XUP Virtex 5 JTAG]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/jtag/xilinx-xup-jtag.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [NULL Local Memory Interface]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb

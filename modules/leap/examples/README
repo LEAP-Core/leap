@@ -1,0 +1,6 @@
+This directory contains example HW/SW Hybrid applications built using the LEAP
+platform.
+
+hello-world/    The most basic example. Does not use Soft Services.
+traffic-light/  An FSM that blinks the LEDs like a traffic light.
+                Uses Soft Connections and Smart Synthesis Boundaries.

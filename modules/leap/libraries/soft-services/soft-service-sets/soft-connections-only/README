@@ -1,0 +1,7 @@
+Soft Services Soft Connections Only
+
+This module represents a set of Soft Services that only includes soft 
+connections.
+
+A dependencies module is provided so that other modules can include the base
+definitions of every service. (In this case, just soft connections.)

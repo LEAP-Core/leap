@@ -3,5 +3,7 @@
 
 %provides rrr_common
 
+%notes README
+
 %sources -t BSV -v PUBLIC marshaller.bsv
 %sources -t BSV -v PUBLIC demarshaller.bsv

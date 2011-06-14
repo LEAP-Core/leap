@@ -1,0 +1,11 @@
+This directory contains organizations of Soft Services. These are hardware
+elements that are implicitly available to all hardware modules. Soft Services
+remain available past synthesis boundaries through the use of a 
+Wrapper/Surrogate system known as Smart Synthesis Boundaries.
+
+Services are defined individually and composed into sets of available services
+based on what the application needs.
+
+services/               The individual services themselves.
+soft-service-sets/      Combinations of individual services.
+util/                   Utility functions and base typedefs.

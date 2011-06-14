@@ -21,7 +21,7 @@ File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/s
 Packagehint=leap
 
 [Standard Command Switches]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches/standard-command-switches.awb
+File=modules/leap/libraries/command-switches/standard-command-switches.awb
 Packagehint=leap
 
 [Hybrid Pure Bluespec Controller]

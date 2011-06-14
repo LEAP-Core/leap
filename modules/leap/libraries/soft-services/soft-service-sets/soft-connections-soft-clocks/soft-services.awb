@@ -14,6 +14,7 @@
 %requires soft_clocks
 %requires soft_services_deps
 
+%notes README
 
 %sources --t BSV --v PUBLIC soft-services-defs.bsv
 

@@ -8,5 +8,7 @@
 
 %provides xilinx_ucf
 
+%notes README
+
 %scons %library XILINX_UCF.py
 

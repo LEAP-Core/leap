@@ -6,6 +6,8 @@
 
 %requires front_panel central_cache scratchpad_memory shared_memory starter_device common_utility_devices
 
+%notes README
+
 %public  std-virtual-devices.dic
 %public  std-virtual-devices.bsv
 %public  std-virtual-devices.h

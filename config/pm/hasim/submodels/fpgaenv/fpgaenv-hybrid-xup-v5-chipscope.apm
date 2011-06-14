@@ -53,23 +53,23 @@ remote_memory=Null Remote Memory
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Hardware FPGA Components for Virtex 5]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Common Module]
 File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
@@ -109,7 +109,7 @@ Packagehint=leap
 
 [Bluespec SATA Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/sata-bluespec/sata-bluespec.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Basic Virtual Channel Multiplexer]
 File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
@@ -118,19 +118,17 @@ Packagehint=leap
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=Bluespec PCIE Physical Channel
 
-
-
 [Bluespec PCIE Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-bluespec/pcie-bluespec.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Bluespec PCIE Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec/pcie-bluespec-physical-channel.awb
+File=modules/leap/virtual-platform/physical-channel/pcie/bluespec/pcie-bluespec-physical-channel.awb
 Packagehint=leap
 
 [XUP Virtex 5 Chipscope]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/chipscope/xilinx-xup-chipscope.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [XUP Virtex 5 Chipscope/Requires]
 pcie_device=Bluespec PCIE Device
@@ -141,4 +139,4 @@ chipscope_device=Chipscope Device
 
 [Chipscope Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/chipscope/chipscope.awb
-Packagehint=platforms
+Packagehint=leap-platforms

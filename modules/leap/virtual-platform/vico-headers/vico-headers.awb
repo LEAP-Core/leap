@@ -8,6 +8,8 @@
 
 %provides vico_headers
 
+%notes README
+
 %public  vico_rrr_layer.h
 %public  scemi.h
 %public  scemi_errors.h

@@ -11,6 +11,8 @@
 
 %provides soft_services_deps
 
+%notes README
+
 %sources --t BSH --v PUBLIC soft-services-lib-deps.bsh
 %sources --t BSH --v PUBLIC soft-services-impl-deps.bsh
 

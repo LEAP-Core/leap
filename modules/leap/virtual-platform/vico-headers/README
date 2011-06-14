@@ -1,0 +1,7 @@
+ViCo Headers
+
+This module defines the headers necessary to use the ViCo co-simulation
+environment with LEAP.
+
+In order to use these headers the ViCo library and device driver must
+be installed on a system.

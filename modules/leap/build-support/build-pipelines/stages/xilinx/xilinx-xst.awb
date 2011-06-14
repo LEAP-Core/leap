@@ -8,6 +8,8 @@
 
 %provides synthesis_tool
 
+%notes README
+
 %scons %library XILINX_XST.py
 %sources -t XCF -v PRIVATE bluespec.xcf
 

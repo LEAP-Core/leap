@@ -14,5 +14,7 @@
 %requires xilinx_bitgen
 %requires xilinx_loader
 
+%notes README
+
 %scons %library XILINX_POST_SYNTH.py
 

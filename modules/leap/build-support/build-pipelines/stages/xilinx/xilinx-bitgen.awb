@@ -8,5 +8,7 @@
 
 %provides xilinx_bitgen
 
+%notes README
+
 %scons %library XILINX_BITGEN.py
 

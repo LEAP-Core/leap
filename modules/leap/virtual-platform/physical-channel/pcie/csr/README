@@ -1,0 +1,4 @@
+CSR PCIE Physical Channel
+
+Control-Status Register based abstraction of a PCIE device. This uses PIO
+to use CSRs to set up a Host2FPGA FIFO and a FPGA2Host FIFO.

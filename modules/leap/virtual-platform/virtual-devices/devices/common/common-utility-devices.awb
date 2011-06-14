@@ -5,6 +5,8 @@
 
 %requires streams_device dynamic_parameters_device debug_scan_device assertions_device stats_device
 
+%notes README
+
 %sources -t BSV -v PUBLIC  common-utility-devices.bsv
 %sources -t H   -v PUBLIC  common-utility-devices.h
 %sources -t CPP -v PRIVATE common-utility-devices.cpp

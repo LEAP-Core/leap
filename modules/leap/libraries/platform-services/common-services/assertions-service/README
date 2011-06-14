@@ -1,0 +1,34 @@
+Assertions Service
+
+This service wraps the Assertions Virtual Device in Soft Connections.
+
+Connection Chains are used so that many different assertions can be present
+in the system.
+
+For efficiency, assertions are grouped together into Nodes. Assertion 
+checkers are then instantiated using the Node, severity, and the LEAP Dictionary
+name of the assertion. Assertions at a single node must share LEAP Dictionary
+hierarchies.
+
+Thus:
+
+def ASSERTIONS.EXECUTE.ILLEGAL_INSTRUCTION "Execute: Got illegal instruction!";
+def ASSERTIONS.EXECUTE.DIVIDE_BY_ZERO "Execute: Got divide by zero!";
+
+And then:
+
+`include "awb/dict/ASSERTIONS_EXECUTE.bsh"
+
+let node <- mkAssertionsNode(ASSERTIONS_EXECUTE);
+let assertLegalInst <- mkAssertionCheckerError(ASSERTIONS_EXECUTE_ILLEGAL_INSTRUCTION, node);
+let assertGoodDiv <- mkAssertionCheckerWarning(ASSERTIONS_EXECUTE_DIVIDE_BY_ZERO, node);
+
+Through some Bluespec type cleverness, assertions can then be used as follows:
+
+rule doExecute (True);
+
+    assertLegalInst(instQ.first() < 6'b111000);
+    assertGoodDiv(operandB != 0);
+
+endrule
+

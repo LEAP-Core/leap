@@ -13,4 +13,6 @@
 %requires bluesim_tool
 %requires verilog_tool
 
+%notes README
+
 %scons %library SimulationPipeline.py

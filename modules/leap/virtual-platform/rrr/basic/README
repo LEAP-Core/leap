@@ -1,0 +1,10 @@
+RRR Clients and Servers
+
+This module provides the functionality for Remote Request Response clients and
+servers. These can live either in hardware or software, so that both parts
+of a HW/SW hybrid application are treated as peers - either can initiate
+a request on the other.
+
+A hardware-only version of the environment is provided so that SW versions
+that do alternative marshalling (such as ViCo or SCe-MI) can be supported.
+

@@ -46,12 +46,8 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/assertions/assertions-controller-hybrid.awb
 Packagehint=leap
 
-[Hasim Module Local Controller]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/module/local-controller-module-standard.awb
-Packagehint=leap
-
 [Standard Local Controllers/Requires]
-module_local_controller=Hasim Module Local Controller
+module_local_controller=HAsim Module Local Controller
 
 [Standard Central Controllers/Requires]
 assertions_controller=Hybrid Assertions Controller
@@ -70,7 +66,7 @@ File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/l
 Packagehint=leap
 
 [Standard Command Switches]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/command-switches/standard-command-switches.awb
+File=modules/leap/libraries/command-switches/standard-command-switches.awb
 Packagehint=leap
 
 [Hybrid Dynamic Parameters Controller]
@@ -81,3 +77,6 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/debug-scan/debug-scan-controller-hybrid.awb
 Packagehint=leap
 
+[HAsim Module Local Controller]
+File=modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/module/local-controller-module-standard.awb
+Packagehint=leap

@@ -1,0 +1,12 @@
+This directory contains individual virtual device definitions.
+
+These devices are all platform independent and depend on the LEAP
+hardware abstraction layer to hide the "bare metal."
+
+central-cache/      A large cache that uses HW Local Memory.
+common/             A set of useful common utility devices.
+console/            DEPRECATED
+front-panel/        A panel representing basic FPGA IO (LEDs, switches, buttons)
+scratchpad-memory/  An automatically inferred cache hierarchy of local memory.
+shared-memory/      A coherent memory space shared between HW and SW.
+starter/            Starts and Stops the FPGA if needed.

@@ -17,19 +17,19 @@ DefaultAttributes=connected hybrid
 model=Platform Services with No Memory Service
 
 [Common Services]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/common-services-standard.awb
+File=modules/leap/libraries/platform-services/common-services/common-services-standard.awb
 Packagehint=leap
 
 [Front Panel Service]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/front-panel-service/front-panel-service.awb
+File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
 Packagehint=leap
 
 [Starter Service]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/starter-service/starter-service.awb
+File=modules/leap/libraries/platform-services/starter-service/starter-service.awb
 Packagehint=leap
 
 [Stats Service]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/stats-service/stats-service.awb
+File=modules/leap/libraries/platform-services/common-services/stats-service/stats-service.awb
 Packagehint=leap
 
 [Common Services/Requires]
@@ -40,23 +40,23 @@ streams_service=Streams Service
 dynamic_parameters_service=Dynamic Parameter Service
 
 [Debug Scan Services]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/debug-scan-service/debug-scan-service.awb
+File=modules/leap/libraries/platform-services/common-services/debug-scan-service/debug-scan-service.awb
 Packagehint=leap
 
 [Dynamic Parameter Service]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service.awb
+File=modules/leap/libraries/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service.awb
 Packagehint=leap
 
 [Assertions Service]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/assertions-service/assertions-service.awb
+File=modules/leap/libraries/platform-services/common-services/assertions-service/assertions-service.awb
 Packagehint=leap
 
 [Streams Service]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/common-services/streams-service/streams-service.awb
+File=modules/leap/libraries/platform-services/common-services/streams-service/streams-service.awb
 Packagehint=leap
 
 [Platform Services with No Memory Service]
-File=modules/leap/virtual-platform/virtual-devices/backwards-compat/platform-services/platform-services-null-mem.awb
+File=modules/leap/libraries/platform-services/platform-services-null-mem.awb
 Packagehint=leap
 
 [Platform Services with No Memory Service/Requires]

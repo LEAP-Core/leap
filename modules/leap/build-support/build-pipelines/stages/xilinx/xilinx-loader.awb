@@ -8,5 +8,7 @@
 
 %provides xilinx_loader
 
+%notes README
+
 %scons %library XILINX_LOADER.py
 

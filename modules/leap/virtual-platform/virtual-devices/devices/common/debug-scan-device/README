@@ -1,0 +1,16 @@
+Debug Scan Device
+
+This device provides the functionality of scanning out state on demand.
+
+SW requests a dump, and all nodes respond with their current values using RRR.
+
+This is clearly not useful for debugging problems in the physical channel
+itself, but is useful in diagnosing a large range of application-level
+bugs, especially deadlocks.
+
+Relevant values are indentified using LEAP dictionaries:
+
+def DEBUG_SCAN.MYMODULENAME.PROGRAM_COUNTER "MYMODULENAME: Program Counter";
+
+Applications that use Soft Services can interact with Platform Services,
+rather than interacting with this device directly.

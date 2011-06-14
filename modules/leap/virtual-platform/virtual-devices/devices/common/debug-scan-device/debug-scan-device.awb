@@ -5,6 +5,8 @@
 
 %attributes leap
 
+%notes README
+
 %sources -t BSV -v PUBLIC  debug-scan-device.bsv
 %sources -t H   -v PUBLIC  debug-scan-device.h
 %sources -t CPP -v PRIVATE debug-scan-device.cpp

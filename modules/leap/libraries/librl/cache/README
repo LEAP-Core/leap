@@ -1,0 +1,10 @@
+LibRL Caches
+
+Efficient structures for creating caches and composing them together 
+into cache hierarchies.
+
+rl-cache.bsv                    Base interface definitions.
+rl-direct-mapped-cache.bsv      Simple direct-mapped cache.
+rl-set-assoc-cache.bsv          N-way set-associative cache.
+rl-tiny-cache.bsv               Fully-associative cache. (Must be small!)
+

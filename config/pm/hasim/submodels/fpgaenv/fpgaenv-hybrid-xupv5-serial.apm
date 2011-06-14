@@ -60,23 +60,23 @@ remote_memory=Null Remote Memory
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Hardware FPGA Components for Virtex 5]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Common Module]
 File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
@@ -117,23 +117,23 @@ physical_platform_utils=Common Physical Platform Utilities
 
 [XUP Virtex 5 Serial]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/serial/xilinx-xup-serial.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Serial Physical Device (physical)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/physical-serial/serial-device-physical.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Serial Physical Device (physical)/Requires]
 serial_device_ucf=Serial Physical Device XUPV5 UCF
 
 [Serial Physical Device XUPV5 UCF]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/ucf/serial-device-ucf-xupv5.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Single-Ended Crystal Clocks Device/Params]
 MODEL_CLOCK_DIVIDER=4
 CRYSTAL_CLOCK_FREQ=100
 
 [HiPerf Serial Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/serial/serial-physical-channel-8bit.awb
+File=modules/leap/virtual-platform/physical-channel/serial/serial-physical-channel-8bit.awb
 Packagehint=leap

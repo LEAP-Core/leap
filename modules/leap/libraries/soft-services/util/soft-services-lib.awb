@@ -11,6 +11,8 @@
 %provides soft_services_lib
 %requires smart_synth_boundaries
 
+%notes README
+
 %sources --t BSV --v PUBLIC soft-services-lib.bsv
 
 

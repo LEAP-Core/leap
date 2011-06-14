@@ -1,0 +1,5 @@
+Simulation Pipeline
+
+This module represents the organization of a simulation-based build pipeline,
+which does not need to invoke Synthesis and Place-and-Route, but instead invokes
+a simulation-generation step.

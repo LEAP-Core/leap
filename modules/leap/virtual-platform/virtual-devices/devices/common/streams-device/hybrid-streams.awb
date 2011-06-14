@@ -13,6 +13,8 @@
 #
 # %attributes leap
 #
+# %notes README
+#
 # %sources -t BSH  -v PRIVATE streams-common.bsh
 # %sources -t BSV  -v PUBLIC  hybrid-streams.bsv
 # %sources -t H    -v PUBLIC  hybrid-streams.h

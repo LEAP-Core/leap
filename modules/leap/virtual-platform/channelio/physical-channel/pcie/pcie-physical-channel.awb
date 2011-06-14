@@ -1,9 +1,0 @@
-
-%name ML605 PCIe Physical Channel
-%desc ML605 PCIe Physical Channel
-
-%provides physical_channel
-
-%sources -t BSV -v PUBLIC   pcie-physical-channel.bsv
-%sources -t H   -v PUBLIC   pcie-physical-channel.h
-%sources -t CPP -v PUBLIC   pcie-physical-channel.cpp

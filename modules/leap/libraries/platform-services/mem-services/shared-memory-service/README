@@ -1,0 +1,8 @@
+Shared Memory Service
+
+This service wraps the LEAP Shared Memory device in Soft Connections. As
+this device is under development, this service currently only uses 
+point-to-point Soft Connections to allow one user to connect to this device.
+
+A more sophisticated version would use Connection Chains similar to the
+Scratchpad Service.

@@ -1,0 +1,7 @@
+Serial Physical Channel
+
+This abstracts Serial physical devices into a LEAP Physical Channel. This can
+be useful for debugging, especially for bringing up more complex physical
+channels.
+
+Support is based on code by Manish Pagey, released under the GPL.

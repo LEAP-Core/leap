@@ -1,0 +1,16 @@
+Build Pipeline Stages
+
+This directory contains modules that are Python SCons libraries that can be
+composed together into a complete build pipeline.
+
+altera/         Altera tool invocations.
+bluesim/        Bluesim linking step.
+bluespec/       Bluespec compilation and elaboration.
+fpgaprog/       Programming an FPGA (impact).
+iface/          Generation of LEAP HW/SW interface stubs (RRR and dictionaries)
+mcd/            Multiple Clock Domains.
+multifpga/      Support for multiple FPGAs.
+software/       Support for compiling C++ and C into executables.
+synplify/       Invocation of synplify synthesis tools.
+verilog/        Generation of verilog simulators (iverilog, vcs).
+xilinx/         Xilinx tool invocations.

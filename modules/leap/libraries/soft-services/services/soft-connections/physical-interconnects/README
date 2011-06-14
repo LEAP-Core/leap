@@ -1,0 +1,4 @@
+This directory contains alternative topologies for physical interconnection
+networks.
+
+shared-tree/        A branching tree topology.

@@ -1,0 +1,5 @@
+PCIE Passthrough Physical Channel
+
+Some PCIE Physical Devices implement the LEAP Physical Channel interface
+directly. In this case this layer is essentially empty and passes all
+requests directly to the device.

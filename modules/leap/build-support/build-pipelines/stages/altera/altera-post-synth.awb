@@ -8,5 +8,7 @@
 
 %provides post_synthesis_tool
 
+%notes README
+
 %scons %library ALTERA_POST_SYNTH.py
 

@@ -7,6 +7,8 @@
 
 %requires hybrid_application
 
+%notes README
+
 %public  application-env-hybrid-base.bsv
 %public  application-env-hybrid-base.h
 %private application-env-hybrid-base.cpp

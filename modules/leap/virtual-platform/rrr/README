@@ -1,0 +1,9 @@
+This directory contains implementations of RRR, the LEAP Remote 
+Request-Response protocol. RRR uses the leap-rrr-stubgen script
+to bridge hardware and software and make interaction look like
+method calls.
+
+basic/          Basic RRR clients and servers
+null/           A null implementation of RRR for platforms that do not use it.
+rrr-common/     Common helper functions for RRR such as marshallers.
+

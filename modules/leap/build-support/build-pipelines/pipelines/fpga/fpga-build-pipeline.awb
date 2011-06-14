@@ -15,4 +15,6 @@
 %requires mcd_tool
 %requires fpga_program_tool
 
+%notes README
+
 %scons %library FPGAPipeline.py

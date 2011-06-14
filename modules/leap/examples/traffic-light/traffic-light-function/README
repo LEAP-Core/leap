@@ -1,0 +1,7 @@
+Traffic Light Function
+
+The actual functionality of the traffic light. Uses Soft Connections to access
+the LED Service in Platform Services.
+
+The module traffic-light-function-smart-synth-boundary uses a Smart Synthesis
+Boundary in order to demonstrate this capability.

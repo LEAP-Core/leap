@@ -1,0 +1,10 @@
+This directory contains alternative implementations of the Front Panel
+virtual device, which represents an aggregation of simple HW I/O constructs
+such as LEDs, buttons, and switches.
+
+arriaII/        DEPRECATED
+console/        DEPRECATED
+graphical/      DEPRECATED
+htg-v5-pcie/    DEPRECATED
+hybrid/         Front Panel implementation over RRR.
+xup/            DEPRECATED

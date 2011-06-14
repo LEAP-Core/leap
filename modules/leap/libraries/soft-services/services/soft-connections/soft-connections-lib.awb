@@ -13,6 +13,8 @@
 # %requires soft_connections
 # %requires smart_synth_boundaries
 #
+# %notes README
+#
 # %AWB_END
 # */
 

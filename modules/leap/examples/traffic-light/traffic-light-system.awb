@@ -15,7 +15,7 @@
 %provides hardware_system
 %requires traffic_light_function
 
-%notes traffic-light-system.txt
+%notes README
 
 %public traffic-light-system.bsv
 

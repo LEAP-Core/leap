@@ -5,6 +5,8 @@
 
 %attributes leap
 
+%notes README
+
 %sources -t BSV -v PUBLIC  dynamic-parameters-device.bsv
 %sources -t H   -v PUBLIC  dynamic-parameters-device.h
 %sources -t CPP -v PRIVATE dynamic-parameters-device.cpp

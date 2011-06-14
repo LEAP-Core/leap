@@ -1,0 +1,30 @@
+Platform Services
+
+This module is a library that wraps LEAP Virtual Devices with Soft Connections.
+This provides a convenience to the user as they no longer need to explicitly
+pass the interface to various virtual devices around to the modules. Any
+application that wishes to use these services must use the Soft Services 
+application environment.
+
+A wrapped version of every virtual device is provided with the following naming
+scheme:
+
+FOO_device : FOO_service
+
+For devices which have many "users" defined by dictionaries, Soft Connection 
+chains are used to efficiently connect these users to the virtual devices.
+This avoids the problem of having an N-to-1 mux/demux around every virtual
+device.
+
+For devices that only have a single user (starter, front panel, etc) a point-
+to-point optional Soft Connection is defined, so that any module may be the
+person that interacts with this device.
+
+As an additional convenience, this module also wraps RRR-generated Clients
+and Servers in a version with Soft Connections.
+
+A null version of this module is provided for applications that want Soft
+Services but do not want wrapped virtual devices (perhaps because their
+FPGA Environment uses the Null Virtual Devices). This version still provides
+RRR wrapping.
+

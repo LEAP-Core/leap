@@ -9,4 +9,6 @@
 
 %provides iface_tool
 
+%notes README
+
 %scons %library iface.py

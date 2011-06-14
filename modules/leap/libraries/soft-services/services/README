@@ -1,0 +1,7 @@
+README
+
+This directory contains individual soft service modules.
+
+soft-clocks/        Makes clocks and resets implicitly available by names.
+soft-connections/   Makes communication channels implicitly available by names.
+soft-connections-backwards-compat/  DEPRECATED

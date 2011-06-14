@@ -9,6 +9,8 @@
 
 %provides mcd_tool
 
+%notes README
+
 %scons %library MCDTcl.py
 
 %sources -t TCL -v PRIVATE mcd.tcl

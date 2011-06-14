@@ -1,0 +1,4 @@
+This directory contains alternative application environments.
+
+base/           This is the default application environment.
+soft-services/  An environment for applications using Soft Services.

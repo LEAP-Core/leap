@@ -1,0 +1,29 @@
+Stats Service
+
+This module wraps the LEAP Stats Virtual Device in Soft Connections.
+
+Soft Connection chains are used so that multiple stats throughout the design
+can be connected in an efficient manner. Support is also provided for vectors
+of statistics, where the vector size can be dynamically determined.
+
+First, stats are defined using LEAP dictionaries:
+
+def STATS.FETCH.INSTRUCTIONS_FETCHED "Number of instructions fetched.";
+
+Then stats are instantiated using the dictionary entry:
+
+`include "awb/dict/STATS_FETCH.bsh"
+
+let instsFetched <- mkStatsCounter(`STATS_FETCH_INSTRUCTIONS_FETCHED);
+
+Finally rules may increment the stat using incr() or incrBy():
+
+rule fetch (True);
+    ...
+    instsFetched.incr();
+    
+Vectors of stats are similar, except that they use a parameter to incr(x) to 
+indicate that element x of the vector should be incremented.
+
+
+

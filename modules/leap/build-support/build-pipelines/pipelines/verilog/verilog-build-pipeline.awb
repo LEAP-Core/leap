@@ -12,4 +12,6 @@
 %requires software_tool
 %requires verilog_tool
 
+%notes README
+
 %scons %library VerilogPipeline.py

@@ -6,6 +6,8 @@
 
 %requires physical_channel
 
+%notes README
+
 %sources -t BSV -v PUBLIC   loopback-channelio.bsv
 %sources -t H   -v PUBLIC   loopback-channelio.h
 %sources -t CPP -v PRIVATE  loopback-channelio.cpp

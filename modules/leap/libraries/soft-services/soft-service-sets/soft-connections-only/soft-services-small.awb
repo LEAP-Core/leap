@@ -13,6 +13,8 @@
 %requires soft_connections
 %requires soft_services_deps
 
+%notes README
+
 %sources --t BSV --v PUBLIC soft-services-soft-conn.bsv
 
 %AWB_END

@@ -58,7 +58,7 @@ File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/nu
 Packagehint=leap
 
 [Hardware FPGA Components for Virtex 6]
-File=modules/bluespec/common/fpgaenv/fpga-components/virtex6.awb
+File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex6.awb
 Packagehint=leap-platforms
 
 [Hybrid Streams Device]
@@ -114,11 +114,7 @@ File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-
 Packagehint=leap
 
 [ViCo RRR Clients and Servers]
-File=modules/leap/virtual-platform/rrr/basic/vico-rrr.awb
-Packagehint=leap
-
-[ViCo Virtual Channel Multiplexer]
-File=modules/leap/virtual-platform/channelio/basic/vico-channelio.awb
+File=modules/leap/virtual-platform/rrr/basic/hw-only-rrr.awb
 Packagehint=leap
 
 [ViCo RRR Clients and Servers/Requires]
@@ -166,7 +162,7 @@ Packagehint=leap
 [ViCo Low Level Platform Interface Hybrid/Requires]
 physical_platform=ML605 V6 platform with PCIe DMA only
 remote_memory=Null Remote Memory
-channelio=ViCo Virtual Channel Multiplexer
+channelio=Hardware-Only Virtual Channel Multiplexer
 rrr=ViCo RRR Clients and Servers
 vico_headers=ViCo headers
 physical_platform_debugger=Null Physical Platform Debugger
@@ -176,12 +172,16 @@ local_mem=NULL Local Memory Interface
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
 Packagehint=leap-platforms
 
-[ML605 PCIe Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/pcie/pcie-physical-channel.awb
-Packagehint=leap
-
-[ViCo Virtual Channel Multiplexer/Requires]
-physical_channel=ML605 PCIe Physical Channel
-
 [Single-Ended Crystal Clocks Device/Params]
 RESET_ACTIVE_HIGH=1
+
+[Hardware-Only Virtual Channel Multiplexer]
+File=modules/leap/virtual-platform/channelio/basic/hw-only-channelio.awb
+Packagehint=leap
+
+[Hardware-Only Virtual Channel Multiplexer/Requires]
+physical_channel=Passthrough PCIe Physical Channel
+
+[Passthrough PCIe Physical Channel]
+File=modules/leap/virtual-platform/physical-channel/pcie/passthrough/pcie-passthrough-physical-channel.awb
+Packagehint=leap

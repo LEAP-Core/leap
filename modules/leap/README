@@ -1,1 +1,8 @@
-Model modules go here
+This directory contains source code for the AWB modules that comprise the LEAP
+package. The source code is arranged as follows:
+
+build-support/      Code related to building and synthesizing HW/SW hybrid apps.
+examples/           Simple example HW/SW applications.
+libraries/          Libraries to support HW/SW applications.
+virtual-platform/   The LEAP abstraction layer that allows the user to write
+                    HW/SW hybrid apps portably accross many different FPGAs.

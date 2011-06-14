@@ -1,0 +1,11 @@
+
+%name Passthrough PCIe Physical Channel
+%desc Passthrough PCIe Physical Channel
+
+%provides physical_channel
+
+%notes README
+
+%sources -t BSV -v PUBLIC   pcie-passthrough-physical-channel.bsv
+%sources -t H   -v PUBLIC   pcie-passthrough-physical-channel.h
+%sources -t CPP -v PUBLIC   pcie-passthrough-physical-channel.cpp

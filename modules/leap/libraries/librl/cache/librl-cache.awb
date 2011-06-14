@@ -4,6 +4,8 @@
 
 %attributes librl
 
+%notes README
+
 %public rl-cache.bsv
 %public rl-direct-mapped-cache.bsv
 %public rl-set-assoc-cache.bsv

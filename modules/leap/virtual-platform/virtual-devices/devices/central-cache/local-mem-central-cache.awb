@@ -3,6 +3,8 @@
 
 %provides central_cache
 
+%notes README
+
 %public central-cache-interfaces.bsv
 %public local-mem-central-cache.bsv
 %public central-cache-backing-store.bsv

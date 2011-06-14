@@ -1,0 +1,7 @@
+LEAP Build Pipelines
+
+Build Pipelines represent the organization of composable SCons libraries into
+synthesis flows.
+
+pipelines/      Organizations of stages into complete pipelines.
+stages/         Definitions of individual stages.

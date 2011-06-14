@@ -1,0 +1,4 @@
+Multiple Clock Domains Stage
+
+This tool attempts to automatically update the constraints files to deal with
+multiple clocks in the user application.

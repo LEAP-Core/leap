@@ -3,6 +3,8 @@
 
 %provides scratchpad_memory_common
 
+%notes README
+
 %public   mem-scratch-common-interfaces.bsv
 
 %param --global SCRATCHPAD_MEMORY_DEBUG_ENABLE 1 "Enables the scratchpad memory debug"

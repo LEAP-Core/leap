@@ -8,5 +8,7 @@
 
 %provides xilinx_bmm
 
+%notes README
+
 %scons %library XILINX_BMM.py
 

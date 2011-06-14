@@ -6,6 +6,8 @@
 
 %requires front_panel starter_device common_utility_devices
 
+%notes README
+
 %public  std-virtual-devices.dic
 %public  std-virtual-devices-null-mem.bsv
 %public  std-virtual-devices.h

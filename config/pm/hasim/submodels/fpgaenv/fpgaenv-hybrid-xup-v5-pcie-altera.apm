@@ -60,23 +60,23 @@ remote_memory=Null Remote Memory
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Hardware FPGA Components for Virtex 5]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Common Module]
 File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
@@ -109,15 +109,15 @@ physical_platform_utils=Common Physical Platform Utilities
 
 [XUP Virtex 5 PCIE]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/pcie/xilinx-xup-pcie.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Bluespec PCIE Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/pcie-bluespec/pcie-bluespec-physical-channel.awb
+File=modules/leap/virtual-platform/physical-channel/pcie/bluespec/pcie-bluespec-physical-channel.awb
 Packagehint=leap
 
 [Bluespec PCIE Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-bluespec/pcie-bluespec.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [FPGA Build Pipeline Xilinx]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
@@ -126,21 +126,6 @@ Packagehint=leap
 [Standard Virtual Devices Submodel]
 File=config/pm/hasim/submodels/fpgaenv/std-virtual-devices.apm
 Packagehint=leap
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 [RL Bluespec Library Submodel]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm

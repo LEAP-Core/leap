@@ -1,0 +1,4 @@
+RRR Common
+
+This module contains common functionality useful for RRR clients and
+servers. Currently this contains marshalling and demarshalling FSMs.

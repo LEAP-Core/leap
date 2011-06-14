@@ -1,0 +1,7 @@
+Synplify Stage
+
+This stage invokes synplify for synthesis (not for mapping).
+
+The synplify-sub version of this module invokes synplify 
+on submodule synthesis boundaries, but XST on the toplevel. This allows the
+application to use Xilinx constraints files during synthesis.

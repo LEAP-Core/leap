@@ -1,0 +1,11 @@
+Low Level Platform Interface
+
+LLPI is the layer which is responsible for instantating the platform-specific
+Physical Platform (found in other repositories) and the Hardware Abstraction
+Layer responsible for transforming this into a LEAP virtual platform.
+
+hwonly-llpi.awb          DEPRECATED
+local-mem/               Abstraction layer for memory local to HW only.
+remote-memory/           Abstraction layer for memory shared between HW and SW.
+platforms-module.{h,cpp} Base class definition used for virtual platform SW.
+

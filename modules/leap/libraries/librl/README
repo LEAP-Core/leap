@@ -1,0 +1,9 @@
+LibRL - Reconfigurable Logic Bluespec library.
+
+This directory contains useul structures for implementing designs on 
+reconfigurable logic. The library is organized as follows:
+
+base/       Basic structures like counters, hashes, and debug logging.
+cache/      Structures for constructing efficient caches and cache hierarchies.
+storage/    Storage structures like large FIFOs and completion buffers.
+

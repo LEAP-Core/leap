@@ -4,5 +4,7 @@
 %provides common_utility_devices
 %requires streams
 
+%notes README
+
 %sources -t BSV -v PUBLIC  common-utility-null.bsv
 %sources -t H   -v PUBLIC  common-utility-null.h

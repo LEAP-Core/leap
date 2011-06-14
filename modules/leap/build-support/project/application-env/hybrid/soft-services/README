@@ -1,0 +1,9 @@
+Soft Services Application Environment
+
+This modules provides the application environment for HW/SW Hybrid applications
+that use Soft Services.
+
+This currently entails instantiating a Platform Services module, and invoking
+Soft Services top-level instantiateWithServices() function.
+
+

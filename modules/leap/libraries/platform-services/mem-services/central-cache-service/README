@@ -1,0 +1,23 @@
+Central Cache Service
+
+This service wraps the LEAP Central Cache Virtual Device in Soft Connections.
+
+Because there are assumed to be only a few readers/writers of the cache in the
+system, direct point-to-point Soft Connections are used. Two vectors of Soft
+Connections are created:
+
+
+    Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_SERVER#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)) link_cache = newVector();
+    Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_CLIENT#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)) link_cache_backing = newVector();
+
+    for (Integer p = 0; p < valueOf(CENTRAL_CACHE_N_CLIENTS); p = p + 1)
+    begin
+        link_cache[p] <- mkConnectionServerOptional("vdev_cache_" + integerToString(p));
+
+Modules wishing to connect to the central cache can define the duals of these
+connections. Note that these connections are optional, so no error results if
+a port is unused.
+
+The Central Cache service uses other platform services (Stats, Debug Scan) to
+help users track performance data and aid in debugging.
+

@@ -35,14 +35,13 @@ umf=Little-Endian Unified Message Format
 File=modules/leap/virtual-platform/fpga-environment.awb
 Packagehint=leap
 
-
 [General LED Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/leds/general-led-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [General Switch Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/switches/general-switch-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Clients and Servers]
 File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
@@ -69,16 +68,15 @@ remote_memory=Null Remote Memory
 
 [DDR2 SDRAM Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr2-sdram/ddr2-sdram-device.awb
-Packagehint=platforms
-
+Packagehint=leap-platforms
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Local Memory Interface using DDR2 Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
@@ -86,15 +84,15 @@ Packagehint=leap
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Hardware FPGA Components for Virtex 5]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Common Module]
 File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
@@ -103,13 +101,12 @@ Packagehint=leap
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
 
-
 [HTG Virtex 5 JTAG]
 File=modules/bluespec/common/fpgaenv/physical-platform/htg_virtex5/jtag/htg-v5-jtag.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [JTAG Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/jtag/jtag-physical-channel.awb
+File=modules/leap/virtual-platform/physical-channel/jtag/generic/jtag-physical-channel.awb
 Packagehint=leap
 
 [HTG Virtex 5 JTAG/Requires]
@@ -123,23 +120,22 @@ pci_express_device=PCI Express Physical Device (mmap-based)
 
 [Xilinx JTAG Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/jtag/xilinx/jtag-device-physical.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Remote Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
 Packagehint=leap
 
 [Driver Header for PCIe Kernel Module]
-File=drivers/linux/hasim/kernel/pchnl_if.awb
-Packagehint=platforms
+File=drivers/linux/hasim/kernel-pcie-virtex5/pchnl_if.awb
+Packagehint=leap-platforms
 
 [PCI Express Physical Device (mmap-based)/Requires]
 pci_express_driver_header=Driver Header for PCIe Kernel Module
 
 [PCI Express Physical Device (mmap-based)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-new/pci-express-device-mmap.awb
-Packagehint=platforms
-
+Packagehint=leap-platforms
 
 [FPGA Build Pipeline Xilinx]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm

@@ -1,0 +1,4 @@
+Null ChannelIO
+
+A null version of the ChannelIO module is provided. This can be useful for
+platforms with limited capabilities, or for platform bring-up.

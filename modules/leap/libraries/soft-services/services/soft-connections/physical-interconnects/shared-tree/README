@@ -1,0 +1,10 @@
+Shared Tree Physical Interconnect
+
+This module contains the implementation of a physical tree network which can
+be shared by many different Soft Connections. Routing tables are constructed
+at compilation time using static elaboration.
+
+Many-to-one and One-to-many and Many-to-Many connections are supported.
+
+See [DAC 2009] for an explanation of the routing table algorithm.
+

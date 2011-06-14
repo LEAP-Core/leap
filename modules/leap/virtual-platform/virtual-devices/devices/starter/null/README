@@ -1,0 +1,8 @@
+Null Starter Device
+
+This device is useful for platforms that have limited capabilities,
+or for situations when HW and SW run asynchronously.
+
+It appears to have the same interface as the normal starer, but actually does
+nothing.
+

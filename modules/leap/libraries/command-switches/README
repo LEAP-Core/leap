@@ -1,0 +1,17 @@
+Standard Command Switches
+
+This module is a library of classes for processing command-line switches in a 
+distributed fashion. Other modules in the system may individually define
+command-line switches that they process, and at runtime these switches are
+dynamically aggregated into the command line switches for the entire program,
+including "--help" usage messages.
+
+One restriction of this model is that modules should ensure their command 
+switches are uniquely named.
+
+command-switch-processor.{h,cpp}    The actual processing of command line
+                                    and dispatch to distributed handlers.
+command-switches.{h,cpp}            Class definitions for user-defined switches.
+default-switches.{h,cpp}            Switches that LEAP run.bmark script
+                                    expects every application to handle.
+

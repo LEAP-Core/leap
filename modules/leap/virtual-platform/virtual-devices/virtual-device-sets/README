@@ -1,0 +1,7 @@
+This directory contains alternative sets of virtual devices.
+
+null/       Empty except for starter. Mostly used for bringing up new platforms
+            or in multi-FPGA scenarios.
+std/        The standard set of LEAP virtual devices, with or without local
+            memory.
+

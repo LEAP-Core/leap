@@ -1,0 +1,11 @@
+Hybrid Front Panel
+
+The front panel represents an abstraction of basic FPGA I/O devices such as
+LEDs, buttons, and switches. The Hybrid Front Panel is capable of emulating
+these devices in SW using a small GUI program called "leap-front-panel".
+
+This can be useful for porting applications to platforms that do not have
+physical buttons or LEDs.
+
+Applications that use Soft Services may use the Platform Services to interact
+with this device rather than interfacing directly.

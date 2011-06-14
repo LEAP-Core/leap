@@ -1,0 +1,8 @@
+Basic ChannelIO
+
+ChannelIO performs the job of multiplexing a single "physical channel" into
+multiple virtual channels.
+
+A Hardware-Only version of the module is presented for cases when the physical
+software channel is already multiplexed (IE, SCe-MI).
+

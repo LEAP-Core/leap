@@ -39,9 +39,8 @@ umf=Little-Endian Unified Message Format
 File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
 Packagehint=leap
 
-
 [Simulation Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/sim/sim-physical-channel.awb
+File=modules/leap/virtual-platform/physical-channel/sim/sim-physical-channel.awb
 Packagehint=leap
 
 [Basic Virtual Channel Multiplexer]
@@ -65,7 +64,7 @@ remote_memory=Null Remote Memory
 
 [UNIX Pipe Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/unix-pipe/unix-pipe-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Simulation Physical Platform/Requires]
 unix_pipe_device=UNIX Pipe Physical Device
@@ -74,28 +73,27 @@ physical_platform_utils=Common Physical Platform Utilities
 
 [Simulation Physical Platform]
 File=modules/bluespec/common/fpgaenv/physical-platform/simulation/sim-physical-platform.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Software FPGA Components]
 File=modules/bluespec/common/fpgaenv/fpga-components/software-fpga-components.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Local Memory Interface using BRAM]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
 Packagehint=leap
 
-
 [Simulation Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/simulation/sim-clocks-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Local Memory Interface using BRAM/Params]
 LOCAL_MEM_WRITE_LATENCY=4
@@ -108,7 +106,7 @@ Packagehint=leap
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Common Module]
 File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
@@ -116,8 +114,6 @@ Packagehint=leap
 
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
-
-
 
 [Build Pipeline Bluesim]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-bluesim.apm

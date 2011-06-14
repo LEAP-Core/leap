@@ -13,6 +13,8 @@
 #
 # %attributes leap
 #
+# %notes README
+#
 # %public tree-interface.bsv tree-helper.bsv tree-routing-table.bsv tree-station.bsv
 
 # %param TREE_STATION_IDX_SIZE 8 "Size of tree station index."

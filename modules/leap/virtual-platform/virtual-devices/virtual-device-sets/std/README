@@ -1,0 +1,6 @@
+Standard Virtual Devices
+
+These modules represent standard collections of the LEAP virtual devices.
+
+A variant is provided with no local memory for platforms that do not have 
+on-board RAM (and do not wish to dedicate BlockRAM for Local Memory.

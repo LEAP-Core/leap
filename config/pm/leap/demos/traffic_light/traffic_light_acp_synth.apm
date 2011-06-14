@@ -21,7 +21,7 @@ File=modules/leap/examples/traffic-light/traffic-light-system.awb
 Packagehint=leap
 
 [Default Software Connected Application]
-File=modules/leap/build-support/project/application-env/hybrid/soft-connections/default-sw/connected-application-default-sw.awb
+File=modules/leap/build-support/project/application-env/hybrid/soft-services/default-sw/connected-application-default-sw.awb
 Packagehint=leap
 
 [Traffic Light System with Soft Connections/Requires]
@@ -52,7 +52,6 @@ platform_services=Standard Platform Services
 soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
 
-
 [Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)/Params]
 MODEL_CLOCK_DIVIDER=8
 
@@ -66,7 +65,7 @@ Packagehint=leap
 
 [Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)]
 File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech-no-cache.apm
-Packagehint=platforms-acp
+Packagehint=leap-platforms-acp
 
 [Soft Services Submodel]
 File=config/pm/hasim/submodels/common/soft-services.apm

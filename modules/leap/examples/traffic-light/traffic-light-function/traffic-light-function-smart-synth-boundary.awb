@@ -13,6 +13,8 @@
 
 %provides traffic_light_function
 
+%notes README
+
 %public traffic-light-function.bsv
 
 %param SYNTH_BOUNDARY mkTrafficLightFunction "name of synthesis boundary"

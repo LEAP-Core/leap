@@ -4,5 +4,7 @@
 
 %provides shared_memory
 
+%notes README
+
 %sources -t BSV -v PUBLIC   null-shared-memory.bsv
 %sources -t H   -v PUBLIC   null-shared-memory.h

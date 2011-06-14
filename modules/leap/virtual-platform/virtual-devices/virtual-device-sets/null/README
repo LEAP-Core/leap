@@ -1,0 +1,6 @@
+Null Virtual Devices
+
+This represents an empty collection of virtual devices. Only the starter
+device is required. This can be useful to bringing up new platforms, or
+in multi-FPGA scenarios.
+

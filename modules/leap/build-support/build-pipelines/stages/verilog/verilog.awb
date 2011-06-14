@@ -9,5 +9,7 @@
 
 %provides verilog_tool
 
+%notes README
+
 %scons %library verilog.py
 

@@ -6,6 +6,8 @@
 
 %requires starter_device 
 
+%notes README
+
 %public  null-virtual-devices.bsv
 %public  null-virtual-devices.h
 %private null-virtual-devices.cpp

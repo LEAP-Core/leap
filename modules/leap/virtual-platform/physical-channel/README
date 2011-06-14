@@ -1,0 +1,8 @@
+This directory contains alternative implementations of Physical Channel 
+modules. This is a hardware abstraction layers that abstracts specifc
+physical devices to a virtual interface.
+
+jtag/               JTag channels (mostly used for debugging).
+pcie/               PCIE-based channels.
+serial/             Serial devices.
+sim/                Simulator channels (Bluesim, VPI, etc.).

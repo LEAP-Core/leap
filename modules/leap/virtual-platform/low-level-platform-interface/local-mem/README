@@ -1,0 +1,10 @@
+Local Memory Interface
+
+This module represents an abstraction layer for memory that is private to the
+HW. This could be accomplished using on-chip Block RAM, or by using an 
+off-chip device like DRAM or SRAM.
+
+local-mem-bram.bsv          Local memory using on-chip BRAM.
+local-mem-ddr2.bsv          DDR2 local memory for off-chip memory.
+local-mem-interface.bsv     Interface definition typedefs.
+local-mem-null.bsv          For platforms with no local memory.

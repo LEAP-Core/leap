@@ -1,0 +1,3 @@
+Altera JTag Physical Channel
+
+Converts a JTag device for Altera FPGAs into a LEAP physical channel. 

@@ -1,0 +1,12 @@
+
+%name Altera JTAG Physical Channel
+%desc Altera JTAG Physical Channel
+
+%provides physical_channel
+
+%notes README
+
+%sources -t BSV -v PUBLIC   jtag-physical-channel.bsv
+%sources -t H   -v PUBLIC   jtag-physical-channel.h
+%sources -t CPP -v PUBLIC   jtag-physical-channel.cpp
+

@@ -4,6 +4,8 @@
 
 %provides front_panel
 
+%notes README
+
 %sources -t BSV -v PUBLIC   hybrid-fp.bsv
 %sources -t CPP -v PRIVATE  hybrid-fp.cpp
 %sources -t H   -v PUBLIC   hybrid-fp.h

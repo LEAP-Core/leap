@@ -8,5 +8,7 @@
 
 %provides xilinx_ngd
 
+%notes README
+
 %scons %library XILINX_NGD.py
 

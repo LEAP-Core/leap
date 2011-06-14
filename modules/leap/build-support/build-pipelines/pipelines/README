@@ -1,0 +1,8 @@
+Build Pipeline Pipelines
+
+This directory contains modules representing the organization of individual 
+stages into complete synthesis flow pipelines.
+
+fpga/           Pipelines for FPGA synthesis,
+simulation/     Pipelines for Bluesim simulation.
+verilog/        Pipelines for Verilog-based simulation.

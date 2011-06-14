@@ -1,0 +1,6 @@
+PCI Express Remote Memory using DMA
+
+This module implements the LEAP Remote Memory abstraction using the DMA
+capability of PCI Express.
+
+This module is a work in progress.

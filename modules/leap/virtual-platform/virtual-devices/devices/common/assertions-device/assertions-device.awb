@@ -3,6 +3,8 @@
 %desc Report when a dictionary-defined important event occurs in HW.
 %provides assertions_device
 
+%notes README
+
 %public  assertions-device.bsv
 %public  assertions-device.h
 %private assertions-device.cpp

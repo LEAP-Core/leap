@@ -8,6 +8,8 @@
 
 %provides multifpga_parse_tool
 
+%notes README
+
 %scons %library platform.py
 %scons %library environment.py
 %scons %library multilex.py

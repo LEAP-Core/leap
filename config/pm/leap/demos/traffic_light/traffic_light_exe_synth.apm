@@ -21,7 +21,7 @@ File=modules/leap/examples/traffic-light/traffic-light-system.awb
 Packagehint=leap
 
 [Default Software Connected Application]
-File=modules/leap/build-support/project/application-env/hybrid/soft-connections/default-sw/connected-application-default-sw.awb
+File=modules/leap/build-support/project/application-env/hybrid/soft-services/default-sw/connected-application-default-sw.awb
 Packagehint=leap
 
 [Traffic Light System with Soft Connections/Requires]
@@ -42,7 +42,6 @@ Packagehint=leap
 platform_services=Standard Platform Services
 soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
-
 
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb

@@ -9,6 +9,8 @@
 
 %provides bluesim_tool
 
+%notes README
+
 %scons %library bluesim.py
 
 %param CLEAN_BSV 1 "Clean BSV intermediate files on rebuild"

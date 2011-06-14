@@ -8,6 +8,8 @@
 
 %provides xilinx_map
 
+%notes README
+
 %scons %library XILINX_MAP.py
 
 %param MAPPER_OPTIONS  "-global_opt on"  "Xilinx mapper options"

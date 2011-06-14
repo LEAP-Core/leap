@@ -1,0 +1,12 @@
+Starter Service
+
+This module wraps the LEAP Starter Virtual Device in Soft Connections.
+
+It is assumed that only one module in the HW system wants to interact with the
+Starter Device. Therefore the following point-to-point Soft Connection is
+used:
+
+
+Connection_Receive#(Bit#(8)) linkStarterFinishRun <- mkConnectionRecvOptional("vdev_starter_finish_run");
+
+The connection is optional, so the dual may be omitted without error.

@@ -5,6 +5,8 @@
 
 %attributes librl
 
+%notes README
+
 %public bluespec-def.bsv
 %public counters.bsv
 %public counting-filter.bsv

@@ -11,6 +11,8 @@
 %requires physical_platform
 %requires physical_platform_debugger
 
+%notes README
+
 %public  llpi.bsv
 %public  llpi.h
 %private llpi.cpp

@@ -7,10 +7,11 @@
 
 %AWB_START
 
-%name SoftService Soft Connections Algorithm 
-%desc SoftService Soft Connections Algorithm 
+%name Soft Service Soft Connections Algorithm 
+%desc Soft Service Soft Connections Algorithm 
 %provides soft_connections_alg
 %attributes bluespec
+%notes README
 %public connect-top-level.bsv connect-multicasts.bsv connect-stations-tree.bsv expose-connections.bsv 
 %AWB_END
 

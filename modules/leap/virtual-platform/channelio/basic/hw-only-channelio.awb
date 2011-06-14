@@ -1,0 +1,14 @@
+
+%name Hardware-Only Virtual Channel Multiplexer
+%desc Hardware-Only Virtual Channel Multiplexer
+
+%provides channelio
+
+%requires physical_channel
+
+%notes README
+
+%sources -t BSV -v PUBLIC   basic-channelio.bsv
+
+%param CIO_NUM_CHANNELS     2   "Number of virtual duplex channels"
+

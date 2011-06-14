@@ -9,5 +9,7 @@
 
 %provides software_tool
 
+%notes README
+
 %scons %library software.py
 

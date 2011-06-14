@@ -5,6 +5,8 @@
 
 %attributes librl
 
+%notes README
+
 %public fifo-mem.bsv
 %public fifo-scoreboard.bsv
 %public memory-heap.bsv

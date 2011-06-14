@@ -1,0 +1,11 @@
+Soft Service Soft Connections Algorithm
+
+This module represents the actual instance of the Soft Services typeclass for 
+soft connections. This means that this module defines the behavior of Soft
+Connections at each synthesis boundary (when dangling connections are exposed
+to the leap-connect script using compiler messages) as well as at the top level
+(when dangling connections are an error).
+
+Multicasts and shared interconnects are supported, but because leap-connect
+does not yet know about them, they are connected at every synthesis boundary
+as if it were the top level - IE unmatched connections are errors.

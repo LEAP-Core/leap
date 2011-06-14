@@ -1,0 +1,8 @@
+LEAP Libraries
+
+This directory contains libraries that support both the Leap Virtual Platform,
+and HW/SW Hybrid applications that are built using LEAP.
+
+librl/          A library of useful structures for reconfigurable logic design.
+soft-services/  A collection of services that are implicitly globally available
+                to all modules, such as Soft Connections or Soft Clocks.

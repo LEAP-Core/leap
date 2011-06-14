@@ -8,4 +8,6 @@
 
 %attributes librl
 
+%notes README
+
 %public librl-bsv.bsh

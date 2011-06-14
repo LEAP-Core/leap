@@ -1,0 +1,9 @@
+Soft Services Lib
+
+This module represents the base type definitions of Soft Services. This includes
+the definitions of the typeclasses and the functions to instantiate a module
+that uses Soft Services, either at the top level, or at an intermediate
+synthesis boundary.
+
+soft-services-deps.awb      DEPRECATED?
+soft-services-sc-deps.bsh   DEPRECATED?

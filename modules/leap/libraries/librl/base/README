@@ -1,3 +1,23 @@
+LibRL Base
+
+The base functionlity of librl, which is then used to compose more complex
+structures.
+
 Modules in this directory may depend only on Bluespec's native packages and
 not on any other modules defined in awb.  This restriction makes it possible
-for other components in platforms to use the libfpga base modules.
+for other components in LEAP to use the only the base modules.
+
+bluespec-common.prj     DEPRECATED 
+bluespec-def.bsv        Useful Bluespec type definitions for aliasing.
+counters.bsv            Counters that have useful scheduling parallelism.
+counting-filter.bsv     An abstraction of all counting filers, such as Blum.
+debug-file.bsv          A better debug alternative to $fdisplay.
+extends.bsv             Useful bit extension/truncation without provisos.
+fifo-functions.bsv      Represent logical FIFOs in RAM.
+fifo-merge.bsv          Efficient implementation of FIFOs with multiple ports.
+guarded-pipelines.bsv   Take a synchronous pipeline and wrap it with FIFOS.
+hash-bits.bsv           Useful and efficient hashing functions.
+lfsr.bsv                LFSR support functions for pseudo-randomness.
+memory-interface.bsv    General interface to bursty multi-cycle memoy.
+memory-pack.bsv         Memories of different sizes on fixed physical storage.
+support/                Unit tests and support functions.

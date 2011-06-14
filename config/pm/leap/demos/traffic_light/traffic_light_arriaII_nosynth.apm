@@ -16,13 +16,12 @@ RootProvides=model
 DefaultAttributes=function_not_as_boundary traffic_light demo connected slave hybrid project xup
 model=HW/SW Hybrid Pipeline Build
 
-
 [Traffic Light System with Soft Connections]
 File=modules/leap/examples/traffic-light/traffic-light-system.awb
 Packagehint=leap
 
 [Default Software Connected Application]
-File=modules/leap/build-support/project/application-env/hybrid/soft-connections/default-sw/connected-application-default-sw.awb
+File=modules/leap/build-support/project/application-env/hybrid/soft-services/default-sw/connected-application-default-sw.awb
 Packagehint=leap
 
 [Traffic Light System with Soft Connections/Requires]
@@ -35,7 +34,6 @@ hardware_system=Traffic Light System with Soft Connections
 File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function.awb
 Packagehint=leap
 
-
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
@@ -45,20 +43,14 @@ project_common=Default Hybrid Project Common Utilities
 fpgaenv=Hybrid evaluation-arriaII-JTAG FPGA Environment
 application_env=Soft Services Hybrid Application Environment
 
-
-
 [Soft Services Hybrid Application Environment]
 File=modules/leap/build-support/project/application-env/hybrid/soft-services/application-env-hybrid-soft-service.awb
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 platform_services=Standard Platform Service (No Memory Service)
-soft_services=Soft Services
+soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
-
-[Soft Services]
-File=config/pm/hasim/submodels/common/soft-services.apm
-Packagehint=leap
 
 [Hybrid evaluation-arriaII-JTAG FPGA Environment/Params]
 MODEL_CLOCK_DIVIDER=5
@@ -74,4 +66,8 @@ Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Soft Services Submodel]
+File=config/pm/hasim/submodels/common/soft-services.apm
 Packagehint=leap

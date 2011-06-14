@@ -9,5 +9,7 @@
 
 %provides mcd_tool
 
+%notes README
+
 %scons %library MCD.py
 

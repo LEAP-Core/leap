@@ -1,0 +1,23 @@
+
+%name Serial Physical Channel
+%desc Serial Physical Channel
+
+%provides physical_channel
+
+%notes README
+
+%sources -t BSV -v PUBLIC   serial-physical-channel.bsv
+%sources -t H   -v PUBLIC   serial-physical-channel.h
+%sources -t CPP -v PUBLIC   serial-physical-channel.cpp
+%sources -t CPP -v PUBLIC   PosixSignalDispatcher.cpp
+%sources -t H   -v PUBLIC   PosixSignalDispatcher.h
+%sources -t H   -v PUBLIC   PosixSignalHandler.h
+%sources -t CPP -v PUBLIC   SerialPort.cpp
+%sources -t H   -v PUBLIC   SerialPort.h
+%sources -t CPP -v PUBLIC   SerialStreamBuf.cpp
+%sources -t H   -v PUBLIC   SerialStreamBuf.h
+%sources -t CPP -v PUBLIC   SerialStream.cpp
+%sources -t H   -v PUBLIC   SerialStream.h
+
+%param SOFT_RESET 0 "Does this channel support soft reset?"
+

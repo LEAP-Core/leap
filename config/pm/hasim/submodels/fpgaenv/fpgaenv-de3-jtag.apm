@@ -37,7 +37,7 @@ Packagehint=leap
 
 [General LED Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/leds/general-led-device.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [RRR Clients and Servers]
 File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
@@ -49,15 +49,15 @@ Packagehint=leap
 
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Null Physical Platform Debugger]
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [ArriaII GX JTAG/Requires]
 clocks_device=Single-Ended Crystal Clocks Device (ALTERA)
@@ -68,15 +68,15 @@ altera_jtag_physical_mapping=DE3 Dev Board JTAG Mapping
 
 [ArriaII GX JTAG]
 File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/altera-jtag.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Hardware FPGA Components for ArriaII]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-arriaII.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Altera JTAG]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/jtag/altera/avalon_jtag.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=Altera JTAG Physical Channel
@@ -106,25 +106,22 @@ rrr_common=RRR Common Module
 
 [Single-Ended Crystal Clocks Device (ALTERA)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device-altera.awb
-Packagehint=platforms
+Packagehint=leap-platforms
 
 [NULL Local Memory Interface]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
 
-
 [Single-Ended Crystal Clocks Device (ALTERA)/Params]
 MODEL_CLOCK_MULTIPLIER=2
 
-
 [Altera JTAG Physical Channel]
-File=modules/leap/virtual-platform/channelio/physical-channel/jtag/altera/jtag-physical-channel.awb
+File=modules/leap/virtual-platform/physical-channel/jtag/altera/jtag-physical-channel.awb
 Packagehint=leap
 
 [DE3 Dev Board JTAG Mapping]
 File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/de3/altera-de3-jtag.awb
-Packagehint=platforms
-
+Packagehint=leap-platforms
 
 [FPGA Build Pipeline Altera]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-altera.apm

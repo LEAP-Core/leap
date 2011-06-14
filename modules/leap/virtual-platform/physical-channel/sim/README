@@ -1,0 +1,3 @@
+Simulation Physical Channel
+
+This takes a UNIX pipe device and abstracts it to a LEAP physical channel.

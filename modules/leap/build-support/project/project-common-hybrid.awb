@@ -4,4 +4,6 @@
 %provides project_common
 %requires command_switches
 
+%notes README
+
 %attributes hybrid

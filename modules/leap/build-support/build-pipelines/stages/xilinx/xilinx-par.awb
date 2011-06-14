@@ -8,5 +8,7 @@
 
 %provides xilinx_par
 
+%notes README
+
 %scons %library XILINX_PAR.py
 

@@ -1,0 +1,7 @@
+Default Software Connected Application
+
+When designing a HW/SW Hybrid application it is not uncommon to define an
+application with a completely empty SW side. This module handles this case
+conveniently, requiring only a "hw_system" that is not required to define a
+C++ Main() method.
+

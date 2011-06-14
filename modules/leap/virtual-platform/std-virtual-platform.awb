@@ -8,6 +8,8 @@
 %requires low_level_platform_interface
 %requires umf
 
+%notes README
+
 %sources -v PUBLIC  std-virtual-platform.bsv
 %sources -v PUBLIC  std-virtual-platform.h
 %sources -v PRIVATE std-virtual-platform.cpp

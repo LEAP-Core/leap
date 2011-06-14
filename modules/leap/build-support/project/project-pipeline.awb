@@ -12,6 +12,8 @@
 %requires fpgaenv
 %requires project_common
 
+%notes README
+
 %public  project-hybrid-main.bsv
 %public  project-hybrid-main.h
 %private project-hybrid-main.cpp

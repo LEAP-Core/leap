@@ -1,0 +1,4 @@
+FPGA Build Pipeline
+
+This represents a generic FPGA synthesis flow, including Hardware and Software
+compilation, Hardware synthesis, and software linking.

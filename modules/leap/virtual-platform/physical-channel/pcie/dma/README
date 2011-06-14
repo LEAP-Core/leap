@@ -1,0 +1,5 @@
+DMA-based PCIE Physical Channel
+
+This abstracts a PCIE device into a LEAP physical channel using DMA, with
+PIO-based CSRs used as a control plane.
+

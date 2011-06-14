@@ -1,0 +1,21 @@
+This directory contains module definitions for the LEAP virtual platform.
+
+LEAP takes a specific physical platform and translates it into a well-defined
+virtual interface (middleware). This includes everything from device-specific
+structures (BlockRAM, clock PLLs) to abstracting specific peripherals
+(e.g., using the same interface to communicate over JTAG and PCIE) and includes
+data packetization and marshalling (to take into account endian issues and 
+bitwidth changes).
+
+channelio/                      Device independent bi-directional multiplexed 
+                                channel.
+low-level-platform-interface/   Instantiation of the physical platform and 
+                                hardware-abstraction layer.
+physical-channel/               Hardware abstraction layer for physical
+                                devices for communication like PCIE and JTAG.
+rrr/                            Remote Request-Response protocol for HW/SW
+                                interaction via method calls.
+vico-headers/                   Stubs for interacting with the VICO 
+                                co-simulation environment.
+virtual-devices/                Platform-independent device interfaces.
+

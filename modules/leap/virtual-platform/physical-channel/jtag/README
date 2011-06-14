@@ -1,0 +1,4 @@
+This directory contains alternative implementations of JTag physical channels.
+
+altera/     JTag for altera FPGAs.
+generic/    Generic JTag (used with Xilinx FPGAs).

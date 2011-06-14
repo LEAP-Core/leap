@@ -1,0 +1,10 @@
+
+Soft Services with Soft Connections and Soft Clocks
+
+This module contains everything needed for a set of Soft Services that contains
+both Soft Connections and Soft Clocks.
+
+A depedencies module is used so that other modules can include the base 
+definitions of all soft services.
+
+

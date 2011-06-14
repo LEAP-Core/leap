@@ -1,0 +1,4 @@
+Common Utility Services
+
+This module contains soft-connection wrappers for LEAP's Common Utility
+Virtual Devices.

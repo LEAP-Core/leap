@@ -4,5 +4,7 @@
 
 %provides fpga_program_tool
 
+%notes README
+
 %scons %library FPGAProg.py
 

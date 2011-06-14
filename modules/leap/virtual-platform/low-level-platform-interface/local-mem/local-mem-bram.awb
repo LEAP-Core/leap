@@ -3,6 +3,8 @@
 
 %provides local_mem
 
+%notes README
+
 %public local-mem-interface.bsv
 %public local-mem-bram.bsv
 

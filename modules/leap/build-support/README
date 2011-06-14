@@ -1,0 +1,9 @@
+LEAP Build Support
+
+This directory contains AWB modules related to the building and synthesizing
+of HW/SW hybrid FPGA applications. The modules are organized as follows:
+
+build-pipelines/    Python libraries for arranging SCons into a modular build
+                    pipeline for FPGA synthesis.
+project/            The top-level module which describes a HW/SW hybrid project,
+                    including top-level Pyhton SCons invocation.
