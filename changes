@@ -9147,3 +9147,14 @@ Directory modules/leap/libraries/soft-services/services
 * Merged changes from leap mainline r111 and r112.
 
 * Still TODO: go over Soft Services dependencies closely.
+
+----------
+pellauer    Date: Wed Jun 15 13:29:24 EDT 2011  CSN: CSN-leap-116
+                  Wed Jun 15 17:29:24 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          114 
+
+
+* Merge of mainline patch r114 to release branch.

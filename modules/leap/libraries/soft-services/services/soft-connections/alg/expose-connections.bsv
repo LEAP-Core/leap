@@ -291,8 +291,11 @@ module mkPassThrough
   interface PHYSICAL_CHAIN_IN incoming;
 
     method Action try(PHYSICAL_CHAIN_DATA d);
-      passQ.enq(d);
-      enW.send();
+      if (passQ.notFull())
+      begin
+        passQ.enq(d);
+        enW.send();
+      end
     endmethod
 
     method Bool   success();
