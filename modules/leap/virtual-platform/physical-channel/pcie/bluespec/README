@@ -1,0 +1,6 @@
+Bluespec PCIE Physical Channel
+
+This physical channel abstrancts the PCIE physical device provided by Bluespec
+Inc into UMF chunks. It does not use any advanced features of the Bluespec Inc
+device.
+

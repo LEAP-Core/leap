@@ -1,6 +1,5 @@
 This directory contains alternative implementations of PCIE abstraction layers.
 
-bluespec/       DEPRECATED
 csr/            Control-status register based channel using PIO.
 dma/            DMA-based physical channel.
 passthrough/    Empty translation layer for physical devices that already 

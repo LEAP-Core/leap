@@ -17,7 +17,7 @@ DefaultAttributes=hello unconnected hybrid project acp
 model=HW/SW Hybrid Pipeline Build
 
 [Base Hybrid Application Environment]
-File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
+File=modules/leap/build-support/project/application-env/base/application-env-hybrid-base.awb
 Packagehint=leap
 
 [Base Hybrid Application Environment/Requires]
@@ -28,15 +28,15 @@ File=modules/leap/examples/hello-world/hello-world.awb
 Packagehint=leap
 
 [Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)/Params]
-MODEL_CLOCK_DIVIDER=8
+XST_INSERT_IOBUF=0
 
 [Default Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
+File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
 
 [Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)]
 File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech-no-cache.apm
-Packagehint=platforms-acp
+Packagehint=leap-platforms-acp
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities

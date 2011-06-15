@@ -1,0 +1,145 @@
+
+[Global]
+SaveParameters=0
+Description=Hybrid HTG-v5-PCIe FPGA Environment for Synplify
+File=fpgaenv-hybrid-htg-v5-pcie-synplify
+Version=2.2
+Type=HAsim
+Name=Hybrid HTG-v5-PCIe FPGA Environment for Synplify
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
+
+[Model]
+DefaultAttributes=bluespec htg-v5-pcie
+model=FPGA Environment
+
+[FPGA Environment/Requires]
+virtual_platform=Standard Virtual Platform
+fpga_components=Hardware FPGA Components for Virtex 5
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx (Synplify)
+
+[Standard Virtual Platform]
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
+
+[Standard Virtual Platform/Requires]
+virtual_devices=Standard Virtual Devices Submodel
+low_level_platform_interface=Low Level Platform Interface Hybrid
+umf=Little-Endian Unified Message Format
+
+[FPGA Environment]
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
+
+[General LED Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/leds/general-led-device.awb
+Packagehint=leap-platforms
+
+[General Switch Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/switches/general-switch-device.awb
+Packagehint=leap-platforms
+
+[RRR Clients and Servers]
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer]
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer/Requires]
+physical_channel=PCI-Express CSR-based Physical Channel
+
+[Low Level Platform Interface Hybrid]
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
+
+[Low Level Platform Interface Hybrid/Requires]
+physical_platform=HTG Virtex 5 PCIE Enabled Synplify
+channelio=Basic Virtual Channel Multiplexer
+rrr=RRR Clients and Servers
+physical_platform_debugger=Null Physical Platform Debugger
+local_mem=Local Memory Interface using DDR2 Memory
+remote_memory=Remote Memory using PCI Express DMA
+
+[Driver Header for PCIe Kernel Module]
+File=drivers/linux/hasim/kernel-pcie-virtex5/pchnl_if.awb
+Packagehint=leap-platforms
+
+[Single-Ended Crystal Clocks Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
+Packagehint=leap-platforms
+
+[Common Physical Platform Utilities]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
+Packagehint=leap-platforms
+
+[Local Memory Interface using DDR2 Memory]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
+Packagehint=leap
+
+[PCI-Express CSR-based Physical Channel]
+File=modules/leap/virtual-platform/physical-channel/pcie/csr/pcie-physical-channel.awb
+Packagehint=leap
+
+[Null Physical Platform Debugger]
+File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
+Packagehint=leap-platforms
+
+[Hardware FPGA Components for Virtex 5]
+File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
+Packagehint=leap-platforms
+
+[PCI Express Physical Device (mmap-based)/Requires]
+pci_express_driver_header=Driver Header for PCIe Kernel Module
+
+[Remote Memory using PCI Express DMA]
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma/remote-memory-pcie-dma.awb
+Packagehint=leap
+
+[PCI Express Physical Device (mmap-based)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-new/pci-express-device-mmap.awb
+Packagehint=leap-platforms
+
+[DDR2 SDRAM Physical Device for Synplify]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr2-sdram/ddr2-sdram-device-synplify.awb
+Packagehint=leap-platforms
+
+[HTG Virtex 5 PCIE Enabled Synplify/Requires]
+pci_express_device=PCI Express Physical Device (mmap-based)
+clocks_device=Single-Ended Crystal Clocks Device
+physical_platform_utils=Common Physical Platform Utilities
+led_device=General LED Device
+switch_device=General Switch Device
+ddr2_device=DDR2 SDRAM Physical Device for Synplify
+
+[HTG Virtex 5 PCIE Enabled Synplify]
+File=modules/bluespec/common/fpgaenv/physical-platform/htg_virtex5/pcie-enabled/htg-v5-pcie-enabled-synplify.awb
+Packagehint=leap-platforms
+
+[Little-Endian Unified Message Format]
+File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
+Packagehint=leap-platforms
+
+[RRR Common Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
+
+[RRR Clients and Servers/Requires]
+rrr_common=RRR Common Module
+
+[FPGA Build Pipeline Xilinx (Synplify)]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-synplify.apm
+Packagehint=leap
+
+[Standard Virtual Devices Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
+File=config/pm/leap/submodels/common/librl-bsv.apm
+Packagehint=leap
