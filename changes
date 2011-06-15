@@ -8681,3 +8681,14 @@ Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
 
 * Attempt to fix broken Null starter device. It's possible that it's actually
 beyond hope and should be deprecated.
+
+----------
+pellauer    Date: Wed Jun 15 13:27:47 EDT 2011  CSN: CSN-leap-115
+                  Wed Jun 15 17:27:47 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          114 
+
+
+* Pass-Through connection chains were incorrectly using their unguarded FIFO.
