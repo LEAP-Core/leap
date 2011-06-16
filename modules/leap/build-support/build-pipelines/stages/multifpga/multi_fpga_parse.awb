@@ -2,20 +2,13 @@
 #* Generic FPGA build pipeline
 #********************************************************************/
 
-%name multiFPGA Parser Build Stage
+%name multiFPGA Log Generation
 %desc FPGA Build Pipeline
 %attributes tool
 
-%provides multifpga_parse_tool
+%provides multi_fpga_log_generator
+%requires fpga_environment_parser
 
-%notes README
-
-%scons %library platform.py
-%scons %library environment.py
-%scons %library multilex.py
-%scons %library multiparse.py
-%scons %library platform.py
-%scons %library connection.py
 %scons %library tool.py
 
 

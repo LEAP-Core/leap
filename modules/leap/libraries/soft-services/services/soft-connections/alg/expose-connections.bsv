@@ -22,12 +22,13 @@ import List::*;
 import HList::*;
 import FIFOF::*;
 
+
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_interconnect.bsh"
 `include "awb/provides/soft_connections_common.bsh"
+`include "awb/provides/soft_connections_alg.bsh"
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_services_lib.bsh"
-
 
 
 
@@ -41,8 +42,8 @@ import FIFOF::*;
 
 module toWithConnections#(LOGICAL_CONNECTION_INFO ctx)       (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI));
 
-    let outs      <- exposeDanglingSends(ctx.unmatchedSends);
-    let ins       <- exposeDanglingRecvs(ctx.unmatchedRecvs);
+    let outs      <- exposeDanglingSends(ctx.unmatchedSends, ?);
+    let ins       <- exposeDanglingRecvs(ctx.unmatchedRecvs, ?);
     let outMultis <- exposeDanglingSendMultis(ctx.unmatchedSendMultis);
     let inMultis  <- exposeDanglingRecvMultis(ctx.unmatchedRecvMultis);
 
@@ -103,6 +104,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  chains: Vector::replicate(tagged Nil),
                  stations: tagged Nil,
                  stationStack: tagged Nil,
+                 synthesisBoundaryPlatform: `MULTI_FPGA_PLATFORM,
                  rootStationName: "InvalidRootStation",
                  softReset: sReset
              };
@@ -142,11 +144,16 @@ instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(
 
 endinstance
 
+module printDanglingSend#(Integer cur_out, LOGICAL_SEND_INFO cur) (Empty);
+  let opt = (cur.optional) ? "True" : "False";
+  messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt);
+endmodule
+
 // Expose dangling sends to other synthesis boundaries via compilation messages
 
 // exposeDangingSends :: [LOGICAL_SEND_INFO] -> Module [PHYSICAL_CONNECTION_OUT]
 
-module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends) (Vector#(n, PHYSICAL_CONNECTION_OUT));
+module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends, String platform) (Vector#(n, PHYSICAL_CONNECTION_OUT));
 
   Vector#(n, PHYSICAL_CONNECTION_OUT) res = newVector();
   Integer cur_out = 0;
@@ -154,15 +161,23 @@ module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends) (Vector#(n, PHYSICA
   // Output a compilation message and tie it to the next free outport
   for (Integer x = 0; x < length(dsends); x = x + 1)
   begin
-    if (cur_out >= valueof(n))
-      error("ERROR: Too many dangling Send Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_OUT parameter to WithConnections.");
-
-    let cur = dsends[x];
-    let opt = (cur.optional) ? "True" : "False";
-    messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt);
-    res[cur_out] = cur.outgoing;
-    cur_out = cur_out + 1;
+    let cur = dsends[x];    
+    // Squash connections not from this FPGA Platform
+    if(cur.computePlatform == `MULTI_FPGA_PLATFORM)
+      begin
+        printDanglingSend(cur_out,cur);
+        res[cur_out] = cur.outgoing;
+        cur_out = cur_out + 1;
+      end
+    else
+      begin
+        messageM("Dropping " + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+      end
   end
+
+  // We can now squash connections
+  if (cur_out > valueof(n))
+    error("ERROR: Too many dangling Send Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_OUT parameter to WithConnections.");
   
   // Zero out unused dangling sends
   for (Integer x = cur_out; x < valueOf(n); x = x + 1)
@@ -178,11 +193,16 @@ module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends) (Vector#(n, PHYSICA
   
 endmodule
 
+module printDanglingRecv#(Integer cur_out, LOGICAL_RECV_INFO cur) (Empty);
+    let opt = (cur.optional) ? "True" : "False";
+    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_out) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt);
+endmodule
+
 // Expose dangling receives to other synthesis boundaries via compilation messages
 
 // exposeDangingRecvs :: [LOGICAL_RECV_INFO] -> Module [PHYSICAL_CONNECTION_IN]
 
-module exposeDanglingRecvs#(List#(LOGICAL_RECV_INFO) drecvs) (Vector#(n, PHYSICAL_CONNECTION_IN));
+module exposeDanglingRecvs#(List#(LOGICAL_RECV_INFO) drecvs, String platform) (Vector#(n, PHYSICAL_CONNECTION_IN));
 
   Vector#(n, PHYSICAL_CONNECTION_IN) res = newVector();
   Integer cur_in = 0;
@@ -190,15 +210,25 @@ module exposeDanglingRecvs#(List#(LOGICAL_RECV_INFO) drecvs) (Vector#(n, PHYSICA
   //Output a compilation message and tie it to the next free inport
   for (Integer x = 0; x < length(drecvs); x = x + 1)
   begin
-    if (cur_in >= valueof(n))
-      error("ERROR: Too many dangling Receive Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_IN parameter to WithConnections.");
-
+    
     let cur = drecvs[x];
-    let opt = (cur.optional) ? "True" : "False";
-    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_in) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt);
-    res[cur_in] = cur.incoming;
-    cur_in = cur_in + 1;
+    // Squash non-local connections
+    if(cur.computePlatform == `MULTI_FPGA_PLATFORM)
+      begin
+        printDanglingRecv(cur_in,cur);
+        res[cur_in] = cur.incoming;
+        cur_in = cur_in + 1;
+      end
+    else
+      begin
+        messageM("Dropping " + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+      end
   end
+
+  // We can now squash connections
+  if (cur_in > valueof(n))
+     error("ERROR: Too many dangling Receive Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_IN parameter to WithConnections.");
+
   
   //Zero out unused dangling recvs
   for (Integer x = cur_in; x < valueOf(n); x = x + 1)
@@ -222,14 +252,16 @@ module exposeDanglingSendMultis#(List#(LOGICAL_SEND_MULTI_INFO) dsends) (Vector#
   // Output a compilation message and tie it to the next free outport
   for (Integer x = 0; x < length(dsends); x = x + 1)
   begin
-    if (cur_out >= valueof(n))
-      error("ERROR: Too many dangling SendMulti Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_OUT_MULTI parameter to WithConnections.");
-
     let cur = dsends[x];
     messageM("Dangling SendMulti {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform);
     res[cur_out] = cur.outgoing;
     cur_out = cur_out + 1;
   end
+
+    if (cur_out > valueof(n))
+      error("ERROR: Too many dangling SendMulti Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_OUT_MULTI parameter to WithConnections.");
+
+
   
   // Zero out unused dangling send multis
   for (Integer x = cur_out; x < valueOf(n); x = x + 1)
@@ -253,14 +285,16 @@ module exposeDanglingRecvMultis#(List#(LOGICAL_RECV_MULTI_INFO) drecvs) (Vector#
   // Output a compilation message and tie it to the next free inport
   for (Integer x = 0; x < length(drecvs); x = x + 1)
   begin
-    if (cur_in >= valueof(n))
-      error("ERROR: Too many dangling Receive Multi Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_IN_MULTI parameter to WithConnections.");
-
     let cur = drecvs[x];
     messageM("Dangling RecvMulti {" + cur.logicalType + "} [" + integerToString(cur_in) + "]:" + cur.logicalName+ ":" + cur.computePlatform);
     res[cur_in] = cur.incoming;
     cur_in = cur_in + 1;
   end
+
+  if (cur_in > valueof(n))
+    error("ERROR: Too many dangling Receive Multi Connections (max " + integerToString(valueof(n)) + "). Increase the t_NUM_IN_MULTI parameter to WithConnections.");
+
+
   
   // Zero out unused dangling recv multis
   for (Integer x = cur_in; x < valueOf(n); x = x + 1)

@@ -9,12 +9,16 @@ class Module(ProjectDependency.ProjectDependency):
     ProjectDependency.ProjectDependency.dump(self);
 
   
-  def __init__(self, name, isSynthBoundary, buildPath, computePlatform, parent, childArray, synthParent, synthChildArray, sources):
+  def __init__(self, name, synthBoundary, buildPath, computePlatform, parent, childArray, synthParent, synthChildArray, sources):
     self.name = name
     self.buildPath = buildPath
     self.parent = parent
     self.childArray = childArray
-    self.isSynthBoundary = isSynthBoundary
+    self.isSynthBoundary = (synthBoundary != [])
+    if(self.isSynthBoundary):
+      self.synthBoundaryModule = synthBoundary[0]
+    else:
+      self.synthBoundaryModule = ""
     self.synthParent = synthParent
     self.synthChildArray = synthChildArray
     self.computePlatform = computePlatform

@@ -18,7 +18,7 @@ def p_environment(p):
 def p_platform_list(p):
     """
     platform_list :
-    platform_list : PLATFORM NAME file SEMICOLON connection_list ENDPLATFORM platform_list
+    platform_list : PLATFORM NAME STRING SEMICOLON connection_list ENDPLATFORM platform_list
     """
     if len(p) == 1:
         p[0] = []  # end of list - may want to do stuff here.

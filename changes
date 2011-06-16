@@ -8692,3 +8692,77 @@ Directory modules/leap/libraries/soft-services/services/soft-connections/alg
 
 
 * Pass-Through connection chains were incorrectly using their unguarded FIFO.
+
+----------
+kfleming    Date: Thu Jun 16 16:58:07 EDT 2011  CSN: CSN-leap-117
+                  Thu Jun 16 20:58:07 UTC 2011
+
+
+Directory libperl/Leap/lib/Leap
+ Build.pm                  Locally Modified          116 
+
+Directory tools/scripts
+ leap-configure            Locally Modified          116 
+ leap-connect              Locally Modified          116 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-exe.apm    Locally Modified          116 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ channelio-common.bsv      Locally Added               0 
+ basic-channelio.awb       Locally Modified          116 
+ basic-channelio.bsv       Locally Modified          116 
+
+Directory modules/leap/virtual-platform/channelio/null
+ channelio-common.bsv      Locally Added               0 
+ null-channelio.awb        Locally Modified          116 
+ null-channelio.bsv        Locally Modified          116 
+ null-channelio.cpp        Locally Added               0 
+ null-channelio.h          Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-server.bsv      Locally Modified          116 
+ arbiters.bsv              Locally Modified          116 
+ basic-rrr-client.bsv      Locally Modified          116 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          116 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          116 
+ multi_fpga_parse.awb      Locally Modified          116 
+ multilex.py               Locally Modified          116 
+ fpgaenvironment.awb       Locally Added               0 
+ environment.py            Locally Modified          116 
+ multifpga_parser.py       Locally Added               0 
+ multiparse.py             Locally Modified          116 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          116 
+ Module.py                 Locally Modified          116 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          116 
+ soft-connections-multifpga.awb Locally Added               0 
+ bury-connections.bsv      Locally Modified          116 
+ soft-connections-module-context-multifpga.awb Locally Modified          116 
+ connection-implementation-multifpga.bsv Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          116 
+ connect-top-level-multifpga.bsv Locally Added               0 
+ connection-alg-multifpga.awb Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context.awb Locally Modified          116 
+ connection-backwards-compat.bsv Locally Modified          116 
+ connection-context.bsv    Locally Modified          116 
+
+
+A rather large set of changes, most of which are incidental to supporting multiple fpgas.
+
+1) Build code for MultiFPGA
+2) SoftConnections support for defining platform mappings
+3) Refactoring of RRR comm stack for use in MultiFPGA comm stack
+4) Patched pieces of the Bluesim build to force rebuilds if bdpi changes
+

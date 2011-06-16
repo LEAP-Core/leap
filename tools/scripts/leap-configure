@@ -1161,8 +1161,11 @@ sub __generate_build_libraries {
     my $module = shift;
     my $base_dir = shift;
 
+    my $targetdir = Leap::Util::path_append($base_dir, $module->provides);
+
     # We now dump all modules since python may wish to look at module params
     my @libraries = Leap::Build::get_scons_library($module);
+    my @privates = Leap::Build::get_scons_private($module);
     
 
     my $sys_status = system("mkdir -p " . Leap::Util::path_append($base_dir, "/" . $module->provides . "/"));
@@ -1182,16 +1185,22 @@ sub __generate_build_libraries {
     
     #import the local config
     print INIT "from config import *\n";    
-
-    for(my $index = 0; $index < scalar(@libraries); $index++) {
+    
+    foreach my $library (@libraries) {
 	# Make a symlink
-	my $library = $libraries[$index];
-        my $targetdir = Leap::Util::path_append($base_dir, $module->provides);
         # rebase the simlink for portability
         my $relsrc = File::Spec->abs2rel($library, $targetdir);
 	my $buildpath = Leap::Util::path_append($targetdir , basename($library));
 	my  @fileparts = split(/\./,basename($library));
 	print INIT "from $fileparts[0] import *\n";
+	`ln -fs $relsrc $buildpath`;
+    }
+
+    # private files are not included in the config.py -- this helps with scoping
+    foreach my $private (@privates) {
+        # rebase the simlink for portability
+        my $relsrc = File::Spec->abs2rel($private, $targetdir);
+	my $buildpath = Leap::Util::path_append($targetdir , basename($private));
 	`ln -fs $relsrc $buildpath`;
     }
 

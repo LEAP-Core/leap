@@ -57,8 +57,7 @@ endmodule
 module mkRoundRobinArbiter
     // interface:
     (ARBITER#(bits_T))
-    provisos (Log#(bits_T, TLog#(bits_T)),
-              Add#(1, a, bits_T));
+    provisos (Log#(bits_T, TLog#(bits_T)));
     ARBITER#(bits_T) arbiter = ?;
     if(valueof(bits_T) < 2) 
       begin
@@ -78,15 +77,14 @@ endmodule
 module mkRoundRobinArbiterMultiBit
     // interface:
     (ARBITER#(bits_T))
-    provisos (Log#(bits_T, TLog#(bits_T)),
-              Add#(1, a, bits_T));
+    provisos (Log#(bits_T, TLog#(bits_T)));
 
     Reg#(Bit#(bits_T)) curPrioMask <- mkReg(1);
     
     (* fire_when_enabled *)
     rule rotate_priority (True);
         // Rotate priority mask every cycle
-        curPrioMask <= { curPrioMask[0], curPrioMask[valueOf(bits_T)-1 : 1] };
+        curPrioMask <= truncate({curPrioMask, curPrioMask} >> 1);
     endrule
 
     //

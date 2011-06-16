@@ -22,6 +22,7 @@ class Bluesim():
 
     bsc_sim_command = BSC + ' ' + BSC_FLAGS_SIM + ' ' + LDFLAGS + ' -o $TARGET'
 
+
     if (getBluespecVersion() >= 13013):
         # 2008.01.A compiler allows us to pass C++ arguments.
         if (getDebug(moduleList)):
@@ -34,6 +35,13 @@ class Bluesim():
         TMP_BSC_DIR + ' ' + moduleList.env['DEFS']['GEN_BAS'] + ' ' + moduleList.env['DEFS']['GIVEN_BAS'] + \
         ' ' + moduleList.env['DEFS']['BDPI_CS']
 
+    linker_str = ''
+    for lib in moduleList.swLibs:
+      linker_str += ' ' + lib + ' '
+  
+    bsc_sim_command += linker_str + linker_str 
+
+
     if (getBuildPipelineDebug(moduleList) != 0):
         for ba in moduleList.getAllDependencies('BA'):
             print 'BA dep: ' + str(ba) + '\n'
@@ -41,7 +49,7 @@ class Bluesim():
     sbin = moduleList.env.Command(
         TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
         moduleList.getAllDependencies('BA') + 
-        moduleList.getAllDependencies('BDPI_CS'),
+        moduleList.getAllDependencies('BDPI_CS') + moduleList.getAllDependencies('BDPI_HS'),
         bsc_sim_command)
 
     if moduleList.env.GetOption('clean'):
@@ -60,8 +68,8 @@ class Bluesim():
         print "ModuleList desp : " + str(moduleList.swExe)
 
     exe = moduleList.env.Command(
-        APM_NAME + '_hw.exe',
-        sbin + moduleList.swExe,
+        APM_NAME + '_hw.exe', 
+        sbin + moduleList.swExe + moduleList.getAllDependencies('BDPI_CS') + moduleList.getAllDependencies('BDPI_HS'),
         [ '@ln -fs ${SOURCE} ${TARGET}',
           '@ln -fs ${SOURCE}.so ${TARGET}.so',
           '@ln -fs ' + moduleList.swExeOrTarget + ' ' + APM_NAME,

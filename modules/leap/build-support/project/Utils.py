@@ -77,6 +77,10 @@ def one_line_cmd(cmd):
     p.close()
     return r
 
+def execute(cmd):
+    p = subprocess.Popen(cmd, shell=True)
+    sts = os.waitpid(p.pid, 0)[1]
+    return sts
 
 ##
 ## awb_resolver --

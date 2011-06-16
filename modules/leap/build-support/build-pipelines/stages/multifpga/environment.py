@@ -11,6 +11,7 @@ class FPGAEnvironment(object):
         for platform in platformList:
             self.addPlatform(platform)
         self.graphize()
+        self.buildTransitTables()
 
 
     def addPlatform(self,platform):
@@ -80,10 +81,11 @@ class FPGAEnvironment(object):
         if(sink in paths[1]):           
             return paths[1][sink]
         else:
-            return 0
+            return -1
+
 
     #It would be worth considering how to handle the key error
-    def getPathHop(self, source, sink):
+    def getPathHopFirst(self, source, sink):
         paths = pygraph.algorithms.minmax.shortest_path(self.graph,source)
         hop = sink
         lastNode = sink 
@@ -91,6 +93,11 @@ class FPGAEnvironment(object):
            
             hop = paths[0][hop]
         return hop
+
+    def getPathHopLast(self, source, sink):
+        paths = pygraph.algorithms.minmax.shortest_path(self.graph,source)
+        return paths[0][sink]
+
         
     # returns the source string for a particular path.  This is currently the min path  
     def getPhysicalSource(self,platform,source):
@@ -121,15 +128,23 @@ class FPGAEnvironment(object):
                 # check for a connection
                 
                 if(self.getPathLength(platformName, target) > 0):
-                    hop = self.getPathHop(platformName, target)
+                    hop = self.getPathHopFirst(platformName, target)
                     # pygraph returns something odd for paths of length one
                     
-                    
+                    print platformName + ' -> ' + target + ' : ' + self.getPhysicalSink(platformName,hop)
                     transitTablesOutgoing[platformName][target] = self.getPhysicalSink(platformName,hop)
+
+                if(self.getPathLength(target, platformName) > 0):
+                    hop = self.getPathHopLast(target, platformName)
+
                     # also fill in our sink at the same time
-                    transitTablesIncoming[hop][platformName] = self.getPhysicalSource(hop,platformName)
+                    print platformName + ' <- ' + target + ' : ' + self.getPhysicalSource(platformName,hop)
+                    transitTablesIncoming[platformName][target] = self.getPhysicalSource(platformName,hop)
                     
-        return (transitTablesOutgoing,transitTablesIncoming)
+        self.transitTablesOutgoing = transitTablesOutgoing
+        self.transitTablesIncoming = transitTablesIncoming
+
+
 
     def __repr__(self):
         platformRepr = ''

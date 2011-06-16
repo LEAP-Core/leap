@@ -213,6 +213,7 @@ typedef struct
     Vector#(CON_NUM_CHAINS, List#(LOGICAL_CHAIN_INFO)) chains; // BACKWARDS COMPATABILITY: connection chains
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
+    String synthesisBoundaryPlatform;
     String rootStationName;
     Reset softReset;
 }

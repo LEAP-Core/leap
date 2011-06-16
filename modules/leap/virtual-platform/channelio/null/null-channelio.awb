@@ -4,6 +4,10 @@
 
 %provides channelio
 
-%notes README
+%sources -t BSV -v PUBLIC NullChannelIO.bsv
+%sources -t BSV -v PUBLIC channelio-common.bsv
+%sources -t CPP -v PUBLIC null-channelio.cpp
+%sources -t H -v PUBLIC   null-channelio.h
+%param CIO_NUM_CHANNELS   2   "Number of virtual duplex channels"
 
-%sources -t BSV -v PUBLIC null-channelio.bsv
+

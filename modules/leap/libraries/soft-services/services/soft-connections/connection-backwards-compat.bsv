@@ -196,8 +196,12 @@ module [ConnectedModule] mkConnection_Chain#(Integer chain_num)
           outgoing: outg
       };
 
-  // Register the chain
-  registerChain(info);
+  String platformName <- getSynthesisBoundaryPlatform(); 
+  if(platformName == `MULTI_FPGA_PLATFORM)
+    begin
+      // Register the chain
+      registerChain(info);
+    end
 
   method msg_T peekFromPrev() if (dataW.wget() matches tagged Valid .val);
     return val;

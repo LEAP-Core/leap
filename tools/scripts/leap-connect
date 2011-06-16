@@ -39,7 +39,8 @@ my $dynsize = 0;
 $status = GetOptions( "debug!"     => \$debug,
                       "help!"      => \$help,
                       "softservices!" => \$softservices,
-                      "dynsize!"   => \$dynsize,
+                      "dynsize!"   => \$dynsize, 
+                      "alternative_logfile=s"  => \$alternative_logfile
 		      );
 
 my $prog = basename($0);
@@ -57,16 +58,17 @@ if ($help) {
 ############################################################
 # main body of script
 
-my $modelfile = shift;
-my $targetfile = shift;
-
 Asim::init()
     || die("Unable to initialize Asim::\n");
 
 if ($dynsize) {
+    my $modelfile = shift;
+    my $targetfile = shift;
     create_dynsize_bsh($targetfile, $modelfile);
-}
+} 
 else {
+    my $modelfile = shift;
+    my $targetfile = shift;
     create_surrogate($modelfile, $targetfile);
 }
 
@@ -165,8 +167,8 @@ sub create_surrogate {
     my $root = $model->modelroot();
 
     my $module = $root->find_module_providing($metatype);
-
     my $synth_id = Leap::Build::get_synthesis_boundary_name($module);
+    # we need to derive this from out logfile XXX
     my $synth_instances = Leap::Build::synthesis_instances($module);
 
     CORE::open(SURROGATE, "> $filename") or die("Failed to open $filename for writing");
@@ -196,8 +198,13 @@ sub create_surrogate {
     print SURROGATE "module [Connected_Module] $synth_id ();\n\n";
 
     if ($synth_instances == 0) {
-        my $logfile_name = logfile_name($filename, $metatype);
-        add_connections(SURROGATE, $logfile_name, $metatype);
+        if(defined($alternative_logfile)) {
+            add_connections(SURROGATE, $alternative_logfile, $metatype);
+	} 
+        else {
+            my $logfile_name = logfile_name($filename, $metatype);
+            add_connections(SURROGATE, $logfile_name, $metatype);
+	}
     }
     else {
         for (my $i = 0; $i < $synth_instances; $i++) {
@@ -237,6 +244,7 @@ sub add_connections {
 	print $of "    SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}) $wrap_var <- $mk_wrapper(clocked_by model_clock.clk, reset_by model_clock.rst);\n";
         print $of "    // Begin: Register Soft Connections\n";
         print $of "    let connections = tpl_1($wrap_var.services);\n";
+        print $of " // logfile: $logfile_name\n";
         my @conns = parse_dangling_connections($logfile_name);
         for (my $i = 0; $i < scalar(@conns); $i++) {
             my $conname = $conns[$i]->{"name"};
@@ -433,6 +441,7 @@ sub parse_dangling_connections {
 
     return @conns;
 }
+
 
 sub WARN {
     my $msg = shift;

@@ -53,13 +53,23 @@ endinterface
 
 // client
 module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
-  ARBITED_CLIENT#(`NUM_SERVICES) client <- mkArbitedClient(channel);
+  ARBITED_CLIENT#(`NUM_SERVICES) client <- mkArbitedClient(channel.readPorts[`CLIENT_CHANNEL_ID].read,
+                                                           channel.writePorts[`CLIENT_CHANNEL_ID].write);
   interface requestPorts = client.requestPorts;
   interface responsePorts = client.responsePorts;
 endmodule
 
-module mkArbitedClient#(CHANNEL_IO channel) (ARBITED_CLIENT#(n))
-    provisos(Add#(1,xxx,n));
+module mkArbitedClient#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_CLIENT#(n));
+  ARBITED_CLIENT#(n) m = ?;
+  if(valueof(n) > 0)
+    begin
+      m <- mkArbitedClientNonZero(read, write);
+    end
+  return m;
+endmodule
+
+// Doesn't work if n == 0
+module mkArbitedClientNonZero#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_CLIENT#(n));
 
     // ==============================================================
     //                        Ports and Queues
@@ -114,7 +124,7 @@ module mkArbitedClient#(CHANNEL_IO channel) (ARBITED_CLIENT#(n))
     // scan channel for incoming response headers
     rule scan_responses (responseChunksRemaining == 0);
 
-        UMF_PACKET packet <- channel.readPorts[`CLIENT_CHANNEL_ID].read();
+        UMF_PACKET packet <- read();
 
         // enqueue header in service's queue
         responseQueues[packet.UMF_PACKET_header.serviceID].enq(packet);
@@ -129,7 +139,7 @@ module mkArbitedClient#(CHANNEL_IO channel) (ARBITED_CLIENT#(n))
     rule scan_params (responseChunksRemaining != 0);
 
         // grab a chunk from channelio and place it into the active response queue
-        UMF_PACKET packet <- channel.readPorts[`CLIENT_CHANNEL_ID].read();
+        UMF_PACKET packet <- read();
         responseQueues[responseActiveQueue].enq(packet);
 
         // one chunk processed
@@ -194,7 +204,7 @@ module mkArbitedClient#(CHANNEL_IO channel) (ARBITED_CLIENT#(n))
                                        };
 
             // send the header packet to channelio
-            channel.writePorts[`CLIENT_CHANNEL_ID].write(newpacket);
+            write(newpacket);
 
             // setup remaining chunks
             requestChunksRemaining <= newpacket.UMF_PACKET_header.numChunks;
@@ -211,7 +221,7 @@ module mkArbitedClient#(CHANNEL_IO channel) (ARBITED_CLIENT#(n))
         requestQueues[requestActiveQueue].deq();
 
         // send the packet to channelio
-        channel.writePorts[`CLIENT_CHANNEL_ID].write(packet);
+        write(packet);
 
         // one more chunk processed
         requestChunksRemaining <= requestChunksRemaining - 1;

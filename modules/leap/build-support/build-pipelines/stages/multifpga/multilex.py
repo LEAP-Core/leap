@@ -11,7 +11,7 @@ reserved = {
     }
 
 tokens = [ 'RARROW', 'LARROW', 'SEMICOLON',
-           'NAME', 'PERIOD', 'FSLASH'
+           'NAME', 'STRING', 'PERIOD', 'FSLASH'
          ] + list(reserved.values())
 
 
@@ -27,6 +27,11 @@ t_ENDPLATFORM = r'endplatform'
 def t_NAME(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
     t.type = reserved.get(t.value,'NAME')
+    return t
+
+def t_STRING(t):
+    r'".*"'
+    t.type = reserved.get(t.value,'STRING')
     return t
 
 t_ignore = " \t\r" #white space requirements are evil

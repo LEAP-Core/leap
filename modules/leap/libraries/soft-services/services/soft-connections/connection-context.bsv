@@ -40,6 +40,16 @@ import ModuleContext::*;
 
 // These just access the specified field.
 
+module [t_CONTEXT] getSynthesisBoundaryPlatform (String)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.synthesisBoundaryPlatform;
+
+endmodule
+
 module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -47,6 +57,17 @@ module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
     return ctxt.unmatchedSends;
+
+endmodule
+
+
+module [t_CONTEXT] printUnmatchedSends (Empty)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let m <- getUnmatchedSends();
+    printSends(m);
 
 endmodule
 
@@ -59,6 +80,17 @@ module [t_CONTEXT] getUnmatchedRecvs (List#(LOGICAL_RECV_INFO))
     return ctxt.unmatchedRecvs;
 
 endmodule
+
+module [t_CONTEXT] printUnmatchedRecvs (Empty)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let m <- getUnmatchedRecvs();
+    printRecvs(m);
+
+endmodule
+
 
 module [t_CONTEXT] getUnmatchedSendMultis (List#(LOGICAL_SEND_MULTI_INFO))
     provisos
@@ -135,6 +167,19 @@ endmodule
 // ****** Mutators *******
 
 // These update the field to the given value.
+
+
+
+module [t_CONTEXT] putSynthesisBoundaryPlatform#(String new_name) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.synthesisBoundaryPlatform = new_name;
+    putContext(ctxt);
+
+endmodule
 
 // putUnmatchedSends
 
