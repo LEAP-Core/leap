@@ -40,48 +40,13 @@ import FIFOF::*;
 //toWithConnections :: [ConnectionData] -> Module WithConnections
 
 
-module toWithConnections#(LOGICAL_CONNECTION_INFO ctx)       (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI));
+module toWithConnections#(LOGICAL_CONNECTION_INFO ctx)       (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI, t_NUM_CHAINS));
 
     let outs      <- exposeDanglingSends(ctx.unmatchedSends, ?);
     let ins       <- exposeDanglingRecvs(ctx.unmatchedRecvs, ?);
     let outMultis <- exposeDanglingSendMultis(ctx.unmatchedSendMultis);
     let inMultis  <- exposeDanglingRecvMultis(ctx.unmatchedRecvMultis);
-
-    Vector#(CON_NUM_CHAINS, PHYSICAL_CHAIN) chns = newVector();
-
-    // For every chain, we must expose it to the next level.
-    for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)
-    begin
-       let links = ctx.chains[x];
-       if (List::isNull(links))
-       begin
-
-          // If a particular chain is empty for this synthesis boundary
-          // make a dummy link that is just a pass-through.
-          messageM("Exposing Chain: [" + integerToString(x) + "] as Pass-Through.");
-          let dummy <- mkPassThrough();
-          chns[x] = (interface PHYSICAL_CHAIN;
-                         interface incoming = dummy.incoming;
-                         interface outgoing = dummy.outgoing;
-                     endinterface);
-
-       end
-       else
-       begin
-
-          // For non-empty chains, we connect to the head of the first link
-          // and the tail of the last link. (These could be the same link if
-          // there was only one.)
-          messageM("Exposing Chain: [" + integerToString(x) + "]");
-          let latest_link = List::head(links);
-          let earliest_link = List::last(links);
-          chns[x] = (interface PHYSICAL_CHAIN;
-                         interface incoming = latest_link.incoming;
-                         interface outgoing = earliest_link.outgoing;
-                     endinterface);
-
-       end
-    end
+    let chns      <- exposeChains(ctx.chains);
 
     interface outgoing = outs;
     interface incoming = ins;
@@ -101,7 +66,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  unmatchedRecvs: tagged Nil,
                  unmatchedSendMultis: tagged Nil,
                  unmatchedRecvMultis: tagged Nil,
-                 chains: Vector::replicate(tagged Nil),
+                 chains: tagged Nil,
                  stations: tagged Nil,
                  stationStack: tagged Nil,
                  synthesisBoundaryPlatform: `MULTI_FPGA_PLATFORM,
@@ -118,9 +83,9 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
 
 endinstance
 
-instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI));
+instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI,t_NUM_CHAINS));
 
-    module exposeServiceContext#(LOGICAL_CONNECTION_INFO ctx) (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI));
+    module exposeServiceContext#(LOGICAL_CONNECTION_INFO ctx) (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI, t_NUM_CHAINS));
 
         let rst <- exposeCurrentReset();
         let clk <- exposeCurrentClock();
@@ -253,7 +218,7 @@ module exposeDanglingSendMultis#(List#(LOGICAL_SEND_MULTI_INFO) dsends) (Vector#
   for (Integer x = 0; x < length(dsends); x = x + 1)
   begin
     let cur = dsends[x];
-    messageM("Dangling SendMulti {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform);
+    messageM("Dangling SendMulti {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform );
     res[cur_out] = cur.outgoing;
     cur_out = cur_out + 1;
   end
@@ -353,4 +318,57 @@ module mkPassThrough
 
   endinterface
 
+endmodule
+
+// make the printout similar to connections.  this may assist in parsing later.
+module printChain#(Integer cur_out, LOGICAL_CHAIN_INFO cur) (Empty);
+  messageM("Dangling Chain {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":False");
+endmodule
+
+module exposeChains#(List#(LOGICAL_CHAIN_INFO) chains) (Vector#(n, PHYSICAL_CHAIN));
+
+    Vector#(n, PHYSICAL_CHAIN) chns = newVector();
+    messageM("In expose Chains");    
+    Integer cur_chain = 0;
+    // For every chain, we must expose it to the next level.
+    for (Integer x = 0; x < length(chains); x = x + 1)
+    begin
+       let chain = chains[x];
+       cur_chain = cur_chain + 1;
+       // For non-empty chains, we connect to the head of the first link
+       // and the tail of the last link. (These could be the same link if
+       // there was only one.)
+       printChain(x,chain);
+       chns[x] = (interface PHYSICAL_CHAIN;
+                    interface incoming = chain.incoming;
+                    interface outgoing = chain.outgoing;
+                  endinterface);
+
+    end
+
+
+  for (Integer x = cur_chain; x < valueOf(n); x = x + 1)
+    begin  
+     let null_in = interface PHYSICAL_CHAIN_IN
+                 interface clock = noClock;
+                 interface reset = noReset;
+                 method Bool success() = False;
+                 method Action try(PHYSICAL_CHAIN_DATA d) = noAction;
+               endinterface;
+
+      let null_out = interface PHYSICAL_CHAIN_OUT
+                  interface clock = noClock;
+                  interface reset = noReset;
+                  method Action deq() = noAction;
+                  method PHYSICAL_CHAIN_DATA first = 0;
+                  method Bool notEmpty() = False;
+               endinterface;
+
+      chns[x] = (interface PHYSICAL_CHAIN;
+                    interface incoming = null_in;
+                    interface outgoing = null_out;
+                  endinterface); 
+    end	       
+    
+   return chns;
 endmodule

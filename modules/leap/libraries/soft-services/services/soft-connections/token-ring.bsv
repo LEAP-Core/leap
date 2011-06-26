@@ -60,7 +60,7 @@ TOKEN_RING_MSG#(type t_NODE_ID, type t_MSG)
 //     WARNING:  there must be a node with a NODE_ID of 0.  The token starts
 //               on this node.
 //
-module [CONNECTED_MODULE] mkConnection_TokenRingNode#(Integer chainNum,
+module [CONNECTED_MODULE] mkConnection_TokenRingNode#(Integer chainId,
                                                       t_NODE_ID myID)
     // Interface:
     (Connection_TokenRing#(t_NODE_ID, t_MSG))
@@ -75,7 +75,7 @@ module [CONNECTED_MODULE] mkConnection_TokenRingNode#(Integer chainNum,
               Add#(t_RING_MSG_SZ, m__, CON_CHAIN_DATA_SZ));
 
     // Allocate a node on the physical chain
-    Connection_Chain#(t_RING_MSG) chain <- mkConnection_Chain(chainNum);
+    Connection_Chain#(t_RING_MSG) chain <- mkConnection_Chain(chainId);
 
     // Inbound & outbound FIFOs
     FIFOF#(t_MSG) recvQ <- mkFIFOF();

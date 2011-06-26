@@ -1,0 +1,14 @@
+
+%name Null Standard Virtual Devices
+%desc Null Standard Virtual Devices
+
+%provides virtual_devices
+
+%requires central_cache scratchpad_memory shared_memory starter_device common_utility_devices
+
+%notes README
+
+%public  std-virtual-devices.dic
+%public  std-virtual-devices-null.bsv
+%public  std-virtual-devices.h
+%private std-virtual-devices.cpp

@@ -23,7 +23,8 @@ def p_platform_list(p):
     if len(p) == 1:
         p[0] = []  # end of list - may want to do stuff here.
     else:
-        p[0] = [Platform(p[2],p[3],p[5])] + p[7] 
+        # the eval strips out the "" on the string
+        p[0] = [Platform(p[2],eval(p[3]),p[5])] + p[7] 
         
 def p_connection_list(p):
     """

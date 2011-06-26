@@ -22,7 +22,7 @@ import Vector::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/stats_device.bsh"
+//`include "awb/provides/stats_device.bsh"
 
 //AWB Parameters
 //name:                  default:
@@ -35,6 +35,8 @@ import Vector::*;
 // Various statistics interfaces:
 //
 
+typedef 8 STAT_VECTOR_INDEX_SZ;
+typedef Bit#(STAT_VECTOR_INDEX_SZ) STAT_VECTOR_INDEX;
 typedef Bit#(`STATS_SIZE) STAT_VALUE;
 
 // Single statistic

@@ -81,33 +81,17 @@ endmodule
 
 // connectChains
 
+// connectChains
+
 // Backwards Compatability: Connection Chains
 
-module connectChains#(Clock c, Vector#(CON_NUM_CHAINS, List#(LOGICAL_CHAIN_INFO)) chains) ();
+module connectChains#(Clock c, List#(LOGICAL_CHAIN_INFO) chains) ();
 
-    for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)
-    begin
-		
+    for (Integer x = 0; x < length(chains); x = x + 1)
+      begin		
         // Iterate through the chains.
         let chn = chains[x];
-        
-        // Close non-nil chains off.
-        if (!List::isNull(chn))
-        begin
-
-            let latest_link = List::head(chn);
-            let earliest_link = List::last(chn);
-            // This is the reverse of the non-top level way, because we are
-            // closing the chain.
-            messageM("Closing Chain: [" + integerToString(x) + "]");
-            connectOutToIn(earliest_link.outgoing, latest_link.incoming);
-
-        end
-        else
-        begin
-            messageM("Skipping Empty Chain: [" + integerToString(x) + "].");
-        end
-
-    end
-    
+        messageM("Closing Chain: [" + chn.logicalName + "]");
+        connectOutToIn(chn.outgoing, chn.incoming);
+      end			     
 endmodule

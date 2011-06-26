@@ -116,6 +116,16 @@ instance Matchable#(LOGICAL_SEND_MULTI_INFO);
   endfunction
 endinstance
 
+instance Matchable#(LOGICAL_CHAIN_INFO);
+  function String getLogicalName(LOGICAL_CHAIN_INFO sinfo);
+    return sinfo.logicalName;
+  endfunction
+
+  function String getComputePlatform(LOGICAL_CHAIN_INFO sinfo);
+    return sinfo.computePlatform;
+  endfunction
+endinstance
+
 function Bool nameMatches(r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));

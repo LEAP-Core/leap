@@ -90,6 +90,7 @@ sub create_dynsize_bsh {
     my $recvs = 0;
     my $send_multis = 0;
     my $recv_multis = 0;
+    my $chains = 0;
 
     if ($softservices) {
         for (my $i = 0; $i < scalar(@conns); $i++) {
@@ -101,6 +102,8 @@ sub create_dynsize_bsh {
                 $recv_multis += 1;
             } elsif ($conns[$i]->{"sc_type"} eq "SendMulti") {
                 $send_multis += 1;
+            } elsif ($conns[$i]->{"sc_type"} eq "Chain") {
+                $chains += 1;
             } else {
                 DIE("Soft Serices: Unrecognized type of dangling connection: $1\n");
             }
@@ -131,6 +134,11 @@ sub create_dynsize_bsh {
         print SIZES "`ifndef CON_RECV_MULTI_${metatype}\n";
         print SIZES "`define CON_RECV_MULTI_${metatype} ${recv_multis}\n";
         print SIZES "`endif\n\n";
+
+        print SIZES "`ifndef CHAINS_${metatype}\n";
+        print SIZES "`define CHAINS_${metatype} ${chains}\n";
+        print SIZES "`endif\n\n";
+
         print SIZES "`ifndef CON_SEND_MULTI_${metatype}\n";
         print SIZES "`define CON_SEND_MULTI_${metatype} ${send_multis}\n";
         print SIZES "`endif\n";    
@@ -141,6 +149,9 @@ sub create_dynsize_bsh {
         print SIZES "`ifndef CON_SEND_MULTI_${metatype}\n";
         print SIZES "`define CON_SEND_MULTI_${metatype} 0\n";
         print SIZES "`endif\n";
+        print SIZES "`ifndef CHAINS_${metatype}\n";
+        print SIZES "`define CHAINS_${metatype} 0\n";
+        print SIZES "`endif\n\n";
     }
     close(SIZES);
 }
@@ -241,7 +252,7 @@ sub add_connections {
 	print $of "    // Obtain model clock from context\n";
         print $of "    LOGICAL_CLOCK_INFO model_clock <- getContext();\n";
        	print $of "    // Instantiate wrapper using the correct clock.\n";
-	print $of "    SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}) $wrap_var <- $mk_wrapper(clocked_by model_clock.clk, reset_by model_clock.rst);\n";
+	print $of "    SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}, `CHAINS_${metatype}) $wrap_var <- $mk_wrapper(clocked_by model_clock.clk, reset_by model_clock.rst);\n";
         print $of "    // Begin: Register Soft Connections\n";
         print $of "    let connections = tpl_1($wrap_var.services);\n";
         print $of " // logfile: $logfile_name\n";
@@ -261,21 +272,24 @@ sub add_connections {
                 print $of "    registerSendMulti(LOGICAL_SEND_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoingMultis[$conidx] });\n";
             } elsif ($conns[$i]->{"sc_type"} eq "RecvMulti") {
                 print $of "    registerRecvMulti(LOGICAL_RECV_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, incoming: connections.incomingMultis[$conidx] });\n";
+	    } elsif ($conns[$i]->{"sc_type"} eq "Chain") {
+                print $of "    registerChain(LOGICAL_CHAIN_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", incoming: connections.chains[$conidx].incoming, outgoing: connections.chains[$conidx].outgoing });\n";
             }
+
         }
-        print $of "    // Backwards Compatability: Connection Chains\n";
-        print $of "    for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)\n";
-        print $of "    begin\n";
-        print $of "        let info =\n";
-        print $of "            LOGICAL_CHAIN_INFO\n";
-        print $of "            {\n";
-        print $of "                logicalIdx: x,\n";
-        print $of "                logicalType: \"\",\n";
-        print $of "                incoming: connections.chains[x].incoming,\n";
-        print $of "                outgoing: connections.chains[x].outgoing\n";
-        print $of "            };\n";
-        print $of "        registerChain(info);\n";
-        print $of "    end\n";
+        #print $of "    // Backwards Compatability: Connection Chains\n";
+        #print $of "    for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)\n";
+        #print $of "    begin\n";
+        #print $of "        let info =\n";
+        #print $of "            LOGICAL_CHAIN_INFO\n";
+        #print $of "            {\n";
+        #print $of "                logicalIdx: x,\n";
+        #print $of "                logicalType: \"\",\n";
+        #print $of "                incoming: connections.chains[x].incoming,\n";
+        #print $of "                outgoing: connections.chains[x].outgoing\n";
+        #print $of "            };\n";
+        #print $of "        registerChain(info);\n";
+        #print $of "    end\n";
         print $of "    // End: Register Soft Connections\n";
 
     } 
@@ -408,8 +422,10 @@ sub parse_dangling_connections {
 
     #print "parsing: $log_file\n";
     my @conns = ();
+    my $line_count = 0;
     CORE::open(LOG, "< $log_file") || return undef;
     while (my $line = <LOG>) {
+	$line_count = $line_count + 1;
         if ($line =~ /^Compilation message: .*: Dangling /) {
             if ($softservices) {
 	        if ($line =~ /.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\w+)/) {
@@ -424,7 +440,7 @@ sub parse_dangling_connections {
 		    push(@conns, \%connection);
 		}
 		else {
-		    DIE("Soft Services: Malformed dangling connection message");
+		    DIE("Soft Services: Malformed dangling connection message $logfile line $line_count\n");
 		}
 	    } else { #Backwards compatibility
 	        if ($line =~ /.*Dangling (\w+) {(.*)} \[(\d+)\]: (\w+)/) {
@@ -432,7 +448,7 @@ sub parse_dangling_connections {
 		    push(@conns, [@connection]);
 		}
 		else {
-		    DIE("Malformed dangling connection message");
+		    DIE("Malformed dangling connection message $logfile line $line_count");
 		}
 	    }
         }

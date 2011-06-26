@@ -84,7 +84,7 @@ class ModuleList:
     if not os.path.isdir(self.smartguide_cache_dir):
       os.mkdir(self.smartguide_cache_dir)
         
-    if ((int(self.arguments.get('USE_SMARTGUIDE', 0)) or self.env['ENV'].has_key('USE_SMARTGUIDE')) and
+    if (self.env['ENV'].has_key('USE_SMARTGUIDE') and
         (FindFile(self.apmName + '_par.ncd', [self.smartguide_cache_dir]) != None)):
       self.smartguide = ' -smartguide ' +  self.smartguide_cache_dir + '/' + self.smartguide_cache_file
     else:

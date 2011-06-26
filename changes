@@ -8766,3 +8766,123 @@ A rather large set of changes, most of which are incidental to supporting multip
 3) Refactoring of RRR comm stack for use in MultiFPGA comm stack
 4) Patched pieces of the Bluesim build to force rebuilds if bdpi changes
 
+
+----------
+kfleming    Date: Sun Jun 26 18:11:17 EDT 2011  CSN: CSN-leap-118
+                  Sun Jun 26 22:11:17 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          117 
+ leap-connect              Locally Modified          117 
+ leap-gen-black-box        Locally Modified          117 
+ leap-bsc-mkdepend         Locally Modified          117 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Added               0 
+ std-virtual-devices-null.awb Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.cpp        Locally Modified          117 
+ starter-device.h          Locally Modified          117 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.awb Locally Modified          117 
+ common-utility-devices-null.awb Locally Added               0 
+ common-utility-devices-null.bsv Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          117 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          117 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Modified          117 
+ iface.py                  Locally Modified          117 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          117 
+ multiparse.py             Locally Modified          117 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          117 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          117 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries/backwards-compat
+ with-connections.bsv      Locally Modified          117 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-null.awb Locally Added               0 
+ platform-scratchpad-memory.bsv Locally Modified          117 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ platform-central-cache.bsv Locally Modified          117 
+ central-cache-service-null.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsh Locally Modified          117 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ shared-memory-service.awb Locally Modified          117 
+ shared-memory-service-null.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard-null.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service-null.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service-null.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard-null.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service-null.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard-null.bsv Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          117 
+ stats-service-null.awb    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/streams-service
+ streams-service-null.awb  Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          117 
+ connected-common.bsv      Locally Modified          117 
+ with-connections.bsv      Locally Modified          117 
+ soft-connections-module-context-multifpga.awb Locally Modified          117 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-top-level.bsv     Locally Modified          117 
+ expose-connections.bsv    Locally Modified          117 
+ connect-top-level-multifpga.bsv Locally Modified          117 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          117 
+ token-ring.bsv            Locally Modified          117 
+ connection-backwards-compat.bsv Locally Modified          117 
+ connection-context.bsv    Locally Modified          117 
+ connections.bsv           Locally Modified          117 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-defs.bsv    Locally Modified          117 
+
+
+
+Another massive commit.  
+
+1) Moved iface build to build pipeline.  This required that we change the bsv depends calculation to occur as a part of the SCons build as opposed to at the beginning of the SCons.  
+
+2) Upgraded Chain compilation.  Chains were previously hard coded and created at least one link per synthesis boundary.  We now dynamically size the number of chains and only assign links when they are explicitly instantiated in user code. 
+
+3) Added null services.  MultiFPGA builds occasionally need to see the interface files for the services, but do not instantiate the virtual device wrapper.   The null family allows for this. 
+
+Coming soon will be chunked chains. 

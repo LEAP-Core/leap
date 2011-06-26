@@ -12,3 +12,10 @@
 %notes README
 
 %scons %library iface.py
+
+%param --global EXTRA_DICTS " " "A set of extra dictionary files"
+
+
+
+
+

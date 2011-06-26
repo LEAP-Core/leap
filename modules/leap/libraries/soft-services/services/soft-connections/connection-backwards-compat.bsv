@@ -131,97 +131,18 @@ interface Connection_Chain#(type msg_T);
 endinterface
 
 
-module [ConnectedModule] mkConnection_Chain#(Integer chain_num)
+module [ConnectedModule] mkConnection_Chain#(Integer chain_id)
     //interface:
 		(Connection_Chain#(msg_T))
     provisos
 	    (Bits#(msg_T, msg_SZ));
+  CONNECTION_CHAIN#(msg_T) c <- mkConnectionChain("OldSchoolChain" + integerToString(chain_id));
 
-  // Local Clock and reset
-  Clock localClock <- exposeCurrentClock();
-  Reset localReset <- exposeCurrentReset();
+  method recvFromPrev = c.recvFromPrev;
+  method peekFromPrev = c.peekFromPrev;
+  method recvNotEmpty = c.recvNotEmpty;
 
-  RWire#(msg_T)  dataW  <- mkRWire();
-  PulseWire      enW    <- mkPulseWire();
-  FIFOF#(msg_T)  q       <- mkUGFIFOF();
-
-  let inc = (interface PHYSICAL_CHAIN_IN;
-
-               // Part 1 of the anti-method to get(). Unmarshall the data and send it on the wire.
-               method Action try(x);
-                 Bit#(msg_SZ) tmp = truncateNP(x);
-                 dataW.wset(unpack(tmp));
-               endmethod
-
-               // Part 2 of the anti-method to get(). If someone actually was listening, then the get() succeeded.
-               method Bool success();
-                 return enW;
-               endmethod
-
-               interface Clock clock = localClock;
-               interface Reset reset = localReset;               
-              
-     	     endinterface);
-
-  let outg = (interface PHYSICAL_CHAIN_OUT;
-
-               // Trying to transmit something means marshalling up the first thing in the queue.
-	       method PHYSICAL_CHAIN_DATA first();
-                 Bit#(msg_SZ) tmp = pack(q.first());
-                 return zeroExtendNP(tmp);
-               endmethod
-
-               // Sometimes its useful to have an explicit notEmpty
-               method Bool notEmpty() = q.notEmpty();
-
-               // If we were successful we can dequeue.
-	       method Action deq() = q.deq();
-
-               interface Clock clock = localClock;
-               interface Reset reset = localReset;
-
-	     endinterface);
-
-  //Figure out my type for typechecking
-  msg_T msg = ?;
-  String my_type = printType(typeOf(msg));
-
-  // Collect up our info.
-  let info = 
-      LOGICAL_CHAIN_INFO 
-      {
-          logicalIdx: chain_num, 
-          logicalType: my_type, 
-          incoming: inc,
-          outgoing: outg
-      };
-
-  String platformName <- getSynthesisBoundaryPlatform(); 
-  if(platformName == `MULTI_FPGA_PLATFORM)
-    begin
-      // Register the chain
-      registerChain(info);
-    end
-
-  method msg_T peekFromPrev() if (dataW.wget() matches tagged Valid .val);
-    return val;
-  endmethod 
-
-  method Bool recvNotEmpty();
-    return isValid(dataW.wget());
-  endmethod 
-
-  method sendNotFull = q.notFull;
-
-  method Action sendToNext(msg_T data) if (q.notFull());
-    q.enq(data);
-  endmethod
-
-  method ActionValue#(msg_T) recvFromPrev() if (dataW.wget() matches tagged Valid .val);
-
-    enW.send();
-    return val;
-
-  endmethod
+  method sendToNext = c.sendToNext;
+  method sendNotFull = c.sendNotFull;
 
 endmodule

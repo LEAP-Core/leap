@@ -100,6 +100,8 @@ class Software():
                                                build_dir = sw_build_dir,
                                                duplicate = 0)
     
+        
+        moduleList.env.Depends(sw_objects,moduleList.topModule.moduleDependency['IFACE_HEADERS'])
         sw_libpath = [ '.' ]
         sw_link_libs = [ 'pthread', 'dl' ]
     

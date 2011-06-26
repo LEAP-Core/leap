@@ -1,4 +1,4 @@
-%name Shared Memory Services
+%name Null Shared Memory Services
 %desc Wrap Shared Memory Device in Soft Connections
 
 %provides shared_memory_service
@@ -8,6 +8,4 @@
 %notes README
 
 %public shared-memory-service.bsh
-%public shared-memory-service.bsv
-
 

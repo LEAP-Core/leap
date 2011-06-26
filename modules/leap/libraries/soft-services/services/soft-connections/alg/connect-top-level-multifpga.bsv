@@ -51,19 +51,29 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   connectStationsTree(clk, info);
 
   // Error out if there are dangling connections
+  // however, "model" where this is called may be on another FPGA.  So, unmatched things 
+  // are acceptable - the generated 
   Bool error_occurred = False;
   // Final Dangling sends
   for (Integer x = 0; x < List::length(unmatched_sends); x = x + 1)
   begin
     let cur = unmatched_sends[x];
-    if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)
+  
+    // clear out leftovers from model top level 
+    if(cur.computePlatform != `MULTI_FPGA_PLATFORM) 
+      begin
+        messageM("dropping: ");
+	printSend(cur); 
+      end
+    else if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingSend(x,cur);
       end
     else if (!cur.optional)
       begin
-        messageM("ERROR: Unmatched logical send: " +  cur.logicalName);
+        messageM("ERROR: Unmatched logical send: ");
+        printSend(cur);
         error_occurred = True;
       end
   end
@@ -73,14 +83,21 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   begin
     let cur = unmatched_recvs[x];
     messageM("Working on: " + `MULTI_FPGA_PLATFORM);
-    if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)
+    // clear out leftovers from model top level 
+    if(cur.computePlatform != `MULTI_FPGA_PLATFORM) 
+      begin
+        messageM("dropping: ");
+	printRecv(cur); 
+      end
+    else if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingRecv(x,cur);
       end
     else if (!cur.optional)
       begin
-        messageM("ERROR: Unmatched logical receive: " + cur.logicalName);
+        messageM("ERROR: Unmatched logical receive: ");
+        printRecv(cur);
         error_occurred = True;
       end
   end
@@ -95,31 +112,21 @@ endmodule
 
 // Backwards Compatability: Connection Chains
 
-module connectChains#(Clock c, Vector#(CON_NUM_CHAINS, List#(LOGICAL_CHAIN_INFO)) chains) ();
+module connectChains#(Clock c, List#(LOGICAL_CHAIN_INFO) chains) ();
 
-    for (Integer x = 0; x < valueof(CON_NUM_CHAINS); x = x + 1)
-    begin
-		
+    for (Integer x = 0; x < length(chains); x = x + 1)
+      begin		
         // Iterate through the chains.
         let chn = chains[x];
-        
-        // Close non-nil chains off.
-        if(length(chn) == 0)
+        if(`CLOSE_CHAINS == 1)
           begin
-            messageM("Skipping Empty Chain: [" + integerToString(x) + "].");
-          end	    
-        else
-            begin
-
-              let latest_link = List::head(chn);
-              let earliest_link = List::last(chn);
-              // This is the reverse of the non-top level way, because we are
-              // closing the chain.
-              messageM("Closing Chain: [" + integerToString(x) + "]");
-              connectOutToIn(earliest_link.outgoing, latest_link.incoming);
-
+            messageM("Closing Chain: [" + chn.logicalName + "]");
+            connectOutToIn(chn.outgoing, chn.incoming);
           end
-	
-    end
+        else
+          begin
+            printChain(x,chn);
+          end
+      end
     
 endmodule

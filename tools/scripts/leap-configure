@@ -52,6 +52,7 @@ my $nuke = 0;
 my $setup = 0;
 my $build = 0;
 my $run = 0;
+my $pythonize = 0;
 
 # command options
 my $buildopt = "all";
@@ -61,19 +62,21 @@ my $rundir = undef;
 my $model = undef;
 my $runopt = "";
 
-
 my $private = 1;
 my $public = 1;
 my $relative = 0;
+my $silent = 0;
 
 $status = GetOptions( "private!"    => \$private,
                       "public!"     => \$public,
                       "relative!"   => \$relative,
+                      "silent!"     => \$silent,
                       "debug"       => \$debug,
                       "configure"   => \$configure,
                       "nuke"        => \$nuke,
                       "setup"       => \$setup,
                       "build"       => \$build,
+                      "pythonize"   => \$pythonize,
                       "run"         => \$run,
 		      "model=s"     => \$model,
 		      "builddir=s"  => \$builddir,
@@ -96,7 +99,7 @@ if ($help) {
 }
 
 
-my $num_commands = $configure + $nuke + $build + $setup + $run;
+my $num_commands = $configure + $nuke + $build + $setup + $run + $pythonize;
 if ($num_commands != 1) {
     print STDERR "$prog: Must supply exactly one command:\n";
     print STDERR "\t-configure\n";
@@ -104,6 +107,7 @@ if ($num_commands != 1) {
     print STDERR "\t-build\n";
     print STDERR "\t-setup\n";
     print STDERR "\t-run\n";
+    print STDERR "\t-pythonize\n";
     exit 0;
 }
 
@@ -140,10 +144,14 @@ if ($configure) {
 } elsif ($run) {
     print "Running model. . . \n";
     $status = run_model($model, $benchmark);
+} elsif($pythonize) {
+    $status = pythonize_model($model);
 }
 
 if ($status) {
-    print "Done\n";
+    if(!$silent) {
+	print "Done\n";
+    }
     exit(0);
 }
 else {
@@ -174,6 +182,41 @@ sub run_model {
     $sys_status = system("cd $rundir; $exe");
 
     return ($sys_status == 0);
+}
+
+############################################################
+# generate a python representation of the build tree
+sub pythonize_model {
+    my $modelfile = shift;
+
+    my $model = Asim::Model->new($modelfile);
+    my $sys_status;
+
+    if (defined(&Asim::Model::embed_submodels)) {
+	$model->embed_submodels();
+    } 
+
+    # (0) validate model structure                                                                                                                        
+    validate_model($model) || return 0;
+
+    my $root = $model->modelroot();
+
+    my $pythonRepresentation = __pythonize_model($root);
+    print "[" . $pythonRepresentation . "]";
+    return 1;
+}
+
+sub __pythonize_model {
+    my $module = shift;
+
+    my $pythonRepresentation = Leap::Build::pythonize_module($module);
+
+    Leap::Build::check_submodules_defined($module);
+    foreach my $child ($module->submodules()) {
+       $pythonRepresentation =  $pythonRepresentation  . __pythonize_model($child);
+    }
+
+    return $pythonRepresentation;
 }
 
 ############################################################
@@ -1723,13 +1766,14 @@ sub generate_wrapper {
         print WRAPPER "`define CON_SEND_${metatype} 100\n";
         print WRAPPER "`define CON_RECV_MULTI_${metatype} 50\n";
         print WRAPPER "`define CON_SEND_MULTI_${metatype} 50\n";
+        print WRAPPER "`define CHAINS_${metatype} 50\n";
         print WRAPPER "`else\n";
         print WRAPPER "// Real build pass.  Include file built dynamically.\n";
         print WRAPPER "`include \"${synth_name}_con_size.bsh\"\n";
         print WRAPPER "`endif\n";
         print WRAPPER "\n";
         print WRAPPER "(* synthesize *)\n";
-	print WRAPPER "module ${module_name} (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}));\n";    
+	print WRAPPER "module ${module_name} (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}, `CHAINS_${metatype}));\n";    
     }
     print WRAPPER "\n";
 

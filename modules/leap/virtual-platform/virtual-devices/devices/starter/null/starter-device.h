@@ -26,7 +26,7 @@ class STARTER_DEVICE_SERVER_CLASS: public PLATFORMS_MODULE_CLASS
     static STARTER_DEVICE_SERVER GetInstance() { return NULL; }
 
     // client methods
-    void Start();
+    void Start() {};
     void WaitForHardware() {};
 };
 

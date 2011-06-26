@@ -14,7 +14,7 @@ class Bluesim():
     # bluesim, we should be able to do the right thing.
     APM_NAME = moduleList.env['DEFS']['APM_NAME']
     BSC = moduleList.env['DEFS']['BSC']
-    BSC_FLAGS_SIM = ' -steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule'
+    BSC_FLAGS_SIM = '-v -steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread'
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
@@ -69,7 +69,7 @@ class Bluesim():
 
     exe = moduleList.env.Command(
         APM_NAME + '_hw.exe', 
-        sbin + moduleList.swExe + moduleList.getAllDependencies('BDPI_CS') + moduleList.getAllDependencies('BDPI_HS'),
+        sbin + moduleList.getAllDependencies('BDPI_CS') + moduleList.getAllDependencies('BDPI_HS'),
         [ '@ln -fs ${SOURCE} ${TARGET}',
           '@ln -fs ${SOURCE}.so ${TARGET}.so',
           '@ln -fs ' + moduleList.swExeOrTarget + ' ' + APM_NAME,

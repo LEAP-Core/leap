@@ -154,13 +154,14 @@ endmodule
 
 // BACKWARDS COMPATABILITY: Connection Chains
 
-module [t_CONTEXT] getChain#(Integer idx) (List#(LOGICAL_CHAIN_INFO))
+module [t_CONTEXT] getChain#(LOGICAL_CHAIN_INFO descriptor) (Maybe#(LOGICAL_CHAIN_INFO))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
-    return ctxt.chains[idx];
+    
+    return List::find(nameMatches(descriptor),ctxt.chains);
 
 endmodule
 
@@ -289,13 +290,13 @@ endmodule
 
 // putChain
 
-module [t_CONTEXT] putChain#(Integer idx, List#(LOGICAL_CHAIN_INFO) chain) ()
+module [t_CONTEXT] putChain#(LOGICAL_CHAIN_INFO chain) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
-    ctxt.chains[idx] = chain;
+    ctxt.chains = List::cons(chain,List::filter(nameDoesNotMatch(chain),ctxt.chains));
     putContext(ctxt);
 
 endmodule

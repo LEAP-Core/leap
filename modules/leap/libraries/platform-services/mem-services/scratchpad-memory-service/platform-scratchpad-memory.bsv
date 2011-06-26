@@ -28,8 +28,11 @@ import SpecialFIFOs::*;
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
+`include "awb/provides/scratchpad_memory_common.bsh"
 `include "awb/provides/fpga_components.bsh"
+`include "awb/provides/common_services.bsh"
 
+`include "awb/dict/RINGID.bsh"
 `include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 `include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
 

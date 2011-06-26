@@ -122,25 +122,20 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
+    messageM("Calling register chain");
     // See what existing links are out there.
-    let idx = new_link.logicalIdx;
-    let existing_links <- getChain(idx);
+    let existing_links <- getChain(new_link);
 
-    if (List::isNull(existing_links))
-    begin
-
-        // It's the only member of the chain, so just add it.
-        messageM("Adding Initial Link for Chain: [" + integerToString(idx) + "]");
-        putChain(idx, List::cons(new_link, existing_links));
-
-    end
-    else
+    if(new_link.computePlatform != `MULTI_FPGA_PLATFORM)
+      begin
+        messageM("Dropping Chain Link " + new_link.logicalName + " should be on " + new_link.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+      end
+    else if (existing_links matches tagged Valid .latest_link)
     begin
 
         // There are other links already, so make sure the types
         // are consistent.
-        let latest_link = List::head(existing_links);
-   
+ 
         // Make sure connections match or consumer is receiving it as void
         if (new_link.logicalType != latest_link.logicalType && new_link.logicalType != "" && latest_link.logicalType != "")
         begin
@@ -148,22 +143,34 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
             // Error out
             messageM("Detected existing chain type: " + latest_link.logicalType);
             messageM("Detected new link type: " + new_link.logicalType);
-            error("ERROR: data types for Connection Chain #" + integerToString(idx) + " do not match.");
+            error("ERROR: data types for Connection Chain #" + new_link.logicalName + " do not match.");
 
         end
-        else
-        begin  
-           
-            // Actually do the connection
-            messageM("Adding Link to Chain: [" + integerToString(idx) + "]");
-            connectOutToIn(new_link.outgoing, latest_link.incoming);
-
-        end
+      
+        // Good news! We didn't blow up.
+        // Actually do the connection, with a new LOGICAL_CHAIN_INFO 
+        // This lets us keep a single LOGICAL_CHAIN_INFO
+        messageM("Adding Link to Chain: [" + new_link.logicalName + "]");
+        connectOutToIn(new_link.outgoing, latest_link.incoming);
 
         // Add the new link to the list.
-        putChain(idx, List::cons(new_link, existing_links));
+        putChain(LOGICAL_CHAIN_INFO{logicalName: new_link.logicalName, 
+                                               logicalType: new_link.logicalType, 
+                                               computePlatform: new_link.computePlatform, 
+                                               incoming: new_link.incoming, 
+                                               outgoing: latest_link.outgoing});
 
     end
+    else
+    begin
+
+        // It's the only member of the chain, so just add it.
+        messageM("Adding Initial Link for Chain: [" + new_link.logicalName + "]");
+        putChain(new_link);
+
+    end
+
+
 
 endmodule
 

@@ -59,7 +59,6 @@ typedef CONNECTION_IN#(PHYSICAL_DATA_SIZE) PHYSICAL_CONNECTION_IN;
 
 // A physical outgoing connection
 interface CONNECTION_OUT#(numeric type t_MSG_SIZE);
-
   method Bool notEmpty();
   method Bit#(t_MSG_SIZE) first();
   method Action deq();
@@ -195,8 +194,9 @@ typedef CONNECTION_INOUT#(CHAIN_DATA_SIZE, CHAIN_DATA_SIZE) PHYSICAL_CHAIN;
 
 typedef struct 
 {
-    Integer logicalIdx;
+    String  logicalName;
     String  logicalType;
+    String  computePlatform;
     PHYSICAL_CHAIN_IN  incoming;
     PHYSICAL_CHAIN_OUT outgoing;
 } 
@@ -210,7 +210,7 @@ typedef struct
     List#(LOGICAL_RECV_INFO) unmatchedRecvs;
     List#(LOGICAL_SEND_MULTI_INFO) unmatchedSendMultis;
     List#(LOGICAL_RECV_MULTI_INFO) unmatchedRecvMultis;
-    Vector#(CON_NUM_CHAINS, List#(LOGICAL_CHAIN_INFO)) chains; // BACKWARDS COMPATABILITY: connection chains
+    List#(LOGICAL_CHAIN_INFO) chains; // BACKWARDS COMPATABILITY: connection chains
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
     String synthesisBoundaryPlatform;

@@ -6,7 +6,9 @@ from model import  *
 from config import *
 from fpga_environment_parser import *
 from subprocess import call
-
+from subprocess import Popen
+from subprocess import PIPE
+from subprocess import STDOUT
 
 def makePlatformLogName(name, apm):
   return name +'_'+ apm + '_multifpga_logs'
@@ -22,6 +24,14 @@ class MultiFPGAGenerateLogfile():
     mappingRootName = APM_NAME  + '_mutlifpga_mapping'
     mappingName = mappingRootName + '.apm'
     mappingPath =  'config/pm/private/' + mappingName
+
+
+    def makePlatformBuildDir(name):
+      return moduleList.env['DEFS']['BUILD_DIR'] +'/../../' + makePlatformLogName(name,APM_NAME) + '/pm/'
+
+    def makePlatformDictDir(name):
+      return makePlatformBuildDir(name) + '/iface/src/dict/'
+
   
     envFile = moduleList.getAllDependenciesWithPaths('GIVEN_FPGAENVS')
     if(len(envFile) != 1):
@@ -61,11 +71,34 @@ class MultiFPGAGenerateLogfile():
     # copy the environment descriptions to private 
     #APM_FILE
     #WORKSPACE_ROOT
+    # the first thing to do is construct the global set of dictionaries
+    # I can communicate this to the subbuilds 
+    # I build the links here, but I can't physcially check the files until later
+    platformHierarchies = {}
+    for platformName in environment.getPlatformNames():
+      platform = environment.getPlatform(platformName)
+      print "leap-configure --pythonize " +  platform.path
+      rawDump = Popen(["leap-configure", "--pythonize", "--silent", platform.path], stdout=PIPE ).communicate()[0]
+      # fix the warning crap sometime
+      platformHierarchies[platformName] = ModuleList(moduleList.env, eval(rawDump))
+    
+    # check that all same named file are the same.  Then we can blindly copy all files to all directories and life will be good. 
+    # once that's done, we still need to tell the child about these extra dicts. 
+    # need to handle dynamic params specially somehow.... 
+    # for now we'll punt on it. 
+    environmentDicts = {} 
+    for platformName in environment.getPlatformNames():
+      platform = environment.getPlatform(platformName)
+      for dict in platformHierarchies[platformName].getAllDependencies('GIVEN_DICTS'):
+        if(not dict in environmentDicts):                                                     
+          environmentDicts[dict] = makePlatformDictDir(platform.name)
+
+                                        
     for platformName in environment.getPlatformNames():
       platform = environment.getPlatform(platformName)
       platformAPMName = makePlatformLogName(platform.name,APM_NAME) + '.apm'
       platformPath = 'config/pm/private/' + platformAPMName
-      platformBuildDir = moduleList.env['DEFS']['BUILD_DIR'] +'/../../' + makePlatformLogName(platform.name,APM_NAME) + '/pm/'
+      platformBuildDir = makePlatformBuildDir(platformName)
       wrapperLog =  platformBuildDir +'/'+ moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/.bsc/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper.log'
 
       print "wrapper: " + wrapperLog
@@ -78,7 +111,25 @@ class MultiFPGAGenerateLogfile():
       execute('asim-shell set parameter ' + platformPath + ' IGNORE_PLATFORM_MISMATCH 1 ')
       execute('asim-shell set parameter ' + platformPath + ' BUILD_LOGS_ONLY 1 ')
       execute('asim-shell set parameter ' + platformPath + ' USE_ROUTING_KNOWN 0 ')
+      execute('asim-shell set parameter ' + platformPath + ' CLOSE_CHAINS 0 ')
+
+      # determine which symlinks we're missing 
+      missingDicts = ""
+      platformDicts = platformHierarchies[platformName].getAllDependencies('GIVEN_DICTS')     
+      for dict in environmentDicts.keys():
+        if(not dict in platformDicts):
+          missingDicts += ':'+dict
+
+      print "missingDicts: " + missingDicts
+
+      execute('asim-shell set parameter ' + platformPath + ' EXTRA_DICTS \\"' + missingDicts  + '\\"')
       execute('asim-shell configure model ' + platformPath)
+
+      # set up the symlink - it'll be broken at first, but as we fill in the platforms, they'll come up
+      for dict in environmentDicts.keys():
+        if(not dict in platformDicts):
+          os.symlink(environmentDicts[dict] + '/' + dict, makePlatformDictDir(platform.name)  + '/' + dict)
+
 
       subbuild = moduleList.env.Command( 
           [wrapperLog],
@@ -87,6 +138,20 @@ class MultiFPGAGenerateLogfile():
           )                   
       moduleList.topModule.moduleDependency['FPGA_PLATFORM_LOGS'] += [wrapperLog] 
 
+
+
       #force build remove me later....          
       moduleList.topDependency += [subbuild]
       moduleList.env.AlwaysBuild(subbuild)
+
+    # now that we configured things, let's check that the dicts are sane
+    # we use os.stat to check file equality. It follows symlinks,
+    # and it would be an _enormous_ coincidence if non-equal files 
+    # matched
+    for platformName in environment.getPlatformNames():
+      platformDicts = platformHierarchies[platformName].getAllDependencies('GIVEN_DICTS')
+      for dict in platformDicts:
+        platStat = os.stat(makePlatformDictDir(platformName)  + '/' + dict)
+        globalStat = os.stat(environmentDicts[dict] + '/' + dict)
+        if(platStat != globalStat):
+          print "Warning, mismatched dicts: " + str(dict) + " on " + platformName
