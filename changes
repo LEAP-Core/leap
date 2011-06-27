@@ -8886,3 +8886,20 @@ Another massive commit.
 3) Added null services.  MultiFPGA builds occasionally need to see the interface files for the services, but do not instantiate the virtual device wrapper.   The null family allows for this. 
 
 Coming soon will be chunked chains. 
+
+----------
+kfleming    Date: Mon Jun 27 10:28:32 EDT 2011  CSN: CSN-leap-119
+                  Mon Jun 27 14:28:32 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-multifpga.awb Locally Modified          118 
+ soft-connections-module-context-multifpga.awb Locally Modified          118 
+ connection-dispatchers.bsv Locally Modified          118 
+ connections.bsv           Locally Modified          118 
+ connection-vectors.bsv    Locally Modified          118 
+ connection-implementation.bsv Locally Modified          118 
+
+
+
+Chunked chain connections.  I have not tested the chunking, however, as no current designs have large enough chain physical sizes to trip the code. 

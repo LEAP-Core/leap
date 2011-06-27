@@ -246,3 +246,84 @@ module [t_CONTEXT] mkConnectionRecvMultiVector#(String portname, Maybe#(STATION)
     endmethod
 
 endmodule
+
+module [t_CONTEXT] mkConnectionChainVector#(String portname, String origtype)
+    // interface:
+        (CONNECTION_CHAIN#(t_MSG))
+    provisos
+        (Bits#(t_MSG, t_MSG_SZ),
+         Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
+         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    Vector#(t_NUM_PHYSICAL_CONNS, CONNECTION_CHAIN#(Bit#(PHYSICAL_CONNECTION_SIZE))) v = newVector();
+
+    for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+    begin
+      v[x] <- mkPhysicalConnectionChain(portname + "_chunk_" + integerToString(x), origtype);
+    end
+  
+    method t_MSG peekFromPrev();
+        Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = newVector();
+
+        for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+        begin
+          tmp[x] = v[x].peekFromPrev();
+        end
+
+        Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p = pack(tmp);
+        Bit#(t_MSG_SZ) p2 = truncateNP(p);
+        return unpack(p2);
+
+    endmethod
+
+    method Bool recvNotEmpty();
+        Bool res = True;
+
+        for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+        begin
+          res = res && v[x].recvNotEmpty();
+        end
+
+        return res;
+
+    endmethod
+  
+    method Bool sendNotFull;
+        Bool res = True;
+        for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+        begin
+          res = res && v[x].sendNotFull();
+        end
+
+        return res;
+    endmethod
+
+    method Action sendToNext(t_MSG data);
+        Bit#(t_MSG_SZ) p = pack(data);
+        Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p2 = zeroExtendNP(p);
+        Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = unpack(p2);
+
+        for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+        begin
+          v[x].sendToNext(tmp[x]);
+        end
+
+    endmethod
+
+    method ActionValue#(t_MSG) recvFromPrev();
+
+        Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = newVector();
+
+        for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+        begin
+          tmp[x] <- v[x].recvFromPrev();
+        end
+
+        Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p = pack(tmp);
+        Bit#(t_MSG_SZ) p2 = truncateNP(p);
+        return unpack(p2);
+
+    endmethod
+
+endmodule

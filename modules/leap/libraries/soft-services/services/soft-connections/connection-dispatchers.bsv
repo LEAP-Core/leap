@@ -319,3 +319,45 @@ endmodule
 
 function String getReqName(String s) = s + "__req";
 function String getRspName(String s) = s + "__rsp";
+
+
+// Dispatcher of a send connection. If the data is small enough to fit into a 
+// single physical connection than only one is used. Otherwise a vector of
+// physical connections is instantiated.
+
+module [t_CONTEXT] mkConnectionDispatchChain#(String name, Maybe#(STATION) m_station, Bool guarded) 
+  // interface:
+        (CONNECTION_CHAIN#(t_MSG))
+    provisos
+        (Bits#(t_MSG, t_MSG_SIZE),
+         Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
+         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    // Figure out logical type for user-level typechecking.
+    t_MSG msg = ?;
+    String conntype = printType(typeOf(msg));
+    
+    CONNECTION_CHAIN#(t_MSG) c <- 
+        case (valueof(t_NUM_PHYSICAL_CONNS))
+            0: mkPhysicalConnectionChain(name, conntype);
+            1: mkPhysicalConnectionChain(name, conntype);
+            default: mkConnectionChainVector(name, conntype);
+        endcase;
+    
+    // Phsyical sends are unguarded. If the user asks for a guard we add it here.
+    // Currently all our implementations ask for the guard. However a "power user" can get an
+    // unguarded connection conveniently by invoking the dispatcher directly.
+    
+
+  method peekFromPrev = c.peekFromPrev;
+
+  method recvNotEmpty= c.recvNotEmpty;
+
+  method sendNotFull = c.sendNotFull;
+
+  method sendToNext = c.sendToNext;
+
+  method recvFromPrev = c.recvFromPrev;
+
+endmodule

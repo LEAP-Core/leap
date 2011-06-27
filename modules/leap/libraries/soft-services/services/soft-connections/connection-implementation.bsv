@@ -58,12 +58,13 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(String send_name, Maybe#(STATION) m
 	       endinterface);
 
     // Collect up our info.
+    String platformName <- getSynthesisBoundaryPlatform(); 
     let info = 
         LOGICAL_SEND_INFO 
         {
             logicalName: send_name, 
             logicalType: original_type, 
-            computePlatform: "Unknown",
+            computePlatform: platformName, 
             optional: optional, 
             outgoing: outg
         };
@@ -140,12 +141,13 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
 	       endinterface);
 
     // Collect up our info.
+    String platformName <- getSynthesisBoundaryPlatform(); 
     let info = 
         LOGICAL_RECV_INFO 
         {
             logicalName: recv_name, 
             logicalType: original_type, 
-            computePlatform: "Unknown",
+            computePlatform: platformName,
             optional: optional, 
             incoming: inc
         };
@@ -231,12 +233,13 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(String send_name, Maybe#(STATI
 	       endinterface);
 
     // Collect up our info.
+    String platformName <- getSynthesisBoundaryPlatform(); 
     let info = 
         LOGICAL_SEND_MULTI_INFO 
         {
             logicalName: send_name, 
             logicalType: original_type, 
-            computePlatform: "Unknown",
+            computePlatform: platformName,
             outgoing: outg
         };
 
@@ -317,12 +320,13 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
 	       endinterface);
 
     // Collect up our info.
+    String platformName <- getSynthesisBoundaryPlatform(); 
     let info = 
         LOGICAL_RECV_MULTI_INFO 
         {
             logicalName: recv_name, 
             logicalType: original_type,  
-            computePlatform: "Unknown",
+            computePlatform: platformName,
             incoming: inc
         };
 
@@ -359,5 +363,101 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
     method Action deq();
         enW.send();
     endmethod
+
+endmodule
+
+module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original_type)
+    //interface:
+		(CONNECTION_CHAIN#(msg_T))
+    provisos
+	    (Bits#(msg_T, msg_SZ),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
+
+  // Local Clock and reset
+  Clock localClock <- exposeCurrentClock();
+  Reset localReset <- exposeCurrentReset();
+
+  RWire#(msg_T)  dataW  <- mkRWire();
+  PulseWire      enW    <- mkPulseWire();
+  FIFOF#(msg_T)  q       <- mkUGFIFOF();
+
+  let inc = (interface PHYSICAL_CHAIN_IN;
+
+               // Part 1 of the anti-method to get(). Unmarshall the data and send it on the wire.
+               method Action try(x);
+                 Bit#(msg_SZ) tmp = truncateNP(x);
+                 dataW.wset(unpack(tmp));
+               endmethod
+
+               // Part 2 of the anti-method to get(). If someone actually was listening, then the get() succeeded.
+               method Bool success();
+                 return enW;
+               endmethod
+
+               interface Clock clock = localClock;
+               interface Reset reset = localReset;               
+              
+     	     endinterface);
+
+  let outg = (interface PHYSICAL_CHAIN_OUT;
+
+               // Trying to transmit something means marshalling up the first thing in the queue.
+	       method PHYSICAL_CHAIN_DATA first();
+                 Bit#(msg_SZ) tmp = pack(q.first());
+                 return zeroExtendNP(tmp);
+               endmethod
+
+               // Sometimes its useful to have an explicit notEmpty
+               method Bool notEmpty() = q.notEmpty();
+
+               // If we were successful we can dequeue.
+	       method Action deq() = q.deq();
+
+               interface Clock clock = localClock;
+               interface Reset reset = localReset;
+
+	     endinterface);
+
+  String platform <- getSynthesisBoundaryPlatform();
+
+  // Collect up our info.
+  let info = 
+      LOGICAL_CHAIN_INFO 
+      {
+          logicalName: chain_name, 
+          logicalType: original_type, 
+          computePlatform: platform, 
+          incoming: inc,
+          outgoing: outg
+      };
+
+  String platformName <- getSynthesisBoundaryPlatform(); 
+  if(platformName == `MULTI_FPGA_PLATFORM)
+    begin
+      // Register the chain
+      registerChain(info);
+    end
+
+  method msg_T peekFromPrev() if (dataW.wget() matches tagged Valid .val);
+    return val;
+  endmethod 
+
+  method Bool recvNotEmpty();
+    return isValid(dataW.wget());
+  endmethod 
+
+  method sendNotFull = q.notFull;
+
+  method Action sendToNext(msg_T data) if (q.notFull());
+    q.enq(data);
+  endmethod
+
+  method ActionValue#(msg_T) recvFromPrev() if (dataW.wget() matches tagged Valid .val);
+
+    enW.send();
+    return val;
+
+  endmethod
 
 endmodule
