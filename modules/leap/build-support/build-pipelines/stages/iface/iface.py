@@ -94,7 +94,7 @@ class Iface():
     # Define the dictionary builder
     # not really sure why srcs stopped working?
     # leap-configure creates this dynamic_params.dic. Gotta handle is specially. Boo. 
-    dicts = map(addPathDic,moduleList.getAllDependencies('GIVEN_DICTS')+['dynamic_params.dic']+EXTRA_DICTS.split(':'))
+    dicts = map(addPathDic,moduleList.getAllDependencies('GIVEN_DICTS')+['dynamic_params.dic'])
     dictCommand = 'leap-dict --src-inc ' + inc_dirs + ' --tgt-inc ' + dict_inc_tgt + ' --tgt-hw ' + hw_tgt + " " + (" ".join(dicts))
     print dictCommand
     d_bld = moduleList.env.Builder(action = dictCommand,

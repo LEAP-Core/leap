@@ -9,7 +9,7 @@ from software_tool import *
 from synthesis_tool import  *
 from post_synthesis_tool import *
 from mcd_tool import *
-from wrapper_gen import *
+from wrapper_gen_tool import *
 
 class Build(ProjectDependency):
   def __init__(self, moduleList):

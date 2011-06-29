@@ -8959,3 +8959,20 @@ they can be instantiated anywhere. We also differentiate this stub and
 the wrapper file by adding a _compile string to the name of the
 wrapper.  This helps avoid confusion in SCons.
 
+
+----------
+kfleming    Date: Wed Jun 29 12:41:02 EDT 2011  CSN: CSN-leap-121
+                  Wed Jun 29 16:41:02 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          120 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ VerilogPipeline.py        Locally Modified          120 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ FPGAPipeline.py           Locally Modified          120 
+
+
+Fixed obvious naming bugs in non-simulation pipelines
