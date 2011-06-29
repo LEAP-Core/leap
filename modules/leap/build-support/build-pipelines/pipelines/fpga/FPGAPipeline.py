@@ -9,9 +9,11 @@ from software_tool import *
 from synthesis_tool import  *
 from post_synthesis_tool import *
 from mcd_tool import *
+from wrapper_gen import *
 
 class Build(ProjectDependency):
   def __init__(self, moduleList):
+    WrapperGen(moduleList)
     Iface(moduleList)
     BSV(moduleList)
     FPGAProgram(moduleList)

@@ -17,9 +17,11 @@ $^W = 1;
 my $bscPathArg;
 my @bscPath;
 my $bscBDir = ".";
+my $bscIgnore;
 
 my $derived;
 my %derivedBSV;
+my %ignore;
 
 my %bsvFiles;
 my %bsvDep;             # Dependence on source files.
@@ -412,12 +414,16 @@ sub PrintBODep($$)
 {
     my ($tgt, $src) = @_;
 
-    print "${tgt}: ${src}\n";
+    # check deps ignore - this makes things less hackish
+    if(! exists($ignore{$src})) {
+      print "${tgt}: ${src}\n";
 
-    # Hack for wrapper log files (two pass compilation for soft connections)
-    if (${tgt} =~ '(.*)_Wrapper\.bo$') {
+      # Hack for wrapper log files (two pass compilation for soft connections)
+      if (${tgt} =~ '(.*)_Log\.bo$') {
         print "${1}_Wrapper.log: ${src}\n";
-    }
+      }
+    } 
+
   
 }
 
@@ -425,6 +431,7 @@ sub PrintBODep($$)
 my $pathArg = '';
 
 if (! GetOptions('bdir=s' => \$bscBDir,
+		 'ignore=s' => \$bscIgnore,
                  'debug!' => \$debug,
                  'derived=s' => \$derived,
                  'p=s' => \$pathArg))
@@ -436,6 +443,16 @@ Usage() if ($#ARGV < 0);
 InitPreprocessor($pathArg);
 if ($debug) {
     print STDERR "Preprocessor: ${preprocessor}\n";
+}
+
+## Load .bsc-ignores file.  This allows more complex build patterns to specify the files 
+## that they will handle specifically
+if( defined ($bscIgnore)) {
+    open(BSC_IGNORE,"<$bscIgnore");
+    while(<BSC_IGNORE>) {
+	chomp($_);
+	$ignore{$_}=$_;
+    }
 }
 
 ##

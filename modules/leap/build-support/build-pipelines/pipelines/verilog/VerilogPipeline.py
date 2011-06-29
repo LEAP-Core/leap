@@ -6,10 +6,11 @@ from bsv_tool import *
 from verilog_tool import *
 from software_tool import *
 from model import  *
+from wrapper_gen import *
 
 class Build(ProjectDependency):
   def __init__(self, moduleList):
-
+    WrapperGen(moduleList)
     #build interface first 
     Iface(moduleList)
     BSV(moduleList)

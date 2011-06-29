@@ -759,7 +759,14 @@ sub __make_bsvfiles {
     my $provides = $module->provides();
     my $description = $module->description();
     my $bshfile = Leap::Util::path_append($hw_inc_dir,"$provides.bsh");
-    my $bsvfile = Leap::Util::path_append($my_dir,"$provides.bsv");
+    # we compile the synthesis boundaries a little differently, except the top level.
+    # this should all be moved to build pipeline
+    my $bsvfile;
+    if(Leap::Build::is_synthesis_boundary($module) && ! $module->isroot()) {
+       $bsvfile = Leap::Util::path_append($my_dir,"${provides}_compile.bsv");
+    } else {
+       $bsvfile = Leap::Util::path_append($my_dir,"$provides.bsv");   
+    }
     my $hfile   = Leap::Util::path_append($sw_inc_dir,"$provides.h");
 
     my @bsv_sources = $module->sources("BSV", "PUBLIC");
@@ -820,6 +827,10 @@ sub __make_bsvfiles {
             print STDERR "File name clash:  interface ${provides} uses a source file with the same name!\n";
             exit(1);
         }
+        if ($f eq "${provides}_compile.bsv") {
+            print STDERR "File name clash:  interface ${provides} uses a source file with the same name!\n";
+            exit(1);
+        }
     }
 
     if (@bsv_sources) {
@@ -834,9 +845,9 @@ sub __make_bsvfiles {
 
     close(BSHFILE);
 
-    unlink($bsvfile);
+    unlink("${bsvfile}");
     if (@bsv_sources) {
-        open(BSVFILE, ">$bsvfile");
+        open(BSVFILE, ">${bsvfile}");
 
         print BSVFILE "//\n";
         print BSVFILE "// Synthesized compilation file for module: $provides\n";

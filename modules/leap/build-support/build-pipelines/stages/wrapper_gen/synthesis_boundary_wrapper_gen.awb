@@ -1,0 +1,8 @@
+%name Synthesis Boundary Wrapper generation tool
+%desc Build wrappper files for multifpga synthesis
+
+%attributes tool
+
+%provides wrapper_gen_tool
+
+%scons %library wrapper_gen.py

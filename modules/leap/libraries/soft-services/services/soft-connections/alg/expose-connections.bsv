@@ -136,7 +136,7 @@ module exposeDanglingSends#(List#(LOGICAL_SEND_INFO) dsends, String platform) (V
       end
     else
       begin
-        messageM("Dropping " + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+        messageM("Dropping Send" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
       end
   end
 
@@ -186,7 +186,7 @@ module exposeDanglingRecvs#(List#(LOGICAL_RECV_INFO) drecvs, String platform) (V
       end
     else
       begin
-        messageM("Dropping " + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+        messageM("Dropping Recv" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
       end
   end
 

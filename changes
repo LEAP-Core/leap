@@ -8903,3 +8903,59 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 
 Chunked chain connections.  I have not tested the chunking, however, as no current designs have large enough chain physical sizes to trip the code. 
+
+----------
+kfleming    Date: Wed Jun 29 12:28:00 EDT 2011  CSN: CSN-leap-120
+                  Wed Jun 29 16:28:00 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          119 
+ leap-connect              Locally Modified          119 
+ leap-bsc-mkdepend         Locally Modified          119 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx-synplify.apm Locally Modified          119 
+ build-pipeline-verilog.apm Locally Modified          119 
+ build-pipeline-altera.apm Locally Modified          119 
+ build-pipeline-xilinx.apm Locally Modified          119 
+ build-pipeline-bluesim.apm Locally Modified          119 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          119 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ wrapper_gen/              Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Added               0 
+ synthesis_boundary_wrapper_gen.awb Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ sim-build-pipeline.awb    Locally Modified          119 
+ SimulationPipeline.py     Locally Modified          119 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ verilog-build-pipeline.awb Locally Modified          119 
+ VerilogPipeline.py        Locally Modified          119 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ fpga-build-pipeline.awb   Locally Modified          119 
+ FPGAPipeline.py           Locally Modified          119 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          119 
+ connect-top-level-multifpga.bsv Locally Modified          119 
+
+
+Some major changes to the build pipeline.  Most of these changes are created by a desire to simplify dependency calculation for synthesis boundaries in SCons.  MultiFPGA has been using this style of build for about a month, and this could be considered a back port.
+
+1) wrapper generation moved to build pipeline.  two wrapers are built,
+one with static and one with dynamic sizing.
+
+2) stub file spamming.  Synthesis boundaries used to only work if the
+boundary was instantiated by its parent in the module hierarchy.  Now
+they can be instantiated anywhere. We also differentiate this stub and
+the wrapper file by adding a _compile string to the name of the
+wrapper.  This helps avoid confusion in SCons.
+

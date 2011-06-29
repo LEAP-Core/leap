@@ -62,7 +62,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     // clear out leftovers from model top level 
     if(cur.computePlatform != `MULTI_FPGA_PLATFORM) 
       begin
-        messageM("dropping: ");
+        messageM("Top Level Dropping Send: ");
 	printSend(cur); 
       end
     else if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)
@@ -86,7 +86,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     // clear out leftovers from model top level 
     if(cur.computePlatform != `MULTI_FPGA_PLATFORM) 
       begin
-        messageM("dropping: ");
+        messageM("Top Level Dropping Recv: ");
 	printRecv(cur); 
       end
     else if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)

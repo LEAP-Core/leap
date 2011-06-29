@@ -18,7 +18,7 @@ model=IVerilog Build Pipeline
 
 [Interface builder]
 File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
-Packagehint=leap
+Packagehint=multifpga
 
 [Software build tool]
 File=modules/leap/build-support/build-pipelines/stages/software/software.awb
@@ -41,6 +41,11 @@ verilog_tool=Verilog Build Tool
 software_tool=Software build tool
 iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
+wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
 
 [BSV Build Tool (First Phase)/Params]
 BUILD_VERILOG=0
+
+[Synthesis Boundary Wrapper generation tool]
+File=modules/leap/build-support/build-pipelines/stages/wrapper_gen/synthesis_boundary_wrapper_gen.awb
+Packagehint=leap

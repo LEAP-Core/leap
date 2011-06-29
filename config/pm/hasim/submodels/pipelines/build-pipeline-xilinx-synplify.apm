@@ -40,6 +40,7 @@ software_tool=Software build tool
 iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
 fpga_program_tool=FPGA Programming Tool
+wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
 
 [Xilinx Post-synthesis Toolchain]
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-post-synth.awb
@@ -66,7 +67,7 @@ Packagehint=leap
 
 [Interface builder]
 File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
-Packagehint=leap
+Packagehint=multifpga
 
 [Software build tool]
 File=modules/leap/build-support/build-pipelines/stages/software/software.awb
@@ -82,4 +83,8 @@ Packagehint=leap
 
 [FPGA Programming Tool]
 File=modules/leap/build-support/build-pipelines/stages/fpgaprog/fpgaprog.awb
+Packagehint=leap
+
+[Synthesis Boundary Wrapper generation tool]
+File=modules/leap/build-support/build-pipelines/stages/wrapper_gen/synthesis_boundary_wrapper_gen.awb
 Packagehint=leap
