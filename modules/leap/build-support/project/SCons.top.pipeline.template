@@ -105,7 +105,7 @@ env['DEFS']['COST_TABLE'] = ARGUMENTS.get('COST_TABLE', env['DEFS']['COST_TABLE'
 
 TMP_XILINX_DIR = env['DEFS']['TMP_XILINX_DIR']
 
-moduleList = ModuleList(env, ARGUMENTS)
+moduleList = ModuleList(env, defs['SYNTH_BOUNDARIES'], ARGUMENTS)
 
 # we will build whatever the user wants us to build
 Build(moduleList)

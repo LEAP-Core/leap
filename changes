@@ -8976,3 +8976,18 @@ Directory modules/leap/build-support/build-pipelines/pipelines/fpga
 
 
 Fixed obvious naming bugs in non-simulation pipelines
+
+----------
+kfleming    Date: Wed Jun 29 16:47:39 EDT 2011  CSN: CSN-leap-122
+                  Wed Jun 29 20:47:39 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          121 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          121 
+ ModuleList.py             Locally Modified          121 
+
+
+Changed initialization for ModuleList to accept module hierarchy as a seperate argument.  This is useful when creating ModuleList during compilation.

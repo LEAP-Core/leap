@@ -79,8 +79,8 @@ class MultiFPGAGenerateLogfile():
       platform = environment.getPlatform(platformName)
       print "leap-configure --pythonize " +  platform.path
       rawDump = Popen(["leap-configure", "--pythonize", "--silent", platform.path], stdout=PIPE ).communicate()[0]
-      # fix the warning crap sometime
-      platformHierarchies[platformName] = ModuleList(moduleList.env, eval(rawDump))
+      # fix the warning crap sometimes
+      platformHierarchies[platformName] = ModuleList(moduleList.env, eval(rawDump), moduleList.arguments)
     
     # check that all same named file are the same.  Then we can blindly copy all files to all directories and life will be good. 
     # once that's done, we still need to tell the child about these extra dicts. 

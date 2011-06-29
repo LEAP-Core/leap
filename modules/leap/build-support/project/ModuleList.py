@@ -33,7 +33,7 @@ class ModuleList:
     print "apmName: " + self.apmName + "\n"
 
 
-  def __init__(self, env, arguments):
+  def __init__(self, env, modulePickle, arguments):
       # do a pattern match on the synth boundary paths, which we need to build
       # the module structure
     self.env = env
@@ -45,7 +45,7 @@ class ModuleList:
     givenVHDs = Utils.clean_split(env['DEFS']['GIVEN_VHDS'], sep = ' ') 
     self.apmName = env['DEFS']['APM_NAME']
     self.moduleList = []
-    modulePickle = env['DEFS']['SYNTH_BOUNDARIES']
+    
     #We should be invoking this elsewhere?
     #self.wrapper_v = env.SConscript([env['DEFS']['ROOT_DIR_HW_MODEL'] + '/SConscript'])
 
