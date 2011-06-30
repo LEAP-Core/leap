@@ -3,6 +3,15 @@ from platform import *
 
 # Import pygraph We'll need it at some point
 import pygraph
+try:
+  from pygraph.classes.digraph import digraph
+except ImportError:
+  # don't need to do anything
+  print "\n"
+  # print "Warning you should upgrade to pygraph 1.8"
+import pygraph.algorithms.sorting
+import pygraph.algorithms.minmax as mm
+
 
 class FPGAEnvironment(object):
 
@@ -30,8 +39,11 @@ class FPGAEnvironment(object):
     # however. It serves to make sure that a directional connection has 
     # source  and sink.
     def graphize(self):
-        self.graph = pygraph.digraph();
-
+	try:
+            self.graph = pygraph.digraph()
+	except (NameError, AttributeError):
+            self.graph = digraph()   
+        
         # first, we must add all the nodes. Only then can we add all the edges
         for platform in self.platforms:
             self.graph.add_nodes([platform])
@@ -46,8 +58,10 @@ class FPGAEnvironment(object):
                 if(sinks[sink].endpointName in self.platforms):
                     if(platform in (self.platforms[sinks[sink].endpointName]).sources):
                         # we have a legal connection
-                        
-                        self.graph.add_edge(platform,sinks[sink].endpointName)
+	                try:
+                            self.graph.add_edge(platform,sinks[sink].endpointName)
+                        except (TypeError, ValueError):
+                            self.graph.add_edge((platform,sinks[sink].endpointName))
                         #fill in the source with the sink and the sink with the source
                     else:
                         error = 1
@@ -77,7 +91,11 @@ class FPGAEnvironment(object):
 
     # finds/returns the link to use on a path hop from 
     def getPathLength(self, source, sink):
-        paths = pygraph.algorithms.minmax.shortest_path(self.graph,source)
+        try:
+            paths = pygraph.algorithms.minmax.shortest_path(self.graph,source)
+        except AttributeError:
+            paths = mm.shortest_path(self.graph,source)
+
         if(sink in paths[1]):           
             return paths[1][sink]
         else:
