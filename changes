@@ -9002,3 +9002,28 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
 
 
 Armored environment.py against old versions of pygraph floating around intel.
+
+----------
+mcadler     Date: Thu Jul  7 16:51:28 EDT 2011  CSN: CSN-leap-124
+                  Thu Jul  7 20:51:28 UTC 2011
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_acp_synth.apm Locally Modified          123 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_NGD.py             Locally Modified          123 
+ XILINX_XST.py             Locally Modified          123 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ bluespec.sdc              Locally Added               0 
+ synplify-sub.awb          Locally Modified          123 
+ SynplifySub.py            Locally Modified          123 
+
+- Synplify build now can be done in parallel by using subdirectories within the
+  .xilinx build tree.
+
+- Attempted to add a Synplify control script similar to the Bluespec Xst
+  script that forces LUTRAM to LUTs.  I'm not positive the script is right,
+  especially since the alpha_inorder_acp model deadlocks at run-time when
+  compiled with Synplify and has many fewer LUT registers and much more BRAM.

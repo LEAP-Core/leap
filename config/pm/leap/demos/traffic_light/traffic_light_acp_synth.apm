@@ -53,7 +53,7 @@ soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
 
 [Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)/Params]
-MODEL_CLOCK_DIVIDER=8
+XST_INSERT_IOBUF=0
 
 [Standard Platform Services]
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
