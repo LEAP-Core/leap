@@ -152,6 +152,23 @@ class ModuleList:
     # dependence entries to strings.
     return list(set([str(dep) for dep in allDeps]))
 
+  def getDependencies(self, module, key):
+    # we must check to see if the dependencies actually exist.                                                                                                                                                                              
+    # generally we have to make sure to remove duplicates                                                                                                                                                                                   
+    allDeps = []
+    if(module.moduleDependency.has_key(key)):
+      for dep in module.moduleDependency[key]:
+        if(allDeps.count(dep) == 0):
+          allDeps.extend([dep] if isinstance(dep, str) else dep)
+
+    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
+      sys.stderr.write("Warning: no dependencies were found")
+
+    # Return a list of unique entries, in the process converting SCons                                                                                                                                                                      
+    # dependence entries to strings.                                                                                                                                                                                                        
+    return list(set([str(dep) for dep in allDeps]))
+
+
   def getAllDependenciesWithPaths(self, key):
     # we must check to see if the dependencies actually exist.
     # generally we have to make sure to remove duplicates

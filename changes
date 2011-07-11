@@ -9027,3 +9027,22 @@ Directory modules/leap/build-support/build-pipelines/stages/synplify
   script that forces LUTRAM to LUTs.  I'm not positive the script is right,
   especially since the alpha_inorder_acp model deadlocks at run-time when
   compiled with Synplify and has many fewer LUT registers and much more BRAM.
+
+----------
+kfleming    Date: Mon Jul 11 14:19:34 EDT 2011  CSN: CSN-leap-125
+                  Mon Jul 11 18:19:34 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          124 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          124 
+
+
+Two changes in dependency calculations:
+
+1) BA files now depend on model.bsv and not synthboundary.bsv.  This caused make clean followed by make to malfunction.
+2) model.bsv are now forced to wait for bsc-mk-depends. This error was forced out by the fix 1) since some BA files could be built before the generated dependencies were loaded. 
+
+

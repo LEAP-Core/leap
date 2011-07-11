@@ -48,6 +48,8 @@ class BSV():
 
 
   def build_synth_boundary(self,moduleList,module):
+    print "Working on " + module.name
+
     env = moduleList.env
     MODULE_PATH =  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' 
     WRAPPER_BSVS = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath+'/'+ get_wrapper(module)
@@ -180,6 +182,7 @@ class BSV():
                 emitter = emitter_bo)
 
 
+
     # This guy has to depend on children existing?
     # and requires a bash shell
     moduleList.env['SHELL'] = 'bash' # coerce commands to be spanwed under bash
@@ -232,12 +235,18 @@ class BSV():
       stub_name = bsv.replace('.bsv', '_con_size.bsh')
       stub = env.Command(MODULE_PATH + stub_name, log, 'leap-connect --softservice --dynsize $SOURCE $TARGET')
 
+      env.Requires(stub,deps)
+      env.Requires(stub,dependency)
+
       ##
       ## Now we are ready for the real build
       ##
       wrapper_bo = env.BSC(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + bsv)
       # if we rebuild the wrapper, we also need to rebuild the parent bo
 #      upper_bo = MODULE_PATH + '/../' + TMP_BSC_DIR + '/' + bsv.replace('_Wrapper.bsv', '.bo')
+      env.Requires(wrapper_bo,deps)
+      env.Requires(wrapper_bo,dependency)
+
       if(getBuildPipelineDebug(moduleList) != 0):
         print 'wrapper_bo: ' + str(wrapper_bo) + '\n'
         print 'stub: ' + str(stub) + '\n'
@@ -285,22 +294,45 @@ class BSV():
       if(getBuildPipelineDebug(moduleList) != 0):
         print "Name: " + module.name
 
-      # we also generate all this synth boundary's GEN_BAS
-      gen_ba = moduleList.getSynthBoundaryDependencies(module, 'GEN_BAS')
-      # dress them with the correct directory
-      ext_gen_ba = []
-      for ba in gen_ba:
-        ext_gen_ba += [MODULE_PATH + TMP_BSC_DIR + '/' + ba]    
-
-
-      ##
-      ## Do the same for .ba
-      ##
-      bld_ba = env.Command([MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba')] + ext_gen_ba,
+      # each synth boundary will produce a ba
+      bld_ba = [env.Command([MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba')],
                            MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
-                           '')
-      module.moduleDependency['BA'] += [bld_ba] 
+                           '')]
+      
+
+      # we also generate all this synth boundary's GEN_BAS
+      # this is a little different because we must dependent on awb module bo rather
+      # than the synth boundary bo
+      descendents = moduleList.getSynthBoundaryDescendents(module)
+      for descendent in descendents:
+        print "BA: working on " + descendent.name
+        gen_ba = moduleList.getDependencies(descendent, 'GEN_BAS')
+        # dress them with the correct directory
+        # really the ba depend on their specific bo
+        ext_gen_ba = []
+        for ba in gen_ba:
+          print "BA: " + descendent.name + " generates " + MODULE_PATH + TMP_BSC_DIR + '/' + ba
+          ext_gen_ba += [MODULE_PATH + TMP_BSC_DIR + '/' + ba]    
+
+        ## our descendents need to wait for leap-bsc-mkdeps
+        env.Requires(MODULE_PATH + '/' + descendent.name + '.bsv',deps)    
+        env.Requires(MODULE_PATH + '/' + descendent.name + '.bsv',dependency)
+          
+        ##
+        ## Do the same for .ba
+        ##
+        bld_ba += [env.Command(ext_gen_ba,
+                             MODULE_PATH + TMP_BSC_DIR + '/' + descendent.name + '.bo',
+                             '')]
+
+
+      module.moduleDependency['BA'] += bld_ba 
       env.Precious(bld_ba)
+
+      env.Requires(bld_ba,deps)
+      env.Requires(bld_ba,dependency)
+
+
 
       ##
       ## Build the Xst black-box stub.
