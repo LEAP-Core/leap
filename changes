@@ -9046,3 +9046,14 @@ Two changes in dependency calculations:
 2) model.bsv are now forced to wait for bsc-mk-depends. This error was forced out by the fix 1) since some BA files could be built before the generated dependencies were loaded. 
 
 
+
+----------
+keflemin    Date: Wed Jul 13 12:34:35 EDT 2011  CSN: CSN-leap-126
+                  Wed Jul 13 16:34:35 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          125 
+
+
+Added --batch flag to awb-shell subroutines so that multifpga compilation works inside intel. 

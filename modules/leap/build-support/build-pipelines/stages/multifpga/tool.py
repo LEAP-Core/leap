@@ -40,11 +40,11 @@ class MultiFPGAGenerateLogfile():
     print "environment keys: " + str(environment.getPlatformNames)
 
     # select the connected_app and make it a submodel
-    call(['asim-shell','create', 'submodel', APM_FILE , 'connected_application', applicationPath]) 
-    call(['asim-shell','rename', 'submodel', applicationPath, applicationRootName]) 
+    call(['asim-shell','--batch','create', 'submodel', APM_FILE , 'connected_application', applicationPath]) 
+    call(['asim-shell','--batch','rename', 'submodel', applicationPath, applicationRootName]) 
     # do the same for the fpga mapping
-    call(['asim-shell','create', 'submodel', APM_FILE , 'fpga_mapping', mappingPath])        
-    call(['asim-shell','rename', 'submodel', mappingPath, mappingRootName]) 
+    call(['asim-shell','--batch','create', 'submodel', APM_FILE , 'fpga_mapping', mappingPath])        
+    call(['asim-shell','--batch','rename', 'submodel', mappingPath, mappingRootName]) 
 
     def compile_closure(platform):
          
@@ -61,7 +61,7 @@ class MultiFPGAGenerateLogfile():
            # for the first pass, we will ignore mismatched platforms
 
            print "alive in call platform log " + platform.name
-           execute('awb-shell build model ' + platformPath)   
+           execute('awb-shell --batch build model ' + platformPath)   
            print "dead in call platform log" + platform.name
          return compile_platform_log
 
@@ -104,14 +104,14 @@ class MultiFPGAGenerateLogfile():
       print "wrapper: " + wrapperLog
       print "platformPath: " + moduleList.env['DEFS']['WORKSPACE_ROOT'] + '/src/private/' + platformPath
 
-      execute('asim-shell cp ' + platform.path +" "+ platformPath)        
-      execute('asim-shell replace module ' + platformPath + ' ' + applicationPath)
-      execute('asim-shell replace module ' + platformPath + ' ' + mappingPath)
-      execute('asim-shell set parameter ' + platformPath + ' MULTI_FPGA_PLATFORM \\"' + platform.name + '\\"')
-      execute('asim-shell set parameter ' + platformPath + ' IGNORE_PLATFORM_MISMATCH 1 ')
-      execute('asim-shell set parameter ' + platformPath + ' BUILD_LOGS_ONLY 1 ')
-      execute('asim-shell set parameter ' + platformPath + ' USE_ROUTING_KNOWN 0 ')
-      execute('asim-shell set parameter ' + platformPath + ' CLOSE_CHAINS 0 ')
+      execute('asim-shell --batch cp ' + platform.path +" "+ platformPath)        
+      execute('asim-shell --batch replace module ' + platformPath + ' ' + applicationPath)
+      execute('asim-shell --batch replace module ' + platformPath + ' ' + mappingPath)
+      execute('asim-shell --batch set parameter ' + platformPath + ' MULTI_FPGA_PLATFORM \\"' + platform.name + '\\"')
+      execute('asim-shell --batch set parameter ' + platformPath + ' IGNORE_PLATFORM_MISMATCH 1 ')
+      execute('asim-shell --batch set parameter ' + platformPath + ' BUILD_LOGS_ONLY 1 ')
+      execute('asim-shell --batch set parameter ' + platformPath + ' USE_ROUTING_KNOWN 0 ')
+      execute('asim-shell --batch set parameter ' + platformPath + ' CLOSE_CHAINS 0 ')
 
       # determine which symlinks we're missing 
       missingDicts = ""
@@ -122,8 +122,8 @@ class MultiFPGAGenerateLogfile():
 
       print "missingDicts: " + missingDicts
 
-      execute('asim-shell set parameter ' + platformPath + ' EXTRA_DICTS \\"' + missingDicts  + '\\"')
-      execute('asim-shell configure model ' + platformPath)
+      execute('asim-shell --batch set parameter ' + platformPath + ' EXTRA_DICTS \\"' + missingDicts  + '\\"')
+      execute('asim-shell --batch configure model ' + platformPath)
 
       # set up the symlink - it'll be broken at first, but as we fill in the platforms, they'll come up
       for dict in environmentDicts.keys():
@@ -151,7 +151,8 @@ class MultiFPGAGenerateLogfile():
     for platformName in environment.getPlatformNames():
       platformDicts = platformHierarchies[platformName].getAllDependencies('GIVEN_DICTS')
       for dict in platformDicts:
-        platStat = os.stat(makePlatformDictDir(platformName)  + '/' + dict)
-        globalStat = os.stat(environmentDicts[dict] + '/' + dict)
+        platStat = os.stat(os.path.abspath(makePlatformDictDir(platformName)  + '/' + dict))
+        globalStat = os.stat(os.path.abspath(environmentDicts[dict] + '/' + dict))
+
         if(platStat != globalStat):
           print "Warning, mismatched dicts: " + str(dict) + " on " + platformName
