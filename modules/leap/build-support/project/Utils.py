@@ -49,23 +49,6 @@ def transform_string_list(str, sep, prefix, suffix):
         sep = ' '
     t = [ prefix + a + suffix for a in clean_split(str, sep) ]
     return string.join(t, sep)
-
-
-## As of Bluespec 2008.11.C the -bdir target is put at the head of the search path
-## and the compiler complains about duplicate path entries.
-##
-## This code removes the local build target from the search path.
-##
-def bsc_bdir_prune(env, str, sep, match):
-    t = clean_split(str, sep)
-    if (getBluespecVersion() >= 15480):
-        try:
-            while 1:
-                i = t.index(match)
-                del t[i]
-        except ValueError:
-            pass
-    return string.join(t, sep)
     
 ##
 ## one_line_cmd --

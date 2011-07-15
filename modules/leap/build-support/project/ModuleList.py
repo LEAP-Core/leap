@@ -33,11 +33,12 @@ class ModuleList:
     print "apmName: " + self.apmName + "\n"
 
 
-  def __init__(self, env, modulePickle, arguments):
+  def __init__(self, env, modulePickle, arguments, cmdLineTgts):
       # do a pattern match on the synth boundary paths, which we need to build
       # the module structure
     self.env = env
     self.arguments = arguments
+    self.cmdLineTgts = cmdLineTgts
     self.buildDirectory = env['DEFS']['BUILD_DIR']
     self.compileDirectory = env['DEFS']['TMP_XILINX_DIR']
     givenVerilogs = Utils.clean_split(env['DEFS']['GIVEN_VERILOGS'], sep = ' ') 

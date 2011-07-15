@@ -9,6 +9,13 @@ from config import *
 
 
 ##
+## Build targets specified on the command line.
+##
+def getCommandLineTargets(moduleList):
+    return moduleList.cmdLineTgts
+
+
+##
 ## DEBUG or OPT build?  User can override the workspace default rule by
 ## specifying either OPT=1 or DEBUG=1 on the scons command line.
 ##

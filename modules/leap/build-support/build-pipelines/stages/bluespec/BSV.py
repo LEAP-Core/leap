@@ -22,9 +22,7 @@ class BSV():
 
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
 
-    moduleList.env['DEFS']['CWD_REL'] = moduleList.env['DEFS']['ROOT_DIR_HW_MODEL']
-
-    #should we be building in events? 
+    # Should we be building in events? 
     if (getEvents(moduleList) == 0):
        bsc_events_flag = ' -D HASIM_EVENTS_ENABLED=False '
     else:
@@ -32,100 +30,141 @@ class BSV():
 
     self.BSC_FLAGS = BSC_FLAGS  + bsc_events_flag
    
-    topo = moduleList.topologicalOrderSynth()
-    topo.reverse()
-    # we probably want reverse topological ordering...
-    for module in topo:
-      # this should really be a crawl of the bluespec tree
-      # probably in that case we can avoid a lot of synthesis time     
-      # everyone should depend on the verilog wrappers?
-
-      # top bsv should now depend on multifpga_routing.bsh
-      wrapper_v = self.build_synth_boundary(moduleList, module)
-
     moduleList.env.BuildDir(TMP_BSC_DIR, '.', duplicate=0)
     moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
 
+    # Walk synthesis boundaries in reverse topological order
+    topo = moduleList.topologicalOrderSynth()
+    topo.reverse()
 
-  def build_synth_boundary(self,moduleList,module):
-    print "Working on " + module.name
+    ##
+    ## Is this a normal build or a build in which only Bluespec dependence
+    ## is computed?
+    ##
+
+    if getCommandLineTargets(moduleList) != [ 'depends-init' ]:
+      ##
+      ## Normal build.
+      ##
+      ## Invoke a separate instance of SCons to compute the Bluespec
+      ## dependence before going any farther.  We do this because the
+      ## standard trick of having the compiler emit .d files doesn't work
+      ## for us.  We can't predict the names of all Bluespec source
+      ## files that may be generated in the iface tree for dictionaries
+      ## and RRR.  SCons requires that dependence be computed on its first
+      ## pass.  If a dictionary changes and a new Bluespec file is produced
+      ## this must be discoverable before the ParseDepends call in
+      ## build_synth_boundary() below.
+      ##
+      self.isDependsBuild = False
+
+      if not moduleList.env.GetOption('clean'):
+        print 'Building depends-init...'
+        s = os.system('scons depends-init')
+        if (s & 0xffff) != 0:
+          print 'Aborting due to dependence errors'
+          sys.exit(1)
+
+      ##
+      ## Now that the "depends-init" build is complete we can continue with
+      ## accurate inter-Bluespec file dependence.
+      ##
+      synth = []
+      for module in topo:
+        synth += self.build_synth_boundary(moduleList, module)
+
+      if moduleList.env.GetOption('clean'):
+        print 'Cleaning depends-init...'
+        s = os.system('scons --clean depends-init')
+
+    else:
+      ##
+      ## Dependence build.  The target of this build is "depens-init".  No
+      ## Bluespec modules will be compiled in this invocation of SCons.
+      ## Only .depends-bsv files will be produced.
+      ##
+      self.isDependsBuild = True
+
+      deps = []
+      for module in topo:
+        deps += self.compute_dependence(moduleList, module)
+
+      moduleList.env.Alias('depends-init', deps)
+
+
+  ##
+  ## compute_dependence --
+  ##   Build rules for computing intra-Bluespec file dependence.
+  ##
+  def compute_dependence(self, moduleList, module):
+    env = moduleList.env
+    MODULE_PATH =  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath
+    TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
+
+    ALL_DIRS_FROM_ROOT = env['DEFS']['ALL_HW_DIRS']
+    ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
+    ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
+
+    ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
+ 
+    LOG_BSVS = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'+ get_log(module)
+    WRAPPER_BSVS = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + get_wrapper(module)
+
+    # We must depend on all sythesis boundaries. They can be instantiated anywhere.
+    surrogate_children = moduleList.synthBoundaries()
+    SUBDIRS = ''
+    for child in surrogate_children:
+      # Make sure module doesn't self-depend
+      if(child.name != module.name):
+        SUBDIRS += child.name + ' ' 
+
+    SURROGATE_BSVS = transform_string_list(SUBDIRS, None, MODULE_PATH + '/', '.bsv')
+    if (SURROGATE_BSVS != ''):
+      DERIVED = ' -derived "' + SURROGATE_BSVS + '"'
+    else:
+      DERIVED = ''
+
+    depends_bsv = MODULE_PATH + '/.depends-bsv'
+    compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/awb/provides:' + ALL_LIB_DIRS_FROM_ROOT + ' ' + LOG_BSVS + ' ' + WRAPPER_BSVS + ' > ' + depends_bsv
+    return moduleList.env.Command(depends_bsv, moduleList.topModule.moduleDependency['IFACE_HEADERS'], compile_deps)
+
+
+  ##
+  ## build_synth_boundary --
+  ##   Build rules for generating a single synthesis boundary.  This function
+  ##   may only be run after inter-Bluespec file dependence has been computed
+  ##   and written to dependence files.  This requirement is met by running
+  ##   a separate instance of SCons first that uses compute_dependence() above.
+  ##
+  def build_synth_boundary(self, moduleList, module):
+    if(getBuildPipelineDebug(moduleList) != 0):
+      print "Working on " + module.name
 
     env = moduleList.env
-    MODULE_PATH =  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' 
-    WRAPPER_BSVS = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath+'/'+ get_wrapper(module)
-    LOG_BSVS = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath+'/'+ get_log(module)
+    MODULE_PATH =  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath
+    TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
+
+    ALL_DIRS_FROM_ROOT = env['DEFS']['ALL_HW_DIRS']
+    ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
+    ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
+
+    ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
+
+    LOG_BSVS = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'+ get_log(module)
+    WRAPPER_BSVS = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + get_wrapper(module)
+
     BSVS = moduleList.getSynthBoundaryDependencies(module,'GIVEN_BSVS')
     # each submodel will have a generated BSV
     GEN_BSVS = moduleList.getSynthBoundaryDependencies(module,'GEN_BSVS')
     APM_FILE = env['DEFS']['APM_FILE']
     BSC =env['DEFS']['BSC']
 
-    # this actually needs to be expanded 
-  
-    #  TMP_BSC_DIR = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + env['DEFS']['TMP_BSC_DIR']
-
-    TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
- 
-    ## we must depend on all sythesis boundaries  - they can be instantiated anywhere 
-    surrogate_children = moduleList.synthBoundaries()
-    SUBDIRS = ''
-    for child in surrogate_children:
-      #make sure module doesn't self-depend
-      if(child.name != module.name):
-        SUBDIRS += child.name + ' ' 
-
-#    SURROGATE_BSVS = transform_string_list(SUBDIRS, None, MODULE_PATH+'/.synthBoundaries/', '.bsv'
-    SURROGATE_BSVS = transform_string_list(SUBDIRS, None, MODULE_PATH, '.bsv')
-
     ##
-    ## Two views of the same directory hierarchy.  One view with paths all relative
-    ## to the root of the build tree.  The other relative to this directory.  We
-    ## need both because when scons passes over the files to compute dependence and
-    ## build rules the working directory changes to the directory holding each
-    ## scons file.
+    ## Load intra-Bluespec dependence already computed.  This information will
+    ## ultimately drive the building of Bluespec modules.
     ##
-    ## When the rules are finally executed to build the target the directory is
-    ## always the root of the build tree.
-    ##
-
-    ALL_DIRS_FROM_ROOT = env['DEFS']['ALL_HW_DIRS']
-    # now that we build from base, there is no CWD_REL
-    CWD_REL = ''#env['DEFS']['CWD_REL']
-
-    ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
-
-    ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
-
-    ALL_DIRS_FROM_CWD = ":".join([rebase_directory(x, CWD_REL) for x in clean_split(ALL_DIRS_FROM_ROOT)])
-    ALL_BUILD_DIRS_FROM_CWD = transform_string_list(ALL_DIRS_FROM_CWD, ':', '', '/' + TMP_BSC_DIR)
-    ALL_LIB_DIRS_FROM_CWD = ALL_DIRS_FROM_CWD + ':' + ALL_BUILD_DIRS_FROM_CWD
-
-    ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
-    ROOT_DIR_HW_INC_REL = rebase_directory(ROOT_DIR_HW_INC, CWD_REL)
-
-    ##
-    ## First compute dependence.  It runs pretty quickly so we do it every time
-    ## without checking whether it is needed.  Knowing correct dependence before
-    ## configuring the build rules makes the script simpler.
-    ##
-    DERIVED = ''
-    if (SURROGATE_BSVS != ''):
-      DERIVED = ' -derived "' + SURROGATE_BSVS + '"'
-
-
-    dependency = MODULE_PATH +'.depends-bsv'
-    def compile_deps(target, source, env):
-      print 'leap-bsc-mkdepend -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC_REL + ':' + ROOT_DIR_HW_INC_REL + '/awb/provides:' + ALL_LIB_DIRS_FROM_CWD + ' ' + LOG_BSVS + ' > ' + MODULE_PATH + '.depends-bsv'
-      s = os.system('leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC_REL + ':' + ROOT_DIR_HW_INC_REL + '/awb/provides:' + ALL_LIB_DIRS_FROM_CWD + ' ' + LOG_BSVS + ' > ' + dependency)
-      if (s & 0xffff) != 0:
-        print 'Aborting due to dependence errors'
-        sys.exit(1)
-      env.ParseDepends(MODULE_PATH +'.depends-bsv', must_exist = True)
-
-    deps =  moduleList.env.Command(MODULE_PATH + '.depends-bsv', moduleList.topModule.moduleDependency['IFACE_HEADERS'], compile_deps)
-
-    moduleList.env.Depends(deps,moduleList.topModule.moduleDependency['IFACE_HEADERS'])
-    moduleList.env.AlwaysBuild(deps)
+    env.ParseDepends(MODULE_PATH + '/.depends-bsv',
+                     must_exist = not moduleList.env.GetOption('clean'))
 
     if not os.path.isdir(TMP_BSC_DIR):
       os.mkdir(TMP_BSC_DIR)
@@ -136,17 +175,16 @@ class BSV():
     ## source files and generating scons dependence rules.
     ##
     if env.GetOption('clean'):
-      os.system('cd '+ MODULE_PATH + TMP_BSC_DIR + '; rm -f *.ba *.c *.h *.sched')
+      os.system('cd '+ MODULE_PATH + '/' + TMP_BSC_DIR + '; rm -f *.ba *.c *.h *.sched')
 
 
-    # Builder for running just the compiler front end on a wrapper to find
-    # the dangling connections.  This will then be passed to leap-connect
-    # to determine the required connection array sizes.
+    ## Builder for running just the compiler front end on a wrapper to find
+    ## the dangling connections.  This will then be passed to leap-connect
+    ## to determine the required connection array sizes.
     def compile_bsc_log(source, target, env, for_signature):
       ## Note -- we pipe through sed during the build to get rid of an extra
       ##         newline emitted by bsc's printType().  New compilers will make
       ##         this unnecessary
-      
       cmd = compile_bo_bsc_base(target) + ' -KILLexpanded ' + str(source[0]) + \
             ' 2>&1 | sed \':S;/{[^}]*$/{N;bS};s/\\n/\\\\n/g\' | tee ' + str(target[0]) + ' ; test $${PIPESTATUS[0]} -eq 0'
       return cmd
@@ -157,14 +195,12 @@ class BSV():
     ##
     def emitter_bo(target, source, env):
       target.append(str(target[0]).replace('.bo', '.bi'))
-
       return target, source
 
     def compile_bo_bsc_base(target):
       bdir = os.path.dirname(str(target[0]))
-      # kill the bo target first ?
-      lib_dirs = bsc_bdir_prune(env,ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
-      return  BSC +" " +  self.BSC_FLAGS + ' -p +:' + MODULE_PATH + ":" + \
+      lib_dirs = self.__bsc_bdir_prune(env, MODULE_PATH + ':' + ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
+      return  BSC +" " +  self.BSC_FLAGS + ' -p +:' + \
            ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/asim/provides:' + \
            lib_dirs + ':' + TMP_BSC_DIR + ' -bdir ' + bdir + \
            ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir
@@ -179,15 +215,13 @@ class BSV():
 
 
     bsc = moduleList.env.Builder(generator = compile_bo, suffix = '.bo', src_suffix = '.bsv',
-                emitter = emitter_bo)
-
+                                 emitter = emitter_bo)
 
 
     # This guy has to depend on children existing?
     # and requires a bash shell
     moduleList.env['SHELL'] = 'bash' # coerce commands to be spanwed under bash
-    bsc_log = moduleList.env.Builder(generator = compile_bsc_log, suffix = '.log', src_suffix = '.bsv')      
-
+    bsc_log = moduleList.env.Builder(generator = compile_bsc_log, suffix = '.log', src_suffix = '.bsv')
     
 
     # SUBD method for building generated .bsv file.  Can't use automatic
@@ -197,62 +231,37 @@ class BSV():
     env.Append(BUILDERS = {'BSC' : bsc, 'BSC_LOG' : bsc_log, 'BSC_SUBD' : bsc_subd})
 
 
-    moduleList.env.BuildDir(MODULE_PATH + TMP_BSC_DIR, '.', duplicate=0)
+    moduleList.env.BuildDir(MODULE_PATH + '/' + TMP_BSC_DIR, '.', duplicate=0)
 
     bsc_builds = []
     for bsv in BSVS + GEN_BSVS:
-      bsc_builds += env.BSC(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + bsv)
-
-    # we must making him depend on his children (NOT his children's children!)
-    #child_v = []
-    #for child in synth_children:
-    #  child_v.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + get_child_v(child))
-
+      bsc_builds += env.BSC(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
 
     for bsv in  [get_wrapper(module)]:
       ##
       ## First pass just generates a log file to figure out cross synthesis
       ## boundary soft connection array sizes.
       ##
-      # this is a little hosed.  We need to force a rebuild of soft_connections
-      # soft connection alg is the one that needs to be recompiled
-      # soft_connection_recompile = env.Command(, log, 'leap-connect --softservice --dynsize $SOURCE $TARGET')
-      logfile = MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.log')     
+      logfile = MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.log')     
 
-      log = env.BSC_LOG(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('bsv', 'log'),
+      log = env.BSC_LOG(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('bsv', 'log'),
                         MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log'))
 
-      #Should the log.bo be a sideeffect?
-      env.Requires(log,deps)
-      env.Requires(log,dependency)
-
-      #moduleList.env.Depends(log,soft_connec
-      #moduleList.env.Depends(log, child_v)
-      # we should depend on subsidiary logs
-      #moduleList.env.Depends(log, child_v)
-
-      # Parse the log, generate a stub file
+      ##
+      ## Parse the log, generate a stub file
+      ##
       stub_name = bsv.replace('.bsv', '_con_size.bsh')
-      stub = env.Command(MODULE_PATH + stub_name, log, 'leap-connect --softservice --dynsize $SOURCE $TARGET')
-
-      env.Requires(stub,deps)
-      env.Requires(stub,dependency)
+      stub = env.Command(MODULE_PATH + '/' + stub_name, log, 'leap-connect --softservice --dynsize $SOURCE $TARGET')
 
       ##
       ## Now we are ready for the real build
       ##
-      wrapper_bo = env.BSC(MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + bsv)
-      # if we rebuild the wrapper, we also need to rebuild the parent bo
-#      upper_bo = MODULE_PATH + '/../' + TMP_BSC_DIR + '/' + bsv.replace('_Wrapper.bsv', '.bo')
-      env.Requires(wrapper_bo,deps)
-      env.Requires(wrapper_bo,dependency)
+      wrapper_bo = env.BSC(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
 
       if(getBuildPipelineDebug(moduleList) != 0):
-        print 'wrapper_bo: ' + str(wrapper_bo) + '\n'
-        print 'stub: ' + str(stub) + '\n'
+        print 'wrapper_bo: ' + str(wrapper_bo)
+        print 'stub: ' + str(stub)
       moduleList.env.Depends(wrapper_bo, stub)
-#      moduleList.env.Depends(stub,wrapper_bo)
-#      moduleList.env.Depends(upper_bo, wrapper_bo)
 
       # now we should call leap-connect soft-services again
       # unfortunately leap-connect wants this file to reside in our 
@@ -261,31 +270,26 @@ class BSV():
       c = env.Command(synth_stub, # target
                       [stub,wrapper_bo],  
                       [ 'mkdir -p ' + synth_stub_path,
-                      'leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
-
- 
+                        'leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
 
 
       ##
       ## The mk_<wrapper>.v file is really built by the Wrapper() builder
-      ## above.  Unfortunately, SCons doesn't appear to like having rules
-      ## refer to multiple targets of the same build.  The following hack
-      ## appears to work:  a command with no action and the Precious() call
-      ## to keep SCons from deleting the .v file.  I tried an Alias()
-      ## first, but that didn't work.
+      ## above.  We use NULL commands to convince SCons the file is generated.
+      ## This seems easier than SCons SideEffect() calls, which don't clean
+      ## targets.
       ##
-      # we also generate all this synth boundary's GEN_VS
+      ## We also generate all this synth boundary's GEN_VS
+      ##
       gen_v = moduleList.getSynthBoundaryDependencies(module, 'GEN_VS')
       ext_gen_v = []
       for v in gen_v:
-        ext_gen_v += [MODULE_PATH + TMP_BSC_DIR + '/' + v]
+        ext_gen_v += [MODULE_PATH + '/' + TMP_BSC_DIR + '/' + v]
 
-      bld_v = env.Command([MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.v')] + ext_gen_v,
-                          MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
+      bld_v = env.Command([MODULE_PATH + '/' + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.v')] + ext_gen_v,
+                          MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
                           '')
       env.Precious(bld_v)
-
-
 
 
       if(BUILD_VERILOG == 1):
@@ -295,80 +299,98 @@ class BSV():
         print "Name: " + module.name
 
       # each synth boundary will produce a ba
-      bld_ba = [env.Command([MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba')],
-                           MODULE_PATH + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
-                           '')]
+      bld_ba = [env.Command([MODULE_PATH + '/' + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba')],
+                            MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
+                            '')]
       
-
-      # we also generate all this synth boundary's GEN_BAS
-      # this is a little different because we must dependent on awb module bo rather
-      # than the synth boundary bo
+      ##
+      ## We also generate all this synth boundary's GEN_BAS. This is a
+      ## little different because we must dependent on awb module bo rather
+      ## than the synth boundary bo
+      ##
       descendents = moduleList.getSynthBoundaryDescendents(module)
       for descendent in descendents:
-        print "BA: working on " + descendent.name
+        if(getBuildPipelineDebug(moduleList) != 0):
+          print "BA: working on " + descendent.name
+
         gen_ba = moduleList.getDependencies(descendent, 'GEN_BAS')
-        # dress them with the correct directory
-        # really the ba depend on their specific bo
+
+        # Dress them with the correct directory. Really the ba's depend on
+        # their specific bo.
         ext_gen_ba = []
         for ba in gen_ba:
-          print "BA: " + descendent.name + " generates " + MODULE_PATH + TMP_BSC_DIR + '/' + ba
-          ext_gen_ba += [MODULE_PATH + TMP_BSC_DIR + '/' + ba]    
-
-        ## our descendents need to wait for leap-bsc-mkdeps
-        env.Requires(MODULE_PATH + '/' + descendent.name + '.bsv',deps)    
-        env.Requires(MODULE_PATH + '/' + descendent.name + '.bsv',dependency)
+          if(getBuildPipelineDebug(moduleList) != 0):
+            print "BA: " + descendent.name + " generates " + MODULE_PATH + '/' + TMP_BSC_DIR + '/' + ba
+          ext_gen_ba += [MODULE_PATH + '/' + TMP_BSC_DIR + '/' + ba]    
           
         ##
         ## Do the same for .ba
         ##
         bld_ba += [env.Command(ext_gen_ba,
-                             MODULE_PATH + TMP_BSC_DIR + '/' + descendent.name + '.bo',
-                             '')]
+                               MODULE_PATH + '/' + TMP_BSC_DIR + '/' + descendent.name + '.bo',
+                               '')]
 
 
       module.moduleDependency['BA'] += bld_ba 
       env.Precious(bld_ba)
 
-      env.Requires(bld_ba,deps)
-      env.Requires(bld_ba,dependency)
-
-
-
       ##
       ## Build the Xst black-box stub.
       ##
-      bb = env.Command(MODULE_PATH + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '_stub.v'),
+      bb = env.Command(MODULE_PATH + '/' + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '_stub.v'),
                        bld_v + bld_ba,
                        'leap-gen-black-box -nohash $SOURCE > $TARGET')
 
-      # spam this file to all synthesis boundaries in case one of them wants it. 
+      # Spam this file to all synthesis boundaries in case one of them wants it. 
       boundaries = moduleList.synthBoundaries() + [moduleList.topModule]
       for boundary in boundaries:
-        #make sure module doesn't self-depend
-        #boundarydir  = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + boundary.buildPath + '/.synthBoundaries/' 
+        # Make sure module doesn't self-depend
         boundarydir  = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + boundary.buildPath +'/'
         boundarycopy = boundarydir +  module.name + '.bsv'
         
         if(module.name != boundary.name): 
-          print  " module: " + module.name + " boundary: " + boundary.name  + "\n"
-          print "command: cp " + str(synth_stub) + " " + boundarycopy +"\n"
+          if(getBuildPipelineDebug(moduleList) != 0):
+            print  " module: " + module.name + " boundary: " + boundary.name
+            print "command: cp " + str(synth_stub) + " " + boundarycopy
           BOUNDARY_PATH =  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + boundary.buildPath + '/' 
           copy_bo = BOUNDARY_PATH + TMP_BSC_DIR + '/' + module.name + '.bo'
           c_boundary = env.Command(boundarycopy,
                                    [synth_stub,bld_ba,stub,wrapper_bo],
                                    ['mkdir -p '+ boundarydir,
                                     'cp ' + synth_stub + ' $TARGET'])
-          #Need to insert the "bo" dependency as well.  
 
           bo_dep = env.BSC_SUBD(copy_bo, boundarycopy)
           
-          # if you need the child bo, then you will need its verilog also. 
-          print "bo_dep is: " + str(bo_dep) + "\n"
-      #    moduleList.env.Depends(bo_dep,child_v)
-
+          # If you need the child bo, then you will need its verilog also. 
+          if(getBuildPipelineDebug(moduleList) != 0):
+            print "bo_dep is: " + str(bo_dep)
 
       # because I'm not sure that we guarantee the wrappers can only be imported
       # by parents, 
       moduleList.topModule.moduleDependency['VERILOG_STUB'] += [bb]
- 
 
+      return [bb]
+
+
+
+  ##
+  ## As of Bluespec 2008.11.C the -bdir target is put at the head of the search path
+  ## and the compiler complains about duplicate path entries.
+  ##
+  ## This code removes the local build target from the search path.
+  ##
+  def __bsc_bdir_prune(self, env, str, sep, match):
+    t = clean_split(str, sep)
+
+    # Make the list unique to avoid Bluespec complaints about duplicate paths.
+    seen = set()
+    t = [e for e in t if e not in seen and not seen.add(e)]
+
+    if (getBluespecVersion() >= 15480):
+      try:
+        while 1:
+          i = t.index(match)
+          del t[i]
+      except ValueError:
+        pass
+    return string.join(t, sep)

@@ -20,7 +20,8 @@ class WrapperGen():
       wrapperPath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + module.name + "_Wrapper.bsv"
       logPath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + module.name + "_Log.bsv"
       ignorePath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/.ignore'
-      print "Wrapper path is " + wrapperPath + '\n'
+      if(getBuildPipelineDebug(moduleList) != 0):
+        print "Wrapper path is " + wrapperPath
       wrapper_bsv = open(wrapperPath, 'w')
       log_bsv = open(logPath, 'w')
       ignore_bsv = open(ignorePath, 'w')
@@ -42,19 +43,18 @@ class WrapperGen():
           
           wrapper.write('// import non-synthesis private files\n')
 
-
           wrapper.write('// Get defintion of TOP_LEVEL_WIRES\n')
           wrapper.write('import physical_platform::*;\n')
 
           wrapper.write('(* synthesize *)\n')
           wrapper.write('(* no_default_clock, no_default_reset *)\n')
+
         wrapper_bsv.write('module mk_model_Wrapper (TOP_LEVEL_WIRES);\n')
         log_bsv.write('module mk_model_Log (TOP_LEVEL_WIRES);\n')
 
         for wrapper in [wrapper_bsv, log_bsv]:      
           wrapper.write('    // instantiate own module\n')
           wrapper.write('     let m <- mkModel();\n')
-
           wrapper.write('    return m;\n')
 
           wrapper.write('endmodule\n')
@@ -95,6 +95,5 @@ class WrapperGen():
           wrapper.write('    interface device = m_final;\n')
           wrapper.write('endmodule\n')
     
-
       wrapper_bsv.close()
       log_bsv.close()

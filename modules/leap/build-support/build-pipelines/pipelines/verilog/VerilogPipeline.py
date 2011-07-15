@@ -1,3 +1,7 @@
+##
+## Build pipeline for Verilog
+##
+
 import os
 import re
 import SCons.Script  
@@ -13,6 +17,7 @@ class Build(ProjectDependency):
     WrapperGen(moduleList)
     #build interface first 
     Iface(moduleList)
-    BSV(moduleList)
-    Software(moduleList)
-    Verilog(moduleList, True)
+    bsv = BSV(moduleList)
+    if not bsv.isDependsBuild:
+      Software(moduleList)
+      Verilog(moduleList, True)

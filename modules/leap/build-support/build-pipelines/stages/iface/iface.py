@@ -59,8 +59,10 @@ class Iface():
         src_names = ''
         for s in source:
             src_names += ' ' + str(s)
+
         # Ask leap-dict for the output names based on the input file
-        print 'leap-dict --querymodules --src-inc ' + inc_dirs + ' ' + src_names +'\n'
+        if(getBuildPipelineDebug(moduleList) != 0):
+          print 'leap-dict --querymodules --src-inc ' + inc_dirs + ' ' + src_names +'\n'
         for d in os.popen('leap-dict --querymodules --src-inc ' + inc_dirs + ' ' + src_names).readlines():
             #
             # Querymodules describes both targets and dependence info.  Targets
@@ -95,8 +97,11 @@ class Iface():
     # not really sure why srcs stopped working?
     # leap-configure creates this dynamic_params.dic. Gotta handle is specially. Boo. 
     dicts = map(addPathDic,moduleList.getAllDependencies('GIVEN_DICTS')+['dynamic_params.dic'])
+
     dictCommand = 'leap-dict --src-inc ' + inc_dirs + ' --tgt-inc ' + dict_inc_tgt + ' --tgt-hw ' + hw_tgt + " " + (" ".join(dicts))
-    print dictCommand
+    if(getBuildPipelineDebug(moduleList) != 0):
+      print dictCommand
+
     d_bld = moduleList.env.Builder(action = dictCommand,
                     emitter = dict_emitter)
     moduleList.env.Append(BUILDERS = {'DIC' : d_bld})
@@ -169,12 +174,13 @@ class Iface():
     #
     # Build everything
     # 
-
     moduleList.topModule.moduleDependency['IFACE'] = tgt
     moduleList.topModule.moduleDependency['IFACE_HEADERS'] = d_tgt + r_tgt
+
     #
     # Backwards compatability link
     #
     if not moduleList.env.GetOption('clean') and not os.path.exists('iface/build/include/asim'):
         os.symlink('awb', 'iface/build/include/asim')
 
+    moduleList.env.Alias('iface', tgt)

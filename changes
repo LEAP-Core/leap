@@ -9057,3 +9057,44 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
 
 
 Added --batch flag to awb-shell subroutines so that multifpga compilation works inside intel. 
+
+----------
+mcadler     Date: Fri Jul 15 17:35:41 EDT 2011  CSN: CSN-leap-127
+                  Fri Jul 15 21:35:41 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          126 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          126 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          126 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          126 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ SimulationPipeline.py     Locally Modified          126 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ VerilogPipeline.py        Locally Modified          126 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ FPGAPipeline.py           Locally Modified          126 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          126 
+ SCons.top.pipeline.template Locally Modified          126 
+ ModuleList.py             Locally Modified          126 
+ CommandLine.py            Locally Modified          126 
+
+- Build pipeline Bluespec dependence was broken.  It appears that you can't call
+  ParseDepends() during pass 2 of a SCons run and have it change the build
+  order.  Restored 2-phase build SCons build.  A normal build now invokes
+  a second copy of SCons to generate .depends-bsv files.
+
+- Lots of clean-up in BSV.py to remove dead code.
+
+- Put debugging output under the command line switch.
