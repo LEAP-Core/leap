@@ -265,9 +265,10 @@ class BSV():
 
       # now we should call leap-connect soft-services again
       # unfortunately leap-connect wants this file to reside in our 
-      synth_stub_path = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/.stub/'
-      synth_stub = synth_stub_path + module.name +'.bsv'
-      c = env.Command(synth_stub, # target
+      if(module.name != moduleList.topModule.name):
+        synth_stub_path = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'
+        synth_stub = synth_stub_path + module.name +'.bsv'
+        c = env.Command(synth_stub, # target
                       [stub,wrapper_bo],  
                       [ 'mkdir -p ' + synth_stub_path,
                         'leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
@@ -348,7 +349,7 @@ class BSV():
         boundarydir  = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + boundary.buildPath +'/'
         boundarycopy = boundarydir +  module.name + '.bsv'
         
-        if(module.name != boundary.name): 
+        if(module.name != boundary.name  and module.name != moduleList.topModule.name): 
           if(getBuildPipelineDebug(moduleList) != 0):
             print  " module: " + module.name + " boundary: " + boundary.name
             print "command: cp " + str(synth_stub) + " " + boundarycopy

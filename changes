@@ -9098,3 +9098,25 @@ Directory modules/leap/build-support/project
 - Lots of clean-up in BSV.py to remove dead code.
 
 - Put debugging output under the command line switch.
+
+----------
+kfleming    Date: Mon Jul 18 12:59:39 EDT 2011  CSN: CSN-leap-128
+                  Mon Jul 18 16:59:39 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          127 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          127 
+
+
+Two changes
+
+1) Moved Bluespec paramters to a different bsh file than provides.bsh.
+This eliminates the need to have `ifdef magic in the BSH file.
+
+2) Moved synthesis boundary files from stub to main directory.  This
+created a clash with model.bsv, so I special cased model.bsv to not
+generate a synthesis boundary file. 
+

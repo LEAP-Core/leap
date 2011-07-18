@@ -759,6 +759,7 @@ sub __make_bsvfiles {
     my $provides = $module->provides();
     my $description = $module->description();
     my $bshfile = Leap::Util::path_append($hw_inc_dir,"$provides.bsh");
+    my $paramsbshfile = Leap::Util::path_append($hw_inc_dir,"${provides}_params.bsh");
     # we compile the synthesis boundaries a little differently, except the top level.
     # this should all be moved to build pipeline
     my $bsvfile;
@@ -775,6 +776,8 @@ sub __make_bsvfiles {
 
     unlink($bshfile);
     open(BSHFILE, ">$bshfile");
+    unlink($paramsbshfile);
+    open(PARAMSBSHFILE, ">$paramsbshfile");
 
     # Bluespec preprocessor doesn't like '-'
     my $safe_provides = $provides;
@@ -791,6 +794,17 @@ sub __make_bsvfiles {
     print BSHFILE "`define INCLUDED_MODULE_${safe_provides}\n";
     print BSHFILE "\n";
 
+    print PARAMSBSHFILE "//\n";
+    print PARAMSBSHFILE "// Synthesized header file for module: $provides\n";
+    print PARAMSBSHFILE "//\n";
+    print PARAMSBSHFILE "//   This file was created by " . basename($0) . "\n";
+    print PARAMSBSHFILE "//\n";
+    print PARAMSBSHFILE "\n";
+
+    print PARAMSBSHFILE "`ifndef INCLUDED_MODULE_${safe_provides}_PARAMS\n";
+    print PARAMSBSHFILE "`define INCLUDED_MODULE_${safe_provides}_PARAMS\n";
+    print PARAMSBSHFILE "\n";
+
     # add defines for parameters
     my @p = ();
     push(@p, $module->parameters());
@@ -799,11 +813,11 @@ sub __make_bsvfiles {
       my $pname = $p->name();
       my $pvalue = $p->value();
       
-      print BSHFILE "`define $pname $pvalue\n";
+      print PARAMSBSHFILE "`define $pname $pvalue\n";
 
       ## Make SYNTH_INSTANCES globally useful
       if ($pname eq "SYNTH_INSTANCES") {
-          print BSHFILE "`define " . uc($provides) . "_$pname $pvalue\n";
+          print PARAMSBSHFILE "`define " . uc($provides) . "_$pname $pvalue\n";
       }
 
       ##
@@ -813,16 +827,17 @@ sub __make_bsvfiles {
       ## a special name when the value of a predicate is 0.
       ##
       if ($p->isInt() && ($pvalue == 0)) {
-          print BSHFILE "`define ${pname}_Z $pvalue\n";
+          print PARAMSBSHFILE "`define ${pname}_Z $pvalue\n";
       }
     }
-    print BSHFILE "\n";
-
+    print PARAMSBSHFILE "\n";
+  
+    
     # .bsh (include) files get included in the synthesized headers.  That way
     # a module can declare a set of public files that get included as source.
     # Bluespec would normally import a compiled file and not see the source.
     foreach my $f ($module->sources("BSH", "PUBLIC")) {
-        print BSHFILE "`include \"$f\"\n";
+        print PARAMSBSHFILE "`include \"$f\"\n";
         if ($f eq "${provides}.bsv") {
             print STDERR "File name clash:  interface ${provides} uses a source file with the same name!\n";
             exit(1);
@@ -833,6 +848,11 @@ sub __make_bsvfiles {
         }
     }
 
+    print PARAMSBSHFILE "\n";
+    print PARAMSBSHFILE "`endif  // INCLUDED_MODULE_${safe_provides}\n";
+
+    close (PARAMSBSHFILE); 
+    print BSHFILE "`include \"awb/provides/${provides}_params.bsh\"\n";
     if (@bsv_sources) {
         print BSHFILE "\n";
         print BSHFILE "`ifndef BUILDING_MODULE_${safe_provides}\n";
@@ -858,7 +878,7 @@ sub __make_bsvfiles {
 
         # Prevent circular imports
         print BSVFILE "`define BUILDING_MODULE_${safe_provides}\n";
-        print BSVFILE "`include \"awb/provides/${provides}.bsh\"\n";
+        print BSVFILE "`include \"awb/provides/${provides}_params.bsh\"\n";
         print BSVFILE "\n";
 
         # Add includes of public and private bsc files.  Skip .bsh files since they
