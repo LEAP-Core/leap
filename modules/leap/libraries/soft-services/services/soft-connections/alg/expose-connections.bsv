@@ -111,7 +111,7 @@ endinstance
 
 module printDanglingSend#(Integer cur_out, LOGICAL_SEND_INFO cur) (Empty);
   let opt = (cur.optional) ? "True" : "False";
-  messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt);
+  messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth));
 endmodule
 
 // Expose dangling sends to other synthesis boundaries via compilation messages
@@ -160,7 +160,7 @@ endmodule
 
 module printDanglingRecv#(Integer cur_out, LOGICAL_RECV_INFO cur) (Empty);
     let opt = (cur.optional) ? "True" : "False";
-    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_out) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt);
+    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_out) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth));
 endmodule
 
 // Expose dangling receives to other synthesis boundaries via compilation messages
@@ -322,7 +322,7 @@ endmodule
 
 // make the printout similar to connections.  this may assist in parsing later.
 module printChain#(Integer cur_out, LOGICAL_CHAIN_INFO cur) (Empty);
-  messageM("Dangling Chain {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":False");
+  messageM("Dangling Chain {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":False:" + integerToString(cur.bitWidth));
 endmodule
 
 module exposeChains#(List#(LOGICAL_CHAIN_INFO) chains) (Vector#(n, PHYSICAL_CHAIN));

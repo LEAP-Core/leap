@@ -64,7 +64,8 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(String send_name, Maybe#(STATION) m
         {
             logicalName: send_name, 
             logicalType: original_type, 
-            computePlatform: platformName, 
+            computePlatform: platformName,
+            bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
             outgoing: outg
         };
@@ -148,6 +149,7 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
             logicalName: recv_name, 
             logicalType: original_type, 
             computePlatform: platformName,
+            bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
             incoming: inc
         };
@@ -427,7 +429,8 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
       {
           logicalName: chain_name, 
           logicalType: original_type, 
-          computePlatform: platform, 
+          computePlatform: platform,
+          bitWidth: valueof(SizeOf#(msg_T)),  
           incoming: inc,
           outgoing: outg
       };

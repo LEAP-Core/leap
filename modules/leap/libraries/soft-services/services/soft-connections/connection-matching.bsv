@@ -156,7 +156,8 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         // Add the new link to the list.
         putChain(LOGICAL_CHAIN_INFO{logicalName: new_link.logicalName, 
                                                logicalType: new_link.logicalType, 
-                                               computePlatform: new_link.computePlatform, 
+                                               computePlatform: new_link.computePlatform,
+                                               bitWidth: new_link.bitWidth, 
                                                incoming: new_link.incoming, 
                                                outgoing: latest_link.outgoing});
 

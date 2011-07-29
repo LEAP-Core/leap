@@ -9131,3 +9131,29 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
 
 
 Upgraded multifpga tool to latest version of ModuleList
+
+----------
+keflemin    Date: Thu Jul 28 21:15:02 EDT 2011  CSN: CSN-leap-130
+                  Fri Jul 29 01:15:02 UTC 2011
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified          129 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-server.bsv      Locally Modified          129 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          129 
+ connected-common.bsv      Locally Modified          129 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          129 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-implementation.bsv Locally Modified          129 
+
+
+Connections (not chains, yet) now track their bit widths.  This is
+useful for multiple FPGA connections in which we wish to pack data
+bits and header bits in the same chunk/phit.

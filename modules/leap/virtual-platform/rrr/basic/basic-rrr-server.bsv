@@ -200,7 +200,7 @@ module mkArbitedServerNonZero#(function ActionValue#(UMF_PACKET) read(), functio
             // add my virtual channelID to header
             UMF_PACKET newpacket = tagged UMF_PACKET_header UMF_PACKET_HEADER
                                        {
-                                         filler: ?,
+                                         filler: packet.UMF_PACKET_header.filler, // The packet knows more than we do.
                                          phyChannelPvt: ?,
                                          channelID: `SERVER_CHANNEL_ID,
                                          serviceID: packet.UMF_PACKET_header.serviceID,

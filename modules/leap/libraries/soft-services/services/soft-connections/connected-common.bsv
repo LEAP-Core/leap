@@ -134,6 +134,7 @@ typedef struct
     String logicalType;
     String computePlatform;
     Bool optional;
+    Integer bitWidth;
     PHYSICAL_CONNECTION_OUT outgoing;
 } 
     LOGICAL_SEND_INFO;
@@ -145,6 +146,7 @@ typedef struct
     String logicalType;
     String computePlatform;
     Bool optional;
+    Integer bitWidth;
     PHYSICAL_CONNECTION_IN incoming;
 } 
     LOGICAL_RECV_INFO;
@@ -197,6 +199,7 @@ typedef struct
     String  logicalName;
     String  logicalType;
     String  computePlatform;
+    Integer bitWidth;
     PHYSICAL_CHAIN_IN  incoming;
     PHYSICAL_CHAIN_OUT outgoing;
 } 
