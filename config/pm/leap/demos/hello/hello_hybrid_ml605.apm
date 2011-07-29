@@ -1,0 +1,48 @@
+
+[Global]
+SaveParameters=0
+Description=Hello World Demo using hybrid streams for HTG v5 PCIe
+File=hello_hybrid_ml605
+Version=2.2
+Name=Hello World for XUP v5 JTAG
+DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
+Type=Leap
+Class=Asim::Model
+DefaultRunOpts=
+RootName=HW/SW Hybrid Pipeline Build
+RootProvides=model
+
+[Model]
+DefaultAttributes=hello unconnected hybrid project htg
+model=HW/SW Hybrid Pipeline Build
+
+[Base Hybrid Application Environment]
+File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
+Packagehint=leap
+
+[Base Hybrid Application Environment/Requires]
+hybrid_application=Hello World
+
+[Hello World]
+File=modules/leap/examples/hello-world/hello-world.awb
+Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)
+application_env=Base Hybrid Application Environment
+
+[HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-pipeline.awb
+Packagehint=leap
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)/Params]
+MODEL_CLOCK_FREQ=100
+
+[Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)]
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-605d-xst.apm
+Packagehint=leap

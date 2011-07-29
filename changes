@@ -9167,3 +9167,13 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
  bluespec.xcf              Locally Modified          130 
 
 Update comment for latest Bluespec compiler release.
+
+----------
+kfleming    Date: Fri Jul 29 14:04:01 EDT 2011  CSN: CSN-leap-132
+                  Fri Jul 29 18:04:01 UTC 2011
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_ml605.apm    Locally Added               0 
+
+Added hello world for ML605
