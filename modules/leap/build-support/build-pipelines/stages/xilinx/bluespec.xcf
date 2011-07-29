@@ -1,7 +1,7 @@
 ##
-## This file is taken from the Bluespec compiler's lib/board_support/xilinx
-## tree.  We don't use the file directly because it must be modified to
-## work in the LEAP environment.
+## This file is taken from the Bluespec compiler's lib/Verilog/Bluespec.xcf.
+## We don't use the file directly because it must be modified to work
+## in the LEAP environment.
 ##
 
 ## Removed RegFile because LEAP already handles this case in the LUTRAM code.

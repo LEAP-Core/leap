@@ -9157,3 +9157,13 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 Connections (not chains, yet) now track their bit widths.  This is
 useful for multiple FPGA connections in which we wish to pack data
 bits and header bits in the same chunk/phit.
+
+----------
+mcadler     Date: Fri Jul 29 10:23:42 EDT 2011  CSN: CSN-leap-131
+                  Fri Jul 29 14:23:42 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ bluespec.xcf              Locally Modified          130 
+
+Update comment for latest Bluespec compiler release.
