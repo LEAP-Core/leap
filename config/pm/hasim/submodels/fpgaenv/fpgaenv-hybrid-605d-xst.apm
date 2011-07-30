@@ -185,3 +185,6 @@ physical_channel=Passthrough PCIe Physical Channel
 [Passthrough PCIe Physical Channel]
 File=modules/leap/virtual-platform/physical-channel/pcie/passthrough/pcie-passthrough-physical-channel.awb
 Packagehint=leap
+
+[FPGA Build Pipeline Xilinx/Params]
+GENERATE_VICO=1

@@ -7,8 +7,9 @@
 
 #include "asim/syntax.h"
 #include "asim/mesg.h"
-#include "platforms-module.h"
-#include "asim/provides/umf.h"
+//#include "awb/provides/low_level_platform_interface.h"
+#include "awb/provides/umf.h"
+#include "awb/provides/model.h"
 
 class RRR_CLIENT_CLASS : public PLATFORMS_MODULE_CLASS {
 public:

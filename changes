@@ -9177,3 +9177,49 @@ Directory config/pm/leap/demos/hello
  hello_hybrid_ml605.apm    Locally Added               0 
 
 Added hello world for ML605
+
+----------
+kfleming    Date: Sat Jul 30 14:02:04 EDT 2011  CSN: CSN-leap-133
+                  Sat Jul 30 18:02:04 UTC 2011
+
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ CPP.pm                    Locally Modified          132 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ CPP.pm                    Locally Modified          132 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          132 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx.apm Locally Modified          132 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ rrr-dummy.cpp             Locally Added               0 
+ rrr-dummy.h               Locally Modified          132 
+ hw-only-rrr.awb           Locally Modified          132 
+
+Directory modules/leap/virtual-platform/vico-headers
+ vico-headers.awb          Locally Modified          132 
+ vico_fw.h                 Locally Modified          132 
+ vico_rrr_layer.cpp        Locally Added               0 
+ vico_rrr_layer.h          Locally Modified          132 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Modified          132 
+ iface.py                  Locally Modified          132 
+
+
+General work on vico compatibility.  Unfortunately, although vico is
+quite close, some of the software (a static function relating to
+determining whether a thread is the vico main thread seems to be
+undefined) is still not compiling.  However, things do seem close.
+Generally, the code was using non-awb style commits, and this caused
+some obvious issues, particularly with regard to the awb/asim switch
+in the include path.
+
+I'm hoping for someone to examine the software issue, but for now, I
+will try to hack around it and see how far I get.
+
+

@@ -3,6 +3,7 @@ import re
 import sys
 import string
 import SCons.Script
+from config import *
 from model import  *
 
 class Iface():
@@ -123,9 +124,12 @@ class Iface():
     # Compile RRR stubs
     #  NOTE: like dictionaries, some files must be created even when no .rrr
     #  files exist.
+    generate_vico = ''
+    if(GENERATE_VICO):
+      generate_vico = '-vico'
     r_tgt = moduleList.env.Command(rrr_inc_tgt + '/service_ids.h',
                        map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS')),
-                       'leap-rrr-stubgen --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')
+                       'leap-rrr-stubgen ' + generate_vico + ' --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')
     tgt += r_tgt
     #
     # Compile generated BSV stubs

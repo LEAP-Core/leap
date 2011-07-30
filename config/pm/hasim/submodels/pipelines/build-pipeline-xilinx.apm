@@ -63,7 +63,7 @@ Packagehint=leap
 
 [Interface builder]
 File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
-Packagehint=multifpga
+Packagehint=leap
 
 [Software build tool]
 File=modules/leap/build-support/build-pipelines/stages/software/software.awb
