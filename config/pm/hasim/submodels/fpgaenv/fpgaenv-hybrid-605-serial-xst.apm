@@ -1,11 +1,11 @@
 
 [Global]
 SaveParameters=0
-Description=Hybrid ML605 V6 FPGA Environment with PCIe DMA interface
-File=fpgaenv-hybrid-605d-xst
+Description=Hybrid ML605 V6 FPGA Environment Serial
+File=fpgaenv-hybrid-605-serial-xst
 Version=2.2
 Type=Leap
-Name=Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)
+Name=Hybrid ML605 V6 FPGA Environment (Serial)
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -32,7 +32,7 @@ Packagehint=leap
 
 [Standard Virtual Platform/Requires]
 virtual_devices=Standard Virtual Devices (No Memory Service)
-low_level_platform_interface=ViCo Low Level Platform Interface Hybrid
+low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 
 ;led_device=General LED Device
@@ -113,26 +113,6 @@ Packagehint=leap
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
 
-[ViCo RRR Clients and Servers]
-File=modules/leap/virtual-platform/rrr/basic/hw-only-rrr.awb
-Packagehint=leap
-
-[ViCo RRR Clients and Servers/Requires]
-rrr_common=RRR Common Module
-
-[Xilinx PCIe Core for ML605]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pcie-dma/pcie_core/pcie-core.awb
-Packagehint=leap-platforms
-
-[ML605 V6 platform with PCIe DMA only/Requires]
-pcie_device=ML605 PCIe DMA Physical Device
-clocks_device=Single-Ended Crystal Clocks Device
-physical_platform_utils=Common Physical Platform Utilities
-
-[ML605 V6 platform with PCIe DMA only]
-File=modules/bluespec/common/fpgaenv/physical-platform/ml605/pcie-dma/ml605-v6-pcie-dma.awb
-Packagehint=leap-platforms
-
 [FPGA Build Pipeline Xilinx]
 File=config/pm/hasim/submodels/pipelines/build-pipeline-xilinx.apm
 Packagehint=leap
@@ -140,33 +120,6 @@ Packagehint=leap
 [RL Bluespec Library Submodel]
 File=config/pm/hasim/submodels/fpgaenv/librl-bsv.apm
 Packagehint=leap
-
-[ML605 PCIe DMA Physical Device/Requires]
-pcie_core=Xilinx PCIe Core for ML605
-
-[Little-Endian Unified Message Format/Params]
-UMF_CHUNK_BYTES=8
-
-[ML605 PCIe DMA Physical Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pcie-dma/pci-express-dma.awb
-Packagehint=leap-platforms
-
-[ViCo headers]
-File=modules/leap/virtual-platform/vico-headers/vico-headers.awb
-Packagehint=leap
-
-[ViCo Low Level Platform Interface Hybrid]
-File=modules/leap/virtual-platform/low-level-platform-interface/vico-llpi.awb
-Packagehint=leap
-
-[ViCo Low Level Platform Interface Hybrid/Requires]
-physical_platform=ML605 V6 platform with PCIe DMA only
-remote_memory=Null Remote Memory
-channelio=Hardware-Only Virtual Channel Multiplexer
-rrr=ViCo RRR Clients and Servers
-vico_headers=ViCo headers
-physical_platform_debugger=Null Physical Platform Debugger
-local_mem=NULL Local Memory Interface
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
@@ -177,16 +130,55 @@ RESET_ACTIVE_HIGH=1
 CRYSTAL_CLOCK_FREQ=66
 MODEL_CLOCK_FREQ=66
 
-[Hardware-Only Virtual Channel Multiplexer]
-File=modules/leap/virtual-platform/channelio/basic/hw-only-channelio.awb
+[Low Level Platform Interface Hybrid]
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
 Packagehint=leap
 
-[Hardware-Only Virtual Channel Multiplexer/Requires]
-physical_channel=Passthrough PCIe Physical Channel
+[Low Level Platform Interface Hybrid/Requires]
+physical_platform=ML605 V6 platform with Serial
+remote_memory=Null Remote Memory
+channelio=Basic Virtual Channel Multiplexer
+rrr=RRR Clients and Servers
+physical_platform_debugger=Null Physical Platform Debugger
+local_mem=NULL Local Memory Interface
 
-[Passthrough PCIe Physical Channel]
-File=modules/leap/virtual-platform/physical-channel/pcie/passthrough/pcie-passthrough-physical-channel.awb
+[RRR Clients and Servers]
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
+
+[ML605 V6 platform with Serial/Requires]
+clocks_device=Single-Ended Crystal Clocks Device
+serial_device=Serial Physical Device (physical)
+physical_platform_utils=Common Physical Platform Utilities
+
+[Serial Physical Device ml605 UCF]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/ucf/serial-device-ucf-ml605.awb
+Packagehint=leap-platforms
+
+[RRR Clients and Servers/Requires]
+rrr_common=RRR Common Module
+
+[Basic Virtual Channel Multiplexer]
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
+
+[Serial Physical Device (physical)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/physical-serial/serial-device-physical.awb
+Packagehint=leap-platforms
+
+[Serial Physical Device (physical)/Requires]
+serial_device_ucf=Serial Physical Device ml605 UCF
+
+[Basic Virtual Channel Multiplexer/Requires]
+physical_channel=HiPerf Serial Physical Channel
+
+[ML605 V6 platform with Serial]
+File=modules/bluespec/common/fpgaenv/physical-platform/ml605/serial/ml605-serial.awb
+Packagehint=leap-platforms
+
+[HiPerf Serial Physical Channel]
+File=modules/leap/virtual-platform/physical-channel/serial/serial-physical-channel-8bit.awb
 Packagehint=leap
 
 [FPGA Build Pipeline Xilinx/Params]
-GENERATE_VICO=1
+MAPPER_OPTIONS=" -global_opt on"

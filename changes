@@ -9223,3 +9223,22 @@ I'm hoping for someone to examine the software issue, but for now, I
 will try to hack around it and see how far I get.
 
 
+
+----------
+kfleming    Date: Wed Aug  3 00:13:52 EDT 2011  CSN: CSN-leap-134
+                  Wed Aug  3 04:13:52 UTC 2011
+
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-605-serial-xst.apm Locally Added               0 
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          133 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_ml605.apm    Locally Modified          133 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-map.awb            Locally Modified          133 
+ XILINX_MAP.py             Locally Modified          133 
+
+
+Moved -cm balanced flag to MAPPER options parameter.  mL605 doesn't like this flag...
