@@ -47,6 +47,16 @@ interface CENTRAL_CACHE_BACKING_CONNECTION;
 endinterface: CENTRAL_CACHE_BACKING_CONNECTION
 
 //
+// Backing storage connectors ultimately compete for RRR slots.  The central
+// cache consumes read responses in the order it issues requests.  If multiple
+// competing clients generate their RRR read requests in an order different
+// than the central cache's order, it is possible to deadlock in RRR buffers.
+// To solve this, each backing connection in this module provides local
+// buffering to store responses for all of its outstanding requests.
+//
+typedef 8 CENTRAL_CACHE_BACKING_MAX_LIVE_READS;
+
+//
 // mkCentralCacheBackingConnection --
 //     The backing store connection is essentially an interface mapper between
 //     the backing store interface required by the standard cache interface
@@ -63,6 +73,11 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     FIFO#(CENTRAL_CACHE_BACKING_READ_REQ) readReqQ <- mkFIFO();
     FIFOF#(Bool) writeAckQ <- mkBypassFIFOF();
 
+    // Buffering for read responses
+    FIFO#(CENTRAL_CACHE_LINE) readRespQ <- mkSizedFIFO(valueOf(CENTRAL_CACHE_BACKING_MAX_LIVE_READS));
+    COUNTER_Z#(TLog#(TAdd#(1, CENTRAL_CACHE_BACKING_MAX_LIVE_READS))) readReqCredits <-
+        mkLCounter_Z(fromInteger(valueOf(CENTRAL_CACHE_BACKING_MAX_LIVE_READS)));
+
     // FIFO1 to save space.  Throughput isn't terribly important here
     // since the call will go through RRR.
     FIFOF#(CENTRAL_CACHE_BACKING_WRITE_REQ) writeCtrlQ <- mkFIFOF1();
@@ -73,7 +88,6 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     // line-sized register.
     Reg#(Vector#(CENTRAL_CACHE_WORDS_PER_LINE, CENTRAL_CACHE_WORD)) readData <- mkRegU();
     Reg#(Bit#(TLog#(CENTRAL_CACHE_WORDS_PER_LINE))) readWordIdx <- mkReg(0);
-    Reg#(Bool) readDataReady <- mkReg(False);
 
     //
     // Central cache interface.
@@ -96,14 +110,18 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
         // Provide read data in response to getReadReq.  This method is called
         // multiple times for each getReadReq.
         //
-        method Action sendReadResp(CENTRAL_CACHE_WORD val) if (! readDataReady);
+        method Action sendReadResp(CENTRAL_CACHE_WORD val);
             readData[readWordIdx] <= val;
 
             debugLog.record($format("port %0d: BACKING sendReadResp idx=%0d, val=0x%x", port, readWordIdx, val));
 
+            // Have all the chunks for the response arrived?
             if (readWordIdx == maxBound)
             begin
-                readDataReady <= True;
+                // Yes.  Forward the response to the central cache.
+                let rd = readData;
+                rd[valueOf(CENTRAL_CACHE_WORDS_PER_LINE) - 1] = val;
+                readRespQ.enq(unpack(pack(rd)));
             end
     
             readWordIdx <= readWordIdx + 1;
@@ -155,17 +173,19 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     // Cache backing storage interface.
     //
     interface RL_SA_CACHE_SOURCE_DATA cacheSourceData;
-        method Action readReq(CENTRAL_CACHE_LINE_ADDR addr, CENTRAL_CACHE_REF_INFO refInfo);
+        method Action readReq(CENTRAL_CACHE_LINE_ADDR addr,
+                              CENTRAL_CACHE_REF_INFO refInfo) if (! readReqCredits.isZero());
+            readReqCredits.down();
             readReqQ.enq(CENTRAL_CACHE_BACKING_READ_REQ { addr: addr, refInfo: refInfo });
             debugLog.record($format("port %0d: BACKING readReq addr=0x%x, refInfo=0x%x", port, addr, refInfo));
         endmethod
 
-        method ActionValue#(CENTRAL_CACHE_LINE) readResp() if (readDataReady);
-            CENTRAL_CACHE_LINE v = unpack(pack(readData));
-            readDataReady <= False;
+        method ActionValue#(CENTRAL_CACHE_LINE) readResp();
+            let v = readRespQ.first();
+            readRespQ.deq();
+            readReqCredits.up();
 
             debugLog.record($format("port %0d: BACKING readResp val=0x%x", port, v));
-    
             return v;
         endmethod
 

@@ -9242,3 +9242,20 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 
 Moved -cm balanced flag to MAPPER options parameter.  mL605 doesn't like this flag...
+
+----------
+mcadler     Date: Wed Aug  3 20:50:36 EDT 2011  CSN: CSN-leap-135
+                  Thu Aug  4 00:50:36 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ central-cache-backing-store.bsv Locally Modified          134 
+
+Fix deadlock observed in the in-order cache model under high load.  Multiple
+central cache clients may read from their backing storage in an order different
+than the order requested by the central cache.  While legal in the protocol,
+RRR doesn't provide enough buffering to avoid a deadlock when the central
+cache sorts the responses.
+
+Added a credit scheme and buffering internal to the central cache backing
+storage interface.
