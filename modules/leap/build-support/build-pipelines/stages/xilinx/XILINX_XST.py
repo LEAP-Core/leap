@@ -75,16 +75,12 @@ class Synthesize():
         if (getBuildPipelineDebug(moduleList) != 0):
             print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
 
-        # need to sort these?  SCons complains about it.
-        vlogStubs = moduleList.getAllDependencies('VERILOG_STUB')
-        vlogStubs.sort()
-        vlog = module.moduleDependency['VERILOG']
-        vlog.sort()
-        vlogLib = moduleList.getAllDependencies('VERILOG_LIB')
-        vlogLib.sort()
+        # Sort dependencies because SCons will rebuild if the order changes.
         sub_netlist = moduleList.env.Command(
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
-            vlog + vlogStubs + vlogLib +
+            sorted(module.moduleDependency['VERILOG']) +
+            sorted(moduleList.getAllDependencies('VERILOG_STUB')) +
+            sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
             module.moduleDependency['XST'] +
             moduleList.topModule.moduleDependency['XST'] +
             [ newXSTPath ] +
@@ -106,11 +102,12 @@ class Synthesize():
 
     topSRP = moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.srp'
 
+    # Sort dependencies because SCons will rebuild if the order changes.
     top_netlist = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.ngc',
-        moduleList.topModule.moduleDependency['VERILOG'] +
-        moduleList.getAllDependencies('VERILOG_STUB') +
-        moduleList.getAllDependencies('VERILOG_LIB') +
+        sorted(moduleList.topModule.moduleDependency['VERILOG']) +
+        sorted(moduleList.getAllDependencies('VERILOG_STUB')) +
+        sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         moduleList.topModule.moduleDependency['XST'] +
         [ topXSTPath ] +
         xilinx_xcf,

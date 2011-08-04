@@ -9259,3 +9259,14 @@ cache sorts the responses.
 
 Added a credit scheme and buffering internal to the central cache backing
 storage interface.
+
+----------
+mcadler     Date: Thu Aug  4 17:00:09 EDT 2011  CSN: CSN-leap-136
+                  Thu Aug  4 21:00:09 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          135 
+
+Sort the Verilog source file names.  SCons cares about the order and rebuilds
+if it changes.
