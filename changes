@@ -9270,3 +9270,17 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 Sort the Verilog source file names.  SCons cares about the order and rebuilds
 if it changes.
+
+----------
+mcadler     Date: Fri Aug  5 16:15:07 EDT 2011  CSN: CSN-leap-137
+                  Fri Aug  5 20:15:07 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          136 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          136 
+
+Computation of .depends-bsv didn't depend on any source files other than those
+in iface!  Once computed, dependence was never recomputed as sources are edited.
