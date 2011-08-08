@@ -9284,3 +9284,16 @@ Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
 
 Computation of .depends-bsv didn't depend on any source files other than those
 in iface!  Once computed, dependence was never recomputed as sources are edited.
+
+----------
+mcadler     Date: Mon Aug  8 10:01:40 EDT 2011  CSN: CSN-leap-138
+                  Mon Aug  8 14:01:40 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ local-arbiters.bsv        Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          137 
+
+The arbiter provided by Bluespec uses wires and assumes that requests and grants
+are in separate rules.  The "local" arbiters here are method-based and arbitrate
+among a request vector within a single method.
