@@ -9297,3 +9297,14 @@ Directory modules/leap/libraries/librl/base
 The arbiter provided by Bluespec uses wires and assumes that requests and grants
 are in separate rules.  The "local" arbiters here are method-based and arbitrate
 among a request vector within a single method.
+
+----------
+keflemin    Date: Thu Aug 11 15:38:33 EDT 2011  CSN: CSN-leap-139
+                  Thu Aug 11 19:38:33 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          138 
+
+
+Generated headers were not including "asim/syntax.h".  This caused sporadic breakage.  

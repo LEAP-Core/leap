@@ -567,6 +567,7 @@ sub init_sim_config_file($)
     $sim_config->print("//\n");
     $sim_config->print("\n");
 
+
     $sim_config->print("#ifndef Register\n");
     $sim_config->print("#define Register(NAME,DESC,TYPE,VAR,VAL)\n");
     $sim_config->print("#endif\n\n");
@@ -906,6 +907,7 @@ sub __make_bsvfiles {
     print HFILE "//   This file was created by " . basename($0) . "\n";
     print HFILE "//\n";
     print HFILE "\n";
+    print HFILE "#include \"asim/syntax.h\"\n";
 
     print HFILE "#ifndef INCLUDED_MODULE_$provides\n";
     print HFILE "#define INCLUDED_MODULE_$provides\n";
