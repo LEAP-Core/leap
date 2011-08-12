@@ -9308,3 +9308,30 @@ Directory tools/scripts
 
 
 Generated headers were not including "asim/syntax.h".  This caused sporadic breakage.  
+
+----------
+mcadler     Date: Fri Aug 12 15:17:15 EDT 2011  CSN: CSN-leap-140
+                  Fri Aug 12 19:17:15 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          139 
+
+Directory modules/leap/libraries/librl/base
+ local-arbiters.bsv        Locally Modified          139 
+ lfsr.bsv                  Locally Modified          139 
+
+- Revert previous change to leap-configure as all regression tests fail.
+  The asim include path is not defined for the final Bluesim build, so all
+  final Bluesim compilations failed.
+
+  The typical strategy for dealing with the need for syntax.H is to include
+  it in source files before including any awb-generated include files.
+
+- Add mkLFSR() to libRL.  It should be defined by the Bluespec compiler, but
+  isn't.  mkLFSR picks a polynomial appropriate for the requested size.
+
+- Add mkLocalRandomArbiter() to libRL.  It is similar to mkLocalArbiter()
+  but the highest priority index is selected randomly each cycle.
+  This may be useful for request patterns that favor one request slot over
+  another when chosen round-robin.

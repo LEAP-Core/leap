@@ -76,3 +76,49 @@ module mkLocalArbiter#(Bool fixed)
         return winner;
     endmethod
 endmodule
+
+
+//
+// mkLocalRandomArbiter --
+//   Nearly identical to mkLocalArbiter() except the highest priority index
+//   is chosen randomly.
+//
+module mkLocalRandomArbiter#(Bool fixed)
+    // Interface:
+    (LOCAL_ARBITER#(nCLIENTS))
+    provisos (Alias#(Vector#(nCLIENTS, Bool), t_CLIENT_MASK),
+              Alias#(UInt#(TLog#(nCLIENTS)), t_CLIENT_IDX));
+
+    // Initially, priority is given to client 0
+    Reg#(t_CLIENT_IDX) priorityIdx <- mkReg(0);
+
+    // LFSR for generating the next starting priority index
+    LFSR#(Bit#(TLog#(nCLIENTS))) lfsr <- mkLFSR();
+
+    method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req);
+        //
+        // Clear the low priority portion of the request
+        //
+        function Bool maskOnlyHighPriority(Integer idx) = (fromInteger(idx) >= priorityIdx);
+        t_CLIENT_MASK high_priority_mask = map(maskOnlyHighPriority, genVector());
+        t_CLIENT_MASK high_priority_req = zipWith( \&& , req, high_priority_mask);
+    
+        //
+        // Pick a winner
+        //
+        Maybe#(t_CLIENT_IDX) winner;
+        if (findElem(True, high_priority_req) matches tagged Valid .idx)
+            winner = tagged Valid idx;
+        else
+            winner = findElem(True, req);
+
+        // Always run the LFSR to avoid timing dependence on the search result
+        if (! fixed)
+        begin
+            priorityIdx <= unpack(lfsr.value());
+        end
+        lfsr.next();
+
+        return winner;
+    endmethod
+endmodule
