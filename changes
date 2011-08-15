@@ -9335,3 +9335,17 @@ Directory modules/leap/libraries/librl/base
   but the highest priority index is selected randomly each cycle.
   This may be useful for request patterns that favor one request slot over
   another when chosen round-robin.
+
+----------
+kfleming    Date: Mon Aug 15 18:18:09 EDT 2011  CSN: CSN-leap-141
+                  Mon Aug 15 22:18:09 UTC 2011
+
+
+Directory .
+ Makefile.in               Locally Modified          140 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          140 
+
+
+Now that we have a dependency on syntax.h, bluespec build needs more enivronment. 

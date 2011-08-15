@@ -5,6 +5,7 @@ import sys
 import string
 from model import  *
 from bsv_tool import *
+from software_tool import *
 from config import *
 
 class Bluesim():
@@ -14,7 +15,13 @@ class Bluesim():
     # bluesim, we should be able to do the right thing.
     APM_NAME = moduleList.env['DEFS']['APM_NAME']
     BSC = moduleList.env['DEFS']['BSC']
-    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread'
+    inc_paths = moduleList.swIncDir # we need to depend on libasim
+
+    
+    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -v -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread ' 
+
+    for path in inc_paths:
+      BSC_FLAGS_SIM += " -I " + path
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
@@ -29,6 +36,9 @@ class Bluesim():
             bsc_sim_command += ' -Xc++ -O0'
         else:
             bsc_sim_command += ' -Xc++ -O1'
+    defs = (host_defs()).split(" ")
+    for definition in defs:
+      bsc_sim_command += ' -Xc++ ' + definition + ' -Xc ' + definition
 
     bsc_sim_command += \
         ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -simdir ' + \
