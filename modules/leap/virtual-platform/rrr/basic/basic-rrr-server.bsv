@@ -55,7 +55,7 @@ endinterface
 
 // server
 
-module mkRRRServer#(CHANNEL_IO channel) (RRR_SERVER);
+module mkRRRServer#(CHANNEL_IO#(UMF_PACKET) channel) (RRR_SERVER);
   ARBITED_SERVER#(`NUM_SERVICES) server <- mkArbitedServer(channel.readPorts[`SERVER_CHANNEL_ID].read,
                                                            channel.writePorts[`SERVER_CHANNEL_ID].write);
   interface requestPorts = server.requestPorts;

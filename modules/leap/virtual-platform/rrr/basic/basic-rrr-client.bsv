@@ -52,7 +52,7 @@ interface ARBITED_CLIENT#(numeric type n);
 endinterface
 
 // client
-module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
+module mkRRRClient#(CHANNEL_IO#(UMF_PACKET) channel) (RRR_CLIENT);
   ARBITED_CLIENT#(`NUM_SERVICES) client <- mkArbitedClient(channel.readPorts[`CLIENT_CHANNEL_ID].read,
                                                            channel.writePorts[`CLIENT_CHANNEL_ID].write);
   interface requestPorts = client.requestPorts;

@@ -23,6 +23,7 @@
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/physical_platform_debugger.bsh"
 `include "awb/provides/clocks_device.bsh"
+`include "awb/provides/umf.bsh"
 
 // LowLevelPlatformInterface
 
@@ -30,13 +31,13 @@
 
 interface LowLevelPlatformInterface;
 
-    interface RRR_CLIENT            rrrClient;
-    interface RRR_SERVER            rrrServer;
-    interface CHANNEL_IO            channelIO;
-    interface LOCAL_MEM             localMem;
-    interface REMOTE_MEMORY         remoteMemory;
-    interface PHYSICAL_DRIVERS      physicalDrivers;
-    interface TOP_LEVEL_WIRES       topLevelWires;
+    interface RRR_CLIENT                rrrClient;
+    interface RRR_SERVER                rrrServer;
+    interface CHANNEL_IO#(UMF_PACKET)   channelIO;
+    interface LOCAL_MEM                 localMem;
+    interface REMOTE_MEMORY             remoteMemory;
+    interface PHYSICAL_DRIVERS          physicalDrivers;
+    interface TOP_LEVEL_WIRES           topLevelWires;
 
 endinterface
 
@@ -65,7 +66,7 @@ module mkLowLevelPlatformInterface
     // interfaces to the physical platform
     LOCAL_MEM     locMem <- mkLocalMem(drivers, clocked_by clk, reset_by rst);
     REMOTE_MEMORY remMem <- mkRemoteMemory(drivers, clocked_by clk, reset_by rst);
-    CHANNEL_IO    cio    <- mkChannelIO(drivers, clocked_by clk, reset_by rst);
+    CHANNEL_IO#(UMF_PACKET)    cio    <- mkChannelIO(drivers, clocked_by clk, reset_by rst);
 
     // RRR
     RRR_CLIENT rrrc <- mkRRRClient(cio, clocked_by clk, reset_by rst);

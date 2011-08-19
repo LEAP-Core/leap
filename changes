@@ -9349,3 +9349,35 @@ Directory modules/leap/build-support/build-pipelines/stages/bluesim
 
 
 Now that we have a dependency on syntax.h, bluespec build needs more enivronment. 
+
+----------
+kfleming    Date: Fri Aug 19 14:45:06 EDT 2011  CSN: CSN-leap-142
+                  Fri Aug 19 18:45:06 UTC 2011
+
+
+Directory modules/leap/virtual-platform/channelio/basic
+ channelio-common.bsv      Locally Modified          141 
+ basic-channelio.bsv       Locally Modified          141 
+
+Directory modules/leap/virtual-platform/channelio/null
+ NullChannelIO.bsv         Locally Modified          141 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-server.bsv      Locally Modified          141 
+ basic-rrr-client.bsv      Locally Modified          141 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.bsv                  Locally Modified          141 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          141 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          141 
+
+
+Modified the RRR stack to accept a parametric packet format.  RRR does
+not take advantage of this parameterization and instead uses its old
+constants.  It could at some point, however and this would likely
+improvce performance marginally.  MultiFPGA automatically synthesizes
+a bit optimal protocol from the generic data types.

@@ -8,7 +8,7 @@
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITYS or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
@@ -187,7 +187,7 @@ typedef struct
     
 // BACKWARDS COMPATABILITY: Data about connection chains
 typedef `CON_NUMCHAINS CON_NUM_CHAINS;
-typedef `CON_CHAIN_CWIDTH CHAIN_DATA_SIZE;
+typedef `CON_CWIDTH CHAIN_DATA_SIZE;
 typedef Bit#(CHAIN_DATA_SIZE) PHYSICAL_CHAIN_DATA;
 
 typedef CONNECTION_IN#(CHAIN_DATA_SIZE)  PHYSICAL_CHAIN_IN;

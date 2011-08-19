@@ -24,11 +24,11 @@ import Vector::*;
 // read/write port interfaces
 
 // channelio interface
-interface CHANNEL_IO;
-    interface Vector#(`CIO_NUM_CHANNELS, CIOReadPort)  readPorts;
-    interface Vector#(`CIO_NUM_CHANNELS, CIOWritePort) writePorts;
+interface CHANNEL_IO#(type umf_packet);
+    interface Vector#(`CIO_NUM_CHANNELS, CIOReadPort#(umf_packet))  readPorts;
+    interface Vector#(`CIO_NUM_CHANNELS, CIOWritePort#(umf_packet)) writePorts;
 endinterface
 
-module mkChannelIO#(PHYSICAL_DRIVERS drivers) (CHANNEL_IO);
+module mkChannelIO#(PHYSICAL_DRIVERS drivers) (CHANNEL_IO#(UMF_PACKET));
   return ?;
 endmodule

@@ -4,27 +4,35 @@ import Vector::*;
 `include "awb/provides/umf.bsh"
 
 // read/write port interfaces
-interface CIOReadPort;
-    method ActionValue#(UMF_PACKET) read();
+interface CIOReadPort#(type umf_packet);
+    method ActionValue#(umf_packet) read();
 endinterface
 
-interface CIOWritePort;
-    method Action write(UMF_PACKET data);
+interface CIOWritePort#(type umf_packet);
+    method Action write(umf_packet data);
 endinterface
 
-interface CHANNEL_VIRTUALIZER#(numeric type read_channels, numeric type write_channels);
-    interface Vector#(read_channels, CIOReadPort)  readPorts;
-    interface Vector#(write_channels, CIOWritePort) writePorts;
+interface CHANNEL_VIRTUALIZER#(numeric type read_channels, numeric type write_channels, type umf_packet);
+    interface Vector#(read_channels, CIOReadPort#(umf_packet))  readPorts;
+    interface Vector#(write_channels, CIOWritePort#(umf_packet)) writePorts;
 endinterface
 
 // channelio module
-module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function Action write(UMF_CHUNK data)) (CHANNEL_VIRTUALIZER#(reads,writes));
+module mkChannelVirtualizer#(function ActionValue#(umf_chunk) read(), function Action write(umf_chunk data)) (CHANNEL_VIRTUALIZER#(reads,writes, 
+          GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk)))
+       provisos (Bits#(umf_chunk, TAdd#(filler_bits, TAdd#(umf_phy_pvt,
+                                  TAdd#(umf_channel_id, TAdd#(umf_service_id, 
+                                                        TAdd#(umf_method_id,
+                                        umf_message_len)))))));
 
-    Reg#(UMF_MSG_LENGTH) readChunksRemaining  <- mkReg(0);
-    Reg#(UMF_MSG_LENGTH) writeChunksRemaining <- mkReg(0);
+    Reg#(Bit#(umf_message_len)) readChunksRemaining  <- mkReg(0);
+    Reg#(Bit#(umf_message_len)) writeChunksRemaining <- mkReg(0);
 
-    Reg#(Bit#(8)) currentReadChannel  <- mkReg(0);
-    Reg#(Bit#(8)) currentWriteChannel <- mkReg(0);
+    Reg#(Bit#(umf_channel_id)) currentReadChannel  <- mkReg(0);
+    Reg#(Bit#(umf_channel_id)) currentWriteChannel <- mkReg(0);
 
 
     // ==============================================================
@@ -32,11 +40,23 @@ module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function A
     // ==============================================================
 
     // create read/write buffers and link them to ports
-    FIFOF#(UMF_PACKET)                       readBuffers[valueof(reads)];
-    Vector#(reads, CIOReadPort)  rports = newVector();
+    FIFOF#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk))  readBuffers[valueof(reads)];
+    Vector#(reads, CIOReadPort#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk)))  rports = newVector();
 
-    FIFOF#(UMF_PACKET)                       writeBuffers[valueof(writes)];
-    Vector#(writes, CIOWritePort) wports = newVector();
+    FIFOF#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk)) writeBuffers[valueof(writes)];
+    Vector#(writes, CIOWritePort#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk))) wports = newVector();
 
     for (Integer i = 0; i < valueof(reads); i = i+1)
     begin
@@ -44,10 +64,16 @@ module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function A
 
 
         // create a new read port and link it to the FIFO
-        rports[i] = interface CIOReadPort
-                        method ActionValue#(UMF_PACKET) read();
+        rports[i] = interface CIOReadPort#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk))
+                        method ActionValue#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk)) read();
 
-                            UMF_PACKET val = readBuffers[i].first();
+                            let val = readBuffers[i].first();
                             readBuffers[i].deq();
                             return val;
 
@@ -59,8 +85,14 @@ module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function A
     begin
         writeBuffers[i] <- mkSizedFIFOF(4);
         // create a new write port and link it to the FIFO
-        wports[i] = interface CIOWritePort
-                        method Action write(UMF_PACKET data);
+        wports[i] = interface CIOWritePort#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk))
+                        method Action write(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk) data);
 
                             writeBuffers[i].enq(data);
 
@@ -75,10 +107,14 @@ module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function A
     // probe physical channel for incoming new message header
     rule read_physical_channel_newmsg (readChunksRemaining == 0);
 
-        UMF_CHUNK chunk <- read();
+        umf_chunk chunk <- read();
 
         // create new header packet
-        UMF_PACKET packet = tagged UMF_PACKET_header unpack(chunk);
+        GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk) packet = 
+            tagged UMF_PACKET_header unpack(pack(chunk));
 
         // enqueue the new header into the channel's FIFO
         readBuffers[packet.UMF_PACKET_header.channelID].enq(packet);
@@ -92,8 +128,11 @@ module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function A
     // probe physical channel for incoming read data (continuing old message)
     rule read_physical_channel_contmsg (readChunksRemaining != 0);
 
-        UMF_CHUNK chunk <- read();
-        UMF_PACKET packet = tagged UMF_PACKET_dataChunk chunk;
+        umf_chunk chunk <- read();
+        GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk) packet = tagged UMF_PACKET_dataChunk chunk;
 
         readBuffers[currentReadChannel].enq(packet);
 
@@ -135,14 +174,17 @@ module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function A
         rule write_physical_channel_newmsg (grant[i]);
 
             // get header packet
-            UMF_PACKET packet = writeBuffers[i].first();
+            GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk) packet = writeBuffers[i].first();
             writeBuffers[i].deq();
 
             // create and encode header chunk
             //   TODO: ideally, we should explicitly set channelID here. For
             //   now, assume upper layer is setting it correctly (upper layer
             //   has to know its virtual channelID anyway
-            UMF_CHUNK headerChunk = pack(packet.UMF_PACKET_header);
+            umf_chunk headerChunk = unpack(pack(packet.UMF_PACKET_header));
 
             // send the header chunk to the physical channel
             write(headerChunk);
@@ -159,7 +201,10 @@ module mkChannelVirtualizer#(function ActionValue#(UMF_CHUNK) read(), function A
     rule write_physical_channel_continue (writeChunksRemaining != 0);
 
         // get the next packet from the active write channel
-        UMF_PACKET packet = writeBuffers[currentWriteChannel].first();
+        GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                           umf_channel_id, umf_service_id,
+                           umf_method_id,  umf_message_len,
+                           umf_phy_pvt,    filler_bits), umf_chunk) packet = writeBuffers[currentWriteChannel].first();
         writeBuffers[currentWriteChannel].deq();
 
         // send the data chunk to the physical channel

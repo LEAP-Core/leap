@@ -100,6 +100,7 @@ class MultiFPGAGenerateLogfile():
       platformPath = 'config/pm/private/' + platformAPMName
       platformBuildDir = makePlatformBuildDir(platformName)
       wrapperLog =  platformBuildDir +'/'+ moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/.bsc/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper.log'
+      routerBSH =  platformBuildDir +'/'+ moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/multifpga_routing.bsh'
 
       print "wrapper: " + wrapperLog
       print "platformPath: " + moduleList.env['DEFS']['WORKSPACE_ROOT'] + '/src/private/' + platformPath
@@ -133,12 +134,50 @@ class MultiFPGAGenerateLogfile():
 
       subbuild = moduleList.env.Command( 
           [wrapperLog],
-          [],
+          [routerBSH],
           compile_closure(platform)
-          )                   
+          )
+                   
       moduleList.topModule.moduleDependency['FPGA_PLATFORM_LOGS'] += [wrapperLog] 
 
+      # we now need to create a multifpga_routing.bsh so that we can get the sizes of the various links.
+      # we'll need this later on. 
+      header = open(routerBSH,'w')
+      header.write('// we need to pick up the module sizes\n')
+      header.write('module [CONNECTED_MODULE] mkCommunicationModule#(VIRTUAL_PLATFORM vplat) (Empty);\n')
+      header.write('let m <- mkCommunicationModuleIfaces(vplat ') 
+      for target in  platform.getSinks().keys():
+        header.write(', ' + platform.getSinks()[target].physicalName + '.write')
+      for target in  platform.getSources().keys():
+        header.write(', ' + platform.getSources()[target].physicalName + '.read')
+ 
+      header.write(');\n')
+      header.write('endmodule\n')
 
+      header.write('module [CONNECTED_MODULE] mkCommunicationModuleIfaces#(VIRTUAL_PLATFORM vplat ')
+        
+      for target in  platform.getSinks().keys():
+        # really I should disambiguate by way of a unique path
+        via  = (platform.getSinks()[target]).physicalName.replace(".","_") + '_write'
+        header.write(', function Action write_' + via + '_egress(Bit#(p' + via + '_egress_SZ) data),') 
+      for target in  platform.getSources().keys():
+        # really I should disambiguate by way of a unique path
+        via  = (platform.getSources()[target]).physicalName.replace(".","_") + '_read'
+        header.write('function ActionValue#(Bit#(p'+ via + '_ingress_SZ)) read_' + via + '_ingress()') 
+
+      header.write(') (Empty);\n')
+
+      for target in  platform.getSinks().keys():
+        via  = (platform.getSinks()[target]).physicalName.replace(".","_") + '_write'
+        header.write('messageM("SizeOfVia:'+via+':" + integerToString(valueof(p' + via + '_egress_SZ)));\n')
+        
+      for target in  platform.getSources().keys():
+        # really I should disambiguate by way of a unique path
+        via  = (platform.getSources()[target]).physicalName.replace(".","_") + '_read' 
+        header.write('messageM("SizeOfVia:'+via+':" + integerToString(valueof(p' + via + '_ingress_SZ)));\n')
+      header.write('endmodule\n')
+
+      header.close();
 
       #force build remove me later....          
       moduleList.topDependency += [subbuild]
