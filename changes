@@ -9393,3 +9393,15 @@ Directory modules/leap/libraries/platform-services/common-services/streams-servi
 
 Add a mkStreamsClient_Debug that conditionally enables STREAMS-based debug
 output based on the AWB static parameter STREAMS_ENABLE_DEBUG.  Default is off.
+
+----------
+kfleming    Date: Tue Aug 23 14:39:20 EDT 2011  CSN: CSN-leap-144
+                  Tue Aug 23 18:39:20 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-null.awb Locally Modified          143 
+ scratchpad-memory-service.awb Locally Modified          143 
+
+
+Put quotes around skew parameter so that the awb parser is not confused. 
