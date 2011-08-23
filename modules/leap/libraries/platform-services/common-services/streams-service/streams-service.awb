@@ -10,3 +10,5 @@
 %public streams-service.bsh
 %public streams-service.bsv 
 %public streams-local.bsv
+
+%param --global STREAMS_ENABLE_DEBUG   0  "Enable debugging streams"

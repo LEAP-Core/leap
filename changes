@@ -9381,3 +9381,15 @@ not take advantage of this parameterization and instead uses its old
 constants.  It could at some point, however and this would likely
 improvce performance marginally.  MultiFPGA automatically synthesizes
 a bit optimal protocol from the generic data types.
+
+----------
+mcadler     Date: Tue Aug 23 08:36:02 EDT 2011  CSN: CSN-leap-143
+                  Tue Aug 23 12:36:02 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/common-services/streams-service
+ streams-local.bsv         Locally Modified          142 
+ streams-service.awb       Locally Modified          142 
+
+Add a mkStreamsClient_Debug that conditionally enables STREAMS-based debug
+output based on the AWB static parameter STREAMS_ENABLE_DEBUG.  Default is off.
