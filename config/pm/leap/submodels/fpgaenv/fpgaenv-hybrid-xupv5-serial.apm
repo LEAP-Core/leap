@@ -1,0 +1,138 @@
+
+[Global]
+SaveParameters=0
+Description=Hybrid HTG-v5 Serial FPGA Environment
+File=fpgaenv-hybrid-xupv5-serial
+Version=2.2
+Type=HAsim
+Name=Hybrid XUP-v5 Serial FPGA Environment
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
+
+[Model]
+DefaultAttributes=bluespec 
+model=FPGA Environment
+
+[FPGA Environment/Requires]
+virtual_platform=Standard Virtual Platform
+fpga_components=Hardware FPGA Components for Virtex 5
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx
+
+[Standard Virtual Platform]
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
+
+[Standard Virtual Platform/Requires]
+virtual_devices=Standard Virtual Devices Submodel
+low_level_platform_interface=Low Level Platform Interface Hybrid
+umf=Little-Endian Unified Message Format
+
+[FPGA Environment]
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
+
+[RRR Clients and Servers]
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer]
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer/Requires]
+physical_channel=HiPerf Serial Physical Channel
+
+[Low Level Platform Interface Hybrid]
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
+
+[Low Level Platform Interface Hybrid/Requires]
+physical_platform=XUP Virtex 5 Serial
+channelio=Basic Virtual Channel Multiplexer
+rrr=RRR Clients and Servers
+physical_platform_debugger=Null Physical Platform Debugger
+local_mem=NULL Local Memory Interface
+remote_memory=Null Remote Memory
+
+[Single-Ended Crystal Clocks Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
+Packagehint=leap-platforms
+
+[Common Physical Platform Utilities]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
+Packagehint=leap-platforms
+
+[Null Physical Platform Debugger]
+File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
+Packagehint=leap-platforms
+
+[Hardware FPGA Components for Virtex 5]
+File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
+Packagehint=leap-platforms
+
+[Little-Endian Unified Message Format]
+File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
+Packagehint=leap-platforms
+
+[RRR Common Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
+
+[RRR Clients and Servers/Requires]
+rrr_common=RRR Common Module
+
+[Null Remote Memory]
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
+Packagehint=leap
+
+[NULL Local Memory Interface]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
+Packagehint=leap
+
+[NULL Local Memory Interface/Params]
+LOCAL_MEM_WORDS_PER_LINE=4
+LOCAL_MEM_WORD_BITS=64
+LOCAL_MEM_ADDR_BITS=26
+
+[FPGA Build Pipeline Xilinx]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
+Packagehint=leap
+
+[Standard Virtual Devices Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
+File=config/pm/leap/submodels/common/librl-bsv.apm
+Packagehint=leap
+
+[XUP Virtex 5 Serial/Requires]
+clocks_device=Single-Ended Crystal Clocks Device
+serial_device=Serial Physical Device (physical)
+physical_platform_utils=Common Physical Platform Utilities
+
+[XUP Virtex 5 Serial]
+File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/serial/xilinx-xup-serial.awb
+Packagehint=leap-platforms
+
+[Serial Physical Device (physical)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/physical-serial/serial-device-physical.awb
+Packagehint=leap-platforms
+
+[Serial Physical Device (physical)/Requires]
+serial_device_ucf=Serial Physical Device XUPV5 UCF
+
+[Serial Physical Device XUPV5 UCF]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/serial/ucf/serial-device-ucf-xupv5.awb
+Packagehint=leap-platforms
+
+[Single-Ended Crystal Clocks Device/Params]
+CRYSTAL_CLOCK_FREQ=100
+
+[HiPerf Serial Physical Channel]
+File=modules/leap/virtual-platform/physical-channel/serial/serial-physical-channel-8bit.awb
+Packagehint=leap

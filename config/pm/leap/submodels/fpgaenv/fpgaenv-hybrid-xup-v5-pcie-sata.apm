@@ -1,0 +1,136 @@
+
+[Global]
+SaveParameters=0
+Description=Hybrid XUP-v5 PCIE SATA FPGA Test Environment
+File=fpgaenv-hybrid-xup-v5-pcie-sata
+Version=2.2
+Type=HAsim
+Name=Hybrid XUP-v5 PCIE SATA FPGA Test Environment
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
+
+[Model]
+DefaultAttributes=bluespec htg-v5-jtag
+model=FPGA Environment
+
+[FPGA Environment/Requires]
+virtual_platform=Standard Virtual Platform
+fpga_components=Hardware FPGA Components for Virtex 5
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx (Synplify)
+
+[Standard Virtual Platform]
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
+
+[Standard Virtual Platform/Requires]
+virtual_devices=Standard Virtual Devices Submodel
+low_level_platform_interface=Low Level Platform Interface Hybrid
+umf=Little-Endian Unified Message Format
+
+[FPGA Environment]
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
+
+[RRR Clients and Servers]
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
+
+[Low Level Platform Interface Hybrid]
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
+
+[Low Level Platform Interface Hybrid/Requires]
+physical_platform=XUP Virtex 5 PCIE SATA
+channelio=Basic Virtual Channel Multiplexer
+rrr=RRR Clients and Servers
+physical_platform_debugger=Null Physical Platform Debugger
+local_mem=NULL Local Memory Interface
+remote_memory=Null Remote Memory
+
+[Single-Ended Crystal Clocks Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
+Packagehint=leap-platforms
+
+[Common Physical Platform Utilities]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
+Packagehint=leap-platforms
+
+[Null Physical Platform Debugger]
+File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
+Packagehint=leap-platforms
+
+[Hardware FPGA Components for Virtex 5]
+File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
+Packagehint=leap-platforms
+
+[Little-Endian Unified Message Format]
+File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
+Packagehint=leap-platforms
+
+[RRR Common Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
+
+[RRR Clients and Servers/Requires]
+rrr_common=RRR Common Module
+
+[Null Remote Memory]
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
+Packagehint=leap
+
+[NULL Local Memory Interface]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
+Packagehint=leap
+
+[Single-Ended Crystal Clocks Device/Params]
+CRYSTAL_CLOCK_FREQ=100
+
+[NULL Local Memory Interface/Params]
+LOCAL_MEM_WORDS_PER_LINE=4
+LOCAL_MEM_WORD_BITS=64
+LOCAL_MEM_ADDR_BITS=26
+
+[Standard Virtual Devices Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
+Packagehint=leap
+
+[Bluespec SATA Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/sata-bluespec/sata-bluespec.awb
+Packagehint=leap-platforms
+
+[Basic Virtual Channel Multiplexer]
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer/Requires]
+physical_channel=Bluespec PCIE Physical Channel
+
+[XUP Virtex 5 PCIE SATA]
+File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/pcie-sata/xilinx-xup-pcie-sata.awb
+Packagehint=leap-platforms
+
+[XUP Virtex 5 PCIE SATA/Requires]
+pcie_device=Bluespec PCIE Device
+clocks_device=Single-Ended Crystal Clocks Device
+sata_device=Bluespec SATA Device
+physical_platform_utils=Common Physical Platform Utilities
+
+[Bluespec PCIE Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-bluespec/pcie-bluespec.awb
+Packagehint=leap-platforms
+
+[Bluespec PCIE Physical Channel]
+File=modules/leap/virtual-platform/physical-channel/pcie/bluespec/pcie-bluespec-physical-channel.awb
+Packagehint=leap
+
+[FPGA Build Pipeline Xilinx (Synplify)]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-synplify.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
+File=config/pm/leap/submodels/common/librl-bsv.apm
+Packagehint=leap

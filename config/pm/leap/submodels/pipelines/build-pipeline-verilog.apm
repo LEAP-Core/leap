@@ -1,0 +1,51 @@
+
+[Global]
+SaveParameters=0
+Description=Build Pipeline Verilog
+File=build-pipeline-verilog
+Version=2.2
+Type=Leap
+Name=Build Pipeline Verilog
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=IVerilog Build Pipeline
+RootProvides=build_pipeline
+
+[Model]
+DefaultAttributes=hybrid exe
+model=IVerilog Build Pipeline
+
+[Interface builder]
+File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
+Packagehint=leap
+
+[Software build tool]
+File=modules/leap/build-support/build-pipelines/stages/software/software.awb
+Packagehint=leap
+
+[BSV Build Tool (First Phase)]
+File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
+Packagehint=leap
+
+[IVerilog Build Pipeline]
+File=modules/leap/build-support/build-pipelines/pipelines/verilog/verilog-build-pipeline.awb
+Packagehint=leap
+
+[Verilog Build Tool]
+File=modules/leap/build-support/build-pipelines/stages/verilog/verilog.awb
+Packagehint=leap
+
+[IVerilog Build Pipeline/Requires]
+verilog_tool=Verilog Build Tool
+software_tool=Software build tool
+iface_tool=Interface builder
+bsv_tool=BSV Build Tool (First Phase)
+wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
+
+[BSV Build Tool (First Phase)/Params]
+BUILD_VERILOG=0
+
+[Synthesis Boundary Wrapper generation tool]
+File=modules/leap/build-support/build-pipelines/stages/wrapper_gen/synthesis_boundary_wrapper_gen.awb
+Packagehint=leap

@@ -17,7 +17,7 @@ DefaultAttributes=hello unconnected hybrid project htg
 model=HW/SW Hybrid Pipeline Build
 
 [Base Hybrid Application Environment]
-File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
+File=modules/leap/build-support/project/application-env/base/application-env-hybrid-base.awb
 Packagehint=leap
 
 [Base Hybrid Application Environment/Requires]
@@ -29,7 +29,7 @@ Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities
-fpgaenv=Hybrid ML605 V6 FPGA Environment (Serial)
+fpgaenv=Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)
 application_env=Base Hybrid Application Environment
 
 [HW/SW Hybrid Pipeline Build]
@@ -37,13 +37,14 @@ File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
+File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
 
-[Hybrid ML605 V6 FPGA Environment (Serial)/Params]
-MODEL_CLOCK_FREQ=66
+
+
+[Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)/Params]
 RESET_ACTIVE_HIGH=1
 
-[Hybrid ML605 V6 FPGA Environment (Serial)]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-605-serial-xst.apm
+[Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-605d-xst.apm
 Packagehint=leap

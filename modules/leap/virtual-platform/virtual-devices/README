@@ -1,7 +1,6 @@
 This directory contains definitions of Virtual Devices, part of the LEAP
 virtual platform.
 
-backwards-compat/       DEPRECATED (or moving to HAsim)
 devices/                Descriptions of individual virtual devices.
 virtual-device-sets/    Arrangements of virtual devices into groups.
 
