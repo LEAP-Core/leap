@@ -18,7 +18,7 @@ class Bluesim():
     inc_paths = moduleList.swIncDir # we need to depend on libasim
 
     
-    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -v -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread ' 
+    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread ' 
 
     for path in inc_paths:
       BSC_FLAGS_SIM += " -I " + path

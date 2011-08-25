@@ -151,7 +151,8 @@ class BSV():
 
       # Sort dependence in case SCons cares
       for f in sorted(all_bsc_files):
-        moduleList.env.Depends(dep, f)
+        if os.path.exists(f):
+          moduleList.env.Depends(dep, f)
 
       df.close()
 

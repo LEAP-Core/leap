@@ -92,8 +92,9 @@ module mkLocalRandomArbiter#(Bool fixed)
     // Initially, priority is given to client 0
     Reg#(t_CLIENT_IDX) priorityIdx <- mkReg(0);
 
-    // LFSR for generating the next starting priority index
-    LFSR#(Bit#(TLog#(nCLIENTS))) lfsr <- mkLFSR();
+    // LFSR for generating the next starting priority index.  Add a few bits
+    // to add to the pattern.
+    LFSR#(Bit#(TAdd#(3, TLog#(nCLIENTS)))) lfsr <- mkLFSR();
 
     method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req);
         //
@@ -115,7 +116,17 @@ module mkLocalRandomArbiter#(Bool fixed)
         // Always run the LFSR to avoid timing dependence on the search result
         if (! fixed)
         begin
-            priorityIdx <= unpack(lfsr.value());
+            t_CLIENT_IDX next_idx = truncate(unpack(lfsr.value()));
+
+            // Is the truncated LFSR value larger than nCLIENTS?  (Only happens
+            // when the number of clients isn't a power of 2.
+            if (next_idx > fromInteger(valueOf(TSub#(nCLIENTS, 1))))
+            begin
+                // This is unfair if the number of clients isn't a power of 2.
+                next_idx = ~next_idx;
+            end
+
+            priorityIdx <= next_idx;
         end
         lfsr.next();
 

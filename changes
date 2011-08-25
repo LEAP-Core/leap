@@ -9405,3 +9405,21 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 
 
 Put quotes around skew parameter so that the awb parser is not confused. 
+
+----------
+mcadler     Date: Thu Aug 25 14:32:13 EDT 2011  CSN: CSN-leap-145
+                  Thu Aug 25 18:32:13 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          144 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          144 
+
+Directory modules/leap/libraries/librl/base
+ local-arbiters.bsv        Locally Modified          144 
+
+- Tweak the random arbiter, making the LFSR pattern longer.
+- Another bug fix in the dependence calculation in the build pipeline.
+- Drop verbose output in Bluesim build.
