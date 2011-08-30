@@ -70,6 +70,58 @@ typedef struct
 SCRATCHPAD_READ_RESP#(type t_ADDR, type t_DATA)
     deriving (Eq, Bits);
 
+typedef struct 
+{
+  Bit#(32) regionID;
+  Bit#(32) regionEndIdx;
+} SCRATCHPAD_RRR_INIT_REGION_REQ deriving (Bits,Eq);
+
+typedef struct 
+{
+  Bit#(64) byteMask;
+  Bit#(64) addr;
+  Bit#(64) data3;
+  Bit#(64) data2;
+  Bit#(64) data1;
+  Bit#(64) data0;
+
+} SCRATCHPAD_RRR_STORE_LINE_REQ deriving (Bits,Eq);
+
+typedef struct 
+{
+  Bit#(64) byteMask;
+  Bit#(64) addr;
+  Bit#(64) data;
+
+} SCRATCHPAD_RRR_STORE_WORD_REQ deriving (Bits,Eq);
+
+
+typedef struct 
+{
+  Bit#(64) addr;
+} SCRATCHPAD_RRR_LOAD_LINE_REQ deriving (Bits,Eq);
+
+typedef struct 
+{
+  Bit#(64) data3;
+  Bit#(64) data2;
+  Bit#(64) data1;
+  Bit#(64) data0;
+} SCRATCHPAD_RRR_LOAD_LINE_RESP deriving (Bits,Eq);
+
+typedef union tagged
+{
+  SCRATCHPAD_RRR_STORE_WORD_REQ StoreWordReq;
+  SCRATCHPAD_RRR_STORE_LINE_REQ StoreLineReq;
+  SCRATCHPAD_RRR_LOAD_LINE_REQ  LoadLineReq;
+  SCRATCHPAD_RRR_INIT_REGION_REQ InitRegionReq;
+} SCRATCHPAD_RRR_REQ deriving (Bits,Eq);
+
+typedef struct 
+{
+  SCRATCHPAD_RRR_REQ req;
+  SCRATCHPAD_PORT_NUM portID;
+} SCRATCHPAD_RING_REQ deriving (Bits,Eq);
 
 //
 // Debug scan state
@@ -109,9 +161,13 @@ interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MAS
     // Initialize a port, requesting an allocation of allocLastWordIdx + 1
     // SCRATCHPAD_MEM_VALUE sized words.
     method ActionValue#(Bool) init(t_ADDR allocLastWordIdx,
-                                   SCRATCHPAD_PORT_NUM portNum,
+                                    SCRATCHPAD_PORT_NUM portNum,
                                    Bool useCentralCache);
 
     method SCRATCHPAD_MEMORY_DEBUG_SCAN debugScanState();
+
+    method ActionValue#(SCRATCHPAD_RRR_REQ) rrrReq();
+    method Action                           loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP line);
+
 endinterface: SCRATCHPAD_MEMORY_VIRTUAL_DEVICE
 

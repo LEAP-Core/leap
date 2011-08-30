@@ -37,6 +37,11 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
     
     let memory = vdevs.scratchpadMemory;
 
+    // This module will connect the scratchpad device to the RRR or to a chain depending on the 
+    // multifpga configuration.
+ 
+    Empty connector <- mkScratchpadConnector(memory);
+
     // ***** Assertion Checkers *****
     ASSERTION_NODE assertNode <- mkAssertionNode(`ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE__BASE);
     ASSERTION assertScratchpadSpace <- mkAssertionChecker(`ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE_FULL, ASSERT_ERROR, assertNode);
@@ -54,10 +59,10 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
     // ====================================================================
 
     Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_REQ, 0);
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), 0);
 
     Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_RSP, 0);
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), 0);
 
 
     //

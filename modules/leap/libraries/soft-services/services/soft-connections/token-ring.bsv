@@ -52,7 +52,6 @@ typedef struct
 TOKEN_RING_MSG#(type t_NODE_ID, type t_MSG)
     deriving (Eq, Bits);
 
-
 //
 // mkConnection_TokenRingNode --
 //     Build a node on a token ring.
@@ -71,11 +70,37 @@ module [CONNECTED_MODULE] mkConnection_TokenRingNode#(Integer chainId,
               Alias#(TOKEN_RING_MSG#(t_NODE_ID, t_MSG), t_RING_MSG),
 
               // Message fits in a ring?
-              Bits#(t_RING_MSG, t_RING_MSG_SZ),
-              Add#(t_RING_MSG_SZ, m__, CON_CHAIN_DATA_SZ));
+              Bits#(t_RING_MSG, t_RING_MSG_SZ)
+              /*Add#(t_RING_MSG_SZ, m__, CON_CHAIN_DATA_SZ)*/);
+
+  let m <- mkConnectionTokenRingNode(integerToString(chainId), myID);
+  return m;
+endmodule
+
+
+//
+// mkConnection_TokenRingNodeString --
+//     Build a node on a token ring, but with string name
+//
+//     WARNING:  there must be a node with a NODE_ID of 0.  The token starts
+//               on this node.
+//
+module [CONNECTED_MODULE] mkConnectionTokenRingNode#(String chainId,
+                                                     t_NODE_ID myID)
+    // Interface:
+    (Connection_TokenRing#(t_NODE_ID, t_MSG))
+    provisos (Bits#(t_MSG, t_MSG_SZ),
+              Bits#(t_NODE_ID, t_NODE_ID_SZ),
+              Eq#(t_NODE_ID),
+       
+              Alias#(TOKEN_RING_MSG#(t_NODE_ID, t_MSG), t_RING_MSG),
+
+              // Message fits in a ring?
+              Bits#(t_RING_MSG, t_RING_MSG_SZ)
+              /*Add#(t_RING_MSG_SZ, m__, CON_CHAIN_DATA_SZ)*/);
 
     // Allocate a node on the physical chain
-    Connection_Chain#(t_RING_MSG) chain <- mkConnection_Chain(chainId);
+    CONNECTION_CHAIN#(t_RING_MSG) chain <- mkConnectionChain(chainId);
 
     // Inbound & outbound FIFOs
     FIFOF#(t_MSG) recvQ <- mkFIFOF();

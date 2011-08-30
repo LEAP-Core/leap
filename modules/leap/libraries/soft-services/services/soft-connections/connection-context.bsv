@@ -50,6 +50,16 @@ module [t_CONTEXT] getSynthesisBoundaryPlatform (String)
 
 endmodule
 
+module [t_CONTEXT] getSynthesisBoundaryPlatformID (Integer)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.synthesisBoundaryPlatformID;
+
+endmodule
+
 module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -178,6 +188,17 @@ module [t_CONTEXT] putSynthesisBoundaryPlatform#(String new_name) ()
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
     ctxt.synthesisBoundaryPlatform = new_name;
+    putContext(ctxt);
+
+endmodule
+
+module [t_CONTEXT] putSynthesisBoundaryPlatformID#(Integer new_id) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.synthesisBoundaryPlatformID = new_id;
     putContext(ctxt);
 
 endmodule

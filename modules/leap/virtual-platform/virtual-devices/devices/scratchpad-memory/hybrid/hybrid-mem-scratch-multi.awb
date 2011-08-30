@@ -1,0 +1,17 @@
+%name Hybrid Scratchpad Memory Device (MultiFPGA)
+%desc Hybrid Scratchpad Memory Device (MultiFPGA) 
+
+%provides scratchpad_memory
+
+%requires scratchpad_memory_common
+
+%notes README
+%public   hybrid-mem-scratch-multi.bsv
+%private  hybrid-mem-scratch.cpp
+%public   hybrid-mem-scratch.h
+%private  hybrid-mem-scratch-multi.rrr
+%public   hybrid-mem-scratch.dic
+
+%param SCRATCHPAD_MEMORY_ADDR_BITS 32  "Word-level address bits per private scratchpad region"
+ 
+

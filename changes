@@ -9621,3 +9621,52 @@ Directory .
   Please let me know ASAP if something got deleted which shouldn't have been.
 
 * Update stale information in some .apm files.
+
+----------
+kfleming    Date: Mon Aug 29 23:00:31 EDT 2011  CSN: CSN-leap-147
+                  Tue Aug 30 03:00:31 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch-multi.awb Locally Added               0 
+ hybrid-mem-scratch-multi.bsv Locally Added               0 
+ hybrid-mem-scratch-multi.rrr Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common-interfaces.bsv Locally Modified          146 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          146 
+ environment.py            Locally Modified          146 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-null.awb Locally Modified          146 
+ scratchpad-memory-service-multi.awb Locally Added               0 
+ scratchpad-memory-connector.bsv Locally Added               0 
+ scratchpad-memory-service-multi-rrr.awb Locally Added               0 
+ scratchpad-memory-connector-rrr.bsv Locally Added               0 
+ scratchpad-memory-service.awb Locally Modified          146 
+ scratchpad-memory-service.bsv Locally Modified          146 
+ scratchpad-memory-connector-null.bsv Locally Added               0 
+ platform-scratchpad-memory.bsv Locally Modified          146 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Modified          146 
+ central-cache-service.bsv Locally Modified          146 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ shared-memory-service-null.awb Locally Modified          146 
+ shared-memory-service-null.bsv Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          146 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          146 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ token-ring.bsv            Locally Modified          146 
+ connection-context.bsv    Locally Modified          146 
+
+
+Added support for two-tiered memory hierarchy in multiple fpgas.  This required a few new methods involving strings and magic numbers.

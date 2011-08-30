@@ -24,7 +24,9 @@ class MultiFPGAGenerateLogfile():
     mappingRootName = APM_NAME  + '_mutlifpga_mapping'
     mappingName = mappingRootName + '.apm'
     mappingPath =  'config/pm/private/' + mappingName
-
+    environmentRootName = APM_NAME  + '_multifpga_environment'
+    environmentName = environmentRootName + '.apm'
+    environmentPath =  'config/pm/private/' + environmentName
 
     def makePlatformBuildDir(name):
       return moduleList.env['DEFS']['BUILD_DIR'] +'/../../' + makePlatformLogName(name,APM_NAME) + '/pm/'
@@ -44,6 +46,7 @@ class MultiFPGAGenerateLogfile():
     call(['asim-shell','--batch','rename', 'submodel', applicationPath, applicationRootName]) 
     # do the same for the fpga mapping
     call(['asim-shell','--batch','create', 'submodel', APM_FILE , 'fpga_mapping', mappingPath])        
+    call(['asim-shell','--batch','create', 'submodel', APM_FILE , 'environment_description', environmentPath])    
     call(['asim-shell','--batch','rename', 'submodel', mappingPath, mappingRootName]) 
 
     def compile_closure(platform):
@@ -108,6 +111,7 @@ class MultiFPGAGenerateLogfile():
       execute('asim-shell --batch cp ' + platform.path +" "+ platformPath)        
       execute('asim-shell --batch replace module ' + platformPath + ' ' + applicationPath)
       execute('asim-shell --batch replace module ' + platformPath + ' ' + mappingPath)
+      execute('asim-shell --batch replace module ' + platformPath + ' ' + environmentPath)
       execute('asim-shell --batch set parameter ' + platformPath + ' MULTI_FPGA_PLATFORM \\"' + platform.name + '\\"')
       execute('asim-shell --batch set parameter ' + platformPath + ' IGNORE_PLATFORM_MISMATCH 1 ')
       execute('asim-shell --batch set parameter ' + platformPath + ' BUILD_LOGS_ONLY 1 ')

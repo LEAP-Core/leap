@@ -217,6 +217,7 @@ typedef struct
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
     String synthesisBoundaryPlatform;
+    Integer synthesisBoundaryPlatformID;
     String rootStationName;
     Reset softReset;
 }

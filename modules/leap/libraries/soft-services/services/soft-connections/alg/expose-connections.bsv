@@ -70,6 +70,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  stations: tagged Nil,
                  stationStack: tagged Nil,
                  synthesisBoundaryPlatform: `MULTI_FPGA_PLATFORM,
+                 synthesisBoundaryPlatformID: 0,
                  rootStationName: "InvalidRootStation",
                  softReset: sReset
              };

@@ -32,6 +32,10 @@ class FPGAEnvironment(object):
     def getPlatformNames(self):
         return self.platforms.keys()
 
+    def getSynthesisBoundaryPlatformID(self,boundary):
+        print 'Looking up: ' + boundary
+        return self.platforms.keys().index(boundary) + 1 # cannot start from 0.
+
     # build a graph. This will make life easier
     # graph legalization consists of ensuring that if a platform claims to 
     # be connected to another platform, that platform also claims that they

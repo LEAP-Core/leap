@@ -8,4 +8,5 @@
 %notes README
 
 %public shared-memory-service.bsh
+%public shared-memory-service-null.bsv
 

@@ -13,3 +13,4 @@
 %private central-cache-service.dic
 
 %param --dynamic CENTRAL_CACHE_MODE 0 "Bits 0-1: 0 write-back, 1 write-through, 3 disabled / Bit 2 disables recent line cache"
+%param CENTRAL_CACHE_STATS 1 "Do we enable central cache stats collection"

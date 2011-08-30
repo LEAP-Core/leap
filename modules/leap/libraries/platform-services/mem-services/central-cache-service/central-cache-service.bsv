@@ -18,7 +18,10 @@ module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
     let centralCache = vdevs.centralCache;
     
     // ***** Stats *****
-    let cacheStats <- mkCentralCacheStats(centralCache.stats);
+    if(`CENTRAL_CACHE_STATS == 1)
+      begin
+        let cacheStats <- mkCentralCacheStats(centralCache.stats);
+     end 
 
     // ***** Dynamic parameters *****
     PARAMETER_NODE paramNode <- mkDynamicParameterNode();
