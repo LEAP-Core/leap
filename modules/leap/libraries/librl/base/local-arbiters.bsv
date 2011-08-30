@@ -24,21 +24,23 @@
 //
 
 interface LOCAL_ARBITER#(numeric type nCLIENTS);
-    method ActionValue#(Maybe#(UInt#(TLog#(nCLIENTS)))) arbitrate(Vector#(nCLIENTS, Bool) req);
+    // If the value of "fixed" is True, the current grant is locked and not
+    // updated again until "fixed" goes False.
+    method ActionValue#(Maybe#(UInt#(TLog#(nCLIENTS)))) arbitrate(Vector#(nCLIENTS, Bool) req,
+                                                                  Bool fixed);
 endinterface
 
 
 //
 // mkLocalArbiter --
 //   A fair round robin arbiter with changing priorities, inspired by the
-//   Bluespec mkArbiter().  If the value of "fixed" is True, the current
-//   grant is locked and not updated again until "fixed" goes False.
+//   Bluespec mkArbiter().
 //
 //   This implementation uses vector functions instead of the loops found
 //   in the Bluespec example.  Performance of the compiler in complex cases
 //   is much improved using this stle.
 //
-module mkLocalArbiter#(Bool fixed)
+module mkLocalArbiter
     // Interface:
     (LOCAL_ARBITER#(nCLIENTS))
     provisos (Alias#(Vector#(nCLIENTS, Bool), t_CLIENT_MASK),
@@ -49,7 +51,7 @@ module mkLocalArbiter#(Bool fixed)
     // Initially, priority is given to client 0
     Reg#(t_CLIENT_IDX) priorityIdx <- mkReg(0);
 
-    method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req);
+    method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req, Bool fixed);
         //
         // Clear the low priority portion of the request
         //
@@ -83,7 +85,7 @@ endmodule
 //   Nearly identical to mkLocalArbiter() except the highest priority index
 //   is chosen randomly.
 //
-module mkLocalRandomArbiter#(Bool fixed)
+module mkLocalRandomArbiter
     // Interface:
     (LOCAL_ARBITER#(nCLIENTS))
     provisos (Alias#(Vector#(nCLIENTS, Bool), t_CLIENT_MASK),
@@ -96,7 +98,7 @@ module mkLocalRandomArbiter#(Bool fixed)
     // to add to the pattern.
     LFSR#(Bit#(TAdd#(3, TLog#(nCLIENTS)))) lfsr <- mkLFSR();
 
-    method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req);
+    method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req, Bool fixed);
         //
         // Clear the low priority portion of the request
         //

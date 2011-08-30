@@ -9670,3 +9670,14 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 
 Added support for two-tiered memory hierarchy in multiple fpgas.  This required a few new methods involving strings and magic numbers.
+
+----------
+mcadler     Date: Tue Aug 30 08:15:28 EDT 2011  CSN: CSN-leap-148
+                  Tue Aug 30 12:15:28 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ local-arbiters.bsv        Locally Modified          147 
+
+Move the "fixed" parameter from the module to the arbitrate method so "fixed"
+can be set by the calling rule.
