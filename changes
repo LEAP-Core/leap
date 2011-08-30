@@ -9681,3 +9681,14 @@ Directory modules/leap/libraries/librl/base
 
 Move the "fixed" parameter from the module to the arbitrate method so "fixed"
 can be set by the calling rule.
+
+----------
+kfleming    Date: Tue Aug 30 16:02:36 EDT 2011  CSN: CSN-leap-149
+                  Tue Aug 30 20:02:36 UTC 2011
+
+
+Directory modules/leap/virtual-platform/rrr/basic
+ arbiters.bsv              Locally Modified          148 
+
+
+Retimed the rotating arbiter to move a subtraction off the critical path.  This is important for the multifpga routing hardware, since it tends to have many things to arbit among. 
