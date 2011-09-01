@@ -9705,3 +9705,24 @@ Directory modules/leap/build-support/project
  ModuleList.py             Locally Modified          149 
 
 Resolve a race in creating the smartguide cache directory.
+
+----------
+keflemin    Date: Thu Sep  1 15:16:17 EDT 2011  CSN: CSN-leap-151
+                  Thu Sep  1 19:16:17 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          150 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ shared-memory-service-null.bsv Locally Modified          150 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard-null.awb Locally Modified          150 
+ mem-services-standard-null.bsv Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/streams-service
+ streams-service-null.awb  Locally Modified          150 
+
+
+Added includes to mem services and a dummy mem service.  This was a problem in multifpga builds for some reason.

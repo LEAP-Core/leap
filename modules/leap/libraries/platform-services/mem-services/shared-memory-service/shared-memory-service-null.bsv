@@ -7,6 +7,6 @@
 
 module [CONNECTED_MODULE] mkSharedMemoryService#(VIRTUAL_DEVICES vdevs)
     // interface:
-        ();
-    
+        (Empty);
+  messageM("Not Here?");    
 endmodule

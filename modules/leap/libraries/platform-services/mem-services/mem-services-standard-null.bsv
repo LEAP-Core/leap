@@ -13,8 +13,4 @@ module [CONNECTED_MODULE] mkMemServices#(VIRTUAL_DEVICES vdevs)
     // interface:
         ();
     
-    let centralCacheService     <- mkCentralCacheService(vdevs);
-    let scratchpadMemoryService <- mkScratchpadMemoryService(vdevs);
-    let sharedMemoryService     <- mkSharedMemoryService(vdevs);
-    
 endmodule
