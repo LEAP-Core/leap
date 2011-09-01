@@ -9692,3 +9692,16 @@ Directory modules/leap/virtual-platform/rrr/basic
 
 
 Retimed the rotating arbiter to move a subtraction off the critical path.  This is important for the multifpga routing hardware, since it tends to have many things to arbit among. 
+
+----------
+mcadler     Date: Thu Sep  1 07:45:26 EDT 2011  CSN: CSN-leap-150
+                  Thu Sep  1 11:45:26 UTC 2011
+
+
+Directory modules/leap/build-support/project/project-vico
+ SCons.top.template        Locally Modified          149 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          149 
+
+Resolve a race in creating the smartguide cache directory.

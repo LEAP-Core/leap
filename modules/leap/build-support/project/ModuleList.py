@@ -2,6 +2,7 @@
 
 import os
 import sys
+import errno
 
 import string
 import pygraph
@@ -82,8 +83,10 @@ class ModuleList:
     #
     self.smartguide_cache_dir = env['DEFS']['WORKSPACE_ROOT'] + '/var/xilinx_ncd'
     self.smartguide_cache_file = self.apmName + '_par.ncd'
-    if not os.path.isdir(self.smartguide_cache_dir):
-      os.mkdir(self.smartguide_cache_dir)
+    try:
+        os.mkdir(self.smartguide_cache_dir)
+    except OSError, e:
+        if e.errno == errno.EEXIST: pass
         
     if (self.env['ENV'].has_key('USE_SMARTGUIDE') and
         (FindFile(self.apmName + '_par.ncd', [self.smartguide_cache_dir]) != None)):
