@@ -81,7 +81,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     // FIFO1 to save space.  Throughput isn't terribly important here
     // since the call will go through RRR.
     FIFOF#(CENTRAL_CACHE_BACKING_WRITE_REQ) writeCtrlQ <- mkFIFOF1();
-    FIFO#(CENTRAL_CACHE_LINE) writeDataQ <- mkFIFO1();
+    FIFOF#(CENTRAL_CACHE_LINE) writeDataQ <- mkFIFOF1();
     Reg#(Bit#(TLog#(CENTRAL_CACHE_WORDS_PER_LINE))) writeWordIdx <- mkReg(0);
 
     // Read response logic.  Combine pipelined read response (words) into a single
@@ -90,13 +90,20 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     Reg#(Bit#(TLog#(CENTRAL_CACHE_WORDS_PER_LINE))) readWordIdx <- mkReg(0);
 
     //
+    // Flush writes before reads, since ultimately a read may depend on a write.
+    // The central cache only allows a single access at a time to a line, but
+    // if the write queue here backs up reads could bypass writes.
+    //
+    function Bool noWritesPending() = ! writeCtrlQ.notEmpty() && ! writeDataQ.notEmpty();
+
+    //
     // Central cache interface.
     //
     interface CENTRAL_CACHE_BACKING_PORT backingPort;
         //
         // Central cache client polls getReadReq.
         //
-        method ActionValue#(CENTRAL_CACHE_BACKING_READ_REQ) getReadReq();
+        method ActionValue#(CENTRAL_CACHE_BACKING_READ_REQ) getReadReq() if (noWritesPending());
             let r = readReqQ.first();
             readReqQ.deq();
     

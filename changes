@@ -9807,3 +9807,15 @@ Merging Mikhail's VIP changes to LEAP in preparation for release.
 * Update vico flag in iface.py.
 * Remove -cm balanced from Xilinx map parameters.
 * Child/top-level xcf files better distinguished.
+
+----------
+mcadler     Date: Thu Sep  8 17:07:34 EDT 2011  CSN: CSN-leap-153
+                  Thu Sep  8 21:07:34 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ central-cache-backing-store.bsv Locally Modified          152 
+
+Force a scheduling order of central cache evict vs. fill when talking to the
+backing storage.  I've never seen an instance in which the code has failed,
+since the timing is unlikely.
