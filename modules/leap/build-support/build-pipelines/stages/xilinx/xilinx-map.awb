@@ -12,7 +12,7 @@
 
 %scons %library XILINX_MAP.py
 
-%param --global MAPPER_OPTIONS  "-cm balanced -global_opt on"  "Xilinx mapper options"
+%param --global MAPPER_OPTIONS  "-global_opt on"  "Xilinx mapper options"
 
 
 

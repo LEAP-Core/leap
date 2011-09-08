@@ -126,7 +126,7 @@ class Iface():
     #  files exist.
     generate_vico = ''
     if(GENERATE_VICO):
-      generate_vico = '-vico'
+      generate_vico = '--vico'
     r_tgt = moduleList.env.Command(rrr_inc_tgt + '/service_ids.h',
                        map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS')),
                        'leap-rrr-stubgen ' + generate_vico + ' --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')

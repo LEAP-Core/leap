@@ -66,10 +66,7 @@ protected:
  static bool vico_rrr_is_initialized;
 
 public:
- RRRBase() {
-   vico_rrr_root = this;
-   vico_rrr_next=vico_rrr_root; 
-}
+ RRRBase() {vico_rrr_next=vico_rrr_root; vico_rrr_root=this;}
  virtual ~RRRBase() {}
 
  virtual void vico_rrr_do_init() =0; // bind to ports

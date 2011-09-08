@@ -13,5 +13,5 @@
 %sources -t BSV -v PUBLIC  arbiters.bsv
 
 %sources -t H   -v PUBLIC  rrr-dummy.h
-%sources -t CPP   -v PRIVATE  rrr-dummy.cpp
+
 

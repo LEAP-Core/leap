@@ -1,0 +1,15 @@
+#/********************************************************************
+#* Python libraries for ViCo software compilation
+#********************************************************************/
+
+%name ViCo Software build tool
+%desc Build for ViCo software side of hybrid system
+
+%attributes tool
+
+%provides software_tool
+
+%notes README
+
+%scons %library vico_software.py
+

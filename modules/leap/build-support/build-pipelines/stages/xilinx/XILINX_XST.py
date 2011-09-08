@@ -27,9 +27,9 @@ class Synthesize():
 
       xilinx_child_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf',
-        xcfSrcs,
-        ['cat $SOURCES > $TARGET',
-         'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n"  >> $TARGET'])
+        [],
+        'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n"  >> $TARGET')
+      
     else:
       xilinx_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',

@@ -51,10 +51,6 @@ Packagehint=leap
 File=modules/leap/libraries/platform-services/common-services/assertions-service/assertions-service.awb
 Packagehint=leap
 
-[Streams Service]
-File=modules/leap/libraries/platform-services/common-services/streams-service/streams-service.awb
-Packagehint=leap
-
 [Platform Services with No Memory Service]
 File=modules/leap/libraries/platform-services/platform-services-null-mem.awb
 Packagehint=leap
@@ -63,3 +59,8 @@ Packagehint=leap
 common_services=Common Services
 front_panel_service=Front Panel Service
 starter_service=Starter Service
+
+
+[Streams Service]
+File=modules/leap/libraries/platform-services/common-services/streams-service/streams-service.awb
+Packagehint=leap

@@ -32,6 +32,9 @@ class LOADER():
     # The final step must leave a few files in well-known locations since they are
     # used by the run scripts.  moduleList.apmName is the software side, if there is one.
     #
+    if(getBuildPipelineDebug(moduleList) != 0):
+        print  moduleList.swExeOrTarget + "\n"
+
     loader = moduleList.env.Command(
       moduleList.apmName + '_hw.errinfo',
       moduleList.getAllDependencies('SIGNATURE') + moduleList.swExe + moduleList.getAllDependencies('TRCE'),

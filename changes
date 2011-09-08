@@ -9726,3 +9726,84 @@ Directory modules/leap/libraries/platform-services/common-services/streams-servi
 
 
 Added includes to mem services and a dummy mem service.  This was a problem in multifpga builds for some reason.
+
+----------
+mpellaue    Date: Thu Sep  8 16:41:40 EDT 2011  CSN: CSN-leap-152
+                  Thu Sep  8 20:41:40 UTC 2011
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_ml605.apm    Locally Removed           151 
+ hello_hybrid_ml605d_xst.apm Locally Added               - 
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-null-mem.apm Locally Modified          151 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          151 
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx.apm Locally Added               - 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ vico-channelio.awb        Locally Added               0 
+ vico-channelio.bsv        Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ hw-only-rrr.awb           Locally Modified          151 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ vico-llpi.awb             Locally Modified          151 
+ vico-llpi.bsv             Locally Added               0 
+
+Directory modules/leap/virtual-platform/vico-headers
+ vico-headers.awb          Locally Modified          151 
+ vico_rrr_layer.cpp        Locally Removed           151 
+ vico_rrr_layer.h          Locally Modified          151 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          151 
+
+Directory modules/leap/build-support/build-pipelines/stages/vico_software
+ software.py               Locally Removed           151 
+ vico_software.py          Locally Added               - 
+ software.awb              Locally Removed           151 
+ vico_software.awb         Locally Added               - 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          151 
+ xilinx-map.awb            Locally Modified          151 
+ XILINX_XST.py             Locally Modified          151 
+
+Directory modules/leap/build-support/project
+ project-vico-pipeline.awb Locally Added               - 
+ project-vico-hybrid-main.cpp Locally Added               - 
+ project-vico-hybrid-main.h Locally Added               - 
+ project-vico/             Locally Removed           151 
+
+Directory modules/leap/build-support/project/project-vico
+ SCons.top.template        Locally Removed           151 
+ SCons.dict.template       Locally Removed           151 
+ SCons.iface.template      Locally Removed           151 
+ hardware-done.h           Locally Removed           151 
+ project-vico-hybrid-main.cpp Locally Removed           151 
+ SCons.sw.template         Locally Removed           151 
+ Makefile.top.template     Locally Removed           151 
+ project-vico-hybrid-main.h Locally Removed           151 
+ SCons.hw.template         Locally Removed           151 
+ README                    Locally Removed           151 
+ project-hybrid.awb        Locally Removed           151 
+ project-vico-hybrid-main.bsv Locally Removed           151 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          151 
+
+
+Merging Mikhail's VIP changes to LEAP in preparation for release.
+* Remove obsolete project-vico and replace with build pipeline variant.
+* Update build pipeline stage for vico software and variants that use it.
+* Updates to ml605d platform.
+* Add exit code handling to Scons template.
+* Update vico flag in iface.py.
+* Remove -cm balanced from Xilinx map parameters.
+* Child/top-level xcf files better distinguished.
