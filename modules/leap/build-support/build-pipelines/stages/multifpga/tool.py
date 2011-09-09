@@ -29,10 +29,10 @@ class MultiFPGAGenerateLogfile():
     environmentPath =  'config/pm/private/' + environmentName
 
     def makePlatformBuildDir(name):
-      return moduleList.env['DEFS']['BUILD_DIR'] +'/../../' + makePlatformLogName(name,APM_NAME) + '/pm/'
+      return 'multi_fpga/' + makePlatformLogName(name,APM_NAME) + '/pm'
 
     def makePlatformDictDir(name):
-      return makePlatformBuildDir(name) + '/iface/src/dict/'
+      return makePlatformBuildDir(name) + '/iface/src/dict'
 
   
     envFile = moduleList.getAllDependenciesWithPaths('GIVEN_FPGAENVS')
@@ -55,17 +55,20 @@ class MultiFPGAGenerateLogfile():
           
            platformAPMName = makePlatformLogName(platform.name,APM_NAME) + '.apm'
            platformPath = 'config/pm/private/' + platformAPMName
-           platformBuildDir = moduleList.env['DEFS']['BUILD_DIR'] +'/' + platformAPMName
-           # and now we can build them -- should we use SCons here?
+           platformBuildDir = makePlatformBuildDir(platform.name)
+           # and now we can build them
            # what we want to gather here is dangling top level connections
            # so we should depend on the model log
            # Ugly - we need to physically reconstruct the apm path
            # set the fpga parameter
            # for the first pass, we will ignore mismatched platforms
 
-           print "alive in call platform log " + platform.name
-           execute('awb-shell --batch build model ' + platformPath)   
-           print "dead in call platform log" + platform.name
+           print "tool.py: alive in call platform log " + platform.name
+           # Always pass raw scons command here without DEBUG, OPT, COST_TABLE,
+           # etc.  This rule is only for model topology, not the final build.
+           sts = execute('cd ' + platformBuildDir + '; scons')
+           print "tool.py: dead in call platform log" + platform.name
+           return sts
          return compile_platform_log
 
     moduleList.topModule.moduleDependency['FPGA_PLATFORM_LOGS'] = []
@@ -102,10 +105,11 @@ class MultiFPGAGenerateLogfile():
       platformAPMName = makePlatformLogName(platform.name,APM_NAME) + '.apm'
       platformPath = 'config/pm/private/' + platformAPMName
       platformBuildDir = makePlatformBuildDir(platformName)
-      wrapperLog =  platformBuildDir +'/'+ moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/.bsc/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper.log'
-      routerBSH =  platformBuildDir +'/'+ moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/multifpga_routing.bsh'
+      wrapperLogTgt =  platformBuildDir + '/' + moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/.bsc/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper.log.multi_fpga'
+      wrapperLogBld =  platformBuildDir + '/' + moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/.bsc/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper.log'
+      routerBSH =  platformBuildDir + '/' + moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/multifpga_routing.bsh'
 
-      print "wrapper: " + wrapperLog
+      print "wrapper: " + wrapperLogTgt
       print "platformPath: " + moduleList.env['DEFS']['WORKSPACE_ROOT'] + '/src/private/' + platformPath
 
       execute('asim-shell --batch cp ' + platform.path +" "+ platformPath)        
@@ -128,7 +132,10 @@ class MultiFPGAGenerateLogfile():
       print "missingDicts: " + missingDicts
 
       execute('asim-shell --batch set parameter ' + platformPath + ' EXTRA_DICTS \\"' + missingDicts  + '\\"')
-      execute('asim-shell --batch configure model ' + platformPath)
+
+      # Configure the build tree
+      if not os.path.exists(platformBuildDir): os.makedirs(platformBuildDir) 
+      execute('asim-shell --batch -- configure model ' + platformPath + ' --builddir ' + platformBuildDir)
 
       # set up the symlink - it'll be broken at first, but as we fill in the platforms, they'll come up
       for dict in environmentDicts.keys():
@@ -137,12 +144,13 @@ class MultiFPGAGenerateLogfile():
 
 
       subbuild = moduleList.env.Command( 
-          [wrapperLog],
+          [wrapperLogTgt],
           [routerBSH],
-          compile_closure(platform)
+          [ compile_closure(platform),
+            SCons.Script.Copy(wrapperLogTgt, wrapperLogBld) ]
           )
                    
-      moduleList.topModule.moduleDependency['FPGA_PLATFORM_LOGS'] += [wrapperLog] 
+      moduleList.topModule.moduleDependency['FPGA_PLATFORM_LOGS'] += [wrapperLogTgt]
 
       # we now need to create a multifpga_routing.bsh so that we can get the sizes of the various links.
       # we'll need this later on. 

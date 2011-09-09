@@ -9819,3 +9819,18 @@ Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
 Force a scheduling order of central cache evict vs. fill when talking to the
 backing storage.  I've never seen an instance in which the code has failed,
 since the timing is unlikely.
+
+----------
+mcadler     Date: Fri Sep  9 10:38:10 EDT 2011  CSN: CSN-leap-154
+                  Fri Sep  9 14:38:10 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          153 
+
+- Build sub-models in multi_fpga subdirectory of parent instead of in root.
+- Build rule for sub-models generates a result other than the direct result
+  of the sub model build.  The old code forced a rebuild of the top level BSV
+  every time, even if it was built already.
+- Return status of sub-model builds so parent SCons aborts correctly.
+
