@@ -9834,3 +9834,19 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
   every time, even if it was built already.
 - Return status of sub-model builds so parent SCons aborts correctly.
 
+
+----------
+mcadler     Date: Fri Sep  9 13:28:41 EDT 2011  CSN: CSN-leap-155
+                  Fri Sep  9 17:28:41 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          154 
+
+Revert to previous version, where child xcf has the same contents as the top level.
+Right now, the "top level" file has configuration for all synthesis boundaries.
+It also has critical bluespec.xcf configuration.  Without these, builds below
+top level are bound to have problems.
+
+The real solution is more complicated and requires some notion of global vs.
+local xcf configuration.
