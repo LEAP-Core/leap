@@ -1,4 +1,7 @@
-leap (11.06+fixes~svn20110614r110+lucid) lucid; urgency=low
+leap (11.09+fixes~svn20110914r155+lucid) lucid; urgency=low
+  [ Michael Pellauer ]
+  * r156
+     Packaging the v11.09 release.
 
   [ Michael Pellauer ]
   * r110

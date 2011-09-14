@@ -7,12 +7,12 @@ Standards-Version: 3.7.2
 
 Package: leap
 Architecture: all
-Depends: leap-11.06, leap-11.03
+Depends: leap-11.09, leap-11.06
 Description: Dependency package for Leap FPGA environment
  Dependency package for the Leap FPGA environment
 Section: devel
 
-Package: leap-11.06, leap-11.03
+Package: leap-11.09, leap-11.06
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, leap-bin
 Description: Sharable package for the LEAP
@@ -23,8 +23,8 @@ Package: leap-bin
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, leap-platforms, asim-core, asim-core-dev, awb, libqt-perl
 Recommends: libterm-readline-gnu-perl
-Replaces: leap (<= 0.6.0)
-Breaks: leap (<= 0.6.0)
+Replaces: leap (<= 0.9.0)
+Breaks: leap (<= 0.9.0)
 Description: Executables for the LEAP FPGA environement
  Core executables for LEAP FPGA environment
 Section: devel

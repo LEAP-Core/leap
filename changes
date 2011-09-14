@@ -9850,3 +9850,18 @@ top level are bound to have problems.
 
 The real solution is more complicated and requires some notion of global vs.
 local xcf configuration.
+
+----------
+mpellaue    Date: Wed Sep 14 10:48:28 EDT 2011  CSN: CSN-leap-157
+                  Wed Sep 14 14:48:28 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          156 
+ changelog                 Locally Modified          156 
+
+Directory admin/packages
+ leap                      Locally Modified          156 
+
+
+Branch updates for release prep.

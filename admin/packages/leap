@@ -5,5 +5,5 @@ Version=1
 Lock=asim-leap
 Description=Description of leap
 Name=leap
-Tag=HEAD
-CSN=CSN-leap-155
+Tag=v11.09
+CSN=CSN-leap-157
