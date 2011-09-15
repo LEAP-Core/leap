@@ -9865,3 +9865,13 @@ Updating debian files for next release, logically set at 11.12 since the
 previous ones were 11.03 and 11.06 and 11.09, no matter what schedule we
 predict....
 
+
+----------
+mcadler     Date: Thu Sep 15 16:28:57 EDT 2011  CSN: CSN-leap-159
+                  Thu Sep 15 20:28:57 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.cpp        Locally Modified          158 
+
+Method bodies were defined in both the .h and .cpp files.
