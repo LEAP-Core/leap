@@ -9875,3 +9875,17 @@ Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
  starter-device.cpp        Locally Modified          158 
 
 Method bodies were defined in both the .h and .cpp files.
+
+----------
+mpellaue    Date: Tue Sep 20 10:35:58 EDT 2011  CSN: CSN-leap-161
+                  Tue Sep 20 14:35:58 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-605d-syn.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx-synplify.apm Locally Added               0 
+
+
+Patch from Mikhail. Add a combined xilinx-synplify build flow for ML605/vico.
