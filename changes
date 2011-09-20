@@ -9865,3 +9865,17 @@ Directory admin/packages
 
 
 Branch updates for release prep.
+
+----------
+mpellaue    Date: Tue Sep 20 10:31:50 EDT 2011  CSN: CSN-leap-160
+                  Tue Sep 20 14:31:50 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-605d-syn.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx-synplify.apm Locally Added               0 
+
+
+Backport Mikhail's vico changes to release branch.
