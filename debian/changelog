@@ -1,15 +1,7 @@
-leap (11.12+fixes~svn20110914r156+lucid) lucid; urgency=low
-  [ Michael Pellauer ]
-  * r156
-     Start working on the v11.12 release.
-
-  [ Michael Pellauer ]
-  * r110
-     Branch for v11.06 release. This release will work a bit differently than
-     past releases because of deprecated file cleanup.
+leap (11.12~svn20110921r164+lucid) lucid; urgency=low
 
   [ Joel Emer ]
-  * r065
-     Start of working on v11.04 release
+  * r164
+     Start working on the v11.12 release.
 
- -- Joel Emer <jsemer@intel.com>  Mon, 11 Apr 2011 17:54:41 -0400
+ -- Joel Emer <emer@csail.mit.edu>  Wed, 21 Sep 2011 19:36:47 -0400

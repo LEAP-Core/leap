@@ -9900,3 +9900,15 @@ Directory modules/leap/virtual-platform/virtual-devices/devices/common/streams-d
 
 Add support for 3 and 4 arguments to streams messages.  3-messages use two
 16-bit chunks in arg0.  4-argument uses 16-bit chunks in both arguments.
+
+----------
+emer        Date: Wed Sep 21 19:38:43 EDT 2011  CSN: CSN-leap-165
+                  Wed Sep 21 23:38:43 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          164 
+ changelog                 Locally Modified          164 
+ rules                     Locally Modified          164 
+
+Start development of v11.12 release.
