@@ -9891,3 +9891,16 @@ Directory debian
 
 
 * Update branch's debian control info.
+
+----------
+emer        Date: Wed Sep 21 14:24:45 EDT 2011  CSN: CSN-leap-164
+                  Wed Sep 21 18:24:45 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          163 
+ changelog                 Locally Modified          163 
+
+Do not depend on release 11.06 since it never happened.
+
+
