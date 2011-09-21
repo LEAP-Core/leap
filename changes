@@ -9889,3 +9889,14 @@ Directory config/pm/leap/submodels/pipelines
 
 
 Patch from Mikhail. Add a combined xilinx-synplify build flow for ML605/vico.
+
+----------
+mcadler     Date: Tue Sep 20 23:40:26 EDT 2011  CSN: CSN-leap-162
+                  Wed Sep 21 03:40:26 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/streams-device
+ hybrid-streams.cpp        Locally Modified          161 
+
+Add support for 3 and 4 arguments to streams messages.  3-messages use two
+16-bit chunks in arg0.  4-argument uses 16-bit chunks in both arguments.
