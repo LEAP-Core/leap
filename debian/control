@@ -12,7 +12,7 @@ Description: Dependency package for Leap FPGA environment
  Dependency package for the Leap FPGA environment
 Section: devel
 
-Package: leap-11.09, leap-11.06
+Package: leap-11.09
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, leap-bin
 Description: Sharable package for the LEAP
