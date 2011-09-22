@@ -9912,3 +9912,14 @@ Directory debian
  rules                     Locally Modified          164 
 
 Start development of v11.12 release.
+
+----------
+mcadler     Date: Thu Sep 22 07:10:45 EDT 2011  CSN: CSN-leap-166
+                  Thu Sep 22 11:10:45 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ bluespec.xcf              Locally Modified          165 
+
+Xst was putting SyncFIFO buffers in BRAM!  Not only is this wasteful, it imposes
+a more difficult timing on a structure we are forced to tag TIG.
