@@ -33,12 +33,12 @@ import SpecialFIFOs::*;
 // mkSizedBRAMFIFO --
 //     BRAM version of a memory FIFO.
 //
-module mkSizedBRAMFIFO#(NumTypeParam#(n_ENTRIES) p)
+module mkSizedBRAMFIFO#(Integer nEntries)
     // Interface:
     (FIFO#(t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ));
      
-    FIFOF#(t_DATA) fifof <- mkSizedBRAMFIFOF(p);
+    FIFOF#(t_DATA) fifof <- mkSizedBRAMFIFOF(nEntries);
     return fifofToFifo(fifof);
 endmodule
 
@@ -47,15 +47,54 @@ endmodule
 // mkSizedBRAMFIFOF --
 //     BRAM version of a memory FIFOF.
 //
-module mkSizedBRAMFIFOF#(NumTypeParam#(n_ENTRIES) p)
+//     We wrote these before the Bluespec library's equivalent function was
+//     available.  The brute-force conversion of an integer parameter to
+//     a type was adapted from the Bluespec code, replacing our old version
+//     that took a type.  Too bad Integer can't be converted to a type.
+//
+module mkSizedBRAMFIFOF#(Integer depth)
     // Interface:
     (FIFOF#(t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ));
      
-    MEMORY_IFC#(Bit#(TLog#(n_ENTRIES)), t_DATA) mem <- mkBRAMUnguarded();
-    FIFOCountIfc#(t_DATA,n_ENTRIES) fifo <- mkMemoryFIFOF(mem);
-    return fifoCountToFifof(fifo);
+    let _f = ?;
+
+    if      (depth <= 2)          begin MEMORY_IFC#(Bit#(1), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 2) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 4)          begin MEMORY_IFC#(Bit#(2), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 4) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 8)          begin MEMORY_IFC#(Bit#(3), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 8) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 16)         begin MEMORY_IFC#(Bit#(4), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 16) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 32)         begin MEMORY_IFC#(Bit#(5), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 32) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 64)         begin MEMORY_IFC#(Bit#(6), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 64) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 128)        begin MEMORY_IFC#(Bit#(7), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 128) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 256)        begin MEMORY_IFC#(Bit#(8), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 256) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 512)        begin MEMORY_IFC#(Bit#(9), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 512) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 1024)       begin MEMORY_IFC#(Bit#(10), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 1024) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 2048)       begin MEMORY_IFC#(Bit#(11), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 2048) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 4096)       begin MEMORY_IFC#(Bit#(12), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 4096) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 8192)       begin MEMORY_IFC#(Bit#(13), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 8192) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 16384)      begin MEMORY_IFC#(Bit#(14), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 16384) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 32768)      begin MEMORY_IFC#(Bit#(15), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 32768) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 65536)      begin MEMORY_IFC#(Bit#(16), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 65536) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 101072)     begin MEMORY_IFC#(Bit#(17), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 101072) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 262144)     begin MEMORY_IFC#(Bit#(18), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 262144) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 524288)     begin MEMORY_IFC#(Bit#(19), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 524288) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 1048576)    begin MEMORY_IFC#(Bit#(20), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 1048576) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 2097152)    begin MEMORY_IFC#(Bit#(21), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 2097152) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 4194304)    begin MEMORY_IFC#(Bit#(22), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 4194304) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 8388608)    begin MEMORY_IFC#(Bit#(23), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 8388608) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 16777216)   begin MEMORY_IFC#(Bit#(24), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 16777216) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 33554432)   begin MEMORY_IFC#(Bit#(25), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 33554432) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 67108864)   begin MEMORY_IFC#(Bit#(26), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 67108864) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 134217728)  begin MEMORY_IFC#(Bit#(27), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 134217728) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 268435456)  begin MEMORY_IFC#(Bit#(28), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 268435456) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 536870912)  begin MEMORY_IFC#(Bit#(29), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 536870912) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 1073741824) begin MEMORY_IFC#(Bit#(30), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 1073741824) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 2147483648) begin MEMORY_IFC#(Bit#(31), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 2147483648) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+    else if (depth <= 4294967296) begin MEMORY_IFC#(Bit#(32), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 4294967296) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
+
+    return _f;
 endmodule
+
 
 //
 // mkSizedBRAMFIFOCount --
