@@ -35,6 +35,54 @@ class LOADER():
     if(getBuildPipelineDebug(moduleList) != 0):
         print  moduleList.swExeOrTarget + "\n"
 
+    def leap_xilinx_summary(xilinx_apm_name):
+      def leap_xilinx_summary_closure(target, source, env):
+        map_file = open(xilinx_apm_name + '_map.map','r')
+        par_file = open(xilinx_apm_name + '_par.par','r')
+        errinfo_file = open(moduleList.apmName + '_hw.errinfo', 'w')
+
+        # handle map file        
+        emit_map = 0
+        for line in map_file:
+          match = re.match(r'^Slice Logic Utilization:',line)
+          if(match):
+            emit_map=1
+
+          last = re.match(r'^Peak Memory Usage:',line)
+          if(last):
+            break
+
+          if(emit_map):
+            if(     re.match(r'^ .*:',line) and
+               not  re.search(r' O[56] ', line) and
+               not  re.match(r'^$',line)):
+              print line
+
+        map_file.close()
+        print('\n')
+
+        timing_score = -1
+        clk_err = 0
+
+        for line in par_file:
+          match = re.match(r'^Timing Score: ([0-9]*)',line)
+          if(match):
+            timing_score = int(match.group(1))
+        
+        if(timing_score < 0):
+          print "Failed to find timing score!\n"
+          clk_err = 1;
+
+        print '\nTiming Score: ' + str(timing_score) + '\n';
+
+        if (clk_err or timing_score > 0):
+          print "\n"
+          print "        ******** Design does NOT meet timing! ********\n"
+          print "\n"
+        else:
+          print "Design meets timing.\n"
+      return leap_xilinx_summary_closure
+ 
     loader = moduleList.env.Command(
       moduleList.apmName + '_hw.errinfo',
       moduleList.getAllDependencies('SIGNATURE') + moduleList.swExe + moduleList.getAllDependencies('TRCE'),
@@ -42,10 +90,7 @@ class LOADER():
         SCons.Script.Delete(moduleList.apmName + '_hw.exe'),
         SCons.Script.Delete(moduleList.apmName + '_hw.vexe'),
         '@echo "++++++++++++ Post-Place & Route ++++++++"',
-        '@' + awb_resolver('tools/scripts/leap-xilinx-summary') + ' ' +
-        xilinx_apm_name + '_map.map ' +
-        xilinx_apm_name + '_par.par ' +
-        moduleList.apmName + '_hw.errinfo' ])
+        leap_xilinx_summary(xilinx_apm_name) ])
 
     moduleList.topModule.moduleDependency['LOADER'] = [loader]
     moduleList.topDependency = moduleList.topDependency + [loader]     
