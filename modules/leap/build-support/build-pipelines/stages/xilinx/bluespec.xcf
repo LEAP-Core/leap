@@ -24,3 +24,7 @@ END;
 BEGIN MODEL SizedFIFO
   NET arr  ram_style=distributed ;
 END;
+
+BEGIN MODEL SyncFIFO
+  NET fifoMem  ram_style=distributed ;
+END;
