@@ -9928,3 +9928,35 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 Xst was putting SyncFIFO buffers in BRAM!  Not only is this wasteful,
 it imposes a more difficult timing on a structure we are forced to tag
 TIG.
+
+----------
+kfleming    Date: Tue Sep 27 16:57:22 EDT 2011  CSN: CSN-leap-170
+                  Tue Sep 27 20:57:22 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch-multi.bsv Locally Modified          169 
+ hybrid-mem-scratch.bsv    Locally Modified          169 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-mem.bsv              Locally Modified          169 
+
+
+Backporting CSN-167
+
+mcadler     Date: Sun Sep 25 20:06:34 EDT 2011  CSN: CSN-leap-167                                                                                         
+                  Mon Sep 26 00:06:34 UTC 2011                                                                                                            
+                                                                                                                                                          
+                                                                                                                                                          
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid                                                                  
+ hybrid-mem-scratch-multi.bsv Locally Modified          166                                                                                               
+ hybrid-mem-scratch.bsv    Locally Modified          166                                                                                                  
+                                                                                                                                                          
+Directory modules/leap/libraries/librl/storage                                                                                                            
+ fifo-mem.bsv              Locally Modified          166                                                                                                  
+                                                                                                                                                          
+mkSizedBRAMFIFO() now takes the size of the FIFO as an integer parameter instead                                                                          
+of a NumTypeParam#() hack.  The code internally is ugly (taken from the new                                                                               
+Bluespec-supplied version) since there is no good way to convert an integer                                                                               
+value to a type.  However, the interface now matches mkSizedFIFO() and is easier                                                                          
+to use.  

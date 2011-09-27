@@ -149,8 +149,7 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
     let centralCachePort = centralCache.clientPorts[`VDEV_CACHE_SCRATCH - `VDEV_CACHE__BASE];
 
     // Meta-data for outstanding reads from the host
-    NumTypeParam#(1024) reqInfoEntries = ?;
-    FIFO#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedBRAMFIFO(reqInfoEntries);
+    FIFO#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedBRAMFIFO(1024);
 
     FIFOF#(Tuple3#(SCRATCHPAD_MEM_ADDRESS,
                    SCRATCHPAD_MEM_VALUE,
