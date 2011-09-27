@@ -47,10 +47,6 @@ connected_application=Default Software Connected Application
 File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap
 
-[Hybrid Simulation FPGA Environment]
-File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
-Packagehint=leap
-
 [Default Hybrid Project Common Utilities]
 File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
@@ -61,9 +57,16 @@ Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities
-fpgaenv=Hybrid Simulation FPGA Environment
+fpgaenv=Hybrid XUP-v5 PCIE FPGA Environment
 application_env=Soft Services Hybrid Application Environment
 
 [Soft Services Submodel]
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
+
+[Hybrid XUP-v5 PCIE FPGA Environment]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-xup-v5-pcie.apm
+Packagehint=leap
+
+[Hybrid XUP-v5 PCIE FPGA Environment/Params]
+MODEL_CLOCK_FREQ=300

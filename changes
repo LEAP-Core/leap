@@ -9960,3 +9960,31 @@ of a NumTypeParam#() hack.  The code internally is ugly (taken from the new
 Bluespec-supplied version) since there is no good way to convert an integer                                                                               
 value to a type.  However, the interface now matches mkSizedFIFO() and is easier                                                                          
 to use.  
+
+----------
+kfleming    Date: Tue Sep 27 16:58:40 EDT 2011  CSN: CSN-leap-171
+                  Tue Sep 27 20:58:40 UTC 2011
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_synth.apm Locally Modified          170 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          170 
+
+
+Backporting CSN-168:
+
+kfleming    Date: Mon Sep 26 20:15:19 EDT 2011  CSN: CSN-leap-168
+                  Tue Sep 27 00:15:19 UTC 2011
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_synth.apm Locally Modified          167 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          167 
+
+
+Patched the XILINX_LOADER to have most of the functionality of
+leap-xilinx-summary.  leap-xilinx-summary can now be deprecated. 
