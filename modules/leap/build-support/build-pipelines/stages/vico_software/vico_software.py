@@ -82,7 +82,6 @@ class Software():
         # Linker options in case of ViCo build
         #
         sw_libpath = [ '.' ]
-        sw_link_libs = [ 'pthread', 'dl',  'z', 'vico' ]
         sw_link_tgt   = sw_build_dir + moduleList.apmName + '_sw.so'
         # change moduleList.swExeOrTarget used after in XILINX_LOADER.py
         moduleList.swExeOrTarget = sw_link_tgt
@@ -100,7 +99,7 @@ class Software():
         ## inability to specify the order of %library declarations across separate
         ## awb files.  Unix ld only searches libraries in command line order.
         ##
-        sw_exe = sw_env.Program(sw_link_tgt, sw_objects + libs + libs, LIBPATH=sw_libpath, LIBS=sw_link_libs)
+        sw_exe = sw_env.Program(sw_link_tgt, sw_objects + libs + libs, LIBPATH=sw_libpath)
 
         ##
         ## There ought to be a way to tell SCons to include whole libraries as

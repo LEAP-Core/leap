@@ -9967,3 +9967,24 @@ Directory config/pm/leap/demos/traffic_light
 
 
 Changed 300 MHz clock to 75 MHz.  Oops.
+
+----------
+mpellaue    Date: Wed Sep 28 10:55:47 EDT 2011  CSN: CSN-leap-173
+                  Wed Sep 28 14:55:47 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          172 
+
+Directory modules/leap/build-support/build-pipelines/stages/vico_software
+ vico_software.py          Locally Modified          172 
+
+Directory modules/leap/build-support/project
+ project-vico-pipeline.awb Locally Modified          172 
+ project-pipeline.awb      Locally Modified          172 
+
+
+* Patch from Mikhail: Remove unnecessary sw libs from bluesim linking stage,
+  as this generated an error with a %library .so.
+  
+* Patch from Mikhail: Updates to vico pipeline.

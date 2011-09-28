@@ -45,13 +45,6 @@ class Bluesim():
         TMP_BSC_DIR + ' ' + moduleList.env['DEFS']['GEN_BAS'] + ' ' + moduleList.env['DEFS']['GIVEN_BAS'] + \
         ' ' + moduleList.env['DEFS']['BDPI_CS']
 
-    linker_str = ''
-    for lib in moduleList.swLibs:
-      linker_str += ' ' + lib + ' '
-  
-    bsc_sim_command += linker_str + linker_str 
-
-
     if (getBuildPipelineDebug(moduleList) != 0):
         for ba in moduleList.getAllDependencies('BA'):
             print 'BA dep: ' + str(ba) + '\n'
