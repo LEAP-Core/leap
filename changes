@@ -9988,3 +9988,16 @@ Directory modules/leap/build-support/project
   as this generated an error with a %library .so.
   
 * Patch from Mikhail: Updates to vico pipeline.
+
+----------
+emer        Date: Wed Sep 28 16:20:49 EDT 2011  CSN: CSN-leap-174
+                  Wed Sep 28 20:20:49 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          173 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          173 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          173 
+
+Fixed stale apm files due to move of pci-express driver header
+module.

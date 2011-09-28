@@ -127,7 +127,7 @@ File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/nu
 Packagehint=leap
 
 [Driver Header for PCIe Kernel Module]
-File=drivers/linux/hasim/kernel-pcie-virtex5/pchnl_if.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-driver-header/pchnl_if.awb
 Packagehint=leap-platforms
 
 [PCI Express Physical Device (mmap-based)/Requires]
