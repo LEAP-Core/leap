@@ -68,5 +68,3 @@ Packagehint=leap
 File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-xup-v5-pcie.apm
 Packagehint=leap
 
-[Hybrid XUP-v5 PCIE FPGA Environment/Params]
-MODEL_CLOCK_FREQ=300
