@@ -19,4 +19,5 @@ hash-bits.bsv           Useful and efficient hashing functions.
 lfsr.bsv                LFSR support functions for pseudo-randomness.
 memory-interface.bsv    General interface to bursty multi-cycle memoy.
 memory-pack.bsv         Memories of different sizes on fixed physical storage.
+register.bsv            Useful functions for transforming registers
 support/                Unit tests and support functions.

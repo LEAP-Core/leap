@@ -20,6 +20,7 @@
 %public memory-interface.bsv
 %public memory-pack.bsv
 %public guarded-pipelines.bsv
+%public register.bsv
 
 %include --type=verilog @BLUESPECDIR@/Verilog/
 

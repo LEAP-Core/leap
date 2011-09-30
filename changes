@@ -10012,3 +10012,27 @@ Directory debian
  changelog                 Locally Modified          174 
 
 Make debian package depend on python-pygraph.
+
+----------
+kfleming    Date: Fri Sep 30 18:08:40 EDT 2011  CSN: CSN-leap-176
+                  Fri Sep 30 22:08:40 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ triggered-stream-capture-fifo.bsv Locally Added               0 
+ reversal-buffer-bram.bsv  Locally Added               0 
+ reversal-buffer.bsv       Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          175 
+ stream-capture-fifo.bsv   Locally Added               0 
+ stream-capture-fifo-common.bsv Locally Added               0 
+ README                    Locally Modified          175 
+
+Directory modules/leap/libraries/librl/base
+ README                    Locally Modified          175 
+ librl-bsv-base.awb        Locally Modified          175 
+ register.bsv              Locally Added               0 
+
+
+Added the bsv-library dependecies of Airblue.  There are more, but
+these cover what I would consider to be the releasable Airblue modules.  
+
