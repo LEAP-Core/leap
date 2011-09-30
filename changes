@@ -10001,3 +10001,14 @@ Directory config/pm/leap/submodels/fpgaenv
 
 Fixed stale apm files due to move of pci-express driver header
 module.
+
+----------
+emer        Date: Thu Sep 29 20:57:33 EDT 2011  CSN: CSN-leap-175
+                  Fri Sep 30 00:57:33 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          174 
+ changelog                 Locally Modified          174 
+
+Make debian package depend on python-pygraph.

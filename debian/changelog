@@ -1,7 +1,7 @@
-leap (11.12~svn20110921r164+lucid) lucid; urgency=low
+leap (11.12~svn20110929r175+lucid) lucid; urgency=low
 
   [ Joel Emer ]
   * r164
      Start working on the v11.12 release.
 
- -- Joel Emer <emer@csail.mit.edu>  Wed, 21 Sep 2011 19:36:47 -0400
+ -- Joel Emer <emer@csail.mit.edu>  Thu, 29 Sep 2011 17:32:43 -0400
