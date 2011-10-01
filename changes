@@ -10036,3 +10036,24 @@ Directory modules/leap/libraries/librl/base
 Added the bsv-library dependecies of Airblue.  There are more, but
 these cover what I would consider to be the releasable Airblue modules.  
 
+
+----------
+kfleming    Date: Sat Oct  1 19:23:55 EDT 2011  CSN: CSN-leap-177
+                  Sat Oct  1 23:23:55 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ triggered-stream-capture-fifo.bsv Locally Removed           176 
+ fifo-triggered-stream-capture.bsv Locally Added               - 
+ reversal-buffer-bram.bsv  Locally Modified          176 
+ reversal-buffer.bsv       Locally Modified          176 
+ librl-bsv-storage.awb     Locally Modified          176 
+ stream-capture-fifo.bsv   Locally Removed           176 
+ fifo-stream-capture.bsv   Locally Added               - 
+ stream-capture-fifo-common.bsv Locally Removed           176 
+ fifo-stream-capture-common.bsv Locally Added               - 
+ README                    Locally Modified          176 
+
+
+Fixed some lexical issues in the new librl commits.  More must and will be done. 
+
