@@ -10030,3 +10030,21 @@ CSN: CSN-leap-173
   as this generated an error with a %library .so.
   
 * Patch from Mikhail: Updates to vico pipeline.
+
+----------
+kfleming    Date: Sun Oct  2 15:39:33 EDT 2011  CSN: CSN-leap-181
+                  Sun Oct  2 19:39:33 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          180 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          180 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          180 
+
+
+Backport 
+
+CSN: CSN-leap-174
+          
+Fixed stale apm files due to move of pci-express driver header
+module.

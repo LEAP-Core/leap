@@ -79,7 +79,7 @@ local_mem=Local Memory Interface using DDR2 Memory
 remote_memory=Remote Memory using PCI Express DMA
 
 [Driver Header for PCIe Kernel Module]
-File=drivers/linux/hasim/kernel-pcie-virtex5/pchnl_if.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-driver-header/pchnl_if.awb
 Packagehint=leap-platforms
 
 [DDR2 SDRAM Physical Device]
