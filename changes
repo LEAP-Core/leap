@@ -10063,3 +10063,25 @@ Backport
 CSN: CSN-leap-175
           
 Make debian package depend on python-pygraph.
+
+----------
+kfleming    Date: Sun Oct  2 15:46:05 EDT 2011  CSN: CSN-leap-183
+                  Sun Oct  2 19:46:05 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ librl-bsv-storage.awb     Locally Modified          182 
+ README                    Locally Modified          182 
+
+Directory modules/leap/libraries/librl/base
+ README                    Locally Modified          182 
+ librl-bsv-base.awb        Locally Modified          182 
+
+
+Backport 
+
+CSN: CSN-leap-176
+          
+
+Added the bsv-library dependecies of Airblue.  There are more, but
+these cover what I would consider to be the releasable Airblue modules. 
