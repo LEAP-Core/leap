@@ -10004,3 +10004,29 @@ CSN: CSN-leap-172
           
 
 Changed 300 MHz clock to 75 MHz.  Oops.
+
+----------
+kfleming    Date: Sun Oct  2 15:38:43 EDT 2011  CSN: CSN-leap-180
+                  Sun Oct  2 19:38:43 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          179 
+
+Directory modules/leap/build-support/build-pipelines/stages/vico_software
+ vico_software.py          Locally Modified          179 
+
+Directory modules/leap/build-support/project
+ project-vico-pipeline.awb Locally Modified          179 
+ project-pipeline.awb      Locally Modified          179 
+
+
+Backport
+
+CSN: CSN-leap-173
+          
+
+* Patch from Mikhail: Remove unnecessary sw libs from bluesim linking stage,
+  as this generated an error with a %library .so.
+  
+* Patch from Mikhail: Updates to vico pipeline.

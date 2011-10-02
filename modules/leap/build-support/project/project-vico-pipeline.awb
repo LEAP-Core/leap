@@ -19,8 +19,11 @@
 %private project-vico-hybrid-main.cpp
 %public  hardware-done.h
 
-
 %library lib/libasim/libasim.a
+%library /usr/lib64/libpthread.so
+%library /usr/lib64/libdl.so
+%library /usr/lib64/libz.so
+%library /usr/lib64/librt.so
 
 %makefile Makefile.top.template
 %scons %top     SCons.top.pipeline.template
