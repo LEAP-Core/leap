@@ -21,8 +21,7 @@ Section: devel
 
 Package: leap-bin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, leap-platforms, asim-core, asim-core-dev, awb, libqt-perl
-Recommends: libterm-readline-gnu-perl
+Depends: ${shlibs:Depends}, ${misc:Depends}, leap-platforms, asim-core, asim-core-dev, awb, libqt-perl, libterm-readline-gnu-perl, python-pygraph
 Replaces: leap (<= 0.9.0)
 Breaks: leap (<= 0.9.0)
 Description: Executables for the LEAP FPGA environement

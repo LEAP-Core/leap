@@ -10048,3 +10048,18 @@ CSN: CSN-leap-174
           
 Fixed stale apm files due to move of pci-express driver header
 module.
+
+----------
+kfleming    Date: Sun Oct  2 15:45:18 EDT 2011  CSN: CSN-leap-182
+                  Sun Oct  2 19:45:18 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          181 
+
+
+Backport 
+
+CSN: CSN-leap-175
+          
+Make debian package depend on python-pygraph.
