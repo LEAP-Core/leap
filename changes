@@ -9988,3 +9988,19 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 Patched the XILINX_LOADER to have most of the functionality of
 leap-xilinx-summary.  leap-xilinx-summary can now be deprecated. 
+
+----------
+kfleming    Date: Sun Oct  2 15:38:03 EDT 2011  CSN: CSN-leap-179
+                  Sun Oct  2 19:38:03 UTC 2011
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_synth.apm Locally Modified          178 
+
+
+Backport
+
+CSN: CSN-leap-172
+          
+
+Changed 300 MHz clock to 75 MHz.  Oops.
