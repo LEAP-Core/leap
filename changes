@@ -10104,3 +10104,21 @@ CSN: CSN-leap-178
 Adding a handful of remaining dependencies from bsv-libraries.  I will
 bring these codes up to spec as soon as possible.
 
+
+----------
+kfleming    Date: Sun Oct  2 15:46:55 EDT 2011  CSN: CSN-leap-185
+                  Sun Oct  2 19:46:55 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ librl-bsv-storage.awb     Locally Modified          184 
+
+
+Backport 
+
+CSN: CSN-leap-178
+          
+
+Adding a handful of remaining dependencies from bsv-libraries.  I will
+bring these codes up to spec as soon as possible.
+
