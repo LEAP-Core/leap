@@ -7,7 +7,7 @@ fifo-scoreboard.bsv                 Completion buffers
 memory-heap.bsv                     Wrap a RAM in a heap-like allocation structure.
 reversal-buffer-bram.bsv            FIFO that reverses block of data (uses BRAM).
 reversal-buffer.bsv                 FIFO that reverses block of data (uses registers).
-stream-capture-fifo.bsv             Captures streams of data values.
-stream-capture-fifo-common.bsv      Support code for capturing streams of data values.
-triggered-stream-capture-fifo.bsv   Captures data streams, but only latches 
+fifo-stream-capture.bsv             Captures streams of data values.
+fifo-stream-capture-common.bsv      Support code for capturing streams of data values.
+fifo-triggered-stream-capture.bsv   Captures data streams, but only latches 
                                     them on an external trigger. 

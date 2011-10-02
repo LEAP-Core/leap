@@ -10,11 +10,11 @@
 %public fifo-mem.bsv
 %public fifo-scoreboard.bsv
 %public memory-heap.bsv
-%public stream-capture-fifo.bsv
+%public fifo-stream-capture.bsv
 %public reversal-buffer.bsv
 %public reversal-buffer-bram.bsv
-%public stream-capture-fifo-common.bsv
-%public triggered-stream-capture-fifo.bsv
+%public fifo-stream-capture-common.bsv
+%public fifo-triggered-stream-capture.bsv
 
 %param DEBUG_STREAM_CAPTURE_FIFO 0 "Turn on debugging for stream capture fifos"
 %param DEBUG_REVBUF 0 "Turn on debugging for reversal buffer"

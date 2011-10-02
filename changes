@@ -10085,3 +10085,22 @@ CSN: CSN-leap-176
 
 Added the bsv-library dependecies of Airblue.  There are more, but
 these cover what I would consider to be the releasable Airblue modules. 
+
+----------
+kfleming    Date: Sun Oct  2 15:46:33 EDT 2011  CSN: CSN-leap-184
+                  Sun Oct  2 19:46:33 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ librl-bsv-storage.awb     Locally Modified          183 
+ README                    Locally Modified          183 
+
+
+Backport
+
+CSN: CSN-leap-178
+          
+
+Adding a handful of remaining dependencies from bsv-libraries.  I will
+bring these codes up to spec as soon as possible.
+
