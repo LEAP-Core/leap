@@ -10122,3 +10122,31 @@ CSN: CSN-leap-178
 Adding a handful of remaining dependencies from bsv-libraries.  I will
 bring these codes up to spec as soon as possible.
 
+
+----------
+kfleming    Date: Sun Oct  2 16:42:29 EDT 2011  CSN: CSN-leap-186
+                  Sun Oct  2 20:42:29 UTC 2011
+
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ hw-only/                  Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/soft-services/hw-only
+ hw-only-testbench.h       Locally Added               0 
+ hw-only-testbench.awb     Locally Added               0 
+ hw-only-testbench.bsv     Locally Added               0 
+ hw-only-testbench.cpp     Locally Added               0 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-triggered-stream-capture.bsv Locally Added               0 
+ reversal-buffer-bram.bsv  Locally Added               0 
+ fifo-commit.bsv           Locally Added               0 
+ reversal-buffer.bsv       Locally Added               0 
+ fifo-stream-capture.bsv   Locally Added               0 
+ fifo-stream-capture-common.bsv Locally Added               0 
+
+Directory modules/leap/libraries/librl/base
+ register.bsv              Locally Added               0 
+
+
+Made the mistake of not doing svn add on the backported files. 

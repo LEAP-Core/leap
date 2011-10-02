@@ -1,0 +1,14 @@
+
+%name HW only hybrid application
+%desc Hybrid application with only a hardware side and services
+
+%provides connected_application
+
+%requires hw_only_application
+
+%public  hw-only-testbench.h
+%public  hw-only-testbench.bsv
+%private hw-only-testbench.cpp
+
+%param SYNTH_BOUNDARY mkConnectedApplication "name of synthesis boundary"
+
