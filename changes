@@ -10057,3 +10057,26 @@ Directory modules/leap/libraries/librl/storage
 
 Fixed some lexical issues in the new librl commits.  More must and will be done. 
 
+
+----------
+kfleming    Date: Sat Oct  1 23:30:34 EDT 2011  CSN: CSN-leap-178
+                  Sun Oct  2 03:30:34 UTC 2011
+
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ hw-only/                  Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/soft-services/hw-only
+ hw-only-testbench.h       Locally Added               0 
+ hw-only-testbench.awb     Locally Added               0 
+ hw-only-testbench.bsv     Locally Added               0 
+ hw-only-testbench.cpp     Locally Added               0 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-commit.bsv           Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          177 
+
+
+Adding a handful of remaining dependencies from bsv-libraries.  I will
+bring these codes up to spec as soon as possible.
+
