@@ -10104,3 +10104,17 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
   scratchpad ROBs are too small to support multiple reads from a single port.
   The code could be smarter and compute the mimimum extra buffering needed.
   I'll fix that, later.
+
+----------
+mcadler     Date: Tue Oct  4 17:06:23 EDT 2011  CSN: CSN-leap-188
+                  Tue Oct  4 21:06:23 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          187 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          187 
+
+Eliminate an O(n^2) search of lists during soft connections matching
+(from Michael Pellauer).
