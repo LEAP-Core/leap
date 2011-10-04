@@ -42,7 +42,7 @@ import SpecialFIFOs::*;
 // equal to (definitely not greater than) the number of scratchpad port ROB
 // slots.
 //
-typedef 8 MEM_PACK_READ_SLOTS;
+typedef 32 MEM_PACK_READ_SLOTS;
 
 
 //
@@ -541,11 +541,24 @@ module mkMemPack1ToMany#(MEMORY_MULTI_READ_IFC#(n_READERS, t_CONTAINER_ADDR, t_C
     // Write state
     FIFO#(t_PACKED_CONTAINER) writeDataQ <- mkBypassFIFO();
 
-    // Read response state.  One per read port.
+    // Read response state.  One per read port.  A buffer is provided to
+    // guarantee that writes will never block as long as no more than
+    // MEM_PACK_READ_SLOTS read requests are outstanding.
     Vector#(n_READERS, Reg#(t_OBJ_IDX)) readIdx <- replicateM(mkReg(0));
     Vector#(n_READERS, Reg#(t_PACKED_CONTAINER)) readData <- replicateM(mkRegU());
-    Vector#(n_READERS, FIFOF#(t_DATA)) readRspQ <- replicateM(mkBypassFIFOF());
+    Vector#(n_READERS, FIFOF#(t_DATA)) readRspQ <- replicateM(mkSizedFIFOF(valueOf(MEM_PACK_READ_SLOTS)));
 
+    // Track the number of reads in flight to prevent deadlocks in which a
+    // client needs to do a write following a series of queued reads.
+    // Here we assume the underlying memory interface (e.g. scratchpad memory)
+    // provides enough read port response buffering to satisfy the requirement.
+    // No extra buffers are allocated here.
+    COUNTER_Z#(TLog#(MEM_PACK_READ_SLOTS)) readReqCnt[valueOf(n_READERS)];
+
+    for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        readReqCnt[p] <- mkLCounter_Z(fromInteger(valueOf(TSub#(MEM_PACK_READ_SLOTS, 1))));
+    end
 
     //
     // Need multiple containers for a single object, so the container
@@ -661,13 +674,16 @@ module mkMemPack1ToMany#(MEMORY_MULTI_READ_IFC#(n_READERS, t_CONTAINER_ADDR, t_C
     begin
         portsLocal[p] =
             interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
-                method Action readReq(t_ADDR addr);
+                method Action readReq(t_ADDR addr) if (! readReqCnt[p].isZero());
                     incomingReqQ.ports[p].enq(addr);
+                    readReqCnt[p].down();
                 endmethod
 
                 method ActionValue#(t_DATA) readRsp();
                     let v = readRspQ[p].first();
                     readRspQ[p].deq();
+
+                    readReqCnt[p].up();
 
                     return v;
                 endmethod

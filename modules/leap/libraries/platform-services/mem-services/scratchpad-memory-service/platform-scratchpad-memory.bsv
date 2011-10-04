@@ -402,6 +402,11 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
               // Reference info passed to the scratchpad needed to route the response
               Alias#(Tuple2#(Bit#(n_SAFE_READERS_SZ), t_REORDER_ID), t_REF_INFO));
     
+    if (valueOf(SCRATCHPAD_PORT_ROB_SLOTS) < valueOf(MEM_PACK_READ_SLOTS))
+    begin
+        error("SCRATCHPAD_PORT_ROB_SLOTS < MEM_PACK_READ_SLOTS can cause deadlocks!");
+    end
+
     if (valueOf(t_MEM_ADDRESS_SZ) > valueOf(t_SCRATCHPAD_MEM_ADDRESS_SZ))
     begin
         error("Scratchpad ID " + integerToString(scratchpadID) + " address is too large: " + integerToString(valueOf(t_MEM_ADDRESS_SZ)) + " bits");

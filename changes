@@ -10080,3 +10080,27 @@ Directory modules/leap/libraries/librl/storage
 Adding a handful of remaining dependencies from bsv-libraries.  I will
 bring these codes up to spec as soon as possible.
 
+
+----------
+mcadler     Date: Tue Oct  4 14:56:04 EDT 2011  CSN: CSN-leap-187
+                  Tue Oct  4 18:56:04 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_MAP.py             Locally Modified          186 
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          186 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          186 
+
+- Enable multiprocessor mode in Xilinx map.
+
+- Generate an error if the packed memory in-flight limit is greater than the
+  scratchpad in-flight limit.
+
+- Add buffering to the 1-to-many packed memory case since the underlying
+  scratchpad ROBs are too small to support multiple reads from a single port.
+  The code could be smarter and compute the mimimum extra buffering needed.
+  I'll fix that, later.
