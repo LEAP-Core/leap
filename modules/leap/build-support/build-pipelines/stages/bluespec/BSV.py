@@ -296,9 +296,8 @@ class BSV():
         synth_stub_path = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'
         synth_stub = synth_stub_path + module.name +'.bsv'
         c = env.Command(synth_stub, # target
-                      [stub,wrapper_bo],  
-                      [ 'mkdir -p ' + synth_stub_path,
-                        'leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
+                        [stub, wrapper_bo],  
+                        ['leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
 
 
       ##
@@ -384,8 +383,7 @@ class BSV():
           copy_bo = BOUNDARY_PATH + TMP_BSC_DIR + '/' + module.name + '.bo'
           c_boundary = env.Command(boundarycopy,
                                    [synth_stub,bld_ba,stub,wrapper_bo],
-                                   ['mkdir -p '+ boundarydir,
-                                    'cp ' + synth_stub + ' $TARGET'])
+                                   [SCons.Script.Copy('$TARGET', synth_stub)])
 
           bo_dep = env.BSC_SUBD(copy_bo, boundarycopy)
           

@@ -10118,3 +10118,25 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 Eliminate an O(n^2) search of lists during soft connections matching
 (from Michael Pellauer).
+
+----------
+mcadler     Date: Wed Oct  5 17:48:51 EDT 2011  CSN: CSN-leap-189
+                  Wed Oct  5 21:48:51 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          188 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          188 
+
+- Use SCons "Copy" factory instead of "cp" because SCons stores the signature of
+  the program in the build dependence.  If "cp" is a different binary it looks like
+  rebuilding is needed.
+
+  Removed mkdir from the rules instead of using "Mkdir" factory, since the
+  directories appear to be present already and the factory version fails if
+  the target exists.
+
+- Clean up after others.  It didn't take long to make the Xilinx loader
+  replacement of leap-xilinx-summary look good instead of an ugly hack.
