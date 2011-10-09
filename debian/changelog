@@ -1,4 +1,4 @@
-leap (11.09+fixes~svn20110914r156+lucid) lucid; urgency=low
+leap (11.09+fixes~svn20111004r186+lucid) lucid; urgency=low
   [ Michael Pellauer ]
   * r156
      Packaging the v11.09 release.
@@ -11,6 +11,5 @@ leap (11.09+fixes~svn20110914r156+lucid) lucid; urgency=low
   [ Joel Emer ]
   * r065
      Start of working on v11.04 release
-  * 
 
- -- Joel Emer <emer@csail.mit.edu>  Wed, 21 Sep 2011 14:16:24 -0400
+ -- Joel Emer <emer@csail.mit.edu>  Tue, 04 Oct 2011 09:37:46 -0400

@@ -10150,3 +10150,13 @@ Directory modules/leap/libraries/librl/base
 
 
 Made the mistake of not doing svn add on the backported files. 
+
+----------
+emer        Date: Sun Oct  9 19:46:44 EDT 2011  CSN: CSN-leap-190
+                  Sun Oct  9 23:46:44 UTC 2011
+
+
+Directory debian
+ changelog                 Locally Modified          186 
+
+Updated debian/changelog.
