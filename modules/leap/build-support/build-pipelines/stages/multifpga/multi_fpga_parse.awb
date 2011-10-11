@@ -11,4 +11,6 @@
 
 %scons %library tool.py
 
+%param GENERATE_ROUTER_STATS  0  "Should we generate per link statistics?"
+
 

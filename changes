@@ -10140,3 +10140,18 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 - Clean up after others.  It didn't take long to make the Xilinx loader
   replacement of leap-xilinx-summary look good instead of an ugly hack.
+
+----------
+kfleming    Date: Tue Oct 11 16:26:50 EDT 2011  CSN: CSN-leap-191
+                  Tue Oct 11 20:26:50 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          189 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          189 
+ multi_fpga_parse.awb      Locally Modified          189 
+
+
+Added support for the automatic instrumentation of multiFPGA codes with basic statistics. 

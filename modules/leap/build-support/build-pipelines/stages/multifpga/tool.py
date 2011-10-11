@@ -155,6 +155,7 @@ class MultiFPGAGenerateLogfile():
       # we now need to create a multifpga_routing.bsh so that we can get the sizes of the various links.
       # we'll need this later on. 
       header = open(routerBSH,'w')
+      header.write('`include "awb/provides/stats_service.bsh"\n')
       header.write('// we need to pick up the module sizes\n')
       header.write('module [CONNECTED_MODULE] mkCommunicationModule#(VIRTUAL_PLATFORM vplat) (Empty);\n')
       header.write('let m <- mkCommunicationModuleIfaces(vplat ') 
@@ -162,8 +163,12 @@ class MultiFPGAGenerateLogfile():
         header.write(', ' + platform.getSinks()[target].physicalName + '.write')
       for target in  platform.getSources().keys():
         header.write(', ' + platform.getSources()[target].physicalName + '.read')
- 
+     
       header.write(');\n')
+      # we also need a stat here to make the stats work right.  
+      # we don't care about the ID because it will get replaced later during the second compilation pass
+      if(GENERATE_ROUTER_STATS):    
+        header.write('let stat <- mkStatCounter(?);\n')   
       header.write('endmodule\n')
 
       header.write('module [CONNECTED_MODULE] mkCommunicationModuleIfaces#(VIRTUAL_PLATFORM vplat ')
