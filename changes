@@ -10172,3 +10172,14 @@ Added a typeclass for SoftConnections.
 
 Added a helpful error message in case python files are not found at
 configuration time.
+
+----------
+kfleming    Date: Wed Oct 12 18:34:12 EDT 2011  CSN: CSN-leap-193
+                  Wed Oct 12 22:34:12 UTC 2011
+
+
+Directory debian
+ changelog                 Locally Modified          192 
+
+
+Forgot to edit dch.  This is now a requirement, but we should put it in the pre-commit hook for svn. I will attempt that now. 
