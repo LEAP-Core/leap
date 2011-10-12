@@ -10155,3 +10155,20 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
 
 
 Added support for the automatic instrumentation of multiFPGA codes with basic statistics. 
+
+----------
+kfleming    Date: Wed Oct 12 18:08:35 EDT 2011  CSN: CSN-leap-192
+                  Wed Oct 12 22:08:35 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          191 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connections.bsv           Locally Modified          191 
+
+
+Added a typeclass for SoftConnections.  
+
+Added a helpful error message in case python files are not found at
+configuration time.

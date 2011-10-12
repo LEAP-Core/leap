@@ -1263,6 +1263,11 @@ sub __generate_build_libraries {
     foreach my $library (@libraries) {
 	# Make a symlink
         # rebase the simlink for portability
+        unless(-e $library) {
+           print "Failed to find python library: $library, does it exist?\n";
+           return 0;
+	}
+
         my $relsrc = File::Spec->abs2rel($library, $targetdir);
 	my $buildpath = Leap::Util::path_append($targetdir , basename($library));
 	my  @fileparts = split(/\./,basename($library));
