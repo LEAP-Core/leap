@@ -12,7 +12,6 @@
 %public scratchpad-memory-connector-rrr.bsv
 %public platform-scratchpad-memory.bsv
 %public platform-scratchpad-memory-utils.bsv
-%public platform-scratchpad-multi-cached-memory.bsv
 %private scratchpad-memory-service.dic
 
 %param --dynamic SCRATCHPAD_PVT_CACHE_MODE    0   "0: write-back, 1: write-through, 2: write-no-allocate, 3: disabled"

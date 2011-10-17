@@ -10183,3 +10183,50 @@ Directory debian
 
 
 Forgot to edit dch.  This is now a requirement, but we should put it in the pre-commit hook for svn. I will attempt that now. 
+
+----------
+mcadler     Date: Mon Oct 17 13:53:53 EDT 2011  CSN: CSN-leap-194
+                  Mon Oct 17 17:53:53 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          193 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-null.awb Locally Modified          193 
+ scratchpad-memory-service-multi.awb Locally Modified          193 
+ scratchpad-memory-service-multi-rrr.awb Locally Modified          193 
+ scratchpad-memory-service.awb Locally Modified          193 
+ platform-scratchpad-multi-cached-memory.bsv Locally Removed           193 
+ platform-scratchpad-memory-utils.bsv Locally Modified          193 
+ platform-scratchpad-memory.bsv Locally Modified          193 
+
+- Restructure the memory packing code to be more efficient.  The old code was
+  generated between a client requesting some number of read ports and an
+  existing memory with the same number of read ports.  The new code takes
+  a function that constructs the underlying memory.  The memory packer adds
+  extra read ports to the underlying storage to satisfy the needs of the client
+  and the needs of the memory packer.  As a result:
+
+  - Read response buffering is no longer required.
+  - The code is simpler.
+
+- The 1:many packing case (multiple underlying buckets for a single client
+  entry) no longer allocates a power of two container buckets.  Storage is thus
+  used more efficiently.
+
+- Tweak the allocation of ROB slots in the scratchpad code.  ROB slots are now
+  allocated in the read request methods.  This avoids a deadlock case in
+  which the client couldn't detect an impending deadlock due to a ROB filling
+  in an internal rule.
+
+- Removed the multi-cached scratchpad code with Elliott's consent.  It was
+  no longer in active use and needs to be rethought:
+
+  - The old code let clients specify different caches for each read port.  The
+    client was forced to make assumptions about the way the memory packer
+    was going to use read ports.
+
+  - With the change in memory packing it would probably be a better idea
+    to define a shim that inserts caches between individual read ports and
+    a client for any instance of a multi-ported memory interface.

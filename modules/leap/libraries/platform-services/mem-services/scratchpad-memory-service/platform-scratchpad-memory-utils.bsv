@@ -16,27 +16,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-// Should I really be including these?
-// I probably just want stats....
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/librl_bsv_cache.bsh"
 
-// SCRATCHPAD_CACHE_CONSTRUCTOR
-
-// A function to instantiate an RL_DM_CACHE, given an RL_DM_CACHE_SOURCE_DATA
-// of the appropriate types.
-
-// Passed to the multi-cached-memory modules below.
-
-typedef function CONNECTED_MODULE#(RL_DM_CACHE#(Bit#(t_CONTAINER_ADDR_SZ), 
-                                                SCRATCHPAD_MEM_VALUE, 
-                                                t_REF_INFO)) 
-                       f(RL_DM_CACHE_SOURCE_DATA#(Bit#(t_CONTAINER_ADDR_SZ), 
-                                                  SCRATCHPAD_MEM_VALUE, 
-                                                  t_REF_INFO) source) 
-                            SCRATCHPAD_CACHE_CONSTRUCTOR#(type t_CONTAINER_ADDR_SZ,
-                                                          type t_REF_INFO);
 
 // SCRATCHPAD_STATS_CONSTRUCTOR
 
@@ -45,9 +29,10 @@ typedef function CONNECTED_MODULE#(RL_DM_CACHE#(Bit#(t_CONTAINER_ADDR_SZ),
 
 typedef function CONNECTED_MODULE#(Empty) f(RL_CACHE_STATS stats) SCRATCHPAD_STATS_CONSTRUCTOR;
 
-
-// This file contains some useful utilities for building scratchpads
-
+//
+// mkBasicScratchpadCacheStats --
+//     Shim between an RL_CACHE_STATS interface and statistics counters.
+//
 module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(
                             STATS_DICT_TYPE idLoadHit,
                             STATS_DICT_TYPE idLoadMiss,
@@ -63,19 +48,19 @@ module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(
     STAT statWriteMiss <- mkStatCounter(idWriteMiss);
     
     rule readHit (stats.readHit());
-      statLoadHit.incr();
+        statLoadHit.incr();
     endrule
 
     rule readMiss (stats.readMiss());
-      statLoadMiss.incr();
+        statLoadMiss.incr();
     endrule
 
     rule writeHit (stats.writeHit());
-      statWriteHit.incr();
+        statWriteHit.incr();
     endrule
 
     rule writeMiss (stats.writeMiss());
-      statWriteMiss.incr();
+        statWriteMiss.incr();
     endrule
 endmodule
 
@@ -83,6 +68,4 @@ endmodule
 module [CONNECTED_MODULE] mkNullScratchpadCacheStats#(RL_CACHE_STATS stats)
     // interface:
     ();
-
-
 endmodule
