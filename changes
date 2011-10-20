@@ -10230,3 +10230,30 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
   - With the change in memory packing it would probably be a better idea
     to define a shim that inserts caches between individual read ports and
     a client for any instance of a multi-ported memory interface.
+
+----------
+mcadler     Date: Thu Oct 20 19:41:33 EDT 2011  CSN: CSN-leap-195
+                  Thu Oct 20 23:41:33 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector.bsv Locally Modified          194 
+ scratchpad-memory-connector-rrr.bsv Locally Modified          194 
+ scratchpad-memory-service.bsv Locally Modified          194 
+ platform-scratchpad-memory.bsv Locally Modified          194 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-multifpga.awb Locally Modified          194 
+ soft-connections-module-context-multifpga.awb Locally Modified          194 
+ addressable-ring.bsv      Locally Added               - 
+ token-ring.bsv            Locally Removed           194 
+ soft-connections-module-context.awb Locally Modified          194 
+
+Elliott realized that most of the traffic in a HAsim multi-FPGA configuration
+is from passing an empty token back and forth in the global scratchpad ring.
+This is not a good use of the interconnect (duh), especially since traffic is
+infrequent enough on that ring that no arbitration is needed.
+
+ - Generalize the token ring and interface into an addressable ring.
+ - Add a mkConnectionAddrRingNode() with the same addressable properties
+   as the token ring but no token.  When a node has data it sends a message.

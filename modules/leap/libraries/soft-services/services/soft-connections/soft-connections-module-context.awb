@@ -1,12 +1,3 @@
-/********************************************************************
-*
-* Awb module specification
-*
-*******************************************************************/
-
-
-%AWB_START
-
 %name SoftService Soft Connections 
 %desc SoftService Soft Connections 
 %provides soft_connections
@@ -16,13 +7,17 @@
 
 %attributes bluespec
 
-%public connection-context.bsv connection-matching.bsv connections.bsv connection-dispatchers.bsv connection-vectors.bsv connection-implementation.bsv connection-backwards-compat.bsv token-ring.bsv connected-module.bsv bury-connections.bsv
+%public connection-context.bsv
+%public connection-matching.bsv
+%public connections.bsv
+%public connection-dispatchers.bsv
+%public connection-vectors.bsv
+%public connection-implementation.bsv
+%public connection-backwards-compat.bsv
+%public addressable-ring.bsv
+%public connected-module.bsv
+%public bury-connections.bsv
 
 %sources --t BSH --v PUBLIC soft-connections-backward-deps.bsh
 
 %param --global MULTI_FPGA_PLATFORM "Unknown" "Specifies name of multi-fpga target"
-
-%AWB_END
-
-
-

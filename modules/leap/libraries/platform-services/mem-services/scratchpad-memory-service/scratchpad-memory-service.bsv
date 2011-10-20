@@ -58,10 +58,10 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
     //
     // ====================================================================
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
         mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), 0);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
         mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), 0);
 
 

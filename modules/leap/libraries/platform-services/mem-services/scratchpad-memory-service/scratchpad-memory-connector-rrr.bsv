@@ -39,9 +39,11 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
 
     ClientStub_SCRATCHPAD_MEMORY scratchpad_rrr <- mkClientStub_SCRATCHPAD_MEMORY(); 
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RING_REQ) link_mem_req <- mkConnectionTokenRingNode("ScratchpadGlobalReq", 0);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RING_REQ) link_mem_req <-
+        mkConnectionAddrRingNode("ScratchpadGlobalReq", 0);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <- mkConnectionTokenRingNode("ScratchpadGlobalResp", 0);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
+        mkConnectionAddrRingNode("ScratchpadGlobalResp", 0);
 
     Reg#(Bit#(32)) reqCount <- mkReg(0);
     Reg#(Bit#(32)) respCount <- mkReg(0);
@@ -83,39 +85,39 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
     endfunction
 
     rule eatReqLocal;
-      let req <- vdev.rrrReq();
-      sendReq(req,0);
-      $display("Scratchpad store 0 sent a req %d", reqCount+1);
-      reqCount <= reqCount + 1;      
+        let req <- vdev.rrrReq();
+        sendReq(req,0);
+        $display("Scratchpad store 0 sent a req %d", reqCount+1);
+        reqCount <= reqCount + 1;      
     endrule
  
     rule eatRespLocal(tags.first == 0);
-      tags.deq;
-      let r <- scratchpad_rrr.getResponse_LoadLine();
-      vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
-                                                      data1:r.data1,
-                                                      data2:r.data2,
-                                                      data3:r.data3});
-      $display("Scratchpad store 0 got a resp %d", respCount+1);
-      respCount <= respCount + 1;
+        tags.deq;
+        let r <- scratchpad_rrr.getResponse_LoadLine();
+        vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
+                                                        data1:r.data1,
+                                                        data2:r.data2,
+                                                        data3:r.data3});
+        $display("Scratchpad store 0 got a resp %d", respCount+1);
+        respCount <= respCount + 1;
     endrule
 
     // Also handle non-local requests
     rule eatReqNonLocal;
-      let req = link_mem_req.first();
-      link_mem_req.deq();
-      sendReq(req.req,req.portID);
-      $display("Scratchpad store got a non-local req %d", req.portID);
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        sendReq(req.req,req.portID);
+        $display("Scratchpad store got a non-local req %d", req.portID);
     endrule
 
     rule eatRespNonLocal(tags.first != 0);
-      tags.deq;
-      $display("Scratchpad load serviced non-local resp %d", tags.first);
-      let r <- scratchpad_rrr.getResponse_LoadLine();
-      link_mem_rsp.enq(tags.first,SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
-                                                      data1:r.data1,
-                                                      data2:r.data2,
-                                                      data3:r.data3});
+        tags.deq;
+        $display("Scratchpad load serviced non-local resp %d", tags.first);
+        let r <- scratchpad_rrr.getResponse_LoadLine();
+        link_mem_rsp.enq(tags.first,SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
+                                                                  data1:r.data1,
+                                                                  data2:r.data2,
+                                                                  data3:r.data3});
     endrule
 
 endmodule
