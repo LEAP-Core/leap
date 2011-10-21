@@ -10274,3 +10274,15 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 - Add buffering in direct mapped cache.  Reducing excessive buffering
   in the memory packing code last week exposed timing violations in a
   number of clients of the direct mapped cache.
+
+----------
+kfleming    Date: Fri Oct 21 14:20:59 EDT 2011  CSN: CSN-leap-197
+                  Fri Oct 21 18:20:59 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector-rrr.bsv Locally Modified          196 
+ scratchpad-memory-service.dic Locally Modified          196 
+
+
+Added some improved debug to the scratchpad service

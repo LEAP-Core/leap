@@ -29,6 +29,7 @@ import Arbiter::*;
 `include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 `include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
+`include "awb/dict/STATS_SCRATCHPAD.bsh"
 `include "awb/rrr/service_ids.bsh"
 `include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"
 `include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.bsh"
@@ -45,9 +46,11 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
         mkConnectionAddrRingNode("ScratchpadGlobalResp", 0);
 
-    Reg#(Bit#(32)) reqCount <- mkReg(0);
-    Reg#(Bit#(32)) respCount <- mkReg(0);
- 
+    STAT remote_requests <- mkStatCounter(`STATS_SCRATCHPAD_REMOTE_REQUESTS);
+    STAT local_requests <- mkStatCounter(`STATS_SCRATCHPAD_LOCAL_REQUESTS);
+    STAT remote_responses <- mkStatCounter(`STATS_SCRATCHPAD_REMOTE_RESPONSES);
+    STAT local_responses<- mkStatCounter(`STATS_SCRATCHPAD_LOCAL_RESPONSES);
+
     FIFO#(SCRATCHPAD_PORT_NUM) tags <- mkSizedFIFO(32); // How many outstanding reqs do we want?
 
     function Action sendReq(SCRATCHPAD_RRR_REQ req, SCRATCHPAD_PORT_NUM num);
@@ -85,21 +88,19 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
     endfunction
 
     rule eatReqLocal;
-        let req <- vdev.rrrReq();
-        sendReq(req,0);
-        $display("Scratchpad store 0 sent a req %d", reqCount+1);
-        reqCount <= reqCount + 1;      
+      let req <- vdev.rrrReq();
+      sendReq(req,0);
+      local_requests.incr;
     endrule
  
     rule eatRespLocal(tags.first == 0);
-        tags.deq;
-        let r <- scratchpad_rrr.getResponse_LoadLine();
-        vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
-                                                        data1:r.data1,
-                                                        data2:r.data2,
-                                                        data3:r.data3});
-        $display("Scratchpad store 0 got a resp %d", respCount+1);
-        respCount <= respCount + 1;
+      tags.deq;
+      let r <- scratchpad_rrr.getResponse_LoadLine();
+      vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
+                                                      data1:r.data1,
+                                                      data2:r.data2,
+                                                      data3:r.data3});
+      local_responses.incr;
     endrule
 
     // Also handle non-local requests
@@ -108,6 +109,7 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
         link_mem_req.deq();
         sendReq(req.req,req.portID);
         $display("Scratchpad store got a non-local req %d", req.portID);
+      remote_requests.incr;
     endrule
 
     rule eatRespNonLocal(tags.first != 0);
@@ -118,6 +120,7 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
                                                                   data1:r.data1,
                                                                   data2:r.data2,
                                                                   data3:r.data3});
+      remote_responses.incr;
     endrule
 
 endmodule
