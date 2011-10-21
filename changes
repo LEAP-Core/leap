@@ -10257,3 +10257,20 @@ infrequent enough on that ring that no arbitration is needed.
  - Generalize the token ring and interface into an addressable ring.
  - Add a mkConnectionAddrRingNode() with the same addressable properties
    as the token ring but no token.  When a node has data it sends a message.
+
+----------
+mcadler     Date: Thu Oct 20 19:59:34 EDT 2011  CSN: CSN-leap-196
+                  Thu Oct 20 23:59:34 UTC 2011
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          195 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector.bsv Locally Modified          195 
+
+- Fix typo in scratchpad ring code.
+
+- Add buffering in direct mapped cache.  Reducing excessive buffering
+  in the memory packing code last week exposed timing violations in a
+  number of clients of the direct mapped cache.

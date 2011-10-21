@@ -288,7 +288,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     MEMORY_HEAP_IMM#(RL_DM_WRITE_DATA_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
 
     // Incoming data.  One method may fire at a time.
-    FIFO#(t_CACHE_REQ) newReqQ <- mkBypassFIFO();
+    FIFO#(t_CACHE_REQ) newReqQ <- mkFIFO();
 
     // Pipelines
     FIFO#(t_CACHE_REQ) cacheLookupQ <- mkFIFO();

@@ -34,7 +34,7 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RING_REQ) link_mem_req <-
         mkConnectionAddrRingNode("ScratchpadGlobalReq", `SCRATCHPAD_PLATFORM_ID);
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rs <-
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
         mkConnectionAddrRingNode("ScratchpadGlobalResp", `SCRATCHPAD_PLATFORM_ID);
  
     Reg#(Bit#(32)) reqCount <- mkReg(0);
