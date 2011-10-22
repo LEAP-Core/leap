@@ -88,19 +88,19 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
     endfunction
 
     rule eatReqLocal;
-      let req <- vdev.rrrReq();
-      sendReq(req,0);
-      local_requests.incr;
+        let req <- vdev.rrrReq();
+        sendReq(req,0);
+        local_requests.incr;
     endrule
  
     rule eatRespLocal(tags.first == 0);
-      tags.deq;
-      let r <- scratchpad_rrr.getResponse_LoadLine();
-      vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
-                                                      data1:r.data1,
-                                                      data2:r.data2,
-                                                      data3:r.data3});
-      local_responses.incr;
+        tags.deq;
+        let r <- scratchpad_rrr.getResponse_LoadLine();
+        vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
+                                                        data1:r.data1,
+                                                        data2:r.data2,
+                                                        data3:r.data3});
+        local_responses.incr;
     endrule
 
     // Also handle non-local requests
@@ -109,7 +109,7 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
         link_mem_req.deq();
         sendReq(req.req,req.portID);
         $display("Scratchpad store got a non-local req %d", req.portID);
-      remote_requests.incr;
+        remote_requests.incr;
     endrule
 
     rule eatRespNonLocal(tags.first != 0);
@@ -120,7 +120,7 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
                                                                   data1:r.data1,
                                                                   data2:r.data2,
                                                                   data3:r.data3});
-      remote_responses.incr;
+        remote_responses.incr;
     endrule
 
 endmodule

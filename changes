@@ -10286,3 +10286,20 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 
 
 Added some improved debug to the scratchpad service
+
+----------
+mcadler     Date: Sat Oct 22 08:54:02 EDT 2011  CSN: CSN-leap-198
+                  Sat Oct 22 12:54:02 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ local-arbiters.bsv        Locally Modified          197 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector-rrr.bsv Locally Modified          197 
+
+- Local arbiters are method-only modules with some state.  Separate the operation
+  and state as a function and opaque type so that arbiter clients can manage
+  their own storage.  The old module remains, implemented with the new functions.
+
+- Fix the indentation of the scratchpad connector, again.
