@@ -99,7 +99,7 @@ File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
 
 [Bluespec SATA Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/sata-bluespec/sata-bluespec.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/sata-usrp/sata-bluespec.awb
 Packagehint=leap-platforms
 
 [Basic Virtual Channel Multiplexer]

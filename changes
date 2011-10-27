@@ -10303,3 +10303,32 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
   their own storage.  The old module remains, implemented with the new functions.
 
 - Fix the indentation of the scratchpad connector, again.
+
+----------
+kfleming    Date: Thu Oct 27 12:59:08 EDT 2011  CSN: CSN-leap-199
+                  Thu Oct 27 16:59:08 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          198 
+
+Directory modules/leap/virtual-platform/channelio/null
+ null-channelio.awb        Locally Modified          198 
+
+Directory modules/leap/virtual-platform/physical-channel
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/null
+ null-physical-channel.awb Locally Added               0 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ bluespec.xcf              Locally Modified          198 
+
+
+Some changes in support Xilinx Aurora inter-chip links.  
+
+1) Added a null physical channel to provide the "SOFT_RESET" parameter
+needed during the build process
+
+2) Copied xcf entry for SyncFIFO to SyncFIFOCount.
