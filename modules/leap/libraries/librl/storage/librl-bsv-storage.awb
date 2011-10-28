@@ -16,6 +16,7 @@
 %public fifo-stream-capture-common.bsv
 %public fifo-triggered-stream-capture.bsv
 %public fifo-commit.bsv
+%public fifo-marshaller.bsv
 
 %param DEBUG_STREAM_CAPTURE_FIFO 0 "Turn on debugging for stream capture fifos"
 %param DEBUG_REVBUF 0 "Turn on debugging for reversal buffer"

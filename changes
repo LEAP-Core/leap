@@ -10332,3 +10332,15 @@ Some changes in support Xilinx Aurora inter-chip links.
 needed during the build process
 
 2) Copied xcf entry for SyncFIFO to SyncFIFOCount.
+
+----------
+kfleming    Date: Fri Oct 28 08:07:08 EDT 2011  CSN: CSN-leap-200
+                  Fri Oct 28 12:07:08 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-marshaller.bsv       Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          199 
+
+
+Added marshaller from the multiFPGA code in to librl.  It seemed generally useful. 
