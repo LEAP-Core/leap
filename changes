@@ -10344,3 +10344,16 @@ Directory modules/leap/libraries/librl/storage
 
 
 Added marshaller from the multiFPGA code in to librl.  It seemed generally useful. 
+
+----------
+mcadler     Date: Wed Nov  2 15:25:48 EDT 2011  CSN: CSN-leap-201
+                  Wed Nov  2 19:25:48 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ memory-mapping.bsv        Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          200 
+
+Add a module that provides a banked multi-read memory.  The module takes as
+arguments the number of banks, whether to use the high or low address bits to
+index the banks and a function to allocate the bank memories.
