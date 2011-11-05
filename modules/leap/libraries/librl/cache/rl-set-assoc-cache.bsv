@@ -94,13 +94,14 @@ typedef struct
     Bool doneQNotEmpty;
     Bool fillLineQNotEmpty;
     Bool newReqNotEmpty;
-
     Bool fillLineRequestQNotEmpty;
+
     Bool evictDirtyForFillQNotEmpty;
     Bool wordMissQNotEmpty;
     Bool lineMissQNotEmpty;
-
     Bool readHitQNotEmpty;
+
+    Bool processReqQ1NotEmpty;
     Bool processReqQ0NotEmpty;
     Bool writeDataQNotFull;
     Bool writeDataQNotEmpty;
@@ -1652,14 +1653,15 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         d.doneQNotEmpty = doneQ.notEmpty();
         d.fillLineQNotEmpty = fillLineQ.notEmpty();
         d.newReqNotEmpty = newReqQ.notEmpty();
-
         d.fillLineRequestQNotEmpty = fillLineRequestQ.notEmpty();
+
         d.evictDirtyForFillQNotEmpty = evictDirtyForFillQ.notEmpty();
         d.wordMissQNotEmpty = wordMissQ.notEmpty();
         d.lineMissQNotEmpty = lineMissQ.notEmpty();
-
         d.readHitQNotEmpty = readHitQ.notEmpty();
-        d.processReqQ0NotEmpty = processReqQ0.notEmpty();    
+
+        d.processReqQ1NotEmpty = processReqQ1.notEmpty();
+        d.processReqQ0NotEmpty = processReqQ0.notEmpty();
         d.writeDataQNotFull = writeDataQ.notFull();
         d.writeDataQNotEmpty = writeDataQ.notEmpty();
 

@@ -10357,3 +10357,13 @@ Directory modules/leap/libraries/librl/base
 Add a module that provides a banked multi-read memory.  The module takes as
 arguments the number of banks, whether to use the high or low address bits to
 index the banks and a function to allocate the bank memories.
+
+----------
+mcadler     Date: Sat Nov  5 12:59:04 EDT 2011  CSN: CSN-leap-202
+                  Sat Nov  5 16:59:04 UTC 2011
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-set-assoc-cache.bsv    Locally Modified          201 
+
+Add more internal state to the set associative cache's debug scan.
