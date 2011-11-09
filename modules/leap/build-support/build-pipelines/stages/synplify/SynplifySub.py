@@ -116,7 +116,7 @@ class Synthesize(ProjectDependency):
                   moduleList.getAllDependencies('VHD') + \
                   moduleList.getAllDependencies('NGC') + \
                   moduleList.getAllDependencies('SDC') + \
-                  ['config/' + moduleList.topModule.wrapperName() + '.ucf'] 
+                  [moduleList.compileDirectory + '/' + moduleList.apmName + '.ucf']
       for file in fileArray:
         if(type(file) is str):
           newPrjFile.write(_generate_synplify_include(file))        
@@ -163,6 +163,7 @@ class Synthesize(ProjectDependency):
         moduleList.getAllDependencies('VERILOG') +
         moduleList.getAllDependencies('VERILOG_STUB') +
         moduleList.getAllDependencies('VERILOG_LIB') +
+        [moduleList.compileDirectory + '/' + moduleList.apmName + '.ucf'] +        
         [ newPrjPath ] +
         ['config/' + moduleList.apmName + '.synplify.prj'],
         [ SCons.Script.Delete(build_dir + '/' + module.wrapperName()  + '.srr'),

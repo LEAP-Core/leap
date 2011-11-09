@@ -99,7 +99,7 @@ class Iface():
     # leap-configure creates this dynamic_params.dic. Gotta handle is specially. Boo. 
     extra_dicts = []
     if(re.search('\w',EXTRA_DICTS)):
-      extra_dicts = EXTRA_DICTS.split(' ') 
+      extra_dicts = EXTRA_DICTS.split(':') 
     dicts = map(addPathDic,moduleList.getAllDependencies('GIVEN_DICTS')+['dynamic_params.dic'] + extra_dicts)
 
     dictCommand = 'leap-dict --src-inc ' + inc_dirs + ' --tgt-inc ' + dict_inc_tgt + ' --tgt-hw ' + hw_tgt + " " + (" ".join(dicts))
@@ -120,7 +120,12 @@ class Iface():
     tgt += d_tgt
 
     # Add dependence info computed by previous RRR builds (it uses cpp).
-    for rrr in map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS')):
+    extra_rrrs = []
+    if(re.search('\w',EXTRA_RRRS)):
+      extra_rrrs = EXTRA_RRRS.split(':') 
+    rrrs = map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS') + extra_rrrs)
+   
+    for rrr in rrrs:
         d = '.depends-rrr-' + os.path.basename(rrr)
         moduleList.env.ParseDepends(d, must_exist = False)
 
@@ -131,7 +136,7 @@ class Iface():
     if(GENERATE_VICO):
       generate_vico = '--vico'
     r_tgt = moduleList.env.Command(rrr_inc_tgt + '/service_ids.h',
-                       map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS')),
+                       rrrs,
                        'leap-rrr-stubgen ' + generate_vico + ' --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')
     tgt += r_tgt
     #

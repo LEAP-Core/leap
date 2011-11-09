@@ -34,6 +34,9 @@ class MultiFPGAGenerateLogfile():
     def makePlatformDictDir(name):
       return makePlatformBuildDir(name) + '/iface/src/dict'
 
+    def makePlatformRRRDir(name):
+      return makePlatformBuildDir(name) + '/iface/src/rrr'
+
   
     envFile = moduleList.getAllDependenciesWithPaths('GIVEN_FPGAENVS')
     if(len(envFile) != 1):
@@ -80,25 +83,36 @@ class MultiFPGAGenerateLogfile():
     # the first thing to do is construct the global set of dictionaries
     # I can communicate this to the subbuilds 
     # I build the links here, but I can't physcially check the files until later
-    platformHierarchies = {}
+    moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'] = {}
+
     for platformName in environment.getPlatformNames():
       platform = environment.getPlatform(platformName)
       print "leap-configure --pythonize " +  platform.path
       rawDump = Popen(["leap-configure", "--pythonize", "--silent", platform.path], stdout=PIPE ).communicate()[0]
       # fix the warning crap sometimes
-      platformHierarchies[platformName] = ModuleList(moduleList.env, eval(rawDump), moduleList.arguments, "")
+      moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'][platformName] = ModuleList(moduleList.env, eval(rawDump), moduleList.arguments, "")
     
     # check that all same named file are the same.  Then we can blindly copy all files to all directories and life will be good. 
     # once that's done, we still need to tell the child about these extra dicts. 
     # need to handle dynamic params specially somehow.... 
     # for now we'll punt on it. 
-    environmentDicts = {} 
+
+    # The missing dictionaries and RRRs need to be communicated to the 
+    # second compilation pass.
+    moduleList.topModule.moduleDependency['MISSING_DICTS'] = {}
+    moduleList.topModule.moduleDependency['MISSING_RRRS'] = {}
+
     for platformName in environment.getPlatformNames():
       platform = environment.getPlatform(platformName)
-      for dict in platformHierarchies[platformName].getAllDependencies('GIVEN_DICTS'):
-        if(not dict in environmentDicts):                                                     
-          environmentDicts[dict] = makePlatformDictDir(platform.name)
+      for dict in moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'][platformName].getAllDependencies('GIVEN_DICTS'):
+        if(not dict in moduleList.topModule.moduleDependency['MISSING_DICTS']):                                                     
+          moduleList.topModule.moduleDependency['MISSING_DICTS'][dict] = platform.name
 
+      # RRR calls can appear in services which can differ across environments. 
+      # This code can probably be deprecated at some point once RRR goes away.
+      for rrr in moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'] [platformName].getAllDependenciesWithPaths('GIVEN_RRRS'):
+        if(not rrr in moduleList.topModule.moduleDependency['MISSING_RRRS']):                                                     
+          moduleList.topModule.moduleDependency['MISSING_RRRS'][rrr] = platform.name
                                         
     for platformName in environment.getPlatformNames():
       platform = environment.getPlatform(platformName)
@@ -122,25 +136,73 @@ class MultiFPGAGenerateLogfile():
       execute('asim-shell --batch set parameter ' + platformPath + ' USE_ROUTING_KNOWN 0 ')
       execute('asim-shell --batch set parameter ' + platformPath + ' CLOSE_CHAINS 0 ')
 
-      # determine which symlinks we're missing 
+      # Dictionaries are global.  Therefore, all builds must see the same context or bad things 
+      # will happen.   
       missingDicts = ""
-      platformDicts = platformHierarchies[platformName].getAllDependencies('GIVEN_DICTS')     
-      for dict in environmentDicts.keys():
+      firstPass = True
+      platformDicts = moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'][platformName].getAllDependencies('GIVEN_DICTS')     
+      for dict in moduleList.topModule.moduleDependency['MISSING_DICTS'].keys():
         if(not dict in platformDicts):
-          missingDicts += ':'+dict
+          seperator = ':'
+          if(firstPass):
+            seperator = ''
+          missingDicts += seperator+dict
+          firstPass = False
 
       print "missingDicts: " + missingDicts
+    
+      # RRRs can appear in services sometimes and thereby lack global 
+      # visibility.  We need to treat them in the same way we treat dictionaries. 
+      missingRRRs = ""
+      firstPass = True
+      platformRRRs = moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'][platformName].getAllDependenciesWithPaths('GIVEN_RRRS')     
+      for dict in moduleList.topModule.moduleDependency['MISSING_RRRS'].keys():
+        if(not dict in platformRRRs):
+          seperator = ':'
+          if(firstPass):
+            seperator = ''
+          missingRRRs += seperator+dict
+          firstPass = False
+
+      print "missingRRRs: " + missingRRRs
 
       execute('asim-shell --batch set parameter ' + platformPath + ' EXTRA_DICTS \\"' + missingDicts  + '\\"')
+      execute('asim-shell --batch set parameter ' + platformPath + ' EXTRA_RRRS \\"' + missingRRRs  + '\\"')
 
       # Configure the build tree
       if not os.path.exists(platformBuildDir): os.makedirs(platformBuildDir) 
       execute('asim-shell --batch -- configure model ' + platformPath + ' --builddir ' + platformBuildDir)
 
-      # set up the symlink - it'll be broken at first, but as we fill in the platforms, they'll come up
-      for dict in environmentDicts.keys():
+      # set up the symlinks to missing dictionaries- they aree broken
+      # at first, but as we fill in the platforms, they'll come up
+      for dict in moduleList.topModule.moduleDependency['MISSING_DICTS'].keys():
         if(not dict in platformDicts):
-          os.symlink(environmentDicts[dict] + '/' + dict, makePlatformDictDir(platform.name)  + '/' + dict)
+          # lexists works on broken symlinks...
+          path = os.getcwd()
+          dictPath = os.path.realpath(makePlatformDictDir(moduleList.topModule.moduleDependency['MISSING_DICTS'][dict]) + '/' + dict)
+          linkDir  = makePlatformDictDir(platform.name)  
+          linkPath = linkDir  + '/' + dict
+          relDictPath = os.path.relpath(dictPath, linkDir)
+          print "missing link: " + linkPath + ' -> ' + relDictPath
+          if(os.path.lexists(linkPath)):
+            print("This symlink already exists: " + makePlatformDictDir(platform.name)  + '/' + dict)
+          else:
+            os.symlink(relDictPath, linkPath)
+
+      # do the same for missing RRRs - this code is similar to that above and should be refactored. 
+      for rrr in moduleList.topModule.moduleDependency['MISSING_RRRS'].keys():
+        if(not rrr in platformRRRs):
+          # lexists works on broken symlinks...
+          path = os.getcwd()
+          if(os.path.lexists(makePlatformRRRDir(platform.name)  + '/' + rrr)):
+            print("This symlink already exists: " + makePlatformRRRDir(platform.name)  + '/' + rrr)
+          else:
+            rrrpath = os.path.realpath( makePlatformRRRDir(moduleList.topModule.moduleDependency['MISSING_RRRS'][rrr]) + '/' + rrr)
+            #the rrr values have some hierarchical information in them...
+            linkPath  = makePlatformRRRDir(platform.name)  + '/' + rrr
+            linkDir = os.path.dirname(linkPath)
+            print ('Link dir is ' + linkDir)
+            os.symlink(os.path.relpath(rrrpath, linkDir), linkPath)
 
 
       subbuild = moduleList.env.Command( 
@@ -200,15 +262,24 @@ class MultiFPGAGenerateLogfile():
       moduleList.topDependency += [subbuild]
       moduleList.env.AlwaysBuild(subbuild)
 
-    # now that we configured things, let's check that the dicts are sane
+    # now that we configured things, let's check that the dicts and rrrs are sane
     # we use os.stat to check file equality. It follows symlinks,
     # and it would be an _enormous_ coincidence if non-equal files 
     # matched
     for platformName in environment.getPlatformNames():
-      platformDicts = platformHierarchies[platformName].getAllDependencies('GIVEN_DICTS')
+      platformDicts = moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'][platformName].getAllDependencies('GIVEN_DICTS')
       for dict in platformDicts:
         platStat = os.stat(os.path.abspath(makePlatformDictDir(platformName)  + '/' + dict))
-        globalStat = os.stat(os.path.abspath(environmentDicts[dict] + '/' + dict))
+        globalStat = os.stat(os.path.abspath(makePlatformDictDir(moduleList.topModule.moduleDependency['MISSING_DICTS'][dict]) + '/' + dict))
 
         if(platStat != globalStat):
           print "Warning, mismatched dicts: " + str(dict) + " on " + platformName
+
+      #and now for RRRs
+      platformRRRs = moduleList.topModule.moduleDependency['PLATFORM_HIERARCHIES'][platformName].getAllDependenciesWithPaths('GIVEN_RRRS')
+      for rrr in platformRRRs:
+        platStat = os.stat(os.path.abspath(makePlatformRRRDir(platformName)  + '/' + rrr))
+        globalStat = os.stat(os.path.abspath(makePlatformRRRDir(moduleList.topModule.moduleDependency['MISSING_RRRS'][rrr]) + '/' + rrr))
+
+        if(platStat != globalStat):
+          print "Warning, mismatched dicts: " + str(rrr) + " on " + platformName

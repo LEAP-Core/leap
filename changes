@@ -10367,3 +10367,28 @@ Directory modules/leap/libraries/librl/cache
  rl-set-assoc-cache.bsv    Locally Modified          201 
 
 Add more internal state to the set associative cache's debug scan.
+
+----------
+kfleming    Date: Wed Nov  9 16:26:24 EST 2011  CSN: CSN-leap-203
+                  Wed Nov  9 21:26:24 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Modified          202 
+ iface.py                  Locally Modified          202 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          202 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ SynplifySub.py            Locally Modified          202 
+
+
+1) A bug fix to Synplify build fixing a miss named ucf dependency.
+
+2) Support for constructing a global view of RRR and dictionary files
+in multiFPGA builds.  This partially worked before, but the global
+view was not being constructed during the post-connection resolution
+phase.  Airblue trips some of these cases with its rrr usage.  It's a
+miracle anything compiled previously.
+
