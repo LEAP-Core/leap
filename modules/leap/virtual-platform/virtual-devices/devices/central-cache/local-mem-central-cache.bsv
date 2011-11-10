@@ -240,9 +240,6 @@ module mkCentralCache#(LowLevelPlatformInterface llpi)
     endrule
 
 
-    // Descending urgency for sub-components that can't see each other
-    (* descending_urgency = "cache.handleWrite, cacheLocalData.forwardDataReq" *)
-
     //
     // cacheReadResp --
     //     Optional 3rd stage of read request.  Forward main cache response to
@@ -644,40 +641,6 @@ module mkLocalMemCacheData#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLog)
 
     // ====================================================================
     //
-    // Read request FIFOs.  Read requests are buffered through FIFOs in
-    // order to break scheduling dependence between data and metadata
-    // reads and between reads and writes.  The cache may deadlock
-    // without it.  Relaxed read/write ordering is fine here since the
-    // cache already guarantees to handle at most one reference at 
-    // a time per set.
-    //
-    // ====================================================================
-
-    FIFO#(RL_SA_CACHE_SET_IDX#(nSets)) readMetadataReqQ <- mkBypassFIFO();
-    FIFO#(Tuple3#(Bit#(TLog#(t_N_READ_PORTS)), RL_SA_CACHE_SET_IDX#(nSets), RL_SA_CACHE_WAY_IDX#(nWays))) readDataReqQ <- mkBypassFIFO();
-
-    rule forwardMetadataReq (initialized);
-        let set = readMetadataReqQ.first();
-        readMetadataReqQ.deq();
-
-        memory.readPorts[valueOf(t_METADATA_READ_PORT)].readLineReq(getMetadataIdx(set));
-    endrule
-
-    //
-    // Reading data must have higher priority than reading metadata to avoid
-    // deadlocks in the cache.
-    //
-    (* descending_urgency = "forwardDataReq, forwardMetadataReq" *)
-    rule forwardDataReq (initialized);
-        match {.port, .set, .way} = readDataReqQ.first();
-        readDataReqQ.deq();
-
-        memory.readPorts[port].readLineReq(getDataIdx(set, way));
-    endrule
-
-
-    // ====================================================================
-    //
     // Metadata read response buffer.  Avoid deadlock between metadata and
     // data reads by providing output buffer space for all outstanding
     // metdata read requests.
@@ -700,7 +663,7 @@ module mkLocalMemCacheData#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLog)
     interface MEMORY_IFC metaData;
         method Action readReq(RL_SA_CACHE_SET_IDX#(nSets) set) if (readMetadataCnt.value != 0);
             readMetadataCnt.down();
-            readMetadataReqQ.enq(set);
+            memory.readPorts[valueOf(t_METADATA_READ_PORT)].readLineReq(getMetadataIdx(set));
         endmethod
 
         method ActionValue#(t_SET_METADATA) readRsp();
@@ -738,7 +701,7 @@ module mkLocalMemCacheData#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLog)
     method Action dataReadReq(Integer readPort,
                               RL_SA_CACHE_SET_IDX#(nSets) set,
                               RL_SA_CACHE_WAY_IDX#(nWays) way);
-        readDataReqQ.enq(tuple3(fromInteger(readPort), set, way));
+        memory.readPorts[readPort].readLineReq(getDataIdx(set, way));
     endmethod
 
     method ActionValue#(Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD)) dataReadRsp(Integer readPort);

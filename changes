@@ -10409,3 +10409,15 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
 Changed debug scan interface to be more general (now it takes a value
 function), and added support for debug scan generation in the FPGA
 routers.
+
+----------
+mcadler     Date: Thu Nov 10 17:44:17 EST 2011  CSN: CSN-leap-205
+                  Thu Nov 10 22:44:17 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ local-mem-central-cache.bsv Locally Modified          204 
+
+Remove a deadlock that appears to be introduced by Xst when faced in the
+local memory arbitration between cache metadata and cache data reads.
+The code was unnecessarily complex.
