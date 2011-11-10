@@ -12,5 +12,5 @@
 %scons %library tool.py
 
 %param GENERATE_ROUTER_STATS  0  "Should we generate per link statistics?"
-
+%param GENERATE_ROUTER_DEBUG  0  "Should we generate per link dealock debug?"
 

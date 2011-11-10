@@ -218,19 +218,24 @@ class MultiFPGAGenerateLogfile():
       # we'll need this later on. 
       header = open(routerBSH,'w')
       header.write('`include "awb/provides/stats_service.bsh"\n')
+      header.write('`include "awb/provides/debug_scan_service.bsh"\n')
       header.write('// we need to pick up the module sizes\n')
       header.write('module [CONNECTED_MODULE] mkCommunicationModule#(VIRTUAL_PLATFORM vplat) (Empty);\n')
       header.write('let m <- mkCommunicationModuleIfaces(vplat ') 
       for target in  platform.getSinks().keys():
         header.write(', ' + platform.getSinks()[target].physicalName + '.write')
       for target in  platform.getSources().keys():
-        header.write(', ' + platform.getSources()[target].physicalName + '.read')
+        header.write(', ' + platform.getSources()[target].physicalName + '.first')
      
       header.write(');\n')
       # we also need a stat here to make the stats work right.  
       # we don't care about the ID because it will get replaced later during the second compilation pass
       if(GENERATE_ROUTER_STATS):    
         header.write('let stat <- mkStatCounter(?);\n')   
+
+      if(GENERATE_ROUTER_DEBUG):    
+        header.write('DEBUG_SCAN#(Bit#(1)) debug <- mkDebugScanNode(?,?);\n')   
+
       header.write('endmodule\n')
 
       header.write('module [CONNECTED_MODULE] mkCommunicationModuleIfaces#(VIRTUAL_PLATFORM vplat ')
@@ -242,7 +247,7 @@ class MultiFPGAGenerateLogfile():
       for target in  platform.getSources().keys():
         # really I should disambiguate by way of a unique path
         via  = (platform.getSources()[target]).physicalName.replace(".","_") + '_read'
-        header.write('function ActionValue#(Bit#(p'+ via + '_ingress_SZ)) read_' + via + '_ingress()') 
+        header.write('function Bit#(p'+ via + '_ingress_SZ) read_' + via + '_ingress()') 
 
       header.write(') (Empty);\n')
 

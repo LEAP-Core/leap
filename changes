@@ -10392,3 +10392,20 @@ view was not being constructed during the post-connection resolution
 phase.  Airblue trips some of these cases with its rrr usage.  It's a
 miracle anything compiled previously.
 
+
+----------
+kfleming    Date: Thu Nov 10 12:12:21 EST 2011  CSN: CSN-leap-204
+                  Thu Nov 10 17:12:21 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          203 
+ multi_fpga_parse.awb      Locally Modified          203 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          203 
+
+
+Changed debug scan interface to be more general (now it takes a value
+function), and added support for debug scan generation in the FPGA
+routers.

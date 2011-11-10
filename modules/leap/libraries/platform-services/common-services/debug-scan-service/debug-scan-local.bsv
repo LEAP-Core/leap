@@ -69,7 +69,7 @@ DEBUG_SCAN_STATE
 //   during scan the wire should have no predicates (e.g. mkBypassWire).
 // 
 module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
-                                           Wire#(t_DEBUG_DATA) debugValue)
+                                           function t_DEBUG_DATA debugValue())
     // interface:
     (DEBUG_SCAN#(t_DEBUG_DATA))
     provisos (Bits#(t_DEBUG_DATA, t_DEBUG_DATA_SZ),
