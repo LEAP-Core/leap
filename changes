@@ -10421,3 +10421,29 @@ Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
 Remove a deadlock that appears to be introduced by Xst when faced in the
 local memory arbitration between cache metadata and cache data reads.
 The code was unnecessarily complex.
+
+----------
+kfleming    Date: Mon Nov 14 16:50:53 EST 2011  CSN: CSN-leap-206
+                  Mon Nov 14 21:50:53 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages
+ multifpga/                Locally Removed           205 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ multitest.py              Locally Removed           205 
+ tool.py                   Locally Removed           205 
+ connection.py             Locally Removed           205 
+ multi_fpga_parse.awb      Locally Removed           205 
+ fpgaenvironment.awb       Locally Removed           205 
+ multilex.py               Locally Removed           205 
+ environment.py            Locally Removed           205 
+ multifpga_parser.py       Locally Removed           205 
+ platform.py               Locally Removed           205 
+ multiparse.py             Locally Removed           205 
+ README                    Locally Removed           205 
+
+
+Removed log generation pass of multiple FPGA compiler and moved it to
+the multifpga package.  This is part of the general code clean up of
+the multifpga package.
