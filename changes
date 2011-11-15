@@ -10447,3 +10447,17 @@ Directory modules/leap/build-support/build-pipelines/stages/multifpga
 Removed log generation pass of multiple FPGA compiler and moved it to
 the multifpga package.  This is part of the general code clean up of
 the multifpga package.
+
+----------
+kfleming    Date: Tue Nov 15 16:38:54 EST 2011  CSN: CSN-leap-207
+                  Tue Nov 15 21:38:54 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-commit.bsv           Locally Modified          206 
+ fifo-marshaller.bsv       Locally Modified          206 
+
+
+Added some convenience functions to the marshaller and commit fifo,
+and cleaned up code indentation in the commit fifo code to match the
+librl standard.

@@ -17,8 +17,8 @@
 //
 
 import Vector::*;
+import GetPut::*;
 
-// some useful modules
 interface MARSHALLER#(numeric type n, type data);
     method Action enq(Vector#(n,data) vec);
     method Action deq();
@@ -33,6 +33,57 @@ interface DEMARSHALLER#(numeric type n, type data);
     method Vector#(n,data) first();
     method Bool notEmpty();
 endinterface
+
+
+// some typeclass/conversion definitions
+
+instance ToPut#(DEMARSHALLER#(size,fifo_type), fifo_type);
+    function Put#(fifo_type) toPut(DEMARSHALLER#(size,fifo_type) demarshaller);
+        Put#(fifo_type) f = interface Put#(fifo_type);
+                                method Action put(fifo_type data);
+                                    demarshaller.enq(data);
+                                endmethod
+                            endinterface;
+        return f;
+    endfunction
+endinstance
+
+instance ToGet#(DEMARSHALLER#(size,fifo_type), Vector#(size,fifo_type));
+    function Get#(Vector#(size,fifo_type)) toGet(DEMARSHALLER#(size,fifo_type) demarshaller);
+        Get#(Vector#(size,fifo_type)) f = interface Get#(Vector#(size,fifo_type));
+                                              method ActionValue#(Vector#(size,fifo_type)) get();
+                                                  demarshaller.deq;
+                                                  return demarshaller.first;
+                                              endmethod
+                                          endinterface;
+        return f;
+    endfunction
+endinstance
+
+instance ToPut#(MARSHALLER#(size,fifo_type), Vector#(size,fifo_type));
+    function Put#(Vector#(size,fifo_type)) toPut(MARSHALLER#(size,fifo_type) marshaller);
+        Put#(Vector#(size,fifo_type)) f = interface Put#(Vector#(size,fifo_type));
+                                              method Action put(Vector#(size,fifo_type) data);
+                                                  marshaller.enq(data);
+                                              endmethod
+                                          endinterface;
+        return f;
+    endfunction
+endinstance
+
+instance ToGet#(MARSHALLER#(size,fifo_type), fifo_type);
+    function Get#(fifo_type) toGet(MARSHALLER#(size,fifo_type) marshaller);
+        Get#(fifo_type) f = interface Get#(fifo_type);
+                                method ActionValue#(fifo_type) get();
+                                    marshaller.deq;
+                                    return marshaller.first;
+                                endmethod
+                            endinterface;
+        return f;
+    endfunction
+endinstance
+
+
 
 module mkSimpleMarshaller (MARSHALLER#(n,data))
     provisos(Bits#(data, data_sz));
