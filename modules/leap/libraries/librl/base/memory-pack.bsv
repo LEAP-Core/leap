@@ -394,8 +394,8 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
     // container objects per base object.
     //
     function t_CONTAINER_ADDR addrContainer(t_ADDR addr, t_OBJ_IDX objIdx);
-        let c_addr = pack(addr) * fromInteger(chunks_per_obj) + zeroExtendNP(objIdx);
-        return unpack(zeroExtendNP(c_addr));
+        t_CONTAINER_ADDR ext_addr = zeroExtendNP(pack(addr));
+        return ext_addr * fromInteger(chunks_per_obj) + zeroExtendNP(objIdx);
     endfunction
 
 

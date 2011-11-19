@@ -10461,3 +10461,14 @@ Directory modules/leap/libraries/librl/storage
 Added some convenience functions to the marshaller and commit fifo,
 and cleaned up code indentation in the commit fifo code to match the
 librl standard.
+
+----------
+mcadler     Date: Fri Nov 18 20:54:35 EST 2011  CSN: CSN-leap-208
+                  Sat Nov 19 01:54:35 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          207 
+
+Incorrect order of computation vs. sign extension in 1 to many memory packing
+case sometimes dropped the high bit, causing address aliases.
