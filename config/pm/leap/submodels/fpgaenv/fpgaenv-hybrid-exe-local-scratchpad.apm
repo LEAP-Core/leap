@@ -25,6 +25,7 @@ virtual_platform=Standard Virtual Platform
 fpga_components=Software FPGA Components
 librl_bsv=RL Bluespec Library Submodel
 build_pipeline=Build Pipeline Bluesim
+soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
@@ -34,6 +35,7 @@ Packagehint=leap
 virtual_devices=Standard Virtual Devices (Local Scratchpad Memory) Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
+platform_services=Standard Platform Services
 
 [RRR Clients and Servers]
 File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
@@ -125,4 +127,12 @@ Packagehint=leap
 
 [Standard Virtual Devices (Local Scratchpad Memory) Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-local-scratchpad.apm
+Packagehint=leap
+
+[Soft Services Submodel]
+File=config/pm/leap/submodels/common/soft-services.apm
+Packagehint=leap
+
+[Standard Platform Services]
+File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap

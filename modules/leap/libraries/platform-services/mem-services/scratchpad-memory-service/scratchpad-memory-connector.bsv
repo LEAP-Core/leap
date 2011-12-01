@@ -17,6 +17,7 @@
 //
 
 
+`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/virtual_devices.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
@@ -29,32 +30,37 @@
 `include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 
+// Platform ID 0 reserved for the RRR connector ring stop.
+function Integer scratchpadPlatformID = fpgaPlatformID + 1;
+
+
 module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (Empty);
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RING_REQ) link_mem_req <-
-        mkConnectionAddrRingNode("ScratchpadGlobalReq", `SCRATCHPAD_PLATFORM_ID);
+    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_" + integerToString(scratchpadPlatformID()) + ".out");
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
-        mkConnectionAddrRingNode("ScratchpadGlobalResp", `SCRATCHPAD_PLATFORM_ID);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RING_REQ) link_mem_req <-
+        mkConnectionAddrRingNode("ScratchpadGlobalReq", fromInteger(scratchpadPlatformID()));
+
+    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
+        mkConnectionAddrRingNode("ScratchpadGlobalResp", fromInteger(scratchpadPlatformID()));
  
-    Reg#(Bit#(32)) reqCount <- mkReg(0);
-    Reg#(Bit#(32)) respCount <- mkReg(0);
-
     // We all live on the token ring...  And there's one per platform... So we need to disambiguate
     // Create platform ID in compiler
 
     rule eatReq;
-        $display("Scratchpad store %d sent a req %d", `SCRATCHPAD_PLATFORM_ID, reqCount+1);
-        reqCount <= reqCount + 1;
         let req <- vdev.rrrReq();
-        link_mem_req.enq(0,SCRATCHPAD_RING_REQ{portID: `SCRATCHPAD_PLATFORM_ID, req:req}); // patch through requests to base handler.
+        // patch through requests to base handler.
+        link_mem_req.enq(0, SCRATCHPAD_RING_REQ { stopID: fromInteger(scratchpadPlatformID()),
+                                                  req: req });
+
+        debugLog.record($format("Scratchpad req"));
     endrule
  
     rule eatResp;
-        $display("Scratchpad store %d got a resp %d", `SCRATCHPAD_PLATFORM_ID, respCount+1);
-        respCount <= respCount + 1;
         vdev.loadLineResp(link_mem_rsp.first());
         link_mem_rsp.deq;
+
+        debugLog.record($format("Scratchpad resp"));
     endrule
 
 endmodule

@@ -35,15 +35,18 @@ import Arbiter::*;
 `include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.bsh"
 
 
+module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev)
+    // Interface:
+    (Empty);
 
-module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (Empty);
+    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_rrr.out");
 
     ClientStub_SCRATCHPAD_MEMORY scratchpad_rrr <- mkClientStub_SCRATCHPAD_MEMORY(); 
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RING_REQ) link_mem_req <-
+    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RING_REQ) link_mem_req <-
         mkConnectionAddrRingNode("ScratchpadGlobalReq", 0);
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
+    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
         mkConnectionAddrRingNode("ScratchpadGlobalResp", 0);
 
     STAT remote_requests <- mkStatCounter(`STATS_SCRATCHPAD_REMOTE_REQUESTS);
@@ -51,55 +54,56 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
     STAT remote_responses <- mkStatCounter(`STATS_SCRATCHPAD_REMOTE_RESPONSES);
     STAT local_responses<- mkStatCounter(`STATS_SCRATCHPAD_LOCAL_RESPONSES);
 
-    FIFO#(SCRATCHPAD_PORT_NUM) tags <- mkSizedFIFO(32); // How many outstanding reqs do we want?
+    // Size of tags defines max outstanding requests.
+    FIFO#(SCRATCHPAD_RING_STOP_ID) tags <- mkSizedFIFO(32);
 
-    function Action sendReq(SCRATCHPAD_RRR_REQ req, SCRATCHPAD_PORT_NUM num);
-      action
-      case (req) matches
-        tagged StoreWordReq .storeWordReq:
+    function Action sendReq(SCRATCHPAD_RRR_REQ req, SCRATCHPAD_RING_STOP_ID num);
+    action
+        case (req) matches
+          tagged StoreWordReq .storeWordReq:
             begin
-              scratchpad_rrr.makeRequest_StoreWord(storeWordReq.byteMask,
-                                                   storeWordReq.addr,
-                                                   storeWordReq.data);
+            scratchpad_rrr.makeRequest_StoreWord(storeWordReq.byteMask,
+                                                 storeWordReq.addr,
+                                                 storeWordReq.data);
             end
-        tagged StoreLineReq .storeLineReq:
-           begin
-             scratchpad_rrr.makeRequest_StoreLine(storeLineReq.byteMask,
-                                                  storeLineReq.addr,
-                                                  storeLineReq.data0,
-                                                  storeLineReq.data1,
-                                                  storeLineReq.data2,
-                                                  storeLineReq.data3);
-           end
+          tagged StoreLineReq .storeLineReq:
+            begin
+            scratchpad_rrr.makeRequest_StoreLine(storeLineReq.byteMask,
+                                                 storeLineReq.addr,
+                                                 storeLineReq.data0,
+                                                 storeLineReq.data1,
+                                                 storeLineReq.data2,
+                                                 storeLineReq.data3);
+            end
 
-        tagged LoadLineReq .loadLineReq:
-           begin
-             scratchpad_rrr.makeRequest_LoadLine(loadLineReq.addr);
-             tags.enq(num);
-           end
+          tagged LoadLineReq .loadLineReq:
+            begin
+            scratchpad_rrr.makeRequest_LoadLine(loadLineReq.addr);
+            tags.enq(num);
+            end
 
-        tagged InitRegionReq .initRegionReq:
-           begin
-             scratchpad_rrr.makeRequest_InitRegion(initRegionReq.regionID, 
-                                                   initRegionReq.regionEndIdx);
-           end  
-      endcase
-      endaction
+          tagged InitRegionReq .initRegionReq:
+            begin
+            scratchpad_rrr.makeRequest_InitRegion(initRegionReq.regionID,
+                                                  initRegionReq.regionEndIdx);
+            end
+        endcase
+    endaction
     endfunction
 
     rule eatReqLocal;
         let req <- vdev.rrrReq();
-        sendReq(req,0);
+        sendReq(req, 0);
         local_requests.incr;
     endrule
  
     rule eatRespLocal(tags.first == 0);
         tags.deq;
         let r <- scratchpad_rrr.getResponse_LoadLine();
-        vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
-                                                        data1:r.data1,
-                                                        data2:r.data2,
-                                                        data3:r.data3});
+        vdev.loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP { data0:r.data0,
+                                                          data1:r.data1,
+                                                          data2:r.data2,
+                                                          data3:r.data3 });
         local_responses.incr;
     endrule
 
@@ -107,20 +111,23 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(SCRATCHPAD_MEMORY_VDEV vdev) (E
     rule eatReqNonLocal;
         let req = link_mem_req.first();
         link_mem_req.deq();
-        sendReq(req.req,req.portID);
-        $display("Scratchpad store got a non-local req %d", req.portID);
+        sendReq(req.req, req.stopID);
         remote_requests.incr;
+
+        debugLog.record($format("Scratchpad recv non-local req %d", req.stopID));
     endrule
 
     rule eatRespNonLocal(tags.first != 0);
         tags.deq;
-        $display("Scratchpad load serviced non-local resp %d", tags.first);
         let r <- scratchpad_rrr.getResponse_LoadLine();
-        link_mem_rsp.enq(tags.first,SCRATCHPAD_RRR_LOAD_LINE_RESP{data0:r.data0,
-                                                                  data1:r.data1,
-                                                                  data2:r.data2,
-                                                                  data3:r.data3});
+        link_mem_rsp.enq(tags.first,
+                         SCRATCHPAD_RRR_LOAD_LINE_RESP { data0:r.data0,
+                                                         data1:r.data1,
+                                                         data2:r.data2,
+                                                         data3:r.data3 });
         remote_responses.incr;
+
+        debugLog.record($format("Scratchpad serviced non-local resp %d", tags.first));
     endrule
 
 endmodule

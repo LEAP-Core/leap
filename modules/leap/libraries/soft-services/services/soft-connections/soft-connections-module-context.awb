@@ -19,5 +19,3 @@
 %public bury-connections.bsv
 
 %sources --t BSH --v PUBLIC soft-connections-backward-deps.bsh
-
-%param --global MULTI_FPGA_PLATFORM "Unknown" "Specifies name of multi-fpga target"

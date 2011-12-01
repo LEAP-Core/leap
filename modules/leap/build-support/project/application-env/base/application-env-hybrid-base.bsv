@@ -19,6 +19,15 @@
 `include "awb/provides/virtual_platform.bsh"
 `include "awb/provides/hybrid_application.bsh"
 
+//
+// mkApplicationEnv --
+//
+// Instantiate an application that does not use soft services.  Most
+// applications will use the soft services version of application_env and
+// not this one.  This environment without soft connections using direct
+// access to the virtual platform is typically used by small models 
+// used to debug the platform.
+//
 module mkApplicationEnv#(VIRTUAL_PLATFORM vp)
     // interface:
         ();

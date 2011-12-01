@@ -19,6 +19,8 @@
 import Clocks::*;
 
 `include "awb/provides/soft_connections_common.bsh"
+`include "awb/provides/physical_platform_utils.bsh"
+
 
 // ****** Connection Functions ******
 
@@ -126,9 +128,9 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
     // See what existing links are out there.
     let existing_links <- getChain(new_link);
 
-    if(new_link.computePlatform != `MULTI_FPGA_PLATFORM)
+    if(new_link.computePlatform != fpgaPlatformName)
       begin
-        messageM("Dropping Chain Link " + new_link.logicalName + " should be on " + new_link.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+        messageM("Dropping Chain Link " + new_link.logicalName + " should be on " + new_link.computePlatform + " and we are compiling " + fpgaPlatformName);
       end
     else if (existing_links matches tagged Valid .latest_link)
     begin

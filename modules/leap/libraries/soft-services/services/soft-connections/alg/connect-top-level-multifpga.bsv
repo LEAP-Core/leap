@@ -21,6 +21,7 @@ import Clocks::*;
 import ModuleContext::*;
 import HList::*;
 
+`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_interconnect.bsh"
 `include "awb/provides/soft_connections_common.bsh"
@@ -60,12 +61,12 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     let cur = unmatched_sends[x];
   
     // clear out leftovers from model top level 
-    if(cur.computePlatform != `MULTI_FPGA_PLATFORM) 
+    if(cur.computePlatform != fpgaPlatformName)
       begin
         messageM("Top Level Dropping Send: ");
 	printSend(cur); 
       end
-    else if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)
+    else if(cur.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingSend(x,cur);
@@ -82,14 +83,14 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   for (Integer x = 0; x < List::length(unmatched_recvs); x = x + 1)
   begin
     let cur = unmatched_recvs[x];
-    messageM("Working on: " + `MULTI_FPGA_PLATFORM);
+    messageM("Working on: " + fpgaPlatformName);
     // clear out leftovers from model top level 
-    if(cur.computePlatform != `MULTI_FPGA_PLATFORM) 
+    if(cur.computePlatform != fpgaPlatformName)
       begin
         messageM("Top Level Dropping Recv: ");
 	printRecv(cur); 
       end
-    else if(cur.computePlatform == `MULTI_FPGA_PLATFORM && `IGNORE_PLATFORM_MISMATCH == 1)
+    else if(cur.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingRecv(x,cur);

@@ -20,6 +20,10 @@
 // unguarded FIFO, which makes the scheduler's life much easier.
 // The dispatcher which invokes this may guard the FIFO as appropriate.
 
+
+`include "awb/provides/physical_platform.bsh"
+
+
 module [t_CONTEXT] mkPhysicalConnectionSend#(String send_name, Maybe#(STATION) m_station, Bool optional, String original_type)
     // interface:
         (CONNECTION_SEND#(t_MSG))
@@ -436,7 +440,7 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
       };
 
   String platformName <- getSynthesisBoundaryPlatform(); 
-  if(platformName == `MULTI_FPGA_PLATFORM)
+  if(platformName == fpgaPlatformName)
     begin
       // Register the chain
       registerChain(info);

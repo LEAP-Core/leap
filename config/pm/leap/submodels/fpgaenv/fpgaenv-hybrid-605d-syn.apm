@@ -25,6 +25,7 @@ virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 6
 librl_bsv=RL Bluespec Library Submodel
 build_pipeline=ViCo FPGA Build Pipeline Xilinx (Synplify)
+soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
@@ -34,6 +35,7 @@ Packagehint=leap
 virtual_devices=Standard Virtual Devices (No Memory Service)
 low_level_platform_interface=ViCo Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
+platform_services=Standard Platform Service (No Memory Service)
 
 ;led_device=General LED Device
 
@@ -189,4 +191,12 @@ physical_channel=Passthrough PCIe Physical Channel
 
 [Passthrough PCIe Physical Channel]
 File=modules/leap/virtual-platform/physical-channel/pcie/passthrough/pcie-passthrough-physical-channel.awb
+Packagehint=leap
+
+[Soft Services Submodel]
+File=config/pm/leap/submodels/common/soft-services.apm
+Packagehint=leap
+
+[Standard Platform Service (No Memory Service)]
+File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
 Packagehint=leap

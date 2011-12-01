@@ -23,13 +23,13 @@ import HList::*;
 import FIFOF::*;
 
 
+`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_interconnect.bsh"
 `include "awb/provides/soft_connections_common.bsh"
 `include "awb/provides/soft_connections_alg.bsh"
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_services_lib.bsh"
-
 
 
 // Connect soft connections as normal, but dangling connections are not an error
@@ -69,7 +69,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  chains: tagged Nil,
                  stations: tagged Nil,
                  stationStack: tagged Nil,
-                 synthesisBoundaryPlatform: `MULTI_FPGA_PLATFORM,
+                 synthesisBoundaryPlatform: fpgaPlatformName,
                  synthesisBoundaryPlatformID: 0,
                  rootStationName: "InvalidRootStation",
                  softReset: sReset
@@ -131,7 +131,7 @@ module exposeDanglingSends#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
         let cur = List::head(dsends);
         dsends = List::tail(dsends);
         // Squash connections not from this FPGA Platform
-        if(cur.computePlatform == `MULTI_FPGA_PLATFORM)
+        if(cur.computePlatform == fpgaPlatformName)
         begin
             printDanglingSend(cur_out,cur);
             res[cur_out] = cur.outgoing;
@@ -139,7 +139,7 @@ module exposeDanglingSends#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
         end
         else
         begin
-            messageM("Dropping Send" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+            messageM("Dropping Send" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + fpgaPlatformName);
         end
     end
 
@@ -189,7 +189,7 @@ module exposeDanglingRecvs#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
         let cur = List::head(drecvs);
         drecvs = List::tail(drecvs);
         // Squash non-local connections
-        if (cur.computePlatform == `MULTI_FPGA_PLATFORM)
+        if (cur.computePlatform == fpgaPlatformName)
         begin
             printDanglingRecv(cur_in,cur);
             res[cur_in] = cur.incoming;
@@ -197,7 +197,7 @@ module exposeDanglingRecvs#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
         end
         else
         begin
-            messageM("Dropping Recv" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + `MULTI_FPGA_PLATFORM);
+            messageM("Dropping Recv" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + fpgaPlatformName);
         end
 
     end

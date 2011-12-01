@@ -21,6 +21,7 @@ virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 5
 librl_bsv=RL Bluespec Library Submodel
 build_pipeline=FPGA Build Pipeline Xilinx (Synplify)
+soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
@@ -30,6 +31,7 @@ Packagehint=leap
 virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
+platform_services=Standard Platform Services
 
 [FPGA Environment]
 File=modules/leap/virtual-platform/fpga-environment.awb
@@ -133,4 +135,12 @@ Packagehint=leap
 
 [RL Bluespec Library Submodel]
 File=config/pm/leap/submodels/common/librl-bsv.apm
+Packagehint=leap
+
+[Soft Services Submodel]
+File=config/pm/leap/submodels/common/soft-services.apm
+Packagehint=leap
+
+[Standard Platform Services]
+File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap

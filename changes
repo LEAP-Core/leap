@@ -10472,3 +10472,76 @@ Directory modules/leap/libraries/librl/base
 
 Incorrect order of computation vs. sign extension in 1 to many memory packing
 case sometimes dropped the high bit, causing address aliases.
+
+----------
+mcadler     Date: Thu Dec  1 14:26:46 EST 2011  CSN: CSN-leap-209
+                  Thu Dec  1 19:26:46 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified          208 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          208 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified          208 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          208 
+ fpgaenv-de2-jtag.apm      Locally Modified          208 
+ fpgaenv-de3-jtag.apm      Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          208 
+ fpgaenv-hybrid-exe.apm    Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          208 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          208 
+ fpgaenv-hybrid-605d-syn.apm Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified          208 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          208 
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          208 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified          208 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          208 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common-interfaces.bsv Locally Modified          208 
+
+Directory modules/leap/virtual-platform
+ fpga-environment.awb      Locally Modified          208 
+ std-virtual-platform.awb  Locally Modified          208 
+
+Directory modules/leap/build-support/project/application-env/base
+ application-env-hybrid-base.bsv Locally Modified          208 
+ README                    Locally Modified          208 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ application-env-hybrid-soft-service.awb Locally Modified          208 
+ application-env-hybrid-soft-service.bsv Locally Modified          208 
+ README                    Locally Modified          208 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          208 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-multi.awb Locally Modified          208 
+ scratchpad-memory-connector.bsv Locally Modified          208 
+ scratchpad-memory-connector-rrr.bsv Locally Modified          208 
+
+Directory modules/leap/libraries/platform-services
+ README                    Locally Modified          208 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          208 
+ soft-connections-module-context-multifpga.awb Locally Modified          208 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          208 
+ connect-top-level-multifpga.bsv Locally Modified          208 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context.awb Locally Modified          208 
+ connection-implementation.bsv Locally Modified          208 
+
+Move soft services and platform services into the FPGA environment.  All
+LEAP applications now provide soft connections.
+
+Aside from simplifying the application environment by reducing the number
+of varients, this move permits code within the virtual platform to use
+soft connections.  It used to be necessary to have platform services expose
+soft connections to underlying virtual platform services.  Now a platform
+service may implement the service fully.

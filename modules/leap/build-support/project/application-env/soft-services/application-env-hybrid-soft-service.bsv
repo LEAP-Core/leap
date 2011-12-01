@@ -27,30 +27,21 @@ import ModuleContext::*;
 `include "awb/provides/platform_services.bsh"
 `include "awb/provides/connected_application.bsh"
 
-// mkWrappedApplication
-
-// A wrapper which instantiates the Soft Platform Interface and 
-// the application. All soft connections are connected above.
-
-module [SOFT_SERVICES_MODULE] mkWrappedApplication#(VIRTUAL_PLATFORM vp)
-    // interface:
-        ();
-    
-    let spi <- mkPlatformServices(vp);
-    let app <- mkConnectedApplication();
-
-endmodule
-
-// mkApplicationEnv
-
+//
+// mkApplicationEnv --
+//
 // The actual application env instantiates the wrapper.
-
-module [Module] mkApplicationEnv#(VIRTUAL_PLATFORM vp)
+//
+// The virtual platform is passed to the application environment in order
+// to support models built without soft connections.  (See the "base" instance
+// of application_env.  All model services are exported with soft connections
+// and connection applications are expected to these soft connections.
+// Consequently, the virtual platform is ignored here.
+//
+module [CONNECTED_MODULE] mkApplicationEnv#(VIRTUAL_PLATFORM vp)
     // interface:
         ();
-    
-    // Instantiate the wrapper and connect all soft connections.
-    // Dangling connections are errors.
-    instantiateWithConnections(mkWrappedApplication(vp));
+
+    let app <- mkConnectedApplication();
 
 endmodule

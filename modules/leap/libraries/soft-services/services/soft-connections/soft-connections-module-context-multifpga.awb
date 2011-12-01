@@ -20,6 +20,5 @@
 
 %sources --t BSH --v PUBLIC soft-connections-backward-deps.bsh
 
-%param --global MULTI_FPGA_PLATFORM "Unknown" "Specifies name of multi-fpga target"
 %param --global IGNORE_PLATFORM_MISMATCH 0 "Specifies name of multi-fpga target"
 %param --global CLOSE_CHAINS 1 "should we close chains at the top level"

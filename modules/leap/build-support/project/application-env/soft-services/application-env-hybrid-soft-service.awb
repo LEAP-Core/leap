@@ -6,8 +6,6 @@
 %provides application_env
 
 %requires connected_application
-%requires platform_services
-%requires soft_services
 
 %notes README
 

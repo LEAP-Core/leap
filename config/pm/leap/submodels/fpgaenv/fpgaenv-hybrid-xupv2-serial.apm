@@ -21,6 +21,7 @@ virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 2
 librl_bsv=RL Bluespec Library Submodel
 build_pipeline=FPGA Build Pipeline Xilinx (Synplify)
+soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
 File=modules/leap/virtual-platform/std-virtual-platform.awb
@@ -30,6 +31,7 @@ Packagehint=leap
 virtual_devices=Standard Virtual Devices (No Memory Service) Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
+platform_services=Standard Platform Service (No Memory Service)
 
 [FPGA Environment]
 File=modules/leap/virtual-platform/fpga-environment.awb
@@ -151,3 +153,11 @@ Packagehint=leap-platforms
 
 [Serial Physical Device (physical)/Requires]
 serial_device_ucf=Serial Physical Device XUPV2 UCF
+
+[Soft Services Submodel]
+File=config/pm/leap/submodels/common/soft-services.apm
+Packagehint=leap
+
+[Standard Platform Service (No Memory Service)]
+File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
+Packagehint=leap

@@ -1,7 +1,27 @@
+//
+// Copyright (C) 2011 Intel Corporation
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+
+`include "awb/provides/physical_platform_utils.bsh"
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/local_mem.bsh"
+`include "awb/provides/model_params.bsh"
 
 `include "awb/dict/VDEV.bsh"
 
@@ -70,44 +90,61 @@ typedef struct
 SCRATCHPAD_READ_RESP#(type t_ADDR, type t_DATA)
     deriving (Eq, Bits);
 
-typedef struct 
-{
-  Bit#(32) regionID;
-  Bit#(32) regionEndIdx;
-} SCRATCHPAD_RRR_INIT_REGION_REQ deriving (Bits,Eq);
+
+// ========================================================================
+//
+// Data structures for hybrid scratchpad RRR host requests.
+//
+// ========================================================================
 
 typedef struct 
 {
-  Bit#(64) byteMask;
-  Bit#(64) addr;
-  Bit#(64) data3;
-  Bit#(64) data2;
-  Bit#(64) data1;
-  Bit#(64) data0;
-
-} SCRATCHPAD_RRR_STORE_LINE_REQ deriving (Bits,Eq);
+    Bit#(32) regionID;
+    Bit#(32) regionEndIdx;
+}
+SCRATCHPAD_RRR_INIT_REGION_REQ
+    deriving (Bits,Eq);
 
 typedef struct 
 {
-  Bit#(64) byteMask;
-  Bit#(64) addr;
-  Bit#(64) data;
+    Bit#(64) byteMask;
+    Bit#(64) addr;
+    Bit#(64) data3;
+    Bit#(64) data2;
+    Bit#(64) data1;
+    Bit#(64) data0;
 
-} SCRATCHPAD_RRR_STORE_WORD_REQ deriving (Bits,Eq);
+}
+SCRATCHPAD_RRR_STORE_LINE_REQ
+    deriving (Bits,Eq);
+
+typedef struct 
+{
+    Bit#(64) byteMask;
+    Bit#(64) addr;
+    Bit#(64) data;
+
+}
+SCRATCHPAD_RRR_STORE_WORD_REQ
+    deriving (Bits,Eq);
 
 
 typedef struct 
 {
-  Bit#(64) addr;
-} SCRATCHPAD_RRR_LOAD_LINE_REQ deriving (Bits,Eq);
+    Bit#(64) addr;
+}
+SCRATCHPAD_RRR_LOAD_LINE_REQ
+    deriving (Bits,Eq);
 
 typedef struct 
 {
-  Bit#(64) data3;
-  Bit#(64) data2;
-  Bit#(64) data1;
-  Bit#(64) data0;
-} SCRATCHPAD_RRR_LOAD_LINE_RESP deriving (Bits,Eq);
+    Bit#(64) data3;
+    Bit#(64) data2;
+    Bit#(64) data1;
+    Bit#(64) data0;
+}
+SCRATCHPAD_RRR_LOAD_LINE_RESP
+    deriving (Bits,Eq);
 
 typedef union tagged
 {
@@ -115,13 +152,32 @@ typedef union tagged
   SCRATCHPAD_RRR_STORE_LINE_REQ StoreLineReq;
   SCRATCHPAD_RRR_LOAD_LINE_REQ  LoadLineReq;
   SCRATCHPAD_RRR_INIT_REGION_REQ InitRegionReq;
-} SCRATCHPAD_RRR_REQ deriving (Bits,Eq);
+}
+SCRATCHPAD_RRR_REQ
+    deriving (Bits,Eq);
+
+
+// ========================================================================
+//
+// For multiple FPGAs, only a single FPGA manages the RRR requests to the
+// host.  All other FPGAs make requests over an inter-FPGA ring.  The
+// requests are translated to RRR requests by the primary FPGA.
+//
+// ========================================================================
+
+// Ring stop 0 is reserved for the RRR communicating FPGA, so make the ring
+// stop ID space one larger to accomodate it.
+typedef Bit#(TLog#(TAdd#(`FPGA_NUM_PLATFORMS, 1))) SCRATCHPAD_RING_STOP_ID;
 
 typedef struct 
 {
-  SCRATCHPAD_RRR_REQ req;
-  SCRATCHPAD_PORT_NUM portID;
-} SCRATCHPAD_RING_REQ deriving (Bits,Eq);
+    SCRATCHPAD_RRR_REQ req;
+    SCRATCHPAD_RING_STOP_ID stopID;
+}
+SCRATCHPAD_RING_REQ
+    deriving (Bits,Eq);
+
+
 
 //
 // Debug scan state
