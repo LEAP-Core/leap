@@ -40,16 +40,16 @@ module [Module] mkModel
     // The Model is instantiated inside a NULL (noClock) clock domain,
     // so first instantiate the LLPI and get a clock and reset from it.
 
-    VIRTUAL_PLATFORM vp <- mkVirtualPlatform();
+    let llpi <- mkLowLevelPlatformInterface();
 
-    Clock clk = vp.llpint.physicalDrivers.clocksDriver.clock;
-    Reset rst = vp.llpint.physicalDrivers.clocksDriver.reset;
-    
+    Clock clk = llpi.physicalDrivers.clocksDriver.clock;
+    Reset rst = llpi.physicalDrivers.clocksDriver.reset;
+
     // Instantiate the soft-connected system with new clock and reset
-    let sys <- mkClockedSystem(vp, clocked_by clk, reset_by rst);
+    let sys <- mkClockedSystem(llpi, clocked_by clk, reset_by rst);
     
     // return top level wires interface
-    return vp.llpint.topLevelWires;
+    return llpi.topLevelWires;
 
 endmodule
 
@@ -59,12 +59,12 @@ endmodule
 //
 // A wrapper which instantiates the clocked system.
 //
-module [Module] mkClockedSystem#(VIRTUAL_PLATFORM vp)
+module [Module] mkClockedSystem#(LowLevelPlatformInterface llpi)
     // interface:
         ();
     
     // Instantiate the soft-connected system
-    instantiateWithConnections(mkConnectedSystem(vp));
+    instantiateWithConnections(mkConnectedSystem(llpi));
 
 endmodule
 
@@ -75,15 +75,28 @@ endmodule
 // A wrapper which instantiates the Soft Platform Interface and 
 // the application.
 //
-module [SOFT_SERVICES_MODULE] mkConnectedSystem#(VIRTUAL_PLATFORM vp)
+module [SOFT_SERVICES_MODULE] mkConnectedSystem#(LowLevelPlatformInterface llpi)
     // interface:
         ();
     
-    // Platform services are the exposed soft connections from the LEAP
-    // virtual services.  They must be instantiated within the soft-connected
-    // domain.
+    //
+    // Virtual platform is the first connection between the low level platform
+    // and the application.  Elements in the virtual platform are often simple
+    // and may either expose their interface through the VIRTUAL_PLATFORM or
+    // through soft connections.
+    //
+    let vp <- mkVirtualPlatform(llpi);
+    
+    //
+    // Platform services are layered on the virtual platform.  These services
+    // are typically device independent and must expose their interfaces as
+    // soft connections.
+    //
     let spi <- mkPlatformServices(vp);
 
+    //
+    // Instantiate the application.
+    //
     let app <- mkApplicationEnv(vp);
 
 endmodule

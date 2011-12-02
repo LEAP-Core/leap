@@ -10545,3 +10545,24 @@ of varients, this move permits code within the virtual platform to use
 soft connections.  It used to be necessary to have platform services expose
 soft connections to underlying virtual platform services.  Now a platform
 service may implement the service fully.
+
+----------
+mcadler     Date: Thu Dec  1 22:44:56 EST 2011  CSN: CSN-leap-210
+                  Fri Dec  2 03:44:56 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.bsv   Locally Modified          209 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ local-mem-central-cache.bsv Locally Modified          209 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          209 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          209 
+
+Allocate the virtual platform within the soft services domain.  Now the low-level
+platform interface is allocated outside soft services and passed to the
+virtual platform.  Code within the virtual platform may use soft connections.

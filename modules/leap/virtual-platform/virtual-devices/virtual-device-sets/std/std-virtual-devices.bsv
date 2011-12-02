@@ -23,6 +23,7 @@
 `include "awb/provides/shared_memory.bsh"
 `include "awb/provides/starter_device.bsh"
 `include "awb/provides/common_utility_devices.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 interface VIRTUAL_DEVICES;
 
@@ -35,7 +36,7 @@ interface VIRTUAL_DEVICES;
 
 endinterface
 
-module mkVirtualDevices#(LowLevelPlatformInterface llpint)
+module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     // interface:
         (VIRTUAL_DEVICES);
 

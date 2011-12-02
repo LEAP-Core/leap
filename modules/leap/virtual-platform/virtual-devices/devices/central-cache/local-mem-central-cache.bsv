@@ -27,6 +27,7 @@ import Vector::*;
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/local_mem.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 
 typedef CENTRAL_CACHE_VIRTUAL_DEVICE CENTRAL_CACHE_IFC;
@@ -55,7 +56,7 @@ endinterface: CENTRAL_CACHE_BACKING
 //     Central cache using local memory.  One port is created for each
 //     client.
 //
-module mkCentralCache#(LowLevelPlatformInterface llpi)
+module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
     // interface:
     (CENTRAL_CACHE_IFC)
     provisos (Bits#(CENTRAL_CACHE_LINE_ADDR, t_CENTRAL_CACHE_LINE_ADDR_SZ),
