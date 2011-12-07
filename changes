@@ -10566,3 +10566,54 @@ Directory modules/leap/build-support/project
 Allocate the virtual platform within the soft services domain.  Now the low-level
 platform interface is allocated outside soft services and passed to the
 virtual platform.  Code within the virtual platform may use soft connections.
+
+----------
+mcadler     Date: Wed Dec  7 11:49:40 EST 2011  CSN: CSN-leap-211
+                  Wed Dec  7 16:49:40 UTC 2011
+
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          210 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          210 
+ xup-virtual-devices.apm   Locally Modified          210 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.awb   Locally Modified          210 
+ std-virtual-devices.bsv   Locally Modified          210 
+ std-virtual-devices-null.awb Locally Modified          210 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ local-memory/             Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/null
+ local-memory-device-null.awb Locally Added               0 
+ local-memory-device-null.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory
+ soft/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft
+ local-memory-device-soft.bsv Locally Added               0 
+ README                    Locally Added               0 
+ local-memory-device-soft.awb Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ local-mem-central-cache.bsv Locally Modified          210 
+
+- Expose local memory as soft connections in the virtual devices.
+
+- Connect to local memory in the central cache through the soft connections.
+
+- Revert to a bypass FIFO on local memory read response in the central cache
+  to save a cycle.
+
+  I had switched to a latency one FIFO because it made a bug that we had not yet
+  diagnosed go away with multiple lanes in multi-FPGA.  The source of the bug
+  has since been identified (compiling with different options in the two
+  multi-FPGA passes).

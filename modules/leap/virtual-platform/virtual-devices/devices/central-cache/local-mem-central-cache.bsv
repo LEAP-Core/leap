@@ -28,6 +28,7 @@ import Vector::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/soft_connections.bsh"
+`include "awb/provides/local_memory_device.bsh"
 
 
 typedef CENTRAL_CACHE_VIRTUAL_DEVICE CENTRAL_CACHE_IFC;
@@ -119,7 +120,7 @@ module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
                             CENTRAL_CACHE_WORD,
                             CENTRAL_CACHE_WORDS_PER_LINE,
                             TExp#(t_CENTRAL_CACHE_SET_IDX_SZ),
-                            3) cacheLocalData <- mkLocalMemCacheData(llpi, debugLogInt);
+                            3) cacheLocalData <- mkLocalMemCacheData(debugLogInt);
 
     NumTypeParam#(`CENTRAL_CACHE_LINE_RESP_CACHE_IDX_BITS) nRecentReadCacheIdxBits = ?;
     NumTypeParam#(0) nTagExtraLowBits = ?;
@@ -488,11 +489,21 @@ interface LOCAL_MEMORY_MULTI_READ_CACHE_IFC#(numeric type nReadPorts);
 endinterface: LOCAL_MEMORY_MULTI_READ_CACHE_IFC
 
 
-module mkMultiReaderLocalMem#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLog)
+module [CONNECTED_MODULE] mkMultiReaderLocalMem#(DEBUG_FILE debugLog)
     // interface:
     (LOCAL_MEMORY_MULTI_READ_CACHE_IFC#(nReadPorts));
 
-    FIFOF#(Bit#(TLog#(nReadPorts))) readQ <- mkSizedFIFOF(8);
+    // Local memory is available as a soft connected device.  This is the command
+    // channel.
+    CONNECTION_CLIENT#(LOCAL_MEM_CMD, LOCAL_MEM_READ_DATA) lms
+        <- mkConnectionClient("local_memory_device");
+
+    // Write data channel.
+    CONNECTION_SEND#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) lmWriteData
+        <- mkConnectionSend("local_memory_device_wdata");
+
+    MERGE_FIFOF#(TAdd#(nReadPorts, 1), LOCAL_MEM_CMD) reqQ <- mkMergeBypassFIFOF();
+    FIFOF#(Bit#(TLog#(nReadPorts))) readQ <- mkSizedFIFOF(16);
 
     //
     // Compute the notEmpty read port state using a rule and wires so the
@@ -510,6 +521,19 @@ module mkMultiReaderLocalMem#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLo
 
 
     //
+    // Forward requests to local memory.
+    //
+    rule forwardReq (True);
+        let req = reqQ.first();
+        reqQ.deq();
+        
+        lms.makeReq(req);
+    endrule
+
+    // Do reads before write
+    let wPort = valueOf(nReadPorts);
+
+    //
     // Read port methods
     //
     Vector#(nReadPorts, LOCAL_MEMORY_CACHE_IFC) portsLocal = newVector;
@@ -518,18 +542,19 @@ module mkMultiReaderLocalMem#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLo
         portsLocal[p] = (
             interface LOCAL_MEMORY_CACHE_IFC;
                 method Action readLineReq(LOCAL_MEM_ADDR addr);
-                    llpi.localMem.readLineReq(addr);
+                    reqQ.ports[p].enq(tagged LM_READ_LINE addr);
                     readQ.enq(fromInteger(p));
                     debugLog.record($format("      DDR readLineReq port %0d: addr=0x%x", p, addr));
                 endmethod
 
-                method ActionValue#(LOCAL_MEM_LINE) readLineRsp() if (readQ.first() == fromInteger(p));
+                method ActionValue#(LOCAL_MEM_LINE) readLineRsp() if (readQ.first() == fromInteger(p) &&&
+                                                                      lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
                     readQ.deq();
+                    lms.deq();
 
-                    let d <- llpi.localMem.readLineRsp();
-                    debugLog.record($format("      DDR readLineRsp port %0d: val=0x%x", p, d));
+                    debugLog.record($format("      DDR readLineRsp port %0d: val=0x%x", p, val));
 
-                    return d;
+                    return val;
                 endmethod
 
                 method Bool notEmpty() = readPortNotEmpty[p];
@@ -540,15 +565,18 @@ module mkMultiReaderLocalMem#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLo
     interface readPorts = portsLocal;
 
     method Action writeWord(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data);
-        llpi.localMem.writeWord(addr, data);
+        reqQ.ports[wPort].enq(tagged LM_WRITE_WORD addr);
+        lmWriteData.send(tuple2({?, data}, ?));
     endmethod
 
     method Action writeLine(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data);
-        llpi.localMem.writeLine(addr, data);
+        reqQ.ports[wPort].enq(tagged LM_WRITE_LINE addr);
+        lmWriteData.send(tuple2(data, ?));
     endmethod
 
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
-        llpi.localMem.writeLineMasked(addr, data, mask);
+        reqQ.ports[wPort].enq(tagged LM_WRITE_LINE_MASKED addr);
+        lmWriteData.send(tuple2(data, mask));
     endmethod
 endmodule
 
@@ -557,7 +585,7 @@ endmodule
 // mkLocalMemCacheData --
 //     Set associative cache local storage.
 //
-module mkLocalMemCacheData#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLog)
+module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     // interface:
     (RL_SA_CACHE_LOCAL_DATA#(t_CACHE_ADDR_SZ, t_CACHE_WORD, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays))
     provisos (Bits#(t_CACHE_WORD, LOCAL_MEM_WORD_SZ),
@@ -580,7 +608,7 @@ module mkLocalMemCacheData#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLog)
               Bits#(Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD), LOCAL_MEM_LINE_SZ));
 
     // Connection to local memory
-    LOCAL_MEMORY_MULTI_READ_CACHE_IFC#(t_N_READ_PORTS) memory <- mkMultiReaderLocalMem(llpi, debugLog);
+    LOCAL_MEMORY_MULTI_READ_CACHE_IFC#(t_N_READ_PORTS) memory <- mkMultiReaderLocalMem(debugLog);
 
 
     // ====================================================================
@@ -648,7 +676,7 @@ module mkLocalMemCacheData#(LowLevelPlatformInterface llpi, DEBUG_FILE debugLog)
     //
     // ====================================================================
 
-    FIFOF#(t_SET_METADATA) readMetadataRespQ <- mkSizedFIFOF(8);
+    FIFOF#(t_SET_METADATA) readMetadataRespQ <- mkSizedBypassFIFOF(8);
     COUNTER#(4) readMetadataCnt <- mkLCounter(8);
 
     rule forwardMetadataResp (True);

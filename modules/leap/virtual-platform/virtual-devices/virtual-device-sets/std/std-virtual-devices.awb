@@ -4,7 +4,13 @@
 
 %provides virtual_devices
 
-%requires front_panel central_cache scratchpad_memory shared_memory starter_device common_utility_devices
+%requires front_panel
+%requires central_cache
+%requires scratchpad_memory
+%requires shared_memory
+%requires local_memory_device
+%requires starter_device
+%requires common_utility_devices
 
 %notes README
 

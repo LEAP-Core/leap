@@ -1,0 +1,6 @@
+%name NULL Local Memory Device
+%desc NULL Local Memory Device
+
+%provides local_memory_device
+
+%public local-memory-device-null.bsv

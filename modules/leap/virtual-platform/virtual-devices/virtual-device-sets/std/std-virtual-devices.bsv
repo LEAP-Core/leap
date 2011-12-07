@@ -21,6 +21,7 @@
 `include "awb/provides/central_cache.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
 `include "awb/provides/shared_memory.bsh"
+`include "asim/provides/local_memory_device.bsh"
 `include "awb/provides/starter_device.bsh"
 `include "awb/provides/common_utility_devices.bsh"
 `include "awb/provides/soft_connections.bsh"
@@ -45,6 +46,11 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     let cc  <- mkCentralCache(llpint);
     let sp  <- mkMemoryVirtualDevice(llpint, cc);
     let sh  <- mkSharedMemory(llpint);
+
+    // mkLocalMemory() exports only soft connections, so will not be returned
+    // as part of the VIRTUAL_DEVICES interface.
+    let lm  <- mkLocalMemory(llpint);
+
     let st  <- mkStarter(llpint);
     let com <- mkCommonUtilityDevices(llpint);
 

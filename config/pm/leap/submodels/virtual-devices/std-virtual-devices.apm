@@ -31,6 +31,7 @@ central_cache=Local Memory Central Cache
 shared_memory=Null Shared Memory
 starter_device=Starter Virtual Device
 common_utility_devices=Base Common Devices
+local_memory_device=Soft Connection Local Memory Device
 
 [Hybrid Scratchpad Memory Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid/hybrid-mem-scratch.awb
@@ -84,4 +85,8 @@ scratchpad_memory_common=Scratchpad Memory Common Definitions
 
 [Scratchpad Memory Common Definitions]
 File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common/mem-scratch-common.awb
+Packagehint=leap
+
+[Soft Connection Local Memory Device]
+File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft/local-memory-device-soft.awb
 Packagehint=leap
