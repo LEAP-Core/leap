@@ -739,6 +739,11 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         error("Scratchpad ID " + integerToString(scratchpadID) + " address is too large: " + integerToString(valueOf(t_CACHE_ADDR_SZ)) + " bits");
     end
 
+    String debugLogFilename = "memory_scratchpad_src_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
+    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
+                           mkDebugFile(debugLogFilename):
+                           mkDebugFileNull(debugLogFilename); 
+
     let my_port = scratchpadPortId(scratchpadID);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
@@ -761,6 +766,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         r.allocLastWordIdx = zeroExtendNP(alloc);
         r.cached = True;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
+
+        debugLog.record($format("init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
     endrule
 
     method Action readReq(t_CACHE_ADDR addr, t_CACHE_REF_INFO refInfo) if (initialized);
@@ -769,6 +776,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
                                         byteReadMask: replicate(True),
                                         clientRefInfo: zeroExtendNP(pack(refInfo)) };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+
+        debugLog.record($format("read REQ ID %0d: addr 0x%x", my_port, req.addr));
     endmethod
 
     method ActionValue#(t_CACHE_FILL_RESP) readResp();
@@ -779,6 +788,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
         r.refInfo = unpack(truncateNP(s.clientRefInfo));
+
+        debugLog.record($format("read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
 
         return r;
     endmethod
@@ -802,6 +813,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+
+        debugLog.record($format("write ID %0d: addr=0x%x, val=0x%x", my_port, addr, val));
     endmethod
 
     //

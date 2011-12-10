@@ -3,8 +3,6 @@
 
 %provides scratchpad_memory
 
-%requires scratchpad_memory_common
-
 %notes README
 
 %public local-mem-scratch.bsv

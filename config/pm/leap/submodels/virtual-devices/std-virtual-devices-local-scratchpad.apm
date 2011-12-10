@@ -1,11 +1,11 @@
 
 [Global]
 SaveParameters=0
-Description=Standard Virtual Devices (Local Scratchpad Memory)
+Description=Standard Virtual Devices (Local Memory Scratchpad)
 File=std-virtual-devices-local-scratchpad
 Version=2.2
 Type=HAsim
-Name=Standard Virtual Devices (Local Scratchpad Memory) Submodel
+Name=Standard Virtual Devices (Local Memory Scratchpad) Submodel
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -26,7 +26,6 @@ Packagehint=leap
 
 [Standard Virtual Devices/Requires]
 front_panel=Hybrid Front Panel
-scratchpad_memory=Local Memory Scratchpad Memory Device
 central_cache=NULL Central Cache
 shared_memory=Null Shared Memory
 starter_device=Starter Virtual Device
@@ -72,21 +71,9 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device/debug-scan-device.awb
 Packagehint=leap
 
-[Scratchpad Memory Common Definitions]
-File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common/mem-scratch-common.awb
-Packagehint=leap
-
-[Local Memory Scratchpad Memory Device/Requires]
-scratchpad_memory_common=Scratchpad Memory Common Definitions
-
 [NULL Central Cache]
 File=modules/leap/virtual-platform/virtual-devices/devices/central-cache/null-central-cache.awb
 Packagehint=leap
-
-[Local Memory Scratchpad Memory Device]
-File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/local/local-mem-scratch.awb
-Packagehint=leap
-
 
 [Soft Connection Local Memory Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft/local-memory-device-soft.awb

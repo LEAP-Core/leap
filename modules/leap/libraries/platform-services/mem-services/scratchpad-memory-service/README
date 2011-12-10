@@ -13,3 +13,8 @@ mkScratchpadMultiRead()
 
 let cacheData <- mkScratchpad(`VDEV_SCRATCH_ICACHE_DATA, SCRATCHPAD_CACHED);
 
+
+Subdirectories contain varying implementations of scratchpad memory:
+  common/     Base typedefs and common definitions.
+  hybrid/     HW/SW scratchpad that uses HW local memory backed by SW memory.
+  local/      HW scratchpad using local memory only.

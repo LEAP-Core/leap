@@ -10617,3 +10617,92 @@ Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
   diagnosed go away with multiple lanes in multi-FPGA.  The source of the bug
   has since been identified (compiling with different options in the two
   multi-FPGA passes).
+
+----------
+mcadler     Date: Sat Dec 10 16:40:04 EST 2011  CSN: CSN-leap-212
+                  Sat Dec 10 21:40:04 UTC 2011
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          211 
+ standard-platform-local-mem.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe.apm    Locally Modified          211 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          211 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          211 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          211 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.awb   Locally Modified          211 
+ std-virtual-devices.bsv   Locally Modified          211 
+ std-virtual-devices-null.awb Locally Modified          211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ hybrid/                   Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch.dic    Locally Removed           211 
+ hybrid-mem-scratch-multi.awb Locally Removed           211 
+ hybrid-mem-scratch.cpp    Locally Removed           211 
+ hybrid-mem-scratch-multi.bsv Locally Removed           211 
+ hybrid-mem-scratch.rrr    Locally Removed           211 
+ hybrid-mem-scratch.h      Locally Removed           211 
+ hybrid-mem-scratch.awb    Locally Removed           211 
+ hybrid-mem-scratch.bsv    Locally Removed           211 
+ README                    Locally Removed           211 
+ hybrid-mem-scratch-multi.rrr Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ common/                   Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common.awb    Locally Removed           211 
+ mem-scratch-common-interfaces.bsv Locally Removed           211 
+ README                    Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ local/                    Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/local
+ local-mem-scratch.awb     Locally Removed           211 
+ local-mem-scratch.bsv     Locally Removed           211 
+ README                    Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ README                    Locally Removed           211 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-multi.awb Locally Removed           211 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Added               - 
+ hybrid-mem-scratch-multi.rrr Locally Removed           211 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-multi-rrr.awb Locally Removed           211 
+ scratchpad-memory-service.awb Locally Modified          211 
+ platform-scratchpad-memory.bsv Locally Modified          211 
+ README                    Locally Modified          211 
+ scratchpad-memory-service-null.awb Locally Modified          211 
+ scratchpad-memory-connector.bsv Locally Removed           211 
+ scratchpad-memory-connector-rrr.bsv Locally Removed           211 
+ scratchpad-memory-service.bsv Locally Modified          211 
+ scratchpad-memory-connector-null.bsv Locally Removed           211 
+
+- Move all scratchpad support to platform services.  The scratchpad code
+  is now removed from virtual devices.
+
+- Take advantage of soft connections within the scratchpad implementation:
+
+  - The memory connector is now chosen as part of the configuration and is
+    implemented below the scratchpad.
+
+  - For hybrid connectors, the code now automatically instantiates the
+    connector appropriate to the platform.  For single FPGA systems a simple
+    RRR connector is allocated.  For multi-FPGA systems, FPGA 0 gets an RRR
+    connector and a ring stop for forwarding remote requests to RRR.  All
+    other FPGAs get just a ring stop for sending requests to FPGA 0.
+    This eliminates separate AWB configurations and sources for the 3 cases.

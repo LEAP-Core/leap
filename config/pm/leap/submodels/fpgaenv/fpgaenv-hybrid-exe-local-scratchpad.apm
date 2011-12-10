@@ -32,10 +32,10 @@ File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices (Local Scratchpad Memory) Submodel
+virtual_devices=Standard Virtual Devices (Local Memory Scratchpad) Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
-platform_services=Standard Platform Services
+platform_services=Standard Platform Services (Local Memory Scratchpad) Submodel
 
 [RRR Clients and Servers]
 File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
@@ -125,14 +125,15 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/librl-bsv.apm
 Packagehint=leap
 
-[Standard Virtual Devices (Local Scratchpad Memory) Submodel]
-File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-local-scratchpad.apm
-Packagehint=leap
-
 [Soft Services Submodel]
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-[Standard Platform Services]
-File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
+
+[Standard Virtual Devices (Local Memory Scratchpad) Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-local-scratchpad.apm
+Packagehint=leap
+
+[Standard Platform Services (Local Memory Scratchpad) Submodel]
+File=config/pm/leap/submodels/platform-services/standard-platform-local-mem.apm
 Packagehint=leap

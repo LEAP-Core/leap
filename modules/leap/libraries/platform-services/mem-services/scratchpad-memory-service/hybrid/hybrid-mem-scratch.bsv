@@ -23,20 +23,19 @@
 
 import FIFO::*;
 import FIFOF::*;
+import SpecialFIFOs::*;
 import Vector::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/local_mem.bsh"
+`include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/central_cache.bsh"
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
 
-`include "awb/rrr/service_ids.bsh"
-`include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"
-`include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.bsh"
 `include "awb/dict/VDEV_CACHE.bsh"
 
 
@@ -115,8 +114,7 @@ SCRATCHPAD_HYBRID_READ_INFO
 // mkMemoryVirtualDevice --
 //     Build a device interface with the requested number of ports.
 //
-module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
-                              CENTRAL_CACHE_IFC centralCache)
+module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     // interface:
     (SCRATCHPAD_MEMORY_VDEV)
     provisos (Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
@@ -133,8 +131,6 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
     DEBUG_FILE debugLog <- (`SCRATCHPAD_MEMORY_DEBUG_ENABLE == 1)?
                            mkDebugFile("memory_scratchpad.out"):
                            mkDebugFileNull("memory_scratchpad.out");  
-
-    ClientStub_SCRATCHPAD_MEMORY scratchpad_rrr <- mkClientStub_SCRATCHPAD_MEMORY(llpi.rrrClient);
 
     //
     // Port state
@@ -154,6 +150,15 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
     FIFOF#(Tuple3#(SCRATCHPAD_MEM_ADDRESS,
                    SCRATCHPAD_MEM_VALUE,
                    SCRATCHPAD_REF_INFO)) uncachedReadRspQ <- mkLFIFOF();
+
+    // RRR routethrough FIFOs.  These will pass local requests to the hybrid
+    // connector.
+    FIFO#(SCRATCHPAD_RRR_REQ) rrrReqQ <- mkBypassFIFO();
+    FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) rrrRespQ <- mkBypassFIFO();
+
+    // Instantiate the connector.
+    let hybridConnector <- mkScratchpadConnector(rrrReqQ, rrrRespQ);
+
 
     // ====================================================================
     //
@@ -275,13 +280,15 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
         begin
             //
             // More than one word is changed.  Write the whole line.
+            // Notice the funky endianess here.
             //
-            scratchpad_rrr.makeRequest_StoreLine(maskmovqMask(mask),
-                                                 hostAddr,
-                                                 val[3],
-                                                 val[2],
-                                                 val[1],
-                                                 val[0]);
+            rrrReqQ.enq(tagged StoreLineReq
+                            SCRATCHPAD_RRR_STORE_LINE_REQ{ byteMask: maskmovqMask(mask),
+                                                           addr: hostAddr,
+                                                           data0: val[3],
+                                                           data1: val[2],
+                                                           data2: val[1],
+                                                           data3: val[0] });
         end
         else
         begin
@@ -293,9 +300,10 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
             t_SCRATCHPAD_LINE_MASK w_mask = replicate(replicate(False));
             w_mask[0] = mask[idx];
 
-            scratchpad_rrr.makeRequest_StoreWord(maskmovqMask(w_mask),
-                                                 hostAddr | zeroExtend(pack(idx)),
-                                                 val[idx]);
+            rrrReqQ.enq(tagged StoreWordReq
+                            SCRATCHPAD_RRR_STORE_WORD_REQ{ byteMask: maskmovqMask(w_mask),
+                                                           addr: hostAddr | zeroExtend(pack(idx)),
+                                                           data: val[idx] });
         end
     endaction
     endfunction
@@ -315,7 +323,9 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
         initQ.deq();
 
         portUsesCentralCache[port] <= use_central_cache;
-        scratchpad_rrr.makeRequest_InitRegion(zeroExtend(port), alloc_last_word_idx);
+        rrrReqQ.enq(tagged InitRegionReq
+                        SCRATCHPAD_RRR_INIT_REGION_REQ { regionID: zeroExtend(port),
+                                                         regionEndIdx: alloc_last_word_idx });
     endrule
 
 
@@ -334,27 +344,24 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
         let h_addr = hostAddrFromCacheAddr(r.addr);
         debugLog.record($format("backingReadReq: addr=0x%x", h_addr));
 
-        scratchpad_rrr.makeRequest_LoadLine(h_addr);
+        rrrReqQ.enq(tagged LoadLineReq SCRATCHPAD_RRR_LOAD_LINE_REQ { addr: h_addr });
 
         SCRATCHPAD_HYBRID_READ_INFO info = ?;
         info.fromCentralCache = True;
         readReqInfoQ.enq(info);
     endrule
 
+
     Reg#(Bit#(TLog#(SCRATCHPAD_WORDS_PER_LINE))) readWordIdx <- mkReg(0);
 
     rule backingReadResp (readReqInfoQ.first().fromCentralCache);
         // Pick a word from the current incoming value.  Pop the entry if on
         // the last word.
-        OUT_TYPE_LoadLine r;
+        SCRATCHPAD_RRR_LOAD_LINE_RESP r = rrrRespQ.first();
         if (readWordIdx == maxBound)
         begin
-            r <- scratchpad_rrr.getResponse_LoadLine();
+            rrrRespQ.deq;
             readReqInfoQ.deq();
-        end
-        else
-        begin
-            r = scratchpad_rrr.peekResponse_LoadLine();
         end
 
         t_SCRATCHPAD_LINE line;
@@ -620,7 +627,7 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
             uncachedReqQ.deq();
 
             let h_addr = hostAddrFromLineAddr(port, l_addr);
-            scratchpad_rrr.makeRequest_LoadLine(h_addr);
+            rrrReqQ.enq(tagged LoadLineReq SCRATCHPAD_RRR_LOAD_LINE_REQ { addr: h_addr });
 
             // Reference metadata for use when the value comes back.
             // Responses from the system are ordered.
@@ -659,7 +666,8 @@ module mkMemoryVirtualDevice#(LowLevelPlatformInterface llpi,
             // Consume response from host
             read_source = "host";
 
-            let r <- scratchpad_rrr.getResponse_LoadLine();
+            let r = rrrRespQ.first;
+            rrrRespQ.deq;
 
             line[0] = r.data0;
             line[1] = r.data1;

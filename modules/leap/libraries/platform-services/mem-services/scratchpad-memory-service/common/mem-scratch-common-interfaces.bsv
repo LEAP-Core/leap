@@ -165,9 +165,7 @@ SCRATCHPAD_RRR_REQ
 //
 // ========================================================================
 
-// Ring stop 0 is reserved for the RRR communicating FPGA, so make the ring
-// stop ID space one larger to accomodate it.
-typedef Bit#(TLog#(TAdd#(`FPGA_NUM_PLATFORMS, 1))) SCRATCHPAD_RING_STOP_ID;
+typedef FPGA_PLATFORM_ID SCRATCHPAD_RING_STOP_ID;
 
 typedef struct 
 {
@@ -221,9 +219,6 @@ interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MAS
                                    Bool useCentralCache);
 
     method SCRATCHPAD_MEMORY_DEBUG_SCAN debugScanState();
-
-    method ActionValue#(SCRATCHPAD_RRR_REQ) rrrReq();
-    method Action                           loadLineResp(SCRATCHPAD_RRR_LOAD_LINE_RESP line);
 
 endinterface: SCRATCHPAD_MEMORY_VIRTUAL_DEVICE
 

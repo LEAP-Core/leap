@@ -35,12 +35,10 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
     ()
     provisos (Max#(SCRATCHPAD_N_CLIENTS, 1, n_SCRATCHPAD_CLIENTS_NONZERO));
     
-    let memory = vdevs.scratchpadMemory;
-
-    // This module will connect the scratchpad device to the RRR or to a chain depending on the 
-    // multifpga configuration.
- 
-    Empty connector <- mkScratchpadConnector(memory);
+    //
+    // Instantiate a scratchpad implementation.
+    //
+    let memory <- mkScratchpadMemory(vdevs.centralCache);
 
     // ***** Assertion Checkers *****
     ASSERTION_NODE assertNode <- mkAssertionNode(`ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE__BASE);
