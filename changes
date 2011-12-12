@@ -10706,3 +10706,14 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
     connector and a ring stop for forwarding remote requests to RRR.  All
     other FPGAs get just a ring stop for sending requests to FPGA 0.
     This eliminates separate AWB configurations and sources for the 3 cases.
+
+----------
+mcadler     Date: Mon Dec 12 15:00:17 EST 2011  CSN: CSN-leap-213
+                  Mon Dec 12 20:00:17 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-multi.awb Locally Removed           212 
+ hybrid-mem-scratch-multi.bsv Locally Removed           212 
+
+Remove old version of multi-FPGA scratchpad code.
