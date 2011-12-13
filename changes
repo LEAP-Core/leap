@@ -10717,3 +10717,22 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
  hybrid-mem-scratch-multi.bsv Locally Removed           212 
 
 Remove old version of multi-FPGA scratchpad code.
+
+----------
+mcadler     Date: Tue Dec 13 13:49:24 EST 2011  CSN: CSN-leap-214
+                  Tue Dec 13 18:49:24 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Modified          213 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          213 
+
+- os.path.relpath was added to Python in version 2.6.  Not all sites are
+  running that release, yet.  Put a version of relpath in Utils.py.
+
+- Remove scratchpad include from NULL std virtual devices.  Scratchpad code
+  is now in the platform services.
+
+  Will deal with renaming NULL devices to something more meaningful later.
