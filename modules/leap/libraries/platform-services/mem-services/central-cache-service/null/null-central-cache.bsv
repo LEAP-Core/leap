@@ -29,15 +29,16 @@ import Vector::*;
 
 
 `include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/fpga_components.bsh"
-`include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/physical_platform.bsh"
+`include "awb/provides/central_cache_service_params.bsh"
 
 
 
 typedef CENTRAL_CACHE_VIRTUAL_DEVICE CENTRAL_CACHE_IFC;
 
-module mkCentralCache#(LowLevelPlatformInterface llpi)
+module mkCentralCache
     // interface:
     (CENTRAL_CACHE_IFC);
     
@@ -165,15 +166,4 @@ module mkCentralCache#(LowLevelPlatformInterface llpi)
     
     interface clientPorts = clientPortsLocal;
     interface backingPorts = backingPortsLocal;
-    
-    method CENTRAL_CACHE_DEBUG_SCAN debugScanState();
-        CENTRAL_CACHE_DEBUG_SCAN state = unpack(0);
-        return state;
-    endmethod
-
-    method Action init(RL_SA_CACHE_MODE mode, Bool enableRecentLineCache);
-        noAction;
-    endmethod
-
-    interface CENTRAL_CACHE_STATS stats = ?;
 endmodule

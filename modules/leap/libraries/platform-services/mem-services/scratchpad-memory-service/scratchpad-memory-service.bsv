@@ -19,6 +19,7 @@
 import Arbiter::*;
 
 `include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/central_cache.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
 
@@ -30,7 +31,7 @@ import Arbiter::*;
 `include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 
-module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCache)
     // interface:
     ()
     provisos (Max#(SCRATCHPAD_N_CLIENTS, 1, n_SCRATCHPAD_CLIENTS_NONZERO));
@@ -38,7 +39,7 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
     //
     // Instantiate a scratchpad implementation.
     //
-    let memory <- mkScratchpadMemory(vdevs.centralCache);
+    let memory <- mkScratchpadMemory(centralCache);
 
     // ***** Assertion Checkers *****
     ASSERTION_NODE assertNode <- mkAssertionNode(`ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE__BASE);

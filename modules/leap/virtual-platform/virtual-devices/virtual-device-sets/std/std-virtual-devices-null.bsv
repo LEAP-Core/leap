@@ -17,7 +17,6 @@
 //
 
 `include "awb/provides/low_level_platform_interface.bsh"
-`include "awb/provides/central_cache.bsh"
 `include "awb/provides/shared_memory.bsh"
 `include "awb/provides/starter_device.bsh"
 `include "awb/provides/common_utility_devices.bsh"

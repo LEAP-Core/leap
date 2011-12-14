@@ -10736,3 +10736,90 @@ Directory modules/leap/build-support/project
   is now in the platform services.
 
   Will deal with renaming NULL devices to something more meaningful later.
+
+----------
+mcadler     Date: Wed Dec 14 15:49:54 EST 2011  CSN: CSN-leap-215
+                  Wed Dec 14 20:49:54 UTC 2011
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          214 
+ standard-platform-local-mem.apm Locally Modified          214 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe.apm    Locally Modified          214 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          214 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Modified          214 
+ std-virtual-devices.awb   Locally Modified          214 
+ std-virtual-devices.bsv   Locally Modified          214 
+ std-virtual-devices-null.awb Locally Modified          214 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/null
+ local-memory-device-null.bsv Locally Modified          214 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ central-cache/            Locally Removed           214 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ central-cache-interfaces.bsv Locally Removed           214 
+ local-mem-central-cache.awb Locally Removed           214 
+ local-mem-central-cache.bsv Locally Removed           214 
+ central-cache-backing-store.bsv Locally Removed           214 
+ null-central-cache.awb    Locally Removed           214 
+ null-central-cache.bsv    Locally Removed           214 
+ README                    Locally Removed           214 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local
+ local-mem-scratch.bsv     Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Modified          214 
+ central-cache-service.bsv Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Added               0 
+ central-cache-interfaces.bsv Locally Removed           214 
+ central-cache-backing-store.bsv Locally Removed           214 
+ null-central-cache.awb    Locally Removed           214 
+ null-central-cache.bsv    Locally Removed           214 
+ local-mem-central-cache.dic Locally Added               - 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsh Locally Modified          214 
+ platform-central-cache.bsv Locally Modified          214 
+ central-cache-service.dic Locally Removed           214 
+ central-cache-service-null.awb Locally Removed           214 
+ common/                   Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-interfaces.bsv Locally Added               - 
+ central-cache-common.awb  Locally Added               0 
+ central-cache-backing-store.bsv Locally Added               - 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ null/                     Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/null
+ null-central-cache.awb    Locally Added               - 
+ null-central-cache.bsv    Locally Added               - 
+
+Move central cache implementation to platform services.  Now that the
+implementation is in a domain that accepts soft connections, moved statistics
+and deadlock debug dump code local to the code that uses it.
+
+The NULL central cache implementation continues to route incoming requests
+directly to the backing storage so clients of the NULL central cache see
+exactly the same semantics as a real cache, differing only in timing.

@@ -41,10 +41,6 @@ central_cache_service=Central Cache Service
 File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
 Packagehint=leap
 
-[Central Cache Service]
-File=modules/leap/libraries/platform-services/mem-services/central-cache-service/central-cache-service.awb
-Packagehint=leap
-
 [Shared Memory Services]
 File=modules/leap/libraries/platform-services/mem-services/shared-memory-service/shared-memory-service.awb
 Packagehint=leap
@@ -86,10 +82,6 @@ Packagehint=leap
 File=modules/leap/libraries/platform-services/common-services/streams-service/streams-service.awb
 Packagehint=leap
 
-[Local Memory Scratchpad Memory Device]
-File=modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local/local-mem-scratch.awb
-Packagehint=leap
-
 [Scratchpad Memory Common Definitions]
 File=modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common/mem-scratch-common.awb
 Packagehint=leap
@@ -97,3 +89,24 @@ Packagehint=leap
 [Scratchpad Memory Service/Requires]
 scratchpad_memory_common=Scratchpad Memory Common Definitions
 scratchpad_memory=Local Memory Scratchpad Memory Device
+
+[Central Cache Common Definitions]
+File=modules/leap/libraries/platform-services/mem-services/central-cache-service/common/central-cache-common.awb
+Packagehint=leap
+
+[NULL Central Cache]
+File=modules/leap/libraries/platform-services/mem-services/central-cache-service/null/null-central-cache.awb
+Packagehint=leap
+
+[Central Cache Service/Requires]
+central_cache_common=Central Cache Common Definitions
+central_cache=NULL Central Cache
+
+[Central Cache Service]
+File=modules/leap/libraries/platform-services/mem-services/central-cache-service/central-cache-service.awb
+Packagehint=leap
+
+
+[Local Memory Scratchpad Memory Device]
+File=modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local/local-mem-scratch.awb
+Packagehint=leap

@@ -26,15 +26,11 @@ Packagehint=leap
 
 [Standard Virtual Devices/Requires]
 front_panel=Hybrid Front Panel
-central_cache=Local Memory Central Cache
 shared_memory=Null Shared Memory
 starter_device=Starter Virtual Device
 common_utility_devices=Base Common Devices
 local_memory_device=Soft Connection Local Memory Device
 
-[Local Memory Central Cache]
-File=modules/leap/virtual-platform/virtual-devices/devices/central-cache/local-mem-central-cache.awb
-Packagehint=leap
 
 [Starter Virtual Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb

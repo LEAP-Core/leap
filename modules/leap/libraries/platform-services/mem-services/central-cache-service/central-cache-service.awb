@@ -2,6 +2,8 @@
 %desc Central Cache Service
 
 %provides central_cache_service
+%requires central_cache_common
+%requires central_cache
 
 %attributes hybrid connected
 
@@ -10,7 +12,5 @@
 %public central-cache-service.bsh
 %public platform-central-cache.bsv
 %public central-cache-service.bsv
-%private central-cache-service.dic
 
-%param --dynamic CENTRAL_CACHE_MODE 0 "Bits 0-1: 0 write-back, 1 write-through, 3 disabled / Bit 2 disables recent line cache"
 %param CENTRAL_CACHE_STATS 1 "Do we enable central cache stats collection"

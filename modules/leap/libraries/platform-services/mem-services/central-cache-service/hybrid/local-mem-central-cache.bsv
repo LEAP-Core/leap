@@ -27,9 +27,13 @@ import Vector::*;
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/local_mem.bsh"
+`include "awb/provides/common_services.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/local_memory_device.bsh"
+`include "awb/provides/central_cache_service_params.bsh"
 
+`include "awb/dict/PARAMS_CENTRAL_CACHE.bsh"
+`include "awb/dict/DEBUG_SCAN_CENTRAL_CACHE.bsh"
 
 typedef CENTRAL_CACHE_VIRTUAL_DEVICE CENTRAL_CACHE_IFC;
 
@@ -53,11 +57,33 @@ endinterface: CENTRAL_CACHE_BACKING
 
 
 //
+// State returned for debug scan
+//
+typedef struct
+{
+    RL_SA_DEBUG_SCAN_DATA cacheState;
+
+    // Byte 1
+    Bit#(2) dummy;            // Alignment for easier decoding
+    Bool cacheReadRespReady;
+    Bool readRespQNotEmpty;
+    Bit#(4) nBackingReadsInFlight;
+
+    // Byte 0
+    Bit#(2) reqRuleFired;     // NONE (0), READ (1), WRITE (2), INVAL/FLUSH (3)
+    Bool reqLineLocked;
+    Bit#(5) cacheReadsInFlight;
+}
+CENTRAL_CACHE_DEBUG_SCAN
+    deriving (Eq, Bits);
+
+
+//
 // mkCentralCache --
 //     Central cache using local memory.  One port is created for each
 //     client.
 //
-module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
+module [CONNECTED_MODULE] mkCentralCache
     // interface:
     (CENTRAL_CACHE_IFC)
     provisos (Bits#(CENTRAL_CACHE_LINE_ADDR, t_CENTRAL_CACHE_LINE_ADDR_SZ),
@@ -92,8 +118,6 @@ module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
     Wire#(Bool) dbgReqLineLocked <- mkDWire(False);
     Wire#(Bit#(2)) dbgReqRuleFired <- mkDWire(0);
 
-
-    Reg#(Bool) initialized <- mkReg(False);
 
     // Allocate connector between a standard cache backing storage interface
     // and a central cache backing storage port.
@@ -134,6 +158,12 @@ module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
                                             nTagExtraLowBits,
                                             debugLogInt);
 
+    // Attach statistics to the cache
+    if (`CENTRAL_CACHE_STATS != 0)
+    begin
+        let cacheStats <- mkCentralCacheStats(cache.stats);
+    end 
+
     // Manage routing of flush/inval ACK back to requesting port
     FIFO#(CENTRAL_CACHE_PORT_NUM) flushAckRespQ <- mkFIFO();
 
@@ -147,6 +177,29 @@ module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
                                                                   CENTRAL_CACHE_LINE_ADDR addr);
         return pack(tuple2(port, addr));
     endfunction
+
+
+    // ====================================================================
+    //
+    // Initialization.
+    //
+    // ====================================================================
+
+    // Dynamic parameters
+    PARAMETER_NODE paramNode <- mkDynamicParameterNode();
+    Param#(3) centralCacheMode <- mkDynamicParameter(`PARAMS_CENTRAL_CACHE_CENTRAL_CACHE_MODE, paramNode);
+
+    // Initialization
+    Reg#(Bool) initialized <- mkReg(False);
+
+    rule doInit (! initialized);
+        // Write-back, through, or bypass
+        cache.setCacheMode(unpack(centralCacheMode[1:0]));
+
+        cache.setRecentLineCacheMode(! unpack(centralCacheMode[2]));
+                          
+        initialized <= True;
+    endrule
 
 
     // ====================================================================
@@ -283,6 +336,38 @@ module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
 
     // ====================================================================
     //
+    // Central cache debug scan for deadlock debugging.
+    //
+    // ====================================================================
+    
+    //
+    // debugScanState --
+    //     Compute state for a DEBUG_SCAN node.  This method must have no
+    //     implicit conditions.
+    //
+    function CENTRAL_CACHE_DEBUG_SCAN debugScanState();
+        CENTRAL_CACHE_DEBUG_SCAN d;
+
+        d.cacheState = cache.debugScanState();
+
+        d.dummy = 0;
+        d.cacheReadRespReady = dbgCacheReadRespReady;
+        d.readRespQNotEmpty = readRespQ.notEmpty();
+        d.nBackingReadsInFlight = backingConnection.nReadsInFlight();
+
+        d.reqRuleFired = dbgReqRuleFired;
+        d.reqLineLocked = dbgReqLineLocked;
+        d.cacheReadsInFlight = dbgCacheReadsInFlight.value();
+
+        return d;
+    endfunction
+
+    DEBUG_SCAN#(CENTRAL_CACHE_DEBUG_SCAN) debugScan <-
+        mkDebugScanNode(`DEBUG_SCAN_CENTRAL_CACHE_DATA, debugScanState);
+
+
+    // ====================================================================
+    //
     // Central cache port methods.
     //
     // ====================================================================
@@ -333,38 +418,6 @@ module [CONNECTED_MODULE] mkCentralCache#(LowLevelPlatformInterface llpi)
     
     interface clientPorts = clientPortsLocal;
     interface backingPorts = backingPortsLocal;
-    
-    //
-    // debugScanState --
-    //     Compute state for a DEBUG_SCAN node.  This method must have no
-    //     implicit conditions.
-    //
-    method CENTRAL_CACHE_DEBUG_SCAN debugScanState();
-        CENTRAL_CACHE_DEBUG_SCAN d;
-
-        d.cacheState = cache.debugScanState();
-
-        d.dummy = 0;
-        d.cacheReadRespReady = dbgCacheReadRespReady;
-        d.readRespQNotEmpty = readRespQ.notEmpty();
-        d.nBackingReadsInFlight = backingConnection.nReadsInFlight();
-
-        d.reqRuleFired = dbgReqRuleFired;
-        d.reqLineLocked = dbgReqLineLocked;
-        d.cacheReadsInFlight = dbgCacheReadsInFlight.value();
-
-        return d;
-    endmethod
-
-    method Action init(RL_SA_CACHE_MODE mode, Bool enableRecentLineCache) if (! initialized);
-        cache.setCacheMode(mode);
-        cache.setRecentLineCacheMode(enableRecentLineCache);
-        initialized <= True;
-    endmethod
-    
-    interface CENTRAL_CACHE_STATS stats;
-        interface cacheStats = cache.stats;
-    endinterface
 endmodule
 
 

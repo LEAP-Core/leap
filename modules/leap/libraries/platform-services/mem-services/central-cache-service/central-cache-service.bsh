@@ -1,3 +1,4 @@
 
 // Include base device
+`include "awb/provides/central_cache_common.bsh"
 `include "awb/provides/central_cache.bsh"

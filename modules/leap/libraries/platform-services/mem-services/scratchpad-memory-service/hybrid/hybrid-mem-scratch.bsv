@@ -31,7 +31,7 @@ import Vector::*;
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_platform.bsh"
-`include "awb/provides/central_cache.bsh"
+`include "awb/provides/central_cache_service.bsh"
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"

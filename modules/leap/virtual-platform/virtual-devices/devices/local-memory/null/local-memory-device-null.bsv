@@ -16,10 +16,49 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/fpga_components.bsh"
+`include "awb/provides/soft_connections.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/local_mem.bsh"
 
-module mkLocalMemory#(LowLevelPlatformInterface llpi)
+//
+// Copy the definitions from the soft connected local memory so that clients
+// see a standard interface.
+//
+typedef union tagged
+{
+    LOCAL_MEM_ADDR LM_READ_WORD;
+    LOCAL_MEM_ADDR LM_READ_LINE;
+
+    LOCAL_MEM_ADDR LM_WRITE_WORD;
+    LOCAL_MEM_ADDR LM_WRITE_LINE;
+
+    LOCAL_MEM_ADDR LM_WRITE_WORD_MASKED;
+    LOCAL_MEM_ADDR LM_WRITE_LINE_MASKED;
+}
+LOCAL_MEM_CMD
+    deriving (Eq, Bits);
+
+typedef union tagged
+{
+    LOCAL_MEM_WORD LM_READ_WORD_DATA;
+    LOCAL_MEM_LINE LM_READ_LINE_DATA;
+}
+LOCAL_MEM_READ_DATA
+    deriving (Eq, Bits);
+
+
+module [CONNECTED_MODULE] mkLocalMemory#(LowLevelPlatformInterface llpi)
     // Interface:
     ();
     
+    //
+    // Mimic the soft connections of the true implementation.
+    //
+    CONNECTION_SERVER#(LOCAL_MEM_CMD, LOCAL_MEM_READ_DATA) lms
+        <- mkConnectionServerOptional("local_memory_device");
+    CONNECTION_RECV#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) lmWriteData
+        <- mkConnectionRecvOptional("local_memory_device_wdata");
+
 endmodule

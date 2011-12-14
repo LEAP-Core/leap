@@ -23,6 +23,7 @@
 
 `include "awb/dict/VDEV.bsh"
 
+import Vector::*;
 
 // ========================================================================
 //
@@ -182,28 +183,6 @@ CENTRAL_CACHE_BACKING_WRITE_REQ
 
 
 //
-// State returned for debug scan
-//
-typedef struct
-{
-    RL_SA_DEBUG_SCAN_DATA cacheState;
-
-    // Byte 1
-    Bit#(2) dummy;            // Alignment for easier decoding
-    Bool cacheReadRespReady;
-    Bool readRespQNotEmpty;
-    Bit#(4) nBackingReadsInFlight;
-
-    // Byte 0
-    Bit#(2) reqRuleFired;     // NONE (0), READ (1), WRITE (2), INVAL/FLUSH (3)
-    Bool reqLineLocked;
-    Bit#(5) cacheReadsInFlight;
-}
-CENTRAL_CACHE_DEBUG_SCAN
-    deriving (Eq, Bits);
-
-
-//
 // Backing storage port specification.  The backing storage port really wants
 // a server from which to make requests, but that would cause a loop
 // during static elaboration between the client of the cache and the server
@@ -247,18 +226,4 @@ interface CENTRAL_CACHE_VIRTUAL_DEVICE;
     interface Vector#(CENTRAL_CACHE_N_CLIENTS,
                       CENTRAL_CACHE_BACKING_PORT) backingPorts;
 
-    method CENTRAL_CACHE_DEBUG_SCAN debugScanState();
-
-    method Action init(RL_SA_CACHE_MODE mode, Bool enableRecentLineCache);
-    
-    interface CENTRAL_CACHE_STATS stats;
-
 endinterface: CENTRAL_CACHE_VIRTUAL_DEVICE
-
-
-//
-// Central cache statistics interface
-//
-interface CENTRAL_CACHE_STATS;
-    interface RL_CACHE_STATS cacheStats;
-endinterface:  CENTRAL_CACHE_STATS

@@ -5,7 +5,6 @@
 %provides virtual_devices
 
 %requires front_panel
-%requires central_cache
 %requires shared_memory
 %requires local_memory_device
 %requires starter_device
