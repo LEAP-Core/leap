@@ -10823,3 +10823,70 @@ and deadlock debug dump code local to the code that uses it.
 The NULL central cache implementation continues to route incoming requests
 directly to the backing storage so clients of the NULL central cache see
 exactly the same semantics as a real cache, differing only in timing.
+
+----------
+mcadler     Date: Wed Dec 14 23:27:17 EST 2011  CSN: CSN-leap-216
+                  Thu Dec 15 04:27:17 UTC 2011
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          215 
+ standard-platform-local-mem.apm Locally Modified          215 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          215 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          215 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          215 
+ xup-virtual-devices.apm   Locally Modified          215 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Modified          215 
+ std-virtual-devices.awb   Locally Modified          215 
+ std-virtual-devices.bsv   Locally Modified          215 
+ std-virtual-devices-null.awb Locally Modified          215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ scratchpad-memory/        Locally Removed           215 
+ shared-memory/            Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ standard/                 Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/standard
+ standard-shared-memory-server.cpp Locally Removed           215 
+ standard-shared-memory.h  Locally Removed           215 
+ standard-shared-memory.awb Locally Removed           215 
+ standard-shared-memory.bsv Locally Removed           215 
+ standard-shared-memory-server.h Locally Removed           215 
+ standard-shared-memory.cpp Locally Removed           215 
+ README                    Locally Removed           215 
+ standard-shared-memory.rrr Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ null/                     Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null
+ null-shared-memory.h      Locally Removed           215 
+ null-shared-memory.awb    Locally Removed           215 
+ README                    Locally Removed           215 
+ null-shared-memory.bsv    Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ README                    Locally Removed           215 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          215 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ shared-memory-service.awb Locally Modified          215 
+ shared-memory-service.bsv Locally Modified          215 
+ shared-memory-service-null.awb Locally Modified          215 
+ shared-memory-service-null.bsv Locally Modified          215 
+ README                    Locally Modified          215 
+
+Move shared memory, the last of the memory components, from virtual devices
+to the platform services.  As shared memory is a work in progress only
+the NULL version "works."  The hybrid version needs a virtual device shim
+to map the llpi shared memory to soft connections.

@@ -1,7 +1,0 @@
-Standard Shared Memory Virtual Device
-
-This device represents a memory space shared between HW and SW. Coherence
-is maintained using RRR. This is built upon the LEAP Remote Memory abstraction
-layer.
-
-This device is a work in progress.

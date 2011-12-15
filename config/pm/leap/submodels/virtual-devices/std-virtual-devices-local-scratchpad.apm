@@ -26,8 +26,6 @@ Packagehint=leap
 
 [Standard Virtual Devices/Requires]
 front_panel=Hybrid Front Panel
-central_cache=NULL Central Cache
-shared_memory=Null Shared Memory
 starter_device=Starter Virtual Device
 common_utility_devices=Base Common Devices
 local_memory_device=Soft Connection Local Memory Device
@@ -36,9 +34,6 @@ local_memory_device=Soft Connection Local Memory Device
 File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
 Packagehint=leap
 
-[Null Shared Memory]
-File=modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null/null-shared-memory.awb
-Packagehint=leap
 
 [Base Common Devices/Requires]
 stats_device=Stats Device
@@ -71,9 +66,6 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device/debug-scan-device.awb
 Packagehint=leap
 
-[NULL Central Cache]
-File=modules/leap/virtual-platform/virtual-devices/devices/central-cache/null-central-cache.awb
-Packagehint=leap
 
 [Soft Connection Local Memory Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft/local-memory-device-soft.awb

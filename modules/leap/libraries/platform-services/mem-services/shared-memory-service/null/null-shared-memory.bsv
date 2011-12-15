@@ -69,7 +69,7 @@ interface SHARED_MEMORY;
         
 endinterface
 
-module mkSharedMemory#(LowLevelPlatformInterface llpi)
+module mkSharedMemory
     // interface
         (SHARED_MEMORY);
     

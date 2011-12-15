@@ -15,6 +15,6 @@ module [CONNECTED_MODULE] mkMemServices#(VIRTUAL_DEVICES vdevs)
     
     let centralCacheService     <- mkCentralCacheService();
     let scratchpadMemoryService <- mkScratchpadMemoryService(centralCacheService);
-    let sharedMemoryService     <- mkSharedMemoryService(vdevs);
+    let sharedMemoryService     <- mkSharedMemoryService();
     
 endmodule

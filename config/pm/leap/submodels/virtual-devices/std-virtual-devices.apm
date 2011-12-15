@@ -26,19 +26,14 @@ Packagehint=leap
 
 [Standard Virtual Devices/Requires]
 front_panel=Hybrid Front Panel
-shared_memory=Null Shared Memory
 starter_device=Starter Virtual Device
 common_utility_devices=Base Common Devices
 local_memory_device=Soft Connection Local Memory Device
-
 
 [Starter Virtual Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
 Packagehint=leap
 
-[Null Shared Memory]
-File=modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null/null-shared-memory.awb
-Packagehint=leap
 
 [Base Common Devices/Requires]
 stats_device=Stats Device

@@ -1,6 +1,6 @@
 
 %name Standard Shared Memory
-%desc Standard Shared Memory Virtual Device
+%desc Standard Shared Memory Implementation
 
 %provides shared_memory
 

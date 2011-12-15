@@ -1,12 +1,8 @@
 %name Null Shared Memory Services
-%desc Wrap Shared Memory Device in Soft Connections
+%desc Null Shared Memory Services
 
 %provides shared_memory_service
 
-%attributes hybrid connected
-
 %notes README
 
-%public shared-memory-service.bsh
 %public shared-memory-service-null.bsv
-

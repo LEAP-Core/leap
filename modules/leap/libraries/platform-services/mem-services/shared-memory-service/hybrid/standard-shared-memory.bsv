@@ -83,13 +83,13 @@ endinterface
 
 // Translate our private virtual address to a remote physical address.
 
-module mkSharedMemory#(LowLevelPlatformInterface llpi)
+module mkSharedMemory
     // interface
         (SHARED_MEMORY);
 
     // stubs
-    ServerStub_SHARED_MEMORY server_stub <- mkServerStub_SHARED_MEMORY(llpi.rrrServer);
-    ClientStub_SHARED_MEMORY client_stub <- mkClientStub_SHARED_MEMORY(llpi.rrrClient);
+    ServerStub_SHARED_MEMORY server_stub <- mkServerStub_SHARED_MEMORY();
+    ClientStub_SHARED_MEMORY client_stub <- mkClientStub_SHARED_MEMORY();
 
     // TLB
     Reg#(REMOTE_MEMORY_PHYSICAL_ADDRESS) theOnlyPhysicalAddress <- mkReg(0);

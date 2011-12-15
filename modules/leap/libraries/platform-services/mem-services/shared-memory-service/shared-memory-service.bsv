@@ -5,11 +5,11 @@
 `include "awb/provides/soft_connections.bsh"
 
 
-module [CONNECTED_MODULE] mkSharedMemoryService#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkSharedMemoryService
     // interface:
         ();
     
-    let sharedMemory = vdevs.sharedMemory;
+    let sharedMemory <- mkSharedMemory();
 
     Connection_Receive#(SHARED_MEMORY_REQUEST) link_shmem_req        <- mkConnectionRecvOptional("vdev_shmem_req");
     Connection_Send#(SHARED_MEMORY_DATA)       link_shmem_data_read  <- mkConnectionSendOptional("vdev_shmem_data_read");

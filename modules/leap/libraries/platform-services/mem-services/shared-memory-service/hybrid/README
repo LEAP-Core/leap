@@ -1,0 +1,16 @@
+Standard Shared Memory Virtual Device
+
+This device represents a memory space shared between HW and SW. Coherence
+is maintained using RRR. This is built upon the LEAP Remote Memory abstraction
+layer.
+
+!!!
+
+This device is a work in progress.
+
+The current code will not compile following the move of the code out of
+virtual devices.  The low level platform is no longer visible.  A shim
+will need to be added to virtual devices exposing physical shared memory
+as soft connections, similar to the way local memory is exposed.
+
+!!!

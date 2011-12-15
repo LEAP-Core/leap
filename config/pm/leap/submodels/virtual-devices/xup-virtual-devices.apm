@@ -26,24 +26,15 @@ Packagehint=leap
 
 [Standard Virtual Devices/Requires]
 front_panel=Hybrid Front Panel
-scratchpad_memory=Hybrid Scratchpad Memory Device
-central_cache=NULL Central Cache
-shared_memory=Null Shared Memory
 starter_device=Starter Virtual Device
 common_utility_devices=Base Common Devices
 local_memory_device=NULL Local Memory Device
 
-[Hybrid Scratchpad Memory Device]
-File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid/hybrid-mem-scratch.awb
-Packagehint=leap
 
 [Starter Virtual Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
 Packagehint=leap
 
-[Null Shared Memory]
-File=modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null/null-shared-memory.awb
-Packagehint=leap
 
 [Base Common Devices/Requires]
 stats_device=Stats Device
@@ -76,16 +67,8 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device/debug-scan-device.awb
 Packagehint=leap
 
-[NULL Central Cache]
-File=modules/leap/virtual-platform/virtual-devices/devices/central-cache/null-central-cache.awb
-Packagehint=leap
 
-[Hybrid Scratchpad Memory Device/Requires]
-scratchpad_memory_common=Scratchpad Memory Common Definitions
 
-[Scratchpad Memory Common Definitions]
-File=modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common/mem-scratch-common.awb
-Packagehint=leap
 
 [NULL Local Memory Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/null/local-memory-device-null.awb

@@ -6,3 +6,5 @@ point-to-point Soft Connections to allow one user to connect to this device.
 
 A more sophisticated version would use Connection Chains similar to the
 Scratchpad Service.
+
+Subdirectories hold implementations.

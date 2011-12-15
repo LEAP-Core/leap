@@ -18,7 +18,6 @@
 
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/front_panel.bsh"
-`include "awb/provides/shared_memory.bsh"
 `include "asim/provides/local_memory_device.bsh"
 `include "awb/provides/starter_device.bsh"
 `include "awb/provides/common_utility_devices.bsh"
@@ -27,7 +26,6 @@
 interface VIRTUAL_DEVICES;
 
     interface FRONT_PANEL frontPanel;
-    interface SHARED_MEMORY sharedMemory;
     interface STARTER starter;
     interface COMMON_UTILITY_DEVICES commonUtilities;
 
@@ -38,8 +36,6 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
         (VIRTUAL_DEVICES);
 
     let fp  <- mkFrontPanel(llpint);
-    // TODO: use the new Stats device for real stats
-    let sh  <- mkSharedMemory(llpint);
 
     // mkLocalMemory() exports only soft connections, so will not be returned
     // as part of the VIRTUAL_DEVICES interface.
@@ -49,7 +45,6 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     let com <- mkCommonUtilityDevices(llpint);
 
     interface frontPanel = fp;
-    interface sharedMemory = sh;
     interface starter = st;
     interface commonUtilities = com;
 

@@ -33,7 +33,7 @@ File=modules/leap/libraries/platform-services/common-services/common-services-st
 Packagehint=leap
 
 [Standard Mem Services/Requires]
-shared_memory_service=Shared Memory Services
+shared_memory_service=Null Shared Memory Services
 scratchpad_memory_service=Scratchpad Memory Service
 central_cache_service=Central Cache Service
 
@@ -45,9 +45,6 @@ Packagehint=leap
 File=modules/leap/libraries/platform-services/mem-services/central-cache-service/central-cache-service.awb
 Packagehint=leap
 
-[Shared Memory Services]
-File=modules/leap/libraries/platform-services/mem-services/shared-memory-service/shared-memory-service.awb
-Packagehint=leap
 
 [Starter Service]
 File=modules/leap/libraries/platform-services/starter-service/starter-service.awb
@@ -108,4 +105,10 @@ central_cache_common=Central Cache Common Definitions
 
 [Central Cache Common Definitions]
 File=modules/leap/libraries/platform-services/mem-services/central-cache-service/common/central-cache-common.awb
+Packagehint=leap
+
+
+
+[Null Shared Memory Services]
+File=modules/leap/libraries/platform-services/mem-services/shared-memory-service/shared-memory-service-null.awb
 Packagehint=leap
