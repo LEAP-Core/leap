@@ -31,7 +31,7 @@ Packagehint=leap
 virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
-platform_services=Standard Platform Services
+platform_services=Standard Platform Services Submodel
 
 [FPGA Environment]
 File=modules/leap/virtual-platform/fpga-environment.awb
@@ -99,8 +99,6 @@ Packagehint=leap
 CRYSTAL_CLOCK_FREQ=100
 
 [NULL Local Memory Interface/Params]
-LOCAL_MEM_WORDS_PER_LINE=4
-LOCAL_MEM_WORD_BITS=64
 LOCAL_MEM_ADDR_BITS=26
 
 [XUP Virtex 5 PCIE/Requires]
@@ -136,6 +134,7 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-[Standard Platform Services]
+
+[Standard Platform Services Submodel]
 File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap

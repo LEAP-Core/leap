@@ -129,7 +129,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
 [Standard Virtual Devices (Local Memory Scratchpad) Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-local-scratchpad.apm
 Packagehint=leap

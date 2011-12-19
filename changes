@@ -10944,3 +10944,23 @@ When there is no local memory a central cache will always miss. The synthesis
 tools can't detect that most of the cache could be optimized away.  In this case,
 don't bother instantiating a real set associative cache.  Instead, route requests
 directly to the backing storage.
+
+----------
+mcadler     Date: Mon Dec 19 12:21:25 EST 2011  CSN: CSN-leap-219
+                  Mon Dec 19 17:21:25 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          218 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          218 
+ fpgaenv-hybrid-exe.apm    Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          218 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified          218 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          218 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          218 
+
+Clean up after moving modules.

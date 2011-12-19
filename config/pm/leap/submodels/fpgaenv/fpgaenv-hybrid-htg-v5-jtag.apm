@@ -31,7 +31,7 @@ Packagehint=leap
 virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
-platform_services=Standard Platform Services
+platform_services=Standard Platform Services Submodel
 
 [FPGA Environment]
 File=modules/leap/virtual-platform/fpga-environment.awb
@@ -155,6 +155,7 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-[Standard Platform Services]
+
+[Standard Platform Services Submodel]
 File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap
