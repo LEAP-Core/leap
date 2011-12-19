@@ -17,6 +17,8 @@
 //
 
 `include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/physical_platform_utils.bsh"
+
 `include "awb/provides/front_panel.bsh"
 `include "asim/provides/local_memory_device.bsh"
 `include "awb/provides/starter_device.bsh"
@@ -35,14 +37,30 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     // interface:
         (VIRTUAL_DEVICES);
 
-    let fp  <- mkFrontPanel(llpint);
+    FRONT_PANEL fp = ?;
+    STARTER st = ?;
+
+    //
+    // Normal (master) platform and services are on platform ID 0.  Slaves are
+    // on non-zero platform IDs.  Slave (multi-FPGA) platforms need the
+    // definitions of the client connections to the services but don't
+    // instantiate the services.  These are all rings, with the primary node
+    // on the master FPGA.
+    //
+    if (fpgaPlatformID() == 0)
+    begin
+        fp <- mkFrontPanel(llpint);
+        st <- mkStarter(llpint);
+    end
+
+    //
+    // Devices that are present on all platforms...
+    //
+    let com <- mkCommonUtilityDevices(llpint);
 
     // mkLocalMemory() exports only soft connections, so will not be returned
     // as part of the VIRTUAL_DEVICES interface.
     let lm  <- mkLocalMemory(llpint);
-
-    let st  <- mkStarter(llpint);
-    let com <- mkCommonUtilityDevices(llpint);
 
     interface frontPanel = fp;
     interface starter = st;

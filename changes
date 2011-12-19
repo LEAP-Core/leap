@@ -10890,3 +10890,25 @@ Move shared memory, the last of the memory components, from virtual devices
 to the platform services.  As shared memory is a work in progress only
 the NULL version "works."  The hybrid version needs a virtual device shim
 to map the llpi shared memory to soft connections.
+
+----------
+mcadler     Date: Mon Dec 19 09:04:15 EST 2011  CSN: CSN-leap-217
+                  Mon Dec 19 14:04:15 UTC 2011
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.awb        Locally Modified          216 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Removed           216 
+ std-virtual-devices.bsv   Locally Modified          216 
+ std-virtual-devices-null.awb Locally Removed           216 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices-null.awb Locally Removed           216 
+ common-utility-devices.bsv Locally Modified          216 
+ common-utility-devices-null.bsv Locally Removed           216 
+
+To reduce variants of virtual device APM files, standard virtual devices and
+common utility devices now configure themselves automatically for master and
+slave in multi-FPGA environments.
