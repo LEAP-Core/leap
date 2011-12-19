@@ -35,6 +35,15 @@ import Vector::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/ddr2_device.bsh"
 
+//
+// platformHasLocalMem --
+//     Allow clients to determine whether local memory actually exists.
+//     Some models may wish to change their configuration for NULL local
+//     memories.
+//
+function Bool platformHasLocalMem() = True;
+
+
 // ========================================================================
 //
 // Derive standard local memory properties from the device properties

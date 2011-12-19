@@ -19,7 +19,7 @@
 import Arbiter::*;
 
 `include "awb/provides/virtual_devices.bsh"
-`include "awb/provides/central_cache.bsh"
+`include "awb/provides/central_cache_service.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
 

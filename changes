@@ -10912,3 +10912,35 @@ Directory modules/leap/virtual-platform/virtual-devices/devices/common
 To reduce variants of virtual device APM files, standard virtual devices and
 common utility devices now configure themselves automatically for master and
 slave in multi-FPGA environments.
+
+----------
+mcadler     Date: Mon Dec 19 12:01:45 EST 2011  CSN: CSN-leap-218
+                  Mon Dec 19 17:01:45 UTC 2011
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.bsv        Locally Modified          217 
+ local-mem-ddr2.bsv        Locally Modified          217 
+ local-mem-bram.bsv        Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsv Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-bypass.bsv  Locally Added               0 
+ central-cache-interfaces.bsv Locally Modified          217 
+ central-cache-common.awb  Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/null
+ null-central-cache.bsv    Locally Modified          217 
+
+When there is no local memory a central cache will always miss. The synthesis
+tools can't detect that most of the cache could be optimized away.  In this case,
+don't bother instantiating a real set associative cache.  Instead, route requests
+directly to the backing storage.

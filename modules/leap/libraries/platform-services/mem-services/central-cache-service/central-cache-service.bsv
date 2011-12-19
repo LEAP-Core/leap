@@ -20,6 +20,7 @@ import Vector::*;
 
 `include "awb/provides/virtual_devices.bsh"
 `include "awb/provides/central_cache.bsh"
+`include "awb/provides/local_mem.bsh"
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/common_services.bsh"
@@ -33,7 +34,11 @@ module [CONNECTED_MODULE] mkCentralCacheService
     // The central cache service is just a wrapper.  Instantiate the central
     // cache implementation.
     //
-    CENTRAL_CACHE_IFC centralCache <- mkCentralCache();
+    // The central cache will always miss if there is no local memory.  Only
+    // build a real cache if the local storage exists.
+    //
+    CENTRAL_CACHE_IFC centralCache <- platformHasLocalMem ? mkCentralCache() :
+                                                            mkBypassCentralCache();
 
     // ====================================================================
     //

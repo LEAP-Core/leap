@@ -219,11 +219,11 @@ endinterface: CENTRAL_CACHE_BACKING_PORT
 // communicates with the backing storage associated with the port and
 // is used to handle fills and spills.
 //
-interface CENTRAL_CACHE_VIRTUAL_DEVICE;
+interface CENTRAL_CACHE_IFC;
     interface Vector#(CENTRAL_CACHE_N_CLIENTS,
                       CENTRAL_CACHE_CLIENT_PORT) clientPorts;
 
     interface Vector#(CENTRAL_CACHE_N_CLIENTS,
                       CENTRAL_CACHE_BACKING_PORT) backingPorts;
 
-endinterface: CENTRAL_CACHE_VIRTUAL_DEVICE
+endinterface: CENTRAL_CACHE_IFC

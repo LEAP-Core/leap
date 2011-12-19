@@ -24,6 +24,19 @@
 `include "awb/provides/fpga_components.bsh"
 
 
+//
+// platformHasLocalMem --
+//     Allow clients to determine whether local memory actually exists.
+//     Some models may wish to change their configuration for NULL local
+//     memories.
+//
+function Bool platformHasLocalMem() = False;
+
+
+//
+// Define a dummy local memory interface.
+//
+
 typedef `LOCAL_MEM_ADDR_BITS LOCAL_MEM_ADDR_SZ;
 
 module mkLocalMem#(PHYSICAL_DRIVERS drivers)

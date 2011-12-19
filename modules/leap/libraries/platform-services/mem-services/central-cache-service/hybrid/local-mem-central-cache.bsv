@@ -35,8 +35,6 @@ import Vector::*;
 `include "awb/dict/PARAMS_CENTRAL_CACHE.bsh"
 `include "awb/dict/DEBUG_SCAN_CENTRAL_CACHE.bsh"
 
-typedef CENTRAL_CACHE_VIRTUAL_DEVICE CENTRAL_CACHE_IFC;
-
 
 //
 // Internal CENTRAL_CACHE_BACKING interface is mostly a backing storage interface
