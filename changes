@@ -10964,3 +10964,22 @@ Directory config/pm/leap/submodels/fpgaenv
  fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          218 
 
 Clean up after moving modules.
+
+----------
+mcadler     Date: Tue Dec 20 15:09:22 EST 2011  CSN: CSN-leap-220
+                  Tue Dec 20 20:09:22 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          219 
+ mem-services-standard-null.bsv Locally Modified          219 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-standard.bsv Locally Modified          219 
+
+Memory services in the platform may now be compiled as a separate synthesis
+boundary.  All that is needed is a "%param SYNTH_BOUNDARY mkMemServices" in
+the AWB file.
+
+It can't be turned on yet because there is no syntax in the multi-FPGA
+code to describe synthesis regions that belong on all FPGAs.

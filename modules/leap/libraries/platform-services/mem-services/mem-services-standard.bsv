@@ -9,7 +9,7 @@
 `include "awb/dict/RINGID.bsh"
 
 
-module [CONNECTED_MODULE] mkMemServices#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkMemServices
     // interface:
         ();
     
