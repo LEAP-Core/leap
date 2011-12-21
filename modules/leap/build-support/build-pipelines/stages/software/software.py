@@ -70,7 +70,7 @@ class Software():
             m5_lib = ''
             tmp_libs = []
             for lib in libs:
-                if (os.path.basename(lib) == 'libm5_opt.a'):
+                if (os.path.basename(lib) == 'libgem5_opt.a'):
                     m5_lib = lib
                 else:
                     tmp_libs += [ lib ]
@@ -80,7 +80,7 @@ class Software():
             if (m5_lib != ''):
                 if (getDebug(moduleList)):
                     # Swap the optimized m5 library for a debugging one
-                    m5_lib = os.path.join(os.path.dirname(m5_lib), 'libm5_debug.a')
+                    m5_lib = os.path.join(os.path.dirname(m5_lib), 'libgem5_debug.a')
                 whole_libs += [ m5_lib ]
 
         # CPPPATH defines both gcc include path and dependence path for
