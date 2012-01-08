@@ -127,6 +127,17 @@ interface PHYSICAL_STATION;
 
 endinterface
 
+// Global string table entry
+
+typedef struct
+{
+    Integer uid;
+}
+    GLOBAL_STRING_TABLE_ENTRY;
+
+// The global string table is an association list of strings and entries.
+typedef Tuple2#(String, GLOBAL_STRING_TABLE_ENTRY) GLOBAL_STRING_TABLE;
+
 // Data about unmatched logical send connections
 typedef struct 
 {
@@ -209,15 +220,17 @@ typedef struct
 // The context our connected modules operate on.
 typedef struct
 {
+    List#(GLOBAL_STRING_TABLE) globalStrings;
     List#(LOGICAL_SEND_INFO) unmatchedSends;
     List#(LOGICAL_RECV_INFO) unmatchedRecvs;
     List#(LOGICAL_SEND_MULTI_INFO) unmatchedSendMultis;
     List#(LOGICAL_RECV_MULTI_INFO) unmatchedRecvMultis;
-    List#(LOGICAL_CHAIN_INFO) chains; // BACKWARDS COMPATABILITY: connection chains
+    List#(LOGICAL_CHAIN_INFO) chains;     // BACKWARDS COMPATABILITY: connection chains
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
     String synthesisBoundaryPlatform;
-    Integer synthesisBoundaryPlatformID;
+    Integer synthesisBoundaryPlatformID;  // UID for a given FPGA
+    Integer synthesisBoundaryID;          // UID a synthesis boundary within a single platform
     String rootStationName;
     Reset softReset;
 }

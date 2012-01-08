@@ -1,0 +1,12 @@
+%name Global Strings
+%desc Integer UID-based global string database
+
+%provides soft_strings
+
+%attributes bluespec
+
+%notes README
+
+%public global-strings.bsv
+%public global-strings.h
+%private global-strings.cpp

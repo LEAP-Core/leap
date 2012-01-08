@@ -11003,3 +11003,83 @@ Directory modules/leap/build-support/build-pipelines/stages/software
  software.py               Locally Modified          221 
 
 New m5 requires librt.
+
+----------
+mcadler     Date: Sun Jan  8 16:06:02 EST 2012  CSN: CSN-leap-223
+                  Sun Jan  8 21:06:02 UTC 2012
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          222 
+
+Directory config/pm/leap/submodels/common
+ soft-services.apm         Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          222 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          222 
+ Module.py                 Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/services
+ soft-strings/             Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.awb        Locally Added               0 
+ global-strings.bsv        Locally Added               0 
+ global-strings.cpp        Locally Added               0 
+ README                    Locally Added               0 
+ global-strings.h          Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-top-level.bsv     Locally Modified          222 
+ expose-connections.bsv    Locally Modified          222 
+ connect-top-level-multifpga.bsv Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          222 
+ connection-context.bsv    Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-lib-deps.h  Locally Added               0 
+ soft-services-deps-small.awb Locally Modified          222 
+ soft-services-lib-deps.bsh Locally Modified          222 
+ soft-services.awb         Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-only
+ soft-services-lib-deps.h  Locally Added               0 
+ soft-services-deps-small.awb Locally Modified          222 
+ soft-services-lib-deps.bsh Locally Modified          222 
+ soft-services-small.awb   Locally Modified          222 
+
+Add a global string table, managed by module context, as part of soft services.
+The string table generates integer UIDs (currently 32 bits) for a given string.
+Note: while UIDs are unique, there may be more than one UID mapped to a given
+string.
+
+To allocate a string, a module must be a member of the COLLECTED_MODULE context.
+Allocate an entry with:
+    GLOBAL_STRING_UID str <- getGlobalStringUID("foo");
+getGlobalStringUID() looks for the string in the table.  If present, it returns
+the existing UID.  If not present, a new UID is allocated and returned.
+
+The global string table is built as a single database during compilation.
+The database is loaded at run time by passing the path in the "-global-strings"
+argument.  The standard workload run scripts do this automatically.
+
+Both the synthesis boundary ID and the platform ID are components of a
+string's UID, allowing for parallel allocation of global string UIDs during
+compilation.

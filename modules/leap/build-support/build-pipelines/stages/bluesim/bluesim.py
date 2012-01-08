@@ -36,6 +36,10 @@ class Bluesim():
             bsc_sim_command += ' -Xc++ -O0'
         else:
             bsc_sim_command += ' -Xc++ -O1'
+
+        # g++ 4.5.2 is complaining about overflowing the var tracking table
+        bsc_sim_command += ' -Xc++ -fno-var-tracking-assignments'
+
     defs = (host_defs()).split(" ")
     for definition in defs:
       bsc_sim_command += ' -Xc++ ' + definition + ' -Xc ' + definition

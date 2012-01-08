@@ -60,6 +60,16 @@ module [t_CONTEXT] getSynthesisBoundaryPlatformID (Integer)
 
 endmodule
 
+module [t_CONTEXT] getSynthesisBoundaryID (Integer)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.synthesisBoundaryID;
+
+endmodule
+
 module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -203,6 +213,17 @@ module [t_CONTEXT] putSynthesisBoundaryPlatformID#(Integer new_id) ()
 
 endmodule
 
+module [t_CONTEXT] putSynthesisBoundaryID#(Integer new_id) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.synthesisBoundaryID = new_id;
+    putContext(ctxt);
+
+endmodule
+
 // putUnmatchedSends
 
 module [t_CONTEXT] putUnmatchedSends#(List#(LOGICAL_SEND_INFO) new_sends) ()
@@ -323,7 +344,6 @@ module [t_CONTEXT] putChain#(LOGICAL_CHAIN_INFO chain) ()
 endmodule
 
 // ****** Non-Primitive Mutators ******
-
 
 // addUnmatchedSend/Recv
 

@@ -97,8 +97,9 @@ class WrapperGen():
           # get my parameters 
 
           wrapper.write('    // instantiate own module\n')
-          wrapper.write('    let ctx <- initializeServiceContext();\n')
-          wrapper.write('    match {.final_ctx, .m_final} <- runWithContext(ctx, ' + module.synthBoundaryModule + ');\n')
+          wrapper.write('    let int_ctx0 <- initializeServiceContext();\n')
+          wrapper.write('    match {.int_ctx1, .int_name1} <- runWithContext(int_ctx0, putSynthesisBoundaryID(' + str(module.synthBoundaryUID)  + '));\n');
+          wrapper.write('    match {.final_ctx, .m_final} <- runWithContext(int_ctx1, ' + module.synthBoundaryModule + ');\n')
           wrapper.write('    let service_ifc <- exposeServiceContext(final_ctx);\n')
           wrapper.write('    interface services = service_ifc;\n')
           wrapper.write('    interface device = m_final;\n')

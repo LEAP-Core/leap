@@ -103,6 +103,9 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
       end
   end
 
+  // Emit the global string table
+  printGlobStrings(info.globalStrings);
+
   if (error_occurred)
     error("Error: Unmatched logical connections at top level.");
 

@@ -13,6 +13,7 @@
 
 %notes README
 
+%sources --t H   --v PUBLIC soft-services-lib-deps.h
 %sources --t BSH --v PUBLIC soft-services-lib-deps.bsh
 %sources --t BSH --v PUBLIC soft-services-impl-deps.bsh
 

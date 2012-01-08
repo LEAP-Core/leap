@@ -116,6 +116,7 @@ class ModuleList:
       module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/mk_' + module.name + '_Wrapper.v'] + givenVerilogs
       module.moduleDependency['VERILOG_LIB'] = Utils.get_bluespec_verilog(env)
       module.moduleDependency['BA'] = []
+      module.moduleDependency['BSV_LOG'] = []
 
 
     #Notice that we call get_bluespec_verilog here this will
@@ -130,6 +131,8 @@ class ModuleList:
     self.topModule.moduleDependency['XCF'] =  Utils.clean_split(self.env['DEFS']['GIVEN_XCFS'], sep = ' ')
     self.topModule.moduleDependency['SDC'] = Utils.clean_split(env['DEFS']['GIVEN_SDCS'], sep = ' ')
     self.topModule.moduleDependency['BA'] = []
+    self.topModule.moduleDependency['BSV_LOG'] = []   # Synth boundary build log file
+    self.topModule.moduleDependency['STR'] = []       # Global string table
 
     self.topDependency=[]
     self.graphize()

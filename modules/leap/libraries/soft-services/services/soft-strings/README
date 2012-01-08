@@ -1,0 +1,2 @@
+Global strings are compile-time generated strings with integer UIDs.  The UIDs
+may be passed around by hardware instead of transmitting the strings.

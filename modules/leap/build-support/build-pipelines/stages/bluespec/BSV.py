@@ -74,6 +74,23 @@ class BSV():
       for module in topo:
         synth += self.build_synth_boundary(moduleList, module)
 
+      ##
+      ## Generate the global string table.  Bluespec-generated global strings
+      ## are found in the log files.
+      ##
+      ## The global string file will be generated in the top-level .bsc
+      ## directory and a link to it will be added to the top-level directory.
+      ##
+      all_logs = []
+      for module in topo:
+        all_logs.extend(module.moduleDependency['BSV_LOG'])
+      str = moduleList.env.Command(TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
+                                   all_logs,
+                                   [ 'grep GlobStr: $SOURCES | sed -e "s/.*GlobStr: //" > $TARGET',
+                                     '@ln -fs $TARGET ' + moduleList.env['DEFS']['APM_NAME'] + '.str' ])
+      moduleList.topModule.moduleDependency['STR'] += [str]
+      moduleList.topDependency += [str]
+
       if moduleList.env.GetOption('clean'):
         print 'Cleaning depends-init...'
         s = os.system('scons --clean depends-init')
@@ -269,10 +286,9 @@ class BSV():
       ## First pass just generates a log file to figure out cross synthesis
       ## boundary soft connection array sizes.
       ##
-      logfile = MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.log')     
-
-      log = env.BSC_LOG(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('bsv', 'log'),
-                        MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log'))
+      logfile = MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.log')
+      log = env.BSC_LOG(logfile, MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log'))
+      module.moduleDependency['BSV_LOG'] += [log]
 
       ##
       ## Parse the log, generate a stub file

@@ -25,6 +25,7 @@ soft_services_lib=Soft Services Library
 soft_services_deps=Soft Services Dependencies
 soft_clocks=Basic Soft Clock Algorithm
 soft_connections=SoftService Soft Connections
+soft_strings=Global Strings
 
 [Soft Services Library]
 File=modules/leap/libraries/soft-services/util/soft-services-lib.awb
@@ -57,7 +58,6 @@ physical_interconnect=Shared Tree Physical Interconnect
 [Basic Soft Clock Algorithm/Requires]
 soft_clocks_lib=Basic Soft Clock Library
 
-
 [SoftService Soft Connections]
 File=modules/leap/libraries/soft-services/services/soft-connections/soft-connections-module-context.awb
 Packagehint=leap
@@ -72,4 +72,8 @@ Packagehint=leap
 
 [Soft Service Soft Connections Algorithm]
 File=modules/leap/libraries/soft-services/services/soft-connections/alg/connection-alg-module-context.awb
+Packagehint=leap
+
+[Global Strings]
+File=modules/leap/libraries/soft-services/services/soft-strings/global-strings.awb
 Packagehint=leap

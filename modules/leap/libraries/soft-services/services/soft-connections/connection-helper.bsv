@@ -221,3 +221,16 @@ module printRecvs#(List#(LOGICAL_RECV_INFO) recvs) (Empty);
   List::mapM(printRecv, recvs);
 endmodule
 
+
+//
+// Global string table.
+//
+
+module printGlobString#(GLOBAL_STRING_TABLE str) (Empty);
+  let id = tpl_2(str).uid;
+  messageM("GlobStr: " + integerToString(id) + "," + tpl_1(str));
+endmodule
+
+module printGlobStrings#(List#(GLOBAL_STRING_TABLE) strs) (Empty);
+  List::mapM(printGlobString, List::reverse(strs));
+endmodule

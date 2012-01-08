@@ -62,6 +62,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
         let sReset <- exposeCurrentReset();
         return LOGICAL_CONNECTION_INFO 
              {
+                 globalStrings: tagged Nil,
                  unmatchedSends: tagged Nil,
                  unmatchedRecvs: tagged Nil,
                  unmatchedSendMultis: tagged Nil,
@@ -70,7 +71,8 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  stations: tagged Nil,
                  stationStack: tagged Nil,
                  synthesisBoundaryPlatform: fpgaPlatformName,
-                 synthesisBoundaryPlatformID: 0,
+                 synthesisBoundaryPlatformID: fpgaPlatformID,
+                 synthesisBoundaryID: 0,
                  rootStationName: "InvalidRootStation",
                  softReset: sReset
              };
@@ -104,6 +106,10 @@ instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(
         connectStationsTree(clk, ctx);
 
         let x <- toWithConnections(ctx);
+
+        // Emit the global string table
+        printGlobStrings(ctx.globalStrings);
+
         return x;
 
     endmodule
