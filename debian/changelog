@@ -4,10 +4,4 @@ leap (11.12~svn20110929r175+lucid) lucid; urgency=low
   * r164
      Start working on the v11.12 release.
 
-  [ Kermin E Fleming ]
-  * r193
-	Forgot log for r192.  Added some error messages in leap-configure,
-	and some new type instances for the soft connections classes.
-	
-	
  -- Kermin E Fleming <kfleming@csail.mit.edu>  Wed, 12 Oct 2011 18:31:43 -0400

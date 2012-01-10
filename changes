@@ -11083,3 +11083,21 @@ argument.  The standard workload run scripts do this automatically.
 Both the synthesis boundary ID and the platform ID are components of a
 string's UID, allowing for parallel allocation of global string UIDs during
 compilation.
+
+----------
+joel        Date: Mon Jan  9 22:57:12 EST 2012  CSN: CSN-leap-224
+                  Tue Jan 10 03:57:12 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          223 
+
+Directory debian
+ control                   Locally Modified          223 
+ changelog                 Locally Modified          223 
+
+Directory .
+ aclocal.m4                Locally Modified          223 
+
+Added dependency on libio-pty-perl to the debian package to
+address awb bug #99.

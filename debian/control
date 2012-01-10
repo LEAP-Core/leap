@@ -14,14 +14,14 @@ Section: devel
 
 Package: leap-11.12
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, leap-bin
+Depends: ${misc:Depends}, leap-bin
 Description: Sharable package for the LEAP
-  AWB modules for the logic-based environment for application programmaing (leap)
+ AWB modules for the logic-based environment for application programmaing (leap)
 Section: devel
 
 Package: leap-bin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, leap-platforms, asim-core, asim-core-dev, awb, libqt-perl, libterm-readline-gnu-perl, python-pygraph
+Depends: ${misc:Depends}, leap-platforms, asim-core, asim-core-dev, awb, libqt-perl, libterm-readline-gnu-perl, libio-pty-perl, python-pygraph
 Replaces: leap (<= 0.6.0)
 Breaks: leap (<= 0.6.0)
 Description: Executables for the LEAP FPGA environement
