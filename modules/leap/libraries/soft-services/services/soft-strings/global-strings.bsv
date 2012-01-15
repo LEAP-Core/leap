@@ -24,9 +24,43 @@ import List::*;
 `include "awb/provides/soft_connections.bsh"
 
 
-// We define a specific size for the global string UID since it will be passed
-// around as data at run time.
-typedef UInt#(32) GLOBAL_STRING_UID;
+//
+// Global string UIDs are comprised of two parts: the UID associated with
+// the synthesis boundary and the local UID within the synthesis boundary.
+// All strings within a synthesis boundary share the same synth UID.
+// Within a synthesis boundary there is a 1:1 mapping between UIDs and strings.
+// Because synthesis boundaries are compiled in parallel, a given string may
+// appear with separate UIDs in different synthesis regions.
+//
+
+// Don't need the separation of platform and synthesis boundary UID.
+// Just combine them.
+typedef TAdd#(`GLOBAL_STRING_PLATFORM_UID_SZ,
+              `GLOBAL_STRING_SYNTH_UID_SZ) GLOBAL_STRING_SYNTH_UID_SZ;
+
+typedef `GLOBAL_STRING_LOCAL_UID_SZ GLOBAL_STRING_LOCAL_UID_SZ;
+
+// The full UID
+typedef UInt#(TAdd#(GLOBAL_STRING_SYNTH_UID_SZ,
+                    GLOBAL_STRING_LOCAL_UID_SZ)) GLOBAL_STRING_UID;
+
+typedef UInt#(GLOBAL_STRING_SYNTH_UID_SZ) GLOBAL_STRING_SYNTH_UID;
+typedef UInt#(GLOBAL_STRING_LOCAL_UID_SZ) GLOBAL_STRING_LOCAL_UID;
+
+
+//
+// Extract synth and local portions of UID from full UID
+//
+
+function GLOBAL_STRING_SYNTH_UID getGlobalStringSynthUID(GLOBAL_STRING_UID uid);
+    Tuple2#(GLOBAL_STRING_SYNTH_UID, GLOBAL_STRING_LOCAL_UID) t = unpack(pack(uid));
+    return tpl_1(t);
+endfunction
+
+function GLOBAL_STRING_LOCAL_UID getGlobalStringLocalUID(GLOBAL_STRING_UID uid);
+    Tuple2#(GLOBAL_STRING_SYNTH_UID, GLOBAL_STRING_LOCAL_UID) t = unpack(pack(uid));
+    return tpl_2(t);
+endfunction
 
 
 //
@@ -50,7 +84,7 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
     else
     begin
         // String not yet in the table.  Add it.
-        Integer local_uid = length(cur_strs) + 1;
+        Integer local_uid = length(cur_strs);
 
         //
         // The UID must fit in 32 bits.  We allocate some to the platform ID,
@@ -65,9 +99,9 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
         let synth_plat_uid <- getSynthesisBoundaryPlatformID();
         let synth_local_uid <- getSynthesisBoundaryID();
 
-        Integer shift_over_local_uid = 'hffff + 1;
-        Integer shift_over_synth_uid = 'h3ff + 1;
-        Integer shift_over_plat_uid = 'h3f + 1;
+        Integer shift_over_local_uid = 2 ** `GLOBAL_STRING_LOCAL_UID_SZ;
+        Integer shift_over_synth_uid = 2 ** `GLOBAL_STRING_SYNTH_UID_SZ;
+        Integer shift_over_plat_uid =  2 ** `GLOBAL_STRING_PLATFORM_UID_SZ;
 
         entry.uid = (synth_plat_uid * shift_over_local_uid * shift_over_synth_uid) +
                     (synth_local_uid * shift_over_local_uid) +

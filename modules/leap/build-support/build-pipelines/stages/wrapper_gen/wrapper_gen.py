@@ -72,10 +72,11 @@ class WrapperGen():
 
         for wrapper in [wrapper_bsv, log_bsv]:      
           wrapper.write('// These are well-known/required leap modules\n')
-          wrapper.write('`include "asim/provides/soft_connections.bsh"\n')
-          wrapper.write('`include "asim/provides/soft_services_lib.bsh"\n')
-          wrapper.write('`include "asim/provides/soft_services.bsh"\n')
-          wrapper.write('`include "asim/provides/soft_services_deps.bsh"\n')
+          wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
+          wrapper.write('`include "awb/provides/soft_services_lib.bsh"\n')
+          wrapper.write('`include "awb/provides/soft_services.bsh"\n')
+          wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
+          wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
           wrapper.write('// import non-synthesis public files\n')
           wrapper.write('`include "' + module.name + '_compile.bsv"\n')
           wrapper.write('\n\n')
@@ -99,7 +100,10 @@ class WrapperGen():
           wrapper.write('    // instantiate own module\n')
           wrapper.write('    let int_ctx0 <- initializeServiceContext();\n')
           wrapper.write('    match {.int_ctx1, .int_name1} <- runWithContext(int_ctx0, putSynthesisBoundaryID(' + str(module.synthBoundaryUID)  + '));\n');
-          wrapper.write('    match {.final_ctx, .m_final} <- runWithContext(int_ctx1, ' + module.synthBoundaryModule + ');\n')
+          wrapper.write('    // By convention, global string ID 0 (the first string) is the module name\n');
+          wrapper.write('    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, getGlobalStringUID("' + module.name + '"));\n');
+          wrapper.write('    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, ' + module.synthBoundaryModule + ');\n')
+          wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx3, mkSoftConnectionDebugInfo);\n')
           wrapper.write('    let service_ifc <- exposeServiceContext(final_ctx);\n')
           wrapper.write('    interface services = service_ifc;\n')
           wrapper.write('    interface device = m_final;\n')

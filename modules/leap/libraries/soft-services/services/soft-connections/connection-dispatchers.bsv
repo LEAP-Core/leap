@@ -43,8 +43,8 @@ module [t_CONTEXT] mkConnectionDispatchSend#(String name, Maybe#(STATION) m_stat
     
     CONNECTION_SEND#(t_MSG) c <- 
         case (valueof(t_NUM_PHYSICAL_CONNS))
-            0: mkPhysicalConnectionSend(name, m_station, optional, conntype);
-            1: mkPhysicalConnectionSend(name, m_station, optional, conntype);
+            0: mkPhysicalConnectionSend(name, m_station, optional, conntype, True);
+            1: mkPhysicalConnectionSend(name, m_station, optional, conntype, True);
             default: mkConnectionSendVector(name, m_station, optional, conntype);
         endcase;
     
@@ -81,8 +81,8 @@ module [t_CONTEXT] mkConnectionDispatchSendMulti#(String name, Maybe#(STATION) m
     String conntype = printType(typeOf(msg));
     
     CONNECTION_SEND_MULTI#(t_MSG) c <- case (valueof(t_NUM_PHYSICAL_CONNS))
-                0: mkPhysicalConnectionSendMulti(name, m_station, conntype);
-                1: mkPhysicalConnectionSendMulti(name, m_station, conntype);
+                0: mkPhysicalConnectionSendMulti(name, m_station, conntype, True);
+                1: mkPhysicalConnectionSendMulti(name, m_station, conntype, True);
                 default: mkConnectionSendMultiVector(name, m_station, conntype);
             endcase;
     

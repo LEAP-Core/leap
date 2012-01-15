@@ -36,7 +36,11 @@ module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_st
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
-      v[x] <- mkPhysicalConnectionSend(portname + "_chunk_" + integerToString(x), m_station, optional, origtype);
+      v[x] <- mkPhysicalConnectionSend(portname + "_chunk_" + integerToString(x),
+                                       m_station,
+                                       optional,
+                                       origtype,
+                                       x == 0);
     end
 
     method Action send(t_MSG data);
@@ -140,7 +144,10 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION)
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
-        v[x] <- mkPhysicalConnectionSendMulti(portname + "_chunk_" + integerToString(x), m_station, origtype);
+        v[x] <- mkPhysicalConnectionSendMulti(portname + "_chunk_" + integerToString(x),
+                                              m_station,
+                                              origtype,
+                                              x == 0);
     end
 
     method Action broadcast(t_MSG data);

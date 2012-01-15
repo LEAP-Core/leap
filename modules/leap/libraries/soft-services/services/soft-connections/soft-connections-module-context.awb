@@ -4,6 +4,7 @@
 %requires soft_connections_alg
 %requires physical_interconnect
 %requires soft_connections_common
+%requires soft_connections_debug
 
 %attributes bluespec
 

@@ -31,6 +31,7 @@
 #include "awb/rrr/service_ids.h"
 #include "awb/dict/DEBUG_SCAN.h"
 
+#include "awb/provides/soft_services_deps.h"
 #include "awb/provides/debug_scan_device.h"
 
 using namespace std;
@@ -43,7 +44,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS DEBUG_SCAN_DEVICE_SERVER_CLASS::instance;
 // constructor
 DEBUG_SCAN_DEVICE_SERVER_CLASS::DEBUG_SCAN_DEVICE_SERVER_CLASS() :
     msgIdx(0),
-    msgID(DEBUG_SCAN_NULL),
+    of(stdout),
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
     serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this))
@@ -99,24 +100,23 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Cleanup()
 void
 DEBUG_SCAN_DEVICE_SERVER_CLASS::Send(
     UINT32 id,
-    UINT8 value)
+    UINT8 value,
+    UINT8 eom)
 {
     VERIFY(id < DEBUG_SCAN_DICT_ENTRIES, "debug-scan-controller:  Invalid id");
-
-    if (id != msgID)
-    {
-        // New message ID.  Print the previous one now that we have the whole
-        // message.
-        DisplayMsg();
-
-        msgID = id;
-        msgIdx = 0;
-    }
 
     ASSERT(msgIdx < DEBUG_SCAN_MAX_MSG_SIZE, "DEBUG SCAN " << DEBUG_SCAN_DICT::Name(id) << "message is too large");
 
     msg[msgIdx] = value;
     msgIdx += 1;
+
+    // End of message?
+    if (eom)
+    {
+        DisplayMsg(id);
+
+        msgIdx = 0;
+    }
 }
 
 
@@ -128,16 +128,9 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Send(
 void
 DEBUG_SCAN_DEVICE_SERVER_CLASS::Scan()
 {
-    UINT8 ack = clientStub->Scan(0);
+    fprintf(of, "\nDEBUG SCAN:\n");
 
-    if (msgIdx != 0)
-    {
-        DisplayMsg();
-
-        msgID = DEBUG_SCAN_NULL;
-        msgIdx = 0;
-    }
-
+    clientStub->Scan(0);
 }
 
 
@@ -146,17 +139,56 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Scan()
 //     Print a message for a given scan message.
 //
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsg()
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsg(UINT32 msgID)
 {
-    FILE *of = stdout;
-
-    if (msgID == DEBUG_SCAN_NULL)
+    if (msgID == DEBUG_SCAN_SOFT_CONNECTIONS_FIFO)
     {
-        // First, dummy, message.  Just print a header and return.
-        fprintf(of, "\nDEBUG SCAN:\n");
-        return;
+        DisplayMsgSoftConnection(msgID);
     }
+    else
+    {
+        DisplayMsgGeneric(msgID);
+    }
+}
 
+
+void
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSoftConnection(UINT32 msgID)
+{
+    // First two bytes are the high part synthesis boundary ID portion
+    // of the string UID.  This portion is constant for all strings in
+    // the record.
+    UINT32 synth_uid = ((msg[0] << 8) | (msg[1])) << GLOBAL_STRING_LOCAL_UID_SZ;
+
+    fprintf(of, "  %s [%s]: %s\n",
+            DEBUG_SCAN_DICT::Name(msgID),
+            (*GLOBAL_STRINGS::Lookup(synth_uid)).c_str(),
+            DEBUG_SCAN_DICT::Str(msgID));
+
+    int i = 2;
+    while (i < msgIdx)
+    {
+        // Local UID portion is stored in 16 bits
+        UINT32 local_uid = (msg[i] << 8) | msg[i + 1];
+
+        // The high 2 bits are notFull / notEmpty bits
+        bool not_full = ((local_uid & 0x8000) != 0);
+        bool not_empty = ((local_uid & 0x4000) != 0);
+        local_uid &= (1 << GLOBAL_STRING_LOCAL_UID_SZ) - 1;
+
+        fprintf(of, "\t%s:  %sfull / %sempty\n",
+                (*GLOBAL_STRINGS::Lookup(synth_uid | local_uid)).c_str(),
+                not_full ? "not " : "",
+                not_empty ? "not " : "");
+
+        i += 2;
+    }
+}
+
+
+void
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgGeneric(UINT32 msgID)
+{
     // Default just prints a number
     fprintf(of, "  %s: %s\n\tH ", DEBUG_SCAN_DICT::Name(msgID), DEBUG_SCAN_DICT::Str(msgID));
 

@@ -24,7 +24,12 @@
 `include "awb/provides/physical_platform.bsh"
 
 
-module [t_CONTEXT] mkPhysicalConnectionSend#(String send_name, Maybe#(STATION) m_station, Bool optional, String original_type)
+module [t_CONTEXT] mkPhysicalConnectionSend#(
+    String send_name,
+    Maybe#(STATION) m_station,
+    Bool optional,
+    String original_type,
+    Bool enableDebug)
     // interface:
         (CONNECTION_SEND#(t_MSG))
     provisos
@@ -88,6 +93,27 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(String send_name, Maybe#(STATION) m
         // Nope, so just register and try to find a match.
         registerSend(info);
 
+    end
+
+
+    // ****** Register debug state ****** //
+
+    if (enableDebug)
+    begin
+        let dbg_state = (
+            interface PHYSICAL_CONNECTION_DEBUG_STATE;
+                method Bool notEmpty() = q.notEmpty();
+                method Bool notFull() = q.notFull();
+            endinterface);
+
+        let dbg_info =
+            CONNECTION_DEBUG_INFO
+            {
+                sendName: send_name,
+                state: dbg_state
+            };
+
+        addConnectionDebugInfo(dbg_info);
     end
 
 
@@ -200,7 +226,11 @@ endmodule
 // unguarded FIFO, which makes the scheduler's life much easier.
 // The dispatcher which invokes this may guard the FIFO as appropriate.
 
-module [t_CONTEXT] mkPhysicalConnectionSendMulti#(String send_name, Maybe#(STATION) m_station, String original_type)
+module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
+    String send_name,
+    Maybe#(STATION) m_station,
+    String original_type,
+    Bool enableDebug)
     //interface:
         (CONNECTION_SEND_MULTI#(t_MSG))
     provisos
@@ -263,6 +293,27 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(String send_name, Maybe#(STATI
         // Nope, so just register and try to find a match.
         registerSendMulti(info);
 
+    end
+
+
+    // ****** Register debug state ****** //
+
+    if (enableDebug)
+    begin
+        let dbg_state = (
+            interface PHYSICAL_CONNECTION_DEBUG_STATE;
+                method Bool notEmpty() = q.notEmpty();
+                method Bool notFull() = q.notFull();
+            endinterface);
+
+        let dbg_info =
+            CONNECTION_DEBUG_INFO
+            {
+                sendName: send_name,
+                state: dbg_state
+            };
+
+        addConnectionDebugInfo(dbg_info);
     end
 
 

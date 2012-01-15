@@ -11101,3 +11101,65 @@ Directory .
 
 Added dependency on libio-pty-perl to the debian package to
 address awb bug #99.
+
+----------
+mcadler     Date: Sun Jan 15 09:19:13 EST 2012  CSN: CSN-leap-225
+                  Sun Jan 15 14:19:13 UTC 2012
+
+
+Directory config/pm/leap/submodels/common
+ soft-services.apm         Locally Modified          224 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.cpp     Locally Modified          224 
+ debug-scan-device.rrr     Locally Modified          224 
+ debug-scan-device.h       Locally Modified          224 
+ debug-scan-device.bsv     Locally Modified          224 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          224 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          224 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          224 
+ debug-scan-local.bsv      Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.awb        Locally Modified          224 
+ global-strings.bsv        Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          224 
+ debug/                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Added               0 
+ connections-debug.dic     Locally Added               0 
+ connections-debug.awb     Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-multifpga.awb Locally Removed           224 
+ soft-connections-module-context-multifpga.awb Locally Modified          224 
+ connection-dispatchers.bsv Locally Modified          224 
+ connection-implementation-multifpga.bsv Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context.awb Locally Modified          224 
+ connection-context.bsv    Locally Modified          224 
+ connection-vectors.bsv    Locally Modified          224 
+ connection-implementation.bsv Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.bsv     Locally Modified          224 
+
+Dump the state of every soft connection sender's notFull and notEmpty bits on the
+DEBUG_SCAN ring.  The cost is sufficiently low that this feature is on by default,
+though it can be disabled by setting CON_DEBUG_ENABLE to 0 in connections-debug.awb.
+
+The debugging code does add some mapping pressure, since all the notFull/notEmpty
+wires within a synthesis boundary must route to the same, local, debug scan node.

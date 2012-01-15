@@ -31,6 +31,7 @@ import Clocks::*;
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections_debug.bsh"
 `include "awb/provides/platform_services.bsh"
 
 module [Module] mkModel
@@ -79,6 +80,10 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem#(LowLevelPlatformInterface llpi)
     // interface:
         ();
     
+    // By convention, global string ID 0 (the first string) is the module name
+    let platform_name <- getSynthesisBoundaryPlatform();
+    let model_name <- getGlobalStringUID(platform_name + ":model");
+
     //
     // Virtual platform is the first connection between the low level platform
     // and the application.  Elements in the virtual platform are often simple
@@ -99,4 +104,12 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem#(LowLevelPlatformInterface llpi)
     //
     let app <- mkApplicationEnv(vp);
 
+    //
+    // Final step: generate the debug logic for soft connections.  This call
+    // must be triggered outside the internal soft connection code to avoid
+    // a dependence loop.  The debug info call generates ring stops and the
+    // ring stop code depends on soft connections.  If not for that dependence
+    // we could push the call down into instantiateWithConnections().
+    //
+    let dbg <- mkSoftConnectionDebugInfo();
 endmodule

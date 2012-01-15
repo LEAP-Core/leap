@@ -196,7 +196,36 @@ typedef struct
 }
     STATION_INFO;
     
+
+// ========================================================================
+//
+// Debug state for soft connection FIFOs.  These are collected internally
+// and emitted late, by a separate module not involved in soft connection
+// creation.  The debug code itself depends on soft connections, so would
+// cause a dependence loop if the connection debug info were generated
+// in-line.
+//
+// ========================================================================
+
+interface PHYSICAL_CONNECTION_DEBUG_STATE;
+    method Bool notEmpty();
+    method Bool notFull();
+endinterface
+
+typedef struct
+{
+    String sendName;
+    PHYSICAL_CONNECTION_DEBUG_STATE state;
+}
+    CONNECTION_DEBUG_INFO;
+
+
+// ========================================================================
+//
 // BACKWARDS COMPATABILITY: Data about connection chains
+//
+// ========================================================================
+
 typedef `CON_NUMCHAINS CON_NUM_CHAINS;
 typedef `CON_CWIDTH CHAIN_DATA_SIZE;
 typedef Bit#(CHAIN_DATA_SIZE) PHYSICAL_CHAIN_DATA;
@@ -217,7 +246,12 @@ typedef struct
     LOGICAL_CHAIN_INFO;
 
 
+// ========================================================================
+//
 // The context our connected modules operate on.
+//
+// ========================================================================
+
 typedef struct
 {
     List#(GLOBAL_STRING_TABLE) globalStrings;
@@ -228,6 +262,7 @@ typedef struct
     List#(LOGICAL_CHAIN_INFO) chains;     // BACKWARDS COMPATABILITY: connection chains
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
+    List#(CONNECTION_DEBUG_INFO) debugInfo;
     String synthesisBoundaryPlatform;
     Integer synthesisBoundaryPlatformID;  // UID for a given FPGA
     Integer synthesisBoundaryID;          // UID a synthesis boundary within a single platform

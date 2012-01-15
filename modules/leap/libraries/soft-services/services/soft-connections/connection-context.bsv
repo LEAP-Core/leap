@@ -19,7 +19,6 @@
 import ModuleContext::*;
 
 `include "awb/provides/soft_services.bsh"
-`include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_connections_common.bsh"
 
 // ****** Connection Context Support Functions ******
@@ -570,5 +569,34 @@ module [t_CONTEXT] getCurrentStationM (Maybe#(STATION))
                    return tagged Valid (List::head(ss));
                end
            endcase;
+
+endmodule
+
+
+// ========================================================================
+//
+// Debug info
+//
+// ========================================================================
+
+module [t_CONTEXT] getConnectionDebugInfo (List#(CONNECTION_DEBUG_INFO))
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.debugInfo;
+
+endmodule
+
+
+module [t_CONTEXT] addConnectionDebugInfo#(CONNECTION_DEBUG_INFO dbg_info) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.debugInfo = List::cons(dbg_info, ctxt.debugInfo);
+    putContext(ctxt);
 
 endmodule

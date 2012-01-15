@@ -53,7 +53,7 @@ module [CONNECTED_MODULE] mkDebugScanService#(DEBUG_SCAN_DEVICE debugScan)
             // A value to dump
             tagged DS_VAL .info:
             begin
-                debugScan.scanValue(info.id, info.value);
+                debugScan.scanValue(info.id, info.value, info.eom);
             end
 
             // Command came all the way around the loop.  Done dumping.

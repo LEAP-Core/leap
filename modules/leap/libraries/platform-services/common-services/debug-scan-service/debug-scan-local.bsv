@@ -47,7 +47,7 @@ typedef Bit#(DEBUG_SCAN_VALUE_SZ) DEBUG_SCAN_VALUE;
 typedef union tagged
 {
     void DS_DUMP;
-    struct {DEBUG_SCAN_DICT_TYPE id; DEBUG_SCAN_VALUE value;} DS_VAL;
+    struct {DEBUG_SCAN_DICT_TYPE id; DEBUG_SCAN_VALUE value; Bool eom;} DS_VAL;
 }
 DEBUG_SCAN_DATA
     deriving (Eq, Bits);
@@ -99,7 +99,9 @@ module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
             // More data remains for this node
             let idx = dbgValIdx - 1;
             dbgValIdx <= idx;
-            chain.sendToNext(tagged DS_VAL { id: myID, value: dbgVal[idx] });
+            chain.sendToNext(tagged DS_VAL { id: myID,
+                                             value: dbgVal[idx],
+                                             eom: (dbgValIdx == 1) });
         end
     endrule
 
@@ -121,7 +123,9 @@ module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
                 dbgValIdx <= fromInteger(valueOf(n_ENTRIES) - 1);
 
                 // Send the first chunk of data on the chain
-                chain.sendToNext(tagged DS_VAL { id: myID, value: val[valueOf(n_ENTRIES) - 1] });
+                chain.sendToNext(tagged DS_VAL { id: myID,
+                                                 value: val[valueOf(n_ENTRIES) - 1],
+                                                 eom: (valueOf(n_ENTRIES) == 1) });
                 state <= DS_DUMPING;
             end
 

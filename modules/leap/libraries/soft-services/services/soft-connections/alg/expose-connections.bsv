@@ -70,6 +70,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  chains: tagged Nil,
                  stations: tagged Nil,
                  stationStack: tagged Nil,
+                 debugInfo: tagged Nil,
                  synthesisBoundaryPlatform: fpgaPlatformName,
                  synthesisBoundaryPlatformID: fpgaPlatformID,
                  synthesisBoundaryID: 0,

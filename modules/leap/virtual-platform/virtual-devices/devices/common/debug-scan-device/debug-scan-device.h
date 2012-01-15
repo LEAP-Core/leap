@@ -48,11 +48,14 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     DEBUG_SCAN_CLIENT_STUB clientStub;
 
     // Internal display method
-    void DisplayMsg();
+    void DisplayMsg(UINT32 msgID);
+    void DisplayMsgSoftConnection(UINT32 msgID);
+    void DisplayMsgGeneric(UINT32 msgID);
 
     UINT8 msg[DEBUG_SCAN_MAX_MSG_SIZE];
     int msgIdx;
-    UINT8 msgID;
+
+    FILE *of;
 
   public:
     DEBUG_SCAN_DEVICE_SERVER_CLASS();
@@ -70,7 +73,10 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Scan();
 
     // RRR service methods
-    void  Send(UINT32 id, UINT8 value);
+    void  Send(UINT32 id, UINT8 value, UINT8 eom);
+    // Done exists solely to signal receipt of all Send() calls before returning
+    // control to Scan().  It has lower priority than Send().
+    UINT8 Done(UINT8 dummy) { return dummy; }
 };
 
 // server stub
