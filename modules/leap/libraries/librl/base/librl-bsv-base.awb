@@ -13,6 +13,7 @@
 %public debug-file.bsv
 %public extends.bsv
 %public fifo-functions.bsv
+%public fifo-marshaller.bsv
 %public fifo-merge.bsv
 %public hash-bits.bsv
 %public lfsr.bsv

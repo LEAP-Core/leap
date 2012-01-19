@@ -52,8 +52,9 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     void DisplayMsgSoftConnection(UINT32 msgID);
     void DisplayMsgGeneric(UINT32 msgID);
 
-    UINT8 msg[DEBUG_SCAN_MAX_MSG_SIZE];
-    int msgIdx;
+    UINT8 *msg;             // Buffer for storing incoming messages
+    UINT32 msgBufLen;       // Buffer length
+    UINT32 msgIdx;          // Current write point in the buffer
 
     FILE *of;
 

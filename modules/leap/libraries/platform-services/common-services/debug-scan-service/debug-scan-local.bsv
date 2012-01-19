@@ -21,7 +21,7 @@ import Counter::*;
 import Vector::*;
 
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv.bsh"
 `include "awb/provides/debug_scan_device.bsh"
 
 `include "awb/dict/RINGID.bsh"
@@ -79,29 +79,27 @@ module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
 
     Reg#(DEBUG_SCAN_STATE) state <- mkReg(DS_IDLE);
 
-    Reg#(Vector#(n_ENTRIES, DEBUG_SCAN_VALUE)) dbgVal <- mkRegU();
-    Reg#(Bit#(TLog#(n_ENTRIES))) dbgValIdx <- mkRegU();
-
+    // Marshall the debug data to the message size.
+    MARSHALLER#(DEBUG_SCAN_VALUE, t_DEBUG_DATA) mar <- mkSimpleMarshallerHighToLow();
 
     //
     // sendDumpData --
     //     Forward dump data and token around the ring.
     //
     rule sendDumpData (state == DS_DUMPING);
-        if ((valueOf(n_ENTRIES) == 1) || (dbgValIdx == 0))
+        if (mar.notEmpty)
+        begin
+            // More data remains for this node
+            chain.sendToNext(tagged DS_VAL { id: myID,
+                                             value: mar.first(),
+                                             eom: mar.isLast() });
+            mar.deq();
+        end
+        else
         begin
             // Done with this node's data
             chain.sendToNext(tagged DS_DUMP);
             state <= DS_IDLE;
-        end
-        else
-        begin
-            // More data remains for this node
-            let idx = dbgValIdx - 1;
-            dbgValIdx <= idx;
-            chain.sendToNext(tagged DS_VAL { id: myID,
-                                             value: dbgVal[idx],
-                                             eom: (dbgValIdx == 1) });
         end
     endrule
 
@@ -117,15 +115,7 @@ module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
         case (ds) matches 
             tagged DS_DUMP:
             begin
-                // Capture the dump value as an array of scan-chain-sized data.
-                Vector#(n_ENTRIES, DEBUG_SCAN_VALUE) val = unpack(zeroExtendNP(pack(debugValue)));
-                dbgVal <= val;
-                dbgValIdx <= fromInteger(valueOf(n_ENTRIES) - 1);
-
-                // Send the first chunk of data on the chain
-                chain.sendToNext(tagged DS_VAL { id: myID,
-                                                 value: val[valueOf(n_ENTRIES) - 1],
-                                                 eom: (valueOf(n_ENTRIES) == 1) });
+                mar.enq(debugValue);
                 state <= DS_DUMPING;
             end
 

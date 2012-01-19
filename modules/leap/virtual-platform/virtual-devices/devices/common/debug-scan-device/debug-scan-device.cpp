@@ -49,6 +49,8 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DEBUG_SCAN_DEVICE_SERVER_CLASS() :
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
     serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this))
 {
+    msgBufLen = 128;
+    msg = new UINT8[msgBufLen];
 }
 
 
@@ -57,6 +59,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DEBUG_SCAN_DEVICE_SERVER_CLASS() :
 DEBUG_SCAN_DEVICE_SERVER_CLASS::~DEBUG_SCAN_DEVICE_SERVER_CLASS()
 {
     Cleanup();
+    delete[] msg;
 }
 
 
@@ -105,6 +108,17 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Send(
 {
     VERIFY(id < DEBUG_SCAN_DICT_ENTRIES, "debug-scan-controller:  Invalid id");
 
+    if (msgIdx >= msgBufLen)
+    {
+        // Buffer is too small.  Replace it with a larger one.
+        UINT8 *new_msg = new UINT8[msgBufLen + 512];
+        memcpy(new_msg, msg, msgBufLen);
+
+        delete[] msg;
+        msg = new_msg;
+        msgBufLen += 512;
+    }
+    
     ASSERT(msgIdx < DEBUG_SCAN_MAX_MSG_SIZE, "DEBUG SCAN " << DEBUG_SCAN_DICT::Name(id) << "message is too large");
 
     msg[msgIdx] = value;

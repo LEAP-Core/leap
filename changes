@@ -11163,3 +11163,47 @@ though it can be disabled by setting CON_DEBUG_ENABLE to 0 in connections-debug.
 
 The debugging code does add some mapping pressure, since all the notFull/notEmpty
 wires within a synthesis boundary must route to the same, local, debug scan node.
+
+----------
+mcadler     Date: Thu Jan 19 08:04:21 EST 2012  CSN: CSN-leap-226
+                  Thu Jan 19 13:04:21 UTC 2012
+
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ BSV.pm                    Locally Modified          225 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ BSV.pm                    Locally Modified          225 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ marshaller.bsv            Locally Modified          225 
+ demarshaller.bsv          Locally Modified          225 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.cpp     Locally Modified          225 
+ debug-scan-device.h       Locally Modified          225 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-marshaller.bsv       Locally Removed           225 
+ librl-bsv-storage.awb     Locally Modified          225 
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Added               - 
+ librl-bsv-base.awb        Locally Modified          225 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          225 
+
+- Change the interface to the LibRL marshaller/demarshaller to take the
+  marshalled type and the unmarshalled type instead of the marshalled type
+  and a vector of the marshalled type.  The internal logic now computes the
+  vector length.
+
+- Rename the RRR marshaller to avoid name conflicts with LibRL.  The RRR
+  marshaller and demarshaller are incompatible with each other (they send
+  different byte orders), so are good to avoid for other purposes.
+
+- Use LibRL marshaller in debug scan.
+
+- Improve C++ debug scan receiver to grow its buffer automatically if a large
+  scan record arrives.

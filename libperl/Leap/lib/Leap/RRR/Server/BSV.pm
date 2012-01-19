@@ -236,10 +236,10 @@ sub _print_state
         print $file "\n";
     }
 
-    print $file "    DEMARSHALLER#(UMF_CHUNK, Bit#($maxinsize)) dem <- mkDeMarshaller();\n";
+    print $file "    RRR_DEMARSHALLER#(UMF_CHUNK, Bit#($maxinsize)) dem <- mkRRRDemarshaller();\n";
     if ($maxoutsize != 0)
     {
-        print $file "    MARSHALLER#(Bit#($maxoutsize), UMF_CHUNK) mar <- mkMarshaller();\n";
+        print $file "    RRR_MARSHALLER#(Bit#($maxoutsize), UMF_CHUNK) mar <- mkRRRMarshaller();\n";
     }
     print $file "\n";
     print $file "    Reg#(UMF_METHOD_ID) mid <- mkReg(0);\n";
