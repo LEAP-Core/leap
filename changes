@@ -11207,3 +11207,47 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
 
 - Improve C++ debug scan receiver to grow its buffer automatically if a large
   scan record arrives.
+
+----------
+emer        Date: Sat Jan 21 15:11:57 EST 2012  CSN: CSN-leap-227
+                  Sat Jan 21 20:11:57 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          226 
+
+Directory tools/scripts
+ leap-configure            Locally Modified          226 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          226 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          226 
+
+Enhanced leap-configure to pick up its options using the
+standard awb workspace configuration files (awb.config,
+~/.asim/asimrc and <prefix>/etc/asim/asimrc. Invoke the
+following to see the options:
+
+   % leap-configure options
+
+Also converted leap-configure to take action commands, such
+as 'configure' and 'run' rather than actions switches, such
+as -configure and -run, to make it consistent with the other
+configuration programs, such as amc(1). The old form still
+works and is used by the Perl library, which needs to get
+upgraded. But the prefered use of leap-configure is now:
+
+   % leap-configure configure --model=config/pm/.../foo.apm
+
+Also made leap-configure exit more gracefully in the face of 
+bad model parameters and added documentation accessable with:
+
+   % leap-configure help
+
+Finally, made bluesim builds work across differnt versions
+of gcc due to difference is the availability of the 
+no-var-tracking-assignments option. This is accomplished by a
+new utility function getGccVersion(). This closes bug #100.
+

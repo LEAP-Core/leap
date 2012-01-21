@@ -72,6 +72,43 @@ def execute(cmd):
 def awb_resolver(arg):
     return one_line_cmd("awb-resolver " + arg)
 
+
+##
+## getGccVersion()
+##
+
+def getGccVersion():
+    # What is the Gcc compiler version in the form XXYYZZ?
+
+    gcc_version = 0
+
+    # Parsing expression for version number
+
+    ver_regexp = re.compile('^gcc \(.*\) ([0-9]+)\.([0-9]+)\.([0-9]+)')
+
+    # Read through output of 'gcc --version'
+
+    gcc_ostream = os.popen('gcc --version')
+
+    for ln in gcc_ostream.readlines():
+        m = ver_regexp.match(ln)
+        if (m):
+           gcc_version = int(m.group(1))*10000 + int(m.group(2))*100 + int(m.group(3))
+
+    gcc_ostream.close()
+
+    # Fail if we didn't find anything
+
+    if gcc_version == 0:
+        print "Failed to get Gcc compiler version"
+        sys.exit(1)
+
+#    print "Gcc version = %d"%(gcc_version)
+
+    return gcc_version
+
+
+
 ##
 ## get_bluespec_verilog --
 ##     Return a list of Verilog files from the Bluespec compiler release.

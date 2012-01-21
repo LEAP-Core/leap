@@ -31,6 +31,12 @@ use strict;
 #
 $^W = 1;
 
+#
+# Initialize asim
+#
+Asim::init()
+    || die("Unable to initialize Asim::\n");
+
 ##
 ## Dynamic param arrays are initialized by make_bsvfiles() and used later
 ##
@@ -44,9 +50,11 @@ my %all_params;
 my $status;
 
 my $help = 0;
+my $options = 0;
 my $debug = 0;
 
 # only one of the following command flags should be set
+
 my $configure = 0;
 my $nuke = 0;
 my $setup = 0;
@@ -55,23 +63,27 @@ my $run = 0;
 my $pythonize = 0;
 
 # command options
-my $buildopt = "all";
-my $builddir = undef;
-my $benchmark = undef;
-my $rundir = undef;
-my $model = undef;
-my $runopt = "";
 
-my $private = 1;
-my $public = 1;
-my $relative = 0;
-my $silent = 0;
+my $optlist = "leap-configure";
+
+my $model =     Asim::get_option($optlist, "MODEL",     undef);
+my $benchmark = Asim::get_option($optlist, "BENCHMARK", undef);
+
+my $builddir =  Asim::get_option($optlist, "BUILDDIR",  undef);
+my $buildopt =  Asim::get_option($optlist, "BUILDOPT",  "all");
+my $rundir =    Asim::get_option($optlist, "RUNDIR",    undef);
+my $runopt =    Asim::get_option($optlist, "RUNOPT",    "");
+
+my $private =   Asim::get_option($optlist, "PRIVATE",   1);
+my $public =    Asim::get_option($optlist, "PUBLIC",    1);
+my $relative =  Asim::get_option($optlist, "RELATIVE",  0);
+my $silent =    Asim::get_option($optlist, "SILENT",    0);
+
 
 $status = GetOptions( "private!"    => \$private,
                       "public!"     => \$public,
                       "relative!"   => \$relative,
                       "silent!"     => \$silent,
-                      "debug"       => \$debug,
                       "configure"   => \$configure,
                       "nuke"        => \$nuke,
                       "setup"       => \$setup,
@@ -84,13 +96,67 @@ $status = GetOptions( "private!"    => \$private,
 		      "rundir=s"    => \$rundir,
                       "buildopt:s"  => \$buildopt,
 		      "runopt:s"    => \$runopt,
-                      "help"        => \$help
+                      "help"        => \$help,
+                      "options"     => \$options,
+                      "debug"       => \$debug
 		      );
 		      
 my $prog = basename($0);
 
+
 if (!$status) {
     Leap::Util::WARN_AND_DIE("Illegal argument, try '$prog --help'");
+    exit 0;
+}
+
+my $num_commands = $configure + $nuke + $build + $setup + $run + $pythonize;
+
+if ($num_commands > 1) {
+    print STDERR "$prog: Must supply exactly one command. See $prog --help \n";
+    exit 0;
+}
+
+if ($num_commands == 1) {
+#   Enable the next line when Model.pm is updated to use the new command format
+#   print STDERR "prog: Using deprecated switch-based commands. See $prog --help\n";
+
+#   Enable the next line when everyone should be using the new command format
+#   exit 0;
+}
+
+$num_commands += $help + $options;
+
+if ($num_commands == 0 && $#ARGV != -1) {
+    my $command = shift @ARGV;
+
+    if ($command eq "nuke") {
+        $nuke = 1;
+        $num_commands = 1;
+    } elsif ($command eq "configure" ) {
+        $configure = 1;
+        $num_commands = 1;
+    } elsif ($command eq "build" ) {
+        $build = 1;
+        $num_commands = 1;
+    } elsif ($command eq "setup" ) {
+        $setup = 1;
+        $num_commands = 1;
+    } elsif ($command eq "run" ) {
+        $run = 1;
+        $num_commands = 1;
+    } elsif ($command eq "pythonize" ) {
+        $pythonize = 1;
+        $num_commands = 1;
+    } elsif ($command eq "help" ) {
+        $help = 1;
+        $num_commands = 1;
+    } elsif ($command eq "options" ) {
+        $options = 1;
+        $num_commands = 1;
+    } else {
+        print STDERR "$prog: Illegal command: $command.  See $prog --help\n";
+        exit 0;
+    }
 }
 
 if ($help) {
@@ -98,19 +164,22 @@ if ($help) {
     exit 0;
 }
 
-
-my $num_commands = $configure + $nuke + $build + $setup + $run + $pythonize;
-if ($num_commands != 1) {
-    print STDERR "$prog: Must supply exactly one command:\n";
-    print STDERR "\t-configure\n";
-    print STDERR "\t-nuke\n";
-    print STDERR "\t-build\n";
-    print STDERR "\t-setup\n";
-    print STDERR "\t-run\n";
-    print STDERR "\t-pythonize\n";
+if ($options) {
+    $Asim::default_workspace->dump_options();
     exit 0;
 }
 
+if ($num_commands == 0) {
+    print STDERR "$prog: A command must be provided. See $prog --help\n";
+    exit 0;
+}
+
+
+
+
+#
+# Alternative (deprecated) method of specifying model name
+#
 if (!defined($model)) {
   $model = $ARGV[0];
 }
@@ -121,10 +190,6 @@ if (!defined($model)) {
 
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
-
-Asim::init()
-    || die("Unable to initialize Asim::\n");
-
 
 print "Opening... $model\n" if $debug;
     
@@ -165,11 +230,16 @@ sub run_model {
     my $modelfile = shift;
     my $benchmarkfile = shift;
 
-    my $model = Asim::Model->new($modelfile);
     my $sys_status;
 
+    my $model = Asim::Model->new($modelfile);
+    if (!defined($model)) {
+      print "Failed to open model file.\n";
+      return 0;
+    }
+
     if (!defined($benchmarkfile)) {
-      print "Undefined Benchmark for running.";
+      print "Undefined Benchmark for running.\n";
       return 0;
     }
 
@@ -189,8 +259,14 @@ sub run_model {
 sub pythonize_model {
     my $modelfile = shift;
 
-    my $model = Asim::Model->new($modelfile);
     my $sys_status;
+
+    my $model = Asim::Model->new($modelfile);
+    if (!defined($model)) {
+      print "Failed to open model file.\n";
+      return 0;
+    }
+
 
     if (defined(&Asim::Model::embed_submodels)) {
 	$model->embed_submodels();
@@ -225,11 +301,16 @@ sub setup_benchmark {
     my $modelfile = shift;
     my $benchmarkfile = shift;
 
-    my $model = Asim::Model->new($modelfile);
     my $sys_status;
 
+    my $model = Asim::Model->new($modelfile);
+    if (!defined($model)) {
+      print "Failed to open model file.\n";
+      return 0;
+    }
+
     if (!defined($benchmarkfile)) {
-      print "Undefined Benchmark for setup.";
+      print "Undefined Benchmark for setup.\n";
       return 0;
     }
 
@@ -319,9 +400,14 @@ sub setup_benchmark {
 sub build_build_tree {
     my $modelfile = shift;
 
-    my $model = Asim::Model->new($modelfile);
     my $sys_status;
     
+    my $model = Asim::Model->new($modelfile);
+    if (!defined($model)) {
+      print "Failed to open model file.\n";
+      return 0;
+    }
+
     if (!defined($builddir)) {
       $builddir = $model->build_dir();
     }
@@ -337,8 +423,13 @@ sub build_build_tree {
 sub delete_build_tree {
     my $modelfile = shift;
 
-    my $model = Asim::Model->new($modelfile);
     my $sys_status;
+
+    my $model = Asim::Model->new($modelfile);
+    if (!defined($model)) {
+      print "Failed to open model file.\n";
+      return 0;
+    }
 
     if (!defined($builddir)) {
       $builddir = $model->build_dir();
@@ -358,8 +449,13 @@ sub delete_build_tree {
 sub configure_build_tree {
     my $modelfile = shift;
 
-    my $model = Asim::Model->new($modelfile);
     my $status;
+
+    my $model = Asim::Model->new($modelfile);
+    if (!defined($model)) {
+      print "Failed to open model file.\n";
+      return 0;
+    }
 
     if (defined(&Asim::Model::embed_submodels)) {
       print "Using Asim::Model embed_submodels\n";
@@ -1982,3 +2078,290 @@ sub __make_rrr {
         __make_rrr($child, $my_dir, $rel_dir, $replacements_r);
     }
 }
+
+
+__END__
+
+=head1 NAME
+
+leap-configure - Program to configure/build/run an awb-based design
+
+=head1 SYNOPSIS
+
+     % leap-configure <COMMAND> [option]... [argument]...
+
+=head1 DESCRIPTION
+
+The leap-configure command allows a user working on an awb(1)-based
+design to configure, build and run the design. The basic input to most
+commands is a model description (.apm file) and if the command
+involves setting up or running a benchmark than a benchmark file (.cfg
+file) is also needed.
+
+This command is basically the hybrid hardware/software design analog
+of the amc(1) command, which is used for purely software-based
+performance models.
+
+Note that leap-configure is primarily an internal command, and its 
+direct use is discouraged in favor it having it invoked indirectly
+through awb-shell.
+
+
+=head1 SWITCHES
+
+The following command line switches are currently supported and can
+be applied to any command:
+
+=over 4 
+
+=item --[no]silent
+
+Specifies whether to be silent or to not, i.e., to print when the run
+is done. Default is NOT to be silent.
+
+=item --[no]debug
+
+Specifies that extra debuging information should be printed. The [no]
+prefix reverses the sense of the command. Default is NOT to debug.
+
+=back
+
+=head1 COMMANDS
+
+The following commands are supported:
+
+=over 4
+
+=item B<configure --model E<lt>model-fileE<gt> [option]...>
+
+Configure the specified model by traversing the module hierarchy for
+the selected model and creating a standard build tree for it. Symbolic
+links are created pointing at the original source files for the
+modules and Makefile and/or Sconstruct files are created along with
+other synthesized source files.
+
+Options:
+
+=over 4 
+
+=item --model <model-file>
+
+Specifies the .apm describing model to work on.
+
+Specification may be in the awb workspace uniondir form, where a
+search based at the root of each of the packages in the workspace will
+be made for the file if a relative path name is given.
+
+=item --builddir <directory>
+
+Specifies the directory to contain the configured design. This switch
+is optional and a default location is calculated based on the model
+file (see explanation in FILES section below). In any case, if the
+directory does not exist it will be created.
+
+=item --[no]private
+
+Specifies whether private bsv files are included in the include files. Default is true.
+
+=item --[no]public
+
+Specifies whether public bsv files are included in the include files. Default is true.
+
+=back
+
+=item B<nuke --model E<lt>model-fileE<gt> [option]...>
+
+Delete the build tree created by configure. In most cases, the
+benchmarks associated with that build will be deleted as well.
+
+Benchmark deletion occurs if the build directory is named pm/. In this
+case the parent directory of pm/ and all its contents will be deleted
+recursively, i.e., the pm/ directory and all peers of the pm/
+directory.
+
+Options:
+
+=over 4 
+
+=item --model <model-file>
+
+Specifies the .apm describing model to work on.
+
+=item --builddir <directory>
+
+Specifies the directory containing the configured design as specified
+in the B<configure> command. This switch is necessary if it was specified
+in the prior B<configure> command.
+
+=back
+
+=item B<build --model E<lt>model-fileE<gt> [option]...>
+
+Builds the specified model. Essentially invokes make/scons in
+the appropriate directory with the appropriate switches.
+
+Options:
+
+=over 4 
+
+=item --model <model-file>
+
+See the B<configure> command.
+
+=item --builddir <directory>
+
+Specifies the directory containing the configured design as specified
+in the B<configure> command. This switch is necessary if it was specified
+in the prior B<configure> command.
+
+=item --buildopt <build-options>
+
+Specifies the options to pass on to the build.
+
+=back
+
+=item B<setup --model E<lt>model-fileE<gt> --benchmark E<lt>benchmark-fileE<gt> [option]...>
+
+Sets up the specified benchmark on the specified model. Creates the run directory and
+some helper files, and then invokes the configuration script specified in the
+benchmark's descrption (.cfg) file.
+
+Options:
+
+=over 4 
+
+=item --model <model-file>
+
+See the B<configure> command.
+
+=item --builddir <directory>
+
+Specifies the directory containing the configured design as specified
+in the B<configure> command. This switch is necessary if it was specified
+in the prior B<configure> command.
+
+=item --benchmark <benchmark-file>
+
+Specifies the file describing the benchmark.
+
+Specification may be in the awb workspace uniondir form, where a
+search based at the root of each of the packages in the workspace will
+be made for the file if a relative path name is given.
+
+
+=item --rundir <directory>
+
+Specifies the directory to contain the set up benchmark. This switch
+is optional and a default location is calculated based on the model
+file (see explanation in FILES section below). In any case, if the
+directory does not exist it will be created.
+
+=back
+
+=item B<run --model E<lt>model-fileE<gt> --benchmark E<lt>benchmark-fileE<gt> [option]...>
+
+Runs the specified benchmark on the specified model. Does little more than invoke
+./run in the benchmark directory.
+
+Options:
+
+=over 4 
+
+=item --model <model-file>
+
+See the B<configure> command.
+
+=item --benchmark <benchmark-file>
+
+See the B<setup> command.
+
+=item --rundir <directory>
+
+Specifies the directory containing the set up benchmark as specified
+in the B<setup> command. This switch is necessary if it was specified
+in the prior B<setup> command.
+
+=item --runopt <run-options>
+
+Specifies the options to pass on to the run.
+
+=back
+
+=item B<help>
+
+Get this help information.
+
+=item B<options>
+
+List the awb.config/asimrc options for this program.
+
+
+=back
+
+=head1 OPERATION
+
+TBD
+
+=head1 FILES
+
+The default model build directory and benchmark run directory names
+are calculated using the following format:
+
+   <workspace>/build/default/<model>/pm/
+
+   <workspace>/build/default/<model>/bm/<benchmark>/
+
+where <workspace> is the current workspace, <model> is the filename of
+the .apm file (excluding the extension) and <benchmark> is the filename
+of the .cfg file (excluding the extension).
+
+   
+=head1 EXAMPLES
+
+To run configure and build a model and then setup and run a benchmark:
+
+    % leap-configure configure --model=config/pm/.../foo.apm
+
+    % leap-configure build --model=config/pm/.../foo.apm
+
+    % leap-configure setup --model=config/pm/.../foo.apm --benchmark=config/bm/.../bar.cfg
+
+    % leap-configure run --model=config/pm/.../foo.apm --benchmark=config/bm/.../bar.cfg
+
+Note this could also have been done through the use of awb-shell(1).
+
+=head1 ENVIRONMENT VARIABLES
+
+None
+
+=head1 OPTIONS
+
+Defaults for many of the leap-configure switches can be set in the
+Asim rcfiles.  Like serveral awb-releated programs leap-configure
+looks for these options first in the user's <workspace>/awb.config
+file, then in the user's ~/.asim/asimrc file, and finally in the
+system's <installdir>/etc/asim/asimrc file.
+
+A listing of the available options that can be set can be obtained
+with:
+
+        % leap-configure --options
+
+=head1 BUGS
+
+In addtion to a desperately needed code cleanup, the --silent switch
+seems silly and the --relative switch seems unused.
+
+Passing options via --buildopts and --runopts to the build and run
+that contain quotes is tricky...
+
+Ideally this command and amc(1) should be combined into a single
+command, awb-configure(1), that can configure all software and/or
+hardware designs.
+
+=head1 AUTHORS
+
+Martha Mercaldi and extended by many others.
+
+=cut
+
