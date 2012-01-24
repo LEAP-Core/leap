@@ -11251,3 +11251,15 @@ of gcc due to difference is the availability of the
 no-var-tracking-assignments option. This is accomplished by a
 new utility function getGccVersion(). This closes bug #100.
 
+
+----------
+emer        Date: Tue Jan 24 18:48:18 EST 2012  CSN: CSN-leap-228
+                  Tue Jan 24 23:48:18 UTC 2012
+
+
+Directory debian
+ control                   Locally Modified          227 
+ changelog                 Locally Modified          227 
+ rules                     Locally Modified          227 
+
+Move to version v12.01. Note that version v11.12 was never released.
