@@ -11263,3 +11263,13 @@ Directory debian
  rules                     Locally Modified          227 
 
 Move to version v12.01. Note that version v11.12 was never released.
+----------
+emer        Date: Wed Jan 25 08:07:38 EST 2012  CSN: CSN-leap-229
+                  Wed Jan 25 13:07:38 UTC 2012
+
+
+Directory debian
+ control                   Locally Modified          228 
+
+For apt installs, 'recommend' previous shared package release rather
+than 'require' it.
