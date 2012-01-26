@@ -11294,3 +11294,17 @@ example:
 rather than
 
 /usr/share/asim/packages/awb/HEAD
+
+----------
+emer        Date: Wed Jan 25 19:23:58 EST 2012  CSN: CSN-leap-231
+                  Thu Jan 26 00:23:58 UTC 2012
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          230 
+
+
+Leap-configure now uses the default benchmark specified by
+the model if a  benchmark is needed and has not been
+specified either on the command line with the --benchmark 
+switch or as an option in the awb.config or .asimrc files.

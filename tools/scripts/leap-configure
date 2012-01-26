@@ -239,8 +239,12 @@ sub run_model {
     }
 
     if (!defined($benchmarkfile)) {
-      print "Undefined Benchmark for running.\n";
-      return 0;
+      $benchmarkfile = $model->default_benchmark();
+
+      if (!defined($benchmarkfile)) {      
+        print "Undefined Benchmark for running.\n";
+        return 0;
+      }
     }
 
     if (!defined($rundir)) {
@@ -310,8 +314,12 @@ sub setup_benchmark {
     }
 
     if (!defined($benchmarkfile)) {
-      print "Undefined Benchmark for setup.\n";
-      return 0;
+      $benchmarkfile = $model->default_benchmark();
+
+      if (!defined($benchmarkfile)) {      
+        print "Undefined Benchmark for running.\n";
+        return 0;
+      }
     }
 
     if (!defined($builddir)) {
@@ -2220,7 +2228,7 @@ Specifies the options to pass on to the build.
 
 =back
 
-=item B<setup --model E<lt>model-fileE<gt> --benchmark E<lt>benchmark-fileE<gt> [option]...>
+=item B<setup --model E<lt>model-fileE<gt> [--benchmark E<lt>benchmark-fileE<gt>] [option]...>
 
 Sets up the specified benchmark on the specified model. Creates the run directory and
 some helper files, and then invokes the configuration script specified in the
@@ -2248,6 +2256,8 @@ Specification may be in the awb workspace uniondir form, where a
 search based at the root of each of the packages in the workspace will
 be made for the file if a relative path name is given.
 
+If the model has been configured with a default benchmark, then that
+benchmark will be used if the --benchmark switch is omitted.
 
 =item --rundir <directory>
 
@@ -2258,7 +2268,7 @@ directory does not exist it will be created.
 
 =back
 
-=item B<run --model E<lt>model-fileE<gt> --benchmark E<lt>benchmark-fileE<gt> [option]...>
+=item B<run --model E<lt>model-fileE<gt> [--benchmark E<lt>benchmark-fileE<gt>] [option]...>
 
 Runs the specified benchmark on the specified model. Does little more than invoke
 ./run in the benchmark directory.
@@ -2345,7 +2355,7 @@ system's <installdir>/etc/asim/asimrc file.
 A listing of the available options that can be set can be obtained
 with:
 
-        % leap-configure --options
+        % leap-configure options
 
 =head1 BUGS
 
