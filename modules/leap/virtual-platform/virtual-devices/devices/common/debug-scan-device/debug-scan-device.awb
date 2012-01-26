@@ -11,4 +11,3 @@
 %sources -t H   -v PUBLIC  debug-scan-device.h
 %sources -t CPP -v PRIVATE debug-scan-device.cpp
 %sources -t RRR -v PUBLIC  debug-scan-device.rrr
-%sources -t DICT -v PUBLIC debug-scan-device.dic

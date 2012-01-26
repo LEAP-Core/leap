@@ -1,0 +1,17 @@
+********************************************************************
+*
+* Awb module specification
+*
+*******************************************************************/
+
+
+%AWB_START
+
+%name SoftService Soft Connections Algorithm MultiFPGA 
+%desc SoftService Soft Connections Algorithm MultiFPGA 
+%provides soft_connections_alg
+%attributes bluespec
+%public connect-top-level-multifpga.bsv connect-multicasts.bsv connect-stations-tree.bsv expose-connections.bsv 
+
+%AWB_END
+

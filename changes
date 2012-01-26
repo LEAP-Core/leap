@@ -8652,3 +8652,2723 @@ virtual-platform/virtual-devices/devices/console/*
 virtual-platform/low-level-platform-interface/hwonly-llpi.awb
 virtual-platform/channelio/unix/*
 virtual-platform/channelio/loopback/*
+
+----------
+pellauer    Date: Tue Jun 14 13:53:25 EDT 2011  CSN: CSN-leap-111
+                  Tue Jun 14 17:53:25 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          110 
+ changelog                 Locally Modified          110 
+
+Directory admin/packages
+ leap                      Locally Modified          110 
+
+
+* Update branch's administrative files.
+
+----------
+pellauer    Date: Wed Jun 15 11:23:13 EDT 2011  CSN: CSN-leap-114
+                  Wed Jun 15 15:23:13 UTC 2011
+
+
+Directory config/pm
+ hasim/                    Locally Removed           113 
+
+Directory config/pm/hasim
+ submodels/                Locally Removed           113 
+
+Directory config/pm/hasim/submodels
+ controller/               Locally Removed           113 
+
+Directory config/pm/hasim/submodels/controller
+ hybrid_standard_controller.apm Locally Removed           113 
+ hybrid_basic_controller.apm Locally Removed           113 
+ hardware_null_controller.apm Locally Removed           113 
+ hybrid_pure_bluespec_controller.apm Locally Removed           113 
+
+Directory config/pm/hasim/submodels
+ platform-services/        Locally Removed           113 
+
+Directory config/pm/hasim/submodels/platform-services
+ standard-platform-services.apm Locally Removed           113 
+ standard-platform-null-mem.apm Locally Removed           113 
+
+Directory config/pm/hasim/submodels
+ fpgaenv/                  Locally Removed           113 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Removed           113 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Removed           113 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Removed           113 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Removed           113 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Removed           113 
+ hasim-fpgaenv-htg-v5-pcie.apm Locally Removed           113 
+ xup-virtual-devices.apm   Locally Removed           113 
+ fpgaenv-de2-jtag.apm      Locally Removed           113 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Removed           113 
+ fpgaenv-de3-jtag.apm      Locally Removed           113 
+ std-virtual-devices-null-mem.apm Locally Removed           113 
+ fpgaenv-hybrid-exe.apm    Locally Removed           113 
+ fpgaenv-htg-hwonly.apm    Locally Removed           113 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Removed           113 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Removed           113 
+ fpgaenv-hybrid-exe-serial-ChanIO-loopback.apm Locally Removed           113 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Removed           113 
+ hasim-fpgaenv-hybrid-sim.apm Locally Removed           113 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Removed           113 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Removed           113 
+ librl-bsv.apm             Locally Removed           113 
+ fpgaenv-hybrid-605d-xst.apm Locally Removed           113 
+ hasim-fpgaenv-null.apm    Locally Removed           113 
+ fpgaenv-cycloneiii-jtag.apm Locally Removed           113 
+ std-virtual-devices.apm   Locally Removed           113 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Removed           113 
+ std-virtual-devices-local-scratchpad.apm Locally Removed           113 
+
+Directory config/pm/hasim/submodels
+ common/                   Locally Removed           113 
+
+Directory config/pm/hasim/submodels/common
+ soft-services.apm         Locally Removed           113 
+ project-common-default.apm Locally Removed           113 
+ soft-connections-lib.apm  Locally Removed           113 
+ soft-connections-lib-context.apm Locally Removed           113 
+
+Directory config/pm/hasim/submodels
+ pipelines/                Locally Removed           113 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx-synplify.apm Locally Removed           113 
+ build-pipeline-verilog.apm Locally Removed           113 
+ build-pipeline-altera.apm Locally Removed           113 
+ build-pipeline-xilinx.apm Locally Removed           113 
+ build-pipeline-bluesim.apm Locally Removed           113 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_arriaII.apm  Locally Modified          113 
+ hello_hybrid_exe.apm      Locally Modified          113 
+ hello_hybrid_htg.apm      Locally Modified          113 
+ hello_hybrid_acp.apm      Locally Modified          113 
+ hello_hybrid_cyloneIII.apm Locally Modified          113 
+ hello_hybrid_xupV5.apm    Locally Modified          113 
+ hello_hybrid_de2.apm      Locally Modified          113 
+ hello_hybrid_de3.apm      Locally Modified          113 
+ hello_hybrid_xup2.apm     Locally Modified          113 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_nosynth.apm Locally Modified          113 
+ traffic_light_de2_synth.apm Locally Modified          113 
+ traffic_light_htg_v5_pcie_synth.apm Locally Modified          113 
+ traffic_light_xup_synth.apm Locally Modified          113 
+ traffic_light_arriaII_nosynth.apm Locally Modified          113 
+ traffic_light_exe_nosynth.apm Locally Modified          113 
+ traffic_light_arriaII_synth.apm Locally Modified          113 
+ traffic_light_exe_synth.apm Locally Modified          113 
+ traffic_light_acp_synth.apm Locally Modified          113 
+
+Directory config/pm/leap/submodels
+ controller/               Locally Removed           113 
+
+Directory config/pm/leap/submodels/controller
+ hybrid_standard_controller.apm Locally Removed           113 
+ hybrid_basic_controller.apm Locally Removed           113 
+ hardware_null_controller.apm Locally Removed           113 
+ hybrid_pure_bluespec_controller.apm Locally Removed           113 
+
+Directory config/pm/leap/submodels/fpgaenv
+ hasim-fpgaenv-htg-v5-pcie.apm Locally Removed           113 
+ xup-virtual-devices.apm   Locally Removed           113 
+ std-virtual-devices-null-mem.apm Locally Removed           113 
+ fpgaenv-htg-hwonly.apm    Locally Removed           113 
+ fpgaenv-hybrid-exe-serial-ChanIO-loopback.apm Locally Removed           113 
+ hasim-fpgaenv-hybrid-sim.apm Locally Removed           113 
+ librl-bsv.apm             Locally Removed           113 
+ hasim-fpgaenv-null.apm    Locally Removed           113 
+ std-virtual-devices.apm   Locally Removed           113 
+ std-virtual-devices-local-scratchpad.apm Locally Removed           113 
+
+Directory config/pm/leap/submodels
+ virtual-devices/          Locally Added               0 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Added               - 
+ std-virtual-devices-local-scratchpad.apm Locally Added               - 
+ xup-virtual-devices.apm   Locally Added               - 
+ std-virtual-devices-null-mem.apm Locally Added               - 
+
+Directory config/pm/leap/submodels/common
+ librl-bsv.apm             Locally Added               - 
+ soft-connections-lib.apm  Locally Removed           113 
+ soft-connections-lib-context.apm Locally Removed           113 
+
+Directory modules/leap/virtual-platform/channelio/unix
+ DEPRECATED                Locally Removed           113 
+ unix-channelio.c          Locally Removed           113 
+ unix-channelio.awb        Locally Removed           113 
+ UNIXChannelIO.bsv         Locally Removed           113 
+
+Directory modules/leap/virtual-platform/channelio/loopback
+ DEPRECATED                Locally Removed           113 
+ loopback-channelio.awb    Locally Removed           113 
+ loopback-channelio.bsv    Locally Removed           113 
+ loopback-channelio.cpp    Locally Removed           113 
+ loopback-channelio.h      Locally Removed           113 
+
+Directory modules/leap/virtual-platform/channelio
+ README                    Locally Modified          113 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec
+ DEPRECATED                Locally Removed           113 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ README                    Locally Modified          113 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ hwonly-llpi.awb           Locally Removed           113 
+ README                    Locally Modified          113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat
+ DEPRECATED                Locally Removed           113 
+ controller/               Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-pure.h         Locally Removed           113 
+ controller-basic.cpp      Locally Removed           113 
+ controller-pure-hybrid.awb Locally Removed           113 
+ controller-null.bsv       Locally Removed           113 
+ controller-pure.bsv       Locally Removed           113 
+ controller-basic.h        Locally Removed           113 
+ controller-basic-hybrid.awb Locally Removed           113 
+ controller-standard.awb   Locally Removed           113 
+ controller-basic.bsv      Locally Removed           113 
+ central-controllers/      Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ DEPRECATED                Locally Removed           113 
+ central-controllers-standard.h Locally Removed           113 
+ central-controllers-standard.awb Locally Removed           113 
+ params/                   Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/params
+ params-controller-hybrid.cpp Locally Removed           113 
+ params-controller-hybrid.rrr Locally Removed           113 
+ params-controller-hybrid.h Locally Removed           113 
+ params-controller-hybrid.awb Locally Removed           113 
+ params-controller-hybrid.bsv Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-basic.awb Locally Removed           113 
+ central-controllers-standard.bsv Locally Removed           113 
+ events/                   Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/events
+ events-controller-hybrid.cpp Locally Removed           113 
+ events-controller.rrr     Locally Removed           113 
+ events-controller-hybrid.h Locally Removed           113 
+ events-controller-hybrid.awb Locally Removed           113 
+ events-controller-hybrid.bsv Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-basic.bsv Locally Removed           113 
+ module/                   Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/module
+ module-controller-streams.dic Locally Removed           113 
+ module-controller-streamid.dic Locally Removed           113 
+ module-controller-standard.awb Locally Removed           113 
+ module-controller-standard.bsv Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ debug-scan/               Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/debug-scan
+ debug-scan-controller-hybrid.awb Locally Removed           113 
+ debug-scan-controller-hybrid.bsv Locally Removed           113 
+ debug-scan-controller-hybrid.cpp Locally Removed           113 
+ debug-scan-controller.rrr Locally Removed           113 
+ debug-scan-controller-hybrid.h Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ assertions/               Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/assertions
+ assertions-controller.rrr Locally Removed           113 
+ assertions-controller-hybrid.h Locally Removed           113 
+ assertions-controller-hybrid.awb Locally Removed           113 
+ assertions-controller-hybrid.bsv Locally Removed           113 
+ assertions-controller-hybrid.cpp Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-standard.cpp Locally Removed           113 
+ stats/                    Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/stats
+ stats-controller-hybrid.cpp Locally Removed           113 
+ stats-controller.rrr      Locally Removed           113 
+ stats-controller-hybrid.h Locally Removed           113 
+ stats-controller-hybrid.awb Locally Removed           113 
+ stats-controller-hybrid.bsv Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ local-controllers/        Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers
+ DEPRECATED                Locally Removed           113 
+ local-controllers-standard.awb Locally Removed           113 
+ module/                   Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/module
+ local-controller-module-standard.awb Locally Removed           113 
+ local-controller-module-standard.bsv Locally Removed           113 
+ local-controller-module.dic Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ DEPRECATED                Locally Removed           113 
+ controller-standard.cpp   Locally Removed           113 
+ controller-standard.h     Locally Removed           113 
+ controller-standard.bsv   Locally Removed           113 
+ controller-pure.cpp       Locally Removed           113 
+ controller-null-hardware-only.awb Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console
+ DEPRECATED                Locally Removed           113 
+ graphical-serial/         Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/graphical-serial
+ graphical-serial.awb      Locally Removed           113 
+ DEPRECATED                Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console
+ null-serial/              Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/null-serial
+ null-serial.awb           Locally Removed           113 
+ DEPRECATED                Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.cpp        Locally Modified          113 
+ starter-device.h          Locally Modified          113 
+ starter-device.bsv        Locally Modified          113 
+ README                    Locally Modified          113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/arriaII
+ ARRIAIIFP.bsv             Locally Removed           113 
+ DEPRECATED                Locally Removed           113 
+ arriaII-fp.awb            Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/console
+ DEPRECATED                Locally Removed           113 
+ NullFP.bsv                Locally Removed           113 
+ console-fp.awb            Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/htg-v5-pcie
+ DEPRECATED                Locally Removed           113 
+ htg-v5-pcie-fp.awb        Locally Removed           113 
+ HTGv5PCIeFP.bsv           Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/graphical
+ DEPRECATED                Locally Removed           113 
+ graphical-fp.awb          Locally Removed           113 
+ GraphicalFP.bsv           Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/xup
+ DEPRECATED                Locally Removed           113 
+ xup-fp.awb                Locally Removed           113 
+ XUPFP.bsv                 Locally Removed           113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ README                    Locally Modified          113 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ README                    Locally Modified          113 
+
+Directory modules/leap/virtual-platform/virtual-devices
+ README                    Locally Modified          113 
+
+Directory modules/leap/build-support/project
+ SCons.dict.template       Locally Removed           113 
+ SCons.sw.template         Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env
+ DEPRECATED                Locally Removed           113 
+ hybrid/                   Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ base/                     Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid/base
+ application-env-hybrid-base.cpp Locally Removed           113 
+ application-env-hybrid-base.h Locally Removed           113 
+ application-env-hybrid-base.awb Locally Removed           113 
+ application-env-hybrid-base.bsv Locally Removed           113 
+ README                    Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ soft-connections/         Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ DEPRECATED                Locally Removed           113 
+ application-env-hybrid-soft-conn.h Locally Removed           113 
+ application-env-hybrid-soft-conn.awb Locally Removed           113 
+ application-env-hybrid-soft-conn.bsv Locally Removed           113 
+ application-env-hybrid-soft-conn.cpp Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ soft-services/            Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.cpp Locally Removed           113 
+ application-env-hybrid-soft-service.h Locally Removed           113 
+ application-env-hybrid-soft-service.awb Locally Removed           113 
+ application-env-hybrid-soft-service.bsv Locally Removed           113 
+ default-sw/               Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services/default-sw
+ connected-application-default-sw.h Locally Removed           113 
+ connected-application-default-sw.awb Locally Removed           113 
+ connected-application-default-sw.bsv Locally Removed           113 
+ README                    Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ README                    Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ README                    Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env
+ hw-only/                  Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hw-only
+ DEPRECATED                Locally Removed           113 
+ base/                     Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env/hw-only/base
+ DEPRECATED                Locally Removed           113 
+ application-env-hw-only-base.awb Locally Removed           113 
+ application-env-hw-only-base.bsv Locally Removed           113 
+
+Directory modules/leap/build-support/project/application-env
+ README                    Locally Added               - 
+
+Directory modules/leap/build-support/project
+ project-hw.awb            Locally Removed           113 
+ project-hw-main.bsv       Locally Removed           113 
+ project-hybrid.awb        Locally Removed           113 
+ README                    Locally Modified          113 
+ SCons.top.template        Locally Removed           113 
+ project-sw-main.cpp       Locally Removed           113 
+ project-sw-main.h         Locally Removed           113 
+ project-sw.awb            Locally Removed           113 
+ project-pipeline-new.awb  Locally Removed           113 
+ SCons.hw.template         Locally Removed           113 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ DEPRECATED                Locally Removed           113 
+ backwards-compat/         Locally Removed           113 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries/backwards-compat
+ DEPRECATED                Locally Removed           113 
+ with-connections.bsv      Locally Removed           113 
+ bury-connections.bsv      Locally Removed           113 
+ smart-synth-boundaries.awb Locally Removed           113 
+ expose-connections.bsv    Locally Removed           113 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ with-connections.bsv      Locally Removed           113 
+ bury-connections.bsv      Locally Removed           113 
+ smart-synth-boundaries.awb Locally Removed           113 
+ expose-connections.bsv    Locally Removed           113 
+
+Directory modules/leap/libraries/librl/base
+ bluespec-common.prj       Locally Removed           113 
+ README                    Locally Modified          113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat
+ DEPRECATED                Locally Removed           113 
+ module-context/           Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ DEPRECATED                Locally Removed           113 
+ connection-matching.bsv   Locally Removed           113 
+ transmittable.bsv         Locally Removed           113 
+ alg/                      Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context/alg
+ DEPRECATED                Locally Removed           113 
+ connect-stations-tree.bsv Locally Removed           113 
+ connect-top-level.bsv     Locally Removed           113 
+ connect-multicasts.bsv    Locally Removed           113 
+ connection-alg-module-context.awb Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ connection-helper.bsv     Locally Removed           113 
+ connection-shared-interconnect.bsv Locally Removed           113 
+ token-ring.bsv            Locally Removed           113 
+ connection-backwards-compat.bsv Locally Removed           113 
+ soft-connections-module-context.awb Locally Removed           113 
+ connection-context.bsv    Locally Removed           113 
+ connections.bsv           Locally Removed           113 
+ connected-module.bsv      Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat
+ module-collect/           Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ Connected_Module.bsv      Locally Removed           113 
+ DEPRECATED                Locally Removed           113 
+ alg/                      Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg
+ DEPRECATED                Locally Removed           113 
+ typed/                    Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg/typed
+ DEPRECATED                Locally Removed           113 
+ ConnectionHelper.bsv      Locally Removed           113 
+ soft_connections_alg.awb  Locally Removed           113 
+ ConnectionAlg.bsv         Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ token-ring.bsv            Locally Removed           113 
+ soft-connections-module-collect.awb Locally Removed           113 
+ Connections.bsv           Locally Removed           113 
+
+Directory modules/leap/libraries/soft-services/services
+ README                    Locally Modified          113 
+
+
+* LEAP Release Candidate 1 checked into branch.
+
+* All deprecated files removed. 
+
+* Merged changes from leap mainline r111 and r112.
+
+* Still TODO: go over Soft Services dependencies closely.
+
+----------
+pellauer    Date: Wed Jun 15 13:29:24 EDT 2011  CSN: CSN-leap-116
+                  Wed Jun 15 17:29:24 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          114 
+
+
+* Merge of mainline patch r114 to release branch.
+
+----------
+mpellaue    Date: Thu Aug 25 18:09:19 EDT 2011  CSN: CSN-leap-146
+                  Thu Aug 25 22:09:19 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          145 
+ changelog                 Locally Modified          145 
+
+Directory config/pm
+ hasim/                    Locally Removed           145 
+
+Directory config/pm/hasim
+ submodels/                Locally Removed           145 
+
+Directory config/pm/hasim/submodels
+ controller/               Locally Removed           145 
+
+Directory config/pm/hasim/submodels/controller
+ hybrid_standard_controller.apm Locally Removed           145 
+ hybrid_basic_controller.apm Locally Removed           145 
+ hardware_null_controller.apm Locally Removed           145 
+ hybrid_pure_bluespec_controller.apm Locally Removed           145 
+
+Directory config/pm/hasim/submodels
+ platform-services/        Locally Removed           145 
+
+Directory config/pm/hasim/submodels/platform-services
+ standard-platform-services.apm Locally Removed           145 
+ standard-platform-null-mem.apm Locally Removed           145 
+
+Directory config/pm/hasim/submodels
+ fpgaenv/                  Locally Removed           145 
+
+Directory config/pm/hasim/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Removed           145 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Removed           145 
+ fpgaenv-hybrid-605-serial-xst.apm Locally Removed           145 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Removed           145 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Removed           145 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Removed           145 
+ hasim-fpgaenv-htg-v5-pcie.apm Locally Removed           145 
+ xup-virtual-devices.apm   Locally Removed           145 
+ fpgaenv-de2-jtag.apm      Locally Removed           145 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Removed           145 
+ fpgaenv-de3-jtag.apm      Locally Removed           145 
+ std-virtual-devices-null-mem.apm Locally Removed           145 
+ fpgaenv-hybrid-exe.apm    Locally Removed           145 
+ fpgaenv-htg-hwonly.apm    Locally Removed           145 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Removed           145 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Removed           145 
+ fpgaenv-hybrid-exe-serial-ChanIO-loopback.apm Locally Removed           145 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Removed           145 
+ hasim-fpgaenv-hybrid-sim.apm Locally Removed           145 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Removed           145 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Removed           145 
+ librl-bsv.apm             Locally Removed           145 
+ fpgaenv-hybrid-605d-xst.apm Locally Removed           145 
+ hasim-fpgaenv-null.apm    Locally Removed           145 
+ fpgaenv-cycloneiii-jtag.apm Locally Removed           145 
+ std-virtual-devices.apm   Locally Removed           145 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Removed           145 
+ std-virtual-devices-local-scratchpad.apm Locally Removed           145 
+
+Directory config/pm/hasim/submodels
+ common/                   Locally Removed           145 
+
+Directory config/pm/hasim/submodels/common
+ soft-services.apm         Locally Removed           145 
+ project-common-default.apm Locally Removed           145 
+ soft-connections-lib.apm  Locally Removed           145 
+ soft-connections-lib-context.apm Locally Removed           145 
+
+Directory config/pm/hasim/submodels
+ pipelines/                Locally Removed           145 
+
+Directory config/pm/hasim/submodels/pipelines
+ build-pipeline-xilinx-synplify.apm Locally Removed           145 
+ build-pipeline-verilog.apm Locally Removed           145 
+ build-pipeline-altera.apm Locally Removed           145 
+ build-pipeline-xilinx.apm Locally Removed           145 
+ build-pipeline-bluesim.apm Locally Removed           145 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_arriaII.apm  Locally Modified          145 
+ hello_hybrid_exe.apm      Locally Modified          145 
+ hello_hybrid_htg.apm      Locally Modified          145 
+ hello_hybrid_acp.apm      Locally Modified          145 
+ hello_hybrid_ml605.apm    Locally Modified          145 
+ hello_hybrid_cyloneIII.apm Locally Modified          145 
+ hello_hybrid_xupV5.apm    Locally Modified          145 
+ hello_hybrid_de2.apm      Locally Modified          145 
+ hello_hybrid_de3.apm      Locally Modified          145 
+ hello_hybrid_xup2.apm     Locally Modified          145 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_nosynth.apm Locally Modified          145 
+ traffic_light_de2_synth.apm Locally Modified          145 
+ traffic_light_htg_v5_pcie_synth.apm Locally Modified          145 
+ traffic_light_xup_synth.apm Locally Modified          145 
+ traffic_light_arriaII_nosynth.apm Locally Modified          145 
+ traffic_light_exe_nosynth.apm Locally Modified          145 
+ traffic_light_arriaII_synth.apm Locally Modified          145 
+ traffic_light_exe_synth.apm Locally Modified          145 
+ traffic_light_acp_synth.apm Locally Modified          145 
+
+Directory config/pm/leap
+ submodels/                Locally Added               - 
+
+Directory config/pm/leap/submodels
+ platform-services/        Locally Added               - 
+ fpgaenv/                  Locally Added               - 
+ virtual-devices/          Locally Added               - 
+ common/                   Locally Added               - 
+ pipelines/                Locally Added               - 
+
+Directory modules/leap/virtual-platform/channelio/unix
+ DEPRECATED                Locally Removed           145 
+ unix-channelio.c          Locally Removed           145 
+ unix-channelio.awb        Locally Removed           145 
+ UNIXChannelIO.bsv         Locally Removed           145 
+
+Directory modules/leap/virtual-platform/channelio/loopback
+ DEPRECATED                Locally Removed           145 
+ loopback-channelio.awb    Locally Removed           145 
+ loopback-channelio.bsv    Locally Removed           145 
+ loopback-channelio.cpp    Locally Removed           145 
+ loopback-channelio.h      Locally Removed           145 
+
+Directory modules/leap/virtual-platform/channelio
+ README                    Locally Modified          145 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec
+ DEPRECATED                Locally Removed           145 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ README                    Locally Modified          145 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ hwonly-llpi.awb           Locally Removed           145 
+ README                    Locally Modified          145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat
+ DEPRECATED                Locally Removed           145 
+ controller/               Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ controller-pure.h         Locally Removed           145 
+ controller-pure-hybrid.awb Locally Removed           145 
+ controller-basic.cpp      Locally Removed           145 
+ controller-null.bsv       Locally Removed           145 
+ controller-pure.bsv       Locally Removed           145 
+ controller-basic.h        Locally Removed           145 
+ controller-standard.awb   Locally Removed           145 
+ controller-basic-hybrid.awb Locally Removed           145 
+ controller-basic.bsv      Locally Removed           145 
+ central-controllers/      Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ DEPRECATED                Locally Removed           145 
+ central-controllers-standard.h Locally Removed           145 
+ central-controllers-standard.awb Locally Removed           145 
+ params/                   Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/params
+ params-controller-hybrid.cpp Locally Removed           145 
+ params-controller-hybrid.rrr Locally Removed           145 
+ params-controller-hybrid.h Locally Removed           145 
+ params-controller-hybrid.awb Locally Removed           145 
+ params-controller-hybrid.bsv Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-basic.awb Locally Removed           145 
+ central-controllers-standard.bsv Locally Removed           145 
+ events/                   Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/events
+ events-controller-hybrid.cpp Locally Removed           145 
+ events-controller.rrr     Locally Removed           145 
+ events-controller-hybrid.h Locally Removed           145 
+ events-controller-hybrid.awb Locally Removed           145 
+ events-controller-hybrid.bsv Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-basic.bsv Locally Removed           145 
+ module/                   Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/module
+ module-controller-streams.dic Locally Removed           145 
+ module-controller-streamid.dic Locally Removed           145 
+ module-controller-standard.awb Locally Removed           145 
+ module-controller-standard.bsv Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ debug-scan/               Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/debug-scan
+ debug-scan-controller-hybrid.awb Locally Removed           145 
+ debug-scan-controller-hybrid.bsv Locally Removed           145 
+ debug-scan-controller-hybrid.cpp Locally Removed           145 
+ debug-scan-controller.rrr Locally Removed           145 
+ debug-scan-controller-hybrid.h Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ assertions/               Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/assertions
+ assertions-controller.rrr Locally Removed           145 
+ assertions-controller-hybrid.h Locally Removed           145 
+ assertions-controller-hybrid.awb Locally Removed           145 
+ assertions-controller-hybrid.bsv Locally Removed           145 
+ assertions-controller-hybrid.cpp Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers
+ central-controllers-standard.cpp Locally Removed           145 
+ stats/                    Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/central-controllers/stats
+ stats-controller-hybrid.cpp Locally Removed           145 
+ stats-controller.rrr      Locally Removed           145 
+ stats-controller-hybrid.h Locally Removed           145 
+ stats-controller-hybrid.awb Locally Removed           145 
+ stats-controller-hybrid.bsv Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ local-controllers/        Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers
+ DEPRECATED                Locally Removed           145 
+ local-controllers-standard.awb Locally Removed           145 
+ module/                   Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller/local-controllers/module
+ local-controller-module-standard.awb Locally Removed           145 
+ local-controller-module-standard.bsv Locally Removed           145 
+ local-controller-module.dic Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/backwards-compat/controller
+ DEPRECATED                Locally Removed           145 
+ controller-standard.cpp   Locally Removed           145 
+ controller-standard.h     Locally Removed           145 
+ controller-standard.bsv   Locally Removed           145 
+ controller-pure.cpp       Locally Removed           145 
+ controller-null-hardware-only.awb Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console
+ DEPRECATED                Locally Removed           145 
+ graphical-serial/         Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/graphical-serial
+ graphical-serial.awb      Locally Removed           145 
+ DEPRECATED                Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console
+ null-serial/              Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/console/null-serial
+ null-serial.awb           Locally Removed           145 
+ DEPRECATED                Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.cpp        Locally Modified          145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/arriaII
+ ARRIAIIFP.bsv             Locally Removed           145 
+ DEPRECATED                Locally Removed           145 
+ arriaII-fp.awb            Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/console
+ DEPRECATED                Locally Removed           145 
+ NullFP.bsv                Locally Removed           145 
+ console-fp.awb            Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/htg-v5-pcie
+ DEPRECATED                Locally Removed           145 
+ htg-v5-pcie-fp.awb        Locally Removed           145 
+ HTGv5PCIeFP.bsv           Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/graphical
+ DEPRECATED                Locally Removed           145 
+ graphical-fp.awb          Locally Removed           145 
+ GraphicalFP.bsv           Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/xup
+ DEPRECATED                Locally Removed           145 
+ xup-fp.awb                Locally Removed           145 
+ XUPFP.bsv                 Locally Removed           145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel
+ README                    Locally Modified          145 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ README                    Locally Modified          145 
+
+Directory modules/leap/virtual-platform/virtual-devices
+ README                    Locally Modified          145 
+
+Directory modules/leap/build-support/project
+ SCons.dict.template       Locally Removed           145 
+ SCons.sw.template         Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env
+ DEPRECATED                Locally Removed           145 
+ hybrid/                   Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ base/                     Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid/base
+ application-env-hybrid-base.cpp Locally Removed           145 
+ application-env-hybrid-base.h Locally Removed           145 
+ application-env-hybrid-base.awb Locally Removed           145 
+ application-env-hybrid-base.bsv Locally Removed           145 
+ README                    Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ soft-connections/         Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-connections
+ DEPRECATED                Locally Removed           145 
+ application-env-hybrid-soft-conn.h Locally Removed           145 
+ application-env-hybrid-soft-conn.awb Locally Removed           145 
+ application-env-hybrid-soft-conn.bsv Locally Removed           145 
+ application-env-hybrid-soft-conn.cpp Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ soft-services/            Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ application-env-hybrid-soft-service.cpp Locally Removed           145 
+ application-env-hybrid-soft-service.h Locally Removed           145 
+ application-env-hybrid-soft-service.awb Locally Removed           145 
+ application-env-hybrid-soft-service.bsv Locally Removed           145 
+ default-sw/               Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services/default-sw
+ connected-application-default-sw.h Locally Removed           145 
+ connected-application-default-sw.awb Locally Removed           145 
+ connected-application-default-sw.bsv Locally Removed           145 
+ README                    Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid/soft-services
+ README                    Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hybrid
+ README                    Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env
+ base/                     Locally Added               - 
+ soft-services/            Locally Added               - 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ default-sw/               Locally Added               - 
+
+Directory modules/leap/build-support/project/application-env
+ hw-only/                  Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hw-only
+ DEPRECATED                Locally Removed           145 
+ base/                     Locally Removed           145 
+
+Directory modules/leap/build-support/project/application-env/hw-only/base
+ DEPRECATED                Locally Removed           145 
+ application-env-hw-only-base.awb Locally Removed           145 
+ application-env-hw-only-base.bsv Locally Removed           145 
+
+Directory modules/leap/build-support/project
+ project-hw.awb            Locally Removed           145 
+ project-hybrid.awb        Locally Removed           145 
+ project-hw-main.bsv       Locally Removed           145 
+ README                    Locally Modified          145 
+ SCons.top.template        Locally Removed           145 
+ project-sw-main.cpp       Locally Removed           145 
+ project-sw-main.h         Locally Removed           145 
+ project-sw.awb            Locally Removed           145 
+ project-pipeline-new.awb  Locally Removed           145 
+ SCons.hw.template         Locally Removed           145 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ DEPRECATED                Locally Removed           145 
+ backwards-compat/         Locally Removed           145 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries/backwards-compat
+ DEPRECATED                Locally Removed           145 
+ with-connections.bsv      Locally Removed           145 
+ bury-connections.bsv      Locally Removed           145 
+ smart-synth-boundaries.awb Locally Removed           145 
+ expose-connections.bsv    Locally Removed           145 
+
+Directory modules/leap/build-support/smart-synthesis-boundaries
+ with-connections.bsv      Locally Removed           145 
+ bury-connections.bsv      Locally Removed           145 
+ smart-synth-boundaries.awb Locally Removed           145 
+ expose-connections.bsv    Locally Removed           145 
+
+Directory modules/leap/libraries/librl/base
+ bluespec-common.prj       Locally Removed           145 
+ README                    Locally Modified          145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat
+ DEPRECATED                Locally Removed           145 
+ module-context/           Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ DEPRECATED                Locally Removed           145 
+ connection-matching.bsv   Locally Removed           145 
+ transmittable.bsv         Locally Removed           145 
+ alg/                      Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context/alg
+ DEPRECATED                Locally Removed           145 
+ connect-stations-tree.bsv Locally Removed           145 
+ connect-top-level.bsv     Locally Removed           145 
+ connect-multicasts.bsv    Locally Removed           145 
+ connection-alg-module-context.awb Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-context
+ connection-helper.bsv     Locally Removed           145 
+ connection-shared-interconnect.bsv Locally Removed           145 
+ token-ring.bsv            Locally Removed           145 
+ connection-backwards-compat.bsv Locally Removed           145 
+ soft-connections-module-context.awb Locally Removed           145 
+ connection-context.bsv    Locally Removed           145 
+ connections.bsv           Locally Removed           145 
+ connected-module.bsv      Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat
+ module-collect/           Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ Connected_Module.bsv      Locally Removed           145 
+ DEPRECATED                Locally Removed           145 
+ alg/                      Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg
+ DEPRECATED                Locally Removed           145 
+ typed/                    Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect/alg/typed
+ DEPRECATED                Locally Removed           145 
+ ConnectionHelper.bsv      Locally Removed           145 
+ soft_connections_alg.awb  Locally Removed           145 
+ ConnectionAlg.bsv         Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections-backwards-compat/module-collect
+ token-ring.bsv            Locally Removed           145 
+ soft-connections-module-collect.awb Locally Removed           145 
+ Connections.bsv           Locally Removed           145 
+
+Directory modules/leap/libraries/soft-services/services
+ README                    Locally Modified          145 
+
+Directory .
+ changes                   Locally Modified          145 
+ ./                        Locally Modified          145 
+
+
+* Merging LEAP v11.06 release back into HEAD in preparation for LEAP v11.08 
+  release. This deletes many deprecated files and moves around some code.
+  Please let me know ASAP if something got deleted which shouldn't have been.
+
+* Update stale information in some .apm files.
+
+----------
+kfleming    Date: Mon Aug 29 23:00:31 EDT 2011  CSN: CSN-leap-147
+                  Tue Aug 30 03:00:31 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch-multi.awb Locally Added               0 
+ hybrid-mem-scratch-multi.bsv Locally Added               0 
+ hybrid-mem-scratch-multi.rrr Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common-interfaces.bsv Locally Modified          146 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          146 
+ environment.py            Locally Modified          146 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-null.awb Locally Modified          146 
+ scratchpad-memory-service-multi.awb Locally Added               0 
+ scratchpad-memory-connector.bsv Locally Added               0 
+ scratchpad-memory-service-multi-rrr.awb Locally Added               0 
+ scratchpad-memory-connector-rrr.bsv Locally Added               0 
+ scratchpad-memory-service.awb Locally Modified          146 
+ scratchpad-memory-service.bsv Locally Modified          146 
+ scratchpad-memory-connector-null.bsv Locally Added               0 
+ platform-scratchpad-memory.bsv Locally Modified          146 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Modified          146 
+ central-cache-service.bsv Locally Modified          146 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ shared-memory-service-null.awb Locally Modified          146 
+ shared-memory-service-null.bsv Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          146 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          146 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ token-ring.bsv            Locally Modified          146 
+ connection-context.bsv    Locally Modified          146 
+
+
+Added support for two-tiered memory hierarchy in multiple fpgas.  This required a few new methods involving strings and magic numbers.
+
+----------
+mcadler     Date: Tue Aug 30 08:15:28 EDT 2011  CSN: CSN-leap-148
+                  Tue Aug 30 12:15:28 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ local-arbiters.bsv        Locally Modified          147 
+
+Move the "fixed" parameter from the module to the arbitrate method so "fixed"
+can be set by the calling rule.
+
+----------
+kfleming    Date: Tue Aug 30 16:02:36 EDT 2011  CSN: CSN-leap-149
+                  Tue Aug 30 20:02:36 UTC 2011
+
+
+Directory modules/leap/virtual-platform/rrr/basic
+ arbiters.bsv              Locally Modified          148 
+
+
+Retimed the rotating arbiter to move a subtraction off the critical path.  This is important for the multifpga routing hardware, since it tends to have many things to arbit among. 
+
+----------
+mcadler     Date: Thu Sep  1 07:45:26 EDT 2011  CSN: CSN-leap-150
+                  Thu Sep  1 11:45:26 UTC 2011
+
+
+Directory modules/leap/build-support/project/project-vico
+ SCons.top.template        Locally Modified          149 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          149 
+
+Resolve a race in creating the smartguide cache directory.
+
+----------
+keflemin    Date: Thu Sep  1 15:16:17 EDT 2011  CSN: CSN-leap-151
+                  Thu Sep  1 19:16:17 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          150 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ shared-memory-service-null.bsv Locally Modified          150 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard-null.awb Locally Modified          150 
+ mem-services-standard-null.bsv Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/streams-service
+ streams-service-null.awb  Locally Modified          150 
+
+
+Added includes to mem services and a dummy mem service.  This was a problem in multifpga builds for some reason.
+
+----------
+mpellaue    Date: Thu Sep  8 16:41:40 EDT 2011  CSN: CSN-leap-152
+                  Thu Sep  8 20:41:40 UTC 2011
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_ml605.apm    Locally Removed           151 
+ hello_hybrid_ml605d_xst.apm Locally Added               - 
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-null-mem.apm Locally Modified          151 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          151 
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx.apm Locally Added               - 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ vico-channelio.awb        Locally Added               0 
+ vico-channelio.bsv        Locally Added               0 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ hw-only-rrr.awb           Locally Modified          151 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ vico-llpi.awb             Locally Modified          151 
+ vico-llpi.bsv             Locally Added               0 
+
+Directory modules/leap/virtual-platform/vico-headers
+ vico-headers.awb          Locally Modified          151 
+ vico_rrr_layer.cpp        Locally Removed           151 
+ vico_rrr_layer.h          Locally Modified          151 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          151 
+
+Directory modules/leap/build-support/build-pipelines/stages/vico_software
+ software.py               Locally Removed           151 
+ vico_software.py          Locally Added               - 
+ software.awb              Locally Removed           151 
+ vico_software.awb         Locally Added               - 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          151 
+ xilinx-map.awb            Locally Modified          151 
+ XILINX_XST.py             Locally Modified          151 
+
+Directory modules/leap/build-support/project
+ project-vico-pipeline.awb Locally Added               - 
+ project-vico-hybrid-main.cpp Locally Added               - 
+ project-vico-hybrid-main.h Locally Added               - 
+ project-vico/             Locally Removed           151 
+
+Directory modules/leap/build-support/project/project-vico
+ SCons.top.template        Locally Removed           151 
+ SCons.dict.template       Locally Removed           151 
+ SCons.iface.template      Locally Removed           151 
+ hardware-done.h           Locally Removed           151 
+ project-vico-hybrid-main.cpp Locally Removed           151 
+ SCons.sw.template         Locally Removed           151 
+ Makefile.top.template     Locally Removed           151 
+ project-vico-hybrid-main.h Locally Removed           151 
+ SCons.hw.template         Locally Removed           151 
+ README                    Locally Removed           151 
+ project-hybrid.awb        Locally Removed           151 
+ project-vico-hybrid-main.bsv Locally Removed           151 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          151 
+
+
+Merging Mikhail's VIP changes to LEAP in preparation for release.
+* Remove obsolete project-vico and replace with build pipeline variant.
+* Update build pipeline stage for vico software and variants that use it.
+* Updates to ml605d platform.
+* Add exit code handling to Scons template.
+* Update vico flag in iface.py.
+* Remove -cm balanced from Xilinx map parameters.
+* Child/top-level xcf files better distinguished.
+
+----------
+mcadler     Date: Thu Sep  8 17:07:34 EDT 2011  CSN: CSN-leap-153
+                  Thu Sep  8 21:07:34 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ central-cache-backing-store.bsv Locally Modified          152 
+
+Force a scheduling order of central cache evict vs. fill when talking to the
+backing storage.  I've never seen an instance in which the code has failed,
+since the timing is unlikely.
+
+----------
+mcadler     Date: Fri Sep  9 10:38:10 EDT 2011  CSN: CSN-leap-154
+                  Fri Sep  9 14:38:10 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          153 
+
+- Build sub-models in multi_fpga subdirectory of parent instead of in root.
+- Build rule for sub-models generates a result other than the direct result
+  of the sub model build.  The old code forced a rebuild of the top level BSV
+  every time, even if it was built already.
+- Return status of sub-model builds so parent SCons aborts correctly.
+
+
+----------
+mcadler     Date: Fri Sep  9 13:28:41 EDT 2011  CSN: CSN-leap-155
+                  Fri Sep  9 17:28:41 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          154 
+
+Revert to previous version, where child xcf has the same contents as the top level.
+Right now, the "top level" file has configuration for all synthesis boundaries.
+It also has critical bluespec.xcf configuration.  Without these, builds below
+top level are bound to have problems.
+
+The real solution is more complicated and requires some notion of global vs.
+local xcf configuration.
+
+----------
+mpellaue    Date: Wed Sep 14 10:50:56 EDT 2011  CSN: CSN-leap-158
+                  Wed Sep 14 14:50:56 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          157 
+ changelog                 Locally Modified          157 
+
+
+Updating debian files for next release, logically set at 11.12 since the
+previous ones were 11.03 and 11.06 and 11.09, no matter what schedule we
+predict....
+
+
+----------
+mcadler     Date: Thu Sep 15 16:28:57 EDT 2011  CSN: CSN-leap-159
+                  Thu Sep 15 20:28:57 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.cpp        Locally Modified          158 
+
+Method bodies were defined in both the .h and .cpp files.
+
+----------
+mpellaue    Date: Tue Sep 20 10:35:58 EDT 2011  CSN: CSN-leap-161
+                  Tue Sep 20 14:35:58 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-605d-syn.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx-synplify.apm Locally Added               0 
+
+
+Patch from Mikhail. Add a combined xilinx-synplify build flow for ML605/vico.
+
+----------
+mcadler     Date: Tue Sep 20 23:40:26 EDT 2011  CSN: CSN-leap-162
+                  Wed Sep 21 03:40:26 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/streams-device
+ hybrid-streams.cpp        Locally Modified          161 
+
+Add support for 3 and 4 arguments to streams messages.  3-messages use two
+16-bit chunks in arg0.  4-argument uses 16-bit chunks in both arguments.
+
+----------
+emer        Date: Wed Sep 21 19:38:43 EDT 2011  CSN: CSN-leap-165
+                  Wed Sep 21 23:38:43 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          164 
+ changelog                 Locally Modified          164 
+ rules                     Locally Modified          164 
+
+Start development of v11.12 release.
+
+----------
+mcadler     Date: Thu Sep 22 07:10:45 EDT 2011  CSN: CSN-leap-166
+                  Thu Sep 22 11:10:45 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ bluespec.xcf              Locally Modified          165 
+
+Xst was putting SyncFIFO buffers in BRAM!  Not only is this wasteful, it imposes
+a more difficult timing on a structure we are forced to tag TIG.
+
+----------
+mcadler     Date: Sun Sep 25 20:06:34 EDT 2011  CSN: CSN-leap-167
+                  Mon Sep 26 00:06:34 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch-multi.bsv Locally Modified          166 
+ hybrid-mem-scratch.bsv    Locally Modified          166 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-mem.bsv              Locally Modified          166 
+
+mkSizedBRAMFIFO() now takes the size of the FIFO as an integer parameter instead
+of a NumTypeParam#() hack.  The code internally is ugly (taken from the new
+Bluespec-supplied version) since there is no good way to convert an integer
+value to a type.  However, the interface now matches mkSizedFIFO() and is easier
+to use.
+
+----------
+kfleming    Date: Mon Sep 26 20:15:19 EDT 2011  CSN: CSN-leap-168
+                  Tue Sep 27 00:15:19 UTC 2011
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_synth.apm Locally Modified          167 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          167 
+
+
+Patched the XILINX_LOADER to have most of the functionality of
+leap-xilinx-summary.  leap-xilinx-summary can now be deprecated. 
+
+----------
+kfleming    Date: Tue Sep 27 23:26:19 EDT 2011  CSN: CSN-leap-172
+                  Wed Sep 28 03:26:19 UTC 2011
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_synth.apm Locally Modified          168 
+
+
+Changed 300 MHz clock to 75 MHz.  Oops.
+
+----------
+mpellaue    Date: Wed Sep 28 10:55:47 EDT 2011  CSN: CSN-leap-173
+                  Wed Sep 28 14:55:47 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          172 
+
+Directory modules/leap/build-support/build-pipelines/stages/vico_software
+ vico_software.py          Locally Modified          172 
+
+Directory modules/leap/build-support/project
+ project-vico-pipeline.awb Locally Modified          172 
+ project-pipeline.awb      Locally Modified          172 
+
+
+* Patch from Mikhail: Remove unnecessary sw libs from bluesim linking stage,
+  as this generated an error with a %library .so.
+  
+* Patch from Mikhail: Updates to vico pipeline.
+
+----------
+emer        Date: Wed Sep 28 16:20:49 EDT 2011  CSN: CSN-leap-174
+                  Wed Sep 28 20:20:49 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          173 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          173 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          173 
+
+Fixed stale apm files due to move of pci-express driver header
+module.
+
+----------
+emer        Date: Thu Sep 29 20:57:33 EDT 2011  CSN: CSN-leap-175
+                  Fri Sep 30 00:57:33 UTC 2011
+
+
+Directory debian
+ control                   Locally Modified          174 
+ changelog                 Locally Modified          174 
+
+Make debian package depend on python-pygraph.
+
+----------
+kfleming    Date: Fri Sep 30 18:08:40 EDT 2011  CSN: CSN-leap-176
+                  Fri Sep 30 22:08:40 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ triggered-stream-capture-fifo.bsv Locally Added               0 
+ reversal-buffer-bram.bsv  Locally Added               0 
+ reversal-buffer.bsv       Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          175 
+ stream-capture-fifo.bsv   Locally Added               0 
+ stream-capture-fifo-common.bsv Locally Added               0 
+ README                    Locally Modified          175 
+
+Directory modules/leap/libraries/librl/base
+ README                    Locally Modified          175 
+ librl-bsv-base.awb        Locally Modified          175 
+ register.bsv              Locally Added               0 
+
+
+Added the bsv-library dependecies of Airblue.  There are more, but
+these cover what I would consider to be the releasable Airblue modules.  
+
+
+----------
+kfleming    Date: Sat Oct  1 19:23:55 EDT 2011  CSN: CSN-leap-177
+                  Sat Oct  1 23:23:55 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ triggered-stream-capture-fifo.bsv Locally Removed           176 
+ fifo-triggered-stream-capture.bsv Locally Added               - 
+ reversal-buffer-bram.bsv  Locally Modified          176 
+ reversal-buffer.bsv       Locally Modified          176 
+ librl-bsv-storage.awb     Locally Modified          176 
+ stream-capture-fifo.bsv   Locally Removed           176 
+ fifo-stream-capture.bsv   Locally Added               - 
+ stream-capture-fifo-common.bsv Locally Removed           176 
+ fifo-stream-capture-common.bsv Locally Added               - 
+ README                    Locally Modified          176 
+
+
+Fixed some lexical issues in the new librl commits.  More must and will be done. 
+
+
+----------
+kfleming    Date: Sat Oct  1 23:30:34 EDT 2011  CSN: CSN-leap-178
+                  Sun Oct  2 03:30:34 UTC 2011
+
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ hw-only/                  Locally Added               0 
+
+Directory modules/leap/build-support/project/application-env/soft-services/hw-only
+ hw-only-testbench.h       Locally Added               0 
+ hw-only-testbench.awb     Locally Added               0 
+ hw-only-testbench.bsv     Locally Added               0 
+ hw-only-testbench.cpp     Locally Added               0 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-commit.bsv           Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          177 
+
+
+Adding a handful of remaining dependencies from bsv-libraries.  I will
+bring these codes up to spec as soon as possible.
+
+
+----------
+mcadler     Date: Tue Oct  4 14:56:04 EDT 2011  CSN: CSN-leap-187
+                  Tue Oct  4 18:56:04 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_MAP.py             Locally Modified          186 
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          186 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          186 
+
+- Enable multiprocessor mode in Xilinx map.
+
+- Generate an error if the packed memory in-flight limit is greater than the
+  scratchpad in-flight limit.
+
+- Add buffering to the 1-to-many packed memory case since the underlying
+  scratchpad ROBs are too small to support multiple reads from a single port.
+  The code could be smarter and compute the mimimum extra buffering needed.
+  I'll fix that, later.
+
+----------
+mcadler     Date: Tue Oct  4 17:06:23 EDT 2011  CSN: CSN-leap-188
+                  Tue Oct  4 21:06:23 UTC 2011
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          187 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          187 
+
+Eliminate an O(n^2) search of lists during soft connections matching
+(from Michael Pellauer).
+
+----------
+mcadler     Date: Wed Oct  5 17:48:51 EDT 2011  CSN: CSN-leap-189
+                  Wed Oct  5 21:48:51 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          188 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          188 
+
+- Use SCons "Copy" factory instead of "cp" because SCons stores the signature of
+  the program in the build dependence.  If "cp" is a different binary it looks like
+  rebuilding is needed.
+
+  Removed mkdir from the rules instead of using "Mkdir" factory, since the
+  directories appear to be present already and the factory version fails if
+  the target exists.
+
+- Clean up after others.  It didn't take long to make the Xilinx loader
+  replacement of leap-xilinx-summary look good instead of an ugly hack.
+
+----------
+kfleming    Date: Tue Oct 11 16:26:50 EDT 2011  CSN: CSN-leap-191
+                  Tue Oct 11 20:26:50 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          189 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          189 
+ multi_fpga_parse.awb      Locally Modified          189 
+
+
+Added support for the automatic instrumentation of multiFPGA codes with basic statistics. 
+
+----------
+kfleming    Date: Wed Oct 12 18:08:35 EDT 2011  CSN: CSN-leap-192
+                  Wed Oct 12 22:08:35 UTC 2011
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          191 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connections.bsv           Locally Modified          191 
+
+
+Added a typeclass for SoftConnections.  
+
+Added a helpful error message in case python files are not found at
+configuration time.
+
+----------
+kfleming    Date: Wed Oct 12 18:34:12 EDT 2011  CSN: CSN-leap-193
+                  Wed Oct 12 22:34:12 UTC 2011
+
+
+Directory debian
+ changelog                 Locally Modified          192 
+
+
+Forgot to edit dch.  This is now a requirement, but we should put it in the pre-commit hook for svn. I will attempt that now. 
+
+----------
+mcadler     Date: Mon Oct 17 13:53:53 EDT 2011  CSN: CSN-leap-194
+                  Mon Oct 17 17:53:53 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          193 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-null.awb Locally Modified          193 
+ scratchpad-memory-service-multi.awb Locally Modified          193 
+ scratchpad-memory-service-multi-rrr.awb Locally Modified          193 
+ scratchpad-memory-service.awb Locally Modified          193 
+ platform-scratchpad-multi-cached-memory.bsv Locally Removed           193 
+ platform-scratchpad-memory-utils.bsv Locally Modified          193 
+ platform-scratchpad-memory.bsv Locally Modified          193 
+
+- Restructure the memory packing code to be more efficient.  The old code was
+  generated between a client requesting some number of read ports and an
+  existing memory with the same number of read ports.  The new code takes
+  a function that constructs the underlying memory.  The memory packer adds
+  extra read ports to the underlying storage to satisfy the needs of the client
+  and the needs of the memory packer.  As a result:
+
+  - Read response buffering is no longer required.
+  - The code is simpler.
+
+- The 1:many packing case (multiple underlying buckets for a single client
+  entry) no longer allocates a power of two container buckets.  Storage is thus
+  used more efficiently.
+
+- Tweak the allocation of ROB slots in the scratchpad code.  ROB slots are now
+  allocated in the read request methods.  This avoids a deadlock case in
+  which the client couldn't detect an impending deadlock due to a ROB filling
+  in an internal rule.
+
+- Removed the multi-cached scratchpad code with Elliott's consent.  It was
+  no longer in active use and needs to be rethought:
+
+  - The old code let clients specify different caches for each read port.  The
+    client was forced to make assumptions about the way the memory packer
+    was going to use read ports.
+
+  - With the change in memory packing it would probably be a better idea
+    to define a shim that inserts caches between individual read ports and
+    a client for any instance of a multi-ported memory interface.
+
+----------
+mcadler     Date: Thu Oct 20 19:41:33 EDT 2011  CSN: CSN-leap-195
+                  Thu Oct 20 23:41:33 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector.bsv Locally Modified          194 
+ scratchpad-memory-connector-rrr.bsv Locally Modified          194 
+ scratchpad-memory-service.bsv Locally Modified          194 
+ platform-scratchpad-memory.bsv Locally Modified          194 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-multifpga.awb Locally Modified          194 
+ soft-connections-module-context-multifpga.awb Locally Modified          194 
+ addressable-ring.bsv      Locally Added               - 
+ token-ring.bsv            Locally Removed           194 
+ soft-connections-module-context.awb Locally Modified          194 
+
+Elliott realized that most of the traffic in a HAsim multi-FPGA configuration
+is from passing an empty token back and forth in the global scratchpad ring.
+This is not a good use of the interconnect (duh), especially since traffic is
+infrequent enough on that ring that no arbitration is needed.
+
+ - Generalize the token ring and interface into an addressable ring.
+ - Add a mkConnectionAddrRingNode() with the same addressable properties
+   as the token ring but no token.  When a node has data it sends a message.
+
+----------
+mcadler     Date: Thu Oct 20 19:59:34 EDT 2011  CSN: CSN-leap-196
+                  Thu Oct 20 23:59:34 UTC 2011
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          195 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector.bsv Locally Modified          195 
+
+- Fix typo in scratchpad ring code.
+
+- Add buffering in direct mapped cache.  Reducing excessive buffering
+  in the memory packing code last week exposed timing violations in a
+  number of clients of the direct mapped cache.
+
+----------
+kfleming    Date: Fri Oct 21 14:20:59 EDT 2011  CSN: CSN-leap-197
+                  Fri Oct 21 18:20:59 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector-rrr.bsv Locally Modified          196 
+ scratchpad-memory-service.dic Locally Modified          196 
+
+
+Added some improved debug to the scratchpad service
+
+----------
+mcadler     Date: Sat Oct 22 08:54:02 EDT 2011  CSN: CSN-leap-198
+                  Sat Oct 22 12:54:02 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ local-arbiters.bsv        Locally Modified          197 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-connector-rrr.bsv Locally Modified          197 
+
+- Local arbiters are method-only modules with some state.  Separate the operation
+  and state as a function and opaque type so that arbiter clients can manage
+  their own storage.  The old module remains, implemented with the new functions.
+
+- Fix the indentation of the scratchpad connector, again.
+
+----------
+kfleming    Date: Thu Oct 27 12:59:08 EDT 2011  CSN: CSN-leap-199
+                  Thu Oct 27 16:59:08 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          198 
+
+Directory modules/leap/virtual-platform/channelio/null
+ null-channelio.awb        Locally Modified          198 
+
+Directory modules/leap/virtual-platform/physical-channel
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/null
+ null-physical-channel.awb Locally Added               0 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ bluespec.xcf              Locally Modified          198 
+
+
+Some changes in support Xilinx Aurora inter-chip links.  
+
+1) Added a null physical channel to provide the "SOFT_RESET" parameter
+needed during the build process
+
+2) Copied xcf entry for SyncFIFO to SyncFIFOCount.
+
+----------
+kfleming    Date: Fri Oct 28 08:07:08 EDT 2011  CSN: CSN-leap-200
+                  Fri Oct 28 12:07:08 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-marshaller.bsv       Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          199 
+
+
+Added marshaller from the multiFPGA code in to librl.  It seemed generally useful. 
+
+----------
+mcadler     Date: Wed Nov  2 15:25:48 EDT 2011  CSN: CSN-leap-201
+                  Wed Nov  2 19:25:48 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ memory-mapping.bsv        Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          200 
+
+Add a module that provides a banked multi-read memory.  The module takes as
+arguments the number of banks, whether to use the high or low address bits to
+index the banks and a function to allocate the bank memories.
+
+----------
+mcadler     Date: Sat Nov  5 12:59:04 EDT 2011  CSN: CSN-leap-202
+                  Sat Nov  5 16:59:04 UTC 2011
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-set-assoc-cache.bsv    Locally Modified          201 
+
+Add more internal state to the set associative cache's debug scan.
+
+----------
+kfleming    Date: Wed Nov  9 16:26:24 EST 2011  CSN: CSN-leap-203
+                  Wed Nov  9 21:26:24 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Modified          202 
+ iface.py                  Locally Modified          202 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          202 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ SynplifySub.py            Locally Modified          202 
+
+
+1) A bug fix to Synplify build fixing a miss named ucf dependency.
+
+2) Support for constructing a global view of RRR and dictionary files
+in multiFPGA builds.  This partially worked before, but the global
+view was not being constructed during the post-connection resolution
+phase.  Airblue trips some of these cases with its rrr usage.  It's a
+miracle anything compiled previously.
+
+
+----------
+kfleming    Date: Thu Nov 10 12:12:21 EST 2011  CSN: CSN-leap-204
+                  Thu Nov 10 17:12:21 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ tool.py                   Locally Modified          203 
+ multi_fpga_parse.awb      Locally Modified          203 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          203 
+
+
+Changed debug scan interface to be more general (now it takes a value
+function), and added support for debug scan generation in the FPGA
+routers.
+
+----------
+mcadler     Date: Thu Nov 10 17:44:17 EST 2011  CSN: CSN-leap-205
+                  Thu Nov 10 22:44:17 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ local-mem-central-cache.bsv Locally Modified          204 
+
+Remove a deadlock that appears to be introduced by Xst when faced in the
+local memory arbitration between cache metadata and cache data reads.
+The code was unnecessarily complex.
+
+----------
+kfleming    Date: Mon Nov 14 16:50:53 EST 2011  CSN: CSN-leap-206
+                  Mon Nov 14 21:50:53 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages
+ multifpga/                Locally Removed           205 
+
+Directory modules/leap/build-support/build-pipelines/stages/multifpga
+ multitest.py              Locally Removed           205 
+ tool.py                   Locally Removed           205 
+ connection.py             Locally Removed           205 
+ multi_fpga_parse.awb      Locally Removed           205 
+ fpgaenvironment.awb       Locally Removed           205 
+ multilex.py               Locally Removed           205 
+ environment.py            Locally Removed           205 
+ multifpga_parser.py       Locally Removed           205 
+ platform.py               Locally Removed           205 
+ multiparse.py             Locally Removed           205 
+ README                    Locally Removed           205 
+
+
+Removed log generation pass of multiple FPGA compiler and moved it to
+the multifpga package.  This is part of the general code clean up of
+the multifpga package.
+
+----------
+kfleming    Date: Tue Nov 15 16:38:54 EST 2011  CSN: CSN-leap-207
+                  Tue Nov 15 21:38:54 UTC 2011
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-commit.bsv           Locally Modified          206 
+ fifo-marshaller.bsv       Locally Modified          206 
+
+
+Added some convenience functions to the marshaller and commit fifo,
+and cleaned up code indentation in the commit fifo code to match the
+librl standard.
+
+----------
+mcadler     Date: Fri Nov 18 20:54:35 EST 2011  CSN: CSN-leap-208
+                  Sat Nov 19 01:54:35 UTC 2011
+
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          207 
+
+Incorrect order of computation vs. sign extension in 1 to many memory packing
+case sometimes dropped the high bit, causing address aliases.
+
+----------
+mcadler     Date: Thu Dec  1 14:26:46 EST 2011  CSN: CSN-leap-209
+                  Thu Dec  1 19:26:46 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified          208 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          208 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified          208 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          208 
+ fpgaenv-de2-jtag.apm      Locally Modified          208 
+ fpgaenv-de3-jtag.apm      Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          208 
+ fpgaenv-hybrid-exe.apm    Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          208 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          208 
+ fpgaenv-hybrid-605d-syn.apm Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified          208 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          208 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          208 
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          208 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified          208 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          208 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common-interfaces.bsv Locally Modified          208 
+
+Directory modules/leap/virtual-platform
+ fpga-environment.awb      Locally Modified          208 
+ std-virtual-platform.awb  Locally Modified          208 
+
+Directory modules/leap/build-support/project/application-env/base
+ application-env-hybrid-base.bsv Locally Modified          208 
+ README                    Locally Modified          208 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ application-env-hybrid-soft-service.awb Locally Modified          208 
+ application-env-hybrid-soft-service.bsv Locally Modified          208 
+ README                    Locally Modified          208 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          208 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-multi.awb Locally Modified          208 
+ scratchpad-memory-connector.bsv Locally Modified          208 
+ scratchpad-memory-connector-rrr.bsv Locally Modified          208 
+
+Directory modules/leap/libraries/platform-services
+ README                    Locally Modified          208 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          208 
+ soft-connections-module-context-multifpga.awb Locally Modified          208 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          208 
+ connect-top-level-multifpga.bsv Locally Modified          208 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context.awb Locally Modified          208 
+ connection-implementation.bsv Locally Modified          208 
+
+Move soft services and platform services into the FPGA environment.  All
+LEAP applications now provide soft connections.
+
+Aside from simplifying the application environment by reducing the number
+of varients, this move permits code within the virtual platform to use
+soft connections.  It used to be necessary to have platform services expose
+soft connections to underlying virtual platform services.  Now a platform
+service may implement the service fully.
+
+----------
+mcadler     Date: Thu Dec  1 22:44:56 EST 2011  CSN: CSN-leap-210
+                  Fri Dec  2 03:44:56 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.bsv   Locally Modified          209 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ local-mem-central-cache.bsv Locally Modified          209 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          209 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          209 
+
+Allocate the virtual platform within the soft services domain.  Now the low-level
+platform interface is allocated outside soft services and passed to the
+virtual platform.  Code within the virtual platform may use soft connections.
+
+----------
+mcadler     Date: Wed Dec  7 11:49:40 EST 2011  CSN: CSN-leap-211
+                  Wed Dec  7 16:49:40 UTC 2011
+
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          210 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          210 
+ xup-virtual-devices.apm   Locally Modified          210 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.awb   Locally Modified          210 
+ std-virtual-devices.bsv   Locally Modified          210 
+ std-virtual-devices-null.awb Locally Modified          210 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ local-memory/             Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory
+ null/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/null
+ local-memory-device-null.awb Locally Added               0 
+ local-memory-device-null.bsv Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory
+ soft/                     Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft
+ local-memory-device-soft.bsv Locally Added               0 
+ README                    Locally Added               0 
+ local-memory-device-soft.awb Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ local-mem-central-cache.bsv Locally Modified          210 
+
+- Expose local memory as soft connections in the virtual devices.
+
+- Connect to local memory in the central cache through the soft connections.
+
+- Revert to a bypass FIFO on local memory read response in the central cache
+  to save a cycle.
+
+  I had switched to a latency one FIFO because it made a bug that we had not yet
+  diagnosed go away with multiple lanes in multi-FPGA.  The source of the bug
+  has since been identified (compiling with different options in the two
+  multi-FPGA passes).
+
+----------
+mcadler     Date: Sat Dec 10 16:40:04 EST 2011  CSN: CSN-leap-212
+                  Sat Dec 10 21:40:04 UTC 2011
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          211 
+ standard-platform-local-mem.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe.apm    Locally Modified          211 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          211 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          211 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          211 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.awb   Locally Modified          211 
+ std-virtual-devices.bsv   Locally Modified          211 
+ std-virtual-devices-null.awb Locally Modified          211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ hybrid/                   Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/hybrid
+ hybrid-mem-scratch.dic    Locally Removed           211 
+ hybrid-mem-scratch-multi.awb Locally Removed           211 
+ hybrid-mem-scratch.cpp    Locally Removed           211 
+ hybrid-mem-scratch-multi.bsv Locally Removed           211 
+ hybrid-mem-scratch.rrr    Locally Removed           211 
+ hybrid-mem-scratch.h      Locally Removed           211 
+ hybrid-mem-scratch.awb    Locally Removed           211 
+ hybrid-mem-scratch.bsv    Locally Removed           211 
+ README                    Locally Removed           211 
+ hybrid-mem-scratch-multi.rrr Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ common/                   Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/common
+ mem-scratch-common.awb    Locally Removed           211 
+ mem-scratch-common-interfaces.bsv Locally Removed           211 
+ README                    Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ local/                    Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory/local
+ local-mem-scratch.awb     Locally Removed           211 
+ local-mem-scratch.bsv     Locally Removed           211 
+ README                    Locally Removed           211 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/scratchpad-memory
+ README                    Locally Removed           211 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-multi.awb Locally Removed           211 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Added               - 
+ hybrid-mem-scratch-multi.rrr Locally Removed           211 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service-multi-rrr.awb Locally Removed           211 
+ scratchpad-memory-service.awb Locally Modified          211 
+ platform-scratchpad-memory.bsv Locally Modified          211 
+ README                    Locally Modified          211 
+ scratchpad-memory-service-null.awb Locally Modified          211 
+ scratchpad-memory-connector.bsv Locally Removed           211 
+ scratchpad-memory-connector-rrr.bsv Locally Removed           211 
+ scratchpad-memory-service.bsv Locally Modified          211 
+ scratchpad-memory-connector-null.bsv Locally Removed           211 
+
+- Move all scratchpad support to platform services.  The scratchpad code
+  is now removed from virtual devices.
+
+- Take advantage of soft connections within the scratchpad implementation:
+
+  - The memory connector is now chosen as part of the configuration and is
+    implemented below the scratchpad.
+
+  - For hybrid connectors, the code now automatically instantiates the
+    connector appropriate to the platform.  For single FPGA systems a simple
+    RRR connector is allocated.  For multi-FPGA systems, FPGA 0 gets an RRR
+    connector and a ring stop for forwarding remote requests to RRR.  All
+    other FPGAs get just a ring stop for sending requests to FPGA 0.
+    This eliminates separate AWB configurations and sources for the 3 cases.
+
+----------
+mcadler     Date: Mon Dec 12 15:00:17 EST 2011  CSN: CSN-leap-213
+                  Mon Dec 12 20:00:17 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-multi.awb Locally Removed           212 
+ hybrid-mem-scratch-multi.bsv Locally Removed           212 
+
+Remove old version of multi-FPGA scratchpad code.
+
+----------
+mcadler     Date: Tue Dec 13 13:49:24 EST 2011  CSN: CSN-leap-214
+                  Tue Dec 13 18:49:24 UTC 2011
+
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Modified          213 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          213 
+
+- os.path.relpath was added to Python in version 2.6.  Not all sites are
+  running that release, yet.  Put a version of relpath in Utils.py.
+
+- Remove scratchpad include from NULL std virtual devices.  Scratchpad code
+  is now in the platform services.
+
+  Will deal with renaming NULL devices to something more meaningful later.
+
+----------
+mcadler     Date: Wed Dec 14 15:49:54 EST 2011  CSN: CSN-leap-215
+                  Wed Dec 14 20:49:54 UTC 2011
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          214 
+ standard-platform-local-mem.apm Locally Modified          214 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe.apm    Locally Modified          214 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          214 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Modified          214 
+ std-virtual-devices.awb   Locally Modified          214 
+ std-virtual-devices.bsv   Locally Modified          214 
+ std-virtual-devices-null.awb Locally Modified          214 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/null
+ local-memory-device-null.bsv Locally Modified          214 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ central-cache/            Locally Removed           214 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/central-cache
+ central-cache-interfaces.bsv Locally Removed           214 
+ local-mem-central-cache.awb Locally Removed           214 
+ local-mem-central-cache.bsv Locally Removed           214 
+ central-cache-backing-store.bsv Locally Removed           214 
+ null-central-cache.awb    Locally Removed           214 
+ null-central-cache.bsv    Locally Removed           214 
+ README                    Locally Removed           214 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local
+ local-mem-scratch.bsv     Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Modified          214 
+ central-cache-service.bsv Locally Modified          214 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Added               0 
+ central-cache-interfaces.bsv Locally Removed           214 
+ central-cache-backing-store.bsv Locally Removed           214 
+ null-central-cache.awb    Locally Removed           214 
+ null-central-cache.bsv    Locally Removed           214 
+ local-mem-central-cache.dic Locally Added               - 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsh Locally Modified          214 
+ platform-central-cache.bsv Locally Modified          214 
+ central-cache-service.dic Locally Removed           214 
+ central-cache-service-null.awb Locally Removed           214 
+ common/                   Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-interfaces.bsv Locally Added               - 
+ central-cache-common.awb  Locally Added               0 
+ central-cache-backing-store.bsv Locally Added               - 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ null/                     Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/null
+ null-central-cache.awb    Locally Added               - 
+ null-central-cache.bsv    Locally Added               - 
+
+Move central cache implementation to platform services.  Now that the
+implementation is in a domain that accepts soft connections, moved statistics
+and deadlock debug dump code local to the code that uses it.
+
+The NULL central cache implementation continues to route incoming requests
+directly to the backing storage so clients of the NULL central cache see
+exactly the same semantics as a real cache, differing only in timing.
+
+----------
+mcadler     Date: Wed Dec 14 23:27:17 EST 2011  CSN: CSN-leap-216
+                  Thu Dec 15 04:27:17 UTC 2011
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          215 
+ standard-platform-local-mem.apm Locally Modified          215 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          215 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          215 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          215 
+ xup-virtual-devices.apm   Locally Modified          215 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Modified          215 
+ std-virtual-devices.awb   Locally Modified          215 
+ std-virtual-devices.bsv   Locally Modified          215 
+ std-virtual-devices-null.awb Locally Modified          215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ scratchpad-memory/        Locally Removed           215 
+ shared-memory/            Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ standard/                 Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/standard
+ standard-shared-memory-server.cpp Locally Removed           215 
+ standard-shared-memory.h  Locally Removed           215 
+ standard-shared-memory.awb Locally Removed           215 
+ standard-shared-memory.bsv Locally Removed           215 
+ standard-shared-memory-server.h Locally Removed           215 
+ standard-shared-memory.cpp Locally Removed           215 
+ README                    Locally Removed           215 
+ standard-shared-memory.rrr Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ null/                     Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory/null
+ null-shared-memory.h      Locally Removed           215 
+ null-shared-memory.awb    Locally Removed           215 
+ README                    Locally Removed           215 
+ null-shared-memory.bsv    Locally Removed           215 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/shared-memory
+ README                    Locally Removed           215 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          215 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service
+ shared-memory-service.awb Locally Modified          215 
+ shared-memory-service.bsv Locally Modified          215 
+ shared-memory-service-null.awb Locally Modified          215 
+ shared-memory-service-null.bsv Locally Modified          215 
+ README                    Locally Modified          215 
+
+Move shared memory, the last of the memory components, from virtual devices
+to the platform services.  As shared memory is a work in progress only
+the NULL version "works."  The hybrid version needs a virtual device shim
+to map the llpi shared memory to soft connections.
+
+----------
+mcadler     Date: Mon Dec 19 09:04:15 EST 2011  CSN: CSN-leap-217
+                  Mon Dec 19 14:04:15 UTC 2011
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.awb        Locally Modified          216 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null.bsv Locally Removed           216 
+ std-virtual-devices.bsv   Locally Modified          216 
+ std-virtual-devices-null.awb Locally Removed           216 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices-null.awb Locally Removed           216 
+ common-utility-devices.bsv Locally Modified          216 
+ common-utility-devices-null.bsv Locally Removed           216 
+
+To reduce variants of virtual device APM files, standard virtual devices and
+common utility devices now configure themselves automatically for master and
+slave in multi-FPGA environments.
+
+----------
+mcadler     Date: Mon Dec 19 12:01:45 EST 2011  CSN: CSN-leap-218
+                  Mon Dec 19 17:01:45 UTC 2011
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.bsv        Locally Modified          217 
+ local-mem-ddr2.bsv        Locally Modified          217 
+ local-mem-bram.bsv        Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsv Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-bypass.bsv  Locally Added               0 
+ central-cache-interfaces.bsv Locally Modified          217 
+ central-cache-common.awb  Locally Modified          217 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/null
+ null-central-cache.bsv    Locally Modified          217 
+
+When there is no local memory a central cache will always miss. The synthesis
+tools can't detect that most of the cache could be optimized away.  In this case,
+don't bother instantiating a real set associative cache.  Instead, route requests
+directly to the backing storage.
+
+----------
+mcadler     Date: Mon Dec 19 12:21:25 EST 2011  CSN: CSN-leap-219
+                  Mon Dec 19 17:21:25 UTC 2011
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          218 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          218 
+ fpgaenv-hybrid-exe.apm    Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          218 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified          218 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          218 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          218 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          218 
+
+Clean up after moving modules.
+
+----------
+mcadler     Date: Tue Dec 20 15:09:22 EST 2011  CSN: CSN-leap-220
+                  Tue Dec 20 20:09:22 UTC 2011
+
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          219 
+ mem-services-standard-null.bsv Locally Modified          219 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-standard.bsv Locally Modified          219 
+
+Memory services in the platform may now be compiled as a separate synthesis
+boundary.  All that is needed is a "%param SYNTH_BOUNDARY mkMemServices" in
+the AWB file.
+
+It can't be turned on yet because there is no syntax in the multi-FPGA
+code to describe synthesis regions that belong on all FPGAs.
+
+----------
+mcadler     Date: Wed Dec 21 15:33:55 EST 2011  CSN: CSN-leap-221
+                  Wed Dec 21 20:33:55 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          220 
+
+m5 now called gem5.
+
+----------
+mcadler     Date: Wed Dec 21 23:45:06 EST 2011  CSN: CSN-leap-222
+                  Thu Dec 22 04:45:06 UTC 2011
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          221 
+
+New m5 requires librt.
+
+----------
+mcadler     Date: Sun Jan  8 16:06:02 EST 2012  CSN: CSN-leap-223
+                  Sun Jan  8 21:06:02 UTC 2012
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          222 
+
+Directory config/pm/leap/submodels/common
+ soft-services.apm         Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          222 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          222 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          222 
+ Module.py                 Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/services
+ soft-strings/             Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.awb        Locally Added               0 
+ global-strings.bsv        Locally Added               0 
+ global-strings.cpp        Locally Added               0 
+ README                    Locally Added               0 
+ global-strings.h          Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-top-level.bsv     Locally Modified          222 
+ expose-connections.bsv    Locally Modified          222 
+ connect-top-level-multifpga.bsv Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          222 
+ connection-context.bsv    Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-lib-deps.h  Locally Added               0 
+ soft-services-deps-small.awb Locally Modified          222 
+ soft-services-lib-deps.bsh Locally Modified          222 
+ soft-services.awb         Locally Modified          222 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-only
+ soft-services-lib-deps.h  Locally Added               0 
+ soft-services-deps-small.awb Locally Modified          222 
+ soft-services-lib-deps.bsh Locally Modified          222 
+ soft-services-small.awb   Locally Modified          222 
+
+Add a global string table, managed by module context, as part of soft services.
+The string table generates integer UIDs (currently 32 bits) for a given string.
+Note: while UIDs are unique, there may be more than one UID mapped to a given
+string.
+
+To allocate a string, a module must be a member of the COLLECTED_MODULE context.
+Allocate an entry with:
+    GLOBAL_STRING_UID str <- getGlobalStringUID("foo");
+getGlobalStringUID() looks for the string in the table.  If present, it returns
+the existing UID.  If not present, a new UID is allocated and returned.
+
+The global string table is built as a single database during compilation.
+The database is loaded at run time by passing the path in the "-global-strings"
+argument.  The standard workload run scripts do this automatically.
+
+Both the synthesis boundary ID and the platform ID are components of a
+string's UID, allowing for parallel allocation of global string UIDs during
+compilation.
+
+----------
+joel        Date: Mon Jan  9 22:57:12 EST 2012  CSN: CSN-leap-224
+                  Tue Jan 10 03:57:12 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          223 
+
+Directory debian
+ control                   Locally Modified          223 
+ changelog                 Locally Modified          223 
+
+Directory .
+ aclocal.m4                Locally Modified          223 
+
+Added dependency on libio-pty-perl to the debian package to
+address awb bug #99.
+
+----------
+mcadler     Date: Sun Jan 15 09:19:13 EST 2012  CSN: CSN-leap-225
+                  Sun Jan 15 14:19:13 UTC 2012
+
+
+Directory config/pm/leap/submodels/common
+ soft-services.apm         Locally Modified          224 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.cpp     Locally Modified          224 
+ debug-scan-device.rrr     Locally Modified          224 
+ debug-scan-device.h       Locally Modified          224 
+ debug-scan-device.bsv     Locally Modified          224 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          224 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          224 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          224 
+ debug-scan-local.bsv      Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.awb        Locally Modified          224 
+ global-strings.bsv        Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          224 
+ debug/                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Added               0 
+ connections-debug.dic     Locally Added               0 
+ connections-debug.awb     Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-multifpga.awb Locally Removed           224 
+ soft-connections-module-context-multifpga.awb Locally Modified          224 
+ connection-dispatchers.bsv Locally Modified          224 
+ connection-implementation-multifpga.bsv Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context.awb Locally Modified          224 
+ connection-context.bsv    Locally Modified          224 
+ connection-vectors.bsv    Locally Modified          224 
+ connection-implementation.bsv Locally Modified          224 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.bsv     Locally Modified          224 
+
+Dump the state of every soft connection sender's notFull and notEmpty bits on the
+DEBUG_SCAN ring.  The cost is sufficiently low that this feature is on by default,
+though it can be disabled by setting CON_DEBUG_ENABLE to 0 in connections-debug.awb.
+
+The debugging code does add some mapping pressure, since all the notFull/notEmpty
+wires within a synthesis boundary must route to the same, local, debug scan node.
+
+----------
+mcadler     Date: Thu Jan 19 08:04:21 EST 2012  CSN: CSN-leap-226
+                  Thu Jan 19 13:04:21 UTC 2012
+
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ BSV.pm                    Locally Modified          225 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ BSV.pm                    Locally Modified          225 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ marshaller.bsv            Locally Modified          225 
+ demarshaller.bsv          Locally Modified          225 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.cpp     Locally Modified          225 
+ debug-scan-device.h       Locally Modified          225 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-marshaller.bsv       Locally Removed           225 
+ librl-bsv-storage.awb     Locally Modified          225 
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Added               - 
+ librl-bsv-base.awb        Locally Modified          225 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          225 
+
+- Change the interface to the LibRL marshaller/demarshaller to take the
+  marshalled type and the unmarshalled type instead of the marshalled type
+  and a vector of the marshalled type.  The internal logic now computes the
+  vector length.
+
+- Rename the RRR marshaller to avoid name conflicts with LibRL.  The RRR
+  marshaller and demarshaller are incompatible with each other (they send
+  different byte orders), so are good to avoid for other purposes.
+
+- Use LibRL marshaller in debug scan.
+
+- Improve C++ debug scan receiver to grow its buffer automatically if a large
+  scan record arrives.
+
+----------
+emer        Date: Sat Jan 21 15:11:57 EST 2012  CSN: CSN-leap-227
+                  Sat Jan 21 20:11:57 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          226 
+
+Directory tools/scripts
+ leap-configure            Locally Modified          226 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          226 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          226 
+
+Enhanced leap-configure to pick up its options using the
+standard awb workspace configuration files (awb.config,
+~/.asim/asimrc and <prefix>/etc/asim/asimrc. Invoke the
+following to see the options:
+
+   % leap-configure options
+
+Also converted leap-configure to take action commands, such
+as 'configure' and 'run' rather than actions switches, such
+as -configure and -run, to make it consistent with the other
+configuration programs, such as amc(1). The old form still
+works and is used by the Perl library, which needs to get
+upgraded. But the prefered use of leap-configure is now:
+
+   % leap-configure configure --model=config/pm/.../foo.apm
+
+Also made leap-configure exit more gracefully in the face of 
+bad model parameters and added documentation accessable with:
+
+   % leap-configure help
+
+Finally, made bluesim builds work across differnt versions
+of gcc due to difference is the availability of the 
+no-var-tracking-assignments option. This is accomplished by a
+new utility function getGccVersion(). This closes bug #100.
+
+
+----------
+emer        Date: Tue Jan 24 18:48:18 EST 2012  CSN: CSN-leap-228
+                  Tue Jan 24 23:48:18 UTC 2012
+
+
+Directory debian
+ control                   Locally Modified          227 
+ changelog                 Locally Modified          227 
+ rules                     Locally Modified          227 
+
+Move to version v12.01. Note that version v11.12 was never released.
+----------
+emer        Date: Wed Jan 25 08:07:38 EST 2012  CSN: CSN-leap-229
+                  Wed Jan 25 13:07:38 UTC 2012
+
+
+Directory debian
+ control                   Locally Modified          228 
+
+For apt installs, 'recommend' previous shared package release rather
+than 'require' it.
+
+----------
+emer        Date: Wed Jan 25 15:00:48 EST 2012  CSN: CSN-leap-230
+                  Wed Jan 25 20:00:48 UTC 2012
+
+
+Directory debian
+ changelog                 Locally Modified          229 
+
+Directory admin/packages
+ leap                      Locally Modified          229 
+
+To alleviate debian package file conflicts, put shared copy of
+repository in a version named directory rather than in HEAD. For
+example:
+
+/usr/share/asim/packages/awb/v12.01
+
+rather than
+
+/usr/share/asim/packages/awb/HEAD
+
+----------
+emer        Date: Wed Jan 25 19:23:58 EST 2012  CSN: CSN-leap-231
+                  Thu Jan 26 00:23:58 UTC 2012
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          230 
+
+
+Leap-configure now uses the default benchmark specified by
+the model if a  benchmark is needed and has not been
+specified either on the command line with the --benchmark 
+switch or as an option in the awb.config or .asimrc files.
+
+----------
+mcadler     Date: Thu Jan 26 11:39:03 EST 2012  CSN: CSN-leap-232
+                  Thu Jan 26 16:39:03 UTC 2012
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.dic     Locally Removed           231 
+ debug-scan-device.cpp     Locally Modified          231 
+ debug-scan-device.rrr     Locally Modified          231 
+ debug-scan-device.h       Locally Modified          231 
+ debug-scan-device.awb     Locally Modified          231 
+ debug-scan-device.bsv     Locally Modified          231 
+
+Directory modules/leap/libraries/librl/cache
+ rl-set-assoc-cache.bsv    Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          231 
+ platform-scratchpad-memory.bsv Locally Modified          231 
+ scratchpad-memory-service.dic Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          231 
+ local-mem-central-cache.dic Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          231 
+ debug-scan-local.bsv      Locally Modified          231 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.cpp        Locally Modified          231 
+ global-strings.h          Locally Modified          231 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          231 
+ connections-debug.dic     Locally Removed           231 
+ connections-debug.awb     Locally Modified          231 
+
+Debug scanning now uses global strings instead of dictionary entries.  Clients
+may define fields within a scan record that are parsed and printed in
+human-readable form in the software.  There is no hardware overhead for the
+parsing, since the formatting descriptor is stored in the global string table.
+
+Functions are provided in the debug scan service for constructing descriptors.
+
+----------
+emer        Date: Thu Jan 26 13:54:46 EST 2012  CSN: CSN-leap-233
+                  Thu Jan 26 18:54:46 UTC 2012
+
+
+Directory .
+ Makefile.in               Locally Modified          232 
+
+Directory admin/packages
+ leap                      Locally Modified          232 
+
+Mark package as a 'prerelease'.

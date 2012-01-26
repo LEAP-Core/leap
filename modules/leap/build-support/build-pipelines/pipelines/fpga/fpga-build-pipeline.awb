@@ -14,6 +14,7 @@
 %requires post_synthesis_tool
 %requires mcd_tool
 %requires fpga_program_tool
+%requires wrapper_gen_tool
 
 %notes README
 

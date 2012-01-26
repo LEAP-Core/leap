@@ -40,12 +40,22 @@ sub get_scons_hw_sub_template {
 }
 
 # This is an ugly way to get the library files, but I guess this is the best way??
+sub get_scons_private {
+    my $module = shift;
+    return get_scons_subclass($module,'private');
+}
+
 sub get_scons_library {
     my $module = shift;
-    
-    my @libraries = $module->scons('library');
+    return get_scons_subclass($module,'library');
+}
 
- 
+sub get_scons_subclass {
+    my $module = shift;
+    my $subclass = shift;
+    
+    my @libraries = $module->scons($subclass);
+
     my @resolved_library;
     foreach my $library (@libraries) {
       push(@resolved_library,Asim::resolve(Leap::Util::path_append($module->base_dir(),$library)));
@@ -421,9 +431,9 @@ sub pythonize_module {
     # Is it a synthesis boundary?
 
     if( is_synthesis_boundary($module)) {
-	$stringRepresentation = $stringRepresentation . "True, ";
+	$stringRepresentation = $stringRepresentation . "[\"" . get_synthesis_boundary_name($module) ."\"], ";
     } else {
-	$stringRepresentation = $stringRepresentation . "False, ";
+	$stringRepresentation = $stringRepresentation . "[], ";
     }
 
     # get build dir get_module_build_dir_from_module

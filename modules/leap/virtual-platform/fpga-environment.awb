@@ -3,8 +3,10 @@
 
 %provides fpgaenv
 
+%requires virtual_platform
+%requires fpga_components
+%requires soft_services
 %requires librl_bsv
-%requires virtual_platform fpga_components
 %requires build_pipeline
 
 %notes README

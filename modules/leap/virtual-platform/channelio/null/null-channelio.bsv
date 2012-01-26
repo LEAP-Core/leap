@@ -16,10 +16,19 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-`include "awb/provides/physical_platform.bsh"
+import Vector::*;
 
+`include "awb/provides/physical_platform.bsh"
+`include "awb/provides/umf.bsh"
+
+// read/write port interfaces
+
+// channelio interface
 interface CHANNEL_IO;
+    interface Vector#(`CIO_NUM_CHANNELS, CIOReadPort)  readPorts;
+    interface Vector#(`CIO_NUM_CHANNELS, CIOWritePort) writePorts;
 endinterface
 
 module mkChannelIO#(PHYSICAL_DRIVERS drivers) (CHANNEL_IO);
+  return ?;
 endmodule

@@ -66,9 +66,10 @@ module [t_CONTEXT] instantiateWithConnections#(ModuleContext#(t_SS_CTX, Empty) m
          IsModule#(t_CONTEXT, t_DUMMY),
          ContextRun#(t_CONTEXT, t_SS_CTX, t_SS_CTX));
 
-    t_SS_CTX ctx <- initializeServiceContext();
+    t_SS_CTX int_ctx0 <- initializeServiceContext();
+
     // By convention m_final is Empty.
-    match {.final_ctx, .m_final} <- runWithContext(ctx, m);
+    match {.final_ctx, .m_final} <- runWithContext(int_ctx0, m);
     finalizeServiceContext(final_ctx);
 
 endmodule

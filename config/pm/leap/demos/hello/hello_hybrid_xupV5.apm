@@ -16,9 +16,8 @@ RootProvides=model
 DefaultAttributes=hello unconnected hybrid project htg
 model=HW/SW Hybrid Pipeline Build
 
-
 [Base Hybrid Application Environment]
-File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
+File=modules/leap/build-support/project/application-env/base/application-env-hybrid-base.awb
 Packagehint=leap
 
 [Base Hybrid Application Environment/Requires]
@@ -27,8 +26,6 @@ hybrid_application=Hello World
 [Hello World]
 File=modules/leap/examples/hello-world/hello-world.awb
 Packagehint=leap
-
-
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities
@@ -40,14 +37,12 @@ File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
+File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
 
 [Hybrid XUP-v5 PCIE FPGA Environment/Params]
-MODEL_CLOCK_DIVIDER=4
-MODEL_CLOCK_MULTIPLIER=4
 MODEL_CLOCK_FREQ=100
 
 [Hybrid XUP-v5 PCIE FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-xup-v5-pcie.apm
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-xup-v5-pcie.apm
 Packagehint=leap

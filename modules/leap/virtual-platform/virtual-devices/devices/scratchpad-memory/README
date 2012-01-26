@@ -1,6 +1,0 @@
-This directory contains alternatives for the LEAP Scratchpad Memory virtual
-device.
-
-common/     Base typedefs and common definitions.
-hybrid/     HW/SW scratchpad that uses HW local memory backed by SW memory.
-local/      HW scratchpad using local memory only.

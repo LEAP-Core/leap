@@ -9,6 +9,7 @@
 %notes README
 
 %sources -t BSV -v PUBLIC   basic-channelio.bsv
+%sources -t BSV -v PUBLIC   channelio-common.bsv
 %sources -t H   -v PUBLIC   basic-channelio.h
 %sources -t CPP -v PRIVATE  basic-channelio.cpp
 

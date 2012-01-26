@@ -128,3 +128,18 @@ module mkStreamsClient_Disabled
         noAction;
     endmethod
 endmodule
+
+
+//
+// mkStreamsClient_Debug --
+//     Conditionally make either a streams client or a NULL client, depending
+//     on the state of the STREAMS_ENABLE_DEBUG awb parameter.
+//
+module [CONNECTED_MODULE] mkStreamsClient_Debug#(STREAMID_DICT_TYPE streamID)
+    // Interface:
+    (STREAMS_CLIENT);
+
+    let stream <- (`STREAMS_ENABLE_DEBUG != 0 ? mkStreamsClient(streamID) :
+                                                mkStreamsClient_Disabled());
+    return stream;
+endmodule

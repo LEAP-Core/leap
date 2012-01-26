@@ -12,6 +12,7 @@
 %requires software_tool
 %requires bluesim_tool
 %requires verilog_tool
+%requires wrapper_gen_tool
 
 %notes README
 

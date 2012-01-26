@@ -36,6 +36,7 @@ class Software():
         libs = moduleList.swLibs
         whole_libs = []
         cc_flags = host_defs()
+        cc_flags += ' -std=c++0x'
         cc_flags += ' ' + cpp_events_flag
         if (getDebug(moduleList)):
             cc_flags += ' -DASIM_ENABLE_ASSERTIONS -DDEBUG'
@@ -70,7 +71,7 @@ class Software():
             m5_lib = ''
             tmp_libs = []
             for lib in libs:
-                if (os.path.basename(lib) == 'libm5_opt.a'):
+                if (os.path.basename(lib) == 'libgem5_opt.a'):
                     m5_lib = lib
                 else:
                     tmp_libs += [ lib ]
@@ -80,7 +81,7 @@ class Software():
             if (m5_lib != ''):
                 if (getDebug(moduleList)):
                     # Swap the optimized m5 library for a debugging one
-                    m5_lib = os.path.join(os.path.dirname(m5_lib), 'libm5_debug.a')
+                    m5_lib = os.path.join(os.path.dirname(m5_lib), 'libgem5_debug.a')
                 whole_libs += [ m5_lib ]
 
         # CPPPATH defines both gcc include path and dependence path for
@@ -100,8 +101,10 @@ class Software():
                                                build_dir = sw_build_dir,
                                                duplicate = 0)
     
+        
+        moduleList.env.Depends(sw_objects,moduleList.topModule.moduleDependency['IFACE_HEADERS'])
         sw_libpath = [ '.' ]
-        sw_link_libs = [ 'pthread', 'dl' ]
+        sw_link_libs = [ 'pthread', 'rt', 'dl' ]
     
         sw_link_tgt = moduleList.swExe
     

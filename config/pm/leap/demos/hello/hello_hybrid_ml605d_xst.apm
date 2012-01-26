@@ -1,0 +1,52 @@
+
+[Global]
+SaveParameters=0
+Description=Hello World Demo using ViCo for ML605 PCIe DMA
+File=hello_hybrid_ml605d_xst
+Version=2.2
+Name=Hello World for ViCo ML605 PCIe DMA
+DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
+Type=Leap
+Class=Asim::Model
+DefaultRunOpts=
+RootName=ViCo HW/SW Hybrid Pipeline Build
+RootProvides=model
+
+[Model]
+DefaultAttributes=hello unconnected hybrid project htg
+model=ViCo HW/SW Hybrid Pipeline Build
+
+[Base Hybrid Application Environment]
+File=modules/leap/build-support/project/application-env/base/application-env-hybrid-base.awb
+Packagehint=leap
+
+[Base Hybrid Application Environment/Requires]
+hybrid_application=Hello World
+
+[Hello World]
+File=modules/leap/examples/hello-world/hello-world.awb
+Packagehint=leap
+
+
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/leap/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)/Params]
+RESET_ACTIVE_HIGH=1
+MODEL_CLOCK_FREQ=66
+GENERATE_VICO=1
+
+[Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-605d-xst.apm
+Packagehint=leap
+
+[ViCo HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid ML605 V6 FPGA Environment (PCIe DMA, ViCo)
+application_env=Base Hybrid Application Environment
+
+[ViCo HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-vico-pipeline.awb
+Packagehint=leap

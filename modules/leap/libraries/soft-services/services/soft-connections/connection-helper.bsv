@@ -116,6 +116,16 @@ instance Matchable#(LOGICAL_SEND_MULTI_INFO);
   endfunction
 endinstance
 
+instance Matchable#(LOGICAL_CHAIN_INFO);
+  function String getLogicalName(LOGICAL_CHAIN_INFO sinfo);
+    return sinfo.logicalName;
+  endfunction
+
+  function String getComputePlatform(LOGICAL_CHAIN_INFO sinfo);
+    return sinfo.computePlatform;
+  endfunction
+endinstance
+
 function Bool nameMatches(r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));
@@ -200,10 +210,7 @@ module printSend#(LOGICAL_SEND_INFO send) (Empty);
 endmodule
 
 module printSends#(List#(LOGICAL_SEND_INFO) sends) (Empty);
-  for (Integer x = 0; x < length(sends); x = x + 1)
-    begin
-      printSend(sends[x]);
-    end
+  List::mapM(printSend, sends);
 endmodule
 
 module printRecv#(LOGICAL_RECV_INFO recv) (Empty);
@@ -211,9 +218,19 @@ module printRecv#(LOGICAL_RECV_INFO recv) (Empty);
 endmodule
 
 module printRecvs#(List#(LOGICAL_RECV_INFO) recvs) (Empty);
-  for (Integer x = 0; x < length(recvs); x = x + 1)
-    begin
-      printRecv(recvs[x]);
-    end
+  List::mapM(printRecv, recvs);
 endmodule
 
+
+//
+// Global string table.
+//
+
+module printGlobString#(GLOBAL_STRING_TABLE str) (Empty);
+  let id = tpl_2(str).uid;
+  messageM("GlobStr: " + integerToString(id) + "," + tpl_1(str));
+endmodule
+
+module printGlobStrings#(List#(GLOBAL_STRING_TABLE) strs) (Empty);
+  List::mapM(printGlobString, List::reverse(strs));
+endmodule

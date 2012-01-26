@@ -1,43 +1,44 @@
+//
+// Copyright (C) 2011 Intel Corporation
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+
 import Vector::*;
 
 `include "awb/provides/virtual_devices.bsh"
 `include "awb/provides/central_cache.bsh"
+`include "awb/provides/local_mem.bsh"
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/common_services.bsh"
 
 
-`include "awb/dict/STATS_CENTRAL_CACHE_SERVICE.bsh"
-`include "awb/dict/PARAMS_CENTRAL_CACHE_SERVICE.bsh"
-`include "awb/dict/DEBUG_SCAN_CENTRAL_CACHE_SERVICE.bsh"
-
-module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkCentralCacheService
     // interface:
-        ();
+    (CENTRAL_CACHE_IFC);
 
-    let centralCache = vdevs.centralCache;
-    
-    // ***** Stats *****
-    let cacheStats <- mkCentralCacheStats(centralCache.stats);
-
-    // ***** Dynamic parameters *****
-    PARAMETER_NODE paramNode <- mkDynamicParameterNode();
-
-    Param#(3) centralCacheMode <- mkDynamicParameter(`PARAMS_CENTRAL_CACHE_SERVICE_CENTRAL_CACHE_MODE, paramNode);
-
-    // Initialization
-    Reg#(Bool) initialized <- mkReg(False);
-    rule doInit (! initialized);
-        //
-        // Initialize central cache.  The first argument controls the mode
-        // of the set-associative cache.  The second argument controls whether
-        // to cache local memory between the set-associative cache and local
-        // memory.
-        //
-        centralCache.init(unpack(centralCacheMode[1:0]),
-                          ! unpack(centralCacheMode[2]));
-        initialized <= True;
-    endrule
+    //
+    // The central cache service is just a wrapper.  Instantiate the central
+    // cache implementation.
+    //
+    // The central cache will always miss if there is no local memory.  Only
+    // build a real cache if the local storage exists.
+    //
+    CENTRAL_CACHE_IFC centralCache <- platformHasLocalMem ? mkCentralCache() :
+                                                            mkBypassCentralCache();
 
     // ====================================================================
     //
@@ -161,23 +162,12 @@ module [CONNECTED_MODULE] mkCentralCacheService#(VIRTUAL_DEVICES vdevs)
 `endif
     end
 
-    // ====================================================================
-    //
-    // DEBUG_SCAN state
-    //
-    // ====================================================================
 
     //
-    // Debug state that can be scanned out:
+    // Expose the port-based interface.  These interfaces may be used only
+    // within the platform services modules (e.g. scratchpads).  Clients in the
+    // application will use soft connections.
     //
-    //     Bits 5-0: cacheReadsInFlight counter
-    //
-    Wire#(CENTRAL_CACHE_DEBUG_SCAN) debugScanData <- mkBypassWire();
-    DEBUG_SCAN#(CENTRAL_CACHE_DEBUG_SCAN) debugScan <- mkDebugScanNode(`DEBUG_SCAN_CENTRAL_CACHE_SERVICE_DATA, debugScanData);
-
-    (* no_implicit_conditions *)
-    rule updateCentralCacheDebugScanState (True);
-        debugScanData <= centralCache.debugScanState();
-    endrule
+    return centralCache;
 
 endmodule

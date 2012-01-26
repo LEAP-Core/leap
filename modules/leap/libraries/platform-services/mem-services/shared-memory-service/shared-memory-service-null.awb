@@ -1,0 +1,8 @@
+%name Null Shared Memory Services
+%desc Null Shared Memory Services
+
+%provides shared_memory_service
+
+%notes README
+
+%public shared-memory-service-null.bsv

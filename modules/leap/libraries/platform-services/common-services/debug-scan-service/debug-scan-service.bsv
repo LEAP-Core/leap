@@ -51,9 +51,14 @@ module [CONNECTED_MODULE] mkDebugScanService#(DEBUG_SCAN_DEVICE debugScan)
 
         case (ds) matches
             // A value to dump
-            tagged DS_VAL .info:
+            tagged DS_VAL .v:
             begin
-                debugScan.scanValue(info.id, info.value);
+                debugScan.scanValue(v, False);
+            end
+
+            tagged DS_VAL_LAST .v:
+            begin
+                debugScan.scanValue(v, True);
             end
 
             // Command came all the way around the loop.  Done dumping.

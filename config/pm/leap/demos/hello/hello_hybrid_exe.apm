@@ -16,25 +16,23 @@ RootProvides=model
 DefaultAttributes=hello unconnected hybrid project exe
 model=HW/SW Hybrid Pipeline Build
 
-
 [Hello World]
 File=modules/leap/examples/hello-world/hello-world.awb
 Packagehint=leap
 
 [Base Hybrid Application Environment]
-File=modules/leap/build-support/project/application-env/hybrid/base/application-env-hybrid-base.awb
+File=modules/leap/build-support/project/application-env/base/application-env-hybrid-base.awb
 Packagehint=leap
-
 
 [Base Hybrid Application Environment/Requires]
 hybrid_application=Hello World
 
 [Default Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
+File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
 
 [Hybrid Simulation FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
 Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]

@@ -26,6 +26,14 @@ import Clocks::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/clocks_device.bsh"
 
+`include "awb/provides/soft_connections_alg.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_connections_debug.bsh"
+`include "awb/provides/platform_services.bsh"
+
 module [Module] mkModel
     // interface:
         (TOP_LEVEL_WIRES);
@@ -33,16 +41,75 @@ module [Module] mkModel
     // The Model is instantiated inside a NULL (noClock) clock domain,
     // so first instantiate the LLPI and get a clock and reset from it.
 
-    // name must be pi_llpint --- explain!!!
-    VIRTUAL_PLATFORM vp <- mkVirtualPlatform();
+    let llpi <- mkLowLevelPlatformInterface();
 
-    Clock clk = vp.llpint.physicalDrivers.clocksDriver.clock;
-    Reset rst = vp.llpint.physicalDrivers.clocksDriver.reset;
-    
-    // instantiate application environment with new clock and reset
-    let appEnv <- mkApplicationEnv(vp, clocked_by clk, reset_by rst);
+    Clock clk = llpi.physicalDrivers.clocksDriver.clock;
+    Reset rst = llpi.physicalDrivers.clocksDriver.reset;
+
+    // Instantiate the soft-connected system with new clock and reset
+    let sys <- mkClockedSystem(llpi, clocked_by clk, reset_by rst);
     
     // return top level wires interface
-    return vp.llpint.topLevelWires;
+    return llpi.topLevelWires;
 
+endmodule
+
+
+//
+// mkClockedSystem --
+//
+// A wrapper which instantiates the clocked system.
+//
+module [Module] mkClockedSystem#(LowLevelPlatformInterface llpi)
+    // interface:
+        ();
+    
+    // Instantiate the soft-connected system
+    instantiateWithConnections(mkConnectedSystem(llpi));
+
+endmodule
+
+
+//
+// mkConnectedSystem --
+//
+// A wrapper which instantiates the Soft Platform Interface and 
+// the application.
+//
+module [SOFT_SERVICES_MODULE] mkConnectedSystem#(LowLevelPlatformInterface llpi)
+    // interface:
+        ();
+    
+    // By convention, global string ID 0 (the first string) is the module name
+    let platform_name <- getSynthesisBoundaryPlatform();
+    let model_name <- getGlobalStringUID(platform_name + ":model");
+
+    //
+    // Virtual platform is the first connection between the low level platform
+    // and the application.  Elements in the virtual platform are often simple
+    // and may either expose their interface through the VIRTUAL_PLATFORM or
+    // through soft connections.
+    //
+    let vp <- mkVirtualPlatform(llpi);
+    
+    //
+    // Platform services are layered on the virtual platform.  These services
+    // are typically device independent and must expose their interfaces as
+    // soft connections.
+    //
+    let spi <- mkPlatformServices(vp);
+
+    //
+    // Instantiate the application.
+    //
+    let app <- mkApplicationEnv(vp);
+
+    //
+    // Final step: generate the debug logic for soft connections.  This call
+    // must be triggered outside the internal soft connection code to avoid
+    // a dependence loop.  The debug info call generates ring stops and the
+    // ring stop code depends on soft connections.  If not for that dependence
+    // we could push the call down into instantiateWithConnections().
+    //
+    let dbg <- mkSoftConnectionDebugInfo();
 endmodule

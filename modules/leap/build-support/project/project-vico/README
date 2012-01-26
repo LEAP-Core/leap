@@ -1,7 +1,0 @@
-HW/SW ViCo Hybrid Project
-
-This module represents the top-level project description for a HW/SW Hybrid
-project that uses the ViCo co-simulation infrastructure.
-
-This module assumes that ViCo is installed on the machine and that its
-drivers are running.

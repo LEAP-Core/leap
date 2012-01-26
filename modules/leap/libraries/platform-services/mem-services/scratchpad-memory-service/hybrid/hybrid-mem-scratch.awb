@@ -1,0 +1,17 @@
+%name Hybrid Scratchpad Memory Device
+%desc Hybrid Scratchpad Memory Device
+
+%provides scratchpad_memory
+
+%notes README
+
+%public   hybrid-mem-scratch.bsv
+%public   hybrid-mem-scratch-connector.bsv
+%private  hybrid-mem-scratch.cpp
+%public   hybrid-mem-scratch.h
+%private  hybrid-mem-scratch.rrr
+%public   hybrid-mem-scratch.dic
+
+%param SCRATCHPAD_MEMORY_ADDR_BITS 32  "Word-level address bits per private scratchpad region"
+ 
+

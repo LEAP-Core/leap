@@ -21,36 +21,27 @@
 //
 
 import FIFO::*;
+import FIFOF::*;
 import SpecialFIFOs::*;
+import Vector::*;
 
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
+`include "awb/provides/scratchpad_memory_common.bsh"
 `include "awb/provides/fpga_components.bsh"
+`include "awb/provides/common_services.bsh"
 
+`include "awb/dict/RINGID.bsh"
 `include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
-`include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
-
 `include "awb/dict/VDEV.bsh"
+
 `ifndef VDEV_SCRATCH__BASE
 `define VDEV_SCRATCH__BASE 0
 `endif
 
-
-//
-// Scratchpad cache interface is a basic memory interface with an extra
-// parameter controlling the cache size.
-//
-typedef MEMORY_IFC#(t_ADDR, t_DATA)
-    SCRATCHPAD_MEMORY_IFC#(type t_ADDR, type t_DATA, numeric type n_CACHE_ENTRIES);
-
-typedef MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA)
-    SCRATCHPAD_MEMORY_MULTI_READ_IFC#(numeric type n_READERS,
-                                      type t_ADDR,
-                                      type t_DATA,
-                                      numeric type n_CACHE_ENTRIES);
 
 //
 // Caching options for scratchpads.  The caching option also affects the way
@@ -232,38 +223,45 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
               Alias#(MEM_PACK_CONTAINER_ADDR#(t_ADDR_SZ, t_DATA_SZ, t_SCRATCHPAD_MEM_VALUE_SZ), t_CONTAINER_ADDR),
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ));
 
+    MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory;
+
     if (cached == SCRATCHPAD_UNCACHED)
     begin
         // No caches at any level.  This access pattern uses masked writes to
         // avoid read-modify-write loops when accessing objects smaller than
         // a scratchpad base data size.
-        MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory <- mkUncachedScratchpad(scratchpadID);
-
-        return memory;
+        memory <- mkUncachedScratchpad(scratchpadID);
     end
     else if ((cached == SCRATCHPAD_CACHED) &&
              (valueOf(TExp#(t_CONTAINER_ADDR_SZ)) <= `SCRATCHPAD_STD_PVT_CACHE_ENTRIES))
     begin
         // A special case:  cached scratchpad requested but the container
         // is smaller than the cache would have been.  Just allocate a BRAM.
-        MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory <- mkBRAMBufferedPseudoMultiReadInitialized(unpack(0));
-        return memory;
+        memory <- mkBRAMBufferedPseudoMultiReadInitialized(unpack(0));
     end
     else
     begin
         // Container maps requested data size to the platform's scratchpad
         // word size.
-        SCRATCHPAD_MEMORY_MULTI_READ_IFC#(n_READERS, t_CONTAINER_ADDR, SCRATCHPAD_MEM_VALUE, `SCRATCHPAD_STD_PVT_CACHE_ENTRIES) containerMemory;
-        if (cached == SCRATCHPAD_CACHED)
-            containerMemory <- mkUnmarshalledCachedScratchpad(scratchpadID, `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE, statsConstructor);
-        else
-            containerMemory <- mkUnmarshalledScratchpad(scratchpadID);
-        
-        // Wrap the container with a marshaller.
-        let memory <- mkMemPackMultiRead(containerMemory);
+        NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_ENTRIES) n_cache_entries = ?;
+        NumTypeParam#(t_SCRATCHPAD_MEM_VALUE_SZ) scratchpad_data_sz = ?;
 
-        return memory;
+        if (cached == SCRATCHPAD_CACHED)
+        begin
+            memory <- mkMemPackMultiRead(scratchpad_data_sz,
+                                         mkUnmarshalledCachedScratchpad(scratchpadID,
+                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE,
+                                                                        n_cache_entries,
+                                                                        statsConstructor));
+        end
+        else
+        begin
+            memory <- mkMemPackMultiRead(scratchpad_data_sz,
+                                         mkUnmarshalledScratchpad(scratchpadID));
+        end
     end
+
+    return memory;
 endmodule
 
 
@@ -308,10 +306,12 @@ module [CONNECTED_MODULE] mkMemoryHeapUnionScratchpadStorage#(Integer scratchpad
     MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <- mkMultiReadScratchpad(scratchpadID, cached);
 
     //
-    // You might think that because backing storage and the free list use
-    // independent scratchpad ports they would need no flow control.  You would
-    // be wrong.  They only have separate read ports.  Because the write port
-    // is shared, it would be possible for reads and writes to get out of order.
+    // To avoid deadlocks, free list traffic is given priority over normal
+    // data requests.  The internal heap management code manages its request
+    // buffering to avoid deadlocks.  If the heap operations were given
+    // priority over the free list, it would be up to the client to avoid
+    // deadlocking the free list.  Since the heap code has no control over
+    // the client the only safe solution is to give the free list priority.
     //
     // These wires are used to block backing store I/O when there is free list
     // traffic.
@@ -342,12 +342,9 @@ module [CONNECTED_MODULE] mkMemoryHeapUnionScratchpadStorage#(Integer scratchpad
     endinterface
 
     //
-    // The free list must use port 0 to avoid deadlocks.  For the many to 1
-    // packed memory case (mkMemPackManyTo1) read port 0 is shared between
-    // the client and internal logic implementing read-modify-write for writes.
-    // If the client backs up reading port 0 then stores block.  The free list
-    // client guarantees not to request a read without being able to consume
-    // it and, consequently, avoids this deadlock.
+    // The free list uses port 0.  The free list client guarantees not to
+    // request a read without being able to consume it and, consequently,
+    // avoids deadlocks.
     //
     interface MEMORY_HEAP_BACKING_STORE freeList;
         method Action readReq(t_INDEX addr);
@@ -410,12 +407,12 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
                            mkDebugFileNull(debugLogFilename); 
 
     let my_port = scratchpadPortId(scratchpadID);
+    
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), my_port);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_REQ, my_port);
-
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_RSP, my_port);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), my_port);
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -425,7 +422,8 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
     // Merge FIFOF combines read and write requests in temporal order,
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot.  The write port is always last.
-    MERGE_FIFOF#(TAdd#(n_READERS, 1), t_MEM_ADDRESS) incomingReqQ <- mkMergeBypassFIFOF();
+    MERGE_FIFOF#(TAdd#(n_READERS, 1),
+                 Tuple2#(t_MEM_ADDRESS, SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS))) incomingReqQ <- mkMergeBypassFIFOF();
 
     // Write data is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(SCRATCHPAD_MEM_VALUE) writeDataQ <- mkBypassFIFO();
@@ -453,12 +451,8 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
     // Read requests
     rule forwardReadReq (initialized && (incomingReqQ.firstPortID() < fromInteger(valueOf(n_READERS))));
         let port = incomingReqQ.firstPortID();
-        let addr = incomingReqQ.first();
+        match {.addr, .idx} = incomingReqQ.first();
         incomingReqQ.deq();
-        
-        // Allocate a slot in the reorder buffer for the read request.  Each
-        // read port gets its own reorder buffer.
-        let idx <- sortResponseQ[port].enq();
 
         // The clientRefInfo for this request is the concatenation of the
         // port ID and the ROB index.
@@ -474,7 +468,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
 
     // Write requests
     rule forwardWriteReq (initialized && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
-        let addr = incomingReqQ.first();
+        let addr = tpl_1(incomingReqQ.first());
         incomingReqQ.deq();
         
         let val = writeDataQ.first();
@@ -517,8 +511,12 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
         portsLocal[p] =
             interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
                 method Action readReq(t_MEM_ADDRESS addr);
-                    incomingReqQ.ports[p].enq(addr);
-                    debugLog.record($format("read port %0d: req addr=0x%x", p, addr));
+                    // Allocate a slot in the reorder buffer for the read request.  Each
+                    // read port gets its own reorder buffer.
+                    let idx <- sortResponseQ[p].enq();
+                    incomingReqQ.ports[p].enq(tuple2(addr, idx));
+        
+                    debugLog.record($format("read port %0d: req addr=0x%x, rob idx=%0d", p, addr, idx));
                 endmethod
 
                 method ActionValue#(SCRATCHPAD_MEM_VALUE) readRsp();
@@ -534,7 +532,8 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
                 endmethod
 
                 method Bool notEmpty() = sortResponseQ[p].notEmpty();
-                method Bool notFull() = incomingReqQ.ports[p].notFull();
+                method Bool notFull() = incomingReqQ.ports[p].notFull() &&
+                                        sortResponseQ[p].notFull();
             endinterface;
     end
 
@@ -542,7 +541,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
 
     method Action write(t_MEM_ADDRESS addr, SCRATCHPAD_MEM_VALUE val);
         // The write port is last in the merge FIFO
-        incomingReqQ.ports[valueOf(n_READERS)].enq(addr);
+        incomingReqQ.ports[valueOf(n_READERS)].enq(tuple2(addr, ?));
         writeDataQ.enq(val);
         debugLog.record($format("write addr=0x%x, val=0x%x", addr, val));
     endmethod
@@ -559,9 +558,10 @@ endmodule
 //
 module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID, 
                                                           Integer cacheModeParam, 
+                                                          NumTypeParam#(n_CACHE_ENTRIES) nCacheEntries,
                                                           SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor)
     // interface:
-    (SCRATCHPAD_MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE, n_CACHE_ENTRIES))
+    (MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE))
     provisos (Bits#(t_MEM_ADDRESS, t_MEM_ADDRESS_SZ),
               Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
 
@@ -591,11 +591,10 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
 
     // Private cache
-    NumTypeParam#(n_CACHE_ENTRIES) num_cache_entries = ?;
     RL_DM_CACHE#(Bit#(t_MEM_ADDRESS_SZ),
                        SCRATCHPAD_MEM_VALUE,
                        t_REF_INFO) cache <- mkCacheDirectMapped(sourceData,
-                                                                num_cache_entries,
+                                                                nCacheEntries,
                                                                 True,
                                                                 debugLog);
 
@@ -604,7 +603,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     // Merge FIFOF combines read and write requests in temporal order,
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot.  The write port is always last.
-    MERGE_FIFOF#(TAdd#(n_READERS, 1), t_MEM_ADDRESS) incomingReqQ <- mkMergeFIFOF();
+    MERGE_FIFOF#(TAdd#(n_READERS, 1),
+                 Tuple2#(t_MEM_ADDRESS, SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS))) incomingReqQ <- mkMergeFIFOF();
 
     // Write data is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(SCRATCHPAD_MEM_VALUE) writeDataQ <- mkFIFO();
@@ -627,7 +627,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
     // Write requests
     rule forwardWriteReq (initialized && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
-        let addr = incomingReqQ.first();
+        let addr = tpl_1(incomingReqQ.first());
         incomingReqQ.deq();
 
         let val = writeDataQ.first();
@@ -641,12 +641,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
     begin
         rule forwardReadReq (initialized && (incomingReqQ.firstPortID() == fromInteger(p)));
-            let addr = incomingReqQ.first();
+            match {.addr, .idx} = incomingReqQ.first();
             incomingReqQ.deq();
-
-            // Allocate a slot in the reorder buffer for the read request.  Each
-            // read port gets its own reorder buffer.
-            let idx <- sortResponseQ[p].enq();
 
             // The refInfo for this request is the concatenation of the
             // port ID and the ROB index.
@@ -685,8 +681,12 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         portsLocal[p] =
             interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
                 method Action readReq(t_MEM_ADDRESS addr);
-                    incomingReqQ.ports[p].enq(addr);
-                    debugLog.record($format("read port %0d: req addr=0x%x", p, addr));
+                    // Allocate a slot in the reorder buffer for the read request.  Each
+                    // read port gets its own reorder buffer.
+                    let idx <- sortResponseQ[p].enq();
+                    incomingReqQ.ports[p].enq(tuple2(addr, idx));
+
+                    debugLog.record($format("read port %0d: req addr=0x%x, rob idx=%0d", p, addr, idx));
                 endmethod
 
                 method ActionValue#(SCRATCHPAD_MEM_VALUE) readRsp();
@@ -702,7 +702,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
                 endmethod
 
                 method Bool notEmpty() = sortResponseQ[p].notEmpty();
-                method Bool notFull() = incomingReqQ.ports[p].notFull();
+                method Bool notFull() = incomingReqQ.ports[p].notFull() &&
+                                        sortResponseQ[p].notFull();
             endinterface;
     end
 
@@ -710,7 +711,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
     method Action write(t_MEM_ADDRESS addr, SCRATCHPAD_MEM_VALUE val);
         // The write port is last in the merge FIFO
-        incomingReqQ.ports[valueOf(n_READERS)].enq(addr);
+        incomingReqQ.ports[valueOf(n_READERS)].enq(tuple2(addr, ?));
         writeDataQ.enq(val);
         debugLog.record($format("write addr=0x%x, val=0x%x", addr, val));
     endmethod
@@ -737,13 +738,18 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         error("Scratchpad ID " + integerToString(scratchpadID) + " address is too large: " + integerToString(valueOf(t_CACHE_ADDR_SZ)) + " bits");
     end
 
+    String debugLogFilename = "memory_scratchpad_src_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
+    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
+                           mkDebugFile(debugLogFilename):
+                           mkDebugFileNull(debugLogFilename); 
+
     let my_port = scratchpadPortId(scratchpadID);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_REQ, my_port);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), my_port);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_RSP, my_port);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), my_port);
 
     Reg#(Bool) initialized <- mkReg(False);
 
@@ -759,6 +765,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         r.allocLastWordIdx = zeroExtendNP(alloc);
         r.cached = True;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
+
+        debugLog.record($format("init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
     endrule
 
     method Action readReq(t_CACHE_ADDR addr, t_CACHE_REF_INFO refInfo) if (initialized);
@@ -767,6 +775,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
                                         byteReadMask: replicate(True),
                                         clientRefInfo: zeroExtendNP(pack(refInfo)) };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+
+        debugLog.record($format("read REQ ID %0d: addr 0x%x", my_port, req.addr));
     endmethod
 
     method ActionValue#(t_CACHE_FILL_RESP) readResp();
@@ -777,6 +787,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
         r.refInfo = unpack(truncateNP(s.clientRefInfo));
+
+        debugLog.record($format("read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
 
         return r;
     endmethod
@@ -800,6 +812,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+
+        debugLog.record($format("write ID %0d: addr=0x%x, val=0x%x", my_port, addr, val));
     endmethod
 
     //
@@ -890,11 +904,11 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
 
     let my_port = scratchpadPortId(scratchpadID);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_REQ, my_port);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), my_port);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_RSP, my_port);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), my_port);
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -910,7 +924,9 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
     // Merge FIFOF combines read and write requests in temporal order,
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot.  The write port is always last.
-    MERGE_FIFOF#(TAdd#(n_READERS, 1), Bit#(t_ADDR_SZ)) incomingReqQ <- mkMergeBypassFIFOF();
+    MERGE_FIFOF#(TAdd#(n_READERS, 1),
+                 Tuple2#(Bit#(t_ADDR_SZ),
+                         SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS))) incomingReqQ <- mkMergeBypassFIFOF();
 
     // Write data is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(t_DATA) writeDataQ <- mkBypassFIFO();
@@ -1002,7 +1018,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
     // Read requests
     rule forwardReadReq (initialized && (incomingReqQ.firstPortID() < fromInteger(valueOf(n_READERS))));
         let port = incomingReqQ.firstPortID();
-        let addr = incomingReqQ.first();
+        match {.addr, .rob_idx} = incomingReqQ.first();
 
         let s_addr = scratchpadAddr(addr);
 
@@ -1029,10 +1045,6 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
             // Do the read...
             //
             incomingReqQ.deq();
-
-            // Allocate a slot in the reorder buffer for the read request.  Each
-            // read port gets its own reorder buffer.
-            let rob_idx <- sortResponseQ[port].enq();
 
             t_NATURAL_IDX addr_idx = scratchpadAddrIdx(addr);
 
@@ -1070,7 +1082,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
 
     // Write requests
     rule forwardWriteReq (initialized && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
-        let addr = incomingReqQ.first();
+        let addr = tpl_1(incomingReqQ.first());
         incomingReqQ.deq();
         
         let w_data = writeDataQ.first();
@@ -1200,7 +1212,10 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
         portsLocal[p] =
             interface MEMORY_READER_IFC#(t_IN_ADDR, t_DATA);
                 method Action readReq(t_IN_ADDR addr);
-                    incomingReqQ.ports[p].enq(pack(addr));
+                    // Allocate a slot in the reorder buffer for the read request.  Each
+                    // read port gets its own reorder buffer.
+                    let rob_idx <- sortResponseQ[p].enq();
+                    incomingReqQ.ports[p].enq(tuple2(pack(addr), rob_idx));
                 endmethod
 
                 method ActionValue#(t_DATA) readRsp();
@@ -1215,7 +1230,8 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
                 endmethod
 
                 method Bool notEmpty() = responseQ[p].notEmpty();
-                method Bool notFull() = incomingReqQ.ports[p].notFull();
+                method Bool notFull() = incomingReqQ.ports[p].notFull() &&
+                                        sortResponseQ[p].notFull();
             endinterface;
     end
 
@@ -1223,7 +1239,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
 
     method Action write(t_IN_ADDR addr, t_DATA val);
         // The write port is last in the merge FIFO
-        incomingReqQ.ports[valueOf(n_READERS)].enq(pack(addr));
+        incomingReqQ.ports[valueOf(n_READERS)].enq(tuple2(pack(addr), ?));
         writeDataQ.enq(val);
     endmethod
 

@@ -17,10 +17,6 @@
 //
 
 `include "awb/provides/low_level_platform_interface.bsh"
-`include "awb/provides/rrr.bsh"
-
-`include "awb/rrr/client_stub_STARTER_DEVICE.bsh"
-`include "awb/rrr/server_stub_STARTER_DEVICE.bsh"
 
 // Starter
 interface STARTER;
@@ -44,28 +40,20 @@ endinterface
 module mkStarter#(LowLevelPlatformInterface llpi)
     // interface:
         (STARTER);
-
-    // ----------- stubs -----------
-    ClientStub_STARTER_DEVICE client_stub <- mkClientStub_STARTER_DEVICE(llpi.rrrClient);
-    ServerStub_STARTER_DEVICE server_stub <- mkServerStub_STARTER_DEVICE(llpi.rrrServer);
-    
     // ----------- server methods ------------
 
     // Run
     method Action acceptRequest_Start ();
-        let r <- server_stub.acceptRequest_Start();
     endmethod
 
     // ------------ client methods ------------
 
     // signal end of simulation
     method Action makeRequest_End(Bit#(8) exit_code);
-        client_stub.makeRequest_End(exit_code);
     endmethod
 
     // Heartbeat
     method Action makeRequest_Heartbeat(Bit#(64) fpga_cycles);
-        client_stub.makeRequest_Heartbeat(fpga_cycles);
     endmethod
 
 endmodule

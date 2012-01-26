@@ -1,0 +1,10 @@
+%name Dynamic Parameter Service Null
+%desc Wrap dynamic parameter device in Soft Connections
+
+%provides dynamic_parameters_service
+
+%attributes hybrid connected
+
+%notes README
+
+%public dynamic-parameters-local.bsv 

@@ -13,7 +13,7 @@ class Synthesize():
   def __init__(self, moduleList):
 
     # string together the xcf, sort of like the ucf
-    # Concatenate UCF files
+    # Concatenate XCF files
     xcfSrcs = moduleList.getAllDependencies('XCF')
     if (len(xcfSrcs) > 0):
       if (getBuildPipelineDebug(moduleList) != 0):
@@ -56,6 +56,7 @@ class Synthesize():
     newXSTFile.close();
     oldXSTFile.close();
 
+    synth_deps = []
 
     for module in moduleList.synthBoundaries():    
         # we must tweak the xst files of the internal module list
@@ -74,16 +75,12 @@ class Synthesize():
         if (getBuildPipelineDebug(moduleList) != 0):
             print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
 
-        # need to sort these?  SCons complains about it.
-        vlogStubs = moduleList.getAllDependencies('VERILOG_STUB')
-        vlogStubs.sort()
-        vlog = module.moduleDependency['VERILOG']
-        vlog.sort()
-        vlogLib = moduleList.getAllDependencies('VERILOG_LIB')
-        vlogLib.sort()
-        w = moduleList.env.Command(
+        # Sort dependencies because SCons will rebuild if the order changes.
+        sub_netlist = moduleList.env.Command(
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
-            vlog + vlogStubs + vlogLib +
+            sorted(module.moduleDependency['VERILOG']) +
+            sorted(moduleList.getAllDependencies('VERILOG_STUB')) +
+            sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
             module.moduleDependency['XST'] +
             moduleList.topModule.moduleDependency['XST'] +
             [ newXSTPath ] +
@@ -93,8 +90,9 @@ class Synthesize():
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
               '@echo xst ' + module.wrapperName() + ' build complete.' ])
 
-        module.moduleDependency['SYNTHESIS'] = [w]
-        SCons.Script.Clean(w,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
+        module.moduleDependency['SYNTHESIS'] = [sub_netlist]
+        synth_deps += sub_netlist
+        SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
     
 
     if XST_BLUESPEC_BASICINOUT:
@@ -104,11 +102,12 @@ class Synthesize():
 
     topSRP = moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.srp'
 
+    # Sort dependencies because SCons will rebuild if the order changes.
     top_netlist = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.ngc',
-        moduleList.topModule.moduleDependency['VERILOG'] +
-        moduleList.getAllDependencies('VERILOG_STUB') +
-        moduleList.getAllDependencies('VERILOG_LIB') +
+        sorted(moduleList.topModule.moduleDependency['VERILOG']) +
+        sorted(moduleList.getAllDependencies('VERILOG_STUB')) +
+        sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         moduleList.topModule.moduleDependency['XST'] +
         [ topXSTPath ] +
         xilinx_xcf,
@@ -119,7 +118,8 @@ class Synthesize():
           '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 
     moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
+    synth_deps += top_netlist
     SCons.Script.Clean(top_netlist, topSRP)
 
     # Alias for synthesis
-    moduleList.env.Alias('synth', [top_netlist])
+    moduleList.env.Alias('synth', synth_deps)

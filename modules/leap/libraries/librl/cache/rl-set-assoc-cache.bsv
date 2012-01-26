@@ -94,13 +94,14 @@ typedef struct
     Bool doneQNotEmpty;
     Bool fillLineQNotEmpty;
     Bool newReqNotEmpty;
-
     Bool fillLineRequestQNotEmpty;
+
     Bool evictDirtyForFillQNotEmpty;
     Bool wordMissQNotEmpty;
     Bool lineMissQNotEmpty;
-
     Bool readHitQNotEmpty;
+
+    Bool processReqQ1NotEmpty;
     Bool processReqQ0NotEmpty;
     Bool writeDataQNotFull;
     Bool writeDataQNotEmpty;
@@ -112,6 +113,35 @@ typedef struct
 }
 RL_SA_DEBUG_SCAN_DATA
     deriving (Eq, Bits);
+
+//
+// Descriptor for RL_SA_DEBUG_SCAN_DATA must match the structure.  We build
+// an array instead of calling the appropriate debugScanField() here because
+// libRL can't depend on the debug scan code.
+//
+Tuple2#(String, Integer) rl_sa_dbg_scan_desc[16] = {
+    tuple2("SA Cache doneQNotEmpty", 1),
+    tuple2("SA Cache fillLineQNotEmpty", 1),
+    tuple2("SA Cache newReqNotEmpty", 1),
+    tuple2("SA Cache fillLineRequestQNotEmpty", 1),
+
+    tuple2("SA Cache evictDirtyForFillQNotEmpty", 1),
+    tuple2("SA Cache wordMissQNotEmpty", 1),
+    tuple2("SA Cache lineMissQNotEmpty", 1),
+    tuple2("SA Cache readHitQNotEmpty", 1),
+
+    tuple2("SA Cache processReqQ1NotEmpty", 1),
+    tuple2("SA Cache processReqQ0NotEmpty", 1),
+    tuple2("SA Cache writeDataQNotFull", 1),
+    tuple2("SA Cache writeDataQNotEmpty", 1),
+
+    tuple2("SA Cache localData_Data2NotEmpty", 1),
+    tuple2("SA Cache localData_Data1NotEmpty", 1),
+    tuple2("SA Cache localData_Data0NotEmpty", 1),
+    tuple2("SA Cache localData_MetaNotEmpty", 1)
+};
+
+Vector#(16, Tuple2#(String, Integer)) rlSADebugScanDesc = arrayToVector(rl_sa_dbg_scan_desc);
 
 
 //
@@ -1652,14 +1682,15 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         d.doneQNotEmpty = doneQ.notEmpty();
         d.fillLineQNotEmpty = fillLineQ.notEmpty();
         d.newReqNotEmpty = newReqQ.notEmpty();
-
         d.fillLineRequestQNotEmpty = fillLineRequestQ.notEmpty();
+
         d.evictDirtyForFillQNotEmpty = evictDirtyForFillQ.notEmpty();
         d.wordMissQNotEmpty = wordMissQ.notEmpty();
         d.lineMissQNotEmpty = lineMissQ.notEmpty();
-
         d.readHitQNotEmpty = readHitQ.notEmpty();
-        d.processReqQ0NotEmpty = processReqQ0.notEmpty();    
+
+        d.processReqQ1NotEmpty = processReqQ1.notEmpty();
+        d.processReqQ0NotEmpty = processReqQ0.notEmpty();
         d.writeDataQNotFull = writeDataQ.notFull();
         d.writeDataQNotEmpty = writeDataQ.notEmpty();
 

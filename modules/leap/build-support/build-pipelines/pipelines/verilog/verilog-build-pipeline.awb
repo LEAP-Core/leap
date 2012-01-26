@@ -11,6 +11,7 @@
 %requires iface_tool
 %requires software_tool
 %requires verilog_tool
+%requires wrapper_gen_tool
 
 %notes README
 

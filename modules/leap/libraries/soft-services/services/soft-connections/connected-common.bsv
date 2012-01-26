@@ -8,7 +8,7 @@
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITYS or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
@@ -59,7 +59,6 @@ typedef CONNECTION_IN#(PHYSICAL_DATA_SIZE) PHYSICAL_CONNECTION_IN;
 
 // A physical outgoing connection
 interface CONNECTION_OUT#(numeric type t_MSG_SIZE);
-
   method Bool notEmpty();
   method Bit#(t_MSG_SIZE) first();
   method Action deq();
@@ -128,6 +127,17 @@ interface PHYSICAL_STATION;
 
 endinterface
 
+// Global string table entry
+
+typedef struct
+{
+    Integer uid;
+}
+    GLOBAL_STRING_TABLE_ENTRY;
+
+// The global string table is an association list of strings and entries.
+typedef Tuple2#(String, GLOBAL_STRING_TABLE_ENTRY) GLOBAL_STRING_TABLE;
+
 // Data about unmatched logical send connections
 typedef struct 
 {
@@ -135,6 +145,7 @@ typedef struct
     String logicalType;
     String computePlatform;
     Bool optional;
+    Integer bitWidth;
     PHYSICAL_CONNECTION_OUT outgoing;
 } 
     LOGICAL_SEND_INFO;
@@ -146,6 +157,7 @@ typedef struct
     String logicalType;
     String computePlatform;
     Bool optional;
+    Integer bitWidth;
     PHYSICAL_CONNECTION_IN incoming;
 } 
     LOGICAL_RECV_INFO;
@@ -184,9 +196,38 @@ typedef struct
 }
     STATION_INFO;
     
+
+// ========================================================================
+//
+// Debug state for soft connection FIFOs.  These are collected internally
+// and emitted late, by a separate module not involved in soft connection
+// creation.  The debug code itself depends on soft connections, so would
+// cause a dependence loop if the connection debug info were generated
+// in-line.
+//
+// ========================================================================
+
+interface PHYSICAL_CONNECTION_DEBUG_STATE;
+    method Bool notEmpty();
+    method Bool notFull();
+endinterface
+
+typedef struct
+{
+    String sendName;
+    PHYSICAL_CONNECTION_DEBUG_STATE state;
+}
+    CONNECTION_DEBUG_INFO;
+
+
+// ========================================================================
+//
 // BACKWARDS COMPATABILITY: Data about connection chains
+//
+// ========================================================================
+
 typedef `CON_NUMCHAINS CON_NUM_CHAINS;
-typedef `CON_CHAIN_CWIDTH CHAIN_DATA_SIZE;
+typedef `CON_CWIDTH CHAIN_DATA_SIZE;
 typedef Bit#(CHAIN_DATA_SIZE) PHYSICAL_CHAIN_DATA;
 
 typedef CONNECTION_IN#(CHAIN_DATA_SIZE)  PHYSICAL_CHAIN_IN;
@@ -195,24 +236,36 @@ typedef CONNECTION_INOUT#(CHAIN_DATA_SIZE, CHAIN_DATA_SIZE) PHYSICAL_CHAIN;
 
 typedef struct 
 {
-    Integer logicalIdx;
+    String  logicalName;
     String  logicalType;
+    String  computePlatform;
+    Integer bitWidth;
     PHYSICAL_CHAIN_IN  incoming;
     PHYSICAL_CHAIN_OUT outgoing;
 } 
     LOGICAL_CHAIN_INFO;
 
 
+// ========================================================================
+//
 // The context our connected modules operate on.
+//
+// ========================================================================
+
 typedef struct
 {
+    List#(GLOBAL_STRING_TABLE) globalStrings;
     List#(LOGICAL_SEND_INFO) unmatchedSends;
     List#(LOGICAL_RECV_INFO) unmatchedRecvs;
     List#(LOGICAL_SEND_MULTI_INFO) unmatchedSendMultis;
     List#(LOGICAL_RECV_MULTI_INFO) unmatchedRecvMultis;
-    Vector#(CON_NUM_CHAINS, List#(LOGICAL_CHAIN_INFO)) chains; // BACKWARDS COMPATABILITY: connection chains
+    List#(LOGICAL_CHAIN_INFO) chains;     // BACKWARDS COMPATABILITY: connection chains
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
+    List#(CONNECTION_DEBUG_INFO) debugInfo;
+    String synthesisBoundaryPlatform;
+    Integer synthesisBoundaryPlatformID;  // UID for a given FPGA
+    Integer synthesisBoundaryID;          // UID a synthesis boundary within a single platform
     String rootStationName;
     Reset softReset;
 }

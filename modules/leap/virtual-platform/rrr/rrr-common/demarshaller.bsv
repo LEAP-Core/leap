@@ -4,7 +4,7 @@ import FIFO::*;
 `include "awb/provides/umf.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 
-// DeMarshaller
+// Demarshaller
 
 // A de-marshaller takes n input "chunks" and produces one larger value.
 // Chunks are received starting from the MS chunk and ending with the LS chunk
@@ -27,7 +27,7 @@ STATE
     deriving(Bits, Eq);
 
 // interface
-interface DEMARSHALLER#(parameter type in_T, parameter type out_T);
+interface RRR_DEMARSHALLER#(parameter type in_T, parameter type out_T);
     
     // start a demarshalling sequence
     method Action start(UMF_MSG_LENGTH nchunks);
@@ -44,9 +44,9 @@ interface DEMARSHALLER#(parameter type in_T, parameter type out_T);
 endinterface
 
 // module
-module mkDeMarshaller
+module mkRRRDemarshaller
     // interface:
-        (DEMARSHALLER#(in_T, out_T))
+        (RRR_DEMARSHALLER#(in_T, out_T))
     provisos
         (Bits#(in_T, in_SZ),
          Bits#(out_T, out_SZ),

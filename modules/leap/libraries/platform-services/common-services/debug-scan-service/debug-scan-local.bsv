@@ -21,24 +21,78 @@ import Counter::*;
 import Vector::*;
 
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/librl_bsv.bsh"
 `include "awb/provides/debug_scan_device.bsh"
 
 `include "awb/dict/RINGID.bsh"
-`include "awb/dict/DEBUG_SCAN.bsh"
 
 //
 // Debug scan nodes accept any size data to scan out by breaking the data
-// into chunks.  The mkDebugScanNode() module takes a wire as input, with
-// the expectation that the wire will have no predicate (e.g. a mkBypassWire)
-// and that it will have a meaningful value on any cycle.
+// into chunks.  The mkDebugScanNode() module takes a function as input, with
+// the expectation that the function will have no predicate and that it will
+// have a meaningful value on any cycle.
+//
+
+
+//
+// Formatting of debug scan output is encoded in the string passed to the
+// module.  The following functions construct the encoded string.  An
+// encoded ID string begins with a name record and, in some cases, is
+// followed by descriptions of data fields.
+//
+// WARNING:  The formatting parser is very simple!  Do not put a ~ in your string!
 //
 
 //
-// Debug scan nodes have no methods.
+// debugScanSimpleName --
+//     A simple heading prints a name for the data and emits the debug scan
+//     value as a raw data stream.  No other strings should be appended to
+//     the returned string.
 //
-interface DEBUG_SCAN#(type t_DEBUG_DATA);
-endinterface: DEBUG_SCAN
+function String debugScanSimpleName(String name);
+    return "S:" + name;
+endfunction
+
+//
+// debugScanName --
+//     The name of a debug scan record.  The record will be printed as a
+//     set of named fields.  Define fields by appending the result of
+//     debugScanField to the returned string.
+//
+function String debugScanName(String name);
+    return "N:" + name;
+endfunction
+
+//
+// debugScanField --
+//     Describe one field in a debug scan record.  Mutiple fields may be defined
+//     by concatenation.  Describe fields starting with the low bits.
+//
+function String debugScanField(String field, Integer bits);
+    return "~" + integerToString(bits) + "~" + field;
+endfunction
+
+//
+// debugScanMaybeField --
+//     Same as a debugScanField, but the value is wrapped by a Maybe#().  Do
+//     not include the maybe bit in the size.
+//
+function String debugScanMaybeField(String field, Integer bits);
+    return "~M" + integerToString(bits) + "~" + field;
+endfunction
+
+
+//
+// debugScanSoftConnections --
+//     Special heading used only by the soft connections state dumping code.
+//
+function String debugScanSoftConnections(String name);
+    return "C:" + name;
+endfunction
+
 
 
 typedef 8 DEBUG_SCAN_VALUE_SZ;
@@ -46,8 +100,9 @@ typedef Bit#(DEBUG_SCAN_VALUE_SZ) DEBUG_SCAN_VALUE;
 
 typedef union tagged
 {
-    void DS_DUMP;
-    struct {DEBUG_SCAN_DICT_TYPE id; DEBUG_SCAN_VALUE value;} DS_VAL;
+    void             DS_DUMP;
+    DEBUG_SCAN_VALUE DS_VAL;        // One marshalled chunk (sent low to high)
+    DEBUG_SCAN_VALUE DS_VAL_LAST;   // Last chunk of a value
 }
 DEBUG_SCAN_DATA
     deriving (Eq, Bits);
@@ -66,12 +121,14 @@ DEBUG_SCAN_STATE
 // mkDebugScanNode --
 //
 //   Scan out the data coming in on wire debugValue.  To avoid deadlocks
-//   during scan the wire should have no predicates (e.g. mkBypassWire).
+//   during scan the value should have no predicates.
+//
+//   Construct the "myID" argument using the functions above.
 // 
-module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
-                                           Wire#(t_DEBUG_DATA) debugValue)
+module [CONNECTED_MODULE] mkDebugScanNode#(String myID,
+                                           function t_DEBUG_DATA debugValue())
     // interface:
-    (DEBUG_SCAN#(t_DEBUG_DATA))
+    (Empty)
     provisos (Bits#(t_DEBUG_DATA, t_DEBUG_DATA_SZ),
               Div#(t_DEBUG_DATA_SZ, DEBUG_SCAN_VALUE_SZ, n_ENTRIES));
 
@@ -79,27 +136,32 @@ module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
 
     Reg#(DEBUG_SCAN_STATE) state <- mkReg(DS_IDLE);
 
-    Reg#(Vector#(n_ENTRIES, DEBUG_SCAN_VALUE)) dbgVal <- mkRegU();
-    Reg#(Bit#(TLog#(n_ENTRIES))) dbgValIdx <- mkRegU();
+    let id <- getGlobalStringUID(myID);
 
+    // Marshall the debug data to the message size.
+    MARSHALLER#(DEBUG_SCAN_VALUE,
+                Tuple2#(t_DEBUG_DATA, GLOBAL_STRING_UID)) mar <- mkSimpleMarshaller();
 
     //
     // sendDumpData --
     //     Forward dump data and token around the ring.
     //
     rule sendDumpData (state == DS_DUMPING);
-        if ((valueOf(n_ENTRIES) == 1) || (dbgValIdx == 0))
+        if (mar.notEmpty)
+        begin
+            // More data remains for this node
+            if (! mar.isLast())
+                chain.sendToNext(tagged DS_VAL mar.first());
+            else
+                chain.sendToNext(tagged DS_VAL_LAST mar.first());
+
+            mar.deq();
+        end
+        else
         begin
             // Done with this node's data
             chain.sendToNext(tagged DS_DUMP);
             state <= DS_IDLE;
-        end
-        else
-        begin
-            // More data remains for this node
-            let idx = dbgValIdx - 1;
-            dbgValIdx <= idx;
-            chain.sendToNext(tagged DS_VAL { id: myID, value: dbgVal[idx] });
         end
     endrule
 
@@ -115,13 +177,7 @@ module [CONNECTED_MODULE] mkDebugScanNode#(DEBUG_SCAN_DICT_TYPE myID,
         case (ds) matches 
             tagged DS_DUMP:
             begin
-                // Capture the dump value as an array of scan-chain-sized data.
-                Vector#(n_ENTRIES, DEBUG_SCAN_VALUE) val = unpack(zeroExtendNP(pack(debugValue)));
-                dbgVal <= val;
-                dbgValIdx <= fromInteger(valueOf(n_ENTRIES) - 1);
-
-                // Send the first chunk of data on the chain
-                chain.sendToNext(tagged DS_VAL { id: myID, value: val[valueOf(n_ENTRIES) - 1] });
+                mar.enq(tuple2(debugValue, id));
                 state <= DS_DUMPING;
             end
 

@@ -125,6 +125,18 @@ interface CONNECTION_SERVER_MULTI#(type t_REQ, type t_RSP);
 
 endinterface
 
+// Chains
+interface CONNECTION_CHAIN#(type msg_T);
+
+  method ActionValue#(msg_T) recvFromPrev();
+  method msg_T               peekFromPrev();
+  method Bool                recvNotEmpty();
+
+  method Action              sendToNext(msg_T data);
+  method Bool                sendNotFull();
+  
+endinterface
+
 
 // Connection Constructors
 
@@ -522,6 +534,29 @@ instance Connectable#(Get#(data_t), CONNECTION_SEND#(data_t));
   endmodule
 endinstance
 
+instance ToPut#(CONNECTION_SEND#(data_t), data_t);
+  function Put#(data_t) toPut(CONNECTION_SEND#(data_t) send);
+    let put = interface Put;
+                 method Action put(data_t value);
+                   send.send(value);
+                 endmethod
+              endinterface; 
+    return put; 
+  endfunction
+endinstance
+
+instance ToGet#(CONNECTION_RECV#(data_t), data_t);
+  function Get#(data_t) toGet(CONNECTION_RECV#(data_t) recv);
+    let get = interface Get;
+                 method ActionValue#(data_t) get();
+                   recv.deq;
+                   return recv.receive; 
+                 endmethod
+              endinterface;  
+    return get;
+  endfunction
+endinstance
+
 instance Connectable#(CONNECTION_SEND#(data_t), Get#(data_t));
   module mkConnection#(CONNECTION_SEND#(data_t) client, 
                        Get#(data_t) server) (Empty);
@@ -611,3 +646,16 @@ instance Connectable#(function Action f(data_t t),
 
   endmodule
 endinstance
+
+
+// New style chain implementation
+
+module [ConnectedModule] mkConnectionChain#(String chain_name)
+    //interface:
+		(CONNECTION_CHAIN#(msg_T))
+    provisos
+	    (Bits#(msg_T, msg_SZ));
+
+  let c <- mkConnectionDispatchChain(chain_name, tagged Invalid, True);
+  return c;
+endmodule

@@ -1,0 +1,10 @@
+%name Debug Scan Services Null
+%desc Wrap debug scan device in Soft Connections
+
+%provides debug_scan_service
+
+%attributes hybrid connected
+
+%notes README
+
+%public debug-scan-local.bsv 

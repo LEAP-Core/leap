@@ -313,7 +313,7 @@ sub print_stub_vico
     }
 
     # Print it here, because some macros used even in type definition section
-    print $file "#include \"asim/restricted/vico_rrr_layer.h\"\n";
+    print $file "#include \"awb/provides/vico_headers.h\"\n";
 
     #
     # Types section

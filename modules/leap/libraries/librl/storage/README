@@ -2,7 +2,12 @@ LibRL Storage
 
 Structures for organizing and storing data in reconfigurable logic.
 
-fifo-mem.bsv            FIFOs in on-chip memory (IE block RAM).
-fifo-scoreboard.bsv     Completion buffers
-memory-heap.bsv         Wrap a RAM in a heap-like allocation structure.
-
+fifo-mem.bsv                        FIFOs in on-chip memory (IE block RAM).
+fifo-scoreboard.bsv                 Completion buffers
+memory-heap.bsv                     Wrap a RAM in a heap-like allocation structure.
+reversal-buffer-bram.bsv            FIFO that reverses block of data (uses BRAM).
+reversal-buffer.bsv                 FIFO that reverses block of data (uses registers).
+fifo-stream-capture.bsv             Captures streams of data values.
+fifo-stream-capture-common.bsv      Support code for capturing streams of data values.
+fifo-triggered-stream-capture.bsv   Captures data streams, but only latches 
+                                    them on an external trigger. 

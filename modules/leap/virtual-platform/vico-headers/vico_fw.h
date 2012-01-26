@@ -22,7 +22,7 @@
 #include <string>
 #include <map>
 #include <vector>
-
+#include <stdint.h>
 #include "scemi.h"
 
 #ifdef _WIN32

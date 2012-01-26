@@ -24,6 +24,7 @@
  * @brief Standard virtual platform interface
  */
 
+`include "awb/provides/soft_connections.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/virtual_devices.bsh"
 `include "awb/provides/physical_platform.bsh"
@@ -36,16 +37,11 @@ interface VIRTUAL_PLATFORM;
 
 endinterface
 
-module mkVirtualPlatform
+module [CONNECTED_MODULE] mkVirtualPlatform#(LowLevelPlatformInterface llpi)
     // interface:
         (VIRTUAL_PLATFORM);
 
-    let llpi <- mkLowLevelPlatformInterface();
-
-    Clock clk = llpi.physicalDrivers.clocksDriver.clock;
-    Reset rst = llpi.physicalDrivers.clocksDriver.reset;
-
-    let vdevs  <- mkVirtualDevices(llpi, clocked_by clk, reset_by rst);
+    let vdevs  <- mkVirtualDevices(llpi);
     
     interface llpint = llpi;
     interface virtualDevices = vdevs;

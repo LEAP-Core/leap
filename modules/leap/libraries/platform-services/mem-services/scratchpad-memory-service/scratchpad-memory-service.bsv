@@ -19,6 +19,7 @@
 import Arbiter::*;
 
 `include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/central_cache_service.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
 
@@ -27,15 +28,17 @@ import Arbiter::*;
 
 `include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
-`include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 
-module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCache)
     // interface:
     ()
     provisos (Max#(SCRATCHPAD_N_CLIENTS, 1, n_SCRATCHPAD_CLIENTS_NONZERO));
     
-    let memory = vdevs.scratchpadMemory;
+    //
+    // Instantiate a scratchpad implementation.
+    //
+    let memory <- mkScratchpadMemory(centralCache);
 
     // ***** Assertion Checkers *****
     ASSERTION_NODE assertNode <- mkAssertionNode(`ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE__BASE);
@@ -53,11 +56,11 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
     //
     // ====================================================================
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_REQ, 0);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), 0);
 
-    Connection_TokenRing#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnection_TokenRingNode(`RINGID_SCRATCHPAD_MEMORY_RSP, 0);
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), 0);
 
 
     //
@@ -126,12 +129,8 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(VIRTUAL_DEVICES vdevs)
     //
     // Scan data for debugging deadlocks.
     //
-    Wire#(SCRATCHPAD_MEMORY_DEBUG_SCAN) debugScanData <- mkBypassWire();
-    DEBUG_SCAN#(SCRATCHPAD_MEMORY_DEBUG_SCAN) debugScan <- mkDebugScanNode(`DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE_DATA, debugScanData);
+    String debugScanDesc = debugScanName("Scratchpad memory service") +
+                           scratchpadMemoryDebugDesc;
+    let debugScan <- mkDebugScanNode(debugScanDesc, memory.debugScanState);
 
-    (* fire_when_enabled *)
-    (* no_implicit_conditions *)
-    rule updateDebugScanState (True);
-        debugScanData <= memory.debugScanState();
-    endrule
 endmodule

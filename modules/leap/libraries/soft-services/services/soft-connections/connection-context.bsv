@@ -19,7 +19,6 @@
 import ModuleContext::*;
 
 `include "awb/provides/soft_services.bsh"
-`include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_connections_common.bsh"
 
 // ****** Connection Context Support Functions ******
@@ -40,6 +39,36 @@ import ModuleContext::*;
 
 // These just access the specified field.
 
+module [t_CONTEXT] getSynthesisBoundaryPlatform (String)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.synthesisBoundaryPlatform;
+
+endmodule
+
+module [t_CONTEXT] getSynthesisBoundaryPlatformID (Integer)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.synthesisBoundaryPlatformID;
+
+endmodule
+
+module [t_CONTEXT] getSynthesisBoundaryID (Integer)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.synthesisBoundaryID;
+
+endmodule
+
 module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -47,6 +76,17 @@ module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
     return ctxt.unmatchedSends;
+
+endmodule
+
+
+module [t_CONTEXT] printUnmatchedSends (Empty)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let m <- getUnmatchedSends();
+    printSends(m);
 
 endmodule
 
@@ -59,6 +99,17 @@ module [t_CONTEXT] getUnmatchedRecvs (List#(LOGICAL_RECV_INFO))
     return ctxt.unmatchedRecvs;
 
 endmodule
+
+module [t_CONTEXT] printUnmatchedRecvs (Empty)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let m <- getUnmatchedRecvs();
+    printRecvs(m);
+
+endmodule
+
 
 module [t_CONTEXT] getUnmatchedSendMultis (List#(LOGICAL_SEND_MULTI_INFO))
     provisos
@@ -122,19 +173,55 @@ endmodule
 
 // BACKWARDS COMPATABILITY: Connection Chains
 
-module [t_CONTEXT] getChain#(Integer idx) (List#(LOGICAL_CHAIN_INFO))
+module [t_CONTEXT] getChain#(LOGICAL_CHAIN_INFO descriptor) (Maybe#(LOGICAL_CHAIN_INFO))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
-    return ctxt.chains[idx];
+    
+    return List::find(nameMatches(descriptor),ctxt.chains);
 
 endmodule
 
 // ****** Mutators *******
 
 // These update the field to the given value.
+
+
+
+module [t_CONTEXT] putSynthesisBoundaryPlatform#(String new_name) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.synthesisBoundaryPlatform = new_name;
+    putContext(ctxt);
+
+endmodule
+
+module [t_CONTEXT] putSynthesisBoundaryPlatformID#(Integer new_id) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.synthesisBoundaryPlatformID = new_id;
+    putContext(ctxt);
+
+endmodule
+
+module [t_CONTEXT] putSynthesisBoundaryID#(Integer new_id) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.synthesisBoundaryID = new_id;
+    putContext(ctxt);
+
+endmodule
 
 // putUnmatchedSends
 
@@ -244,19 +331,18 @@ endmodule
 
 // putChain
 
-module [t_CONTEXT] putChain#(Integer idx, List#(LOGICAL_CHAIN_INFO) chain) ()
+module [t_CONTEXT] putChain#(LOGICAL_CHAIN_INFO chain) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
-    ctxt.chains[idx] = chain;
+    ctxt.chains = List::cons(chain,List::filter(nameDoesNotMatch(chain),ctxt.chains));
     putContext(ctxt);
 
 endmodule
 
 // ****** Non-Primitive Mutators ******
-
 
 // addUnmatchedSend/Recv
 
@@ -483,5 +569,34 @@ module [t_CONTEXT] getCurrentStationM (Maybe#(STATION))
                    return tagged Valid (List::head(ss));
                end
            endcase;
+
+endmodule
+
+
+// ========================================================================
+//
+// Debug info
+//
+// ========================================================================
+
+module [t_CONTEXT] getConnectionDebugInfo (List#(CONNECTION_DEBUG_INFO))
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.debugInfo;
+
+endmodule
+
+
+module [t_CONTEXT] addConnectionDebugInfo#(CONNECTION_DEBUG_INFO dbg_info) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.debugInfo = List::cons(dbg_info, ctxt.debugInfo);
+    putContext(ctxt);
 
 endmodule

@@ -55,14 +55,23 @@ endinterface
 
 // server
 
-module mkRRRServer#(CHANNEL_IO channel) (RRR_SERVER);
-  ARBITED_SERVER#(`NUM_SERVICES) server <- mkArbitedServer(channel);
+module mkRRRServer#(CHANNEL_IO#(UMF_PACKET) channel) (RRR_SERVER);
+  ARBITED_SERVER#(`NUM_SERVICES) server <- mkArbitedServer(channel.readPorts[`SERVER_CHANNEL_ID].read,
+                                                           channel.writePorts[`SERVER_CHANNEL_ID].write);
   interface requestPorts = server.requestPorts;
   interface responsePorts = server.responsePorts;
 endmodule
 
-module mkArbitedServer#(CHANNEL_IO channel) (ARBITED_SERVER#(n))
-    provisos(Add#(1,xxx,n));
+module mkArbitedServer#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_SERVER#(n));
+  ARBITED_SERVER#(n) m = ?;
+  if(valueof(n) > 0)
+    begin
+      m <- mkArbitedServerNonZero(read,write);
+    end
+  return m;
+endmodule
+
+module mkArbitedServerNonZero#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_SERVER#(n));
 
     // ==============================================================
     //                        Ports and Queues
@@ -120,7 +129,7 @@ module mkArbitedServer#(CHANNEL_IO channel) (ARBITED_SERVER#(n))
     // scan channel for incoming request headers
     rule scan_requests (requestChunksRemaining == 0);
 
-        UMF_PACKET packet <- channel.readPorts[`SERVER_CHANNEL_ID].read();
+        UMF_PACKET packet <- read();
 
         // enqueue header in service's queue
         requestQueues[packet.UMF_PACKET_header.serviceID].enq(packet);
@@ -135,7 +144,7 @@ module mkArbitedServer#(CHANNEL_IO channel) (ARBITED_SERVER#(n))
     rule scan_params (requestChunksRemaining != 0);
 
         // grab a chunk from channelio and place it into the active request queue
-        UMF_PACKET packet <- channel.readPorts[`SERVER_CHANNEL_ID].read();
+        UMF_PACKET packet <- read();
         requestQueues[requestActiveQueue].enq(packet);
 
         // one chunk processed
@@ -191,7 +200,7 @@ module mkArbitedServer#(CHANNEL_IO channel) (ARBITED_SERVER#(n))
             // add my virtual channelID to header
             UMF_PACKET newpacket = tagged UMF_PACKET_header UMF_PACKET_HEADER
                                        {
-                                         filler: ?,
+                                         filler: packet.UMF_PACKET_header.filler, // The packet knows more than we do.
                                          phyChannelPvt: ?,
                                          channelID: `SERVER_CHANNEL_ID,
                                          serviceID: packet.UMF_PACKET_header.serviceID,
@@ -200,7 +209,7 @@ module mkArbitedServer#(CHANNEL_IO channel) (ARBITED_SERVER#(n))
                                         };
 
             // send the header packet to channelio
-            channel.writePorts[`SERVER_CHANNEL_ID].write(newpacket);
+            write(newpacket);
 
             // setup remaining chunks
             responseChunksRemaining <= newpacket.UMF_PACKET_header.numChunks;
@@ -217,7 +226,7 @@ module mkArbitedServer#(CHANNEL_IO channel) (ARBITED_SERVER#(n))
         responseQueues[responseActiveQueue].deq();
 
         // send the packet to channelio
-        channel.writePorts[`SERVER_CHANNEL_ID].write(packet);
+        write(packet);
 
         // one more chunk processed
         responseChunksRemaining <= responseChunksRemaining - 1;

@@ -1,0 +1,8 @@
+Base Hybrid Applications Environment
+
+This represents the "base" application environment - one for applications
+that do not need any kind of special support. (IE Soft Services.) Most
+Bluespec code that was not coded with AWB/LEAP in mind uses this
+environment.  All LEAP FPGA environments now provide soft services.
+Non soft services applications employing this environnent are typically
+small and used to debug the platform.

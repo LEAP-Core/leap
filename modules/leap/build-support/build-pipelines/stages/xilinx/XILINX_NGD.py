@@ -31,6 +31,13 @@ class NGD():
       xilinx_bmm = ''
       bmm = ''
 
+    # Generate include for each synthesis boundary.  (Synplify build uses
+    # subdirectories.)
+    sd_list = [moduleList.env['DEFS']['ROOT_DIR_HW_MODEL'], moduleList.compileDirectory]
+    for module in moduleList.synthBoundaries():
+      w = moduleList.compileDirectory + '/' + module.wrapperName()
+      sd_list += [w]
+
     xilinx_ngd = moduleList.env.Command(
       xilinx_apm_name + '.ngd',
       moduleList.topModule.moduleDependency['SYNTHESIS'],
@@ -42,7 +49,9 @@ class NGD():
         # or guarantee their safety, just delete them.
         SCons.Script.Delete('xlnx_auto_0.ise'),
         SCons.Script.Delete('xlnx_auto_0_xdb'),
-        'ngdbuild -aul -aut -p ' + fpga_part_xilinx + ' -sd ' + moduleList.env['DEFS']['ROOT_DIR_HW_MODEL']+ ' -sd ' + moduleList.compileDirectory + ' -sd ' + moduleList.compileDirectory + '/coreip/' + ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
+        'ngdbuild -aul -aut -p ' + fpga_part_xilinx + \
+          ' -sd ' + ' -sd '.join(sd_list) + \
+          ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
         SCons.Script.Move(moduleList.compileDirectory + '/netlist.lst', 'netlist.lst') ])
 
     moduleList.env.Depends(xilinx_ngd,
@@ -53,3 +62,6 @@ class NGD():
     moduleList.topModule.moduleDependency['NGD'] = [xilinx_ngd]
       
     SCons.Script.Clean(xilinx_ngd, moduleList.compileDirectory + '/netlist.lst')
+
+    # Alias for NGD
+    moduleList.env.Alias('ngd', xilinx_ngd)

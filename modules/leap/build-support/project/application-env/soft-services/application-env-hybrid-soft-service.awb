@@ -1,0 +1,16 @@
+%name Soft Services Hybrid Application Environment
+%desc Soft Services Hybrid Application Environment
+
+%attributes connected hybrid
+
+%provides application_env
+
+%requires connected_application
+
+%notes README
+
+%public  application-env-hybrid-soft-service.bsv
+%public  application-env-hybrid-soft-service.h
+%private application-env-hybrid-soft-service.cpp
+
+%param PLATFORM_SERVICES_AVAILABLE  1     "1 = Platform services are available."

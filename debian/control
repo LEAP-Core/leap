@@ -7,22 +7,22 @@ Standards-Version: 3.7.2
 
 Package: leap
 Architecture: all
-Depends: leap-11.04
+Depends: leap-12.01
+Recommends: leap-11.09
 Description: Dependency package for Leap FPGA environment
  Dependency package for the Leap FPGA environment
 Section: devel
 
-Package: leap-11.04
+Package: leap-12.01
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, leap-bin
+Depends: leap-bin, ${misc:Depends}
 Description: Sharable package for the LEAP
-  AWB modules for the logic-based environment for application programmaing (leap)
+ AWB modules for the logic-based environment for application programmaing (leap)
 Section: devel
 
 Package: leap-bin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, leap-platforms, asim-core, asim-core-dev, awb, libqt-perl
-Recommends: libterm-readline-gnu-perl
+Depends: leap-platforms, asim-core, asim-core-dev, awb, libqt-perl, libterm-readline-gnu-perl, libio-pty-perl, python-pygraph, ${misc:Depends}
 Replaces: leap (<= 0.6.0)
 Breaks: leap (<= 0.6.0)
 Description: Executables for the LEAP FPGA environement

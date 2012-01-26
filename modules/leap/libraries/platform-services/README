@@ -6,8 +6,14 @@ pass the interface to various virtual devices around to the modules. Any
 application that wishes to use these services must use the Soft Services 
 application environment.
 
-A wrapped version of every virtual device is provided with the following naming
-scheme:
+In the past, platform services were outside the FPGA environment and no code
+within the FPGA environment was allowed to use soft connections.  We have since
+decided that soft services are integral to the LEAP environment and moved
+platform services inside the FPGA environment.  As a result, the implementation
+of soft services may be within the soft service instead of being simply a wrapper
+for the virtual device.  For older modules, the implementation is within the
+virtual devices tree and platform services provides a wrapped version of the
+virtual device with the following naming scheme:
 
 FOO_device : FOO_service
 

@@ -114,6 +114,18 @@ STREAMS_DEVICE_SERVER_CLASS::Print(
             fprintf(outstream, fmtstr, payload0, payload1);
             break;
 
+        case 3:
+            // Break first argument into two equal chunks
+            fprintf(outstream, fmtstr, payload0 >> 16, payload0 & 0xffff, payload1);
+            break;
+
+        case 4:
+            // Break both arguments into two equal chunks
+            fprintf(outstream, fmtstr,
+                    payload0 >> 16, payload0 & 0xffff,
+                    payload1 >> 16, payload1 & 0xffff);
+            break;
+
         default:
             cerr << "streams: invalid number of payloads" << endl;
             break;

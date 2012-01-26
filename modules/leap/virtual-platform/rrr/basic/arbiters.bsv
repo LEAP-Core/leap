@@ -57,8 +57,7 @@ endmodule
 module mkRoundRobinArbiter
     // interface:
     (ARBITER#(bits_T))
-    provisos (Log#(bits_T, TLog#(bits_T)),
-              Add#(1, a, bits_T));
+    provisos (Log#(bits_T, TLog#(bits_T)));
     ARBITER#(bits_T) arbiter = ?;
     if(valueof(bits_T) < 2) 
       begin
@@ -78,15 +77,17 @@ endmodule
 module mkRoundRobinArbiterMultiBit
     // interface:
     (ARBITER#(bits_T))
-    provisos (Log#(bits_T, TLog#(bits_T)),
-              Add#(1, a, bits_T));
+    provisos (Log#(bits_T, TLog#(bits_T)));
 
-    Reg#(Bit#(bits_T)) curPrioMask <- mkReg(1);
+    Reg#(Bit#(bits_T)) curPrio <- mkReg(1);
+    Reg#(Bit#(bits_T)) curPrioMask <- mkReg(0);
     
     (* fire_when_enabled *)
     rule rotate_priority (True);
         // Rotate priority mask every cycle
-        curPrioMask <= { curPrioMask[0], curPrioMask[valueOf(bits_T)-1 : 1] };
+        Bit#(bits_T) prioNext = truncate({curPrio, curPrio} >> 1); 
+        curPrio <= prioNext;
+        curPrioMask <= prioNext - 1; // need to break the carry chain for large bit sizes
     endrule
 
     //
@@ -94,8 +95,7 @@ module mkRoundRobinArbiterMultiBit
     //
     method Maybe#(UInt#(TLog#(bits_T))) arbitrate(Bit#(bits_T) request);
         // prio_mask now has bits set only to the right of choice point
-        let prio_mask = curPrioMask - 1;
-        let r = prio_mask & request;
+        let r = curPrioMask & request;
 
         // If no requests set to the right then use the whole request mask
         if (r == 0)

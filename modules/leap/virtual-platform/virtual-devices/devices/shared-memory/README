@@ -1,6 +1,0 @@
-This directory contains alternative implementations of the Shared Memory
-virtual device. This represents a layer of memory that is coherently shared
-between HW and SW.
-
-null/       A null implementation of the device.
-standard/   Shared memory implemented using the Remote Memory abstraction layer.

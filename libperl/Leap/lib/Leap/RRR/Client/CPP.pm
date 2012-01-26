@@ -200,7 +200,7 @@ sub print_stub_vico
     print $file "#define __" . $self->name() . "_CLIENT_STUB__\n";
     print $file "\n";
 
-    print $file "#include \"asim/restricted/vico_rrr_layer.h\"\n";
+    print $file "#include \"awb/provides/vico_headers.h\"\n";
     print $file "\n";
 
     print $file "VICO_RRR_CLIENT_START_TDEFS(" . $self->name() . ")\n";

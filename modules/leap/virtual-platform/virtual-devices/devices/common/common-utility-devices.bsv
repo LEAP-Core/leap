@@ -18,6 +18,7 @@
 
 
 `include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/physical_platform_utils.bsh"
 
 `include "awb/provides/streams_device.bsh"
 `include "awb/provides/dynamic_parameters_device.bsh"
@@ -47,11 +48,30 @@ module mkCommonUtilityDevices#(LowLevelPlatformInterface llpi)
     // interface:
     (COMMON_UTILITY_DEVICES);
 
-    let str <- mkStreamsDevice(llpi);
-    let dp  <- mkDynamicParametersDevice(llpi);
-    let db  <- mkDebugScanDevice(llpi);
-    let as  <- mkAssertionsDevice(llpi);
-    let st  <- mkStatsDevice(llpi);
+    STREAMS str = ?;
+    DYNAMIC_PARAMETERS dp = ?;
+    DEBUG_SCAN_DEVICE db = ?;
+    ASSERTIONS as = ?;
+    STATS st = ?;
+
+    //
+    // Normal (master) platform and services are on platform ID 0.  Slaves are
+    // on non-zero platform IDs.  Slave (multi-FPGA) platforms need the
+    // definitions of the client connections to the services but don't
+    // instantiate the services.  These are all rings, with the primary node
+    // on the master FPGA.
+    //
+    if (fpgaPlatformID() == 0)
+    begin
+        //
+        // Normal (master) platform and services.
+        //
+        str <- mkStreamsDevice(llpi);
+        dp  <- mkDynamicParametersDevice(llpi);
+        db  <- mkDebugScanDevice(llpi);
+        as  <- mkAssertionsDevice(llpi);
+        st  <- mkStatsDevice(llpi);
+    end
 
     interface streams = str;
     interface dynamicParameters = dp;

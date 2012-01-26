@@ -21,8 +21,6 @@ import FIFO::*;
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 
-`include "awb/dict/DEBUG_SCAN.bsh"
-
 `include "awb/rrr/client_stub_DEBUG_SCAN.bsh"
 `include "awb/rrr/server_stub_DEBUG_SCAN.bsh"
 
@@ -39,7 +37,7 @@ interface DEBUG_SCAN_DEVICE;
     method DEBUG_SCAN_CMD peekCmd();
     method Action finishCmd(DEBUG_SCAN_CMD cmd);
 
-    method Action scanValue(DEBUG_SCAN_DICT_TYPE id, DEBUG_SCAN_VALUE value);
+    method Action scanValue(DEBUG_SCAN_VALUE value, Bool eom);
 endinterface
 
 
@@ -75,6 +73,16 @@ module mkDebugScanDevice#(LowLevelPlatformInterface llpi)
 
 
     //
+    // Done fires when software confirms all dump data has been received.
+    // At that point it is safe to return from the Scan() request.
+    //
+    rule done (True);
+        let dummy <- clientStub.getResponse_Done();
+        serverStub.sendResponse_Scan(0);
+    endrule
+
+
+    //
     // Methods
     //
 
@@ -99,7 +107,7 @@ module mkDebugScanDevice#(LowLevelPlatformInterface llpi)
     //     Report that a command is complete.
     //
     method Action finishCmd(DEBUG_SCAN_CMD cmd);
-        serverStub.sendResponse_Scan(0);
+        clientStub.makeRequest_Done(?);
     endmethod
 
 
@@ -107,7 +115,7 @@ module mkDebugScanDevice#(LowLevelPlatformInterface llpi)
     // Module-specific actions
     //
 
-    method Action scanValue(DEBUG_SCAN_DICT_TYPE id, DEBUG_SCAN_VALUE value);
-        clientStub.makeRequest_Send(zeroExtend(id), value);
+    method Action scanValue(DEBUG_SCAN_VALUE value, Bool eom);
+        clientStub.makeRequest_Send(value, zeroExtend(pack(eom)));
     endmethod
 endmodule

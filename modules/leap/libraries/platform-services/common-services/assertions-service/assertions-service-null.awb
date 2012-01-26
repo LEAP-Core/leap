@@ -1,0 +1,11 @@
+%name Assertions Service Null
+%desc Wrap assertions device in Soft Connections
+
+%provides assertions_service
+
+%attributes hybrid connected
+
+%notes README
+
+%public assertions-service.bsh
+%public assertions-local.bsv 

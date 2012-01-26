@@ -47,7 +47,7 @@ module [CONNECTED_MODULE] mkPlatformServices#(VIRTUAL_PLATFORM virtualPlatform)
     // Instantiate soft interfaces to the virtual devices
     let starterService  <- mkStarterService(vdevs);
     let fpService       <- mkFrontPanelService(vdevs);
-    let memServices     <- mkMemServices(vdevs);
+    let memServices     <- mkMemServices();
     let commonServices  <- mkCommonServices(vdevs);
 
     // auto-generated submodules for RRR connections

@@ -1,0 +1,9 @@
+
+%name Null Physical Channel
+%desc Null Physical Channel
+
+%provides physical_channel
+
+%notes README
+
+%param SOFT_RESET 0 "Does this channel support soft reset?"

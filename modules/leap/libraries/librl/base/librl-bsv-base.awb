@@ -13,12 +13,16 @@
 %public debug-file.bsv
 %public extends.bsv
 %public fifo-functions.bsv
+%public fifo-marshaller.bsv
 %public fifo-merge.bsv
 %public hash-bits.bsv
 %public lfsr.bsv
+%public local-arbiters.bsv
 %public memory-interface.bsv
+%public memory-mapping.bsv
 %public memory-pack.bsv
 %public guarded-pipelines.bsv
+%public register.bsv
 
 %include --type=verilog @BLUESPECDIR@/Verilog/
 

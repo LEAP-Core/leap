@@ -23,18 +23,53 @@
 
 #include "platforms-module.h"
 #include "awb/provides/rrr.h"
+#include "awb/provides/soft_services_deps.h"
 
-#include "awb/dict/DEBUG_SCAN.h"
 #include "awb/rrr/client_stub_DEBUG_SCAN.h"
 
 //
 // Manage debug scan chain coming from the hardware.
 //
 
-#define DEBUG_SCAN_MAX_MSG_SIZE 1024
-
 typedef class DEBUG_SCAN_DEVICE_SERVER_CLASS* DEBUG_SCAN_DEVICE_SERVER;
 typedef class DEBUG_SCAN_DEVICE_SERVER_CLASS* DEBUG_SCAN_SERVER;
+
+
+//
+// Debug scan data class manages a received stream of 8-bit data and parses
+// it into caller-specified chunks.
+//
+typedef class DEBUG_SCAN_DATA_CLASS* DEBUG_SCAN_DATA;
+
+class DEBUG_SCAN_DATA_CLASS
+{
+    UINT8 *buf;
+    UINT32 bufLen;
+
+    UINT32 writeIdx;        // Current (byte) write point in the buffer
+    UINT32 readIdx;         // Current (bit) read point in the buffer
+
+  public:
+    DEBUG_SCAN_DATA_CLASS();
+    ~DEBUG_SCAN_DATA_CLASS();
+    
+    // Clear all managed state
+    void Reset();
+    
+    // Add new data from a message.
+    void Put(UINT8 data);
+
+    // Get some number of bits, starting with bit 0 of the first byte passed
+    // to Put().
+    UINT64 Get(int nBits);
+
+    // Number of bits in the full message.
+    UINT32 MsgBits();
+
+    // Number of bits remaining in the message not yet returned by Get().
+    UINT32 MsgBitsLeft();
+};
+
 
 class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
                                public PLATFORMS_MODULE_CLASS
@@ -49,10 +84,12 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     // Internal display method
     void DisplayMsg();
+    void DisplayMsgSoftConnection(GLOBAL_STRING_UID tagID, int numConnections);
+    void DisplayMsgSimple(GLOBAL_STRING_UID tagID, const char *tag);
+    void DisplayMsgFormatted(GLOBAL_STRING_UID tagID, const char *tag);
 
-    UINT8 msg[DEBUG_SCAN_MAX_MSG_SIZE];
-    int msgIdx;
-    UINT8 msgID;
+    DEBUG_SCAN_DATA_CLASS msg;
+    FILE *of;
 
   public:
     DEBUG_SCAN_DEVICE_SERVER_CLASS();
@@ -70,7 +107,10 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Scan();
 
     // RRR service methods
-    void  Send(UINT32 id, UINT8 value);
+    void  Send(UINT8 value, UINT8 eom);
+    // Done exists solely to signal receipt of all Send() calls before returning
+    // control to Scan().  It has lower priority than Send().
+    UINT8 Done(UINT8 dummy) { return dummy; }
 };
 
 // server stub

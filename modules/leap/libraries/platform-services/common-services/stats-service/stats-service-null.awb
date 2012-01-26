@@ -1,0 +1,13 @@
+%name Stats Service Null
+%desc Wrap Stats Device cin Soft Connections
+
+%provides stats_service
+
+%attributes hybrid connected
+
+%notes README
+
+%public stats-local.bsv
+%public stats-service.bsh
+
+

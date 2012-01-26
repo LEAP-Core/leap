@@ -49,23 +49,6 @@ def transform_string_list(str, sep, prefix, suffix):
         sep = ' '
     t = [ prefix + a + suffix for a in clean_split(str, sep) ]
     return string.join(t, sep)
-
-
-## As of Bluespec 2008.11.C the -bdir target is put at the head of the search path
-## and the compiler complains about duplicate path entries.
-##
-## This code removes the local build target from the search path.
-##
-def bsc_bdir_prune(env, str, sep, match):
-    t = clean_split(str, sep)
-    if (getBluespecVersion() >= 15480):
-        try:
-            while 1:
-                i = t.index(match)
-                del t[i]
-        except ValueError:
-            pass
-    return string.join(t, sep)
     
 ##
 ## one_line_cmd --
@@ -77,6 +60,10 @@ def one_line_cmd(cmd):
     p.close()
     return r
 
+def execute(cmd):
+    p = subprocess.Popen(cmd, shell=True)
+    sts = os.waitpid(p.pid, 0)[1]
+    return sts
 
 ##
 ## awb_resolver --
@@ -84,6 +71,43 @@ def one_line_cmd(cmd):
 ##
 def awb_resolver(arg):
     return one_line_cmd("awb-resolver " + arg)
+
+
+##
+## getGccVersion()
+##
+
+def getGccVersion():
+    # What is the Gcc compiler version in the form XXYYZZ?
+
+    gcc_version = 0
+
+    # Parsing expression for version number
+
+    ver_regexp = re.compile('^gcc \(.*\) ([0-9]+)\.([0-9]+)\.([0-9]+)')
+
+    # Read through output of 'gcc --version'
+
+    gcc_ostream = os.popen('gcc --version')
+
+    for ln in gcc_ostream.readlines():
+        m = ver_regexp.match(ln)
+        if (m):
+           gcc_version = int(m.group(1))*10000 + int(m.group(2))*100 + int(m.group(3))
+
+    gcc_ostream.close()
+
+    # Fail if we didn't find anything
+
+    if gcc_version == 0:
+        print "Failed to get Gcc compiler version"
+        sys.exit(1)
+
+#    print "Gcc version = %d"%(gcc_version)
+
+    return gcc_version
+
+
 
 ##
 ## get_bluespec_verilog --
@@ -145,3 +169,25 @@ def checkFilePath(prefix, path):
    (filepath,filname) = os.path.split(path)
    return prefix == path
 
+
+##
+## relpath --
+##     Available as os.path.relpath starting in Python 2.6.  Can remove once
+##     all sites have upgraded.  This code comes from James Gardner's
+##     BareNecessities Python library.
+##
+
+import posixpath
+
+def relpath(path, start=posixpath.curdir):
+    """Return a relative version of a path"""
+    if not path:
+        raise ValueError("no path specified")
+    start_list = posixpath.abspath(start).split(posixpath.sep)
+    path_list = posixpath.abspath(path).split(posixpath.sep)
+    # Work out how much of the filepath is shared by start and path.
+    i = len(posixpath.commonprefix([start_list, path_list]))
+    rel_list = [posixpath.pardir] * (len(start_list)-i) + path_list[i:]
+    if not rel_list:
+        return posixpath.curdir
+    return posixpath.join(*rel_list)

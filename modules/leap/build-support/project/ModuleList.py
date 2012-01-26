@@ -2,6 +2,7 @@
 
 import os
 import sys
+import errno
 
 import string
 import pygraph
@@ -33,11 +34,12 @@ class ModuleList:
     print "apmName: " + self.apmName + "\n"
 
 
-  def __init__(self, env, arguments):
+  def __init__(self, env, modulePickle, arguments, cmdLineTgts):
       # do a pattern match on the synth boundary paths, which we need to build
       # the module structure
     self.env = env
     self.arguments = arguments
+    self.cmdLineTgts = cmdLineTgts
     self.buildDirectory = env['DEFS']['BUILD_DIR']
     self.compileDirectory = env['DEFS']['TMP_XILINX_DIR']
     givenVerilogs = Utils.clean_split(env['DEFS']['GIVEN_VERILOGS'], sep = ' ') 
@@ -45,7 +47,7 @@ class ModuleList:
     givenVHDs = Utils.clean_split(env['DEFS']['GIVEN_VHDS'], sep = ' ') 
     self.apmName = env['DEFS']['APM_NAME']
     self.moduleList = []
-    modulePickle = env['DEFS']['SYNTH_BOUNDARIES']
+    
     #We should be invoking this elsewhere?
     #self.wrapper_v = env.SConscript([env['DEFS']['ROOT_DIR_HW_MODEL'] + '/SConscript'])
 
@@ -81,10 +83,12 @@ class ModuleList:
     #
     self.smartguide_cache_dir = env['DEFS']['WORKSPACE_ROOT'] + '/var/xilinx_ncd'
     self.smartguide_cache_file = self.apmName + '_par.ncd'
-    if not os.path.isdir(self.smartguide_cache_dir):
-      os.mkdir(self.smartguide_cache_dir)
+    try:
+        os.mkdir(self.smartguide_cache_dir)
+    except OSError, e:
+        if e.errno == errno.EEXIST: pass
         
-    if ((int(self.arguments.get('USE_SMARTGUIDE', 0)) or self.env['ENV'].has_key('USE_SMARTGUIDE')) and
+    if (self.env['ENV'].has_key('USE_SMARTGUIDE') and
         (FindFile(self.apmName + '_par.ncd', [self.smartguide_cache_dir]) != None)):
       self.smartguide = ' -smartguide ' +  self.smartguide_cache_dir + '/' + self.smartguide_cache_file
     else:
@@ -112,6 +116,7 @@ class ModuleList:
       module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/mk_' + module.name + '_Wrapper.v'] + givenVerilogs
       module.moduleDependency['VERILOG_LIB'] = Utils.get_bluespec_verilog(env)
       module.moduleDependency['BA'] = []
+      module.moduleDependency['BSV_LOG'] = []
 
 
     #Notice that we call get_bluespec_verilog here this will
@@ -126,6 +131,8 @@ class ModuleList:
     self.topModule.moduleDependency['XCF'] =  Utils.clean_split(self.env['DEFS']['GIVEN_XCFS'], sep = ' ')
     self.topModule.moduleDependency['SDC'] = Utils.clean_split(env['DEFS']['GIVEN_SDCS'], sep = ' ')
     self.topModule.moduleDependency['BA'] = []
+    self.topModule.moduleDependency['BSV_LOG'] = []   # Synth boundary build log file
+    self.topModule.moduleDependency['STR'] = []       # Global string table
 
     self.topDependency=[]
     self.graphize()
@@ -151,6 +158,23 @@ class ModuleList:
     # Return a list of unique entries, in the process converting SCons
     # dependence entries to strings.
     return list(set([str(dep) for dep in allDeps]))
+
+  def getDependencies(self, module, key):
+    # we must check to see if the dependencies actually exist.                                                                                                                                                                              
+    # generally we have to make sure to remove duplicates                                                                                                                                                                                   
+    allDeps = []
+    if(module.moduleDependency.has_key(key)):
+      for dep in module.moduleDependency[key]:
+        if(allDeps.count(dep) == 0):
+          allDeps.extend([dep] if isinstance(dep, str) else dep)
+
+    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
+      sys.stderr.write("Warning: no dependencies were found")
+
+    # Return a list of unique entries, in the process converting SCons                                                                                                                                                                      
+    # dependence entries to strings.                                                                                                                                                                                                        
+    return list(set([str(dep) for dep in allDeps]))
+
 
   def getAllDependenciesWithPaths(self, key):
     # we must check to see if the dependencies actually exist.

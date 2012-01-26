@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import string
+import atexit
 from @ROOT_DIR_MODEL@ import  *
 from build_pipeline import  *
 
@@ -105,7 +106,7 @@ env['DEFS']['COST_TABLE'] = ARGUMENTS.get('COST_TABLE', env['DEFS']['COST_TABLE'
 
 TMP_XILINX_DIR = env['DEFS']['TMP_XILINX_DIR']
 
-moduleList = ModuleList(env, ARGUMENTS)
+moduleList = ModuleList(env, defs['SYNTH_BOUNDARIES'], ARGUMENTS, COMMAND_LINE_TARGETS)
 
 # we will build whatever the user wants us to build
 Build(moduleList)
@@ -121,7 +122,48 @@ if env.GetOption('clean'):
     os.system('cd ' + TMP_XILINX_DIR + '; rm -f ' + APM_NAME + '*')
     os.system('rm -f APM_NAME')
 
+############################################################################
+############################################################################
+##
+## Create build status file on exit
+##
+############################################################################
+############################################################################
 
+def print_build_failures():
+    from SCons.Script import GetBuildFailures
 
+    error_list = { ".o"   : "1 - Software failed",
+                    ".so"  : "1 - Software failed",
+                    ".exe" : "1 - Software failed",
+                    ".bo"  : "2 - BSC failed",
+                    ".ngc" : "3 - XST failed",
+                    ".edf" : "3 - Synplify failed",
+                    ".ngd" : "4 - NGD failed",
+                    ".ncd" : "5 - MAP failed",
+                    ".bit" : "6 - Bitgen failed",
+                   ".errinfo" : "7 - FPGA Loader failed"
+                    }
 
-    
+    # default status file
+    try:
+                    a_file = open('build.status', 'w')
+    except IOError:
+                    return()
+
+    result = GetBuildFailures()
+    if not result:
+        a_file.write("0 - SUCCESS\n")
+    else:
+        for bf in GetBuildFailures():
+            #  determine the type of erroneous node by its extension
+            error_node = os.path.splitext(str(bf.node))[1]
+            if error_node in error_list:
+                a_file.write(error_list[error_node] + " : " + str(bf.node) + "\n")
+            else:
+                a_file.write("Unknown fail" + " : " + str(bf.node) + "\n")
+
+    a_file.close()
+
+atexit.register(print_build_failures)
+
