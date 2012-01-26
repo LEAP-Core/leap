@@ -35,17 +35,22 @@ using namespace std;
 // of the global strings class.
 //
 
+#define GLOBAL_STRING_UID_SZ (GLOBAL_STRING_PLATFORM_UID_SZ + GLOBAL_STRING_SYNTH_UID_SZ + GLOBAL_STRING_LOCAL_UID_SZ)
+
+typedef UINT32 GLOBAL_STRING_UID;
+
+
 class GLOBAL_STRINGS : public COMMAND_SWITCH_STRING_CLASS
 {
   private:
-    static unordered_map <UINT32, string> uidToString;
+    static unordered_map <GLOBAL_STRING_UID, string> uidToString;
 
   public:
     GLOBAL_STRINGS();
 
-    static const string* Lookup(UINT32 uid, bool abortIfUndef = true);
+    static const string* Lookup(GLOBAL_STRING_UID uid, bool abortIfUndef = true);
 
-    static void AddString(UINT32 uid, const string& str);
+    static void AddString(GLOBAL_STRING_UID uid, const string& str);
 
     // Command line argument for passing the name of a string database.
     void ProcessSwitchString(const char *db);

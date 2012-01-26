@@ -22,6 +22,7 @@
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/model_params.bsh"
+`include "awb/provides/debug_scan_service.bsh"
 
 `include "awb/dict/VDEV.bsh"
 
@@ -188,6 +189,10 @@ typedef struct
 }
 SCRATCHPAD_MEMORY_DEBUG_SCAN
     deriving (Eq, Bits);
+
+String scratchpadMemoryDebugDesc = debugScanField("initQ not empty", 1) +
+                                   debugScanField("uncached req READ pending", 1) +
+                                   debugScanField("uncached req WRITE pending", 1);
 
 
 //

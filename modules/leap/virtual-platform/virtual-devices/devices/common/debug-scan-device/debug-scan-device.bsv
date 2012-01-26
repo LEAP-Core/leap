@@ -21,8 +21,6 @@ import FIFO::*;
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 
-`include "awb/dict/DEBUG_SCAN.bsh"
-
 `include "awb/rrr/client_stub_DEBUG_SCAN.bsh"
 `include "awb/rrr/server_stub_DEBUG_SCAN.bsh"
 
@@ -39,9 +37,7 @@ interface DEBUG_SCAN_DEVICE;
     method DEBUG_SCAN_CMD peekCmd();
     method Action finishCmd(DEBUG_SCAN_CMD cmd);
 
-    method Action scanValue(DEBUG_SCAN_DICT_TYPE id,
-                            DEBUG_SCAN_VALUE value,
-                            Bool eom);
+    method Action scanValue(DEBUG_SCAN_VALUE value, Bool eom);
 endinterface
 
 
@@ -119,9 +115,7 @@ module mkDebugScanDevice#(LowLevelPlatformInterface llpi)
     // Module-specific actions
     //
 
-    method Action scanValue(DEBUG_SCAN_DICT_TYPE id,
-                            DEBUG_SCAN_VALUE value,
-                            Bool eom);
-        clientStub.makeRequest_Send(zeroExtend(id), value, zeroExtend(pack(eom)));
+    method Action scanValue(DEBUG_SCAN_VALUE value, Bool eom);
+        clientStub.makeRequest_Send(value, zeroExtend(pack(eom)));
     endmethod
 endmodule

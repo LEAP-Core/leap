@@ -23,15 +23,15 @@
 #include <sys/select.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <string.h>
 #include <strings.h>
 #include <string>
 #include <iostream>
 #include <cmath>
+#include <list>
 
 #include "awb/rrr/service_ids.h"
-#include "awb/dict/DEBUG_SCAN.h"
 
-#include "awb/provides/soft_services_deps.h"
 #include "awb/provides/debug_scan_device.h"
 
 using namespace std;
@@ -43,23 +43,18 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS DEBUG_SCAN_DEVICE_SERVER_CLASS::instance;
 
 // constructor
 DEBUG_SCAN_DEVICE_SERVER_CLASS::DEBUG_SCAN_DEVICE_SERVER_CLASS() :
-    msgIdx(0),
     of(stdout),
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
     serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this))
 {
-    msgBufLen = 128;
-    msg = new UINT8[msgBufLen];
 }
-
 
 
 // destructor
 DEBUG_SCAN_DEVICE_SERVER_CLASS::~DEBUG_SCAN_DEVICE_SERVER_CLASS()
 {
     Cleanup();
-    delete[] msg;
 }
 
 
@@ -96,43 +91,6 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Cleanup()
 // RRR request methods
 //
 
-//
-// Send --
-//     Receive a debug scan packet.
-//
-void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::Send(
-    UINT32 id,
-    UINT8 value,
-    UINT8 eom)
-{
-    VERIFY(id < DEBUG_SCAN_DICT_ENTRIES, "debug-scan-controller:  Invalid id");
-
-    if (msgIdx >= msgBufLen)
-    {
-        // Buffer is too small.  Replace it with a larger one.
-        UINT8 *new_msg = new UINT8[msgBufLen + 512];
-        memcpy(new_msg, msg, msgBufLen);
-
-        delete[] msg;
-        msg = new_msg;
-        msgBufLen += 512;
-    }
-    
-    ASSERT(msgIdx < DEBUG_SCAN_MAX_MSG_SIZE, "DEBUG SCAN " << DEBUG_SCAN_DICT::Name(id) << "message is too large");
-
-    msg[msgIdx] = value;
-    msgIdx += 1;
-
-    // End of message?
-    if (eom)
-    {
-        DisplayMsg(id);
-
-        msgIdx = 0;
-    }
-}
-
 
 //
 // Scan --
@@ -149,85 +107,285 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Scan()
 
 
 //
+// Send --
+//     Receive a debug scan packet.
+//
+void
+DEBUG_SCAN_DEVICE_SERVER_CLASS::Send(UINT8 value, UINT8 eom)
+{
+    msg.Put(value);
+    
+    // End of message?
+    if (eom)
+    {
+        DisplayMsg();
+        msg.Reset();
+    }
+}
+
+
+//
 // DisplayMsg --
 //     Print a message for a given scan message.
 //
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsg(UINT32 msgID)
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsg()
 {
-    if (msgID == DEBUG_SCAN_SOFT_CONNECTIONS_FIFO)
+    GLOBAL_STRING_UID tag_uid = msg.Get(GLOBAL_STRING_UID_SZ);
+    const string* tag = GLOBAL_STRINGS::Lookup(tag_uid);
+    const char* tag_c = tag->c_str();
+
+    // Make sure string meets some basic properties
+    VERIFYX((tag->length() > 2) && (tag_c[1] == ':'));
+
+    // The tag indicates the message type
+    switch (tag_c[0])
     {
-        DisplayMsgSoftConnection(msgID);
-    }
-    else
-    {
-        DisplayMsgGeneric(msgID);
+      case 'C':
+        {
+            int n_connections = atoi(&tag_c[2]);
+            DisplayMsgSoftConnection(tag_uid, n_connections);
+        }
+        break;
+
+      case 'S':
+        DisplayMsgSimple(tag_uid, &tag_c[2]);
+        break;
+
+      case 'N':
+        DisplayMsgFormatted(tag_uid, &tag_c[2]);
+        break;
+
+      default:
+        ASIMERROR("Unexpected debug scan tag: " << *tag);
     }
 }
 
 
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSoftConnection(UINT32 msgID)
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSoftConnection(
+    GLOBAL_STRING_UID tagID,
+    int numConnections)
 {
-    // First two bytes are the high part synthesis boundary ID portion
-    // of the string UID.  This portion is constant for all strings in
-    // the record.
-    UINT32 synth_uid = ((msg[0] << 8) | (msg[1])) << GLOBAL_STRING_LOCAL_UID_SZ;
+    // The synthesis boundary name is stored as a string with the local
+    // UID 0.
+    GLOBAL_STRING_UID synth_uid = tagID & (~0 << GLOBAL_STRING_LOCAL_UID_SZ);
 
-    fprintf(of, "  %s [%s]: %s\n",
-            DEBUG_SCAN_DICT::Name(msgID),
-            (*GLOBAL_STRINGS::Lookup(synth_uid)).c_str(),
-            DEBUG_SCAN_DICT::Str(msgID));
+    fprintf(of, "  Soft connection state [%s]:\n",
+            (*GLOBAL_STRINGS::Lookup(synth_uid)).c_str());
 
-    int i = 2;
-    while (i < msgIdx)
+    while (numConnections--)
     {
-        // Local UID portion is stored in 16 bits
-        UINT32 local_uid = (msg[i] << 8) | msg[i + 1];
+        // Construct the connection name from the synth_uid and the local UID
+        // passed in the data.
+        GLOBAL_STRING_UID local_uid = msg.Get(GLOBAL_STRING_LOCAL_UID_SZ);
 
-        // The high 2 bits are notFull / notEmpty bits
-        bool not_full = ((local_uid & 0x8000) != 0);
-        bool not_empty = ((local_uid & 0x4000) != 0);
-        local_uid &= (1 << GLOBAL_STRING_LOCAL_UID_SZ) - 1;
+        bool not_empty = (msg.Get(1) != 0);
+        bool not_full = (msg.Get(1) != 0);
 
         fprintf(of, "\t%s:  %sfull / %sempty\n",
                 (*GLOBAL_STRINGS::Lookup(synth_uid | local_uid)).c_str(),
                 not_full ? "not " : "",
                 not_empty ? "not " : "");
-
-        i += 2;
     }
 }
 
 
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgGeneric(UINT32 msgID)
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSimple(
+    GLOBAL_STRING_UID tagID,
+    const char *tag)
 {
-    // Default just prints a number
-    fprintf(of, "  %s: %s\n\tH ", DEBUG_SCAN_DICT::Name(msgID), DEBUG_SCAN_DICT::Str(msgID));
+    fprintf(of, "  %s:\n\tH", tag);
+
+    //
+    // Get the data message.  It is easiest to get the data in 64 bit chunks
+    // that have to be reversed in order to print the high bit first.
+    //
+    list<UINT16> ordered_data;
+
+    int n_bits;
+    while ((n_bits = msg.MsgBitsLeft()) != 0)
+    {
+        int get_bits = (n_bits >= 16 ? 16 : n_bits);
+        UINT16 d = msg.Get(get_bits);
+
+        ordered_data.push_front(d);
+    }
 
     // Print a long hex string
-    for (int i = 0; i < msgIdx; i++)
+    for (list<UINT16>::iterator it = ordered_data.begin();
+         it != ordered_data.end();
+         it++)
     {
-        if ((i & 1) == 0)
-            fprintf(of, " ");
-
-        fprintf(of, "%02x", msg[i]);
+        fprintf(of, " %04x", *it);
     }
 
     fprintf(of, "  \tB");
 
     // Print a long binary string
-    for (int i = 0; i < msgIdx; i++)
+    for (list<UINT16>::iterator it = ordered_data.begin();
+         it != ordered_data.end();
+         it++)
     {
-        for (int b = 8; b > 0; b--)
+        for (int b = 16; b > 0; b--)
         {
             if ((b & 3) == 0)
                 fprintf(of, " ");
 
-            fprintf(of, "%d", (msg[i] >> (b - 1)) & 1);
+            fprintf(of, "%d", (*it >> (b - 1)) & 1);
         }
     }
 
     fprintf(of, "\n");
+}
+
+
+void
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgFormatted(
+    GLOBAL_STRING_UID tagID,
+    const char *tag)
+{
+    char *fmt = new char[strlen(tag) + 1];
+    VERIFYX(fmt != NULL);
+    strcpy(fmt, tag);
+
+    const char *tok = strtok(fmt, "~");
+    if (tok != NULL)
+    {
+        // The synthesis boundary name is stored as a string with the local
+        // UID 0.
+        GLOBAL_STRING_UID synth_uid = tagID & (~0 << GLOBAL_STRING_LOCAL_UID_SZ);
+
+        fprintf(of, "  %s [%s]:\n",
+                tok,
+                (*GLOBAL_STRINGS::Lookup(synth_uid)).c_str());
+
+        tok = strtok(NULL, "~");
+    }
+
+    //
+    // Parse the set of length/tag tuples representing fields.
+    //
+    while (tok != NULL)
+    {
+        // Length (bits) is first.  If length starts with an 'M' the field
+        // is a maybe.
+        bool is_maybe = (tok[0] == 'M');
+        int n_bits = atoi(is_maybe ? &tok[1] : tok);
+        VERIFY(n_bits <= 64, "Formatted fields must be 64 bits or smaller");
+
+        // Field name is next
+        tok = strtok(NULL, "~");
+
+        if (tok != NULL)
+        {
+            UINT64 val = msg.Get(n_bits);
+
+            if (is_maybe)
+            {
+                bool maybe = (msg.Get(1) == 1);
+                if (maybe)
+                {
+                    fprintf(of, "\t%s:  Valid 0x%x\n", tok, val);
+                }
+                else
+                {
+                    fprintf(of, "\t%s:  Invalid\n", tok);
+                }
+            }
+            else
+            {
+                fprintf(of, "\t%s:  0x%x\n", tok, val);
+            }
+
+            tok = strtok(NULL, "~");
+        }
+    }
+}
+
+
+//
+// Buffer management
+//
+
+DEBUG_SCAN_DATA_CLASS::DEBUG_SCAN_DATA_CLASS() :
+    buf(NULL),
+    bufLen(0),
+    writeIdx(0),
+    readIdx(0)
+{}
+
+DEBUG_SCAN_DATA_CLASS::~DEBUG_SCAN_DATA_CLASS()
+{
+    if (buf != NULL)
+    {
+        delete[] buf;
+    }
+}
+
+    
+void
+DEBUG_SCAN_DATA_CLASS::Reset()
+{
+    writeIdx = 0;
+    readIdx = 0;
+}
+
+    
+void
+DEBUG_SCAN_DATA_CLASS::Put(UINT8 data)
+{
+    if (writeIdx >= bufLen)
+    {
+        // Buffer is too small.  Replace it with a larger one.
+        UINT8 *new_buf = new UINT8[bufLen + 512];
+        memcpy(new_buf, buf, bufLen);
+
+        delete[] buf;
+        buf = new_buf;
+        bufLen += 512;
+    }
+
+    buf[writeIdx++] = data;
+}
+
+
+UINT64
+DEBUG_SCAN_DATA_CLASS::Get(int nBits)
+{
+    VERIFYX(nBits <= 64);
+
+    UINT64 result = 0;
+
+    //
+    // This code is only triggered on an error, so it doesn't have to be fast.
+    //
+    for (UINT32 i = 0; i < nBits; i++)
+    {
+        VERIFYX((readIdx >> 3) < writeIdx);
+
+        UINT64 b = buf[readIdx >> 3];       // Select correct byte
+        b >>= (readIdx & 7);                // Shift desired bit to position 0
+        b &= 1;                             // Select only bit 0
+        b <<= i;                            // Shift to desired position
+
+        result |= b;
+
+        readIdx += 1;
+    }
+
+    return result;
+}
+
+UINT32
+DEBUG_SCAN_DATA_CLASS::MsgBits()
+{
+    return writeIdx * 8;
+}
+
+UINT32
+DEBUG_SCAN_DATA_CLASS::MsgBitsLeft()
+{
+    return MsgBits() - readIdx;
 }

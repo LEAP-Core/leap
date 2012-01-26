@@ -9,5 +9,3 @@ def STATS.CENTRAL_CACHE.CACHE_STORE_MISS       "Central Cache: Store misses";
 def STATS.CENTRAL_CACHE.CACHE_INVAL_LINE       "Central Cache: Lines invalidated due to capacity";
 def STATS.CENTRAL_CACHE.CACHE_DIRTY_LINE_FLUSH "Central Cache: Dirty lines flushed to memory";
 def STATS.CENTRAL_CACHE.CACHE_FORCE_INVAL_LINE "Central Cache: Lines forcibly invalidated (not due to capacity)";
-
-def DEBUG_SCAN.CENTRAL_CACHE.DATA     "(Def. in std-virtual-device-interfaces.bsv)";

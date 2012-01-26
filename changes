@@ -11308,3 +11308,54 @@ Leap-configure now uses the default benchmark specified by
 the model if a  benchmark is needed and has not been
 specified either on the command line with the --benchmark 
 switch or as an option in the awb.config or .asimrc files.
+
+----------
+mcadler     Date: Thu Jan 26 11:39:03 EST 2012  CSN: CSN-leap-232
+                  Thu Jan 26 16:39:03 UTC 2012
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.dic     Locally Removed           231 
+ debug-scan-device.cpp     Locally Modified          231 
+ debug-scan-device.rrr     Locally Modified          231 
+ debug-scan-device.h       Locally Modified          231 
+ debug-scan-device.awb     Locally Modified          231 
+ debug-scan-device.bsv     Locally Modified          231 
+
+Directory modules/leap/libraries/librl/cache
+ rl-set-assoc-cache.bsv    Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          231 
+ platform-scratchpad-memory.bsv Locally Modified          231 
+ scratchpad-memory-service.dic Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          231 
+ local-mem-central-cache.dic Locally Modified          231 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          231 
+ debug-scan-local.bsv      Locally Modified          231 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.cpp        Locally Modified          231 
+ global-strings.h          Locally Modified          231 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          231 
+ connections-debug.dic     Locally Removed           231 
+ connections-debug.awb     Locally Modified          231 
+
+Debug scanning now uses global strings instead of dictionary entries.  Clients
+may define fields within a scan record that are parsed and printed in
+human-readable form in the software.  There is no hardware overhead for the
+parsing, since the formatting descriptor is stored in the global string table.
+
+Functions are provided in the debug scan service for constructing descriptors.

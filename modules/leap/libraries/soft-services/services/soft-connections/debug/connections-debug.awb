@@ -5,7 +5,6 @@
 
 %attributes bluespec
 
-%public connections-debug.dic
 %public connections-debug.bsv
 
 %param --global CON_DEBUG_ENABLE   1   "Add soft-connection state to the debug scan chain (0/1)"

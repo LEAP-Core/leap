@@ -33,7 +33,6 @@ import Vector::*;
 `include "awb/provides/central_cache_service_params.bsh"
 
 `include "awb/dict/PARAMS_CENTRAL_CACHE.bsh"
-`include "awb/dict/DEBUG_SCAN_CENTRAL_CACHE.bsh"
 
 
 //
@@ -360,8 +359,20 @@ module [CONNECTED_MODULE] mkCentralCache
         return d;
     endfunction
 
-    DEBUG_SCAN#(CENTRAL_CACHE_DEBUG_SCAN) debugScan <-
-        mkDebugScanNode(`DEBUG_SCAN_CENTRAL_CACHE_DATA, debugScanState);
+    function String ccSADebugScanMap(String s, Tuple2#(String, Integer) f) =
+        debugScanField(tpl_1(f), tpl_2(f)) + s;
+
+    let dbgDesc = debugScanName("Central Cache (local-mem-central-cache.bsv)") +
+                  debugScanField("Reads in flight", 5) +
+                  debugScanField("Req line locked", 1) +
+                  debugScanField("Req rule fired", 2) +
+                  debugScanField("Num backing reads in flight", 4) +
+                  debugScanField("readRespQ not empty", 1) +
+                  debugScanField("cache readRespReady", 1) +
+                  debugScanField("<dummy>", 2) +
+                  foldl(ccSADebugScanMap, "", rlSADebugScanDesc);
+
+    let debugScan <- mkDebugScanNode(dbgDesc, debugScanState);
 
 
     // ====================================================================

@@ -28,7 +28,6 @@ import Arbiter::*;
 
 `include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
-`include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 
 module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCache)
@@ -130,12 +129,8 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCa
     //
     // Scan data for debugging deadlocks.
     //
-    Wire#(SCRATCHPAD_MEMORY_DEBUG_SCAN) debugScanData <- mkBypassWire();
-    DEBUG_SCAN#(SCRATCHPAD_MEMORY_DEBUG_SCAN) debugScan <- mkDebugScanNode(`DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE_DATA, debugScanData);
+    String debugScanDesc = debugScanName("Scratchpad memory service") +
+                           scratchpadMemoryDebugDesc;
+    let debugScan <- mkDebugScanNode(debugScanDesc, memory.debugScanState);
 
-    (* fire_when_enabled *)
-    (* no_implicit_conditions *)
-    rule updateDebugScanState (True);
-        debugScanData <= memory.debugScanState();
-    endrule
 endmodule

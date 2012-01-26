@@ -26,7 +26,6 @@ import Vector::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/debug_scan_service.bsh"
 
-`include "awb/dict/DEBUG_SCAN_SOFT_CONNECTIONS.bsh"
 
 //
 // Global strings have two parts:  a component guaranteed constant within a
@@ -44,13 +43,8 @@ typedef struct
 DEBUG_SCAN_CONNECTION_SEND
     deriving (Eq, Bits);
 
-typedef struct
-{
-    GLOBAL_STRING_SYNTH_UID synthUID;
-    Vector#(n_ELEM, DEBUG_SCAN_CONNECTION_SEND) info;
-}
-DEBUG_SCAN_CONNECTION_SEND_VEC#(numeric type n_ELEM)
-    deriving (Eq, Bits);
+typedef Vector#(n_ELEM, DEBUG_SCAN_CONNECTION_SEND)
+    DEBUG_SCAN_CONNECTION_SEND_VEC#(numeric type n_ELEM);
 
 
 //
@@ -120,7 +114,7 @@ module [CONNECTED_MODULE] mkSoftConnectionDebugNode#(Integer startPos,
                                                      List#(CONNECTION_DEBUG_INFO) info)
     (DEBUG_SCAN_CONNECTION_SEND_VEC#(n_ELEM));
 
-    DEBUG_SCAN_CONNECTION_SEND_VEC#(n_ELEM) dbg_scan_data = ?;
+    DEBUG_SCAN_CONNECTION_SEND_VEC#(n_ELEM) dbg_scan_data = newVector();
 
     for (Integer i = 0; i < valueOf(n_ELEM); i = i + 1)
     begin
@@ -129,12 +123,7 @@ module [CONNECTED_MODULE] mkSoftConnectionDebugNode#(Integer startPos,
         // Allocate an integer tag for the name.
         GLOBAL_STRING_UID tag <- getGlobalStringUID(elem.sendName);
 
-        if (i == 0)
-        begin
-            dbg_scan_data.synthUID = getGlobalStringSynthUID(tag);
-        end
-
-        dbg_scan_data.info[i] = DEBUG_SCAN_CONNECTION_SEND {
+        dbg_scan_data[i] = DEBUG_SCAN_CONNECTION_SEND {
             notFull: elem.state.notFull,
             notEmpty: elem.state.notEmpty,
             sendName: getGlobalStringLocalUID(tag) };
@@ -142,7 +131,9 @@ module [CONNECTED_MODULE] mkSoftConnectionDebugNode#(Integer startPos,
 
     if (`CON_DEBUG_ENABLE != 0)
     begin
-        let debugScan <- mkDebugScanNode(`DEBUG_SCAN_SOFT_CONNECTIONS_FIFO, dbg_scan_data);
+        let debugScan <- mkDebugScanNode(
+           debugScanSoftConnections(integerToString(valueOf(n_ELEM))),
+           dbg_scan_data);
     end
 
     return dbg_scan_data;

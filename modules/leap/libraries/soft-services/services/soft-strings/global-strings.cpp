@@ -30,7 +30,7 @@
 //
 
 // Static objects
-unordered_map <UINT32, string> GLOBAL_STRINGS::uidToString;
+unordered_map <GLOBAL_STRING_UID, string> GLOBAL_STRINGS::uidToString;
 static GLOBAL_STRINGS instance;
 
 
@@ -38,9 +38,9 @@ static GLOBAL_STRINGS instance;
 // Look up a string in the table, given a UID.
 //
 const string*
-GLOBAL_STRINGS::Lookup(UINT32 uid, bool abortIfUndef)
+GLOBAL_STRINGS::Lookup(GLOBAL_STRING_UID uid, bool abortIfUndef)
 {
-    unordered_map <UINT32, string>::iterator s = uidToString.find(uid);
+    unordered_map <GLOBAL_STRING_UID, string>::iterator s = uidToString.find(uid);
 
     if (s != uidToString.end())
     {
@@ -61,9 +61,9 @@ GLOBAL_STRINGS::Lookup(UINT32 uid, bool abortIfUndef)
 // Add a string to the table.
 //
 void
-GLOBAL_STRINGS::AddString(UINT32 uid, const string& str)
+GLOBAL_STRINGS::AddString(GLOBAL_STRING_UID uid, const string& str)
 {
-    unordered_map <UINT32, string>::iterator s = uidToString.find(uid);
+    unordered_map <GLOBAL_STRING_UID, string>::iterator s = uidToString.find(uid);
 
     if (s != uidToString.end())
     {

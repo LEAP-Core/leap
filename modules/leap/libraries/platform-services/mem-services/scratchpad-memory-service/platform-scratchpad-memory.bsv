@@ -36,9 +36,8 @@ import Vector::*;
 
 `include "awb/dict/RINGID.bsh"
 `include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
-`include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
-
 `include "awb/dict/VDEV.bsh"
+
 `ifndef VDEV_SCRATCH__BASE
 `define VDEV_SCRATCH__BASE 0
 `endif

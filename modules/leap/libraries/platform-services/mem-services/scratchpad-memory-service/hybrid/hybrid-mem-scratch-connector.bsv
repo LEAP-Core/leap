@@ -28,7 +28,6 @@ import FIFO::*;
 
 `include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
-`include "awb/dict/DEBUG_SCAN_SCRATCHPAD_MEMORY_SERVICE.bsh"
 `include "awb/dict/STATS_SCRATCHPAD.bsh"
 `include "awb/rrr/service_ids.bsh"
 `include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"
