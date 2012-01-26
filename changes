@@ -11372,3 +11372,19 @@ Directory admin/packages
  leap                      Locally Modified          232 
 
 Mark package as a 'prerelease'.
+
+----------
+emer        Date: Thu Jan 26 17:10:34 EST 2012  CSN: CSN-leap-237
+                  Thu Jan 26 22:10:34 UTC 2012
+
+
+Directory debian
+ changelog                 Locally Modified          236 
+
+Directory .
+ Makefile.in               Locally Modified          236 
+
+Directory admin/packages
+ leap                      Locally Modified          236 
+
+Designate as release v12.01.
