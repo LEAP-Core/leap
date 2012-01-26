@@ -6,4 +6,5 @@ Lock=asim-leap
 Description=Description of leap
 Name=leap
 Tag=v12.01
-CSN=CSN-leap-232
+Prerelease=1
+CSN=CSN-leap-233
