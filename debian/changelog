@@ -1,7 +1,7 @@
-leap (12.01+fixes~svn20120126r235+lucid) lucid; urgency=low
+leap (12.01+fixes~svn20120126r237+lucid) lucid; urgency=low
 
   [ Joel Emer ]
 
   * Release v12.01
 
- -- Joel Emer <emer@csail.mit.edu>  Thu, 26 Jan 2012 17:02:19 -0500
+ -- Joel Emer <emer@csail.mit.edu>  Thu, 26 Jan 2012 21:20:20 -0500
