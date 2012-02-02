@@ -5,6 +5,11 @@
 ## and invokes SCons.
 ##
 
+#defaults
+PAR:=1
+JOBS:=10
+CCACHE:=1
+
 ARGS=
 ifdef DEBUG
     ARGS+= DEBUG=1
@@ -12,6 +17,17 @@ endif
 ifdef OPT
     ARGS+= OPT=1
 endif
+
+# parallel build
+ifeq ($(PAR),1)
+  ARGS+= -j $(JOBS)
+endif
+
+# code cache
+ifeq ($(CCACHE),0)
+  ARGS+= --no-cache
+endif
+
 
 .PHONY: all
 all:
