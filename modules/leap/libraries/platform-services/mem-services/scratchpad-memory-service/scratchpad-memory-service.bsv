@@ -119,18 +119,4 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCa
         link_mem_rsp.enq(r.refInfo.portNum, resp);
     endrule
 
-
-    // ====================================================================
-    //
-    // DEBUG_SCAN state
-    //
-    // ====================================================================
-
-    //
-    // Scan data for debugging deadlocks.
-    //
-    String debugScanDesc = debugScanName("Scratchpad memory service") +
-                           scratchpadMemoryDebugDesc;
-    let debugScan <- mkDebugScanNode(debugScanDesc, memory.debugScanState);
-
 endmodule

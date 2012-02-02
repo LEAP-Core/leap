@@ -177,24 +177,6 @@ SCRATCHPAD_RING_REQ
     deriving (Bits,Eq);
 
 
-
-//
-// Debug scan state
-//
-typedef struct
-{
-    Bool uncachedReqWritePending;
-    Bool uncachedReqReadPending;
-    Bool initQnotEmpty;
-}
-SCRATCHPAD_MEMORY_DEBUG_SCAN
-    deriving (Eq, Bits);
-
-String scratchpadMemoryDebugDesc = debugScanField("initQ not empty", 1) +
-                                   debugScanField("uncached req READ pending", 1) +
-                                   debugScanField("uncached req WRITE pending", 1);
-
-
 //
 // All scratchpad requests flow through a single request/response interface.
 // The platform interface module may fan out connections to clients of the
@@ -222,8 +204,5 @@ interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MAS
     method ActionValue#(Bool) init(t_ADDR allocLastWordIdx,
                                     SCRATCHPAD_PORT_NUM portNum,
                                    Bool useCentralCache);
-
-    method SCRATCHPAD_MEMORY_DEBUG_SCAN debugScanState();
-
 endinterface: SCRATCHPAD_MEMORY_VIRTUAL_DEVICE
 

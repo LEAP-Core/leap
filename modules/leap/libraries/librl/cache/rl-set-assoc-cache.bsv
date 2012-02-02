@@ -37,6 +37,7 @@ import FIFO::*;
 import FIFOF::*;
 import Vector::*;
 import SpecialFIFOs::*;
+import List::*;
 
 // Project foundation imports.
 
@@ -84,64 +85,6 @@ typedef enum
 }
 RL_SA_CACHE_MODE
     deriving (Eq, Bits);
-
-
-//
-// DEBUG_SCAN data available for set associative caches.
-//
-typedef struct
-{
-    Bool doneQNotEmpty;
-    Bool fillLineQNotEmpty;
-    Bool newReqNotEmpty;
-    Bool fillLineRequestQNotEmpty;
-
-    Bool evictDirtyForFillQNotEmpty;
-    Bool wordMissQNotEmpty;
-    Bool lineMissQNotEmpty;
-    Bool readHitQNotEmpty;
-
-    Bool processReqQ1NotEmpty;
-    Bool processReqQ0NotEmpty;
-    Bool writeDataQNotFull;
-    Bool writeDataQNotEmpty;
-
-    Bool localData_Data2NotEmpty;
-    Bool localData_Data1NotEmpty;
-    Bool localData_Data0NotEmpty;
-    Bool localData_MetaNotEmpty;
-}
-RL_SA_DEBUG_SCAN_DATA
-    deriving (Eq, Bits);
-
-//
-// Descriptor for RL_SA_DEBUG_SCAN_DATA must match the structure.  We build
-// an array instead of calling the appropriate debugScanField() here because
-// libRL can't depend on the debug scan code.
-//
-Tuple2#(String, Integer) rl_sa_dbg_scan_desc[16] = {
-    tuple2("SA Cache doneQNotEmpty", 1),
-    tuple2("SA Cache fillLineQNotEmpty", 1),
-    tuple2("SA Cache newReqNotEmpty", 1),
-    tuple2("SA Cache fillLineRequestQNotEmpty", 1),
-
-    tuple2("SA Cache evictDirtyForFillQNotEmpty", 1),
-    tuple2("SA Cache wordMissQNotEmpty", 1),
-    tuple2("SA Cache lineMissQNotEmpty", 1),
-    tuple2("SA Cache readHitQNotEmpty", 1),
-
-    tuple2("SA Cache processReqQ1NotEmpty", 1),
-    tuple2("SA Cache processReqQ0NotEmpty", 1),
-    tuple2("SA Cache writeDataQNotFull", 1),
-    tuple2("SA Cache writeDataQNotEmpty", 1),
-
-    tuple2("SA Cache localData_Data2NotEmpty", 1),
-    tuple2("SA Cache localData_Data1NotEmpty", 1),
-    tuple2("SA Cache localData_Data0NotEmpty", 1),
-    tuple2("SA Cache localData_MetaNotEmpty", 1)
-};
-
-Vector#(16, Tuple2#(String, Integer)) rlSADebugScanDesc = arrayToVector(rl_sa_dbg_scan_desc);
 
 
 //
@@ -197,9 +140,12 @@ interface RL_SA_CACHE#(type t_CACHE_ADDR,
     method Action setRecentLineCacheMode(Bool enabled);
 
     //
-    // Debug scan state.
+    // Debug scan state.  The cache can't instantiate a debug scan node because
+    // the debug scan code depends on libRL.  Instantiating a node here would
+    // create a source dependence loop.  Instead, a list of name/value pairs
+    // is available for use by a client.
     //
-    method RL_SA_DEBUG_SCAN_DATA debugScanState();
+    method List#(Tuple2#(String, Bool)) debugScanState();
     
     interface RL_CACHE_STATS stats;
 
@@ -1669,38 +1615,29 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     // ====================================================================
 
-    //
-    // Compute debug scan state in a rule to simplify scheduling.
-    //
+    List#(Tuple2#(String, Bool)) ds_data = List::nil;
 
-    Wire#(RL_SA_DEBUG_SCAN_DATA) debugScanData <- mkBypassWire();
+    ds_data = List::cons(tuple2("SA Cache localData_MetaNotEmpty", localData.metaData.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache localData_Data0NotEmpty", localData.dataReadNotEmpty(0)), ds_data);
+    ds_data = List::cons(tuple2("SA Cache localData_Data1NotEmpty", localData.dataReadNotEmpty(1)), ds_data);
+    ds_data = List::cons(tuple2("SA Cache localData_Data2NotEmpty", localData.dataReadNotEmpty(2)), ds_data);
 
-    (* no_implicit_conditions *)
-    rule computeDebugScanState (True);
-        RL_SA_DEBUG_SCAN_DATA d = ?;
+    ds_data = List::cons(tuple2("SA Cache writeDataQNotEmpty", writeDataQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache writeDataQNotFull", writeDataQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("SA Cache processReqQ0NotEmpty", processReqQ0.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache processReqQ1NotEmpty", processReqQ1.notEmpty), ds_data);
 
-        d.doneQNotEmpty = doneQ.notEmpty();
-        d.fillLineQNotEmpty = fillLineQ.notEmpty();
-        d.newReqNotEmpty = newReqQ.notEmpty();
-        d.fillLineRequestQNotEmpty = fillLineRequestQ.notEmpty();
+    ds_data = List::cons(tuple2("SA Cache readHitQNotEmpty", readHitQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache lineMissQNotEmpty", lineMissQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache wordMissQNotEmpty", wordMissQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache evictDirtyForFillQNotEmpty", evictDirtyForFillQ.notEmpty), ds_data);
 
-        d.evictDirtyForFillQNotEmpty = evictDirtyForFillQ.notEmpty();
-        d.wordMissQNotEmpty = wordMissQ.notEmpty();
-        d.lineMissQNotEmpty = lineMissQ.notEmpty();
-        d.readHitQNotEmpty = readHitQ.notEmpty();
+    ds_data = List::cons(tuple2("SA Cache fillLineRequestQNotEmpty", fillLineRequestQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache newReqNotEmpty", newReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache fillLineQNotEmpty", fillLineQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache doneQNotEmpty", doneQ.notEmpty), ds_data);
 
-        d.processReqQ1NotEmpty = processReqQ1.notEmpty();
-        d.processReqQ0NotEmpty = processReqQ0.notEmpty();
-        d.writeDataQNotFull = writeDataQ.notFull();
-        d.writeDataQNotEmpty = writeDataQ.notEmpty();
-
-        d.localData_Data2NotEmpty = localData.dataReadNotEmpty(2);
-        d.localData_Data1NotEmpty = localData.dataReadNotEmpty(1);
-        d.localData_Data0NotEmpty = localData.dataReadNotEmpty(0);
-        d.localData_MetaNotEmpty = localData.metaData.notEmpty();
-
-        debugScanData <= d;
-    endrule
+    let debugScanData = ds_data;
 
 
     // ====================================================================
@@ -1867,7 +1804,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     // debugScanState -- Return cache state for DEBUG_SCAN.
     //
-    method RL_SA_DEBUG_SCAN_DATA debugScanState();
+    method List#(Tuple2#(String, Bool)) debugScanState();
         return debugScanData;
     endmethod
 
@@ -2001,3 +1938,27 @@ module mkBRAMCacheLocalData
     endmethod
 
 endmodule
+
+Tuple2#(String, Integer) rl_sa_dbg_scan_desc[16] = {
+    tuple2("SA Cache doneQNotEmpty", 1),
+    tuple2("SA Cache fillLineQNotEmpty", 1),
+    tuple2("SA Cache newReqNotEmpty", 1),
+    tuple2("SA Cache fillLineRequestQNotEmpty", 1),
+
+    tuple2("SA Cache evictDirtyForFillQNotEmpty", 1),
+    tuple2("SA Cache wordMissQNotEmpty", 1),
+    tuple2("SA Cache lineMissQNotEmpty", 1),
+    tuple2("SA Cache readHitQNotEmpty", 1),
+
+    tuple2("SA Cache processReqQ1NotEmpty", 1),
+    tuple2("SA Cache processReqQ0NotEmpty", 1),
+    tuple2("SA Cache writeDataQNotFull", 1),
+    tuple2("SA Cache writeDataQNotEmpty", 1),
+
+    tuple2("SA Cache localData_Data2NotEmpty", 1),
+    tuple2("SA Cache localData_Data1NotEmpty", 1),
+    tuple2("SA Cache localData_Data0NotEmpty", 1),
+    tuple2("SA Cache localData_MetaNotEmpty", 1)
+};
+
+Vector#(16, Tuple2#(String, Integer)) rlSADebugScanDesc = arrayToVector(rl_sa_dbg_scan_desc);

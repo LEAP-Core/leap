@@ -21,6 +21,7 @@ import FIFO::*;
 import FIFOF::*;
 import SpecialFIFOs::*;
 import Vector::*;
+import List::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/fpga_components.bsh"
@@ -51,28 +52,6 @@ interface CENTRAL_CACHE_BACKING#(type t_CACHE_ADDR,
     // Debug info for DEBUG_SCAN
     method Bit#(4) nReadsInFlight();
 endinterface: CENTRAL_CACHE_BACKING
-
-
-//
-// State returned for debug scan
-//
-typedef struct
-{
-    RL_SA_DEBUG_SCAN_DATA cacheState;
-
-    // Byte 1
-    Bit#(2) dummy;            // Alignment for easier decoding
-    Bool cacheReadRespReady;
-    Bool readRespQNotEmpty;
-    Bit#(4) nBackingReadsInFlight;
-
-    // Byte 0
-    Bit#(2) reqRuleFired;     // NONE (0), READ (1), WRITE (2), INVAL/FLUSH (3)
-    Bool reqLineLocked;
-    Bit#(5) cacheReadsInFlight;
-}
-CENTRAL_CACHE_DEBUG_SCAN
-    deriving (Eq, Bits);
 
 
 //
@@ -337,42 +316,25 @@ module [CONNECTED_MODULE] mkCentralCache
     //
     // ====================================================================
     
-    //
-    // debugScanState --
-    //     Compute state for a DEBUG_SCAN node.  This method must have no
-    //     implicit conditions.
-    //
-    function CENTRAL_CACHE_DEBUG_SCAN debugScanState();
-        CENTRAL_CACHE_DEBUG_SCAN d;
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+    dbg_list <- addDebugScanField(dbg_list, "Reads in flight", dbgCacheReadsInFlight.value());
+    dbg_list <- addDebugScanField(dbg_list, "Req line locked", dbgReqLineLocked);
+    dbg_list <- addDebugScanField(dbg_list, "Req rule fired", dbgReqRuleFired);
+    dbg_list <- addDebugScanField(dbg_list, "Num backing reads in flight", backingConnection.nReadsInFlight());
+    dbg_list <- addDebugScanField(dbg_list, "readRespQ not empty", readRespQ.notEmpty());
+    dbg_list <- addDebugScanField(dbg_list, "cache readRespReady", dbgCacheReadRespReady);
 
-        d.cacheState = cache.debugScanState();
+    // Append set associate cache pipeline state
+    List#(Tuple2#(String, Bool)) sa_cache_state = cache.debugScanState();
+    while (sa_cache_state matches tagged Nil ? False : True)
+    begin
+        let fld = List::head(sa_cache_state);
+        dbg_list <- addDebugScanField(dbg_list, tpl_1(fld), tpl_2(fld));
 
-        d.dummy = 0;
-        d.cacheReadRespReady = dbgCacheReadRespReady;
-        d.readRespQNotEmpty = readRespQ.notEmpty();
-        d.nBackingReadsInFlight = backingConnection.nReadsInFlight();
+        sa_cache_state = List::tail(sa_cache_state);
+    end
 
-        d.reqRuleFired = dbgReqRuleFired;
-        d.reqLineLocked = dbgReqLineLocked;
-        d.cacheReadsInFlight = dbgCacheReadsInFlight.value();
-
-        return d;
-    endfunction
-
-    function String ccSADebugScanMap(String s, Tuple2#(String, Integer) f) =
-        debugScanField(tpl_1(f), tpl_2(f)) + s;
-
-    let dbgDesc = debugScanName("Central Cache (local-mem-central-cache.bsv)") +
-                  debugScanField("Reads in flight", 5) +
-                  debugScanField("Req line locked", 1) +
-                  debugScanField("Req rule fired", 2) +
-                  debugScanField("Num backing reads in flight", 4) +
-                  debugScanField("readRespQ not empty", 1) +
-                  debugScanField("cache readRespReady", 1) +
-                  debugScanField("<dummy>", 2) +
-                  foldl(ccSADebugScanMap, "", rlSADebugScanDesc);
-
-    let debugScan <- mkDebugScanNode(dbgDesc, debugScanState);
+    let dbgNode <- mkDebugScanNode("Central Cache (local-mem-central-cache.bsv)", dbg_list);
 
 
     // ====================================================================

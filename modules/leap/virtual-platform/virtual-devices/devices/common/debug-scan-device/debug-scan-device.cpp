@@ -148,8 +148,8 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsg()
         }
         break;
 
-      case 'S':
-        DisplayMsgSimple(tag_uid, &tag_c[2]);
+      case 'R':
+        DisplayMsgRaw(tag_uid, &tag_c[2]);
         break;
 
       case 'N':
@@ -192,7 +192,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSoftConnection(
 
 
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSimple(
+DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgRaw(
     GLOBAL_STRING_UID tagID,
     const char *tag)
 {

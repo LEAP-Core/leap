@@ -85,7 +85,7 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     // Internal display method
     void DisplayMsg();
     void DisplayMsgSoftConnection(GLOBAL_STRING_UID tagID, int numConnections);
-    void DisplayMsgSimple(GLOBAL_STRING_UID tagID, const char *tag);
+    void DisplayMsgRaw(GLOBAL_STRING_UID tagID, const char *tag);
     void DisplayMsgFormatted(GLOBAL_STRING_UID tagID, const char *tag);
 
     DEBUG_SCAN_DATA_CLASS msg;

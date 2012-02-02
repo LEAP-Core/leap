@@ -715,6 +715,20 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
 
     // ====================================================================
     //
+    // Debugging
+    //
+    // ====================================================================
+
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+    dbg_list <- addDebugScanField(dbg_list, "initQ not empty", initQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "uncached req READ pending", uncachedReqReadPending);
+    dbg_list <- addDebugScanField(dbg_list, "uncached req WRITE pending", uncachedReqWritePending);
+
+    let dbgNode <- mkDebugScanNode("Scratchpad memory (hybrid-mem-scratch.bsv)", dbg_list);
+
+
+    // ====================================================================
+    //
     // Scratchpad port methods.
     //
     // ====================================================================
@@ -862,16 +876,4 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         return True;
     endmethod
 
-
-    //
-    // Debug (deadlock) scan chain
-    //
-    method SCRATCHPAD_MEMORY_DEBUG_SCAN debugScanState();
-        SCRATCHPAD_MEMORY_DEBUG_SCAN state;
-        state.uncachedReqWritePending = uncachedReqWritePending;
-        state.uncachedReqReadPending = uncachedReqReadPending;
-        state.initQnotEmpty = initQ.notEmpty();
-
-        return state;
-    endmethod
 endmodule

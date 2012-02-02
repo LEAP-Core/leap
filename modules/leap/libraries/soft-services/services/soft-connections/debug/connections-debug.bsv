@@ -131,9 +131,7 @@ module [CONNECTED_MODULE] mkSoftConnectionDebugNode#(Integer startPos,
 
     if (`CON_DEBUG_ENABLE != 0)
     begin
-        let debugScan <- mkDebugScanNode(
-           debugScanSoftConnections(integerToString(valueOf(n_ELEM))),
-           dbg_scan_data);
+        mkDebugScanSoftConnections(valueOf(n_ELEM), dbg_scan_data);
     end
 
     return dbg_scan_data;

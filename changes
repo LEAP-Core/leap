@@ -11372,3 +11372,37 @@ Directory admin/packages
  leap                      Locally Modified          232 
 
 Mark package as a 'prerelease'.
+
+----------
+mcadler     Date: Thu Feb  2 08:15:46 EST 2012  CSN: CSN-leap-239
+                  Thu Feb  2 13:15:46 UTC 2012
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.cpp     Locally Modified          238 
+ debug-scan-device.h       Locally Modified          238 
+
+Directory modules/leap/libraries/librl/cache
+ rl-set-assoc-cache.bsv    Locally Modified          238 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          238 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          238 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          238 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          238 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          238 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          238 
+
+New interface to debug scanning replaces error prone version in which fields
+were defined, assigned and named in separate places with a single call that
+defines a name/value pair.
