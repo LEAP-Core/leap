@@ -17,11 +17,19 @@
 //
 
 
-module [CONNECTED_MODULE] mkDebugScanService#(DEBUG_SCAN_DEVICE debugScan)
+`include "awb/rrr/server_stub_DEBUG_SCAN.bsh"
+`include "awb/rrr/client_stub_DEBUG_SCAN.bsh"
+
+
+module [CONNECTED_MODULE] mkDebugScanService
     // interface:
     ();
 
     // ****** State Elements ******
+
+    // Communication to/from our SW via RRR
+    ClientStub_DEBUG_SCAN clientStub <- mkClientStub_DEBUG_SCAN();
+    ServerStub_DEBUG_SCAN serverStub <- mkServerStub_DEBUG_SCAN();
 
     // Communication link to the Stats themselves
     Connection_Chain#(DEBUG_SCAN_DATA) chain <- mkConnection_Chain(`RINGID_DEBUG_SCAN);
@@ -34,12 +42,20 @@ module [CONNECTED_MODULE] mkDebugScanService#(DEBUG_SCAN_DEVICE debugScan)
     //     Receive a command requesting a scan dump.
     //
     rule processReq (True);
-        let cmd <- debugScan.getCmd();
+        let dummy <- serverStub.acceptRequest_Scan();
 
         // There is only one command:  start a scan
         chain.sendToNext(tagged DS_DUMP);
     endrule
 
+    //
+    // Done fires when software confirms all dump data has been received.
+    // At that point it is safe to return from the Scan() request.
+    //
+    rule done (True);
+        let dummy <- clientStub.getResponse_Done();
+        serverStub.sendResponse_Scan(0);
+    endrule
 
     //
     // processResp --
@@ -53,18 +69,18 @@ module [CONNECTED_MODULE] mkDebugScanService#(DEBUG_SCAN_DEVICE debugScan)
             // A value to dump
             tagged DS_VAL .v:
             begin
-                debugScan.scanValue(v, False);
+                clientStub.makeRequest_Send(v, 0);
             end
 
             tagged DS_VAL_LAST .v:
             begin
-                debugScan.scanValue(v, True);
+                clientStub.makeRequest_Send(v, 1);
             end
 
             // Command came all the way around the loop.  Done dumping.
             tagged DS_DUMP:
             begin
-                debugScan.finishCmd(DEBUG_SCAN_CMD_DOSCAN);
+                clientStub.makeRequest_Done(?);
             end
         endcase
     endrule

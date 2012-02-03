@@ -32,17 +32,17 @@
 
 #include "awb/rrr/service_ids.h"
 
-#include "awb/provides/debug_scan_device.h"
+#include "awb/provides/debug_scan_service.h"
 
 using namespace std;
 
 // ===== service instantiation =====
-DEBUG_SCAN_DEVICE_SERVER_CLASS DEBUG_SCAN_DEVICE_SERVER_CLASS::instance;
+DEBUG_SCAN_SERVER_CLASS DEBUG_SCAN_SERVER_CLASS::instance;
 
 // ===== methods =====
 
 // constructor
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DEBUG_SCAN_DEVICE_SERVER_CLASS() :
+DEBUG_SCAN_SERVER_CLASS::DEBUG_SCAN_SERVER_CLASS() :
     of(stdout),
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
@@ -52,7 +52,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DEBUG_SCAN_DEVICE_SERVER_CLASS() :
 
 
 // destructor
-DEBUG_SCAN_DEVICE_SERVER_CLASS::~DEBUG_SCAN_DEVICE_SERVER_CLASS()
+DEBUG_SCAN_SERVER_CLASS::~DEBUG_SCAN_SERVER_CLASS()
 {
     Cleanup();
 }
@@ -60,7 +60,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::~DEBUG_SCAN_DEVICE_SERVER_CLASS()
 
 // init
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::Init(
+DEBUG_SCAN_SERVER_CLASS::Init(
     PLATFORMS_MODULE p)
 {
     // set parent pointer
@@ -70,7 +70,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Init(
 
 // uninit: we have to write this explicitly
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::Uninit()
+DEBUG_SCAN_SERVER_CLASS::Uninit()
 {
     Cleanup();
 
@@ -80,7 +80,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Uninit()
 
 // cleanup
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::Cleanup()
+DEBUG_SCAN_SERVER_CLASS::Cleanup()
 {
     // kill stubs
     delete serverStub;
@@ -98,7 +98,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Cleanup()
 //     return control and proceed.
 //
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::Scan()
+DEBUG_SCAN_SERVER_CLASS::Scan()
 {
     fprintf(of, "\nDEBUG SCAN:\n");
 
@@ -111,7 +111,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Scan()
 //     Receive a debug scan packet.
 //
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::Send(UINT8 value, UINT8 eom)
+DEBUG_SCAN_SERVER_CLASS::Send(UINT8 value, UINT8 eom)
 {
     msg.Put(value);
     
@@ -129,7 +129,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::Send(UINT8 value, UINT8 eom)
 //     Print a message for a given scan message.
 //
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsg()
+DEBUG_SCAN_SERVER_CLASS::DisplayMsg()
 {
     GLOBAL_STRING_UID tag_uid = msg.Get(GLOBAL_STRING_UID_SZ);
     const string* tag = GLOBAL_STRINGS::Lookup(tag_uid);
@@ -163,7 +163,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsg()
 
 
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSoftConnection(
+DEBUG_SCAN_SERVER_CLASS::DisplayMsgSoftConnection(
     GLOBAL_STRING_UID tagID,
     int numConnections)
 {
@@ -192,7 +192,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgSoftConnection(
 
 
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgRaw(
+DEBUG_SCAN_SERVER_CLASS::DisplayMsgRaw(
     GLOBAL_STRING_UID tagID,
     const char *tag)
 {
@@ -242,7 +242,7 @@ DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgRaw(
 
 
 void
-DEBUG_SCAN_DEVICE_SERVER_CLASS::DisplayMsgFormatted(
+DEBUG_SCAN_SERVER_CLASS::DisplayMsgFormatted(
     GLOBAL_STRING_UID tagID,
     const char *tag)
 {

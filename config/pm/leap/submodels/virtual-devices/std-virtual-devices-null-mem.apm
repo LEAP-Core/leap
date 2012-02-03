@@ -25,7 +25,6 @@ stats_device=Stats Device
 dynamic_parameters_device=Dynamic Parameters Device
 streams_device=Hybrid Streams Device
 assertions_device=Assertions Device
-debug_scan_device=Debug Scan Device
 
 [Base Common Devices]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-devices.awb
@@ -47,9 +46,6 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/common/stats-device/stats-device.awb
 Packagehint=leap
 
-[Debug Scan Device]
-File=modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device/debug-scan-device.awb
-Packagehint=leap
 
 [Standard Virtual Devices (No Memory Service)/Requires]
 starter_device=Starter Virtual Device
@@ -59,7 +55,6 @@ front_panel=Hybrid Front Panel
 [Standard Virtual Devices (No Memory Service)]
 File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-virtual-devices-null-mem.awb
 Packagehint=leap
-
 
 [Hybrid Front Panel]
 File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid/hybrid-fp.awb

@@ -11430,3 +11430,46 @@ Directory modules/leap/libraries/soft-services/services/soft-connections/debug
  connections-debug.bsv     Locally Modified          240 
 
 Use the standard interface for soft connection state debug scan.
+
+----------
+mcadler     Date: Fri Feb  3 13:58:16 EST 2012  CSN: CSN-leap-242
+                  Fri Feb  3 18:58:16 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-605d-syn.apm Locally Modified          241 
+ fpgaenv-hybrid-605d-xst.apm Locally Modified          241 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          241 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          241 
+ xup-virtual-devices.apm   Locally Modified          241 
+ std-virtual-devices-null-mem.apm Locally Modified          241 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.awb Locally Modified          241 
+ common-utility-devices.bsv Locally Modified          241 
+ debug-scan-device/        Locally Removed           241 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device
+ debug-scan-device.cpp     Locally Removed           241 
+ debug-scan-device.rrr     Locally Removed           241 
+ debug-scan-device.h       Locally Removed           241 
+ README                    Locally Removed           241 
+ debug-scan-device.awb     Locally Removed           241 
+ debug-scan-device.bsv     Locally Removed           241 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsv Locally Modified          241 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          241 
+ debug-scan-service.bsh    Locally Removed           241 
+ debug-scan-service.cpp    Locally Added               - 
+ debug-scan-service.rrr    Locally Added               - 
+ debug-scan-service.h      Locally Added               - 
+ README                    Locally Modified          241 
+ debug-scan-service.awb    Locally Modified          241 
+
+Drop the debug scan device, moving the device/RRR code to the service.
+Made possible by allowing soft connections in the platform.

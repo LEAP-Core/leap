@@ -3,28 +3,16 @@ Debug Scan Service
 This service wraps the Debug Scan Virtual Device in Soft Connections.
 
 Connection Chains are used so that there can be many different modules
-connected to the device efficiently. Modules with relevant state should
-register using a LEAP dictionary:
+connected to the device efficiently.
 
-def DEBUG_SCAN.FETCH.PROGRAM_COUNTER "Fetch: Program Counter";
-def DEBUG_SCAN.FETCH.EPOCH "Fetch: Current Epoch";
+Sets of values to scan are collected in DEBUG_SCAN_FIELD_LISTs by
+adding them with module addDebugScanField.  For example:
 
-The state should then be fed into a Wire of the approriate type. This allows
-the user to perform combinational logic on the type (or concatenate many small
-registers together).
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+    dbg_list <- addDebugScanField(dbg_list, "Read state", readState);
+    dbg_list <- addDebugScanMaybeField(dbg_list, "Token", tok);
+    ...
 
-Wire#(ADDRESS)  pcVal <- mkWire();
-Wire#(EPOCH) epochVal <- mkWire();
+The list of fields must then be attached to a scan node:
 
-rule updateDebug (True);
-
-    pcVal <= pcReg;
-    epcohVal <= epochVal ? epochInitialized : 0;
-
-endrule
-
-The wire is then passed to the constructor to the DebugScan node, along with
-the LEAP dictionary identifier:
-
-let debugPC <- mkDebugScanNode(pcVal);
-let debugEpoch <- mkDebugScanNode(epochVal);
+    let dbgNode <- mkDebugScanNode("My module's state", dbg_list);

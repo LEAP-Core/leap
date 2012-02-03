@@ -22,7 +22,6 @@
 
 `include "awb/provides/streams_device.bsh"
 `include "awb/provides/dynamic_parameters_device.bsh"
-`include "awb/provides/debug_scan_device.bsh"
 `include "awb/provides/assertions_device.bsh"
 `include "awb/provides/stats_device.bsh"
 
@@ -32,7 +31,6 @@ interface COMMON_UTILITY_DEVICES;
 
     interface STREAMS streams;
     interface DYNAMIC_PARAMETERS dynamicParameters;
-    interface DEBUG_SCAN_DEVICE debugScan;
     interface ASSERTIONS assertions;
     interface STATS stats;
 
@@ -50,7 +48,6 @@ module mkCommonUtilityDevices#(LowLevelPlatformInterface llpi)
 
     STREAMS str = ?;
     DYNAMIC_PARAMETERS dp = ?;
-    DEBUG_SCAN_DEVICE db = ?;
     ASSERTIONS as = ?;
     STATS st = ?;
 
@@ -68,14 +65,12 @@ module mkCommonUtilityDevices#(LowLevelPlatformInterface llpi)
         //
         str <- mkStreamsDevice(llpi);
         dp  <- mkDynamicParametersDevice(llpi);
-        db  <- mkDebugScanDevice(llpi);
         as  <- mkAssertionsDevice(llpi);
         st  <- mkStatsDevice(llpi);
     end
 
     interface streams = str;
     interface dynamicParameters = dp;
-    interface debugScan = db;
     interface assertions = as;
     interface stats = st;
 

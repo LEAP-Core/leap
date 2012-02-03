@@ -14,7 +14,7 @@ module [CONNECTED_MODULE] mkCommonServices#(VIRTUAL_DEVICES vdevs)
     let com = vdevs.commonUtilities;
 
     let assertionsService <- mkAssertionsService(com.assertions);
-    let debugScanService  <- mkDebugScanService(com.debugScan);
+    let debugScanService  <- mkDebugScanService();
     let paramsService     <- mkDynamicParametersService(com.dynamicParameters);
     let statsService      <- mkStatsService(com.stats);
     let streamsService    <- mkStreamsService(com.streams);

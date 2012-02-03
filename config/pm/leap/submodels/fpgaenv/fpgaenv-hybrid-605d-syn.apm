@@ -80,9 +80,6 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
 Packagehint=leap
 
-[Debug Scan Device]
-File=modules/leap/virtual-platform/virtual-devices/devices/common/debug-scan-device/debug-scan-device.awb
-Packagehint=leap
 
 [Dynamic Parameters Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device/dynamic-parameters-device.awb
@@ -93,7 +90,6 @@ stats_device=Stats Device
 dynamic_parameters_device=Dynamic Parameters Device
 streams_device=Hybrid Streams Device
 assertions_device=Assertions Device
-debug_scan_device=Debug Scan Device
 
 [Stats Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/stats-device/stats-device.awb

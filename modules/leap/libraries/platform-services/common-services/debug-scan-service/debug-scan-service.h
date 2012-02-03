@@ -16,8 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#ifndef _DEBUG_SCAN_DEVICE_
-#define _DEBUG_SCAN_DEVICE_
+#ifndef _DEBUG_SCAN_SERVICE_
+#define _DEBUG_SCAN_SERVICE_
 
 #include <bitset>
 
@@ -31,8 +31,8 @@
 // Manage debug scan chain coming from the hardware.
 //
 
-typedef class DEBUG_SCAN_DEVICE_SERVER_CLASS* DEBUG_SCAN_DEVICE_SERVER;
-typedef class DEBUG_SCAN_DEVICE_SERVER_CLASS* DEBUG_SCAN_SERVER;
+typedef class DEBUG_SCAN_SERVER_CLASS* DEBUG_SCAN_SERVER;
+typedef class DEBUG_SCAN_SERVER_CLASS* DEBUG_SCAN_SERVER;
 
 
 //
@@ -71,12 +71,12 @@ class DEBUG_SCAN_DATA_CLASS
 };
 
 
-class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
+class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
                                public PLATFORMS_MODULE_CLASS
 {
   private:
     // self-instantiation
-    static DEBUG_SCAN_DEVICE_SERVER_CLASS instance;
+    static DEBUG_SCAN_SERVER_CLASS instance;
 
     // stubs
     RRR_SERVER_STUB serverStub;
@@ -92,11 +92,11 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     FILE *of;
 
   public:
-    DEBUG_SCAN_DEVICE_SERVER_CLASS();
-    ~DEBUG_SCAN_DEVICE_SERVER_CLASS();
+    DEBUG_SCAN_SERVER_CLASS();
+    ~DEBUG_SCAN_SERVER_CLASS();
 
     // static methods
-    static DEBUG_SCAN_DEVICE_SERVER GetInstance() { return &instance; }
+    static DEBUG_SCAN_SERVER GetInstance() { return &instance; }
 
     // required RRR methods
     void Init(PLATFORMS_MODULE);
@@ -117,7 +117,7 @@ class DEBUG_SCAN_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 #include "awb/rrr/server_stub_DEBUG_SCAN.h"
 
 // all functionalities of the debug scan are completely implemented
-// by the DEBUG_SCAN_DEVICE_SERVER class
-typedef DEBUG_SCAN_DEVICE_SERVER_CLASS DEBUG_SCAN_DEVICE_CLASS;
+// by the DEBUG_SCAN_SERVER class
+typedef DEBUG_SCAN_SERVER_CLASS DEBUG_SCAN_CLASS;
 
 #endif
