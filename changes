@@ -11473,3 +11473,87 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
 
 Drop the debug scan device, moving the device/RRR code to the service.
 Made possible by allowing soft connections in the platform.
+
+----------
+mcadler     Date: Tue Feb  7 13:06:20 EST 2012  CSN: CSN-leap-243
+                  Tue Feb  7 18:06:20 UTC 2012
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_arriaII.apm  Locally Modified          242 
+ hello_hybrid_exe.apm      Locally Modified          242 
+ hello_hybrid_htg.apm      Locally Modified          242 
+ hello_hybrid_acp.apm      Locally Modified          242 
+ hello_hybrid_cyloneIII.apm Locally Modified          242 
+ hello_hybrid_ml605d_xst.apm Locally Modified          242 
+ hello_hybrid_xupV5.apm    Locally Modified          242 
+ hello_hybrid_de2.apm      Locally Modified          242 
+ hello_hybrid_de3.apm      Locally Modified          242 
+ hello_hybrid_xup2.apm     Locally Modified          242 
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          242 
+ standard-platform-local-mem.apm Locally Modified          242 
+ standard-platform-null-mem.apm Locally Modified          242 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          242 
+
+Directory modules/leap/libraries/librl/base
+ lists.bsv                 Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          242 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ starter-service.bsv       Locally Modified          242 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.awb Locally Modified          242 
+ common-services-standard.bsv Locally Modified          242 
+ stdio-service/            Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service-null.awb    Locally Added               0 
+ stdio-service.cpp         Locally Added               0 
+ stdio-local.bsv           Locally Added               0 
+ stdio-service.rrr         Locally Added               0 
+ stdio-service.h           Locally Added               0 
+ stdio-service.awb         Locally Added               0 
+ stdio-service.bsv         Locally Added               0 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsh Locally Modified          242 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.h      Locally Modified          242 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard-null.awb Locally Modified          242 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.awb        Locally Modified          242 
+ global-strings.bsv        Locally Modified          242 
+ global-strings.cpp        Locally Modified          242 
+ global-strings.h          Locally Modified          242 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ addressable-ring.bsv      Locally Modified          242 
+ connection-helper.bsv     Locally Modified          242 
+
+Directory modules/leap/examples/hello-world
+ hello-world.awb           Locally Modified          242 
+ hello-world.bsv           Locally Modified          242 
+ hello-world.cpp           Locally Modified          242 
+ hello-world.h             Locally Modified          242 
+
+- Skeleton of STDIO service, including support for printf.
+  - Client instantiates a STDIO node configured for either 8, 16, 32 or 64 bit
+    operation.  (To use %s in printf only 32 and 64 bit are supported.)
+  - Passing %s in the format string works.  The software side detects string
+    references and converts global string argument UIDs to string pointers.
+
+- Switch to STDIO instead of STREAMS in the hello world example.
+
+- Addressable rings can now self configure, assigning node IDs dyamically.
+
+- Support newline in global strings.

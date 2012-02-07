@@ -7,6 +7,7 @@
 %requires debug_scan_service
 %requires dynamic_parameters_service 
 %requires stats_service
+%requires stdio_service
 %requires streams_service
 
 %attributes hybrid connected

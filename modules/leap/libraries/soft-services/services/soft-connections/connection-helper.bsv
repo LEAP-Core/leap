@@ -228,7 +228,8 @@ endmodule
 
 module printGlobString#(GLOBAL_STRING_TABLE str) (Empty);
   let id = tpl_2(str).uid;
-  messageM("GlobStr: " + integerToString(id) + "," + tpl_1(str));
+  // Tag the end of the string with a marker so newlines can be detected
+  messageM("GlobStr: " + integerToString(id) + "," + tpl_1(str) + "X!gLb!X");
 endmodule
 
 module printGlobStrings#(List#(GLOBAL_STRING_TABLE) strs) (Empty);

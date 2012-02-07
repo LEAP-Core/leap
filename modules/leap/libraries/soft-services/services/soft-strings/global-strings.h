@@ -37,6 +37,15 @@ using namespace std;
 
 #define GLOBAL_STRING_UID_SZ (GLOBAL_STRING_PLATFORM_UID_SZ + GLOBAL_STRING_SYNTH_UID_SZ + GLOBAL_STRING_LOCAL_UID_SZ)
 
+//
+// GLOBAL_STRING_UID_SZ is expected to be exactly 32 bits, both to guarantee
+// compatibility between host and FPGA and to guarantee a size for service
+// interfaces using strings (e.g. STDIO).
+//
+#if (GLOBAL_STRING_UID_SZ != 32)
+#error "GLOBAL_STRING_UID size must be 32 bits!"
+#endif
+
 typedef UINT32 GLOBAL_STRING_UID;
 
 

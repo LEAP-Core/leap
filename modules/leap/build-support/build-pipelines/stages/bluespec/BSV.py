@@ -86,7 +86,7 @@ class BSV():
         all_logs.extend(module.moduleDependency['BSV_LOG'])
       str = moduleList.env.Command(TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
                                    all_logs,
-                                   [ 'grep GlobStr: $SOURCES | sed -e "s/.*GlobStr: //" > $TARGET',
+                                   [ self.gen_global_string_table,
                                      '@ln -fs $TARGET ' + moduleList.env['DEFS']['APM_NAME'] + '.str' ])
       moduleList.topModule.moduleDependency['STR'] += [str]
       moduleList.topDependency += [str]
@@ -436,3 +436,46 @@ class BSV():
       except ValueError:
         pass
     return string.join(t, sep)
+
+
+  ##
+  ## gen_global_string_table --
+  ##   Used as a build rule to parse Bluespec log files, looking for messages
+  ##   emitted by the compiler defining global strings.
+  ##
+  def gen_global_string_table(self, target, source, env):
+    str_file = open(str(target[0]), 'w')
+
+    for src in source:
+      log_file = open(str(src), 'r')
+
+      ##
+      ## Global strings begin with the tag "GlobStr:" and end with the tag
+      ## "X!gLb!X".  The end tag permits strings to have newlines.
+      ##
+      multi_line = False
+      for full_line in log_file:
+        if not multi_line:
+          # Look for the start of a new string
+          if (re.search(r'GlobStr', full_line)):
+            line = re.sub(r'.* GlobStr: ', '', full_line)
+            
+            # Single line string?
+            if (re.search(r'X!gLb!X$', line.rstrip())):
+              line = line.rstrip() + '\n'
+            else:
+              multi_line = True
+
+            str_file.write(line);
+
+        else:
+          # Continuation of a multi-line string
+          line = full_line
+          if (re.search(r'X!gLb!X$', line.rstrip())):
+            line = line.rstrip() + '\n'
+            multi_line = False
+          str_file.write(line);
+
+      log_file.close()
+
+    str_file.close()

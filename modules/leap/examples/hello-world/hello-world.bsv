@@ -16,14 +16,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import Vector::*;
+import List::*;
+
 `include "awb/provides/virtual_platform.bsh"
 `include "awb/provides/virtual_devices.bsh"
-`include "awb/provides/common_utility_devices.bsh"
-`include "awb/provides/streams_device.bsh"
-`include "awb/provides/starter_device.bsh"
+`include "awb/provides/common_services.bsh"
+`include "awb/provides/librl_bsv.bsh"
 
-`include "awb/dict/STREAMID.bsh"
-`include "awb/dict/STREAMS.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
 
 typedef enum 
 {
@@ -35,46 +39,42 @@ typedef enum
 STATE deriving (Bits, Eq);
 
 
-module mkApplication#(VIRTUAL_PLATFORM virtualPlatform)();
+module [CONNECTED_MODULE] mkConnectedApplication ();
 
-    STARTER starter = virtualPlatform.virtualDevices.starter;
+    Connection_Receive#(Bool) linkStarterStartRun <- mkConnectionRecv("vdev_starter_start_run");
+    Connection_Send#(Bit#(8)) linkStarterFinishRun <- mkConnectionSend("vdev_starter_finish_run");
 
-    STREAMS streams = virtualPlatform.virtualDevices.commonUtilities.streams;
-    
+    STDIO#(Bit#(32)) stdio <- mkStdIO();
 
     Reg#(STATE) state <- mkReg(STATE_start);
 
+    let msg <- getGlobalStringUID("Hello, World! This is hardware speaking.\n");
+
     rule start (state == STATE_start);
     
-       starter.acceptRequest_Start();
-
-       state <= STATE_say_hello;
+        linkStarterStartRun.deq();
+        state <= STATE_say_hello;
 
     endrule
 
     rule hello (state == STATE_say_hello);
   
-       streams.makeRequest(`STREAMID_MESSAGE,
-                           `STREAMS_MESSAGE_HELLO,
-                           ?,
-                           ?);
-
-       state <= STATE_exit;
+        stdio.printf(msg, List::nil);
+        state <= STATE_exit;
 
     endrule
 
 
     rule exit (state == STATE_exit);
     
-       starter.makeRequest_End(0);
-
-       state <= STATE_finish;
+        linkStarterFinishRun.send(0);
+        state <= STATE_finish;
 
     endrule
 
 
     rule finish (state == STATE_finish);
-       noAction;
+        noAction;
     endrule
 
 endmodule

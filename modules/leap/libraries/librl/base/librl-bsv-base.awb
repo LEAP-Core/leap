@@ -17,6 +17,7 @@
 %public fifo-merge.bsv
 %public hash-bits.bsv
 %public lfsr.bsv
+%public lists.bsv
 %public local-arbiters.bsv
 %public memory-interface.bsv
 %public memory-mapping.bsv

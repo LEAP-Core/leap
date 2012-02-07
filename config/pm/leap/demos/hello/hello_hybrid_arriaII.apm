@@ -16,12 +16,7 @@ RootProvides=model
 DefaultAttributes=hello unconnected hybrid project xup
 model=HW/SW Hybrid Pipeline Build
 
-[Base Hybrid Application Environment]
-File=modules/leap/build-support/project/application-env/base/application-env-hybrid-base.awb
-Packagehint=leap
 
-[Base Hybrid Application Environment/Requires]
-hybrid_application=Hello World
 
 [Hello World]
 File=modules/leap/examples/hello-world/hello-world.awb
@@ -34,13 +29,19 @@ Packagehint=leap
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities
 fpgaenv=Hybrid evaluation-arriaII-JTAG FPGA Environment
-application_env=Base Hybrid Application Environment
+application_env=Soft Services Hybrid Application Environment
 
 [Hybrid evaluation-arriaII-JTAG FPGA Environment]
 File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-evaluation-arriaII-jtag.apm
 Packagehint=leap
 
-
 [Default Hybrid Project Common Utilities]
 File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
+
+[Soft Services Hybrid Application Environment]
+File=modules/leap/build-support/project/application-env/soft-services/application-env-hybrid-soft-service.awb
+Packagehint=leap
+
+[Soft Services Hybrid Application Environment/Requires]
+connected_application=Hello World

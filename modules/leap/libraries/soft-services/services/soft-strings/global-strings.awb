@@ -11,11 +11,9 @@
 %public global-strings.h
 %private global-strings.cpp
 
+##
+## The sum of the sizes below must be 32 bits!
+##
 %param GLOBAL_STRING_PLATFORM_UID_SZ   6    "Number of bits for storing the platform UID"
 %param GLOBAL_STRING_SYNTH_UID_SZ      10   "Number of bits for storing the synthesis boundary UID"
-
-## Use 14 bits for the local UID to optimize soft connection debug scan messages.
-## These messages need 2 bits for the notFull/notEmpty data.  The size here
-## could be changed if more than 16K strings are needed per synthesis boundary
-## at the expense of message size when transmitting global string UIDs.
-%param GLOBAL_STRING_LOCAL_UID_SZ      14   "Number of bits for storing the local UID"
+%param GLOBAL_STRING_LOCAL_UID_SZ      16   "Number of bits for storing the local UID"

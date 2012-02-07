@@ -7,15 +7,14 @@
 %name Hello World
 %desc Hello World
 
-%attributes hello unconnected hybrid
+%attributes hello hybrid
 
-%provides hybrid_application
+%provides connected_application
 
 %notes README 
 
 %sources -t BSV  -v PUBLIC  hello-world.bsv
 %sources -t H    -v PUBLIC  hello-world.h
 %sources -t CPP  -v PRIVATE hello-world.cpp
-%sources -t DICT -v PUBLIC  hello-world.dic
 
 %AWB_END

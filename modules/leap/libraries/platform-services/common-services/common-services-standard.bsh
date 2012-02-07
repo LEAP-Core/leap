@@ -2,4 +2,5 @@
 `include "awb/provides/debug_scan_service.bsh"
 `include "awb/provides/dynamic_parameters_service.bsh"
 `include "awb/provides/stats_service.bsh"
+`include "awb/provides/stdio_service.bsh"
 `include "awb/provides/streams_service.bsh"

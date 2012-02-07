@@ -23,19 +23,19 @@
 // @author Angshuman Parashar
 //
 
-#ifndef __HYBRID_APPLICATION__
-#define __HYBRID_APPLICATION__
+#ifndef __CONNECTED_APPLICATION__
+#define __CONNECTED_APPLICATION__
 
 #include <iostream>
 
 #include "awb/provides/virtual_platform.h"
 
-typedef class HYBRID_APPLICATION_CLASS* HYBRID_APPLICATION;
-class HYBRID_APPLICATION_CLASS
+typedef class CONNECTED_APPLICATION_CLASS* CONNECTED_APPLICATION;
+class CONNECTED_APPLICATION_CLASS
 {
   public:
-    HYBRID_APPLICATION_CLASS(VIRTUAL_PLATFORM vp);
-    ~HYBRID_APPLICATION_CLASS();
+    CONNECTED_APPLICATION_CLASS(VIRTUAL_PLATFORM vp);
+    ~CONNECTED_APPLICATION_CLASS();
 
     // methods called by the application environment
     void Init();

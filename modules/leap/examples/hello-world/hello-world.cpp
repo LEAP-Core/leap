@@ -23,30 +23,30 @@
 // @author Angshuman Parashar
 //
 
-#include "awb/provides/hybrid_application.h"
+#include "awb/provides/connected_application.h"
 
 using namespace std;
 
 // constructor
-HYBRID_APPLICATION_CLASS::HYBRID_APPLICATION_CLASS(VIRTUAL_PLATFORM vp)
+CONNECTED_APPLICATION_CLASS::CONNECTED_APPLICATION_CLASS(VIRTUAL_PLATFORM vp)
 {
 }
 
 // destructor
-HYBRID_APPLICATION_CLASS::~HYBRID_APPLICATION_CLASS()
+CONNECTED_APPLICATION_CLASS::~CONNECTED_APPLICATION_CLASS()
 {
 }
 
 // init
 void
-HYBRID_APPLICATION_CLASS::Init()
+CONNECTED_APPLICATION_CLASS::Init()
 {
     return;
 }
 
 // main
 void
-HYBRID_APPLICATION_CLASS::Main()
+CONNECTED_APPLICATION_CLASS::Main()
 {
     // Print a message
     cout << "Hello, World! This is software speaking." << endl;

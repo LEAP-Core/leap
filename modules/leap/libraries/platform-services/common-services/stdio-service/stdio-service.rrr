@@ -1,0 +1,7 @@
+service STDIO
+{
+    server sw (cpp, method) <- hw (bsv, connection)
+    {
+        method Req(in UINT32[32] value, in UINT8[8] eom);
+    };
+};

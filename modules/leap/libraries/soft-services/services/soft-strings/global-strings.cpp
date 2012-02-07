@@ -97,11 +97,30 @@ GLOBAL_STRINGS::ProcessSwitchString(const char *db)
         char buf[1024];
         if (fgets(buf, sizeof(buf), f) != NULL)
         {
-            // Drop newline
-            int end_idx = strlen(buf) - 1;
-            if (end_idx >= 0 && buf[end_idx] == '\n') buf[end_idx] = 0;
+            // String continues, potentially across multiple lines, until seeing
+            // the X!gLb!X end marker.
+            string str = buf;
+            bool done = false;
+            do
+            {
+                size_t tag = str.rfind("X!gLb!X");
+                if (tag != string::npos)
+                {
+                    str.erase(str.begin() + tag, str.end());
+                    done = true;
+                }
+                else
+                {
+                    if (fgets(buf, sizeof(buf), f) == NULL)
+                    {
+                        done = true;
+                    }
+                    str.append(buf);
+                }
+            }
+            while (! done);
 
-            AddString(uid, buf);
+            AddString(uid, str);
         }
     }
 

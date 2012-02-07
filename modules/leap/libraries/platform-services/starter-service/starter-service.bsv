@@ -18,7 +18,15 @@ module [CONNECTED_MODULE] mkStarterService#(VIRTUAL_DEVICES vdevs)
     // ====================================================================
 
 
+    Connection_Send#(Bool) linkStarterStartRun <- mkConnectionSendOptional("vdev_starter_start_run");
     Connection_Receive#(Bit#(8)) linkStarterFinishRun <- mkConnectionRecvOptional("vdev_starter_finish_run");
+
+    rule sendStarterStartRun (True);
+        
+        starter.acceptRequest_Start();
+        linkStarterStartRun.send(?);
+        
+    endrule
 
     rule sendStarterFinishRun (True);
         
