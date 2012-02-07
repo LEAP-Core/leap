@@ -19,6 +19,8 @@
 #ifndef _STDIO_SERVICE_
 #define _STDIO_SERVICE_
 
+#include <stdio.h>
+
 #include "asim/syntax.h"
 #include "asim/trace.h"
 #include "asim/regexobj.h"
@@ -27,9 +29,43 @@
 #include "awb/provides/rrr.h"
 #include "awb/provides/soft_services_deps.h"
 
-//#include "awb/rrr/client_stub_STDIO.h"
+#include "awb/rrr/client_stub_STDIO.h"
 
 typedef class STDIO_SERVER_CLASS* STDIO_SERVER;
+
+//
+// Commands must match the corresponding enum in stdio-local.bsv!
+//
+enum STDIO_REQ_COMMAND
+{
+    STDIO_REQ_FPRINTF,
+    STDIO_REQ_SYNC
+};
+
+enum STDIO_RSP_OP
+{
+    STDIO_RSP_SYNC
+};
+
+typedef UINT8 STDIO_CLIENT_ID;
+
+
+//
+// Header sent with requests from hardware.  The sizes here do NOT match the
+// hardware buffer.
+//
+typedef struct
+{
+    GLOBAL_STRING_UID text;
+    UINT8 numData;                  // Number of elmenets in data vector
+    UINT8 dataSize;                 // Size of data elements (0:1 byte, 1:2 bytes, 2:4 bytes, 4:8 bytes)
+    STDIO_CLIENT_ID clientID;       // Ring stop ID for responses
+    UINT8 fileHandle;               // Index into file table
+    STDIO_REQ_COMMAND command;
+    
+}
+STDIO_REQ_HEADER;
+
 
 class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
                           public PLATFORMS_MODULE_CLASS
@@ -41,11 +77,16 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     UINT32 reqBuffer[16];
     int reqBufferWriteIdx;
 
-    void Req_printf();
+    // Map hardware file IDs to software files
+    FILE* fileTable[256];
+    FILE* getFile(UINT8 idx);
+
+    void Req_fprintf(const STDIO_REQ_HEADER &req, const UINT32 *data);
+    void Req_sync(const STDIO_REQ_HEADER &req);
 
     // stubs
     RRR_SERVER_STUB serverStub;
-//    STDIO_CLIENT_STUB clientStub;
+    STDIO_CLIENT_STUB clientStub;
 
   public:
     STDIO_SERVER_CLASS();

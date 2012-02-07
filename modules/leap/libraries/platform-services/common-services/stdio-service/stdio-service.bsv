@@ -22,7 +22,7 @@
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv.bsh"
 
-//`include "awb/rrr/server_stub_STDIO.bsh"
+`include "awb/rrr/server_stub_STDIO.bsh"
 `include "awb/rrr/client_stub_STDIO.bsh"
 
 
@@ -34,7 +34,7 @@ module [CONNECTED_MODULE] mkStdIOService
 
     // Communication to/from our SW via RRR
     ClientStub_STDIO clientStub <- mkClientStub_STDIO();
-//    ServerStub_STDIO serverStub <- mkServerStub_STDIO();
+    ServerStub_STDIO serverStub <- mkServerStub_STDIO();
 
     // Request ring.  All requests are handled by the service.
     CONNECTION_CHAIN#(Tuple2#(STDIO_REQ_RING_CHUNK, Bool)) reqChain <-
@@ -50,10 +50,20 @@ module [CONNECTED_MODULE] mkStdIOService
     //
     // processReq --
     //
-    //    Process a response from an individual scan node.
+    //    Process a request from an individual scan node.
     //  
     rule processReq (True);
         match {.chunk, .eom} <- reqChain.recvFromPrev();
         clientStub.makeRequest_Req(chunk, zeroExtend(pack(eom)));
+    endrule
+
+    //
+    // processRsp --
+    //
+    //     Process a response from software.
+    //
+    rule processRsp (True);
+        let rsp <- serverStub.acceptRequest_Rsp();
+        rspChain.enq(rsp.tgtNode, unpack(rsp.value));
     endrule
 endmodule

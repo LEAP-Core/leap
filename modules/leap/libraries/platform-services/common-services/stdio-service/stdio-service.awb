@@ -12,5 +12,3 @@
 %public stdio-service.h
 %public stdio-service.cpp
 %public stdio-service.rrr 
-
-%param STDIO_MAX_CLIENTS  128  "Maximum number of clients of the standard I/O service."

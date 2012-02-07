@@ -35,9 +35,14 @@ STDIO_SERVER_CLASS STDIO_SERVER_CLASS::instance;
 STDIO_SERVER_CLASS::STDIO_SERVER_CLASS() :
     reqBufferWriteIdx(0),
     // instantiate stubs
-//    clientStub(new STDIO_CLIENT_STUB_CLASS(this)),
+    clientStub(new STDIO_CLIENT_STUB_CLASS(this)),
     serverStub(new STDIO_SERVER_STUB_CLASS(this))
 {
+    memset(fileTable, 0, sizeof(fileTable));
+
+    fileTable[0] = stdout;
+    fileTable[1] = stdin;
+    fileTable[2] = stderr;
 }
 
 
@@ -74,7 +79,21 @@ STDIO_SERVER_CLASS::Cleanup()
 {
     // kill stubs
     delete serverStub;
-//    delete clientStub;
+    delete clientStub;
+}
+
+
+//
+// getFile --
+//     Convert a hardware file index to system FILE pointer.
+//
+FILE *
+STDIO_SERVER_CLASS::getFile(UINT8 idx)
+{
+    FILE *f = fileTable[idx];
+    VERIFY(f != NULL, "Operation on unopened file handle (" << UINT32(idx) << ")");
+
+    return f;
 }
 
 
@@ -91,51 +110,73 @@ STDIO_SERVER_CLASS::Req(UINT32 chunk, UINT8 eom)
 
     if (eom)
     {
-        Req_printf();
+        VERIFY(reqBufferWriteIdx > 1, "STDIO service received partial request");
+
+        // Decode the header
+        UINT64 header = reqBuffer[0];
+
+        STDIO_REQ_HEADER req;
+        req.command = STDIO_REQ_COMMAND(reqBuffer[0] & 255);
+        req.fileHandle = (header >> 8) & 255;
+        req.clientID = STDIO_CLIENT_ID((reqBuffer[0] >> 16) & 255);
+        req.dataSize = (header >> 24) & 3;
+        req.numData = (header >> 26) & 7;
+        req.text = reqBuffer[1];
+            
+        switch (req.command)
+        {
+          case STDIO_REQ_FPRINTF:
+            Req_fprintf(req, &reqBuffer[2]);
+            break;
+
+          case STDIO_REQ_SYNC:
+            Req_sync(req);
+            break;
+
+          default:
+            ASIMERROR("Undefined STDIO service command (" << UINT32(req.command) << ")");
+            break;
+        }
+
         reqBufferWriteIdx = 0;
     }
 }
 
 
 //
-// Req_printf --
+// Req_fprintf --
 //
 void
-STDIO_SERVER_CLASS::Req_printf()
+STDIO_SERVER_CLASS::Req_fprintf(const STDIO_REQ_HEADER &req, const UINT32 *data)
 {
-    VERIFY(reqBufferWriteIdx > 1, "STDIO service received partial request");
-
-    UINT32 header = reqBuffer[0];
-    const UINT32 data_size = (header >> 16) & 3;
-    const UINT32 num_data = (header >> 18) & 7;
-
-    const string* str = GLOBAL_STRINGS::Lookup(reqBuffer[1]);
+    FILE *ofile = getFile(req.fileHandle);
+    const string* str = GLOBAL_STRINGS::Lookup(req.text);
 
     UINT64 ar[7] = { 0, 0, 0, 0, 0, 0, 0 };
 
-    if (data_size == 0)
+    if (req.dataSize == 0)
     {
         // Bytes
-        UINT8* src = (UINT8*)&reqBuffer[2];
-        for (int i = 0; i < num_data; i++) ar[i] = *src++;
+        UINT8* src = (UINT8*)data;
+        for (int i = 0; i < req.numData; i++) ar[i] = *src++;
     }
-    else if (data_size == 1)
+    else if (req.dataSize == 1)
     {
         // UINT16's
-        UINT16* src = (UINT16*)&reqBuffer[2];
-        for (int i = 0; i < num_data; i++) ar[i] = *src++;
+        UINT16* src = (UINT16*)data;
+        for (int i = 0; i < req.numData; i++) ar[i] = *src++;
     }
-    else if (data_size == 2)
+    else if (req.dataSize == 2)
     {
         // UINT32's
-        UINT32* src = (UINT32*)&reqBuffer[2];
-        for (int i = 0; i < num_data; i++) ar[i] = *src++;
+        UINT32* src = (UINT32*)data;
+        for (int i = 0; i < req.numData; i++) ar[i] = *src++;
     }
     else
     {
         // UINT64's
-        UINT64* src = (UINT64*)&reqBuffer[2];
-        for (int i = 0; i < num_data; i++) ar[i] = *src++;
+        UINT64* src = (UINT64*)data;
+        for (int i = 0; i < req.numData; i++) ar[i] = *src++;
     }
 
     //
@@ -153,7 +194,6 @@ STDIO_SERVER_CLASS::Req_printf()
         {
             // Skip %%
             pos += 1;
-            printf("Skip to %d\n", pos);
         }
         else
         {
@@ -179,5 +219,19 @@ STDIO_SERVER_CLASS::Req_printf()
         fmt_idx += 1;
     }
 
-    printf(str->c_str(), ar[0], ar[1], ar[2], ar[3], ar[4], ar[5], ar[6], ar[7]);
+    fprintf(ofile, str->c_str(), ar[0], ar[1], ar[2], ar[3], ar[4], ar[5], ar[6], ar[7]);
+}
+
+
+//
+// Req_sync --
+//    Both call system sync() and respond to hardware that all commands have
+//    been received.
+//
+void
+STDIO_SERVER_CLASS::Req_sync(const STDIO_REQ_HEADER &req)
+{
+    sync();
+
+    clientStub->Rsp(req.clientID, STDIO_RSP_SYNC);
 }

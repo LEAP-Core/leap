@@ -11557,3 +11557,31 @@ Directory modules/leap/examples/hello-world
 - Addressable rings can now self configure, assigning node IDs dyamically.
 
 - Support newline in global strings.
+
+----------
+mcadler     Date: Tue Feb  7 16:57:54 EST 2012  CSN: CSN-leap-244
+                  Tue Feb  7 21:57:54 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          243 
+ stdio-local.bsv           Locally Modified          243 
+ stdio-service.rrr         Locally Modified          243 
+ stdio-service.h           Locally Modified          243 
+ stdio-service.awb         Locally Modified          243 
+ stdio-service.bsv         Locally Modified          243 
+
+Directory modules/leap/examples/hello-world
+ hello-world.bsv           Locally Modified          243 
+
+- Add sync() request/response to the STDIO interface, enabling a guarantee
+  that all operations are complete.
+
+- Add fprintf().  There isn't a way to open a file yet, so only STDOUT (0)
+  and STDERR (2) are supported.  File handles on the hardware side are 8-bit
+  indices into a table managed by software.
+
+- Restructure software STDIO request processing so header processing is
+  centralized.
+
+- Use sync() in hello world so output is printed before the program exits.

@@ -28,8 +28,17 @@ import List::*;
 //`include "awb/rrr/server_stub_STDIO.bsh"
 //`include "awb/rrr/client_stub_STDIO.bsh"
 
+// FILE handle
+typedef Bit#(8) STDIO_FILE;
+
 interface STDIO#(type t_DATA);
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+    method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+
+    // sync request/response both invokes the sync() system call and guarantees
+    // all previous commands have been received.
+    method Action sync_req();
+    method Action sync_rsp();
 endinterface
 
 // Pick a power of 2!
@@ -37,9 +46,23 @@ typedef Bit#(32) STDIO_REQ_RING_CHUNK;
 
 typedef enum
 {
-    STDIO_REQ_PRINTF
+    STDIO_REQ_FPRINTF,
+    STDIO_REQ_SYNC
 }
 STDIO_REQ_COMMAND
+    deriving (Eq, Bits);
+
+//
+// STDIO_CLIENT_ID is used to identify a particular standard I/O instance on
+// the response ring.
+//
+typedef Bit#(8) STDIO_CLIENT_ID;
+
+typedef enum
+{
+    STDIO_RSP_SYNC
+}
+STDIO_RSP_OP
     deriving (Eq, Bits);
 
 //
@@ -48,10 +71,11 @@ STDIO_REQ_COMMAND
 typedef struct
 {
     GLOBAL_STRING_UID text;
-    Bit#(11) unused;
+    Bit#(3) unused;
     Bit#(3) numData;                // Number of elements in data vector
     Bit#(2) dataSize;               // Size of data elements (1, 2, 4 or 8 bytes)
-    Bit#(8) fileHandle;             // Used only for commands refering to a file
+    STDIO_CLIENT_ID clientID;       // This nodes response ring ID
+    STDIO_FILE fileHandle;          // Used only for commands refering to a file
     Bit#(8) command;                // STDIO_REQ_COMMAND
 }
 STDIO_REQ_HEADER
@@ -71,15 +95,10 @@ STDIO_REQ#(type t_DATA)
 
 typedef struct
 {
+     Bit#(8) operation;             // STDIO_RSP_OP
 }
 STDIO_RSP
     deriving (Eq, Bits);
-
-//
-// STDIO_CLIENT_ID is used to identify a particular standard I/O instance on
-// the response ring.
-//
-typedef Bit#(TLog#(`STDIO_MAX_CLIENTS)) STDIO_CLIENT_ID;
 
 typedef enum
 {
@@ -95,6 +114,12 @@ module [CONNECTED_MODULE] mkStdIO
     (STDIO#(t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ));
     
+    // ====================================================================
+    //
+    //   Response ring -- host to FPGA.
+    //
+    // ====================================================================
+
     // Response ring is addressable, since responses are to specific clients.
     CONNECTION_ADDR_RING#(STDIO_CLIENT_ID, STDIO_RSP) rspChain <-
         mkConnectionAddrRingDynNode("stdio_rsp_ring");
@@ -158,9 +183,14 @@ module [CONNECTED_MODULE] mkStdIO
     //
     // ====================================================================
 
-    method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+    function Action do_fprintf(STDIO_FILE file,
+                               GLOBAL_STRING_UID msgID,
+                               List#(t_DATA) args);
+    action
         STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(STDIO_REQ_PRINTF));
+        header.command = zeroExtend(pack(STDIO_REQ_FPRINTF));
+        header.fileHandle = file;
+        header.clientID = rspChain.nodeID;
         header.dataSize = fromInteger(valueOf(TSub#(TLog#(t_DATA_SZ), 3)));
         header.text = msgID;
         header.numData = fromInteger(List::length(args));
@@ -207,11 +237,39 @@ module [CONNECTED_MODULE] mkStdIO
             errorM("Unsupported number of arguments to STDIO printf.");
         end
 
-        STDIO_REQ#(t_DATA) req = STDIO_REQ { data: data, header: header };
-        mar.enq(req);
+        mar.enq(STDIO_REQ { data: data, header: header });
+    endaction
+    endfunction
+
+    method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+        do_fprintf(0, msgID, args);
+    endmethod
+
+    method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+        do_fprintf(file, msgID, args);
+    endmethod
+
+    method Action sync_req();
+        STDIO_REQ_HEADER header = ?;
+        header.command = zeroExtend(pack(STDIO_REQ_SYNC));
+        header.clientID = rspChain.nodeID;
+        header.numData = 0;
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+    method Action sync_rsp() if (unpack(truncate(rspChain.first().operation)) == STDIO_RSP_SYNC);
+        rspChain.deq();
     endmethod
 endmodule
 
+
+// ========================================================================
+//
+//   Special-purpose marshaller for STDIO reads the request message header
+//   in order to minimize transmission sizes.
+//
+// ========================================================================
 
 interface STDIO_MARSHALLER#(type t_FIFO_DATA, type t_DATA);
     method Action enq(STDIO_REQ#(t_DATA) msg);

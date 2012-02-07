@@ -4,4 +4,9 @@ service STDIO
     {
         method Req(in UINT32[32] value, in UINT8[8] eom);
     };
+
+    server hw (bsv, connection) <- sw (cpp, method)
+    {
+        method Rsp(in UINT8[8] tgtNode, in UINT8[8] value);
+    };
 };
