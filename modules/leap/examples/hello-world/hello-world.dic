@@ -1,3 +1,0 @@
-def STREAMID.MESSAGE "message";
-def STREAMS.MESSAGE.HELLO     "Hello, World! This is hardware speaking.\n";
-

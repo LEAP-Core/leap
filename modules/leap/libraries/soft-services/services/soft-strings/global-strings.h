@@ -54,12 +54,19 @@ class GLOBAL_STRINGS : public COMMAND_SWITCH_STRING_CLASS
   private:
     static unordered_map <GLOBAL_STRING_UID, string> uidToString;
 
+    static void AddString(GLOBAL_STRING_UID uid, const string& str);
+
+    static GLOBAL_STRING_UID nextAllocId;
+
   public:
     GLOBAL_STRINGS();
 
     static const string* Lookup(GLOBAL_STRING_UID uid, bool abortIfUndef = true);
 
-    static void AddString(GLOBAL_STRING_UID uid, const string& str);
+    // Add a string to the table.  A handle will be allocated and returned.
+    static GLOBAL_STRING_UID AddString(const string& str);
+    // Remove a string from the table
+    static void DeleteString(GLOBAL_STRING_UID uid);
 
     // Command line argument for passing the name of a string database.
     void ProcessSwitchString(const char *db);

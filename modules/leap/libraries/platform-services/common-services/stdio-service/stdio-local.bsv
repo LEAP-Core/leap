@@ -32,8 +32,22 @@ import List::*;
 typedef Bit#(8) STDIO_FILE;
 
 interface STDIO#(type t_DATA);
+    method Action fopen_req(GLOBAL_STRING_UID nameID, GLOBAL_STRING_UID modeID);
+    method ActionValue#(STDIO_FILE) fopen_rsp();
+    method Action fclose(STDIO_FILE file);
+    method Action fflush(STDIO_FILE file);
+
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+
+    //
+    // sprintf is a request/response interface, allocating a GLOBAL_STRING_UID
+    // on the host to hold the new string.  The new string remains allocated
+    // until released by a sprintf_delete call.
+    //
+    method Action sprintf_req(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+    method ActionValue#(GLOBAL_STRING_UID) sprintf_rsp();
+    method Action sprintf_delete(GLOBAL_STRING_UID strID);
 
     // sync request/response both invokes the sync() system call and guarantees
     // all previous commands have been received.
@@ -46,7 +60,12 @@ typedef Bit#(32) STDIO_REQ_RING_CHUNK;
 
 typedef enum
 {
+    STDIO_REQ_FCLOSE,
+    STDIO_REQ_FFLUSH,
+    STDIO_REQ_FOPEN,
     STDIO_REQ_FPRINTF,
+    STDIO_REQ_SPRINTF,
+    STDIO_REQ_SPRINTF_DELETE,
     STDIO_REQ_SYNC
 }
 STDIO_REQ_COMMAND
@@ -60,7 +79,9 @@ typedef Bit#(8) STDIO_CLIENT_ID;
 
 typedef enum
 {
-    STDIO_RSP_SYNC
+    STDIO_RSP_FOPEN,
+    STDIO_RSP_SYNC,
+    STDIO_RSP_SPRINTF
 }
 STDIO_RSP_OP
     deriving (Eq, Bits);
@@ -95,7 +116,8 @@ STDIO_REQ#(type t_DATA)
 
 typedef struct
 {
-     Bit#(8) operation;             // STDIO_RSP_OP
+    Bit#(32) data;
+    STDIO_RSP_OP operation;
 }
 STDIO_RSP
     deriving (Eq, Bits);
@@ -112,7 +134,8 @@ STDIO_REQ_STATE
 module [CONNECTED_MODULE] mkStdIO
     // interface:
     (STDIO#(t_DATA))
-    provisos (Bits#(t_DATA, t_DATA_SZ));
+    provisos (Bits#(t_DATA, t_DATA_SZ),
+              Add#(a__, 32, TMul#(7, t_DATA_SZ)));
     
     // ====================================================================
     //
@@ -179,16 +202,17 @@ module [CONNECTED_MODULE] mkStdIO
 
     // ====================================================================
     //
-    //   Methods
+    //   Methods & functions to implement them
     //
     // ====================================================================
 
-    function Action do_fprintf(STDIO_FILE file,
-                               GLOBAL_STRING_UID msgID,
-                               List#(t_DATA) args);
+    function Action do_printf(STDIO_REQ_COMMAND command,
+                              STDIO_FILE file,
+                              GLOBAL_STRING_UID msgID,
+                              List#(t_DATA) args);
     action
         STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(STDIO_REQ_FPRINTF));
+        header.command = zeroExtend(pack(command));
         header.fileHandle = file;
         header.clientID = rspChain.nodeID;
         header.dataSize = fromInteger(valueOf(TSub#(TLog#(t_DATA_SZ), 3)));
@@ -241,12 +265,73 @@ module [CONNECTED_MODULE] mkStdIO
     endaction
     endfunction
 
+
+    method Action fopen_req(GLOBAL_STRING_UID nameID, GLOBAL_STRING_UID modeID);
+        STDIO_REQ_HEADER header = ?;
+        header.command = zeroExtend(pack(STDIO_REQ_FOPEN));
+        header.clientID = rspChain.nodeID;
+        header.text = nameID;
+
+        // Jam the extra 32-bit modeID argument in the data vector
+        Vector#(7, t_DATA) data = unpack({ ?, modeID });
+        header.numData = fromInteger(valueOf(TDiv#(SizeOf#(GLOBAL_STRING_UID),
+                                                   t_DATA_SZ)));
+
+        mar.enq(STDIO_REQ { data: data, header: header });
+    endmethod
+
+    method ActionValue#(STDIO_FILE) fopen_rsp() if (rspChain.first().operation == STDIO_RSP_FOPEN);
+        let file = truncate(rspChain.first().data);
+        rspChain.deq();
+        return file;
+    endmethod
+
+    method Action fclose(STDIO_FILE file);
+        STDIO_REQ_HEADER header = ?;
+        header.command = zeroExtend(pack(STDIO_REQ_FCLOSE));
+        header.clientID = rspChain.nodeID;
+        header.fileHandle = file;
+        header.numData = 0;
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+    method Action fflush(STDIO_FILE file);
+        STDIO_REQ_HEADER header = ?;
+        header.command = zeroExtend(pack(STDIO_REQ_FFLUSH));
+        header.clientID = rspChain.nodeID;
+        header.fileHandle = file;
+        header.numData = 0;
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-        do_fprintf(0, msgID, args);
+        do_printf(STDIO_REQ_FPRINTF, 0, msgID, args);
     endmethod
 
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-        do_fprintf(file, msgID, args);
+        do_printf(STDIO_REQ_FPRINTF, file, msgID, args);
+    endmethod
+
+    method Action sprintf_req(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+        do_printf(STDIO_REQ_SPRINTF, ?, msgID, args);
+    endmethod
+
+    method ActionValue#(GLOBAL_STRING_UID) sprintf_rsp() if (rspChain.first().operation == STDIO_RSP_SPRINTF);
+        let str = unpack(rspChain.first().data);
+        rspChain.deq();
+        return str;
+    endmethod
+
+    method Action sprintf_delete(GLOBAL_STRING_UID strID);
+        STDIO_REQ_HEADER header = ?;
+        header.command = zeroExtend(pack(STDIO_REQ_SPRINTF_DELETE));
+        header.clientID = rspChain.nodeID;
+        header.text = strID;
+        header.numData = 0;
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
     method Action sync_req();
@@ -258,7 +343,7 @@ module [CONNECTED_MODULE] mkStdIO
         mar.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
-    method Action sync_rsp() if (unpack(truncate(rspChain.first().operation)) == STDIO_RSP_SYNC);
+    method Action sync_rsp() if (rspChain.first().operation == STDIO_RSP_SYNC);
         rspChain.deq();
     endmethod
 endmodule

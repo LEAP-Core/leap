@@ -29,11 +29,15 @@
 // using a unique token instead of passing entire strings.
 //
 
+// Private region of the global ID space used for run-time allocated IDs
+const GLOBAL_STRING_UID pvtIdSpace = -1 << (GLOBAL_STRING_SYNTH_UID_SZ +
+                                            GLOBAL_STRING_LOCAL_UID_SZ);
+
 // Static objects
 unordered_map <GLOBAL_STRING_UID, string> GLOBAL_STRINGS::uidToString;
+GLOBAL_STRING_UID GLOBAL_STRINGS::nextAllocId = pvtIdSpace;
 static GLOBAL_STRINGS instance;
-
-
+    
 //
 // Look up a string in the table, given a UID.
 //
@@ -57,8 +61,55 @@ GLOBAL_STRINGS::Lookup(GLOBAL_STRING_UID uid, bool abortIfUndef)
     }
 }
 
+
 //
-// Add a string to the table.
+// Public version of string addition allocates a UID for the new string.
+//
+GLOBAL_STRING_UID
+GLOBAL_STRINGS::AddString(const string& str)
+{
+    //
+    // This code doesn't yet handle overrunning an initial pass of the string
+    // ID space.  The space is quite large but could eventually be a problem,
+    // though the transaction cost of allocating strings will likely keep
+    // any high performance programs from allocating crazy numbers of strings.
+    //
+
+    if (nextAllocId == 0)
+    {
+        ASIMERROR("Too many strings allocated!");
+    }
+
+    if (Lookup(nextAllocId, false) != NULL)
+    {
+        ASIMERROR("UID already allocated!");
+    }
+
+    AddString(nextAllocId, str);
+    return nextAllocId++;
+}
+
+
+//
+// Remove a string from the table that was added by public version of
+// AddString().
+//
+void
+GLOBAL_STRINGS::DeleteString(GLOBAL_STRING_UID uid)
+{
+    VERIFY((uid & pvtIdSpace) == pvtIdSpace,
+           "Attempt to deallocate a static global string");
+
+    unordered_map <GLOBAL_STRING_UID, string>::iterator s = uidToString.find(uid);
+    if (s != uidToString.end())
+    {
+        uidToString.erase(s);
+    }
+}
+
+
+//
+// Add a string to the table.  (Internal method used when loading a database.)
 //
 void
 GLOBAL_STRINGS::AddString(GLOBAL_STRING_UID uid, const string& str)
@@ -128,6 +179,7 @@ GLOBAL_STRINGS::ProcessSwitchString(const char *db)
 }
 
 
-GLOBAL_STRINGS::GLOBAL_STRINGS() : COMMAND_SWITCH_STRING_CLASS("global-strings")
+GLOBAL_STRINGS::GLOBAL_STRINGS() :
+    COMMAND_SWITCH_STRING_CLASS("global-strings")
 {
 }

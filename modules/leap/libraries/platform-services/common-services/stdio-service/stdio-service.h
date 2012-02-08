@@ -38,13 +38,20 @@ typedef class STDIO_SERVER_CLASS* STDIO_SERVER;
 //
 enum STDIO_REQ_COMMAND
 {
+    STDIO_REQ_FCLOSE,
+    STDIO_REQ_FFLUSH,
+    STDIO_REQ_FOPEN,
     STDIO_REQ_FPRINTF,
+    STDIO_REQ_SPRINTF,
+    STDIO_REQ_SPRINTF_DELETE,
     STDIO_REQ_SYNC
 };
 
 enum STDIO_RSP_OP
 {
-    STDIO_RSP_SYNC
+    STDIO_RSP_FOPEN,
+    STDIO_RSP_SYNC,
+    STDIO_RSP_SPRINTF
 };
 
 typedef UINT8 STDIO_CLIENT_ID;
@@ -79,9 +86,16 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     // Map hardware file IDs to software files
     FILE* fileTable[256];
+    UINT8 openFile(const char *name, const char *mode);
+    void closeFile(UINT8 idx);
     FILE* getFile(UINT8 idx);
 
-    void Req_fprintf(const STDIO_REQ_HEADER &req, const UINT32 *data);
+    void Req_fclose(const STDIO_REQ_HEADER &req);
+    void Req_fflush(const STDIO_REQ_HEADER &req);
+    void Req_fopen(const STDIO_REQ_HEADER &req, GLOBAL_STRING_UID mode);
+    void Req_printf(const STDIO_REQ_HEADER &req, const UINT32 *data);
+    void Req_sprintf_delete(const STDIO_REQ_HEADER &req);
+
     void Req_sync(const STDIO_REQ_HEADER &req);
 
     // stubs
@@ -101,7 +115,7 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Cleanup();
 
     // FPGA to software request chunks
-    void Req(UINT32 chunk, UINT8 eom);
+    void Req(UINT32 data, UINT8 eom);
 };
 
 // server stub

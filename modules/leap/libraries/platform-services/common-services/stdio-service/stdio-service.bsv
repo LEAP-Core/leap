@@ -64,6 +64,8 @@ module [CONNECTED_MODULE] mkStdIOService
     //
     rule processRsp (True);
         let rsp <- serverStub.acceptRequest_Rsp();
-        rspChain.enq(rsp.tgtNode, unpack(rsp.value));
+        rspChain.enq(rsp.tgtNode,
+                     STDIO_RSP { data: rsp.data,
+                                 operation: unpack(truncate(rsp.command)) });
     endrule
 endmodule

@@ -84,6 +84,40 @@ STDIO_SERVER_CLASS::Cleanup()
 
 
 //
+// openFile --
+//     Open a file and add it to the hardware/software file mapping table.
+//
+UINT8
+STDIO_SERVER_CLASS::openFile(const char *name, const char *mode)
+{
+    UINT32 idx = 3;
+    while ((idx < 256) && (fileTable[idx] != NULL)) idx += 1;
+
+    VERIFY(idx < 256, "Out of file descriptors");
+
+    fileTable[idx] = fopen(name, mode);
+    VERIFY(fileTable[idx] != NULL, "Failed to open file (" << name << "), errno = " << errno);
+
+    return idx;
+}
+
+
+//
+// closeFile --
+//     Close a file in the hardware/software file mapping table.
+//
+void
+STDIO_SERVER_CLASS::closeFile(UINT8 idx)
+{
+    FILE *f = fileTable[idx];
+    VERIFY(f != NULL, "Operation on unopened file handle (" << UINT32(idx) << ")");
+
+    fclose(f);
+    fileTable[idx] = NULL;
+}
+
+
+//
 // getFile --
 //     Convert a hardware file index to system FILE pointer.
 //
@@ -102,11 +136,11 @@ STDIO_SERVER_CLASS::getFile(UINT8 idx)
 //     Receive a request chunk from hardware.
 //
 void
-STDIO_SERVER_CLASS::Req(UINT32 chunk, UINT8 eom)
+STDIO_SERVER_CLASS::Req(UINT32 data, UINT8 eom)
 {
     VERIFYX(reqBufferWriteIdx < (sizeof(reqBuffer) / sizeof(reqBuffer[0])));
 
-    reqBuffer[reqBufferWriteIdx++] = chunk;
+    reqBuffer[reqBufferWriteIdx++] = data;
 
     if (eom)
     {
@@ -125,8 +159,25 @@ STDIO_SERVER_CLASS::Req(UINT32 chunk, UINT8 eom)
             
         switch (req.command)
         {
+          case STDIO_REQ_FCLOSE:
+            Req_fclose(req);
+            break;
+
+          case STDIO_REQ_FFLUSH:
+            Req_fflush(req);
+            break;
+
+          case STDIO_REQ_FOPEN:
+            Req_fopen(req, reqBuffer[2]);
+            break;
+
           case STDIO_REQ_FPRINTF:
-            Req_fprintf(req, &reqBuffer[2]);
+          case STDIO_REQ_SPRINTF:
+            Req_printf(req, &reqBuffer[2]);
+            break;
+
+          case STDIO_REQ_SPRINTF_DELETE:
+            Req_sprintf_delete(req);
             break;
 
           case STDIO_REQ_SYNC:
@@ -142,14 +193,38 @@ STDIO_SERVER_CLASS::Req(UINT32 chunk, UINT8 eom)
     }
 }
 
-
-//
-// Req_fprintf --
-//
 void
-STDIO_SERVER_CLASS::Req_fprintf(const STDIO_REQ_HEADER &req, const UINT32 *data)
+STDIO_SERVER_CLASS::Req_fclose(const STDIO_REQ_HEADER &req)
+{
+    closeFile(req.fileHandle);
+}
+
+void
+STDIO_SERVER_CLASS::Req_fflush(const STDIO_REQ_HEADER &req)
 {
     FILE *ofile = getFile(req.fileHandle);
+    fflush(ofile);
+}
+
+void
+STDIO_SERVER_CLASS::Req_fopen(
+    const STDIO_REQ_HEADER &req,
+    GLOBAL_STRING_UID mode)
+{
+    const string* file_name = GLOBAL_STRINGS::Lookup(req.text);
+    const string* file_mode = GLOBAL_STRINGS::Lookup(mode);
+
+    UINT32 file_handle = openFile(file_name->c_str(), file_mode->c_str());
+    clientStub->Rsp(req.clientID, STDIO_RSP_FOPEN, file_handle);
+}
+
+//
+// Req_printf --
+//     Handles printf, fprintf and sprintf.
+//
+void
+STDIO_SERVER_CLASS::Req_printf(const STDIO_REQ_HEADER &req, const UINT32 *data)
+{
     const string* str = GLOBAL_STRINGS::Lookup(req.text);
 
     UINT64 ar[7] = { 0, 0, 0, 0, 0, 0, 0 };
@@ -208,7 +283,7 @@ STDIO_SERVER_CLASS::Req_fprintf(const STDIO_REQ_HEADER &req, const UINT32 *data)
                     // global string UID.  Convert that to a pointer.
                     const string *arg_str = GLOBAL_STRINGS::Lookup(ar[fmt_idx], false);
                     VERIFY(arg_str != NULL,
-                           "STDIO service: failed to find string global string " << ar[fmt_idx] << " position " << fmt_idx+1 << " format string " << *str);
+                           "STDIO service: failed to find string global string " << ar[fmt_idx] << " position " << fmt_idx+1 << " format string: " << *str);
 
                     ar[fmt_idx] = (UINT64)arg_str->c_str();
                 }
@@ -219,7 +294,30 @@ STDIO_SERVER_CLASS::Req_fprintf(const STDIO_REQ_HEADER &req, const UINT32 *data)
         fmt_idx += 1;
     }
 
-    fprintf(ofile, str->c_str(), ar[0], ar[1], ar[2], ar[3], ar[4], ar[5], ar[6], ar[7]);
+    if (req.command == STDIO_REQ_FPRINTF)
+    {
+        FILE *ofile = getFile(req.fileHandle);
+        fprintf(ofile, str->c_str(), ar[0], ar[1], ar[2], ar[3], ar[4], ar[5], ar[6], ar[7]);
+    }
+    else
+    {
+        char obuf[1024];
+        snprintf(obuf, sizeof(obuf), str->c_str(), ar[0], ar[1], ar[2], ar[3], ar[4], ar[5], ar[6], ar[7]);
+
+        GLOBAL_STRING_UID uid = GLOBAL_STRINGS::AddString(obuf);
+        clientStub->Rsp(req.clientID, STDIO_RSP_SPRINTF, uid);
+    }
+}
+
+
+//
+// Req_sprintf_delete --
+//     Deallocate a global string allocated by sprintf.
+//
+void
+STDIO_SERVER_CLASS::Req_sprintf_delete(const STDIO_REQ_HEADER &req)
+{
+    GLOBAL_STRINGS::DeleteString(req.text);
 }
 
 
@@ -233,5 +331,5 @@ STDIO_SERVER_CLASS::Req_sync(const STDIO_REQ_HEADER &req)
 {
     sync();
 
-    clientStub->Rsp(req.clientID, STDIO_RSP_SYNC);
+    clientStub->Rsp(req.clientID, STDIO_RSP_SYNC, 0);
 }

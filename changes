@@ -11596,3 +11596,35 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
 
 Dummy software build of secondary FPGA in multi-FPGA builds needs the software
 portion of debug scan because the HAsim controller requires it.
+
+----------
+mcadler     Date: Wed Feb  8 18:30:43 EST 2012  CSN: CSN-leap-246
+                  Wed Feb  8 23:30:43 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local
+ local-mem-scratch.bsv     Locally Modified          245 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          245 
+ stdio-local.bsv           Locally Modified          245 
+ stdio-service.rrr         Locally Modified          245 
+ stdio-service.h           Locally Modified          245 
+ stdio-service.bsv         Locally Modified          245 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.cpp        Locally Modified          245 
+ global-strings.h          Locally Modified          245 
+
+Directory modules/leap/examples/hello-world
+ hello-world.dic           Locally Removed           245 
+
+- Add more standard I/O services:
+    fclose
+    fflush
+    fopen
+    sprintf
+
+- Add simple run-time allocation of global strings.  There is code to deallocate
+  a string to release memory but currently the table only allows one trip
+  through the ID space (currently 2^26 entries).

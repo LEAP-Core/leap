@@ -287,8 +287,4 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         totalAlloc <= last_word + 1;
         return ok;
     endmethod
-
-    method SCRATCHPAD_MEMORY_DEBUG_SCAN debugScanState();
-        return ?;
-    endmethod
 endmodule
