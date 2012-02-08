@@ -11585,3 +11585,14 @@ Directory modules/leap/examples/hello-world
   centralized.
 
 - Use sync() in hello world so output is printed before the program exits.
+
+----------
+mcadler     Date: Wed Feb  8 01:23:45 EST 2012  CSN: CSN-leap-245
+                  Wed Feb  8 06:23:45 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service-null.awb Locally Modified          244 
+
+Dummy software build of secondary FPGA in multi-FPGA builds needs the software
+portion of debug scan because the HAsim controller requires it.
