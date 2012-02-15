@@ -30,8 +30,8 @@ module mkStreamCaptureFIFOF#(Integer fifoSz) (FIFOF#(data_t))
     fifo.enq(data);
   endmethod
 
-  method notEmpty = fifo.notEmpty;
-  method notFull = fifo.notFull;
+  method notEmpty = fifo.notEmpty && state == Draining;
+  method notFull = fifo.notFull && state == Filling;
   method Action clear;
     fifo.clear;
     state <= Filling;

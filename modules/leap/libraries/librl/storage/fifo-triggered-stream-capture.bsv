@@ -65,10 +65,10 @@ module mkTriggeredStreamCaptureFIFOF#(Integer streamSize) (TriggeredStreamCaptur
       fifoStore.enq(data);
     endmethod
 
-    method notEmpty = fifoStore.notEmpty;
+    method notEmpty = fifoStore.notEmpty && state == Draining;
 
     method Bool notFull();
-      return fifoStore.notFull && (elementCount < fromInteger(streamSize));
+      return fifoStore.notFull && (elementCount < fromInteger(streamSize) && state == Filling);
     endmethod
 
     method Action clear; // This method needs some fixing

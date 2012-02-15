@@ -11628,3 +11628,23 @@ Directory modules/leap/examples/hello-world
 - Add simple run-time allocation of global strings.  There is code to deallocate
   a string to release memory but currently the table only allows one trip
   through the ID space (currently 2^26 entries).
+
+----------
+kfleming    Date: Wed Feb 15 10:53:32 EST 2012  CSN: CSN-leap-247
+                  Wed Feb 15 15:53:32 UTC 2012
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-triggered-stream-capture.bsv Locally Modified          246 
+ fifo-stream-capture.bsv   Locally Modified          246 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          246 
+
+
+Two changes
+
+1) Made notEmpty/notFull methods match the enq/deq conditions for the triggered fifos.
+
+2) Added errno.h include to stdio-service.  Some machines need this extra include to compile. 
+
