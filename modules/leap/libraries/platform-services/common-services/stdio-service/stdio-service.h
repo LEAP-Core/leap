@@ -42,14 +42,22 @@ enum STDIO_REQ_COMMAND
     STDIO_REQ_FFLUSH,
     STDIO_REQ_FOPEN,
     STDIO_REQ_FPRINTF,
+    STDIO_REQ_FREAD,
+    STDIO_REQ_FWRITE,
+    STDIO_REQ_PCLOSE,
+    STDIO_REQ_POPEN,
+    STDIO_REQ_REWIND,
     STDIO_REQ_SPRINTF,
-    STDIO_REQ_SPRINTF_DELETE,
+    STDIO_REQ_STRING_DELETE,
     STDIO_REQ_SYNC
 };
 
 enum STDIO_RSP_OP
 {
     STDIO_RSP_FOPEN,
+    STDIO_RSP_FREAD,
+    STDIO_RSP_FREAD_EOF,            // End of file (no payload in packet)
+    STDIO_RSP_POPEN,
     STDIO_RSP_SYNC,
     STDIO_RSP_SPRINTF
 };
@@ -81,20 +89,31 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     // self-instantiation
     static STDIO_SERVER_CLASS instance;
 
-    UINT32 reqBuffer[16];
+    UINT32 reqBuffer[32];
     int reqBufferWriteIdx;
 
     // Map hardware file IDs to software files
     FILE* fileTable[256];
-    UINT8 openFile(const char *name, const char *mode);
+    bool fileIsPipe[256];
+    UINT8 openFile(const char *name, const char *mode, bool isPipe);
     void closeFile(UINT8 idx);
     FILE* getFile(UINT8 idx);
 
-    void Req_fclose(const STDIO_REQ_HEADER &req);
-    void Req_fflush(const STDIO_REQ_HEADER &req);
     void Req_fopen(const STDIO_REQ_HEADER &req, GLOBAL_STRING_UID mode);
+    void Req_fclose(const STDIO_REQ_HEADER &req);
+
+    void Req_popen(const STDIO_REQ_HEADER &req);
+    void Req_pclose(const STDIO_REQ_HEADER &req);
+
+    void Req_fread(const STDIO_REQ_HEADER &req);
+    void Req_fwrite(const STDIO_REQ_HEADER &req, const UINT32 *data);
+
     void Req_printf(const STDIO_REQ_HEADER &req, const UINT32 *data);
-    void Req_sprintf_delete(const STDIO_REQ_HEADER &req);
+
+    void Req_string_delete(const STDIO_REQ_HEADER &req);
+
+    void Req_fflush(const STDIO_REQ_HEADER &req);
+    void Req_rewind(const STDIO_REQ_HEADER &req);
 
     void Req_sync(const STDIO_REQ_HEADER &req);
 

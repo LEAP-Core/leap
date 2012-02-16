@@ -107,10 +107,30 @@ module mkLFSR
         feed = 'h2000000031;
     else if (n == 39)
         feed = 'h4000000008;
-    else
+    else if (n != 64)
         error("Unsupported LFSR size");
 
-    if (n >= 4)
+
+
+    if (n == 64)
+    begin
+        // Special case for 64 bits, composed of 2 32 bit polynomials.
+        LFSR#(Bit#(32)) l32a <- mkFeedLFSR(lfsr32FeedPolynomials(1));
+        LFSR#(Bit#(32)) l32b <- mkFeedLFSR(lfsr32FeedPolynomials(2));
+
+        method Bit#(nBits) value = truncateNP({ l32a.value, l32b.value });
+
+        method Action next();
+            l32a.next();
+            l32b.next();
+        endmethod
+
+        method Action seed(Bit#(nBits) seedValue);
+            l32a.seed(truncateNP(seedValue));
+            l32b.seed(truncateNP(seedValue));
+        endmethod
+    end
+    else if (n >= 4)
     begin
         // Simple: instantiate an LFSR at the requested size
         LFSR#(Bit#(nBITS)) lfsr <- mkFeedLFSR(fromInteger(feed));

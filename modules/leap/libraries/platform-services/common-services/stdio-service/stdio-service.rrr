@@ -7,6 +7,9 @@ service STDIO
 
     server hw (bsv, connection) <- sw (cpp, method)
     {
-        method Rsp(in UINT8[8] tgtNode, in UINT8[8] command, in UINT32[32] data);
+        method Rsp(in UINT8[8] tgtNode,
+                   in UINT8[8] command,
+                   in UINT8[8] meta,
+                   in UINT32[32] data);
     };
 };

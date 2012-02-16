@@ -24,8 +24,28 @@ import GetPut::*;
 // Demarshallers transform the narrow data stream back to the original width.
 //
 
+
+// Length (chunks) of a marshalled message
+typedef TDiv#(t_DATA_SZ, t_FIFO_DATA_SZ)
+    MARSHALLER_MSG_LEN#(numeric type t_FIFO_DATA_SZ, numeric type t_DATA_SZ);
+
+
 interface MARSHALLER#(type t_FIFO_DATA, type t_DATA);
     method Action enq(t_DATA inData);
+    method Action deq();
+    method t_FIFO_DATA first();
+    method Bool notFull();
+    method Bool notEmpty();
+    method Bool isLast();     // Last chunk from the original enqueued data
+endinterface
+
+//
+// MARSHALLER_N interface allows per-message specification of the number of
+// chunks to send.  This may be useful when the actual amount of useful
+// information in a t_DATA varies.
+//
+interface MARSHALLER_N#(type t_FIFO_DATA, type t_DATA, type t_NUM_CHUNKS);
+    method Action enq(t_DATA inData, t_NUM_CHUNKS numChunks);
     method Action deq();
     method t_FIFO_DATA first();
     method Bool notFull();
@@ -40,11 +60,6 @@ interface DEMARSHALLER#(type t_FIFO_DATA, type t_DATA);
     method Bool notFull();
     method Bool notEmpty();
 endinterface
-
-
-// Length (chunks) of a marshalled message
-typedef TDiv#(t_DATA_SZ, t_FIFO_DATA_SZ)
-    MARSHALLER_MSG_LEN#(numeric type t_FIFO_DATA_SZ, numeric type t_DATA_SZ);
 
 
 // some typeclass/conversion definitions
@@ -107,10 +122,20 @@ module mkSimpleMarshaller
     // Interface:
         (MARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Bits#(t_DATA, t_DATA_SZ));
+              Bits#(t_DATA, t_DATA_SZ),
+              // Number of chunks to send a full message
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_DATA_SZ)),
+              // Chunk counter
+              Alias#(Bit#(TAdd#(1, TLog#(n))), t_NUM_CHUNKS));
 
-    let m <- mkSimpleMarshallerImpl(True);
-    return m;
+    MARSHALLER_N#(t_FIFO_DATA, t_DATA, t_NUM_CHUNKS) m <- mkSimpleMarshallerN(True);
+
+    method Action enq(t_DATA inData) = m.enq(inData, fromInteger(valueOf(n)));
+    method Action deq() = m.deq;
+    method t_FIFO_DATA first() = m.first;
+    method Bool notFull() = m.notFull;
+    method Bool notEmpty() = m.notEmpty;
+    method Bool isLast() = m.isLast;
 
 endmodule
 
@@ -124,29 +149,42 @@ module mkSimpleMarshallerHighToLow
     // Interface:
         (MARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Bits#(t_DATA, t_DATA_SZ));
+              Bits#(t_DATA, t_DATA_SZ),
+              // Number of chunks to send a full message
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_DATA_SZ)),
+              // Chunk counter
+              Alias#(Bit#(TAdd#(1, TLog#(n))), t_NUM_CHUNKS));
 
-    let m <- mkSimpleMarshallerImpl(False);
-    return m;
+    MARSHALLER_N#(t_FIFO_DATA, t_DATA, t_NUM_CHUNKS) m <- mkSimpleMarshallerN(False);
+
+    method Action enq(t_DATA inData) = m.enq(inData, fromInteger(valueOf(n)));
+    method Action deq() = m.deq;
+    method t_FIFO_DATA first() = m.first;
+    method Bool notFull() = m.notFull;
+    method Bool notEmpty() = m.notEmpty;
+    method Bool isLast() = m.isLast;
 
 endmodule
 
 
-module mkSimpleMarshallerImpl#(Bool lowFirst)
+module mkSimpleMarshallerN#(Bool lowFirst)
     // Interface:
-        (MARSHALLER#(t_FIFO_DATA, t_DATA))
+        (MARSHALLER_N#(t_FIFO_DATA, t_DATA, t_NUM_CHUNKS))
     provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
               Bits#(t_DATA, t_DATA_SZ),
               // Number of chunks to send a full message
-              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_DATA_SZ)));
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_DATA_SZ)),
+              // Chunk counter
+              Alias#(Bit#(TAdd#(1, TLog#(n))), t_NUM_CHUNKS));
 
     Reg#(Vector#(n, t_FIFO_DATA)) buffer <- mkRegU();
     Reg#(Bit#(TAdd#(1, TLog#(n)))) count <- mkReg(0);
     Reg#(Bool) empty <- mkReg(True);
 
-    method Action enq(t_DATA inData) if (empty);
+    method Action enq(t_DATA inData, t_NUM_CHUNKS numChunks) if (empty);
         empty <= False;
-        count <= fromInteger(valueof(n));
+        count <= numChunks;
+
         // Convert the message to a vector of the marshalled size.
         buffer <= toChunks(inData);
     endmethod
@@ -195,8 +233,17 @@ module mkSimpleDemarshaller
 
     method Action enq(t_FIFO_DATA dat) if (! full);
         buffer <= shiftInAtN(buffer, dat);
-        full <= (count == fromInteger(valueof(TSub#(n, 1))));
-        count <= count + 1;
+        if (valueOf(n) != 1)
+        begin
+            // Normal case: t_DATA_SZ is larger than t_FIFO_DATA_SZ
+            full <= (count == fromInteger(valueof(TSub#(n, 1))));
+            count <= count + 1;
+        end
+        else
+        begin
+            // Simple case: container and data sizes are identical
+            full <= True;
+        end
     endmethod
 
     method Action deq() if (full);

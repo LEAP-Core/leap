@@ -16,6 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import FIFO::*;
+import FIFOF::*;
 import Vector::*;
 import List::*;
 
@@ -31,23 +33,80 @@ import List::*;
 // FILE handle
 typedef Bit#(8) STDIO_FILE;
 
+typedef 0 STDIO_STDOUT;
+typedef 1 STDIO_STDIN;
+typedef 2 STDIO_STDERR;
+
+//
+// For now, RRR does not provide virtual channels for each service.  As
+// a result, it is possible to deadlock the shared RRR I/O channel if
+// responses to read requests back up.  Instead of forcing each STDIO
+// client to manage buffers, the implementation here guarantees to provide
+// buffering for all outstanding read requests.  (This would also let us
+// replace RRR with virtual channels and change only the code here to
+// eliminate the buffering.
+//
+
+// Maximum number of read requests in flight
+typedef 4 STDIO_MAX_READS_IN_FLIGHT;
+// Maximum elements per read request.  Varies with element size due to
+// buffering requirements.
+typedef TDiv#(TDiv#(32768, STDIO_MAX_READS_IN_FLIGHT), SizeOf#(t_DATA))
+    STDIO_MAX_ELEM_PER_READ#(type t_DATA);
+typedef Bit#(TLog#(STDIO_MAX_ELEM_PER_READ#(t_DATA))) STDIO_NUM_READ_ELEMS#(type t_DATA);
+
 interface STDIO#(type t_DATA);
+    // fopen is a request/response interface, returning the file handle
     method Action fopen_req(GLOBAL_STRING_UID nameID, GLOBAL_STRING_UID modeID);
     method ActionValue#(STDIO_FILE) fopen_rsp();
     method Action fclose(STDIO_FILE file);
-    method Action fflush(STDIO_FILE file);
 
+    method Action popen_req(GLOBAL_STRING_UID nameID, Bool forRead);
+    method ActionValue#(STDIO_FILE) popen_rsp();
+    method Action pclose(STDIO_FILE file);
+
+
+    // Start a read that will stream back nmemb elements serially.  The
+    // implementation guarantees to provide local buffering sufficient to
+    // hold the full response, avoiding the need for client buffer management.
+    method Action fread_req(STDIO_FILE file,
+                            STDIO_NUM_READ_ELEMS#(t_DATA) nmemb) provisos(Bits#(t_DATA, t_DATA_SZ));
+
+    // Convenience method for making the largest request possible
+    method Action freadMax_req(STDIO_FILE file);
+
+    // Return either one element from a read or Invalid for EOF.  Responses
+    // from a single read request terminate on EOF even if fewer responses are
+    // returned than originally requested.
+    method ActionValue#(Maybe#(t_DATA)) fread_rsp();
+
+    // Number of reads currently in flight.  This method enables clients
+    // to track and consume results of all read requests, especially when
+    // some read returns EOF.  Following EOF, the client must continue to
+    // sink read responses (which will all return EOF) until no reads are
+    // in flight.
+    method Bit#(TLog#(TAdd#(1, STDIO_MAX_READS_IN_FLIGHT))) fread_numInFlight();
+
+
+    // The list of arguments to fwrite may be up to STDIO_WRITE_MAX elements
+    method Action fwrite(STDIO_FILE file, List#(t_DATA) args);
+
+    // The list of arguments to printf may be up to STDIO_WRITE_MAX elements
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
 
-    //
     // sprintf is a request/response interface, allocating a GLOBAL_STRING_UID
     // on the host to hold the new string.  The new string remains allocated
     // until released by a sprintf_delete call.
-    //
     method Action sprintf_req(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
     method ActionValue#(GLOBAL_STRING_UID) sprintf_rsp();
-    method Action sprintf_delete(GLOBAL_STRING_UID strID);
+
+    // Delete a dynamically allocated global string (e.g. one created by
+    // sprintf_req).
+    method Action string_delete(GLOBAL_STRING_UID strID);
+
+    method Action fflush(STDIO_FILE file);
+    method Action rewind(STDIO_FILE file);
 
     // sync request/response both invokes the sync() system call and guarantees
     // all previous commands have been received.
@@ -57,6 +116,10 @@ endinterface
 
 // Pick a power of 2!
 typedef Bit#(32) STDIO_REQ_RING_CHUNK;
+typedef Bit#(32) STDIO_RSP_RING_CHUNK;
+
+// Maximum number of data arguments for writes
+typedef 8 STDIO_WRITE_MAX;
 
 typedef enum
 {
@@ -64,8 +127,13 @@ typedef enum
     STDIO_REQ_FFLUSH,
     STDIO_REQ_FOPEN,
     STDIO_REQ_FPRINTF,
+    STDIO_REQ_FREAD,
+    STDIO_REQ_FWRITE,
+    STDIO_REQ_PCLOSE,
+    STDIO_REQ_POPEN,
+    STDIO_REQ_REWIND,
     STDIO_REQ_SPRINTF,
-    STDIO_REQ_SPRINTF_DELETE,
+    STDIO_REQ_STRING_DELETE,
     STDIO_REQ_SYNC
 }
 STDIO_REQ_COMMAND
@@ -80,6 +148,9 @@ typedef Bit#(8) STDIO_CLIENT_ID;
 typedef enum
 {
     STDIO_RSP_FOPEN,
+    STDIO_RSP_FREAD,
+    STDIO_RSP_FREAD_EOF,            // End of file (no payload in packet)
+    STDIO_RSP_POPEN,
     STDIO_RSP_SYNC,
     STDIO_RSP_SPRINTF
 }
@@ -92,8 +163,8 @@ STDIO_RSP_OP
 typedef struct
 {
     GLOBAL_STRING_UID text;
-    Bit#(3) unused;
-    Bit#(3) numData;                // Number of elements in data vector
+    Bit#(2) unused;
+    Bit#(4) numData;                // Number of elements in data vector
     Bit#(2) dataSize;               // Size of data elements (1, 2, 4 or 8 bytes)
     STDIO_CLIENT_ID clientID;       // This nodes response ring ID
     STDIO_FILE fileHandle;          // Used only for commands refering to a file
@@ -107,8 +178,10 @@ STDIO_REQ_HEADER
 //
 typedef struct
 {
-    Vector#(7, t_DATA) data;        // Number of elements actually transmitted
-                                    // varies, depending on the value of numData
+    // Number of elements actually transmitted varies, depending
+    // on the value of numData.
+    Vector#(STDIO_WRITE_MAX, t_DATA) data;
+
     STDIO_REQ_HEADER header;
 }
 STDIO_REQ#(type t_DATA)
@@ -116,7 +189,11 @@ STDIO_REQ#(type t_DATA)
 
 typedef struct
 {
-    Bit#(32) data;
+    Bool eom;                       // End of marshalled stream
+    Bit#(2) nValid;                 // Number of valid demarshalled values in
+                                    // the packet (meaningful only for 8 and
+                                    // 16 bit data).
+    STDIO_RSP_RING_CHUNK data;
     STDIO_RSP_OP operation;
 }
 STDIO_RSP
@@ -135,8 +212,16 @@ module [CONNECTED_MODULE] mkStdIO
     // interface:
     (STDIO#(t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
-              Add#(a__, 32, TMul#(7, t_DATA_SZ)));
+              Add#(a__, 32, TMul#(STDIO_WRITE_MAX, t_DATA_SZ)));
     
+    if ((valueOf(t_DATA_SZ) != 8) &&
+        (valueOf(t_DATA_SZ) != 16) &&
+        (valueOf(t_DATA_SZ) != 32) &&
+        (valueOf(t_DATA_SZ) != 64))
+    begin
+        error("Unsupported mkStdIO data size (" + integerToString(valueOf(t_DATA_SZ)) + ")");
+    end
+
     // ====================================================================
     //
     //   Response ring -- host to FPGA.
@@ -146,6 +231,64 @@ module [CONNECTED_MODULE] mkStdIO
     // Response ring is addressable, since responses are to specific clients.
     CONNECTION_ADDR_RING#(STDIO_CLIENT_ID, STDIO_RSP) rspChain <-
         mkConnectionAddrRingDynNode("stdio_rsp_ring");
+
+    STDIO_DEMARSHALLER#(STDIO_REQ_RING_CHUNK, t_DATA) dem <- mkStdIORspDemarshaller();
+
+    // Track number of fread requests in flight
+    COUNTER#(TLog#(TAdd#(1, STDIO_MAX_READS_IN_FLIGHT))) freadsInFlight <- mkLCounter(0);
+    // Buffer for end of marshalled message stream marker, used for tracking
+    // reads in flight.
+    FIFO#(Bool) freadEOM <- mkFIFO();
+
+    // Buffer for read responses
+    FIFOF#(Tuple2#(t_DATA, Bool)) freadRspBuf <-
+        mkSizedBRAMFIFOF(valueOf(TMul#(STDIO_MAX_READS_IN_FLIGHT,
+                                       STDIO_MAX_ELEM_PER_READ#(t_DATA))));
+
+    //
+    // Forward fread responses to the demarshaller.
+    //
+    Reg#(Bit#(1)) alternate <- mkReg(0);
+    rule freadDemEnq (rspChain.first().operation == STDIO_RSP_FREAD);
+        let rsp = rspChain.first();
+        rspChain.deq();
+
+        dem.enq(rsp.data, rsp.nValid);
+
+        if (valueOf(t_DATA_SZ) <= 32)
+        begin
+            // Data fits in a single flit
+            freadEOM.enq(rsp.eom);
+        end
+        else
+        begin
+            // 64 bit data doesn't fit in a single flit.  Only every other
+            // flit has meaningful metadata.
+            if (alternate == 1) freadEOM.enq(rsp.eom);
+            alternate <= alternate ^ 1;
+        end
+    endrule
+
+    //
+    // Buffer the output of the demarshaller.  This guarantees sufficient
+    // space to store all possible outstanding read requests and avoids
+    // deadlock of the RRR channel.
+    //
+    rule freadRspBuffer (True);
+        let r = dem.first();
+        dem.deq();
+        
+        // Associate the end of message flag with a value coming from the
+        // demarshaller.
+        Bool is_eom = False;
+        if (dem.isLast)
+        begin
+            is_eom = freadEOM.first();
+            freadEOM.deq();
+        end
+
+        freadRspBuf.enq(tuple2(r, is_eom));
+    endrule
 
 
     // ====================================================================
@@ -206,20 +349,27 @@ module [CONNECTED_MODULE] mkStdIO
     //
     // ====================================================================
 
-    function Action do_printf(STDIO_REQ_COMMAND command,
+    function STDIO_REQ_HEADER genHeader(STDIO_REQ_COMMAND command);
+        STDIO_REQ_HEADER header = ?;
+        header.command = zeroExtend(pack(command));
+        header.clientID = rspChain.nodeID;
+        header.dataSize = fromInteger(valueOf(TSub#(TLog#(t_DATA_SZ), 3)));
+        header.numData = 0;
+
+        return header;
+    endfunction
+
+    function Action do_write(STDIO_REQ_COMMAND command,
                               STDIO_FILE file,
                               GLOBAL_STRING_UID msgID,
                               List#(t_DATA) args);
     action
-        STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(command));
+        let header = genHeader(command);
         header.fileHandle = file;
-        header.clientID = rspChain.nodeID;
-        header.dataSize = fromInteger(valueOf(TSub#(TLog#(t_DATA_SZ), 3)));
         header.text = msgID;
         header.numData = fromInteger(List::length(args));
 
-        Vector#(7, t_DATA) data = newVector();
+        Vector#(STDIO_WRITE_MAX, t_DATA) data = newVector();
 
         if (List::length(args) == 1)
         begin
@@ -256,9 +406,14 @@ module [CONNECTED_MODULE] mkStdIO
             Vector#(7, t_DATA) v = toVector(args);
             for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
         end
+        else if (List::length(args) == 8)
+        begin
+            Vector#(8, t_DATA) v = toVector(args);
+            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+        end
         else if (List::length(args) != 0)
         begin
-            errorM("Unsupported number of arguments to STDIO printf.");
+            errorM("Too many arguments to STDIO fwrite/printf (" + integerToString(List::length(args)) + ")");
         end
 
         mar.enq(STDIO_REQ { data: data, header: header });
@@ -267,13 +422,11 @@ module [CONNECTED_MODULE] mkStdIO
 
 
     method Action fopen_req(GLOBAL_STRING_UID nameID, GLOBAL_STRING_UID modeID);
-        STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(STDIO_REQ_FOPEN));
-        header.clientID = rspChain.nodeID;
+        let header = genHeader(STDIO_REQ_FOPEN);
         header.text = nameID;
 
         // Jam the extra 32-bit modeID argument in the data vector
-        Vector#(7, t_DATA) data = unpack({ ?, modeID });
+        Vector#(STDIO_WRITE_MAX, t_DATA) data = unpack({ ?, modeID });
         header.numData = fromInteger(valueOf(TDiv#(SizeOf#(GLOBAL_STRING_UID),
                                                    t_DATA_SZ)));
 
@@ -287,35 +440,112 @@ module [CONNECTED_MODULE] mkStdIO
     endmethod
 
     method Action fclose(STDIO_FILE file);
-        STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(STDIO_REQ_FCLOSE));
-        header.clientID = rspChain.nodeID;
+        let header = genHeader(STDIO_REQ_FCLOSE);
         header.fileHandle = file;
-        header.numData = 0;
 
         mar.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
-    method Action fflush(STDIO_FILE file);
-        STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(STDIO_REQ_FFLUSH));
-        header.clientID = rspChain.nodeID;
-        header.fileHandle = file;
-        header.numData = 0;
+
+    method Action popen_req(GLOBAL_STRING_UID nameID, Bool forRead);
+        let header = genHeader(STDIO_REQ_POPEN);
+        header.text = nameID;
+        // Store read vs. write request in fileHandle
+        header.fileHandle = zeroExtend(pack(forRead));
 
         mar.enq(STDIO_REQ { data: ?, header: header });
     endmethod
+
+    method ActionValue#(STDIO_FILE) popen_rsp() if (rspChain.first().operation == STDIO_RSP_POPEN);
+        let file = truncate(rspChain.first().data);
+        rspChain.deq();
+        return file;
+    endmethod
+
+    method Action pclose(STDIO_FILE file);
+        let header = genHeader(STDIO_REQ_PCLOSE);
+        header.fileHandle = file;
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+
+    method Action fread_req(STDIO_FILE file,
+                            STDIO_NUM_READ_ELEMS#(t_DATA) nmemb) if (freadsInFlight.value != fromInteger(valueOf(STDIO_MAX_READS_IN_FLIGHT)));
+        let header = genHeader(STDIO_REQ_FREAD);
+        header.fileHandle = file;
+        // Jam the number of elements requested in the text field
+        header.text = zeroExtendNP(nmemb);
+
+        freadsInFlight.up();
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+    method Action freadMax_req(STDIO_FILE file) if (freadsInFlight.value != fromInteger(valueOf(STDIO_MAX_READS_IN_FLIGHT)));
+        let header = genHeader(STDIO_REQ_FREAD);
+        header.fileHandle = file;
+        // Jam the number of elements requested in the text field
+        header.text = fromInteger(valueOf(TSub#(STDIO_MAX_ELEM_PER_READ#(t_DATA), 1)));
+
+        freadsInFlight.up();
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+    //
+    // Firing rules for fread_rsp are a bit complicated:
+    //   The rule may fire either if a read response is available or EOF has
+    //   been signalled.  The rule must avoid firing if EOF is being signalled
+    //   but a read response is still being processed in the demarshaller
+    //   and hasn't yet flowed to the freadRspBuf.
+    //
+    method ActionValue#(Maybe#(t_DATA)) fread_rsp() if (freadRspBuf.notEmpty ||
+                                                        ((rspChain.first().operation == STDIO_RSP_FREAD_EOF) &&
+                                                         ! dem.notEmpty));
+        if (freadRspBuf.notEmpty)
+        begin
+            match {.d, .eom} = freadRspBuf.first();
+            freadRspBuf.deq();
+
+            // Last flit for this read request?
+            let in_flight = freadsInFlight.value();
+            if (eom)
+            begin
+                // Read is done
+                freadsInFlight.down();
+                in_flight = in_flight - 1;
+            end
+
+            return tagged Valid d;
+        end
+        else
+        begin
+            // End of file!
+            rspChain.deq();
+            freadsInFlight.down();
+            return tagged Invalid;
+        end
+    endmethod
+
+    method Bit#(TLog#(TAdd#(1, STDIO_MAX_READS_IN_FLIGHT))) fread_numInFlight();
+        return freadsInFlight.value();
+    endmethod
+
+
+    method Action fwrite(STDIO_FILE file, List#(t_DATA) args);
+        do_write(STDIO_REQ_FWRITE, file, ?, args);
+    endmethod
+
 
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-        do_printf(STDIO_REQ_FPRINTF, 0, msgID, args);
+        do_write(STDIO_REQ_FPRINTF, 0, msgID, args);
     endmethod
 
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-        do_printf(STDIO_REQ_FPRINTF, file, msgID, args);
+        do_write(STDIO_REQ_FPRINTF, file, msgID, args);
     endmethod
 
     method Action sprintf_req(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-        do_printf(STDIO_REQ_SPRINTF, ?, msgID, args);
+        do_write(STDIO_REQ_SPRINTF, ?, msgID, args);
     endmethod
 
     method ActionValue#(GLOBAL_STRING_UID) sprintf_rsp() if (rspChain.first().operation == STDIO_RSP_SPRINTF);
@@ -324,21 +554,31 @@ module [CONNECTED_MODULE] mkStdIO
         return str;
     endmethod
 
-    method Action sprintf_delete(GLOBAL_STRING_UID strID);
-        STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(STDIO_REQ_SPRINTF_DELETE));
-        header.clientID = rspChain.nodeID;
+    method Action string_delete(GLOBAL_STRING_UID strID);
+        let header = genHeader(STDIO_REQ_STRING_DELETE);
         header.text = strID;
-        header.numData = 0;
 
         mar.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
+
+    method Action fflush(STDIO_FILE file);
+        let header = genHeader(STDIO_REQ_FFLUSH);
+        header.fileHandle = file;
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+    method Action rewind(STDIO_FILE file);
+        let header = genHeader(STDIO_REQ_REWIND);
+        header.fileHandle = file;
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+
     method Action sync_req();
-        STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(STDIO_REQ_SYNC));
-        header.clientID = rspChain.nodeID;
-        header.numData = 0;
+        let header = genHeader(STDIO_REQ_SYNC);
 
         mar.enq(STDIO_REQ { data: ?, header: header });
     endmethod
@@ -373,7 +613,9 @@ module mkStdIOReqMarshaller
               Bits#(STDIO_REQ_HEADER, t_REQ_HEADER_SZ),
               Bits#(STDIO_REQ#(t_DATA), t_REQ_SZ),
               // Number of chunks to send a full message
-              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_REQ_SZ)));
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_REQ_SZ)),
+              Div#(t_DATA_SZ, t_FIFO_DATA_SZ, t_CHUNKS_PER_DATA),
+              Div#(t_FIFO_DATA_SZ, t_DATA_SZ, t_DATA_PER_CHUNK));
 
     Reg#(Vector#(n, t_FIFO_DATA)) buffer <- mkRegU();
     Reg#(Bit#(TAdd#(1, TLog#(n)))) count <- mkReg(0);
@@ -383,7 +625,8 @@ module mkStdIOReqMarshaller
         empty <= False;
 
         // Send only as much of the message as necessary.  Most messages
-        // don't require the entire buffer.
+        // don't require the entire buffer.  Computing the true space is
+        // made easier by the requirement that the data size be a power of 2.
 
         let hdr_cnt = valueOf(MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ,
                                                   t_REQ_HEADER_SZ));
@@ -391,23 +634,22 @@ module mkStdIOReqMarshaller
         if (valueOf(t_FIFO_DATA_SZ) <= valueOf(t_DATA_SZ))
         begin
             // Data elements are larger than the marshaller's chunk size.
-            // This it the easy case, since both must be powers of 2.
-
             Bit#(TAdd#(1, TLog#(n))) data_cnt = zeroExtendNP(msg.header.numData);
-            data_cnt = data_cnt *
-                       fromInteger(valueOf(MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ,
-                                                               t_DATA_SZ)));
+
+            data_cnt = data_cnt * fromInteger(valueOf(t_CHUNKS_PER_DATA));
             count <= fromInteger(hdr_cnt) + data_cnt;
         end
         else
         begin
-            // Data elements are smaller than the marshaller's chunk size,
-            // making the dynamic size harder to compute but also less important
-            // since the data vector is short.  Just special case 0.
-            if (msg.header.numData == 0)
-                count <= fromInteger(hdr_cnt);
-            else
-                count <= fromInteger(valueOf(n));
+            // Data elements are smaller than the marshaller's chunk size.
+            Bit#(TAdd#(TLog#(t_DATA_PER_CHUNK), TAdd#(1, TLog#(n)))) data_cnt = zeroExtendNP(msg.header.numData);
+
+            // Prepare to round up before division
+            data_cnt = data_cnt + fromInteger(valueOf(TSub#(t_DATA_PER_CHUNK, 1)));
+            // Divide by the number data elements per marshaller chunk
+            data_cnt = data_cnt / fromInteger(valueOf(t_DATA_PER_CHUNK));
+
+            count <= fromInteger(hdr_cnt) + truncateNP(data_cnt);
         end
 
         // Convert the message to a vector of the marshalled size.
@@ -437,4 +679,72 @@ module mkStdIOReqMarshaller
     method Bool isLast();
         return count == 1;
     endmethod
+endmodule
+
+
+// ========================================================================
+//
+//   Special-purpose demarshaller for STDIO copes with multiple possible
+//   output sizes and a single ring message size.  The ring message
+//   size may be either smaller or larger than the true data size,
+//   depending on the configuration of a given STDIO node.  Furthermore,
+//   a ring message may be only partially full.
+//
+// ========================================================================
+
+interface STDIO_DEMARSHALLER#(type t_FIFO_DATA, type t_DATA);
+    method Action enq(t_FIFO_DATA chunk, Bit#(2) nValid);
+    method Action deq();
+    method t_DATA first();
+    method Bool notFull();
+    method Bool notEmpty();
+
+    // Unusual for a demarshaller, but for some STDIO data sizes, the marshalling
+    // container is larger than the value!
+    method Bool isLast();    
+endinterface
+
+module mkStdIORspDemarshaller
+    // Interface:
+    (STDIO_DEMARSHALLER#(t_FIFO_DATA, t_DATA))
+    provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+    
+    if (valueOf(t_DATA_SZ) >= valueOf(t_FIFO_DATA_SZ))
+    begin
+        //
+        // Traditional demarshaller: more than one input chunk per output datum.
+        //
+
+        DEMARSHALLER#(t_FIFO_DATA, t_DATA) dem <- mkSimpleDemarshaller();
+
+        method Action enq(t_FIFO_DATA chunk, Bit#(2) nValid) = dem.enq(chunk);
+        method Action deq() = dem.deq;
+        method t_DATA first() = dem.first;
+        method Bool notFull() = dem.notFull;
+        method Bool notEmpty() = dem.notEmpty;
+        method Bool isLast() = True;
+    end
+    else
+    begin
+        //
+        // A single chunk has multiple messages.  This is actually more like
+        // a marshaller with t_DATA as the marshalled size and t_FIFO_DATA as
+        // the unmarshalled message.
+        //
+        MARSHALLER_N#(t_DATA,
+                      t_FIFO_DATA,
+                      Bit#(TAdd#(1, TLog#(MARSHALLER_MSG_LEN#(t_DATA_SZ, t_FIFO_DATA_SZ)))))
+            mar <- mkSimpleMarshallerN(True);
+
+        method Action enq(t_FIFO_DATA chunk, Bit#(2) nValid);
+            mar.enq(chunk, resize(nValid) + 1);
+        endmethod
+
+        method Action deq() = mar.deq;
+        method t_DATA first() = mar.first;
+        method Bool notFull() = mar.notFull;
+        method Bool notEmpty() = mar.notEmpty;
+        method Bool isLast() = mar.isLast;
+    end
 endmodule

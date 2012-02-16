@@ -11648,3 +11648,31 @@ Two changes
 
 2) Added errno.h include to stdio-service.  Some machines need this extra include to compile. 
 
+
+----------
+mcadler     Date: Wed Feb 15 20:18:26 EST 2012  CSN: CSN-leap-248
+                  Thu Feb 16 01:18:26 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ lfsr.bsv                  Locally Modified          247 
+ fifo-marshaller.bsv       Locally Modified          247 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          247 
+ stdio-local.bsv           Locally Modified          247 
+ stdio-service.rrr         Locally Modified          247 
+ stdio-service.h           Locally Modified          247 
+ stdio-service.bsv         Locally Modified          247 
+
+- Standard I/O changes:
+  - Add popen/pclose
+  - Add fread/fwrite
+  - Add rewind
+  - Change sprintf_delete to string_delete
+
+- Add a special case 64 bit LFSR, composed of two 32 bit LFSRs.
+
+- Add a marshaller interface that takes the number of chunks of data as
+  a parameter to enq, allowing for messages that don't fill an the full
+  number of chunks.
