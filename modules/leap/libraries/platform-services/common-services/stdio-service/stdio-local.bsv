@@ -241,7 +241,7 @@ module [CONNECTED_MODULE] mkStdIO
     FIFO#(Bool) freadEOM <- mkFIFO();
 
     // Buffer for read responses
-    FIFOF#(Tuple2#(t_DATA, Bool)) freadRspBuf <-
+    FIFOF#(Tuple3#(t_DATA, Bool, Bool)) freadRspBuf <-
         mkSizedBRAMFIFOF(valueOf(TMul#(STDIO_MAX_READS_IN_FLIGHT,
                                        STDIO_MAX_ELEM_PER_READ#(t_DATA))));
 
@@ -287,7 +287,17 @@ module [CONNECTED_MODULE] mkStdIO
             freadEOM.deq();
         end
 
-        freadRspBuf.enq(tuple2(r, is_eom));
+        freadRspBuf.enq(tuple3(r, is_eom, False));
+    endrule
+
+    //
+    // End of file files through the freadRspBuf too in order to stay
+    // synchronized with read responses.
+    //
+    rule eof ((rspChain.first().operation == STDIO_RSP_FREAD_EOF) &&
+              ! dem.notEmpty);
+        rspChain.deq();
+        freadRspBuf.enq(tuple3(?, True, True));
     endrule
 
 
@@ -498,32 +508,18 @@ module [CONNECTED_MODULE] mkStdIO
     //   but a read response is still being processed in the demarshaller
     //   and hasn't yet flowed to the freadRspBuf.
     //
-    method ActionValue#(Maybe#(t_DATA)) fread_rsp() if (freadRspBuf.notEmpty ||
-                                                        ((rspChain.first().operation == STDIO_RSP_FREAD_EOF) &&
-                                                         ! dem.notEmpty));
-        if (freadRspBuf.notEmpty)
-        begin
-            match {.d, .eom} = freadRspBuf.first();
-            freadRspBuf.deq();
+    method ActionValue#(Maybe#(t_DATA)) fread_rsp();
+        match {.d, .eom, .eof} = freadRspBuf.first();
+        freadRspBuf.deq();
 
-            // Last flit for this read request?
-            let in_flight = freadsInFlight.value();
-            if (eom)
-            begin
-                // Read is done
-                freadsInFlight.down();
-                in_flight = in_flight - 1;
-            end
-
-            return tagged Valid d;
-        end
-        else
+        // Last flit for this read request?
+        if (eom)
         begin
-            // End of file!
-            rspChain.deq();
+            // Read is done
             freadsInFlight.down();
-            return tagged Invalid;
         end
+
+        return (! eof ? tagged Valid d : tagged Invalid);
     endmethod
 
     method Bit#(TLog#(TAdd#(1, STDIO_MAX_READS_IN_FLIGHT))) fread_numInFlight();

@@ -11686,3 +11686,17 @@ Directory config/pm/leap/submodels/fpgaenv
  fpgaenv-hybrid-exe-no-memory.apm Locally Added               0 
 
 Add a no-memory version of the simulation platform to reduce compilation time.
+
+----------
+mcadler     Date: Fri Feb 17 08:17:21 EST 2012  CSN: CSN-leap-250
+                  Fri Feb 17 13:17:21 UTC 2012
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_exe.apm      Locally Modified          249 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-local.bsv           Locally Modified          249 
+
+- Simplify StdIO read data logic.
+- Use the no-memory simulation platform in a regression test.
