@@ -2,7 +2,6 @@
 %name Null Common Devices
 %desc Temporary device for backwards compatability
 %provides common_utility_devices
-%requires streams
 
 %notes README
 

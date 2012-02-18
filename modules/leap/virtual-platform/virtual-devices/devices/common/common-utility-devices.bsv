@@ -20,7 +20,6 @@
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/physical_platform_utils.bsh"
 
-`include "awb/provides/streams_device.bsh"
 `include "awb/provides/dynamic_parameters_device.bsh"
 `include "awb/provides/assertions_device.bsh"
 `include "awb/provides/stats_device.bsh"
@@ -29,7 +28,6 @@
 
 interface COMMON_UTILITY_DEVICES;
 
-    interface STREAMS streams;
     interface DYNAMIC_PARAMETERS dynamicParameters;
     interface ASSERTIONS assertions;
     interface STATS stats;
@@ -46,7 +44,6 @@ module mkCommonUtilityDevices#(LowLevelPlatformInterface llpi)
     // interface:
     (COMMON_UTILITY_DEVICES);
 
-    STREAMS str = ?;
     DYNAMIC_PARAMETERS dp = ?;
     ASSERTIONS as = ?;
     STATS st = ?;
@@ -63,13 +60,11 @@ module mkCommonUtilityDevices#(LowLevelPlatformInterface llpi)
         //
         // Normal (master) platform and services.
         //
-        str <- mkStreamsDevice(llpi);
         dp  <- mkDynamicParametersDevice(llpi);
         as  <- mkAssertionsDevice(llpi);
         st  <- mkStatsDevice(llpi);
     end
 
-    interface streams = str;
     interface dynamicParameters = dp;
     interface assertions = as;
     interface stats = st;

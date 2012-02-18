@@ -12,3 +12,5 @@
 %public stdio-service.h
 %public stdio-service.cpp
 %public stdio-service.rrr 
+
+%param --global STDIO_ENABLE_DEBUG   0  "Enable debugging nodes"

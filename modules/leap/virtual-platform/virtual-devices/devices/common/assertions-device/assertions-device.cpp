@@ -121,7 +121,7 @@ ASSERTIONS_DEVICE_SERVER_CLASS::Assert(
             const char *assert_msg = ASSERTIONS_DICT::Str(assert_id);
             if (assert_msg == NULL)
             {
-                cerr << "streams: " << ASSERTIONS_DICT::Str(assert_id)
+                cerr << "assert: " << ASSERTIONS_DICT::Str(assert_id)
                      << ": invalid assert_id: " << assert_id << endl;
                 CallbackExit(1);
             }

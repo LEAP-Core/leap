@@ -33,9 +33,13 @@ import List::*;
 // FILE handle
 typedef Bit#(8) STDIO_FILE;
 
-typedef 0 STDIO_STDOUT;
-typedef 1 STDIO_STDIN;
-typedef 2 STDIO_STDERR;
+typedef enum {
+   STDIO_STDOUT = 0,
+   STDIO_STDIN = 1,
+   STDIO_STDERR = 2
+}
+STDIO_STD_FILES
+    deriving (Eq, Bits);
 
 //
 // For now, RRR does not provide virtual channels for each service.  As
@@ -337,7 +341,7 @@ module [CONNECTED_MODULE] mkStdIO
     //
     // manageReq --
     //     Forward requests from others and switch to local sending when
-    //     appropriate.
+    //     appropriate.  Local requests have priority.
     //
     rule forwardReq (reqState == STDIO_REQ_IDLE);
         if (mar.notEmpty && reqNotBusy)
@@ -581,6 +585,126 @@ module [CONNECTED_MODULE] mkStdIO
 
     method Action sync_rsp() if (rspChain.first().operation == STDIO_RSP_SYNC);
         rspChain.deq();
+    endmethod
+endmodule
+
+
+// ========================================================================
+//
+//   NULL and debugging versions of StdIO nodes.  The debugging version
+//   enables the node if STDIO_ENABLE_DEBUG is is non-zero.  If zero,
+//   a NULL node is allocated.
+//
+// ========================================================================
+
+//
+// mkStdIO_Debug --
+//     Conditionally make either a StdIO client or a NULL client, depending
+//     on the state of the STDIO_ENABLE_DEBUG awb parameter.
+//
+module [CONNECTED_MODULE] mkStdIO_Debug
+    // interface:
+    (STDIO#(t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ),
+              Add#(a__, 32, TMul#(STDIO_WRITE_MAX, t_DATA_SZ)));
+
+    let io <- (`STDIO_ENABLE_DEBUG != 0 ? mkStdIO() :
+                                          mkStdIO_Disabled());
+    return io;
+endmodule
+
+
+//
+// mkStdIO_Disabled --
+//     NULL version of STDIO.
+//
+module [CONNECTED_MODULE] mkStdIO_Disabled
+    // interface:
+    (STDIO#(t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ),
+              Add#(a__, 32, TMul#(STDIO_WRITE_MAX, t_DATA_SZ)));
+
+    FIFO#(Bool) fopenFIFO <- mkFIFO();
+    FIFO#(Bool) popenFIFO <- mkFIFO();
+    FIFOF#(Bool) freadFIFO <- mkFIFOF();
+    FIFO#(Bool) sprintfFIFO <- mkFIFO();
+    FIFO#(Bool) syncFIFO <- mkFIFO();
+
+    method Action fopen_req(GLOBAL_STRING_UID nameID, GLOBAL_STRING_UID modeID);
+        fopenFIFO.enq(?);
+    endmethod
+
+    method ActionValue#(STDIO_FILE) fopen_rsp();
+        fopenFIFO.deq();
+        return ?;
+    endmethod
+
+    method Action fclose(STDIO_FILE file);
+    endmethod
+
+    method Action popen_req(GLOBAL_STRING_UID nameID, Bool forRead);
+        popenFIFO.enq(?);
+    endmethod
+
+    method ActionValue#(STDIO_FILE) popen_rsp();
+        popenFIFO.deq();
+        return ?;
+    endmethod
+
+    method Action pclose(STDIO_FILE file);
+    endmethod
+
+    method Action fread_req(STDIO_FILE file,
+                            STDIO_NUM_READ_ELEMS#(t_DATA) nmemb) provisos(Bits#(t_DATA, t_DATA_SZ));
+        freadFIFO.enq(?);
+    endmethod
+
+    method Action freadMax_req(STDIO_FILE file);
+        freadFIFO.enq(?);
+    endmethod
+
+    method ActionValue#(Maybe#(t_DATA)) fread_rsp();
+        freadFIFO.deq();
+        return tagged Invalid;
+    endmethod
+
+    method Bit#(TLog#(TAdd#(1, STDIO_MAX_READS_IN_FLIGHT))) fread_numInFlight();
+        return (freadFIFO.notEmpty ? 1 : 0);
+    endmethod
+
+    method Action fwrite(STDIO_FILE file, List#(t_DATA) args);
+    endmethod
+
+    method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+    endmethod
+
+    method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+    endmethod
+
+    method Action sprintf_req(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+        sprintfFIFO.enq(?);
+    endmethod
+
+    method ActionValue#(GLOBAL_STRING_UID) sprintf_rsp();
+        sprintfFIFO.deq();
+        return ?;
+    endmethod
+
+    method Action string_delete(GLOBAL_STRING_UID strID);
+    endmethod
+
+    method Action fflush(STDIO_FILE file);
+    endmethod
+
+    method Action rewind(STDIO_FILE file);
+    endmethod
+
+    method Action sync_req();
+        syncFIFO.enq(?);
+    endmethod
+
+    method Action sync_rsp();
+        syncFIFO.deq();
     endmethod
 endmodule
 

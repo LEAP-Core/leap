@@ -23,7 +23,6 @@ Packagehint=leap
 [Base Common Devices/Requires]
 stats_device=Stats Device
 dynamic_parameters_device=Dynamic Parameters Device
-streams_device=Hybrid Streams Device
 assertions_device=Assertions Device
 
 [Base Common Devices]
@@ -34,9 +33,6 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device/dynamic-parameters-device.awb
 Packagehint=leap
 
-[Hybrid Streams Device]
-File=modules/leap/virtual-platform/virtual-devices/devices/common/streams-device/hybrid-streams.awb
-Packagehint=leap
 
 [Assertions Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/assertions-device/assertions-device.awb
@@ -45,7 +41,6 @@ Packagehint=leap
 [Stats Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/stats-device/stats-device.awb
 Packagehint=leap
-
 
 [Standard Virtual Devices (No Memory Service)/Requires]
 starter_device=Starter Virtual Device

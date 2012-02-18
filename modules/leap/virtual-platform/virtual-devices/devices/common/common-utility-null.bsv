@@ -23,9 +23,6 @@
 // A set of useful IO services.
 
 interface COMMON_UTILITY_DEVICES;
-    
-    interface Streams streams;
-
 endinterface
 
 //
@@ -37,9 +34,5 @@ endinterface
 module mkCommonUtilityDevices#(LowLevelPlatformInterface llpi)
     // interface:
     (COMMON_UTILITY_DEVICES);
-
-    let str <- mkStreams(llpi);
-    
-    interface streams = str;
 
 endmodule

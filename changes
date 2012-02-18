@@ -11700,3 +11700,66 @@ Directory modules/leap/libraries/platform-services/common-services/stdio-service
 
 - Simplify StdIO read data logic.
 - Use the no-memory simulation platform in a regression test.
+
+----------
+mcadler     Date: Fri Feb 17 19:29:58 EST 2012  CSN: CSN-leap-251
+                  Sat Feb 18 00:29:58 UTC 2012
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          250 
+ standard-platform-local-mem.apm Locally Modified          250 
+ standard-platform-null-mem.apm Locally Modified          250 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          250 
+ std-virtual-devices-local-scratchpad.apm Locally Modified          250 
+ std-virtual-devices-null-mem.apm Locally Modified          250 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.awb Locally Modified          250 
+ common-utility-devices.bsv Locally Modified          250 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/assertions-device
+ assertions-device.cpp     Locally Modified          250 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-null.awb   Locally Modified          250 
+ common-utility-null.bsv   Locally Modified          250 
+ streams-device/           Locally Removed           250 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/streams-device
+ streams-common.bsh        Locally Removed           250 
+ hybrid-streams-services.rrr Locally Removed           250 
+ hybrid-streams.h          Locally Removed           250 
+ hybrid-streams.awb        Locally Removed           250 
+ hybrid-streams.bsv        Locally Removed           250 
+ streamid.dic              Locally Removed           250 
+ streams.dic               Locally Removed           250 
+ README                    Locally Removed           250 
+ hybrid-streams.cpp        Locally Removed           250 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.awb Locally Modified          250 
+ common-services-standard.bsv Locally Modified          250 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service-null.awb    Locally Modified          250 
+ stdio-local.bsv           Locally Modified          250 
+ stdio-service.awb         Locally Modified          250 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsh Locally Modified          250 
+ common-services-standard.dic Locally Modified          250 
+ common-services-standard-null.awb Locally Modified          250 
+ streams-service/          Locally Removed           250 
+
+Directory modules/leap/libraries/platform-services/common-services/streams-service
+ streams-local.bsv         Locally Removed           250 
+ streams-service.awb       Locally Removed           250 
+ streams-service.bsv       Locally Removed           250 
+ streams-service.bsh       Locally Removed           250 
+ streams-service-null.awb  Locally Removed           250 
+ README                    Locally Removed           250 
+
+Drop the STREAMS service, now replaced by STDIO.

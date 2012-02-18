@@ -1,4 +1,0 @@
-
-// Include base virtual device
-`include "awb/provides/streams_device.bsh"
-

@@ -35,6 +35,5 @@ module [CONNECTED_MODULE] mkCommonServices#(VIRTUAL_DEVICES vdevs)
     let paramsService     <- mkDynamicParametersService(com.dynamicParameters);
     let statsService      <- mkStatsService(com.stats);
     let stdioService      <- mkStdIOService();
-    let streamsService    <- mkStreamsService(com.streams);
 
 endmodule
