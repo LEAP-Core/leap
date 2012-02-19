@@ -312,7 +312,7 @@ class BSV():
         synth_stub_path = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'
         synth_stub = synth_stub_path + module.name +'.bsv'
         c = env.Command(synth_stub, # target
-                        [stub, wrapper_bo],  
+                        [stub, wrapper_bo],
                         ['leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
 
 
