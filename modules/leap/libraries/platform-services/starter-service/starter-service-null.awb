@@ -1,0 +1,11 @@
+%name Starter Service Null
+%desc Wrap Starter Device in Soft Connections Null
+
+%provides starter_service
+
+%attributes hybrid connected
+
+%notes README
+
+%public starter-service.bsh
+%public starter-service-null.bsv

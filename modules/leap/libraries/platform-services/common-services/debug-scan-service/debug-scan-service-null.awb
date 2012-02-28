@@ -7,8 +7,5 @@
 
 %notes README
 
-%public debug-scan-local.bsv 
+%public debug-scan-local-null.bsv 
 
-%public debug-scan-service.h
-%public debug-scan-service.cpp
-%public debug-scan-service.rrr 

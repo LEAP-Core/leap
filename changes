@@ -11773,3 +11773,57 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
  BSV.py                    Locally Modified          251 
 
 Whitespace now matches multi-FPGA version.
+
+----------
+emer        Date: Tue Feb 28 14:23:28 EST 2012  CSN: CSN-leap-253
+                  Tue Feb 28 19:23:28 UTC 2012
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-no-services.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe-no-services.apm Locally Added               0 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/null
+ null-virtual-devices.awb  Locally Modified          252 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ starter-service-null.awb  Locally Added               0 
+ starter-service-null.bsv  Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/front-panel-service
+ front-panel-service-null.awb Locally Added               0 
+ front-panel-service-null.bsv Locally Added               0 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-null.awb Locally Modified          252 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service-null.awb    Locally Modified          252 
+ stdio-local-null.bsv      Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service-null.awb Locally Modified          252 
+ dynamic-parameters-local-null.bsv Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local-null.bsv Locally Added               0 
+ debug-scan-service-null.awb Locally Modified          252 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local-null.bsv Locally Added               0 
+ assertions-service-null.awb Locally Modified          252 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard-null.bsv Locally Modified          252 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local-null.bsv      Locally Added               0 
+ stats-service-null.awb    Locally Modified          252 
+ stats-service-null.bsv    Locally Added               0 
+
+Added an FPGA environment with no services and no virtual devices. A
+variety of 'null' varients of services were updated (mostly by creating
+empty modules that satisfied the required interfaces) to make this
+work.

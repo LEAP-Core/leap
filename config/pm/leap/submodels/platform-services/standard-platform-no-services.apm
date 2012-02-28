@@ -1,0 +1,65 @@
+
+[Global]
+SaveParameters=0
+Description=Standard set of platform services - all that do nothing with no soft connections
+File=standard-platform-no-services
+Version=2.2
+Type=HAsim
+Name=Standard Platform Services (No Services) Submodel
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=Platform Services with No Memory Service
+RootProvides=platform_services
+
+[Model]
+DefaultAttributes=connected hybrid
+model=Platform Services with No Memory Service
+
+[Debug Scan Services Null]
+File=modules/leap/libraries/platform-services/common-services/debug-scan-service/debug-scan-service-null.awb
+Packagehint=leap
+
+[Assertions Service Null]
+File=modules/leap/libraries/platform-services/common-services/assertions-service/assertions-service-null.awb
+Packagehint=leap
+
+[Stats Service Null]
+File=modules/leap/libraries/platform-services/common-services/stats-service/stats-service-null.awb
+Packagehint=leap
+
+[Standard I/O Services Null]
+File=modules/leap/libraries/platform-services/common-services/stdio-service/stdio-service-null.awb
+Packagehint=leap
+
+[Dynamic Parameter Service Null]
+File=modules/leap/libraries/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service-null.awb
+Packagehint=leap
+
+[Platform Services with No Memory Service]
+File=modules/leap/libraries/platform-services/platform-services-null-mem.awb
+Packagehint=leap
+
+[Common Services Null]
+File=modules/leap/libraries/platform-services/common-services/common-services-standard-null.awb
+Packagehint=leap
+
+[Platform Services with No Memory Service/Requires]
+common_services=Common Services Null
+front_panel_service=Front Panel Service Null
+starter_service=Starter Service Null
+
+[Common Services Null/Requires]
+stats_service=Stats Service Null
+assertions_service=Assertions Service Null
+stdio_service=Standard I/O Services Null
+debug_scan_service=Debug Scan Services Null
+dynamic_parameters_service=Dynamic Parameter Service Null
+
+[Front Panel Service Null]
+File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service-null.awb
+Packagehint=leap
+
+[Starter Service Null]
+File=modules/leap/libraries/platform-services/starter-service/starter-service-null.awb
+Packagehint=leap

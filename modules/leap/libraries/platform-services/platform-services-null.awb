@@ -4,6 +4,7 @@
 %provides platform_services
 
 %requires  starter_service
+%requires  debug_scan_service
 
 %attributes leap
 
