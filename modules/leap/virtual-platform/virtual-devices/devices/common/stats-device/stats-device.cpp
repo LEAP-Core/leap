@@ -104,6 +104,14 @@ STATS_DEVICE_SERVER_CLASS::SetupStats()
     // used at most once.
     clientStub->DumpStats(0);
 
+    // Turn on statistics collection (they start disabled)
+    static bool once = false;
+    if (! once)
+    {
+        clientStub->Toggle(0);
+        once = true;
+    }
+
     statsInited = true;
 }
 

@@ -102,6 +102,14 @@ DEBUG_SCAN_SERVER_CLASS::Scan()
 {
     fprintf(of, "\nDEBUG SCAN:\n");
 
+    fprintf(of, "  Checking RRR:");
+    fflush(of);
+    if (clientStub->CheckRRR(27) == 27)
+    {
+        fprintf(of, "  OK\n");
+        fflush(of);
+    }
+
     clientStub->Scan(0);
 }
 

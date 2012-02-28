@@ -38,6 +38,17 @@ module [CONNECTED_MODULE] mkDebugScanService
     // ****** Rules ******
   
     //
+    // processRRRCheck --
+    //     Check that RRR allows I/O in both directions.  For bugs where I/O
+    //     is so broken that debug scan doesn't complete, this check lets us
+    //     rule out RRR problems.
+    //
+    rule processRRRCheck (True);
+        let v <- serverStub.acceptRequest_CheckRRR();
+        serverStub.sendResponse_CheckRRR(v);
+    endrule
+
+    //
     // processReq --
     //     Receive a command requesting a scan dump.
     //

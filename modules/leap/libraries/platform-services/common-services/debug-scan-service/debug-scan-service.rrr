@@ -3,6 +3,7 @@ service DEBUG_SCAN
     server hw (bsv, connection) <- sw (cpp, method)
     {
         method Scan(in UINT8[8] dummy, out UINT8[8] ack);
+        method CheckRRR(in UINT8[8] dummy, out UINT8[8] ack);
     };
 
     server sw (cpp, method) <- hw (bsv, connection)

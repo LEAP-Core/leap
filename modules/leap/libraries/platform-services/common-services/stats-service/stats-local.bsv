@@ -221,7 +221,7 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
     Vector#(n_STATS, COUNTER#(`STATS_SIZE)) statPool <- replicateM(mkLCounter(0));
 
     Reg#(STAT_STATE) state <- mkReg(RECORDING);
-    Reg#(Bool) enabled <- mkReg(True);
+    Reg#(Bool) enabled <- mkReg(False);
 
     Reg#(STAT_VECTOR_INDEX) curDumpIdx <- mkRegU();
 

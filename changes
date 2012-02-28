@@ -11827,3 +11827,25 @@ Added an FPGA environment with no services and no virtual devices. A
 variety of 'null' varients of services were updated (mostly by creating
 empty modules that satisfied the required interfaces) to make this
 work.
+
+----------
+mcadler     Date: Tue Feb 28 16:35:26 EST 2012  CSN: CSN-leap-254
+                  Tue Feb 28 21:35:26 UTC 2012
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/stats-device
+ stats-device.cpp          Locally Modified          253 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          253 
+ debug-scan-service.cpp    Locally Modified          253 
+ debug-scan-service.rrr    Locally Modified          253 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          253 
+
+- Statistics start "off" by default and are enabled by software once the system
+  is initialized.
+
+- Validate that RRR works before starting a debug scan in case the debug scan
+  chain is deadlocked.  We can then point fingers more accurately.
