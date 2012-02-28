@@ -11849,3 +11849,21 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
 
 - Validate that RRR works before starting a debug scan in case the debug scan
   chain is deadlocked.  We can then point fingers more accurately.
+
+----------
+emer        Date: Tue Feb 28 17:47:25 EST 2012  CSN: CSN-leap-255
+                  Tue Feb 28 22:47:25 UTC 2012
+
+
+Directory debian
+ control                   Locally Modified          254 
+ changelog                 Locally Modified          254 
+ rules                     Locally Modified          254 
+
+Directory .
+ Makefile.in               Locally Modified          254 
+
+Directory admin/packages
+ leap                      Locally Modified          254 
+
+Move to version 12.02.
