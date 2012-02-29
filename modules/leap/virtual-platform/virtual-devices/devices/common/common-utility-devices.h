@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 
-#include "awb/provides/dynamic_parameters_device.h"
+#include "awb/provides/dynamic_parameters_service.h"
 
 typedef class COMMON_UTILITY_DEVICES_CLASS* COMMON_UTILITY_DEVICES;
 
@@ -17,7 +17,7 @@ class COMMON_UTILITY_DEVICES_CLASS
  
     // The parameter controller is a pure client
     // so we must instantiate it.
-    DYNAMIC_PARAMS_DEVICE dynamicParamsDevice;
+    DYNAMIC_PARAMS_SERVICE dynamicParamsService;
 
   public:
     COMMON_UTILITY_DEVICES_CLASS();

@@ -25,7 +25,7 @@
 #include "asim/mesg.h"
 #include "awb/rrr/service_ids.h"
 #include "awb/provides/command_switches.h"
-#include "awb/provides/dynamic_parameters_device.h"
+#include "awb/provides/dynamic_parameters_service.h"
 #include "awb/provides/application_env.h"
 
 #include "awb/dict/PARAMS.h"
@@ -75,27 +75,27 @@ NULL
 using namespace std;
 
 // constructor
-DYNAMIC_PARAMS_DEVICE_CLASS::DYNAMIC_PARAMS_DEVICE_CLASS() :
+DYNAMIC_PARAMS_SERVICE_CLASS::DYNAMIC_PARAMS_SERVICE_CLASS() :
     clientStub(new PARAMS_CLIENT_STUB_CLASS(this))
 {
 }
 
 // destructor
-DYNAMIC_PARAMS_DEVICE_CLASS::~DYNAMIC_PARAMS_DEVICE_CLASS()
+DYNAMIC_PARAMS_SERVICE_CLASS::~DYNAMIC_PARAMS_SERVICE_CLASS()
 {
     Cleanup();
 }
 
 // init
 void
-DYNAMIC_PARAMS_DEVICE_CLASS::Init(PLATFORMS_MODULE p)
+DYNAMIC_PARAMS_SERVICE_CLASS::Init(PLATFORMS_MODULE p)
 {
     // chain
     PLATFORMS_MODULE_CLASS::Init(p);
 }
 
 void
-DYNAMIC_PARAMS_DEVICE_CLASS::Uninit()
+DYNAMIC_PARAMS_SERVICE_CLASS::Uninit()
 {
     Cleanup();
 
@@ -105,14 +105,14 @@ DYNAMIC_PARAMS_DEVICE_CLASS::Uninit()
 
 // cleanup
 void
-DYNAMIC_PARAMS_DEVICE_CLASS::Cleanup()
+DYNAMIC_PARAMS_SERVICE_CLASS::Cleanup()
 {
     // delete stubs
     delete clientStub;
 }
 
 void 
-DYNAMIC_PARAMS_DEVICE_CLASS::SendAllParams()
+DYNAMIC_PARAMS_SERVICE_CLASS::SendAllParams()
 {
     if (PLATFORM_SERVICES_AVAILABLE)
     {

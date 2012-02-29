@@ -35,13 +35,13 @@
 #include "awb/rrr/service_ids.h"
 #include "awb/provides/command_switches.h"
 
-#include "awb/provides/stats_device.h"
+#include "awb/provides/stats_service.h"
 
 using namespace std;
 
 
 // ===== service instantiation =====
-STATS_DEVICE_SERVER_CLASS STATS_DEVICE_SERVER_CLASS::instance;
+STATS_SERVER_CLASS STATS_SERVER_CLASS::instance;
 
 // ===== registered stats emitters =====
 static list<STATS_EMITTER> statsEmitters;
@@ -49,7 +49,7 @@ static list<STATS_EMITTER> statsEmitters;
 // ===== methods =====
 
 // constructor
-STATS_DEVICE_SERVER_CLASS::STATS_DEVICE_SERVER_CLASS() :
+STATS_SERVER_CLASS::STATS_SERVER_CLASS() :
     statsInited(false),
     // instantiate stubs
     clientStub(new STATS_CLIENT_STUB_CLASS(this)),
@@ -65,7 +65,7 @@ STATS_DEVICE_SERVER_CLASS::STATS_DEVICE_SERVER_CLASS() :
 
 
 // destructor
-STATS_DEVICE_SERVER_CLASS::~STATS_DEVICE_SERVER_CLASS()
+STATS_SERVER_CLASS::~STATS_SERVER_CLASS()
 {
     Cleanup();
 }
@@ -73,7 +73,7 @@ STATS_DEVICE_SERVER_CLASS::~STATS_DEVICE_SERVER_CLASS()
 
 // init
 void
-STATS_DEVICE_SERVER_CLASS::Init(
+STATS_SERVER_CLASS::Init(
     PLATFORMS_MODULE     p)
 {
     // set parent pointer
@@ -84,7 +84,7 @@ STATS_DEVICE_SERVER_CLASS::Init(
 
 // init
 void
-STATS_DEVICE_SERVER_CLASS::SetupStats()
+STATS_SERVER_CLASS::SetupStats()
 {
     // This call will cause the hardware to invoke SetStatVectorLength
     // for every array stat.
@@ -117,7 +117,7 @@ STATS_DEVICE_SERVER_CLASS::SetupStats()
 
 // uninit: we have to write this explicitly
 void
-STATS_DEVICE_SERVER_CLASS::Uninit()
+STATS_SERVER_CLASS::Uninit()
 {
     Cleanup();
 
@@ -127,7 +127,7 @@ STATS_DEVICE_SERVER_CLASS::Uninit()
 
 // cleanup
 void
-STATS_DEVICE_SERVER_CLASS::Cleanup()
+STATS_SERVER_CLASS::Cleanup()
 {
     // kill stubs
     delete serverStub;
@@ -151,7 +151,7 @@ STATS_DEVICE_SERVER_CLASS::Cleanup()
 
 // Send
 void
-STATS_DEVICE_SERVER_CLASS::ReportStat(
+STATS_SERVER_CLASS::ReportStat(
     UINT32 statID,
     UINT32 pos,
     UINT32 value)
@@ -179,7 +179,7 @@ STATS_DEVICE_SERVER_CLASS::ReportStat(
 
 // Instantitate a new stat vector of the given length.
 void
-STATS_DEVICE_SERVER_CLASS::SetVectorLength(
+STATS_SERVER_CLASS::SetVectorLength(
     UINT32 statID,
     UINT32 len,
     UINT8 buildArray)
@@ -206,7 +206,7 @@ STATS_DEVICE_SERVER_CLASS::SetVectorLength(
 
 // DumpStats
 void
-STATS_DEVICE_SERVER_CLASS::DumpStats()
+STATS_SERVER_CLASS::DumpStats()
 {
     clientStub->DumpStats(0);
 }
@@ -217,7 +217,7 @@ STATS_DEVICE_SERVER_CLASS::DumpStats()
 //    Dump the in-memory statistics to a file.
 //
 void
-STATS_DEVICE_SERVER_CLASS::EmitFile()
+STATS_SERVER_CLASS::EmitFile()
 {
     // Open the output file
     string statsFileName = string(globalArgs->Workload()) + ".stats";
@@ -270,7 +270,7 @@ STATS_DEVICE_SERVER_CLASS::EmitFile()
 void
 StatsEmitFile()
 {
-    STATS_DEVICE_SERVER_CLASS::GetInstance()->EmitFile();
+    STATS_SERVER_CLASS::GetInstance()->EmitFile();
 }
 
 

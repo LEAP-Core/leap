@@ -26,9 +26,13 @@
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/virtual_devices.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/clocks_device.bsh"
+
+`include "awb/rrr/server_connections.bsh"
+`include "awb/rrr/client_connections.bsh"
 
 interface VIRTUAL_PLATFORM;
 
@@ -43,6 +47,16 @@ module [CONNECTED_MODULE] mkVirtualPlatform#(LowLevelPlatformInterface llpi)
 
     let vdevs  <- mkVirtualDevices(llpi);
     
+    //
+    // auto-generated submodules for RRR connections.  Export them as soft
+    // connections, but only on the master FPGA.
+    //
+    if (fpgaPlatformID() == 0)
+    begin
+        let rrrServerLinks <- mkServerConnections(llpi.rrrServer);
+        let rrrClientLinks <- mkClientConnections(llpi.rrrClient);
+    end
+
     interface llpint = llpi;
     interface virtualDevices = vdevs;
 

@@ -11918,3 +11918,111 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
  stats-service-null.bsv    Locally Removed           255 
 
 Revert 253 check-in.
+
+----------
+mcadler     Date: Wed Feb 29 16:05:01 EST 2012  CSN: CSN-leap-257
+                  Wed Feb 29 21:05:01 UTC 2012
+
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          256 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.bsv   Locally Modified          256 
+ std-virtual-devices-null-mem.bsv Locally Modified          256 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.h  Locally Modified          256 
+ common-utility-devices.awb Locally Modified          256 
+ dynamic-parameters-device/ Locally Removed           256 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/dynamic-parameters-device
+ dynamic-parameters-device.dic Locally Removed           256 
+ dynamic-parameters-device.cpp Locally Removed           256 
+ dynamic-parameters-device.rrr Locally Removed           256 
+ dynamic-parameters-device.h Locally Removed           256 
+ dynamic-parameters-device.awb Locally Removed           256 
+ dynamic-parameters-device.bsv Locally Removed           256 
+ README                    Locally Removed           256 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.bsv Locally Removed           256 
+ assertions-device/        Locally Removed           256 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/assertions-device
+ assertions-device.awb     Locally Removed           256 
+ assertions-device.bsv     Locally Removed           256 
+ assertions-device.dic     Locally Removed           256 
+ assertions-device.cpp     Locally Removed           256 
+ assertions-device.rrr     Locally Removed           256 
+ README                    Locally Removed           256 
+ assertions-device.h       Locally Removed           256 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-null.awb   Locally Modified          256 
+ common-utility-devices.cpp Locally Modified          256 
+ common-utility-null.bsv   Locally Removed           256 
+ stats-device/             Locally Removed           256 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common/stats-device
+ stats-device.rrr          Locally Removed           256 
+ stats-device.h            Locally Removed           256 
+ stats-device.awb          Locally Removed           256 
+ stats-device.bsv          Locally Removed           256 
+ stats-device.dic          Locally Removed           256 
+ stats-device.cpp          Locally Removed           256 
+ README                    Locally Removed           256 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          256 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-null-mem.bsv Locally Modified          256 
+ platform-services-null.bsv Locally Modified          256 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsv Locally Modified          256 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.dic Locally Added               0 
+ dynamic-parameters-service.cpp Locally Added               0 
+ dynamic-parameters-local.bsv Locally Modified          256 
+ dynamic-parameters-service.rrr Locally Added               0 
+ dynamic-parameters-service.h Locally Added               0 
+ dynamic-parameters-service.awb Locally Modified          256 
+ dynamic-parameters-service.bsv Locally Modified          256 
+ dynamic-parameters-service.bsh Locally Removed           256 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service-null.awb Locally Modified          256 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.awb    Locally Modified          256 
+ assertions-service.bsv    Locally Modified          256 
+ assertions-service.bsh    Locally Removed           256 
+ assertions-service.dic    Locally Added               0 
+ assertions-service-null.awb Locally Modified          256 
+ assertions-service.cpp    Locally Added               0 
+ assertions-local.bsv      Locally Modified          256 
+ assertions-service.rrr    Locally Added               0 
+ assertions-service.h      Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.rrr         Locally Added               0 
+ stats-service.h           Locally Added               0 
+ stats-service.awb         Locally Modified          256 
+ stats-service.bsv         Locally Modified          256 
+ stats-service.bsh         Locally Removed           256 
+ stats-service.dic         Locally Added               0 
+ stats-service-null.awb    Locally Modified          256 
+ stats-service.cpp         Locally Added               0 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-standard.bsv Locally Modified          256 
+
+Move all remaining common virtual devices to their corresponding services and
+switch to using soft connections.  The virtual platform is no longer passed
+to the common services.
+
+This is the first step toward moving common platform services to their own
+synthesis boundary.

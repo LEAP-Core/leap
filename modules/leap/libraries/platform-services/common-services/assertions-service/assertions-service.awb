@@ -7,6 +7,12 @@
 
 %notes README
 
-%public assertions-service.bsh
-%public assertions-local.bsv 
-%public assertions-service.bsv 
+%public  assertions-local.bsv 
+%public  assertions-service.bsv 
+%public  assertions-service.awb
+%public  assertions-service.h
+%private assertions-service.cpp
+%private assertions-service.rrr
+%private assertions-service.dic
+
+%param --global ASSERTIONS_PER_NODE 16 "Max number of assertions connected to an assertion node (ring stop)."

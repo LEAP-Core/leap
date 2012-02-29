@@ -22,14 +22,12 @@
 `include "awb/provides/front_panel.bsh"
 `include "asim/provides/local_memory_device.bsh"
 `include "awb/provides/starter_device.bsh"
-`include "awb/provides/common_utility_devices.bsh"
 `include "awb/provides/soft_connections.bsh"
 
 interface VIRTUAL_DEVICES;
 
     interface FRONT_PANEL frontPanel;
     interface STARTER starter;
-    interface COMMON_UTILITY_DEVICES commonUtilities;
 
 endinterface
 
@@ -53,17 +51,11 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
         st <- mkStarter(llpint);
     end
 
-    //
-    // Devices that are present on all platforms...
-    //
-    let com <- mkCommonUtilityDevices(llpint);
-
     // mkLocalMemory() exports only soft connections, so will not be returned
     // as part of the VIRTUAL_DEVICES interface.
     let lm  <- mkLocalMemory(llpint);
 
     interface frontPanel = fp;
     interface starter = st;
-    interface commonUtilities = com;
 
 endmodule

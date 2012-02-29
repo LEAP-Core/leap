@@ -7,6 +7,9 @@
 
 %notes README
 
-%public dynamic-parameters-service.bsh
-%public dynamic-parameters-local.bsv 
-%public dynamic-parameters-service.bsv 
+%public  dynamic-parameters-local.bsv 
+%public  dynamic-parameters-service.bsv 
+%public  dynamic-parameters-service.h
+%private dynamic-parameters-service.cpp
+%public  dynamic-parameters-service.rrr
+%public  dynamic-parameters-service.dic

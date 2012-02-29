@@ -25,6 +25,9 @@
 // blocks until it has been initialized.
 //
 
+`include "awb/rrr/server_stub_PARAMS.bsh"
+`include "awb/dict/PARAMS.bsh"
+
 
 // SOFT_PARAMS_STATE
 
@@ -43,7 +46,7 @@ SOFT_PARAMS_STATE
 
 // Abstracts all communication from the main controller to individual stat counters.
 
-module [CONNECTED_MODULE] mkDynamicParametersService#(DYNAMIC_PARAMETERS dynParam)
+module [CONNECTED_MODULE] mkDynamicParametersService
     //interface:
     ();
 
@@ -52,6 +55,9 @@ module [CONNECTED_MODULE] mkDynamicParametersService#(DYNAMIC_PARAMETERS dynPara
     // Communication link to the Params themselves
     Connection_Chain#(PARAM_DATA) chain <- mkConnection_Chain(`RINGID_PARAMS);
  
+    // Communication to our RRR server
+    ServerStub_PARAMS server_stub <- mkServerStub_PARAMS();
+
     // Our internal state
     Reg#(SOFT_PARAMS_STATE) state <- mkReg(PCS_IDLE);
     
@@ -62,12 +68,12 @@ module [CONNECTED_MODULE] mkDynamicParametersService#(DYNAMIC_PARAMETERS dynPara
     // Wait for parameter update request
     
     rule waitForParam (state == PCS_IDLE);
-        DYN_PARAM c = dynParam.peekCmd();
+        let c = server_stub.peekRequest_sendParam();
 
         //
         // The first message on the chain is the parameter ID
         //
-        PARAM_DATA msg = tagged PARAM_ID c.paramID;
+        PARAM_DATA msg = tagged PARAM_ID truncate(pack(c.paramID));
         chain.sendToNext(msg);
 
         state <= PCS_HIGH32;
@@ -78,7 +84,7 @@ module [CONNECTED_MODULE] mkDynamicParametersService#(DYNAMIC_PARAMETERS dynPara
     // State machine for sending parameter values in two 32 bit chunks
     //
     rule sendHigh (state == PCS_HIGH32);
-        let c = dynParam.peekCmd();
+        let c = server_stub.peekRequest_sendParam();
 
         //
         // Send the high 32 bits first.
@@ -89,8 +95,7 @@ module [CONNECTED_MODULE] mkDynamicParametersService#(DYNAMIC_PARAMETERS dynPara
     endrule
     
     rule sendLow (state == PCS_LOW32);
-        let c <- dynParam.getCmd();
-        dynParam.finishCmd();
+        let c <- server_stub.acceptRequest_sendParam();
 
         PARAM_DATA msg = tagged PARAM_Low32 c.value[31:0];
         chain.sendToNext(msg);

@@ -3,11 +3,8 @@
 %desc A collection of useful utilities, mostly dealing with I/O
 %provides common_utility_devices
 
-%requires dynamic_parameters_device assertions_device stats_device
-
 %notes README
 
-%sources -t BSV -v PUBLIC  common-utility-devices.bsv
 %sources -t H   -v PUBLIC  common-utility-devices.h
 %sources -t CPP -v PRIVATE common-utility-devices.cpp
 

@@ -24,16 +24,14 @@
 `include "awb/dict/RINGID.bsh"
 
 
-module [CONNECTED_MODULE] mkCommonServices#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkCommonServices
     // interface:
         ();
 
-    let com = vdevs.commonUtilities;
-
-    let assertionsService <- mkAssertionsService(com.assertions);
+    let assertionsService <- mkAssertionsService();
     let debugScanService  <- mkDebugScanService();
-    let paramsService     <- mkDynamicParametersService(com.dynamicParameters);
-    let statsService      <- mkStatsService(com.stats);
+    let paramsService     <- mkDynamicParametersService();
+    let statsService      <- mkStatsService();
     let stdioService      <- mkStdIOService();
 
 endmodule

@@ -20,12 +20,44 @@ import Vector::*;
 import FIFOF::*;
 
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/assertions_device.bsh"
 
 `include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS.bsh"
 
 // Assertions
+
+// A way to report to the outside world when something has gone wrong.
+
+
+// ASSERTION_SEVERITY
+
+// The severity of an assertion. This could be used to filter things out.
+
+typedef enum
+{
+    ASSERT_NONE,
+    ASSERT_MESSAGE,
+    ASSERT_WARNING,
+    ASSERT_ERROR
+}
+    ASSERTION_SEVERITY 
+        deriving (Eq, Bits);
+
+
+instance Ord#(ASSERTION_SEVERITY);
+
+  function Bool \< (ASSERTION_SEVERITY x, ASSERTION_SEVERITY y) = pack(x) < pack(y);
+
+  function Bool \> (ASSERTION_SEVERITY x, ASSERTION_SEVERITY y) = pack(x) > pack(y);
+
+  function Bool \<= (ASSERTION_SEVERITY x, ASSERTION_SEVERITY y) = pack(x) <= pack(y);
+
+  function Bool \>= (ASSERTION_SEVERITY x, ASSERTION_SEVERITY y) = pack(x) >= pack(y);
+
+endinstance
+
+// Vector of severity values for assertions baseID + index
+typedef Vector#(`ASSERTIONS_PER_NODE, ASSERTION_SEVERITY) ASSERTION_NODE_VECTOR;
 
 // A way to report to the outside world when something has gone wrong.
 

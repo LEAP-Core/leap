@@ -23,8 +23,6 @@ import Vector::*;
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/rrr.bsh"
-`include "awb/rrr/server_connections.bsh"
-`include "awb/rrr/client_connections.bsh"
 
 //
 // mkPlatformInterface: Wrap the LLPI and virtual devices in soft connections.
@@ -33,9 +31,5 @@ import Vector::*;
 module [CONNECTED_MODULE] mkPlatformServices#(VIRTUAL_PLATFORM virtualPlatform)
     // interface
         ();
-
-    // auto-generated submodules for RRR connections
-    let rrrServerLinks <- mkServerConnections(virtualPlatform.llpint.rrrServer);
-    let rrrClientLinks <- mkClientConnections(virtualPlatform.llpint.rrrClient);
     
 endmodule

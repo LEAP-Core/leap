@@ -1,3 +1,0 @@
-
-// Include base device
-`include "awb/provides/dynamic_parameters_device.bsh"

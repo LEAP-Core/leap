@@ -23,14 +23,14 @@
 
 // this module handles reporting assertion failures.
 
-typedef class ASSERTIONS_DEVICE_SERVER_CLASS* ASSERTIONS_DEVICE_SERVER;
-typedef class ASSERTIONS_DEVICE_SERVER_CLASS* ASSERTIONS_SERVER;
-class ASSERTIONS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
+typedef class ASSERTIONS_SERVER_CLASS* ASSERTIONS_SERVER;
+typedef class ASSERTIONS_SERVER_CLASS* ASSERTIONS_SERVER;
+class ASSERTIONS_SERVER_CLASS: public RRR_SERVER_CLASS,
                      public PLATFORMS_MODULE_CLASS
 {
   private:
     // self-instantiation
-    static ASSERTIONS_DEVICE_SERVER_CLASS instance;
+    static ASSERTIONS_SERVER_CLASS instance;
     
     // stubs
     RRR_SERVER_STUB serverStub;
@@ -39,11 +39,11 @@ class ASSERTIONS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     FILE* assertionsFile;
 
   public:
-    ASSERTIONS_DEVICE_SERVER_CLASS();
-    ~ASSERTIONS_DEVICE_SERVER_CLASS();
+    ASSERTIONS_SERVER_CLASS();
+    ~ASSERTIONS_SERVER_CLASS();
     
     // static methods
-    static ASSERTIONS_DEVICE_SERVER GetInstance() { return &instance; }
+    static ASSERTIONS_SERVER GetInstance() { return &instance; }
     
     // required RRR methods
     void Init(PLATFORMS_MODULE);
@@ -58,5 +58,5 @@ class ASSERTIONS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 #include "awb/rrr/server_stub_ASSERTIONS.h"
 
 // all functionalities of the assertions io are completely implemented
-// by the ASSERTIONS_DEVICE_SERVER class
-typedef ASSERTIONS_DEVICE_SERVER_CLASS ASSERTIONS_DEVICE_CLASS;
+// by the ASSERTIONS_SERVER class
+typedef ASSERTIONS_SERVER_CLASS ASSERTIONS_DEVICE_CLASS;

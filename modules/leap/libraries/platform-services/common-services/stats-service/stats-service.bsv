@@ -16,7 +16,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-module [CONNECTED_MODULE] mkStatsService#(STATS statsDevice)
+`include "awb/rrr/client_stub_STATS.bsh"
+`include "awb/rrr/server_stub_STATS.bsh"
+`include "awb/dict/STATS.bsh"
+
+
+module [CONNECTED_MODULE] mkStatsService
     // interface:
     ();
 
@@ -25,29 +30,33 @@ module [CONNECTED_MODULE] mkStatsService#(STATS statsDevice)
     // Communication link to the Stats themselves
     Connection_Chain#(STAT_DATA) chain <- mkConnection_Chain(`RINGID_STATS);
 
+    // Communication to/from software
+    ClientStub_STATS clientStub <- mkClientStub_STATS();
+    ServerStub_STATS serverStub <- mkServerStub_STATS();
+
     // ****** Rules ******
 
     //
-    // processReq --
-    //     Receive a command from the statistics device and begin an action
-    //     on the statistics ring.
+    // Rules receiving incoming commands
     //
-    rule processReq (True);
-        let cmd <- statsDevice.getCmd();
+    rule beginVectorLengths (True);
+        let dummy <- serverStub.acceptRequest_GetVectorLengths();
+        chain.sendToNext(ST_GET_LENGTH);
+    endrule
 
-        case (cmd)
-            STATS_CMD_GETLENGTHS:
-                chain.sendToNext(ST_GET_LENGTH);
+    rule beginDump (True);
+        let dummy <- serverStub.acceptRequest_DumpStats();
+        chain.sendToNext(ST_DUMP);
+    endrule
 
-            STATS_CMD_DUMP:
-                chain.sendToNext(ST_DUMP);
+    rule beginReset (True);
+        let dummy <- serverStub.acceptRequest_Reset();
+        chain.sendToNext(ST_RESET);
+    endrule
 
-            STATS_CMD_RESET:
-                chain.sendToNext(ST_RESET);
-
-            STATS_CMD_TOGGLE:
-                chain.sendToNext(ST_TOGGLE);
-        endcase
+    rule beginToggle (True);
+        let dummy <- serverStub.acceptRequest_Toggle();
+        chain.sendToNext(ST_TOGGLE);
     endrule
 
 
@@ -61,24 +70,26 @@ module [CONNECTED_MODULE] mkStatsService#(STATS statsDevice)
 
         case (st) matches
             tagged ST_VAL .stinfo: // A stat to dump
-                statsDevice.reportStat(stinfo.statID, stinfo.index, stinfo.value);
+                clientStub.makeRequest_ReportStat(zeroExtend(stinfo.statID),
+                                                  stinfo.index,
+                                                  zeroExtend(stinfo.value));
 
             tagged ST_LENGTH .stinfo: // A stat vector length
-                statsDevice.setVectorLength(stinfo.statID,
-                                            stinfo.length,
-                                            stinfo.buildArray);
+                clientStub.makeRequest_SetVectorLength(zeroExtend(stinfo.statID),
+                                                       stinfo.length,
+                                                       zeroExtend(pack(stinfo.buildArray)));
 
             tagged ST_GET_LENGTH:  // We're done getting lengths
-                statsDevice.finishCmd(STATS_CMD_GETLENGTHS);
+                serverStub.sendResponse_GetVectorLengths(0);
 
             tagged ST_DUMP:  // We're done dumping
-                statsDevice.finishCmd(STATS_CMD_DUMP);
+                serverStub.sendResponse_DumpStats(0);
 
             tagged ST_RESET:  // We're done reseting
-                statsDevice.finishCmd(STATS_CMD_RESET);
+                serverStub.sendResponse_Reset(0);
 
             tagged ST_TOGGLE:  // We're done toggling
-                statsDevice.finishCmd(STATS_CMD_TOGGLE);
+                serverStub.sendResponse_Toggle(0);
         endcase
     endrule
 endmodule

@@ -59,15 +59,14 @@ class STAT_VECTOR_CLASS
 // this module handles gathering statistics. 
 // Eventually this will interact with standard tools.
 
-typedef class STATS_DEVICE_SERVER_CLASS* STATS_DEVICE_SERVER;
-typedef class STATS_DEVICE_SERVER_CLASS* STATS_SERVER;
+typedef class STATS_SERVER_CLASS* STATS_SERVER;
 
-class STATS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
-                              public PLATFORMS_MODULE_CLASS
+class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
+                          public PLATFORMS_MODULE_CLASS
 {
   private:
     // self-instantiation
-    static STATS_DEVICE_SERVER_CLASS instance;
+    static STATS_SERVER_CLASS instance;
 
     // stubs
     RRR_SERVER_STUB serverStub;
@@ -81,8 +80,8 @@ class STATS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     UINT32 statArrayLength[STATS_DICT_ENTRIES];
 
   public:
-    STATS_DEVICE_SERVER_CLASS();
-    ~STATS_DEVICE_SERVER_CLASS();
+    STATS_SERVER_CLASS();
+    ~STATS_SERVER_CLASS();
 
     // Methods other people call to control stats.
     void SetupStats();
@@ -92,7 +91,7 @@ class STATS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     void EmitFile();
 
     // static methods
-    static STATS_DEVICE_SERVER GetInstance() { return &instance; }
+    static STATS_SERVER GetInstance() { return &instance; }
 
     // required RRR methods
     void Init(PLATFORMS_MODULE);
@@ -108,8 +107,8 @@ class STATS_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 #include "awb/rrr/server_stub_STATS.h"
 
 // all functionalities of the stats controller are completely implemented
-// by the STATS_DEVICE_SERVER class
-typedef STATS_DEVICE_SERVER_CLASS STATS_DEVICE_CLASS;
+// by the STATS_SERVER class
+typedef STATS_SERVER_CLASS STATS_DEVICE_CLASS;
 
 void StatsEmitFile();
 

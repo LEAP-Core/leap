@@ -15,9 +15,9 @@
 #include "awb/provides/rrr.h"
 #include "awb/rrr/client_stub_PARAMS.h"
 
-typedef class DYNAMIC_PARAMS_DEVICE_CLASS* DYNAMIC_PARAMS_DEVICE;
+typedef class DYNAMIC_PARAMS_SERVICE_CLASS* DYNAMIC_PARAMS_SERVICE;
 
-class DYNAMIC_PARAMS_DEVICE_CLASS: public PLATFORMS_MODULE_CLASS
+class DYNAMIC_PARAMS_SERVICE_CLASS: public PLATFORMS_MODULE_CLASS
 {
   private:
  
@@ -25,8 +25,8 @@ class DYNAMIC_PARAMS_DEVICE_CLASS: public PLATFORMS_MODULE_CLASS
     PARAMS_CLIENT_STUB clientStub;
 
   public:
-    DYNAMIC_PARAMS_DEVICE_CLASS();
-    ~DYNAMIC_PARAMS_DEVICE_CLASS();
+    DYNAMIC_PARAMS_SERVICE_CLASS();
+    ~DYNAMIC_PARAMS_SERVICE_CLASS();
 
     // Send dynamic parameters to hardware
     void SendAllParams();
