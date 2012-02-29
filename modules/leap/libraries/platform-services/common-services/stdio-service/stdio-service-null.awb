@@ -7,6 +7,6 @@
 
 %notes README
 
-%public stdio-local-null.bsv 
+%public stdio-local.bsv 
 
 %param --global STDIO_ENABLE_DEBUG   0  "Enable debugging nodes"

@@ -7,4 +7,5 @@
 
 %notes README
 
-%public assertions-local-null.bsv 
+%public assertions-service.bsh
+%public assertions-local.bsv 

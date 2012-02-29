@@ -1,6 +1,6 @@
 
-%name Null Virtual Devices
-%desc Null Virtual Devices
+%name NULL Virtual Devices
+%desc NULL Virtual Devices
 
 %provides virtual_devices
 

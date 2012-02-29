@@ -1,5 +1,5 @@
 %name Stats Service Null
-%desc Wrap Stats Device in Soft Connections Null
+%desc Wrap Stats Device cin Soft Connections
 
 %provides stats_service
 
@@ -7,6 +7,7 @@
 
 %notes README
 
-%public stats-service-null.bsv
+%public stats-local.bsv
+%public stats-service.bsh
 
 
