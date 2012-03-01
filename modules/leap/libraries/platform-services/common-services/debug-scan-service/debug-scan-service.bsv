@@ -63,6 +63,7 @@ module [CONNECTED_MODULE] mkDebugScanService
     // Done fires when software confirms all dump data has been received.
     // At that point it is safe to return from the Scan() request.
     //
+    (* descending_urgency = "done, processRRRCheck" *)
     rule done (True);
         let dummy <- clientStub.getResponse_Done();
         serverStub.sendResponse_Scan(0);

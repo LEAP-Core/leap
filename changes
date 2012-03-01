@@ -12026,3 +12026,28 @@ to the common services.
 
 This is the first step toward moving common platform services to their own
 synthesis boundary.
+
+----------
+mcadler     Date: Wed Feb 29 20:00:08 EST 2012  CSN: CSN-leap-258
+                  Thu Mar  1 01:00:08 UTC 2012
+
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices-null-mem.apm Locally Modified          257 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          257 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.awb Locally Modified          257 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          257 
+
+- Put common services in a separate synthesis boundary.
+
+- Tweak synthesis dependence computation in Bluespec build rules.  The old code
+  copied each synthesis boundary wrapper to all other boundaries, which lead
+  to problems when two modules of the same name wound up referenced in a
+  compilation.  The new, simpler, scheme adds remote references to synthesis
+  boundary wrappers without copying any files.

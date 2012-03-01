@@ -16,3 +16,5 @@
 %public common-services-standard.bsh
 %public common-services-standard.bsv
 %private common-services-standard.dic
+
+%param SYNTH_BOUNDARY mkCommonServices "Name of synthesis boundary"
