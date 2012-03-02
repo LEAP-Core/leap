@@ -12051,3 +12051,24 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
   to problems when two modules of the same name wound up referenced in a
   compilation.  The new, simpler, scheme adds remote references to synthesis
   boundary wrappers without copying any files.
+
+----------
+kfleming    Date: Fri Mar  2 08:25:58 EST 2012  CSN: CSN-leap-259
+                  Fri Mar  2 13:25:58 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          258 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          258 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          258 
+
+
+Added preliminary support for scons caching.  Caching is enabled by
+setting the LEAP_BUILD_CACHE_DIR environmental variable.  Scons
+caching is not yet enabled in the multipfpga build, but that is coming
+next. 
+

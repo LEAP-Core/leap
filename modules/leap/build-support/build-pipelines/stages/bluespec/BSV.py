@@ -142,6 +142,7 @@ class BSV():
       DERIVED = ''
 
     depends_bsv = MODULE_PATH + '/.depends-bsv'
+    moduleList.env.NoCache(depends_bsv)
     compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/awb/provides:' + ALL_LIB_DIRS_FROM_ROOT + ' ' + LOG_BSV + ' ' + WRAPPER_BSV + ' > ' + depends_bsv
 
     dep = moduleList.env.Command(depends_bsv,

@@ -113,6 +113,7 @@ class Iface():
     # Add dependence info computed by previous dictionary builds (it uses cpp).
     for dic in dicts:
         d = '.depends-dic-' + os.path.basename(dic)
+        moduleList.env.NoCache(d)
         moduleList.env.ParseDepends(d, must_exist = False)
 
     # Finally, request dictionary build    
@@ -127,6 +128,7 @@ class Iface():
    
     for rrr in rrrs:
         d = '.depends-rrr-' + os.path.basename(rrr)
+        moduleList.env.NoCache(d)
         moduleList.env.ParseDepends(d, must_exist = False)
 
     # Compile RRR stubs
@@ -181,6 +183,7 @@ class Iface():
     for bsv in self.all_gen_bsv:
         if (len(bsv) > 1):
            for dep in bsv[1]:
+               moduleList.env.NoCache(bsv_targets[dep])
                moduleList.env.Depends(bsv_targets[bsv[0]], bsv_targets[dep])
 
     #
@@ -188,6 +191,10 @@ class Iface():
     # 
     moduleList.topModule.moduleDependency['IFACE'] = tgt
     moduleList.topModule.moduleDependency['IFACE_HEADERS'] = d_tgt + r_tgt
+
+    moduleList.env.NoCache(tgt)
+    moduleList.env.NoCache(d_tgt)
+    moduleList.env.NoCache(r_tgt)   
 
     #
     # Backwards compatability link
