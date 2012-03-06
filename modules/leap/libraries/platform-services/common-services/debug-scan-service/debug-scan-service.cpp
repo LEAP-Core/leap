@@ -100,6 +100,15 @@ DEBUG_SCAN_SERVER_CLASS::Cleanup()
 void
 DEBUG_SCAN_SERVER_CLASS::Scan()
 {
+    // Avoid multiple paths to scan.  Could probably spin, but for now just
+    // ignore multiple simultaneous requests.
+    ATOMIC32_CLASS isActive(0);
+    if (isActive++ != 0)
+    {
+        isActive--;
+        return;
+    }
+    
     fprintf(of, "\nDEBUG SCAN:\n");
 
     fprintf(of, "  Checking RRR:");
@@ -111,6 +120,8 @@ DEBUG_SCAN_SERVER_CLASS::Scan()
     }
 
     clientStub->Scan(0);
+
+    isActive--;
 }
 
 

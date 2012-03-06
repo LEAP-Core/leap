@@ -23,6 +23,7 @@ import List::*;
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv.bsh"
+`include "awb/provides/physical_platform_utils.bsh"
 
 `include "awb/dict/RINGID.bsh"
 
@@ -436,7 +437,9 @@ module [CONNECTED_MODULE] mkDebugScanNodeImpl#(String myID,
     (Empty)
     provisos (Bits#(t_DEBUG_DATA, t_DEBUG_DATA_SZ));
 
-    Connection_Chain#(DEBUG_SCAN_DATA) chain <- mkConnection_Chain(`RINGID_DEBUG_SCAN);
+    // Attach to either the master ring if on the master FPGA or the global ring.
+    let ringName = "DebugScanRing_" + (fpgaPlatformID() == 0 ? "0" : "G");
+    CONNECTION_CHAIN#(DEBUG_SCAN_DATA) chain <- mkConnectionChain(ringName);
 
     Reg#(DEBUG_SCAN_STATE) state <- mkReg(DS_IDLE);
 

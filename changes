@@ -12072,3 +12072,21 @@ setting the LEAP_BUILD_CACHE_DIR environmental variable.  Scons
 caching is not yet enabled in the multipfpga build, but that is coming
 next. 
 
+
+----------
+mcadler     Date: Tue Mar  6 16:59:29 EST 2012  CSN: CSN-leap-260
+                  Tue Mar  6 21:59:29 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.dic Locally Modified          259 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          259 
+ debug-scan-service.cpp    Locally Modified          259 
+ debug-scan-local.bsv      Locally Modified          259 
+
+Restructure the debug scan pipeline slightly so that the master FPGA is on a
+private ring.  The hardware side scanner first scans the master ring and then
+scans a global ring of all slave FPGAs.  In theory this will give us dumps on
+the master even when some inter-FPGA router is deadlocked.
