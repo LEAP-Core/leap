@@ -12,3 +12,5 @@
 %public debug-scan-service.h
 %public debug-scan-service.cpp
 %public debug-scan-service.rrr 
+
+%param --global DEBUG_SCAN_ENABLED 1  "Enable debug scan?"

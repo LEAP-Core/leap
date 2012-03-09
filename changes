@@ -12106,3 +12106,15 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
   for debug scan data.
 
 - Drop a debug scan value in the central cache for crimes against schedules.
+
+----------
+mcadler     Date: Fri Mar  9 08:25:56 EST 2012  CSN: CSN-leap-262
+                  Fri Mar  9 13:25:56 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service-null.awb Locally Modified          261 
+ debug-scan-local.bsv      Locally Modified          261 
+ debug-scan-service.awb    Locally Modified          261 
+
+AWB param. to control whether debug scan is emitted.

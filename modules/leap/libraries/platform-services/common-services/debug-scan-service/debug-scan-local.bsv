@@ -437,6 +437,8 @@ module [CONNECTED_MODULE] mkDebugScanNodeImpl#(String myID,
     (Empty)
     provisos (Bits#(t_DEBUG_DATA, t_DEBUG_DATA_SZ));
 
+if (`DEBUG_SCAN_ENABLED != 0)
+begin
     // Attach to either the master ring if on the master FPGA or the global ring.
     let ringName = "DebugScanRing_" + (fpgaPlatformID() == 0 ? "0" : "G");
     CONNECTION_CHAIN#(DEBUG_SCAN_DATA) chain <- mkConnectionChain(ringName);
@@ -508,4 +510,5 @@ module [CONNECTED_MODULE] mkDebugScanNodeImpl#(String myID,
             default: chain.sendToNext(ds);
         endcase
     endrule
+end
 endmodule
