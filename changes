@@ -12090,3 +12090,19 @@ Restructure the debug scan pipeline slightly so that the master FPGA is on a
 private ring.  The hardware side scanner first scans the master ring and then
 scans a global ring of all slave FPGAs.  In theory this will give us dumps on
 the master even when some inter-FPGA router is deadlocked.
+
+----------
+mcadler     Date: Thu Mar  8 20:07:10 EST 2012  CSN: CSN-leap-261
+                  Fri Mar  9 01:07:10 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          260 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          260 
+
+- Use pragma and a rule to validate the lack of implicit scheduling dependence
+  for debug scan data.
+
+- Drop a debug scan value in the central cache for crimes against schedules.

@@ -92,7 +92,6 @@ module [CONNECTED_MODULE] mkCentralCache
     COUNTER#(5) dbgCacheReadsInFlight <- mkLCounter(0);
     Wire#(Bool) dbgCacheReadRespReady <- mkBypassWire();
     Wire#(Bool) dbgReqLineLocked <- mkDWire(False);
-    Wire#(Bit#(2)) dbgReqRuleFired <- mkDWire(0);
 
 
     // Allocate connector between a standard cache backing storage interface
@@ -191,7 +190,6 @@ module [CONNECTED_MODULE] mkCentralCache
     (* conservative_implicit_conditions *)
     rule processWriteReq (initialized &&&
                           reqQ.first() matches tagged CENTRAL_CACHE_WRITE .r);
-        dbgReqRuleFired <= 2;
         CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
         let addr = addPortToAddr(port, r.addr);
 
@@ -205,7 +203,6 @@ module [CONNECTED_MODULE] mkCentralCache
     (* conservative_implicit_conditions *)
     rule processInvalReq (initialized &&&
                           reqQ.first() matches tagged CENTRAL_CACHE_INVAL .r);
-        dbgReqRuleFired <= 3;
         CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
         let addr = addPortToAddr(port, r.addr);
 
@@ -225,7 +222,6 @@ module [CONNECTED_MODULE] mkCentralCache
     (* conservative_implicit_conditions *)
     rule processFlushReq (initialized &&&
                           reqQ.first() matches tagged CENTRAL_CACHE_FLUSH .r);
-        dbgReqRuleFired <= 3;
         CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
         let addr = addPortToAddr(port, r.addr);
 
@@ -258,7 +254,6 @@ module [CONNECTED_MODULE] mkCentralCache
     (* conservative_implicit_conditions *)
     rule processReadReq (initialized &&&
                          reqQ.first() matches tagged CENTRAL_CACHE_READ .r);
-        dbgReqRuleFired <= 1;
         CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
         let addr = addPortToAddr(port, r.addr);
 
@@ -319,12 +314,11 @@ module [CONNECTED_MODULE] mkCentralCache
     DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
     dbg_list <- addDebugScanField(dbg_list, "Reads in flight", dbgCacheReadsInFlight.value());
     dbg_list <- addDebugScanField(dbg_list, "Req line locked", dbgReqLineLocked);
-    dbg_list <- addDebugScanField(dbg_list, "Req rule fired", dbgReqRuleFired);
     dbg_list <- addDebugScanField(dbg_list, "Num backing reads in flight", backingConnection.nReadsInFlight());
     dbg_list <- addDebugScanField(dbg_list, "readRespQ not empty", readRespQ.notEmpty());
     dbg_list <- addDebugScanField(dbg_list, "cache readRespReady", dbgCacheReadRespReady);
 
-    // Append set associate cache pipeline state
+    // Append set associative cache pipeline state
     List#(Tuple2#(String, Bool)) sa_cache_state = cache.debugScanState();
     while (sa_cache_state matches tagged Nil ? False : True)
     begin

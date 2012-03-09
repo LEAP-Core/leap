@@ -473,6 +473,23 @@ module [CONNECTED_MODULE] mkDebugScanNodeImpl#(String myID,
     endrule
 
 
+    //    
+    // getDebugData --
+    //     This rule does very little beyond simply reading the debug value,
+    //     except that it confirms that the debug value can be read reliably
+    //     every cycle via the no_implicit_conditions pragma.  This guarantees
+    //     the scan chain won't block due to scheduling rules of the value
+    //     function.
+    //    
+    Wire#(t_DEBUG_DATA) debugDataWire <- mkBypassWire();
+
+    (* no_implicit_conditions *)
+    (* fire_when_enabled *)
+    rule getDebugData (True);
+        debugDataWire <= debugValue;
+    endrule
+
+
     //
     // receiveCmd --
     //     Receive a command on the ring.
@@ -484,7 +501,7 @@ module [CONNECTED_MODULE] mkDebugScanNodeImpl#(String myID,
         case (ds) matches 
             tagged DS_DUMP:
             begin
-                mar.enq(tuple2(debugValue, id));
+                mar.enq(tuple2(debugDataWire, id));
                 state <= DS_DUMPING;
             end
 
