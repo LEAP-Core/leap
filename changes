@@ -12118,3 +12118,20 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
  debug-scan-service.awb    Locally Modified          261 
 
 AWB param. to control whether debug scan is emitted.
+
+----------
+kfleming    Date: Fri Mar 16 15:44:02 EDT 2012  CSN: CSN-leap-263
+                  Fri Mar 16 19:44:02 UTC 2012
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-implementation.bsv Locally Modified          262 
+
+
+Usually in the multiFPGA router synthesis, we try to be as efficient
+as possible in terms of the number of bits transported.  However, in
+the case that we generate stats instrumentation, the way that we
+calculate these bitwidth can be wrong, and lead to wrong programs.  We
+have a plan to fix the caclulation issue, but until we do, I will for
+chains to have the maximum bitwidth.
+

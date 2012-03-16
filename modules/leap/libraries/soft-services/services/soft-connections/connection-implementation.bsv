@@ -485,7 +485,9 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
           logicalName: chain_name, 
           logicalType: original_type, 
           computePlatform: platform,
-          bitWidth: valueof(SizeOf#(msg_T)),  
+          // Sometimes chains have sizes that change during the second compilation pass
+	  // until we fix this, make all chains have the maximum size
+          bitWidth: valueof(PHYSICAL_CONNECTION_SIZE), //valueof(SizeOf#(msg_T)),  
           incoming: inc,
           outgoing: outg
       };
