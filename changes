@@ -12135,3 +12135,27 @@ calculate these bitwidth can be wrong, and lead to wrong programs.  We
 have a plan to fix the caclulation issue, but until we do, I will for
 chains to have the maximum bitwidth.
 
+
+----------
+mcadler     Date: Mon Mar 19 19:37:01 EDT 2012  CSN: CSN-leap-264
+                  Mon Mar 19 23:37:01 UTC 2012
+
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.cpp   Locally Modified          263 
+ std-virtual-devices.h     Locally Modified          263 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/common
+ common-utility-devices.h  Locally Modified          263 
+ common-utility-devices.cpp Locally Modified          263 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ application-env-hybrid-soft-service.cpp Locally Modified          263 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.awb Locally Modified          263 
+
+- Initialize statistics in platform services.
+- Move dynamic parameter initialization to the same common platform services code.
+- Add statistics dumping to the standard soft-services application wrapper
+  instead of forcing all applications to handle it themselves.

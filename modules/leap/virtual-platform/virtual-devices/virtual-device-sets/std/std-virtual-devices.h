@@ -32,6 +32,7 @@
 #include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/starter_device.h"
 #include "awb/provides/common_utility_devices.h"
+#include "awb/provides/common_services.h"
 
 typedef class VIRTUAL_DEVICES_CLASS *VIRTUAL_DEVICES;
 
@@ -39,6 +40,7 @@ class VIRTUAL_DEVICES_CLASS
 {
   private:
     COMMON_UTILITY_DEVICES commonUtilities;
+    COMMON_SERVICES commonServices;
 
   public:
     VIRTUAL_DEVICES_CLASS(LLPI llpint);

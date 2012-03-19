@@ -13,8 +13,10 @@
 
 %notes README
 
-%public common-services-standard.bsh
-%public common-services-standard.bsv
+%public  common-services-standard.bsh
+%public  common-services-standard.bsv
 %private common-services-standard.dic
+%public  common-services-standard.h
+%private common-services-standard.cpp
 
 %param SYNTH_BOUNDARY mkCommonServices "Name of synthesis boundary"

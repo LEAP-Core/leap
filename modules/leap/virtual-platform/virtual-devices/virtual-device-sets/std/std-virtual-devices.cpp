@@ -29,7 +29,8 @@
 #include "awb/provides/starter_device.h"
 
 VIRTUAL_DEVICES_CLASS::VIRTUAL_DEVICES_CLASS(LLPI llpi) :
-    commonUtilities(new COMMON_UTILITY_DEVICES_CLASS())
+    commonUtilities(new COMMON_UTILITY_DEVICES_CLASS()),
+    commonServices(new COMMON_SERVICES_CLASS())
 {
     return;
 }
@@ -43,6 +44,8 @@ VIRTUAL_DEVICES_CLASS::Init()
 {
     // Init our children.
     commonUtilities->Init();
+    commonServices->Init();
+
     // Tell the HW to start running via the Starter.
     STARTER_DEVICE_CLASS::GetInstance()->Start();
 }
