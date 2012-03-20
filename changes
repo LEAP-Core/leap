@@ -12159,3 +12159,14 @@ Directory modules/leap/libraries/platform-services/common-services
 - Move dynamic parameter initialization to the same common platform services code.
 - Add statistics dumping to the standard soft-services application wrapper
   instead of forcing all applications to handle it themselves.
+
+----------
+mcadler     Date: Tue Mar 20 10:16:40 EDT 2012  CSN: CSN-leap-265
+                  Tue Mar 20 14:16:40 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.cpp Locally Added               0 
+ common-services-standard.h Locally Added               0 
+
+Forgot to add these before checking in yesterday.
