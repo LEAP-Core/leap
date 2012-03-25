@@ -16,18 +16,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <limits.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <strings.h>
+#include <string.h>
 #include <string>
 #include <iostream>
-#include <cmath>
 
 #include "asim/syntax.h"
 #include "asim/config.h"
@@ -55,12 +46,6 @@ STATS_SERVER_CLASS::STATS_SERVER_CLASS() :
     clientStub(new STATS_CLIENT_STUB_CLASS(this)),
     serverStub(new STATS_SERVER_STUB_CLASS(this))
 {
-
-    for (int x = 0; x < STATS_DICT_ENTRIES; x++)
-    {
-        statValues[x] = NULL;
-        statArrayLength[x] = 0;
-    }
 }
 
 
@@ -81,39 +66,103 @@ STATS_SERVER_CLASS::Init(
 }
 
 
-
 // init
 void
 STATS_SERVER_CLASS::SetupStats()
 {
-    // This call will cause the hardware to invoke SetStatVectorLength
-    // for every array stat.
-    clientStub->GetVectorLengths(0);
+    // This call will cause the hardware to invoke ReportStat for every node.
+    clientStub->DoInit(0);
 
-    // Allocate array stats
-    for (unsigned int x = 0; x < STATS_DICT_ENTRIES; x++)
+    // At this point the hardware has informed the software about all statistics
+    // nodes by calling NodeInfo() below.  Generate collection buckets from
+    // the data.
+    for (unordered_map<GLOBAL_STRING_UID, STAT_NODE_DESC>::const_iterator mi = bucketMap.begin();
+         mi != bucketMap.end(); mi++)
     {
-        if (statArrayLength[x] != 0)
+        const STAT_NODE_DESC node = mi->second;
+
+        // Iterate over all the buckets associated with this node.
+        int entry_idx = 0;
+        for (list<STAT_INIT_BUCKET>::const_iterator li = node->initBucketList.begin();
+             li != node->initBucketList.end(); li++)
         {
-            statValues[x] = new STAT_VECTOR_CLASS(x, statArrayLength[x]);
+            const STAT_INIT_BUCKET bucket = *li;
+
+            if (bucket->statType == 'M')
+            {
+                // A true vector statistic.
+                STAT_VECTOR svec = new STAT_VECTOR_CLASS(bucket->tag,
+                                                         bucket->description,
+                                                         node->GetLength());
+                statVectors.push_front(svec);
+                for (int i = 0; i < node->GetLength(); i++)
+                {
+                    node->SetEntry(i, svec->GetEntry(i));
+                }
+            }
+            else if (bucket->statType == 'D')
+            {
+                // Distributed vector statistic that is referenced by multiple
+                // statistics nodes, each node having a different index.
+                STAT_VECTOR svec = bucket->dVec;
+                if (svec == NULL)
+                {
+                    // First time the name is seen.  Allocate the vector.
+                    svec = new STAT_VECTOR_CLASS(bucket->tag,
+                                                 bucket->description,
+                                                 bucket->maxIdx + 1);
+                    bucket->dVec = svec;
+                    statVectors.push_front(svec);
+                }
+
+                node->SetEntry(entry_idx, svec->GetEntry(node->GetDistribIdx()));
+            }
+            else
+            {
+                // An individual statistic.  Store it in a length 1 STAT_VECTOR.
+                STAT_VECTOR svec = new STAT_VECTOR_CLASS(bucket->tag,
+                                                         bucket->description,
+                                                         1);
+                statVectors.push_front(svec);
+                node->SetEntry(entry_idx, svec->GetEntry(0));
+            }
+
+            entry_idx += 1;
         }
     }
 
-    // This initialization pass will be used to allocate storage for non-array
-    // statistics.  It will also be used to confirm that a statistics ID is
-    // used at most once.
-    clientStub->DumpStats(0);
 
-    // Turn on statistics collection (they start disabled)
+    //
+    // Clean up initialization data structures.
+    //
+    for (unordered_map<string, STAT_INIT_BUCKET>::const_iterator bi = initAllBuckets.begin();
+         bi != initAllBuckets.end(); bi++)
+    {
+        delete bi->second;
+    }
+    initAllBuckets.clear();
+
+    for (unordered_map<GLOBAL_STRING_UID, STAT_NODE_DESC>::const_iterator mi = bucketMap.begin();
+         mi != bucketMap.end(); mi++)
+    {
+        mi->second->initBucketList.clear();
+    }
+    
+
+    //
+    // Initialization complete.  Turn on statistics collection (it starts
+    // disabled.)
+    //
     static bool once = false;
     if (! once)
     {
-        clientStub->Toggle(0);
+        clientStub->Enable(0);
         once = true;
     }
 
     statsInited = true;
 }
+
 
 // uninit: we have to write this explicitly
 void
@@ -133,74 +182,140 @@ STATS_SERVER_CLASS::Cleanup()
     delete serverStub;
     delete clientStub;
 
-    if (statsInited)
+    // Delete all statistics vectors (the counter buckets)
+    for (list<STAT_VECTOR>::const_iterator li = statVectors.begin();
+         li != statVectors.end(); li++)
     {
-        for (int x = 0; x < STATS_DICT_ENTRIES; x++)
-        {
-            if (statValues[x] != NULL)
-            {
-                delete statValues[x];
-            }
-        }
+        delete *li;
     }
+    statVectors.clear();
+
+    // Delete all maps from statistics nodes to counter vectors
+    for (unordered_map<GLOBAL_STRING_UID, STAT_NODE_DESC>::const_iterator mi = bucketMap.begin();
+         mi != bucketMap.end(); mi++)
+    {
+        delete mi->second;
+    }
+    bucketMap.clear();
 }
 
 //
 // RRR request methods
 //
 
-// Send
+//
+// ReportStat --
+//     Receive an updated counter value for a single bucket.
+//
 void
 STATS_SERVER_CLASS::ReportStat(
-    UINT32 statID,
+    GLOBAL_STRING_UID desc,
     UINT32 pos,
     UINT32 value)
 {
-    // If no length set for statistic assume length 1.
-    if (statValues[statID] == NULL)
-    {
-        // Statistic must be non-vector or it would have been initialized by
-        // getVectorLengths.
-        VERIFY(pos == 0, "stats device: " << STATS_DICT::Name(statID) << " -- reference to uninitialized vector stat");
-        // Must be in initialization phase
-        VERIFY(! statsInited, "stats device: " << STATS_DICT::Name(statID) << " -- reference to uninitialized stat");
+    VERIFY(bucketMap.find(desc) != bucketMap.end(),
+            "stats device: Failed lookup: " << *GLOBAL_STRINGS::Lookup(desc));
 
-        statValues[statID] = new STAT_VECTOR_CLASS(statID, 1);
-    }
-
-    if (! statsInited)
-    {
-        // Initialization pass.  Mark the bucket seen.
-        statValues[statID]->InitPosition(pos);
-    }
-
-    statValues[statID]->AddStatValue(value, pos);
+    // The bucketMap points to a vector of buckets, indexed by pos.
+    bucketMap[desc]->GetEntry(pos)->IncrBy(value);
 }
 
-// Instantitate a new stat vector of the given length.
+
+//
+// NodeInfo --
+//     During initialization, receive details of a statistics node.
+//
 void
-STATS_SERVER_CLASS::SetVectorLength(
-    UINT32 statID,
-    UINT32 len,
-    UINT8 buildArray)
+STATS_SERVER_CLASS::NodeInfo(GLOBAL_STRING_UID desc)
 {
-    //
-    // There are two possible ways to build an array.  One is a vector coming
-    // directly from the hardware (buildArray == false).  The other is a set
-    // of independent entries with unique IDs, coming from separate collectors
-    // in the hardware (buildArray == true).  For the latter we set the array
-    // size to the maximum length.  This avoids forcing the hardware nodes
-    // to communicate with each other to find the true size.
-    //
-    if (! buildArray)
+    // Get the statistic node's descriptor string
+    char *str = strdup(GLOBAL_STRINGS::Lookup(desc)->c_str());
+    VERIFYX(strlen(str) > 2);
+
+    // First character is the node type
+    char node_type = str[0];
+
+    // The number of elements in the vector immediately follows the node type
+    int node_vlen = atoi(str + 1);
+    VERIFYX(strsep(&str, "~") != NULL);
+
+    // Allocate a map from this descriptor to statistics buckets.  It will
+    // be used later when values come from the hardware.
+    STAT_NODE_DESC node_desc = new STAT_NODE_DESC_CLASS(node_vlen);
+    VERIFY(bucketMap.find(desc) == bucketMap.end(),
+           "stats device: Multiple instances of descriptor: " << *GLOBAL_STRINGS::Lookup(desc));
+    bucketMap[desc] = node_desc;
+
+    // For distributed statistics nodes the next field is the array index
+    if (node_type == 'D')
     {
-        VERIFY(statArrayLength[statID] == 0, "stats device: vector length set twice for stat: " << STATS_DICT::Name(statID));
+        const char *s = strsep(&str, "~");
+        node_desc->SetDistribIdx(atoi(s));
     }
 
-    if (len > statArrayLength[statID])
+    // The remainder of the descriptor is pairs of statistic tags and
+    // descriptive text.
+    int entry_idx = 0;
+    const char* s;
+    while ((s = strsep(&str, "~")) != NULL)
     {
-        statArrayLength[statID] = len;
+        const char *stat_tag = s;
+        const char *stat_text = strsep(&str, "~");
+        VERIFYX(stat_text != NULL);
+
+        STAT_INIT_BUCKET b = NULL;
+        unordered_map<string, STAT_INIT_BUCKET>::const_iterator bi;
+        bi = initAllBuckets.find(stat_tag);
+        if (bi == initAllBuckets.end())
+        {
+            // First time this bucket name is seen.
+            b = new STAT_INIT_BUCKET_CLASS(stat_tag, stat_text, node_type);
+            b->maxIdx = node_desc->GetDistribIdx();
+            initAllBuckets[stat_tag] = b;
+        }
+        else
+        {
+            b = bi->second;
+
+            // The bucket name already exists.  In general this is an error
+            // unless the node type is distributed, in which case each reference
+            // to the name is supposed to have a unique distributed index.
+            if ((b->statType != 'D') || (node_type != 'D'))
+            {
+                ASIMERROR("stats device: Multiple instances of tag: " << stat_tag);
+            }
+            else
+            {
+                // Is the current index the largest yet seen?
+                if (node_desc->GetDistribIdx() > b->maxIdx)
+                {
+                    b->maxIdx = node_desc->GetDistribIdx();
+                }
+            }
+        }
+        
+        // Save an ordered list of buckets (tags and descriptors)
+        node_desc->initBucketList.push_back(b);
+            
+        entry_idx += 1;
     }
+
+    if (node_type == 'M')
+    {
+        VERIFY(entry_idx == 1,
+               "stats device: MultiEntry stat must have exactly 1 descriptor: " << *GLOBAL_STRINGS::Lookup(desc));
+    }
+    else if ((node_type == 'V') || (node_type == 'D'))
+    {
+        VERIFY(node_vlen == entry_idx,
+               "stats device: Invalid descriptor: " << *GLOBAL_STRINGS::Lookup(desc));
+    }
+    else
+    {
+        ASIMERROR("stats device: Invalid descriptor: " << *GLOBAL_STRINGS::Lookup(desc));
+    }
+
+    free(str);
 }
 
 
@@ -231,21 +346,17 @@ STATS_SERVER_CLASS::EmitFile()
 
     statsFile.precision(10);
 
-    for (unsigned int i = 0; i < STATS_DICT_ENTRIES; i++)
+    for (list<STAT_VECTOR>::const_iterator li = statVectors.begin();
+         li != statVectors.end(); li++)
     {
-        // lookup event name from dictionary
-        const char *statName = STATS_DICT::Name(i);
-        const char *statStr  = STATS_DICT::Str(i);
-
-        if ((i != STATS_NULL) && (statName != NULL) && statValues[i] != NULL)
+        statsFile << (*li)->GetTag() << ",\"" << (*li)->GetDescription() << "\"";
+        
+        for (UINT32 i = 0; i < (*li)->GetLength(); i++)
         {
-            statsFile << statName << ",\"" << statStr << "\"";
-            for (UINT32 x = 0; x < statValues[i]->GetLength(); x++)
-            {
-                statsFile << "," << statValues[i]->GetStatValue(x);
-            }
-            statsFile << endl;
+            statsFile << "," << (*li)->GetValue(i);
         }
+
+        statsFile << endl;
     }
 
     // Hack: instantiate the simulator configuration here to be able to emit
@@ -277,57 +388,38 @@ StatsEmitFile()
 
 // ========================================================================
 //
-// Storage for statistics vectors.
+//   Internal statistics buckets and pointers.
 //
 // ========================================================================
 
-STAT_VECTOR_CLASS::STAT_VECTOR_CLASS(UINT32 id, UINT32 l) : 
-    myID(id),
-    length(l),
-    curValues(new UINT64[l]),
-    positionInitialized(new bool[l])
+STAT_VECTOR_CLASS::STAT_VECTOR_CLASS(const string &t, const string &d, UINT32 len) :
+    tag(t),
+    description(d),
+    length(len)
 {
-    for (int x = 0; x < l; x++)
-    {
-        curValues[x] = 0;
-        positionInitialized[x] = false;
-    }
+    v = new STAT_COUNTER_CLASS[len];
 }
 
 STAT_VECTOR_CLASS::~STAT_VECTOR_CLASS() 
 { 
-    delete [] curValues; 
-    delete [] positionInitialized; 
-}
-
-void
-STAT_VECTOR_CLASS::AddStatValue(UINT32 val, UINT32 pos) 
-{ 
-    VERIFY(pos < length, "stats device: stat " << STATS_DICT::Name(myID) << " position out of bounds. Given: " << pos << " Max: " << length); 
-    VERIFY(positionInitialized[pos],  "stats device: stat " << STATS_DICT::Name(myID) << ", position " << pos << " -- reference to uninitialized entry");
-
-    curValues[pos] += val; 
-}
-
-UINT64
-STAT_VECTOR_CLASS::GetStatValue(UINT32 pos)  
-{ 
-    VERIFY(pos < length, "stats device: stat " << STATS_DICT::Name(myID) << " position out of bounds. Given: " << pos << " Max: " << length); 
-    VERIFY(positionInitialized[pos],  "stats device: stat " << STATS_DICT::Name(myID) << ", position " << pos << " -- reference to uninitialized entry");
-
-    return curValues[pos]; 
-}
-
-void
-STAT_VECTOR_CLASS::InitPosition(UINT32 pos)  
-{ 
-    VERIFY(pos < length, "stats device: stat " << STATS_DICT::Name(myID) << " position out of bounds. Given: " << pos << " Max: " << length); 
-    VERIFY(! positionInitialized[pos], "stats device: Duplicate entry " << STATS_DICT::Name(myID) << ", postion " << pos);
-
-    positionInitialized[pos] = true;
+    delete [] v;
 }
 
 
+STAT_NODE_DESC_CLASS::STAT_NODE_DESC_CLASS(UINT32 len) :
+    length(len)
+{
+    v = new STAT_COUNTER[len];
+    for (UINT32 i = 0; i < len; i++)
+    {
+        v[i] = NULL;
+    }
+}
+
+STAT_NODE_DESC_CLASS::~STAT_NODE_DESC_CLASS()
+{
+    delete [] v;
+}
 
 
 // ========================================================================

@@ -25,8 +25,6 @@ import List::*;
 `include "awb/provides/librl_bsv.bsh"
 `include "awb/provides/physical_platform_utils.bsh"
 
-`include "awb/dict/RINGID.bsh"
-
 //
 // Debug scan nodes accept any size data to scan out by breaking the data
 // into chunks.  The addDebugScanField() module takes a function as input, with

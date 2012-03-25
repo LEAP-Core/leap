@@ -12170,3 +12170,57 @@ Directory modules/leap/libraries/platform-services/common-services
  common-services-standard.h Locally Added               0 
 
 Forgot to add these before checking in yesterday.
+
+----------
+mcadler     Date: Sun Mar 25 17:04:54 EDT 2012  CSN: CSN-leap-266
+                  Sun Mar 25 21:04:54 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          265 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory-utils.bsv Locally Modified          265 
+ scratchpad-memory-service.dic Locally Modified          265 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Modified          265 
+ local-mem-central-cache.awb Locally Modified          265 
+ local-mem-central-cache.dic Locally Removed           265 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.dic Locally Modified          265 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          265 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          265 
+ stats-service.rrr         Locally Modified          265 
+ stats-service.h           Locally Modified          265 
+ stats-service.awb         Locally Modified          265 
+ stats-service.bsv         Locally Modified          265 
+ stats-service.dic         Locally Removed           265 
+ stats-service.cpp         Locally Modified          265 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-implementation.bsv Locally Modified          265 
+
+- Statistics now use global strings to describe a node and counters instead of
+  dictionaries.  There are serveral advantages:
+
+  - Easier to define statistics.
+  - Lower overhead in the FPGA-side code since more static properties of the
+    node can be communicated in the global string.
+  - Statistics ring message size is now constant.  It used to vary with the
+    number of STATS dictionary entries, making multi-FPGA building complicated.
+
+- Add a new RAM vector statistics class, suitable for implementing the
+  multiplexed statistics for HAsim.  The "vector" statistic version uses
+  a vector of registers, allowing all counters to be updated in a single FPGA
+  cycle.  The RAM version uses denser storage with the compromise that only
+  one counter may be updated per FPGA cycle.
+
+- Revert the change to connection-implementation.bsv that was added to make
+  ring data sizes constant.  This was only needed by multi-FPGA code because
+  the statistics data size was not constant.

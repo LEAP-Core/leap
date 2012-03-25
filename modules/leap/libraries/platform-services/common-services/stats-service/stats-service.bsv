@@ -18,7 +18,6 @@
 
 `include "awb/rrr/client_stub_STATS.bsh"
 `include "awb/rrr/server_stub_STATS.bsh"
-`include "awb/dict/STATS.bsh"
 
 
 module [CONNECTED_MODULE] mkStatsService
@@ -28,7 +27,7 @@ module [CONNECTED_MODULE] mkStatsService
     // ****** State Elements ******
 
     // Communication link to the Stats themselves
-    Connection_Chain#(STAT_DATA) chain <- mkConnection_Chain(`RINGID_STATS);
+    CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
 
     // Communication to/from software
     ClientStub_STATS clientStub <- mkClientStub_STATS();
@@ -39,9 +38,9 @@ module [CONNECTED_MODULE] mkStatsService
     //
     // Rules receiving incoming commands
     //
-    rule beginVectorLengths (True);
-        let dummy <- serverStub.acceptRequest_GetVectorLengths();
-        chain.sendToNext(ST_GET_LENGTH);
+    rule beginInit (True);
+        let dummy <- serverStub.acceptRequest_DoInit();
+        chain.sendToNext(ST_INIT);
     endrule
 
     rule beginDump (True);
@@ -49,14 +48,14 @@ module [CONNECTED_MODULE] mkStatsService
         chain.sendToNext(ST_DUMP);
     endrule
 
-    rule beginReset (True);
-        let dummy <- serverStub.acceptRequest_Reset();
-        chain.sendToNext(ST_RESET);
+    rule beginEnable (True);
+        let dummy <- serverStub.acceptRequest_Enable();
+        chain.sendToNext(ST_ENABLE);
     endrule
 
-    rule beginToggle (True);
-        let dummy <- serverStub.acceptRequest_Toggle();
-        chain.sendToNext(ST_TOGGLE);
+    rule beginDisable (True);
+        let dummy <- serverStub.acceptRequest_Disable();
+        chain.sendToNext(ST_DISABLE);
     endrule
 
 
@@ -69,27 +68,31 @@ module [CONNECTED_MODULE] mkStatsService
         let st <- chain.recvFromPrev();
 
         case (st) matches
-            tagged ST_VAL .stinfo: // A stat to dump
-                clientStub.makeRequest_ReportStat(zeroExtend(stinfo.statID),
-                                                  stinfo.index,
+            tagged ST_VAL .stinfo:
+                // A stat to dump
+                clientStub.makeRequest_ReportStat(zeroExtend(stinfo.desc),
+                                                  zeroExtend(stinfo.index),
                                                   zeroExtend(stinfo.value));
 
-            tagged ST_LENGTH .stinfo: // A stat vector length
-                clientStub.makeRequest_SetVectorLength(zeroExtend(stinfo.statID),
-                                                       stinfo.length,
-                                                       zeroExtend(pack(stinfo.buildArray)));
+            tagged ST_INIT_RSP .node_desc:
+                // Describe a node
+                clientStub.makeRequest_NodeInfo(zeroExtend(node_desc));
 
-            tagged ST_GET_LENGTH:  // We're done getting lengths
-                serverStub.sendResponse_GetVectorLengths(0);
+            //
+            // Signal completion of requests to software...
+            //
 
-            tagged ST_DUMP:  // We're done dumping
+            tagged ST_INIT:
+                serverStub.sendResponse_DoInit(0);
+
+            tagged ST_DUMP:
                 serverStub.sendResponse_DumpStats(0);
 
-            tagged ST_RESET:  // We're done reseting
-                serverStub.sendResponse_Reset(0);
+            tagged ST_ENABLE:
+                serverStub.sendResponse_Enable(0);
 
-            tagged ST_TOGGLE:  // We're done toggling
-                serverStub.sendResponse_Toggle(0);
+            tagged ST_DISABLE:
+                serverStub.sendResponse_Disable(0);
         endcase
     endrule
 endmodule

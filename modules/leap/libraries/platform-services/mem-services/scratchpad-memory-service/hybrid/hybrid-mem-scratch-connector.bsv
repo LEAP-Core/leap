@@ -28,7 +28,6 @@ import FIFO::*;
 
 `include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
-`include "awb/dict/STATS_SCRATCHPAD.bsh"
 `include "awb/rrr/service_ids.bsh"
 `include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"
 `include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.bsh"
@@ -122,15 +121,17 @@ module [CONNECTED_MODULE] mkScratchpadConnectorSingle#(FIFO#(SCRATCHPAD_RRR_REQ)
 
     ClientStub_SCRATCHPAD_MEMORY scratchpad_rrr <- mkClientStub_SCRATCHPAD_MEMORY(); 
 
-    Vector#(2, STATS_DICT_TYPE) statIDs = newVector();
+    STAT_ID statIDs[2];
 
-    statIDs[0] = `STATS_SCRATCHPAD_LOCAL_REQUESTS;
+    statIDs[0] = statName("SCRATCHPAD_LOCAL_REQUESTS",
+                          "Requests from the local scratchpads");
     let statLocalReq = 0;
 
-    statIDs[1] = `STATS_SCRATCHPAD_LOCAL_RESPONSES;
+    statIDs[1] = statName("SCRATCHPAD_LOCAL_RESPONSES",
+                          "Responses from the local scratchpads");
     let statLocalResp = 1;
 
-    let stats <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
 
     // Dummy FIFO needed for generality with the multi-FPGA implementation
     FIFO#(SCRATCHPAD_RING_STOP_ID) tags = ?;
@@ -181,21 +182,25 @@ module [CONNECTED_MODULE] mkScratchpadConnectorMultiMaster#(FIFO#(SCRATCHPAD_RRR
     CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
         mkConnectionAddrRingNode("ScratchpadGlobalResp", 0);
 
-    Vector#(4, STATS_DICT_TYPE) statIDs = newVector();
+    STAT_ID statIDs[4];
 
-    statIDs[0] = `STATS_SCRATCHPAD_LOCAL_REQUESTS;
+    statIDs[0] = statName("SCRATCHPAD_LOCAL_REQUESTS",
+                          "Requests from the local scratchpads");
     let statLocalReq = 0;
 
-    statIDs[1] = `STATS_SCRATCHPAD_LOCAL_RESPONSES;
+    statIDs[1] = statName("SCRATCHPAD_LOCAL_RESPONSES",
+                          "Responses from the local scratchpads");
     let statLocalResp = 1;
 
-    statIDs[2] = `STATS_SCRATCHPAD_REMOTE_REQUESTS;
+    statIDs[2] = statName("SCRATCHPAD_REMOTE_REQUESTS",
+                          "Requests from the remote scratchpads");
     let statRemoteReq = 2;
 
-    statIDs[3] = `STATS_SCRATCHPAD_REMOTE_RESPONSES;
+    statIDs[3] = statName("SCRATCHPAD_REMOTE_RESPONSES",
+                          "Responses from the remote scratchpads");
     let statRemoteResp = 3;
 
-    let stats <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(4) stats <- mkStatCounter_Vector(statIDs);
 
     // Size of tags defines max outstanding requests.
     FIFO#(SCRATCHPAD_RING_STOP_ID) tags <- mkSizedFIFO(32);

@@ -20,26 +20,57 @@ import FIFO::*;
 import Counter::*;
 import Vector::*;
 
-`include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/soft_connections.bsh"
-//`include "awb/provides/stats_device.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/librl_bsv.bsh"
+`include "awb/provides/physical_platform_utils.bsh"
+`include "awb/provides/fpga_components.bsh"
 
-//AWB Parameters
-//name:                  default:
-//STATS_ENABLED   True
-//STATS_SIZE      32
-`include "awb/dict/RINGID.bsh"
-`include "awb/dict/STATS.bsh"
+
+// =============================================================================
+//
+//  Statistics naming
+//
+// =============================================================================
 
 //
-// Various statistics interfaces:
+// Statistics are named with a string identifier designed to be easy to parse
+// and a descriptive string.
+//
+// NOTES ON STRING VALUES:
+//
+//   - The string identifier is, by convention, all upper case, no spaces,
+//     with words separated by underscores, e.g.:
+//          L1_DCACHE_READ_HIT
+//
+//   - Tilde (~) is used as a string delimeter and may not appear in either
+//     string.
+//
 //
 
-typedef 8 STAT_VECTOR_INDEX_SZ;
-typedef Bit#(STAT_VECTOR_INDEX_SZ) STAT_VECTOR_INDEX;
-typedef Bit#(`STATS_SIZE) STAT_VALUE;
+typedef struct
+{
+    String id;
+    String desc;
+}
+STAT_ID;
 
-// Single statistic
+function STAT_ID statName(String id, String desc);
+    return STAT_ID { id: id, desc: desc };
+endfunction
+
+
+// =============================================================================
+//
+//  Interfaces
+//
+// =============================================================================
+
+//
+// Node with single statistic
+//
 interface STAT;
     method Action incr();
 
@@ -49,46 +80,63 @@ interface STAT;
     method Action incrBy(STAT_VALUE amount);
 endinterface: STAT
 
-// Vector of multiple instances of the same statistics ID
-interface STAT_VECTOR#(type ni);
-    method Action incr(Bit#(TLog#(ni)) iid);
+//
+// Node with multiple statistics, either an array statistic with a single
+// name and multiple buckets or a collection of many single-entry stats.
+// The size of the iid argument guarantees it is never 0 bits, which is
+// useful for multiplexed HAsim timing models where the CPU index is similarly
+// defined.
+//
+interface STAT_VECTOR#(type n_STATS);
+    method Action incr(Bit#(TMax#(1, TLog#(n_STATS))) idx);
 
     // Be careful with this method.  Incrementing by values too close to
     // the `STATS_SIZE bit counter can cause data to be lost if the counter
     // rises faster than it can be dumped to the host.
-    method Action incrBy(Bit#(TLog#(ni)) iid, STAT_VALUE amount);
+    method Action incrBy(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
 endinterface
+
+
+// =============================================================================
+//
+//  Public modules
+//
+// =============================================================================
+
+typedef 12 STAT_VECTOR_INDEX_SZ;
+typedef Bit#(STAT_VECTOR_INDEX_SZ) STAT_VECTOR_INDEX;
+typedef Bit#(`STATS_SIZE) STAT_VALUE;
 
 //
 // mkStatCounter --
 //     Public module for the STAT single statistic interface.  Implement it
 //     using the code for the vector interface.
 //
-module [CONNECTED_MODULE] mkStatCounter#(STATS_DICT_TYPE statID)
+module [CONNECTED_MODULE] mkStatCounter#(STAT_ID statID)
     // interface:
     (STAT);
 
-    Vector#(1, STATS_DICT_TYPE) id_vec = replicate(statID);
-    STAT_VECTOR#(1) m <- mkStatCounter_Vector(id_vec);
+    STAT_ID ids[1] = { statID };
+    STAT_VECTOR#(1) m <- mkStatCounter_Vector(ids);
     
     method Action incr() = m.incr(0);
     method Action incrBy(STAT_VALUE amount) = m.incrBy(0, amount);
 endmodule
 
 //
-// mkStatCounterArrayElement --
+// mkStatCounterDistributed --
 //     Public module for the STAT single statistic interface.  In this case,
 //     the software is expected to combine multiple counters sharing a
 //     single statID into an array.  The arrayIdx values must be unique
 //     for a given statID.
 //
-module [CONNECTED_MODULE] mkStatCounterArrayElement#(STATS_DICT_TYPE statID,
-                                                     STAT_VECTOR_INDEX arrayIdx)
+module [CONNECTED_MODULE] mkStatCounterDistributed#(STAT_ID statID,
+                                                    Integer arrayIdx)
     // interface:
     (STAT);
 
-    Vector#(1, STATS_DICT_TYPE) id_vec = replicate(statID);
-    STAT_VECTOR#(1) m <- mkStatCounterArray_Vector(id_vec, arrayIdx);
+    STAT_ID ids[1] = { statID };
+    STAT_VECTOR#(1) m <- mkStatCounterDistributed_Vector(ids, arrayIdx);
     
     method Action incr() = m.incr(0);
     method Action incrBy(STAT_VALUE amount) = m.incrBy(0, amount);
@@ -101,17 +149,42 @@ endmodule
 //     IDs interface.  This is most likely used to store separate counters
 //     for the same statistic across multiple instances.
 //
-//     *** This method is the only way to instantiate multiple buckets ***
-//     *** for a single statistic ID.                                  ***
+//     *** This version is optimized for updating multiple entries in
+//     *** the same cycle.  Each entry's counter is stored in a separate
+//     *** register.  If only one entry will be updated in a cycle, consider
+//     *** mkStatCounter_RAM below.
 //
-module [CONNECTED_MODULE] mkStatCounter_MultiEntry#(STATS_DICT_TYPE statID)
+module [CONNECTED_MODULE] mkStatCounter_MultiEntry#(STAT_ID statID)
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
 
-    Vector#(n_STATS, STATS_DICT_TYPE) statID_vec = replicate(statID);
-    let m <- (`STATS_ENABLED) ? mkStatCounterVec_Enabled(statID_vec, STATS_VECTOR_INSTANCE) :
-                                mkStatCounterVec_Disabled(statID_vec);
+    let desc <- getGlobalStringUID("M" + integerToString(valueOf(n_STATS)) + "~" +
+                                   statID.id + "~" + statID.desc);
+
+    let m <- (`STATS_ENABLED) ? mkStatCounterVec_Enabled(desc) :
+                                mkStatCounterVec_Disabled();
+    return m;
+endmodule
+
+
+//
+// mkStatCounter_RAM --
+//     Similar to mkStatCounter_MultiEntry, but the counters are stored in
+//     a dense RAM instead of individual registers.  This implementation
+//     only allows one counter to be updated per cycle.  In exchange, the
+//     storage is more efficient.
+//
+module [CONNECTED_MODULE] mkStatCounter_RAM#(STAT_ID statID)
+    // interface:
+    (STAT_VECTOR#(n_STATS))
+    provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+
+    let desc <- getGlobalStringUID("M" + integerToString(valueOf(n_STATS)) + "~" +
+                                   statID.id + "~" + statID.desc);
+
+    let m <- (`STATS_ENABLED) ? mkStatCounterRAM_Enabled(desc) :
+                                mkStatCounterVec_Disabled();
     return m;
 endmodule
 
@@ -120,23 +193,32 @@ endmodule
 // mkStatCounter_Vector --
 //     Public module for the STAT_VECTOR multiple instance IDs interface.
 //
-module [CONNECTED_MODULE] mkStatCounter_Vector#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs)
+module [CONNECTED_MODULE] mkStatCounter_Vector#(STAT_ID myIDs[])
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
 
-    let m <- (`STATS_ENABLED) ? mkStatCounterVec_Enabled(myIDs, STATS_UNIQUE_INSTANCE) :
-                                mkStatCounterVec_Disabled(myIDs);
+    String d = "V" + integerToString(valueOf(n_STATS));
+    for (Integer i = 0; i < valueOf(n_STATS); i = i + 1)
+    begin
+        d = d + "~" + myIDs[i].id + "~" + myIDs[i].desc;
+    end
+
+    let desc <- getGlobalStringUID(d);
+
+    let m <- (`STATS_ENABLED) ? mkStatCounterVec_Enabled(desc) :
+                                mkStatCounterVec_Disabled();
     return m;
 endmodule
 
 
 //
-// mkStatCounterArray_Vector --
-//     Same as mkStatCounter_Vector, but multiple of these will be
-//     created in the hardware sharing a dictionary ID with unique
-//     arrayIdx values.  The software will combine dictionary IDs from
-//     separate counters into arrays.
+// mkStatCounterDistributed_Vector --
+//     Same as mkStatCounter_Vector, but the counters for an array of
+//     values are distributed across more than one statistics node.
+//     Multiple of these will be created in the hardware sharing a
+//     dictionary ID with unique arrayIdx values.  The software will
+//     combine dictionary IDs from separate counters into arrays.
 //
 //     Don't be too confused by the two vectors here.  The "vector"
 //     is the collection of multiple, independent dictionary IDs in
@@ -144,123 +226,113 @@ endmodule
 //     counters from independent ring stops into a logical array in
 //     software.
 //
-module [CONNECTED_MODULE] mkStatCounterArray_Vector#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs,
-                                                     STAT_VECTOR_INDEX arrayIdx)
+module [CONNECTED_MODULE] mkStatCounterDistributed_Vector#(STAT_ID myIDs[],
+                                                           Integer arrayIdx)
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
 
-    let m <- (`STATS_ENABLED) ? mkStatCounterVec_Enabled(myIDs, tagged STATS_BUILD_ARRAY arrayIdx) :
-                                mkStatCounterVec_Disabled(myIDs);
+    String d = "D" + integerToString(valueOf(n_STATS)) +
+               "~" + integerToString(arrayIdx);
+    for (Integer i = 0; i < valueOf(n_STATS); i = i + 1)
+    begin
+        d = d + "~" + myIDs[i].id + "~" + myIDs[i].desc;
+    end
+
+    let desc <- getGlobalStringUID(d);
+
+    let m <- (`STATS_ENABLED) ? mkStatCounterVec_Enabled(desc) :
+                                mkStatCounterVec_Disabled();
     return m;
 endmodule
 
 
-
 // ========================================================================
 //
-// Implementation -- internal modules.
+//  Implementation -- internal modules.
 //
 // ========================================================================
 
 typedef union tagged
 {
-    void ST_GET_LENGTH;
+    // Commands issued by host
+    void ST_ENABLE;
+    void ST_DISABLE;
+    void ST_INIT;
     void ST_DUMP;
-    void ST_TOGGLE;
-    void ST_RESET;
-    struct {STATS_DICT_TYPE statID; STAT_VECTOR_INDEX index; STAT_VALUE value;}  ST_VAL;
-    struct {STATS_DICT_TYPE statID; STAT_VECTOR_INDEX length; Bool buildArray; }  ST_LENGTH;
+
+    // Responses from FPGA
+
+    // Normal value response
+    struct {
+        GLOBAL_STRING_UID desc;       // Node's descriptor
+        STAT_VECTOR_INDEX index;      // Statistic index within this node
+        STAT_VALUE value;             // Current accumulator's value
+    } ST_VAL;
+
+    // Initialization response.  The descriptor encodes all the details of
+    // the node.
+    GLOBAL_STRING_UID ST_INIT_RSP;
 }
 STAT_DATA
     deriving (Eq, Bits);
 
 typedef enum
 {
-    RECORDING, BUILD_ARRAY_LENGTH, FINISHING_LENGTH, DUMPING, FINISHING_DUMP, RESETING
+    STAT_INIT,
+    STAT_RECORDING,
+    STAT_DUMPING,
+    STAT_FINISHING_DUMP
 }
 STAT_STATE
     deriving (Eq, Bits);
 
 
 //
-// STAT_TYPE --
-//    Statistics buckets are combined by the software in many ways...
-typedef union tagged
-{
-    // Each statistic in the group is separate and there may be only one
-    // instance of each ID in the entire system.
-    void STATS_UNIQUE_INSTANCE;
-
-    // A vector group of statistics all sharing the same ID, each having its own
-    // index in the vector.
-    void STATS_VECTOR_INSTANCE;
-
-    // Allow multiple instances and build a vector.  Each instance in the group
-    // is treated as an independent dictionary ID.
-    STAT_VECTOR_INDEX STATS_BUILD_ARRAY;
-}
-STAT_TYPE
-    deriving (Eq, Bits);
-
-
-//
 // mkStatCounterVec_Enabled --
-//     Vector of individual statistics.  When singleID is true all entries share
-//     the same ID.
+//     Vector of statistics counters.  Multiple statistics counters may
+//     be updated in a single FPGA cycle.
 //
-module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs,
-                                                    STAT_TYPE statType)
+//
+module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos
         (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
 
-    Connection_Chain#(STAT_DATA) chain <- mkConnection_Chain(`RINGID_STATS);
+    CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
 
     Vector#(n_STATS, COUNTER#(`STATS_SIZE)) statPool <- replicateM(mkLCounter(0));
 
-    Reg#(STAT_STATE) state <- mkReg(RECORDING);
+    Reg#(STAT_STATE) state <- mkReg(STAT_RECORDING);
     Reg#(Bool) enabled <- mkReg(False);
 
     Reg#(STAT_VECTOR_INDEX) curDumpIdx <- mkRegU();
 
-    //
-    // Compute the buckets vector index given the type of collector and the
-    // buckets index in the group.
-    //
-    function STAT_VECTOR_INDEX statIdx(STAT_VECTOR_INDEX idx);
-        case (statType) matches
-            // Normal vector
-            tagged STATS_VECTOR_INSTANCE:
-                return idx;
 
-            // Non-vector collectors
-            tagged STATS_UNIQUE_INSTANCE:
-                return 0;
-
-            // Vector spead across multiple collectors.  The vector index is
-            // the software-side index, not the local slot in the collection
-            // of statistics buckets.
-            tagged STATS_BUILD_ARRAY .v_idx:
-                return v_idx;
-        endcase
-    endfunction
+    //
+    // doInit --
+    //     Complete initialization.
+    //
+    rule doInit (state == STAT_INIT);
+        chain.sendToNext(tagged ST_INIT);
+        state <= STAT_RECORDING;
+    endrule
 
 
     //
     // dump --
     //     Done one entry in the statistics vector.
     //
-    rule dump (state == DUMPING);
-        chain.sendToNext(tagged ST_VAL { statID: myIDs[curDumpIdx],
-                                         index: statIdx(curDumpIdx),
+    rule dump (state == STAT_DUMPING);
+        chain.sendToNext(tagged ST_VAL { desc: desc,
+                                         index: curDumpIdx,
                                          value: statPool[curDumpIdx].value() });
 
         statPool[curDumpIdx].setC(0);
 
         if (curDumpIdx == fromInteger(valueOf(n_STATS) - 1))
-            state <= FINISHING_DUMP;
+            state <= STAT_FINISHING_DUMP;
 
         curDumpIdx <= curDumpIdx + 1;
     endrule
@@ -270,52 +342,9 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
     // finishDump --
     //     Done dumping all entries in the statistics vector.
     //
-    rule finishDump (state == FINISHING_DUMP);
+    rule finishDump (state == STAT_FINISHING_DUMP);
         chain.sendToNext(tagged ST_DUMP);
-        state <= RECORDING;
-    endrule
-
-
-    //
-    // finishLength --
-    //     Done reporting the length of the vector.
-    //
-    rule finishGetLength (state == FINISHING_LENGTH);
-        chain.sendToNext(tagged ST_GET_LENGTH);
-        state <= RECORDING;
-    endrule
-
-
-    //
-    // buildArrayLengths --
-    //    This code is somewhat confusing because there are two vectors involved.
-    //    The first is the vector here of unrelated statics collected together
-    //    simply to save ring stops.  The second is the array the software
-    //    side is expected to collect by combining unique indices from
-    //    separate hardware counters into an array.
-    //
-    //    Here we step through each, individual, bucket and send the software-
-    //    side array index for each statistic.  The software will determine
-    //    appropriate array lengths.
-    //
-    Reg#(STAT_VECTOR_INDEX) buildArrayIdx <- mkReg(0);
-    rule buildArrayLengths (state == BUILD_ARRAY_LENGTH);
-        if (statType matches tagged STATS_BUILD_ARRAY .v_idx)
-        begin
-            chain.sendToNext(tagged ST_LENGTH { statID: myIDs[buildArrayIdx],
-                                                length: v_idx + 1,
-                                                buildArray: True });
-        end
-
-        if (buildArrayIdx == fromInteger(valueOf(n_STATS) - 1))
-        begin
-            buildArrayIdx <= 0;
-            state <= FINISHING_LENGTH;
-        end
-        else
-        begin
-            buildArrayIdx <= buildArrayIdx + 1;
-        end
+        state <= STAT_RECORDING;
     endrule
 
 
@@ -324,57 +353,33 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
     //     Receive a command on the statistics ring.
     //
     (* conservative_implicit_conditions *)
-    rule receiveCmd (state == RECORDING);
+    rule receiveCmd (state == STAT_RECORDING);
         STAT_DATA st <- chain.recvFromPrev();
 
         case (st) matches 
-            tagged ST_GET_LENGTH:
+            tagged ST_ENABLE:
             begin
-                //
-                // Software assumes length 1 unless told otherwise.  Pass
-                // a length message only for the various vector types.
-                //
-                case (statType) matches
-                    // Non-vector collectors
-                    tagged STATS_UNIQUE_INSTANCE:
-                    begin
-                        chain.sendToNext(st);
-                    end
+                enabled <= True;
+                chain.sendToNext(st);
+            end
 
-                    // Normal vector
-                    tagged STATS_VECTOR_INSTANCE:
-                    begin
-                        chain.sendToNext(tagged ST_LENGTH { statID: myIDs[0],
-                                                            length: fromInteger(valueOf(n_STATS)),
-                                                            buildArray: False });
-                        state <= FINISHING_LENGTH;
-                    end
+            tagged ST_DISABLE:
+            begin
+                enabled <= False;
+                chain.sendToNext(st);
+            end
 
-                    // Array spead across multiple collectors.
-                    tagged STATS_BUILD_ARRAY .v_idx:
-                    begin
-                        state <= BUILD_ARRAY_LENGTH;
-                    end
-                endcase
+            tagged ST_INIT:
+            begin
+                // Tell software about this node
+                chain.sendToNext(tagged ST_INIT_RSP desc);
+                state <= STAT_INIT;
             end
 
             tagged ST_DUMP:
             begin
                 curDumpIdx <= 0;
-                state <= DUMPING;
-            end
-
-            tagged ST_RESET: 
-            begin
-                chain.sendToNext(st);
-                for (Integer s = 0; s < valueOf(n_STATS); s = s + 1)
-                    statPool[s].setC(0);
-            end
-
-            tagged ST_TOGGLE: 
-            begin
-                chain.sendToNext(st);
-                enabled <= !enabled;
+                state <= STAT_DUMPING;
             end
 
             default: chain.sendToNext(st);
@@ -390,12 +395,12 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
     Reg#(STAT_VECTOR_INDEX) curDumpPartialIdx <- mkReg(0);
 
     (* descending_urgency = "receiveCmd, dumpPartial" *)
-    rule dumpPartial (state == RECORDING);
+    rule dumpPartial (state == STAT_RECORDING);
         // Is the most significant bit set?
         if (msb(statPool[curDumpPartialIdx].value()) == 1)
         begin
-            chain.sendToNext(tagged ST_VAL { statID: myIDs[curDumpPartialIdx],
-                                             index: statIdx(curDumpPartialIdx),
+            chain.sendToNext(tagged ST_VAL { desc: desc,
+                                             index: curDumpPartialIdx,
                                              value: statPool[curDumpPartialIdx].value() });
 
             statPool[curDumpPartialIdx].setC(0);
@@ -408,7 +413,7 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
     endrule
 
 
-    method Action incr(Bit#(TLog#(n_STATS)) idx);
+    method Action incr(Bit#(TMax#(1, TLog#(n_STATS))) idx);
         if (enabled)
         begin
             statPool[idx].up();
@@ -416,7 +421,7 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
     endmethod
 
 
-    method Action incrBy(Bit#(TLog#(n_STATS)) idx, STAT_VALUE amount);
+    method Action incrBy(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
         if (enabled)
         begin
             statPool[idx].upBy(amount);
@@ -425,15 +430,172 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(Vector#(n_STATS, STATS_DICT_
 endmodule
 
 
-module [CONNECTED_MODULE] mkStatCounterVec_Disabled#(Vector#(n_STATS, STATS_DICT_TYPE) myIDs)
+//
+// mkStatCounterRAM_Enabled --
+//     Vector of statistics counters.  Unlike mkStatCounterVec_Enabled above,
+//     only one statistics counter may be updated in a single FPGA cycle.
+//     This constraint allows the counters to be stored in RAM instead
+//     of registers.
+//
+module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
+    // interface:
+    (STAT_VECTOR#(n_STATS))
+    provisos
+        (Alias#(Bit#(TMax#(TLog#(n_STATS), 1)), t_STAT_IDX),
+         Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+
+    CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
+
+    LUTRAM#(t_STAT_IDX, STAT_VALUE) statPool <- mkLUTRAM(0);
+
+    Reg#(STAT_STATE) state <- mkReg(STAT_RECORDING);
+    Reg#(Bool) enabled <- mkReg(False);
+
+    Reg#(t_STAT_IDX) curDumpIdx <- mkRegU();
+    
+    Wire#(Tuple2#(t_STAT_IDX, STAT_VALUE)) incrW <- mkWire();
+
+
+    //
+    // doInit --
+    //     Complete initialization.
+    //
+    rule doInit (state == STAT_INIT);
+        chain.sendToNext(tagged ST_INIT);
+        state <= STAT_RECORDING;
+    endrule
+
+
+    //
+    // dump --
+    //     Done one entry in the statistics vector.
+    //
+    rule dump (state == STAT_DUMPING);
+    
+        chain.sendToNext(tagged ST_VAL { desc: desc,
+                                         index: zeroExtendNP(curDumpIdx),
+                                         value: statPool.sub(curDumpIdx) });
+
+        statPool.upd(curDumpIdx, 0);
+
+        if (curDumpIdx == fromInteger(valueOf(n_STATS) - 1))
+            state <= STAT_FINISHING_DUMP;
+
+        curDumpIdx <= curDumpIdx + 1;
+    endrule
+
+
+    //
+    // finishDump --
+    //     Done dumping all entries in the statistics vector.
+    //
+    rule finishDump (state == STAT_FINISHING_DUMP);
+        chain.sendToNext(tagged ST_DUMP);
+        state <= STAT_RECORDING;
+    endrule
+
+
+    //
+    // updateStat
+    //     Increment a stat. Placed in a rule to make the scheduler's life easier.
+    
+    (* fire_when_enabled *)
+    rule updateStat (state == STAT_RECORDING && enabled);
+        match {.idx, .amount} = incrW;
+        let c = statPool.sub(idx);
+        statPool.upd(idx, c + amount);
+    endrule
+
+
+    //
+    // receiveCmd --
+    //     Receive a command on the statistics ring.
+    //
+    (* conservative_implicit_conditions *)
+    rule receiveCmd (state == STAT_RECORDING);
+        STAT_DATA st <- chain.recvFromPrev();
+
+        case (st) matches 
+            tagged ST_ENABLE:
+            begin
+                enabled <= True;
+                chain.sendToNext(st);
+            end
+
+            tagged ST_DISABLE:
+            begin
+                enabled <= False;
+                chain.sendToNext(st);
+            end
+
+            tagged ST_INIT:
+            begin
+                // Tell software about this node
+                chain.sendToNext(tagged ST_INIT_RSP desc);
+                state <= STAT_INIT;
+            end
+
+            tagged ST_DUMP:
+            begin
+                curDumpIdx <= 0;
+                state <= STAT_DUMPING;
+            end
+
+            default: chain.sendToNext(st);
+        endcase
+    endrule
+
+
+    //
+    // dumpPartial --
+    //     Monitor counters and forward values to software before a counter
+    //     overflows.
+    //
+    Reg#(t_STAT_IDX) curDumpPartialIdx <- mkReg(0);
+
+    (* descending_urgency = "updateStat, receiveCmd, dumpPartial" *)
+    rule dumpPartial (state == STAT_RECORDING);
+    
+        let stat = statPool.sub(curDumpPartialIdx);
+
+        // Is the most significant bit set?
+        if (msb(stat) == 1)
+        begin
+            chain.sendToNext(tagged ST_VAL { desc: desc,
+                                             index: zeroExtendNP(curDumpPartialIdx),
+                                             value: stat });
+
+            statPool.upd(curDumpPartialIdx, 0);
+        end
+
+        if (curDumpPartialIdx == fromInteger(valueOf(n_STATS) - 1))
+            curDumpPartialIdx <= 0;
+        else
+            curDumpPartialIdx <= curDumpPartialIdx + 1;
+    endrule
+
+
+    method Action incr(t_STAT_IDX idx);
+        incrW <= tuple2(idx, 1);
+    endmethod
+
+
+    method Action incrBy(t_STAT_IDX idx, STAT_VALUE amount);
+        incrW <= tuple2(idx, amount);
+    endmethod
+
+endmodule
+
+
+module [CONNECTED_MODULE] mkStatCounterVec_Disabled
     // interface:
     (STAT_VECTOR#(n_STATS));
 
-    method Action incr(Bit#(TLog#(n_STATS)) idx);
+    method Action incr(Bit#(TMax#(1, TLog#(n_STATS))) idx);
         noAction;
     endmethod
 
-    method Action incrBy(Bit#(TLog#(n_STATS)) idx, STAT_VALUE amount);
+    method Action incrBy(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
         noAction;
     endmethod
 endmodule

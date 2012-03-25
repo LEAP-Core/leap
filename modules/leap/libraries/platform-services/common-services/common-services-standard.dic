@@ -1,3 +1,2 @@
 def RINGID.ASSERTS    "assertions";
 def RINGID.PARAMS     "params";
-def RINGID.STATS      "stats";

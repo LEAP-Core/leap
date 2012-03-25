@@ -21,8 +21,6 @@
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/common_services.bsh"
-
-`include "awb/dict/STATS_CENTRAL_CACHE.bsh"
     
     
 // ===================================================================
@@ -39,33 +37,41 @@ module [CONNECTED_MODULE] mkCentralCacheStats#(RL_CACHE_STATS cacheStats)
     // interface:
     ();
     
-    Vector#(8, STATS_DICT_TYPE) statIDs = newVector();
+    STAT_ID statIDs[8];
 
-    statIDs[0] = `STATS_CENTRAL_CACHE_CACHE_LOAD_HIT;
+    statIDs[0] = statName("CENTRAL_CACHE_LOAD_HIT",
+                          "Central Cache: Load hits");
     let statLoadHit = 0;
 
-    statIDs[1] = `STATS_CENTRAL_CACHE_CACHE_LOAD_MISS;
+    statIDs[1] = statName("CENTRAL_CACHE_LOAD_MISS",
+                          "Central Cache: Load misses");
     let statLoadMiss = 1;
 
-    statIDs[2] = `STATS_CENTRAL_CACHE_CACHE_STORE_HIT;
+    statIDs[2] = statName("CENTRAL_CACHE_STORE_HIT",
+                          "Central Cache: Store hits");
     let statStoreHit  = 2;
 
-    statIDs[3] = `STATS_CENTRAL_CACHE_CACHE_STORE_MISS;
+    statIDs[3] = statName("CENTRAL_CACHE_STORE_MISS",
+                          "Central Cache: Store misses");
     let statStoreMiss = 3;
 
-    statIDs[4] = `STATS_CENTRAL_CACHE_CACHE_INVAL_LINE;
+    statIDs[4] = statName("CENTRAL_CACHE_INVAL_LINE",
+                          "Central Cache: Lines invalidated due to capacity");
     let statInvalEntry = 4;
 
-    statIDs[5] = `STATS_CENTRAL_CACHE_CACHE_DIRTY_LINE_FLUSH;
+    statIDs[5] = statName("CENTRAL_CACHE_DIRTY_LINE_FLUSH",
+                          "Central Cache: Dirty lines flushed to memory");
     let statDirtyEntryFlush = 5;
 
-    statIDs[6] = `STATS_CENTRAL_CACHE_CACHE_FORCE_INVAL_LINE;
+    statIDs[6] = statName("CENTRAL_CACHE_FORCE_INVAL_LINE",
+                          "Central Cache: Lines forcibly invalidated (not due to capacity)");
     let statForceInvalLine = 6;
 
-    statIDs[7] = `STATS_CENTRAL_CACHE_CACHE_LOAD_RECENT_LINE_HIT;
+    statIDs[7] = statName("CENTRAL_CACHE_LOAD_RECENT_LINE_HIT",
+                          "Central Cache: Load recent line cache hits");
     let statLoadRecentLineHit = 7;
 
-    let stats <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(8) stats <- mkStatCounter_Vector(statIDs);
 
     //
     // fire_when_enabled and no_implicit_conditions pragmas confirm that

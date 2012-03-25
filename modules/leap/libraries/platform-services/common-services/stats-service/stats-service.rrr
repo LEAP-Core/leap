@@ -3,15 +3,18 @@ service STATS
 
     server hw (bsv, connection) <- sw (cpp, method)
     {
-        method GetVectorLengths(in UINT8[8] syn, out UINT8[8] ack);
+        method DoInit(in UINT8[8] syn, out UINT8[8] ack);
         method DumpStats(in UINT8[8] syn, out UINT8[8] ack);
-        method Reset(in UINT8[8] syn, out UINT8[8] ack);
-        method Toggle(in UINT8[8] syn, out UINT8[8] ack);
+        method Enable(in UINT8[8] syn, out UINT8[8] ack);
+        method Disable(in UINT8[8] syn, out UINT8[8] ack);
     };
 
     server sw (cpp, method) <- hw (bsv, connection)
     {
-        method SetVectorLength(in UINT32[32] statID, in UINT8[8] length, in UINT8[8] buildArray);
-        method ReportStat(in UINT32[32] statID, in UINT8[8] pos, in UINT32[32] value);
+        method NodeInfo(in UINT32[32] desc);
+
+        method ReportStat(in UINT32[32] desc,
+                          in UINT32[32] pos,
+                          in UINT32[32] value);
     };
 };

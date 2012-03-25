@@ -7,6 +7,5 @@
 
 %public local-mem-central-cache.bsv
 %public local-mem-central-cache-stats.bsv
-%private local-mem-central-cache.dic
 
 %param --dynamic CENTRAL_CACHE_MODE 0 "Bits 0-1: 0 write-back, 1 write-through, 3 disabled / Bit 2 disables recent line cache"

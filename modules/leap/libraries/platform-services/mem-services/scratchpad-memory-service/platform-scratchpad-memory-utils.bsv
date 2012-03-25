@@ -32,35 +32,41 @@ typedef function CONNECTED_MODULE#(Empty) f(RL_CACHE_STATS stats) SCRATCHPAD_STA
 //
 // mkBasicScratchpadCacheStats --
 //     Shim between an RL_CACHE_STATS interface and statistics counters.
+//     Tag and description prefixes allow the caller to define the prefixes
+//     of the statistic.
 //
-module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(
-                            STATS_DICT_TYPE idLoadHit,
-                            STATS_DICT_TYPE idLoadMiss,
-                            STATS_DICT_TYPE idWriteHit,
-                            STATS_DICT_TYPE idWriteMiss,
-                            RL_CACHE_STATS stats)
+module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(String tagPrefix,
+                                                       String descPrefix,
+                                                       RL_CACHE_STATS stats)
     // interface:
     ();
 
-    STAT statLoadHit <- mkStatCounter(idLoadHit);
-    STAT statLoadMiss <- mkStatCounter(idLoadMiss);
-    STAT statWriteHit <- mkStatCounter(idWriteHit);
-    STAT statWriteMiss <- mkStatCounter(idWriteMiss);
+    STAT_ID statIDs[4] = {
+        statName(tagPrefix + "SCRATCH_LOAD_HIT",
+                 descPrefix + "Scratchpad load hits"),
+        statName(tagPrefix + "SCRATCH_LOAD_MISS",
+                 descPrefix + "Scratchpad load misses"),
+        statName(tagPrefix + "SCRATCH_STORE_HIT",
+                 descPrefix + "Scratchpad store hits"),
+        statName(tagPrefix + "SCRATCH_STORE_MISS",
+                 descPrefix + "Scratchpad store misses")
+    };
+    STAT_VECTOR#(4) sv <- mkStatCounter_Vector(statIDs);
     
     rule readHit (stats.readHit());
-        statLoadHit.incr();
+        sv.incr(0);
     endrule
 
     rule readMiss (stats.readMiss());
-        statLoadMiss.incr();
+        sv.incr(1);
     endrule
 
     rule writeHit (stats.writeHit());
-        statWriteHit.incr();
+        sv.incr(2);
     endrule
 
     rule writeMiss (stats.writeMiss());
-        statWriteMiss.incr();
+        sv.incr(3);
     endrule
 endmodule
 
