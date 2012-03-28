@@ -233,15 +233,6 @@ my $fpga_dev_id = undef;
 my $fpga_dev = undef;
 
 if ($mType == $MODEL_FPGA) {
-    if (! defined($printCycle)) {
-        # User didn't specify a cycle printing interval.  Pick one more reasonable
-        # for HW.
-        if ($config{workload} ne "null") {
-            ## FIXME:  Not all models support --pc.
-            $cmd .= " --pc=10000000";
-        }
-    }
-
     # Load FPGA
     $ENV{FPGA_BIT_FILE} = "$config{modelDir}/.xilinx/$config{model}_par.bit";
 

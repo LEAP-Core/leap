@@ -12224,3 +12224,15 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 - Revert the change to connection-implementation.bsv that was added to make
   ring data sizes constant.  This was only needed by multi-FPGA code because
   the statistics data size was not constant.
+
+----------
+mcadler     Date: Wed Mar 28 14:54:20 EDT 2012  CSN: CSN-leap-267
+                  Wed Mar 28 18:54:20 UTC 2012
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          266 
+
+Stop adding --pc command line argument on FPGAs.  It wasn't being added for
+Bluesim.  As far as I know, no LEAP models use it.  HAsim does, but uses a
+different run script.
