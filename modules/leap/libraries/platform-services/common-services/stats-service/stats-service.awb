@@ -13,5 +13,6 @@
 %private stats-service.cpp
 %private stats-service.rrr
 
-%param --global STATS_ENABLED True  "Enable Stat dumping?"
-%param --global STATS_SIZE    28    "Number of bits per Stat counter."
+%param --global STATS_ENABLED         True  "Enable Stat dumping?"
+%param --global STATS_SIZE            28    "Number of bits per Stat counter."
+%param --global STATS_MAX_VECTOR_LEN  4096  "Maximum number of counters on a single statistics node."

@@ -12236,3 +12236,25 @@ Directory scripts/bmark
 Stop adding --pc command line argument on FPGAs.  It wasn't being added for
 Bluesim.  As far as I know, no LEAP models use it.  HAsim does, but uses a
 different run script.
+
+----------
+mcadler     Date: Thu Mar 29 07:58:35 EDT 2012  CSN: CSN-leap-268
+                  Thu Mar 29 11:58:35 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Modified          267 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          267 
+ stats-service.awb         Locally Modified          267 
+
+- Clean up implementations of statistics nodes to reduce complexity.
+
+- Add non-blocking versions of the increment methods.  These are needed
+  for I/O modules that also keep statistics where the code may deadlock
+  if a counter can't be updated (e.g. the multi-FPGA router).  Instead
+  of blocking counter updates may be dropped.  Dropping is only a factor
+  when counters are overflowing, which can be controlled by making the
+  counter sizes sufficiently large.  The current default counter is 28
+  bits.

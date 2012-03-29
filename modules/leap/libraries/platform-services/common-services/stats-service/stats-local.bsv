@@ -17,7 +17,7 @@
 //
 
 import FIFO::*;
-import Counter::*;
+import FIFOF::*;
 import Vector::*;
 
 `include "awb/provides/soft_connections.bsh"
@@ -94,6 +94,13 @@ interface STAT_VECTOR#(type n_STATS);
     // the `STATS_SIZE bit counter can cause data to be lost if the counter
     // rises faster than it can be dumped to the host.
     method Action incrBy(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
+
+    // Non-blocking methods are for use by callers involved in I/O
+    // where blocking due to activity in the statistics code could cause
+    // a deadlock (e.g. the multi-FPGA router).  These routines sacrifice
+    // fidelity, dropping increment requests, when necessary.
+    method Action incr_NB(Bit#(TMax#(1, TLog#(n_STATS))) idx);
+    method Action incrBy_NB(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
 endinterface
 
 
@@ -103,7 +110,7 @@ endinterface
 //
 // =============================================================================
 
-typedef 12 STAT_VECTOR_INDEX_SZ;
+typedef TLog#(`STATS_MAX_VECTOR_LEN) STAT_VECTOR_INDEX_SZ;
 typedef Bit#(STAT_VECTOR_INDEX_SZ) STAT_VECTOR_INDEX;
 typedef Bit#(`STATS_SIZE) STAT_VALUE;
 
@@ -157,7 +164,9 @@ endmodule
 module [CONNECTED_MODULE] mkStatCounter_MultiEntry#(STAT_ID statID)
     // interface:
     (STAT_VECTOR#(n_STATS))
-    provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+    provisos
+        (NumAlias#(TMax#(TLog#(n_STATS), 1), t_STAT_IDX_SZ),
+         Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
     let desc <- getGlobalStringUID("M" + integerToString(valueOf(n_STATS)) + "~" +
                                    statID.id + "~" + statID.desc);
@@ -178,7 +187,9 @@ endmodule
 module [CONNECTED_MODULE] mkStatCounter_RAM#(STAT_ID statID)
     // interface:
     (STAT_VECTOR#(n_STATS))
-    provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+    provisos
+        (NumAlias#(TMax#(TLog#(n_STATS), 1), t_STAT_IDX_SZ),
+         Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
     let desc <- getGlobalStringUID("M" + integerToString(valueOf(n_STATS)) + "~" +
                                    statID.id + "~" + statID.desc);
@@ -196,7 +207,9 @@ endmodule
 module [CONNECTED_MODULE] mkStatCounter_Vector#(STAT_ID myIDs[])
     // interface:
     (STAT_VECTOR#(n_STATS))
-    provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+    provisos
+        (NumAlias#(TMax#(TLog#(n_STATS), 1), t_STAT_IDX_SZ),
+         Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
     String d = "V" + integerToString(valueOf(n_STATS));
     for (Integer i = 0; i < valueOf(n_STATS); i = i + 1)
@@ -230,7 +243,9 @@ module [CONNECTED_MODULE] mkStatCounterDistributed_Vector#(STAT_ID myIDs[],
                                                            Integer arrayIdx)
     // interface:
     (STAT_VECTOR#(n_STATS))
-    provisos (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+    provisos
+        (NumAlias#(TMax#(TLog#(n_STATS), 1), t_STAT_IDX_SZ),
+         Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
     String d = "D" + integerToString(valueOf(n_STATS)) +
                "~" + integerToString(arrayIdx);
@@ -281,7 +296,7 @@ typedef enum
 {
     STAT_INIT,
     STAT_RECORDING,
-    STAT_DUMPING,
+    STAT_DUMP,
     STAT_FINISHING_DUMP
 }
 STAT_STATE
@@ -298,16 +313,20 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos
-        (Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+        (NumAlias#(TMax#(TLog#(n_STATS), 1), t_STAT_IDX_SZ),
+         Alias#(Bit#(t_STAT_IDX_SZ), t_STAT_IDX),
+         Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
     CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
 
-    Vector#(n_STATS, COUNTER#(`STATS_SIZE)) statPool <- replicateM(mkLCounter(0));
+    Vector#(n_STATS, Reg#(Bit#(`STATS_SIZE))) statPool <- replicateM(mkReg(0));
 
     Reg#(STAT_STATE) state <- mkReg(STAT_RECORDING);
     Reg#(Bool) enabled <- mkReg(False);
+    Reg#(Bool) dumpingForOverflow <- mkReg(False);
+    Reg#(Bool) overflowDetected <- mkReg(False);
 
-    Reg#(STAT_VECTOR_INDEX) curDumpIdx <- mkRegU();
+    Reg#(Maybe#(t_STAT_IDX)) curDumpIdx <- mkReg(tagged Invalid);
 
 
     //
@@ -322,19 +341,36 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
 
     //
     // dump --
-    //     Done one entry in the statistics vector.
+    //     Dump one entry in the statistics vector.  The dump shifts all buckets
+    //     from the vector one place for each entry dumped to avoid building
+    //     a MUX for indexing the curDumpIdx.
     //
-    rule dump (state == STAT_DUMPING);
-        chain.sendToNext(tagged ST_VAL { desc: desc,
-                                         index: curDumpIdx,
-                                         value: statPool[curDumpIdx].value() });
+    rule dump (curDumpIdx matches tagged Valid .dump_idx &&& state == STAT_DUMP);
+        if (statPool[0] != 0)
+        begin
+            chain.sendToNext(tagged ST_VAL { desc: desc,
+                                             index: zeroExtend(dump_idx),
+                                             value: statPool[0] });
+        end
 
-        statPool[curDumpIdx].setC(0);
+        // Shift all counters down, putting 0 at the top.  This will eventually
+        // clear all the counters.
+        for (Integer i = 0; i < valueOf(n_STATS) - 1; i = i + 1)
+        begin
+            statPool[i] <= statPool[i + 1];
+        end
+        statPool[valueOf(n_STATS) - 1] <= 0;
 
-        if (curDumpIdx == fromInteger(valueOf(n_STATS) - 1))
+        // Done emitting all counters?
+        if (dump_idx == fromInteger(valueOf(n_STATS) - 1))
+        begin
             state <= STAT_FINISHING_DUMP;
-
-        curDumpIdx <= curDumpIdx + 1;
+            curDumpIdx <= tagged Invalid;
+        end
+        else
+        begin
+            curDumpIdx <= tagged Valid (dump_idx + 1);
+        end
     endrule
 
 
@@ -343,7 +379,16 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
     //     Done dumping all entries in the statistics vector.
     //
     rule finishDump (state == STAT_FINISHING_DUMP);
-        chain.sendToNext(tagged ST_DUMP);
+        // Was this a host-initiated dump request?  If yes then forward the
+        // command to the next node.
+        if (! dumpingForOverflow)
+        begin
+            chain.sendToNext(tagged ST_DUMP);
+        end
+
+        dumpingForOverflow <= False;
+        overflowDetected <= False;
+
         state <= STAT_RECORDING;
     endrule
 
@@ -378,8 +423,8 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
 
             tagged ST_DUMP:
             begin
-                curDumpIdx <= 0;
-                state <= STAT_DUMPING;
+                curDumpIdx <= tagged Valid 0;
+                state <= STAT_DUMP;
             end
 
             default: chain.sendToNext(st);
@@ -388,43 +433,67 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
 
 
     //
-    // dumpPartial --
-    //     Monitor counters and forward values to software before a counter
-    //     overflows.
+    // checkOverflow --
+    //     Monitor counters and signal the need to dump counters when there
+    //     is danger of overflow.  The increment methods below signal on
+    //     the overflow wires when a counter needs to be dumped to software.
     //
-    Reg#(STAT_VECTOR_INDEX) curDumpPartialIdx <- mkReg(0);
-
-    (* descending_urgency = "receiveCmd, dumpPartial" *)
-    rule dumpPartial (state == STAT_RECORDING);
-        // Is the most significant bit set?
-        if (msb(statPool[curDumpPartialIdx].value()) == 1)
+    //     The two phase transition from checkOverflow through handleOverflow
+    //     is needed to keep the Bluespec scheduler's dependence analysis
+    //     from complaining about updates of statPool in the methods below
+    //     and internal rules.
+    //
+    (* fire_when_enabled, no_implicit_conditions *)    
+    rule checkOverflow (! overflowDetected && (state == STAT_RECORDING));
+        // Check the MSBs of all counters.
+        Vector#(n_STATS, Bool) ovfl = newVector();
+        for (Integer i = 0; i < valueOf(n_STATS); i = i + 1)
         begin
-            chain.sendToNext(tagged ST_VAL { desc: desc,
-                                             index: curDumpPartialIdx,
-                                             value: statPool[curDumpPartialIdx].value() });
-
-            statPool[curDumpPartialIdx].setC(0);
+            ovfl[i] = (msb(statPool[i]) == 1);
         end
 
-        if (curDumpPartialIdx == fromInteger(valueOf(n_STATS) - 1))
-            curDumpPartialIdx <= 0;
-        else
-            curDumpPartialIdx <= curDumpPartialIdx + 1;
+        // Trigger overflow state If any MSB is set.
+        overflowDetected <= (pack(ovfl) != 0);
+    endrule
+
+    (* descending_urgency = "receiveCmd, handleOverflow" *)
+    rule handleOverflow (overflowDetected && (state == STAT_RECORDING));
+        // Some counter's MSB is set.  Write out all counters.  (Writing
+        // out just one counter would require a MUX instead of the shifting
+        // scheme used above during dumping.)
+        curDumpIdx <= tagged Valid 0;
+        dumpingForOverflow <= True;
+        state <= STAT_DUMP;
     endrule
 
 
-    method Action incr(Bit#(TMax#(1, TLog#(n_STATS))) idx);
+
+    method Action incr(t_STAT_IDX idx) if (state == STAT_RECORDING);
         if (enabled)
         begin
-            statPool[idx].up();
+            statPool[idx] <= statPool[idx] + 1;
         end
     endmethod
 
 
-    method Action incrBy(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
+    method Action incrBy(t_STAT_IDX idx, STAT_VALUE amount) if (state == STAT_RECORDING);
         if (enabled)
         begin
-            statPool[idx].upBy(amount);
+            statPool[idx] <= statPool[idx] + amount;
+        end
+    endmethod
+
+    method Action incr_NB(t_STAT_IDX idx);
+        if (enabled && (state == STAT_RECORDING))
+        begin
+            statPool[idx] <= statPool[idx] + 1;
+        end
+    endmethod
+
+    method Action incrBy_NB(t_STAT_IDX idx, STAT_VALUE amount);
+        if (enabled && (state == STAT_RECORDING))
+        begin
+            statPool[idx] <= statPool[idx] + amount;
         end
     endmethod
 endmodule
@@ -441,19 +510,29 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     // interface:
     (STAT_VECTOR#(n_STATS))
     provisos
-        (Alias#(Bit#(TMax#(TLog#(n_STATS), 1)), t_STAT_IDX),
-         Add#(TLog#(n_STATS), k, STAT_VECTOR_INDEX_SZ));
+        (NumAlias#(TMax#(TLog#(n_STATS), 1), t_STAT_IDX_SZ),
+         Alias#(Bit#(t_STAT_IDX_SZ), t_STAT_IDX),
+         Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
     CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
 
-    LUTRAM#(t_STAT_IDX, STAT_VALUE) statPool <- mkLUTRAM(0);
+    // Use multi-read interface to guarantee exactly 1 read port (in
+    // case the compiler fails to merge all readers down to a single port).
+    LUTRAM_MULTI_READ#(1, t_STAT_IDX, STAT_VALUE) statPool <- mkMultiReadLUTRAM(0);
 
     Reg#(STAT_STATE) state <- mkReg(STAT_RECORDING);
     Reg#(Bool) enabled <- mkReg(False);
 
     Reg#(t_STAT_IDX) curDumpIdx <- mkRegU();
     
-    Wire#(Tuple2#(t_STAT_IDX, STAT_VALUE)) incrW <- mkWire();
+    //
+    // Overflow queue passes counter values that grow to large to software.
+    // Low bandwidth is ok since passing the value to software will be slow.
+    // Use a FIFO1 to reduce buffering.
+    //
+    // The unguarded FIFO is used to allow for precise scheduling control.
+    //
+    FIFOF#(Tuple2#(t_STAT_IDX, STAT_VALUE)) overflowQ <- mkUGFIFOF1();
 
 
     //
@@ -470,11 +549,15 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     // dump --
     //     Done one entry in the statistics vector.
     //
-    rule dump (state == STAT_DUMPING);
-    
+    rule dump (state == STAT_DUMP);
+        // Unlike the register vector case above (mkStatCounterVec_Enabled) the
+        // value is always sent out in dumps, even when 0.  Here it is because
+        // this dump code is only called when requested by software.  In the
+        // other case, dump is also triggered by counter overflow, which is
+        // more common and worth the logic to reduce I/O.
         chain.sendToNext(tagged ST_VAL { desc: desc,
-                                         index: zeroExtendNP(curDumpIdx),
-                                         value: statPool.sub(curDumpIdx) });
+                                         index: zeroExtend(curDumpIdx),
+                                         value: statPool.readPorts[0].sub(curDumpIdx) });
 
         statPool.upd(curDumpIdx, 0);
 
@@ -498,12 +581,42 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     //
     // updateStat
     //     Increment a stat. Placed in a rule to make the scheduler's life easier.
+    //
+    Wire#(Tuple2#(t_STAT_IDX, STAT_VALUE)) incrW <- mkWire();
     
     (* fire_when_enabled *)
     rule updateStat (state == STAT_RECORDING && enabled);
         match {.idx, .amount} = incrW;
-        let c = statPool.sub(idx);
-        statPool.upd(idx, c + amount);
+
+        STAT_VALUE val = statPool.readPorts[0].sub(idx) + amount;
+        if (overflowQ.notFull && (msb(val) == 1))
+        begin
+            // Counter overflow!  Send the current value to software.
+            overflowQ.enq(tuple2(idx, val));
+            statPool.upd(idx, 0);
+        end
+        else
+        begin
+            // Normal case.  Just increment the counter.
+            statPool.upd(idx, val);
+        end
+    endrule
+
+
+    //
+    // handleOverflow --
+    //     Pass counter overflow data to software.
+    //
+    (* descending_urgency = "handleOverflow, doInit" *)
+    (* descending_urgency = "handleOverflow, dump" *)
+    (* descending_urgency = "handleOverflow, finishDump" *)
+    rule handleOverflow (overflowQ.notEmpty);
+        match {.idx, .val} = overflowQ.first();
+        overflowQ.deq();
+        
+        chain.sendToNext(tagged ST_VAL { desc: desc,
+                                         index: zeroExtend(idx),
+                                         value: val });
     endrule
 
 
@@ -512,7 +625,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     //     Receive a command on the statistics ring.
     //
     (* conservative_implicit_conditions *)
-    rule receiveCmd (state == STAT_RECORDING);
+    rule receiveCmd ((state == STAT_RECORDING) && ! overflowQ.notEmpty);
         STAT_DATA st <- chain.recvFromPrev();
 
         case (st) matches 
@@ -538,7 +651,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
             tagged ST_DUMP:
             begin
                 curDumpIdx <= 0;
-                state <= STAT_DUMPING;
+                state <= STAT_DUMP;
             end
 
             default: chain.sendToNext(st);
@@ -546,41 +659,19 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     endrule
 
 
-    //
-    // dumpPartial --
-    //     Monitor counters and forward values to software before a counter
-    //     overflows.
-    //
-    Reg#(t_STAT_IDX) curDumpPartialIdx <- mkReg(0);
-
-    (* descending_urgency = "updateStat, receiveCmd, dumpPartial" *)
-    rule dumpPartial (state == STAT_RECORDING);
-    
-        let stat = statPool.sub(curDumpPartialIdx);
-
-        // Is the most significant bit set?
-        if (msb(stat) == 1)
-        begin
-            chain.sendToNext(tagged ST_VAL { desc: desc,
-                                             index: zeroExtendNP(curDumpPartialIdx),
-                                             value: stat });
-
-            statPool.upd(curDumpPartialIdx, 0);
-        end
-
-        if (curDumpPartialIdx == fromInteger(valueOf(n_STATS) - 1))
-            curDumpPartialIdx <= 0;
-        else
-            curDumpPartialIdx <= curDumpPartialIdx + 1;
-    endrule
-
-
-    method Action incr(t_STAT_IDX idx);
+    method Action incr(t_STAT_IDX idx) if ((state == STAT_RECORDING) && overflowQ.notFull);
         incrW <= tuple2(idx, 1);
     endmethod
 
+    method Action incrBy(t_STAT_IDX idx, STAT_VALUE amount) if ((state == STAT_RECORDING) && overflowQ.notFull);
+        incrW <= tuple2(idx, amount);
+    endmethod
 
-    method Action incrBy(t_STAT_IDX idx, STAT_VALUE amount);
+    method Action incr_NB(t_STAT_IDX idx);
+        incrW <= tuple2(idx, 1);
+    endmethod
+
+    method Action incrBy_NB(t_STAT_IDX idx, STAT_VALUE amount);
         incrW <= tuple2(idx, amount);
     endmethod
 
@@ -596,6 +687,14 @@ module [CONNECTED_MODULE] mkStatCounterVec_Disabled
     endmethod
 
     method Action incrBy(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
+        noAction;
+    endmethod
+
+    method Action incr_NB(Bit#(TMax#(1, TLog#(n_STATS))) idx);
+        noAction;
+    endmethod
+
+    method Action incrBy_NB(Bit#(TMax#(1, TLog#(n_STATS))) idx, STAT_VALUE amount);
         noAction;
     endmethod
 endmodule
