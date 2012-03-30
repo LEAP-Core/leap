@@ -19,6 +19,9 @@
 import FIFO::*;
 import FIFOF::*;
 import Vector::*;
+import GetPut::*;
+import Connectable::*;
+
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/soft_services.bsh"
@@ -113,6 +116,9 @@ endinterface
 typedef TLog#(`STATS_MAX_VECTOR_LEN) STAT_VECTOR_INDEX_SZ;
 typedef Bit#(STAT_VECTOR_INDEX_SZ) STAT_VECTOR_INDEX;
 typedef Bit#(`STATS_SIZE) STAT_VALUE;
+// Marshalled data size on the statistics ring.
+typedef Bit#(16) STATS_MAR_CHAIN_DATA;
+
 
 //
 // mkStatCounter --
@@ -317,7 +323,10 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
          Alias#(Bit#(t_STAT_IDX_SZ), t_STAT_IDX),
          Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
-    CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
+    GP_MARSHALLED_CHAIN#(STATS_MAR_CHAIN_DATA, STAT_DATA) chainGP <-
+        mkGPMarshalledConnectionChain("StatsRing");
+    let chainGet = tpl_1(chainGP).get;
+    let chainPut = tpl_2(chainGP).put;
 
     Vector#(n_STATS, Reg#(Bit#(`STATS_SIZE))) statPool <- replicateM(mkReg(0));
 
@@ -334,7 +343,7 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
     //     Complete initialization.
     //
     rule doInit (state == STAT_INIT);
-        chain.sendToNext(tagged ST_INIT);
+        chainPut(tagged ST_INIT);
         state <= STAT_RECORDING;
     endrule
 
@@ -348,9 +357,9 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
     rule dump (curDumpIdx matches tagged Valid .dump_idx &&& state == STAT_DUMP);
         if (statPool[0] != 0)
         begin
-            chain.sendToNext(tagged ST_VAL { desc: desc,
-                                             index: zeroExtend(dump_idx),
-                                             value: statPool[0] });
+            chainPut(tagged ST_VAL { desc: desc,
+                                     index: zeroExtend(dump_idx),
+                                     value: statPool[0] });
         end
 
         // Shift all counters down, putting 0 at the top.  This will eventually
@@ -383,7 +392,7 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
         // command to the next node.
         if (! dumpingForOverflow)
         begin
-            chain.sendToNext(tagged ST_DUMP);
+            chainPut(tagged ST_DUMP);
         end
 
         dumpingForOverflow <= False;
@@ -399,25 +408,25 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
     //
     (* conservative_implicit_conditions *)
     rule receiveCmd (state == STAT_RECORDING);
-        STAT_DATA st <- chain.recvFromPrev();
+        STAT_DATA st <- chainGet();
 
         case (st) matches 
             tagged ST_ENABLE:
             begin
                 enabled <= True;
-                chain.sendToNext(st);
+                chainPut(st);
             end
 
             tagged ST_DISABLE:
             begin
                 enabled <= False;
-                chain.sendToNext(st);
+                chainPut(st);
             end
 
             tagged ST_INIT:
             begin
                 // Tell software about this node
-                chain.sendToNext(tagged ST_INIT_RSP desc);
+                chainPut(tagged ST_INIT_RSP desc);
                 state <= STAT_INIT;
             end
 
@@ -427,7 +436,7 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
                 state <= STAT_DUMP;
             end
 
-            default: chain.sendToNext(st);
+            default: chainPut(st);
         endcase
     endrule
 
@@ -514,7 +523,10 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
          Alias#(Bit#(t_STAT_IDX_SZ), t_STAT_IDX),
          Add#(t_STAT_IDX_SZ, k, STAT_VECTOR_INDEX_SZ));
 
-    CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
+    GP_MARSHALLED_CHAIN#(STATS_MAR_CHAIN_DATA, STAT_DATA) chainGP <-
+        mkGPMarshalledConnectionChain("StatsRing");
+    let chainGet = tpl_1(chainGP).get;
+    let chainPut = tpl_2(chainGP).put;
 
     // Use multi-read interface to guarantee exactly 1 read port (in
     // case the compiler fails to merge all readers down to a single port).
@@ -540,7 +552,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     //     Complete initialization.
     //
     rule doInit (state == STAT_INIT);
-        chain.sendToNext(tagged ST_INIT);
+        chainPut(tagged ST_INIT);
         state <= STAT_RECORDING;
     endrule
 
@@ -555,9 +567,9 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
         // this dump code is only called when requested by software.  In the
         // other case, dump is also triggered by counter overflow, which is
         // more common and worth the logic to reduce I/O.
-        chain.sendToNext(tagged ST_VAL { desc: desc,
-                                         index: zeroExtend(curDumpIdx),
-                                         value: statPool.readPorts[0].sub(curDumpIdx) });
+        chainPut(tagged ST_VAL { desc: desc,
+                                 index: zeroExtend(curDumpIdx),
+                                 value: statPool.readPorts[0].sub(curDumpIdx) });
 
         statPool.upd(curDumpIdx, 0);
 
@@ -573,7 +585,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     //     Done dumping all entries in the statistics vector.
     //
     rule finishDump (state == STAT_FINISHING_DUMP);
-        chain.sendToNext(tagged ST_DUMP);
+        chainPut(tagged ST_DUMP);
         state <= STAT_RECORDING;
     endrule
 
@@ -614,9 +626,9 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
         match {.idx, .val} = overflowQ.first();
         overflowQ.deq();
         
-        chain.sendToNext(tagged ST_VAL { desc: desc,
-                                         index: zeroExtend(idx),
-                                         value: val });
+        chainPut(tagged ST_VAL { desc: desc,
+                                 index: zeroExtend(idx),
+                                 value: val });
     endrule
 
 
@@ -626,25 +638,25 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     //
     (* conservative_implicit_conditions *)
     rule receiveCmd ((state == STAT_RECORDING) && ! overflowQ.notEmpty);
-        STAT_DATA st <- chain.recvFromPrev();
+        STAT_DATA st <- chainGet();
 
         case (st) matches 
             tagged ST_ENABLE:
             begin
                 enabled <= True;
-                chain.sendToNext(st);
+                chainPut(st);
             end
 
             tagged ST_DISABLE:
             begin
                 enabled <= False;
-                chain.sendToNext(st);
+                chainPut(st);
             end
 
             tagged ST_INIT:
             begin
                 // Tell software about this node
-                chain.sendToNext(tagged ST_INIT_RSP desc);
+                chainPut(tagged ST_INIT_RSP desc);
                 state <= STAT_INIT;
             end
 
@@ -654,7 +666,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
                 state <= STAT_DUMP;
             end
 
-            default: chain.sendToNext(st);
+            default: chainPut(st);
         endcase
     endrule
 

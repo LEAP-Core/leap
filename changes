@@ -12258,3 +12258,28 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
   when counters are overflowing, which can be controlled by making the
   counter sizes sufficiently large.  The current default counter is 28
   bits.
+
+----------
+mcadler     Date: Fri Mar 30 17:49:08 EDT 2012  CSN: CSN-leap-269
+                  Fri Mar 30 21:49:08 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          268 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          268 
+ stats-service.bsv         Locally Modified          268 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connections.bsv           Locally Modified          268 
+
+- Add a marshalled chain to connections that is a composition of a chain,
+  a marshaller and a demarshaller using GetPut.
+
+- Use a 16-bit ring for statistics since performance will be limited by
+  off-chip bandwidth.
+
+- Remove pipeline bubbles for back-to-back requests in the marshaller.
+
+- Clean up GetPut declarations for soft connections.

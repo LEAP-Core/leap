@@ -16,6 +16,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import GetPut::*;
+import Connectable::*;
+
 `include "awb/rrr/client_stub_STATS.bsh"
 `include "awb/rrr/server_stub_STATS.bsh"
 
@@ -27,7 +30,10 @@ module [CONNECTED_MODULE] mkStatsService
     // ****** State Elements ******
 
     // Communication link to the Stats themselves
-    CONNECTION_CHAIN#(STAT_DATA) chain <- mkConnectionChain("StatsRing");
+    GP_MARSHALLED_CHAIN#(STATS_MAR_CHAIN_DATA, STAT_DATA) chainGP <-
+        mkGPMarshalledConnectionChain("StatsRing");
+    let chainGet = tpl_1(chainGP).get;
+    let chainPut = tpl_2(chainGP).put;
 
     // Communication to/from software
     ClientStub_STATS clientStub <- mkClientStub_STATS();
@@ -40,22 +46,22 @@ module [CONNECTED_MODULE] mkStatsService
     //
     rule beginInit (True);
         let dummy <- serverStub.acceptRequest_DoInit();
-        chain.sendToNext(ST_INIT);
+        chainPut(ST_INIT);
     endrule
 
     rule beginDump (True);
         let dummy <- serverStub.acceptRequest_DumpStats();
-        chain.sendToNext(ST_DUMP);
+        chainPut(ST_DUMP);
     endrule
 
     rule beginEnable (True);
         let dummy <- serverStub.acceptRequest_Enable();
-        chain.sendToNext(ST_ENABLE);
+        chainPut(ST_ENABLE);
     endrule
 
     rule beginDisable (True);
         let dummy <- serverStub.acceptRequest_Disable();
-        chain.sendToNext(ST_DISABLE);
+        chainPut(ST_DISABLE);
     endrule
 
 
@@ -65,7 +71,7 @@ module [CONNECTED_MODULE] mkStatsService
     //     Process responses returning on the statistics ring.
     //
     rule processResp (True);
-        let st <- chain.recvFromPrev();
+        let st <- chainGet();
 
         case (st) matches
             tagged ST_VAL .stinfo:

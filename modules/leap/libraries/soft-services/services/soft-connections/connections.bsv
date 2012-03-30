@@ -31,8 +31,8 @@ import GetPut::*;
 
 interface CONNECTION_SEND#(type t_MSG);
   
-  method Action send(t_MSG data);
-  method Bool notFull();
+    method Action send(t_MSG data);
+    method Bool notFull();
   
 endinterface
 
@@ -41,9 +41,9 @@ endinterface
 
 interface CONNECTION_RECV#(type t_MSG);
   
-  method Action deq();
-  method Bool   notEmpty();
-  method t_MSG  receive();
+    method Action deq();
+    method Bool   notEmpty();
+    method t_MSG  receive();
 
 endinterface
 
@@ -53,12 +53,12 @@ endinterface
 
 interface CONNECTION_CLIENT#(type t_REQ, type t_RSP);
 
-  method Action makeReq(t_REQ data);
-  method Bool   reqNotFull();
+    method Action makeReq(t_REQ data);
+    method Bool   reqNotFull();
 
-  method Bool   rspNotEmpty();
-  method t_RSP  getRsp();
-  method Action deq();
+    method Bool   rspNotEmpty();
+    method t_RSP  getRsp();
+    method Action deq();
   
 endinterface
 
@@ -69,12 +69,12 @@ endinterface
 
 interface CONNECTION_SERVER#(type t_REQ, type t_RSP);
 
-  method t_REQ  getReq();
-  method Bool   reqNotEmpty();
-  method Action deq();
+    method t_REQ  getReq();
+    method Bool   reqNotEmpty();
+    method Action deq();
 
-  method Action makeRsp(t_RSP data);
-  method Bool   rspNotFull();
+    method Action makeRsp(t_RSP data);
+    method Bool   rspNotFull();
   
 endinterface
 
@@ -128,13 +128,13 @@ endinterface
 // Chains
 interface CONNECTION_CHAIN#(type msg_T);
 
-  method ActionValue#(msg_T) recvFromPrev();
-  method msg_T               peekFromPrev();
-  method Bool                recvNotEmpty();
+    method ActionValue#(msg_T) recvFromPrev();
+    method msg_T               peekFromPrev();
+    method Bool                recvNotEmpty();
 
-  method Action              sendToNext(msg_T data);
-  method Bool                sendNotFull();
-  
+    method Action              sendToNext(msg_T data);
+    method Bool                sendNotFull();
+
 endinterface
 
 
@@ -150,8 +150,8 @@ module [t_CONTEXT] mkConnectionSend#(String name) (CONNECTION_SEND#(t_MSG))
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchSend(name, Invalid, False, True);
-   return m;
+    let m <- mkConnectionDispatchSend(name, Invalid, False, True);
+    return m;
 
 endmodule
 
@@ -162,8 +162,8 @@ module [t_CONTEXT] mkConnectionSendOptional#(String name) (CONNECTION_SEND#(t_MS
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchSend(name, Invalid, True, True);
-   return m;
+    let m <- mkConnectionDispatchSend(name, Invalid, True, True);
+    return m;
 
 endmodule
 
@@ -174,8 +174,8 @@ module [t_CONTEXT] mkConnectionSendShared#(String name, STATION station) (CONNEC
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchSend(name, tagged Valid station, False, True);
-   return m;
+    let m <- mkConnectionDispatchSend(name, tagged Valid station, False, True);
+    return m;
 
 endmodule
 
@@ -190,8 +190,8 @@ module [t_CONTEXT] mkConnectionSendSharedOptional#(String name, STATION station)
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchSend(name, tagged Valid station, True, True);
-   return m;
+    let m <- mkConnectionDispatchSend(name, tagged Valid station, True, True);
+    return m;
 
 endmodule
 
@@ -202,8 +202,8 @@ module [t_CONTEXT] mkConnectionSendMulti#(String name) (CONNECTION_SEND_MULTI#(t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchSendMulti(name, Invalid, True);
-   return m;
+    let m <- mkConnectionDispatchSendMulti(name, Invalid, True);
+    return m;
 
 endmodule
 
@@ -217,8 +217,8 @@ module [t_CONTEXT] mkConnectionSendMultiShared#(String name, STATION station) (C
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchSendMulti(name, tagged Valid station, True);
-   return m;
+    let m <- mkConnectionDispatchSendMulti(name, tagged Valid station, True);
+    return m;
 
 endmodule
 
@@ -229,8 +229,8 @@ module [t_CONTEXT] mkConnectionRecv#(String name) (CONNECTION_RECV#(t_MSG))
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchRecv(name, Invalid, False, True);
-   return m;
+    let m <- mkConnectionDispatchRecv(name, Invalid, False, True);
+    return m;
 
 endmodule
 
@@ -241,8 +241,8 @@ module [t_CONTEXT] mkConnectionRecvOptional#(String name) (CONNECTION_RECV#(t_MS
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchRecv(name, Invalid, True, True);
-   return m;
+    let m <- mkConnectionDispatchRecv(name, Invalid, True, True);
+    return m;
 
 endmodule
 
@@ -253,8 +253,8 @@ module [t_CONTEXT] mkConnectionRecvShared#(String name, STATION station) (CONNEC
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchRecv(name, tagged Valid station, False, True);
-   return m;
+    let m <- mkConnectionDispatchRecv(name, tagged Valid station, False, True);
+    return m;
 
 endmodule
 
@@ -267,8 +267,8 @@ module [t_CONTEXT] mkConnectionRecvSharedOptional#(String name, STATION station)
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchRecv(name, tagged Valid station, True, True);
-   return m;
+    let m <- mkConnectionDispatchRecv(name, tagged Valid station, True, True);
+    return m;
 
 endmodule
 
@@ -279,8 +279,8 @@ module [t_CONTEXT] mkConnectionRecvMulti#(String name) (CONNECTION_RECV_MULTI#(t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchRecvMulti(name, Invalid, True);
-   return m;
+    let m <- mkConnectionDispatchRecvMulti(name, Invalid, True);
+    return m;
 
 endmodule
 
@@ -291,8 +291,8 @@ module [t_CONTEXT] mkConnectionRecvMultiShared#(String name, STATION station) (C
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchRecvMulti(name, tagged Valid station, True);
-   return m;
+    let m <- mkConnectionDispatchRecvMulti(name, tagged Valid station, True);
+    return m;
 
 endmodule
 
@@ -305,8 +305,8 @@ module [t_CONTEXT] mkConnectionClient#(String name) (CONNECTION_CLIENT#(t_REQ, t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchClient(name, Invalid, False, True);
-   return m;
+    let m <- mkConnectionDispatchClient(name, Invalid, False, True);
+    return m;
 
 endmodule
 
@@ -320,8 +320,8 @@ module [t_CONTEXT] mkConnectionClientOptional#(String name) (CONNECTION_CLIENT#(
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchClient(name, Invalid, True, True);
-   return m;
+    let m <- mkConnectionDispatchClient(name, Invalid, True, True);
+    return m;
 
 endmodule
 
@@ -333,8 +333,8 @@ module [t_CONTEXT] mkConnectionClientShared#(String name, STATION station) (CONN
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchClient(name, tagged Valid station, False, True);
-   return m;
+    let m <- mkConnectionDispatchClient(name, tagged Valid station, False, True);
+    return m;
 
 endmodule
 
@@ -350,8 +350,8 @@ module [t_CONTEXT] mkConnectionClientSharedOptional#(String name, STATION statio
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchClient(name, tagged Valid station, True, True);
-   return m;
+    let m <- mkConnectionDispatchClient(name, tagged Valid station, True, True);
+    return m;
 
 endmodule
 
@@ -366,8 +366,8 @@ module [t_CONTEXT] mkConnectionClientMulti#(String name) (CONNECTION_CLIENT_MULT
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchClientMulti(name, Invalid, True);
-   return m;
+    let m <- mkConnectionDispatchClientMulti(name, Invalid, True);
+    return m;
 
 endmodule
 
@@ -383,8 +383,8 @@ module [t_CONTEXT] mkConnectionClientMultiShared#(String name, STATION station) 
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchClientMulti(name, tagged Valid station, True);
-   return m;
+    let m <- mkConnectionDispatchClientMulti(name, tagged Valid station, True);
+    return m;
 
 endmodule
 
@@ -397,8 +397,8 @@ module [t_CONTEXT] mkConnectionServer#(String name) (CONNECTION_SERVER#(t_REQ, t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchServer(name, Invalid, False, True);
-   return m;
+    let m <- mkConnectionDispatchServer(name, Invalid, False, True);
+    return m;
 
 endmodule
 
@@ -412,8 +412,8 @@ module [t_CONTEXT] mkConnectionServerOptional#(String name) (CONNECTION_SERVER#(
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchServer(name, Invalid, True, True);
-   return m;
+    let m <- mkConnectionDispatchServer(name, Invalid, True, True);
+    return m;
 
 endmodule
 
@@ -425,8 +425,8 @@ module [t_CONTEXT] mkConnectionServerShared#(String name, STATION station) (CONN
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchServer(name, tagged Valid station, False, True);
-   return m;
+    let m <- mkConnectionDispatchServer(name, tagged Valid station, False, True);
+    return m;
 
 endmodule
 
@@ -442,8 +442,8 @@ module [t_CONTEXT] mkConnectionServerSharedOptional#(String name, STATION statio
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchServer(name, tagged Valid station, True, True);
-   return m;
+    let m <- mkConnectionDispatchServer(name, tagged Valid station, True, True);
+    return m;
 
 endmodule
 
@@ -458,8 +458,8 @@ module [t_CONTEXT] mkConnectionServerMulti#(String name) (CONNECTION_SERVER_MULT
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchServerMulti(name, Invalid, True);
-   return m;
+    let m <- mkConnectionDispatchServerMulti(name, Invalid, True);
+    return m;
 
 endmodule
 
@@ -475,8 +475,8 @@ module [t_CONTEXT] mkConnectionServerMultiShared#(String name, STATION station) 
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let m <- mkConnectionDispatchServerMulti(name, tagged Valid station, True);
-   return m;
+    let m <- mkConnectionDispatchServerMulti(name, tagged Valid station, True);
+    return m;
 
 endmodule
 
@@ -519,143 +519,307 @@ module [t_CONTEXT] mkStation#(String station_name)
 endmodule
 
 
+// =============================================================================
+//
+//   Chains
+//
+// =============================================================================
 
-//Helper functions
+module [CONNECTED_MODULE] mkConnectionChain#(String chainName)
+    //interface:
+        (CONNECTION_CHAIN#(t_MSG))
+    provisos
+	    (Bits#(t_MSG, t_MSG_SZ));
+
+    let c <- mkConnectionDispatchChain(chainName, tagged Invalid, True);
+    return c;
+endmodule
+
+
+//
+// mkGPMarshalledConnectionChain --
+//     A connection chain with external data type t_MSG but internally
+//     messages are broken down into t_MARSHALLED chunks.  They are
+//     reconstructed as they leave the chain.
+//
+typedef GetPut#(t_MSG) GP_MARSHALLED_CHAIN#(type t_MARSHALLED, type t_MSG);
+
+module [CONNECTED_MODULE] mkGPMarshalledConnectionChain#(String chainName)
+    //interface:
+        (GP_MARSHALLED_CHAIN#(t_MARSHALLED, t_MSG))
+    provisos
+	    (Bits#(t_MSG, t_MSG_SZ),
+             Bits#(t_MARSHALLED, t_MARSHALLED_SZ));
+
+    CONNECTION_CHAIN#(t_MARSHALLED) chain <- mkConnectionChain(chainName);
+
+    // Make an inbound marshaller and connect the output of the marshaller
+    // to the chain.
+    MARSHALLER#(t_MARSHALLED, t_MSG) chainMar <- mkSimpleMarshaller();
+    let marToChain <- mkConnection(toGet(chainMar), toPut(chain));
+
+    // Make an outbound demarshaller and connect the output of the chain to
+    // the input of the demarshaller.
+    DEMARSHALLER#(t_MARSHALLED, t_MSG) chainDem <- mkSimpleDemarshaller();
+    let chainToDem <- mkConnection(toGet(chain), toPut(chainDem));
+
+    return tuple2(toGet(chainDem), toPut(chainMar));
+endmodule
+
+
+// =============================================================================
+//
+//   Helper functions
+//
+// =============================================================================
 
 instance Connectable#(Get#(data_t), CONNECTION_SEND#(data_t));
-  module mkConnection#(Get#(data_t) server,
-                       CONNECTION_SEND#(data_t) client) (Empty);
+    module mkConnection#(Get#(data_t) server,
+                         CONNECTION_SEND#(data_t) client) (Empty);
   
-    rule connect;
-      let data <- server.get();
-      client.send(data);
-    endrule
+        rule connect;
+            let data <- server.get();
+            client.send(data);
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 instance ToPut#(CONNECTION_SEND#(data_t), data_t);
-  function Put#(data_t) toPut(CONNECTION_SEND#(data_t) send);
-    let put = interface Put;
-                 method Action put(data_t value);
-                   send.send(value);
-                 endmethod
-              endinterface; 
-    return put; 
-  endfunction
+    function Put#(data_t) toPut(CONNECTION_SEND#(data_t) send);
+        let put = interface Put;
+                      method Action put(data_t value);
+                          send.send(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
 endinstance
 
 instance ToGet#(CONNECTION_RECV#(data_t), data_t);
-  function Get#(data_t) toGet(CONNECTION_RECV#(data_t) recv);
-    let get = interface Get;
-                 method ActionValue#(data_t) get();
-                   recv.deq;
-                   return recv.receive; 
-                 endmethod
-              endinterface;  
-    return get;
-  endfunction
+    function Get#(data_t) toGet(CONNECTION_RECV#(data_t) recv);
+        let get = interface Get;
+                      method ActionValue#(data_t) get();
+                          recv.deq;
+                          return recv.receive; 
+                      endmethod
+                  endinterface;  
+        return get;
+    endfunction
 endinstance
 
 instance Connectable#(CONNECTION_SEND#(data_t), Get#(data_t));
-  module mkConnection#(CONNECTION_SEND#(data_t) client, 
-                       Get#(data_t) server) (Empty);
+    module mkConnection#(CONNECTION_SEND#(data_t) client, 
+                         Get#(data_t) server) (Empty);
 
-    rule connect;
-      let data <- server.get();
-      client.send(data);
-    endrule
+        rule connect;
+            let data <- server.get();
+            client.send(data);
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 
 instance Connectable#(function ActionValue#(data_t) f(),
                       CONNECTION_SEND#(data_t));
-  module mkConnection#(function ActionValue#(data_t) f(),
-                       CONNECTION_SEND#(data_t) client) (Empty);
+    module mkConnection#(function ActionValue#(data_t) f(),
+                         CONNECTION_SEND#(data_t) client) (Empty);
 
-    rule connect;
-      let data <- f();
-      client.send(data);
-    endrule
+        rule connect;
+            let data <- f();
+            client.send(data);
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 instance Connectable#(CONNECTION_SEND#(data_t),
                       function ActionValue#(data_t) f());
-  module mkConnection#(CONNECTION_SEND#(data_t) client,
-                       function ActionValue#(data_t) f()) (Empty);
+    module mkConnection#(CONNECTION_SEND#(data_t) client,
+                         function ActionValue#(data_t) f()) (Empty);
 
-    rule connect;
-      let data <- f();
-      client.send(data);
-    endrule
+        rule connect;
+            let data <- f();
+            client.send(data);
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 
 instance Connectable#(CONNECTION_RECV#(data_t), Put#(data_t));
-  module mkConnection#(CONNECTION_RECV#(data_t) server,
-                       Put#(data_t) client) (Empty);
+    module mkConnection#(CONNECTION_RECV#(data_t) server,
+                         Put#(data_t) client) (Empty);
   
-    rule connect;
-      client.put(server.receive());
-      server.deq();
-    endrule
+        rule connect;
+            client.put(server.receive());
+            server.deq();
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 instance Connectable#(Put#(data_t), CONNECTION_RECV#(data_t));
-  module mkConnection#(Put#(data_t) client, 
-                       CONNECTION_RECV#(data_t) server) (Empty);
+    module mkConnection#(Put#(data_t) client, 
+                         CONNECTION_RECV#(data_t) server) (Empty);
 
-    rule connect;
-      client.put(server.receive());
-      server.deq();
-    endrule
+        rule connect;
+            client.put(server.receive());
+            server.deq();
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 
 instance Connectable#(CONNECTION_RECV#(data_t), function Action f(data_t t));
-  module mkConnection#(CONNECTION_RECV#(data_t) server,
-                       function Action f(data_t t)) (Empty);
+    module mkConnection#(CONNECTION_RECV#(data_t) server,
+                         function Action f(data_t t)) (Empty);
 
-    rule connect;
-      f(server.receive());
-      server.deq();
-    endrule
+        rule connect;
+            f(server.receive());
+            server.deq();
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 instance Connectable#(function Action f(data_t t), 
                       CONNECTION_RECV#(data_t));
-  module mkConnection#(function Action f(data_t t),
-                       CONNECTION_RECV#(data_t) server) (Empty);
+    module mkConnection#(function Action f(data_t t),
+                         CONNECTION_RECV#(data_t) server) (Empty);
 
-    rule connect;
-      f(server.receive());
-      server.deq();
-    endrule
+        rule connect;
+            f(server.receive());
+            server.deq();
+        endrule
 
-  endmodule
+    endmodule
 endinstance
 
 
-// New style chain implementation
+instance ToPut#(CONNECTION_CHAIN#(data_t), data_t);
+    function Put#(data_t) toPut(CONNECTION_CHAIN#(data_t) send);
+        let put = interface Put;
+                      method Action put(data_t value);
+                          send.sendToNext(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
+endinstance
 
-module [ConnectedModule] mkConnectionChain#(String chain_name)
-    //interface:
-		(CONNECTION_CHAIN#(msg_T))
-    provisos
-	    (Bits#(msg_T, msg_SZ));
+instance ToGet#(CONNECTION_CHAIN#(data_t), data_t);
+    function Get#(data_t) toGet(CONNECTION_CHAIN#(data_t) recv);
+        let get = interface Get;
+                      method ActionValue#(data_t) get();
+                          let data <- recv.recvFromPrev();
+                          return data;
+                      endmethod
+                  endinterface;  
+        return get;
+    endfunction
+endinstance
 
-  let c <- mkConnectionDispatchChain(chain_name, tagged Invalid, True);
-  return c;
-endmodule
+instance Connectable#(Get#(data_t), CONNECTION_CHAIN#(data_t));
+    module mkConnection#(Get#(data_t) server,
+                         CONNECTION_CHAIN#(data_t) client) (Empty);
+  
+        rule connect;
+            let data <- server.get();
+            toPut(client).put(data);
+        endrule
+
+    endmodule
+endinstance
+
+instance Connectable#(CONNECTION_CHAIN#(data_t), Get#(data_t));
+    module mkConnection#(CONNECTION_CHAIN#(data_t) client, 
+                         Get#(data_t) server) (Empty);
+
+        rule connect;
+            let data <- server.get();
+            toPut(client).put(data);
+        endrule
+
+    endmodule
+endinstance
+
+
+instance Connectable#(function ActionValue#(data_t) f(),
+                      CONNECTION_CHAIN#(data_t));
+    module mkConnection#(function ActionValue#(data_t) f(),
+                         CONNECTION_CHAIN#(data_t) client) (Empty);
+
+        rule connect;
+            let data <- f();
+            toPut(client).put(data);
+        endrule
+
+    endmodule
+endinstance
+
+instance Connectable#(CONNECTION_CHAIN#(data_t),
+                      function ActionValue#(data_t) f());
+    module mkConnection#(CONNECTION_CHAIN#(data_t) client,
+                         function ActionValue#(data_t) f()) (Empty);
+
+        rule connect;
+            let data <- f();
+            toPut(client).put(data);
+        endrule
+
+    endmodule
+endinstance
+
+
+instance Connectable#(CONNECTION_CHAIN#(data_t), Put#(data_t));
+    module mkConnection#(CONNECTION_CHAIN#(data_t) server,
+                         Put#(data_t) client) (Empty);
+  
+        rule connect;
+            let data <- toGet(server).get();
+            client.put(data);
+        endrule
+
+    endmodule
+endinstance
+
+instance Connectable#(Put#(data_t), CONNECTION_CHAIN#(data_t));
+    module mkConnection#(Put#(data_t) client, 
+                         CONNECTION_CHAIN#(data_t) server) (Empty);
+
+        rule connect;
+            let data <- toGet(server).get();
+            client.put(data);
+        endrule
+
+    endmodule
+endinstance
+
+
+instance Connectable#(CONNECTION_CHAIN#(data_t), function Action f(data_t t));
+    module mkConnection#(CONNECTION_CHAIN#(data_t) server,
+                         function Action f(data_t t)) (Empty);
+
+        rule connect;
+            let data <- toGet(server).get();
+            f(data);
+        endrule
+
+    endmodule
+endinstance
+
+instance Connectable#(function Action f(data_t t), 
+                      CONNECTION_CHAIN#(data_t));
+    module mkConnection#(function Action f(data_t t),
+                         CONNECTION_CHAIN#(data_t) server) (Empty);
+
+        rule connect;
+            let data <- toGet(server).get();
+            f(data);
+        endrule
+
+    endmodule
+endinstance

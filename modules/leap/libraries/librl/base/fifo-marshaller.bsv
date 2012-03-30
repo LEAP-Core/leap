@@ -177,44 +177,78 @@ module mkSimpleMarshallerN#(Bool lowFirst)
               // Chunk counter
               Alias#(Bit#(TAdd#(1, TLog#(n))), t_NUM_CHUNKS));
 
-    Reg#(Vector#(n, t_FIFO_DATA)) buffer <- mkRegU();
-    Reg#(Bit#(TAdd#(1, TLog#(n)))) count <- mkReg(0);
+    Reg#(Vector#(TSub#(n, 1), t_FIFO_DATA)) buffer <- mkRegU();
+    Reg#(t_NUM_CHUNKS) count <- mkReg(0);
     Reg#(Bool) empty <- mkReg(True);
 
-    method Action enq(t_DATA inData, t_NUM_CHUNKS numChunks) if (empty);
-        empty <= False;
-        count <= numChunks;
+    RWire#(Tuple2#(Vector#(n, t_FIFO_DATA), t_NUM_CHUNKS)) incomingData <- mkRWire();
+    FIFOF#(Tuple2#(t_FIFO_DATA, Bool)) outQ <- mkUGFIFOF();
 
-        // Convert the message to a vector of the marshalled size.
-        buffer <= toChunks(inData);
+
+    //
+    // nextChunk --
+    //     Given some state emit the next chunk and update local state.
+    //     The input state is either a new message or the internal
+    //     state of a partially transmitted message.
+    //
+    function Action nextChunk(Vector#(n, t_FIFO_DATA) inData,
+                              t_NUM_CHUNKS nChunks);
+    action
+        Bool will_be_empty = (nChunks == 1);
+
+        // Send the chunk and whether it is the last in the full message.
+        outQ.enq(tuple2(inData[0], will_be_empty));
+
+        buffer <= take(shiftInAtN(inData, ?));
+        empty <= will_be_empty;
+        count <= nChunks - 1;
+    endaction
+    endfunction
+
+
+    //
+    // Consume incoming full-size messages.  Uses a rule instead of embedding
+    // in the enq() method to avoid Bluespec scheduler warnings.
+    //
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule incoming (empty &&& incomingData.wget() matches tagged Valid .d);
+        match {.in_data, .num_chunks} = d;
+        nextChunk(in_data, num_chunks);
+    endrule
+
+
+    //
+    // Send out marshalled chunks.
+    //
+    rule marshaller (! empty && outQ.notFull);
+        nextChunk(append(buffer, ?), count);
+    endrule
+
+
+    method Action enq(t_DATA inData, t_NUM_CHUNKS numChunks) if (empty && outQ.notFull);
+        Vector#(n, t_FIFO_DATA) d = toChunks(inData);
+
+        if (! lowFirst)
+        begin
+            d = reverse(d);
+        end
+    
+        incomingData.wset(tuple2(d, numChunks));
     endmethod
 
-    method Action deq() if (! empty);
-        t_FIFO_DATA dummy = ?;
-
-        if (lowFirst)
-            buffer <= shiftInAtN(buffer, dummy);
-        else
-            buffer <= shiftInAt0(buffer, dummy);
-
-        empty <= (count == 1);
-        count <= count - 1;
+    method Action deq() if (outQ.notEmpty);
+        outQ.deq();
     endmethod
 
-    method t_FIFO_DATA first() if (! empty);
-        return buffer[lowFirst ? 0 : valueOf(n) - 1];
+    method t_FIFO_DATA first() if (outQ.notEmpty);
+        return tpl_1(outQ.first());
     endmethod
 
-    method Bool notFull();
-        return empty;
-    endmethod
+    method Bool notFull() = (empty && outQ.notFull);
+    method Bool notEmpty() = outQ.notEmpty;
 
-    method Bool notEmpty();
-        return ! empty;
-    endmethod
-
-    method Bool isLast();
-        return count == 1;
+    method Bool isLast() if (outQ.notEmpty);
+        return tpl_2(outQ.first());
     endmethod
 endmodule
 
@@ -227,40 +261,78 @@ module mkSimpleDemarshaller
               // Number of chunks to send a full message
               NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_DATA_SZ)));
 
-    Reg#(Vector#(n, t_FIFO_DATA)) buffer <- mkRegU();
-    Reg#(Bit#(TLog#(n))) count <- mkReg(0);
-    Reg#(Bool) full <- mkReg(False);
+    if (valueOf(n) == 1)
+    begin
+        //
+        // Trivial case where the marshalling container is at least as large
+        // as the data.
+        //
 
-    method Action enq(t_FIFO_DATA dat) if (! full);
-        buffer <= shiftInAtN(buffer, dat);
-        if (valueOf(n) != 1)
-        begin
-            // Normal case: t_DATA_SZ is larger than t_FIFO_DATA_SZ
-            full <= (count == fromInteger(valueof(TSub#(n, 1))));
-            count <= count + 1;
-        end
-        else
-        begin
-            // Simple case: container and data sizes are identical
-            full <= True;
-        end
-    endmethod
+        FIFOF#(t_DATA) msgQ <- mkFIFOF();
 
-    method Action deq() if (full);
-        full <= False;
-        count <= 0;
-    endmethod
+        method Action enq(t_FIFO_DATA dat) = msgQ.enq(unpack(truncateNP(pack(dat))));
+        method Action deq() = msgQ.deq;
+        method t_DATA first() = msgQ.first;
+        method Bool notFull() = msgQ.notFull;
+        method Bool notEmpty() = msgQ.notEmpty;
+    end
+    else
+    begin
+        //
+        // More interesting case: message is marshalled in multiple chunks.
+        //
 
-    method t_DATA first() if (full);
-        // Return an entire demarshalled message.
-        return unpack(truncateNP(pack(buffer)));
-    endmethod
+        // In order to avoid a pipeline bubble with a stream of multiple
+        // messages the element in slot 0 is stored in a FIFO.  The rest
+        // is stored in a register (buffer).
+        FIFOF#(t_FIFO_DATA) entry0Q <- mkUGFIFOF();
+        Reg#(Vector#(TSub#(n, 1), t_FIFO_DATA)) buffer <- mkRegU();
 
-    method Bool notFull();
-        return ! full;
-    endmethod
+        Reg#(Bit#(TLog#(n))) count <- mkReg(0);
 
-    method Bool notEmpty();
-        return full;
-    endmethod
+        //
+        // Full logic implemented as a rule to keep the scheduler happy
+        //
+        Reg#(Bool) full <- mkReg(False);
+        PulseWire enqDone <- mkPulseWire();
+        PulseWire deqDone <- mkPulseWire();
+
+        (* fire_when_enabled, no_implicit_conditions *)
+        rule updateFull (True);
+            full <= (full && deqDone) || enqDone;
+        endrule
+
+
+        method Action enq(t_FIFO_DATA dat) if (! full || entry0Q.notFull);
+            if (count == 0)
+            begin
+                entry0Q.enq(dat);
+            end
+            else
+            begin
+                buffer <= shiftInAtN(buffer, dat);
+            end
+
+            let is_last = (count == fromInteger(valueof(TSub#(n, 1))));
+            if (is_last)
+            begin
+                enqDone.send();
+            end
+
+            count <= (is_last ? 0 : count + 1);
+        endmethod
+
+        method Action deq() if (full);
+            entry0Q.deq();
+            deqDone.send();
+        endmethod
+
+        method t_DATA first() if (full);
+            // Return an entire demarshalled message.
+            return unpack(truncateNP({ pack(buffer), pack(entry0Q.first) }));
+        endmethod
+
+        method Bool notFull() = (! full || entry0Q.notFull);
+        method Bool notEmpty() = full;
+    end
 endmodule
