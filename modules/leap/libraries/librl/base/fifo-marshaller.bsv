@@ -261,7 +261,7 @@ module mkSimpleDemarshaller
               // Number of chunks to send a full message
               NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_DATA_SZ)));
 
-    if (valueOf(n) == 1)
+    if (valueOf(n) <= 1)
     begin
         //
         // Trivial case where the marshalling container is at least as large
@@ -294,12 +294,16 @@ module mkSimpleDemarshaller
         // Full logic implemented as a rule to keep the scheduler happy
         //
         Reg#(Bool) full <- mkReg(False);
-        PulseWire enqDone <- mkPulseWire();
-        PulseWire deqDone <- mkPulseWire();
+        PulseWire enqComplete <- mkPulseWire();
+        PulseWire deqComplete <- mkPulseWire();
 
         (* fire_when_enabled, no_implicit_conditions *)
         rule updateFull (True);
-            full <= (full && deqDone) || enqDone;
+            // - Set full when a full set of enqs are complete
+            // - Clear full when deq happens
+            // - Preserve full otherwise
+            // deqComplete and enqComplete will never both be set.
+            full <= unpack(pack(full) ^ pack(deqComplete)) || enqComplete;
         endrule
 
 
@@ -316,7 +320,7 @@ module mkSimpleDemarshaller
             let is_last = (count == fromInteger(valueof(TSub#(n, 1))));
             if (is_last)
             begin
-                enqDone.send();
+                enqComplete.send();
             end
 
             count <= (is_last ? 0 : count + 1);
@@ -324,7 +328,7 @@ module mkSimpleDemarshaller
 
         method Action deq() if (full);
             entry0Q.deq();
-            deqDone.send();
+            deqComplete.send();
         endmethod
 
         method t_DATA first() if (full);

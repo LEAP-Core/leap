@@ -12283,3 +12283,17 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 - Remove pipeline bubbles for back-to-back requests in the marshaller.
 
 - Clean up GetPut declarations for soft connections.
+
+----------
+mcadler     Date: Sat Mar 31 09:58:03 EDT 2012  CSN: CSN-leap-270
+                  Sat Mar 31 13:58:03 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          269 
+
+- Fix error in demarshaller "full" logic from last check-in.  I'm surprised it
+  ever worked.
+
+- The marshaller from the last check-in sometimes grows too big.  I'll
+  investigate that next.
