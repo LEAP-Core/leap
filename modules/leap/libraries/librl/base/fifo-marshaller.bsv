@@ -182,7 +182,7 @@ module mkSimpleMarshallerN#(Bool lowFirst)
     Reg#(Bool) empty <- mkReg(True);
 
     RWire#(Tuple2#(Vector#(n, t_FIFO_DATA), t_NUM_CHUNKS)) incomingData <- mkRWire();
-    FIFOF#(Tuple2#(t_FIFO_DATA, Bool)) outQ <- mkUGFIFOF();
+    FIFOF#(Tuple2#(t_FIFO_DATA, Bool)) outQ <- mkUGLFIFOF();
 
 
     //
@@ -285,7 +285,7 @@ module mkSimpleDemarshaller
         // In order to avoid a pipeline bubble with a stream of multiple
         // messages the element in slot 0 is stored in a FIFO.  The rest
         // is stored in a register (buffer).
-        FIFOF#(t_FIFO_DATA) entry0Q <- mkUGFIFOF();
+        FIFOF#(t_FIFO_DATA) entry0Q <- mkUGLFIFOF();
         Reg#(Vector#(TSub#(n, 1), t_FIFO_DATA)) buffer <- mkRegU();
 
         Reg#(Bit#(TLog#(n))) count <- mkReg(0);

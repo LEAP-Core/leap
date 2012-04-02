@@ -12297,3 +12297,23 @@ Directory modules/leap/libraries/librl/base
 
 - The marshaller from the last check-in sometimes grows too big.  I'll
   investigate that next.
+
+----------
+mcadler     Date: Mon Apr  2 09:11:30 EDT 2012  CSN: CSN-leap-271
+                  Mon Apr  2 13:11:30 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          270 
+
+- Regarding the comment from the last check-in that the new marshaller was too
+  large: that is not the case.  In spite of removing all dead transmission cycles
+  the new marshaller takes about the same space.  However, I introduced a bug
+  a few versions back that coded the marshaller's notEmpty logic incorrectly,
+  causing anything calling both deq() and notEmpty() never to fire.
+  This resulted in dead code (mostly the debug scan), which was dropped
+  during synthesis.  Fixing the bug caused code growth.
+
+- Change the outbound marshaller/demarshaller FIFOs to LFIFOs to save space.
+  There are unlikely to be scheduling loops through them.  If it turns out
+  to be a problem we can revert to standard FIFOs.
