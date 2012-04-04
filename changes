@@ -12317,3 +12317,13 @@ Directory modules/leap/libraries/librl/base
 - Change the outbound marshaller/demarshaller FIFOs to LFIFOs to save space.
   There are unlikely to be scheduling loops through them.  If it turns out
   to be a problem we can revert to standard FIFOs.
+
+----------
+mcadler     Date: Wed Apr  4 16:55:47 EDT 2012  CSN: CSN-leap-272
+                  Wed Apr  4 20:55:47 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          271 
+
+Add a timer to the RRR test so that the program exits when RRR is dead.

@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <pthread.h>
+#include <errno.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -35,6 +37,9 @@
 #include "awb/provides/debug_scan_service.h"
 
 using namespace std;
+
+void *DeadRRRTimer(void *arg);
+
 
 // ===== service instantiation =====
 DEBUG_SCAN_SERVER_CLASS DEBUG_SCAN_SERVER_CLASS::instance;
@@ -102,7 +107,7 @@ DEBUG_SCAN_SERVER_CLASS::Scan()
 {
     // Avoid multiple paths to scan.  Could probably spin, but for now just
     // ignore multiple simultaneous requests.
-    ATOMIC32_CLASS isActive(0);
+    static ATOMIC32_CLASS isActive(0);
     if (isActive++ != 0)
     {
         isActive--;
@@ -110,16 +115,31 @@ DEBUG_SCAN_SERVER_CLASS::Scan()
     }
     
     fprintf(of, "\nDEBUG SCAN:\n");
-
-    fprintf(of, "  Checking RRR:");
     fflush(of);
-    if (clientStub->CheckRRR(27) == 27)
+
+    // Start a dead RRR timer so the program doesn't hang if RRR has failed
+    pthread_t test_thread;
+    VERIFYX(! pthread_create(&test_thread, NULL, &DeadRRRTimer, NULL));
+    
+    // Test RRR
+    bool rrr_ok = (clientStub->CheckRRR(27) == 27);
+
+    // RRR responded.  Kill the dead
+    VERIFYX(pthread_cancel(test_thread) == 0);
+
+    if (rrr_ok)
     {
-        fprintf(of, "  OK\n");
+        fprintf(of, "    OK\n");
+        fflush(of);
+
+        // Dump the debug scan chain
+        clientStub->Scan(0);
+    }
+    else
+    {
+        fprintf(of, "    FAILED!\n");
         fflush(of);
     }
-
-    clientStub->Scan(0);
 
     isActive--;
 }
@@ -407,4 +427,17 @@ UINT32
 DEBUG_SCAN_DATA_CLASS::MsgBitsLeft()
 {
     return MsgBits() - readIdx;
+}
+
+
+//
+// Used by Scan when testing RRR to abort the program if RRR hangs.  This
+// function will be spawned as a pthread and killed if RRR works.
+//
+void *DeadRRRTimer(void *arg)
+{
+    sleep(30);
+    
+    ASIMERROR("RRR communication lost.  Exiting...");
+    return (void*) 0;
 }
