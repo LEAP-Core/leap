@@ -50,6 +50,7 @@ interface CONNECTION_IN#(numeric type t_MSG_SIZE);
 
   method Action try(Bit#(t_MSG_SIZE) d);
   method Bool   success();
+  method Bool   dequeued();
   interface Clock clock;
   interface Reset reset;
 
@@ -78,6 +79,25 @@ interface CONNECTION_INOUT#(numeric type t_IN_SIZE, numeric type t_OUT_SIZE);
 endinterface
 
 typedef CONNECTION_INOUT#(PHYSICAL_DATA_SIZE, PHYSICAL_DATA_SIZE) PHYSICAL_CONNECTION_INOUT;
+
+// The basic sending half of a connection.
+
+interface PHYSICAL_SEND#(type t_MSG);
+  
+  method Action send(t_MSG data);
+  method Bool notFull();  
+  method Bool dequeued();  
+
+endinterface
+
+interface PHYSICAL_SEND_MULTI#(type t_MSG);
+
+    method Action broadcast(t_MSG msg);
+    method Action sendTo(CONNECTION_IDX dst, t_MSG msg);
+    method Bool   notFull();
+    method Bool   dequeued();
+
+endinterface
 
 // Phsyical incoming connection capable of multicast.
 interface PHYSICAL_CONNECTION_IN_MULTI;
@@ -168,6 +188,7 @@ typedef struct
     String logicalName;
     String logicalType;
     String computePlatform;
+    Integer bitWidth;
     PHYSICAL_CONNECTION_OUT_MULTI outgoing;
 } 
     LOGICAL_SEND_MULTI_INFO;
@@ -178,6 +199,7 @@ typedef struct
     String logicalName;
     String logicalType;
     String computePlatform;
+    Integer bitWidth;
     PHYSICAL_CONNECTION_IN_MULTI incoming;
 } 
     LOGICAL_RECV_MULTI_INFO;
@@ -231,6 +253,7 @@ typedef `CON_CWIDTH CHAIN_DATA_SIZE;
 typedef Bit#(CHAIN_DATA_SIZE) PHYSICAL_CHAIN_DATA;
 
 typedef CONNECTION_IN#(CHAIN_DATA_SIZE)  PHYSICAL_CHAIN_IN;
+
 typedef CONNECTION_OUT#(CHAIN_DATA_SIZE) PHYSICAL_CHAIN_OUT;
 typedef CONNECTION_INOUT#(CHAIN_DATA_SIZE, CHAIN_DATA_SIZE) PHYSICAL_CHAIN;
 

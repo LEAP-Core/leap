@@ -72,13 +72,18 @@ endmodule
 // and must be handled at the top level
 
 typeclass Matchable#(type t);
-  function String getLogicalName(t val);
-  function String getComputePlatform(t val);
+  function String  getLogicalName(t val);
+  function Integer getLogicalWidth(t val);
+  function String  getComputePlatform(t val);
 endtypeclass
 
 instance Matchable#(LOGICAL_RECV_INFO);
   function String getLogicalName(LOGICAL_RECV_INFO rinfo);
     return rinfo.logicalName;
+  endfunction
+
+  function Integer getLogicalWidth(LOGICAL_RECV_INFO rinfo);
+    return rinfo.bitWidth;
   endfunction
 
   function String getComputePlatform(LOGICAL_RECV_INFO rinfo);
@@ -91,6 +96,10 @@ instance Matchable#(LOGICAL_SEND_INFO);
     return sinfo.logicalName;
   endfunction
 
+  function Integer getLogicalWidth(LOGICAL_SEND_INFO sinfo);
+    return sinfo.bitWidth;
+  endfunction
+
   function String getComputePlatform(LOGICAL_SEND_INFO sinfo);
     return sinfo.computePlatform;
   endfunction
@@ -99,6 +108,10 @@ endinstance
 instance Matchable#(LOGICAL_RECV_MULTI_INFO);
   function String getLogicalName(LOGICAL_RECV_MULTI_INFO rinfo);
     return rinfo.logicalName;
+  endfunction
+
+  function Integer getLogicalWidth(LOGICAL_RECV_MULTI_INFO rinfo);
+    return rinfo.bitWidth;
   endfunction
 
   function String getComputePlatform(LOGICAL_RECV_MULTI_INFO rinfo);
@@ -111,6 +124,10 @@ instance Matchable#(LOGICAL_SEND_MULTI_INFO);
     return sinfo.logicalName;
   endfunction
 
+  function Integer getLogicalWidth(LOGICAL_SEND_MULTI_INFO sinfo);
+    return sinfo.bitWidth;
+  endfunction
+
   function String getComputePlatform(LOGICAL_SEND_MULTI_INFO sinfo);
     return sinfo.computePlatform;
   endfunction
@@ -119,6 +136,10 @@ endinstance
 instance Matchable#(LOGICAL_CHAIN_INFO);
   function String getLogicalName(LOGICAL_CHAIN_INFO sinfo);
     return sinfo.logicalName;
+  endfunction
+
+  function Integer getLogicalWidth(LOGICAL_CHAIN_INFO sinfo);
+    return sinfo.bitWidth;
   endfunction
 
   function String getComputePlatform(LOGICAL_CHAIN_INFO sinfo);
@@ -130,7 +151,7 @@ function Bool nameMatches(r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));
   
-  return (getLogicalName(sinfo) == getLogicalName(rinfo)) && 
+  return (getLogicalName(sinfo) == getLogicalName(rinfo)) &&          
          (getComputePlatform(sinfo) == getComputePlatform(rinfo));
  
 endfunction

@@ -308,7 +308,7 @@ endmodule
   
 
 //If there are no links then it's just a pass-through queue
-module mkPassThrough
+/*module mkPassThrough
     //interface:
                 (PHYSICAL_CHAIN);
 
@@ -318,23 +318,28 @@ module mkPassThrough
 
     FIFOF#(PHYSICAL_CHAIN_DATA) passQ <- mkUGFIFOF();
     PulseWire enW <- mkPulseWire();
+    PulseWire sendDeqeueued <- mkPulseWire();
 
     interface PHYSICAL_CHAIN_IN incoming;
 
-      method Action try(PHYSICAL_CHAIN_DATA d);
-        if (passQ.notFull())
-        begin
-          passQ.enq(d);
-          enW.send();
-        end
-      endmethod
+        method Action try(PHYSICAL_CHAIN_DATA d);
+            if (passQ.notFull())
+            begin
+                passQ.enq(d);
+                enW.send();
+            end
+        endmethod
 
-      method Bool   success();
-        return enW;
-      endmethod
+        method Bool   success();
+            return enW;
+        endmethod
+                    
+        method Bool dequeued();
+            return sendDequeued();  
+        endmethod
 
-      interface Clock clock = localClock;
-      interface Reset reset = localReset; 
+        interface Clock clock = localClock;
+        interface Reset reset = localReset; 
 
     endinterface
 
@@ -343,14 +348,18 @@ module mkPassThrough
 
       method Bool notEmpty() = passQ.notEmpty();
       method PHYSICAL_CHAIN_DATA first() = passQ.first();
-      method Action deq() = passQ.deq();
+
+      method Action deq(); 
+          passQ.deq();
+          sendDeqeueued.send();
+      endmethod
 
       interface Clock clock = localClock;
       interface Reset reset = localReset; 
 
     endinterface
 
-endmodule
+endmodule*/
 
 // make the printout similar to connections.  this may assist in parsing later.
 module printChain#(Integer cur_out, LOGICAL_CHAIN_INFO cur) (Empty);
@@ -388,6 +397,7 @@ module exposeChains#(LOGICAL_CONNECTION_INFO ctx) (Vector#(n, PHYSICAL_CHAIN));
                            interface clock = noClock;
                            interface reset = noReset;
                            method Bool success() = False;
+                           method Bool dequeued() = False;
                            method Action try(PHYSICAL_CHAIN_DATA d) = noAction;
                        endinterface);
 

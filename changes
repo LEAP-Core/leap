@@ -12327,3 +12327,30 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
  debug-scan-service.cpp    Locally Modified          271 
 
 Add a timer to the RRR test so that the program exits when RRR is dead.
+
+----------
+kfleming    Date: Fri Apr  6 17:54:33 EDT 2012  CSN: CSN-leap-273
+                  Fri Apr  6 21:54:33 UTC 2012
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          272 
+ connection-dispatchers.bsv Locally Modified          272 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          272 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          272 
+ connections.bsv           Locally Modified          272 
+ connection-vectors.bsv    Locally Modified          272 
+ connection-implementation.bsv Locally Modified          272 
+
+
+Added a new physical connection type.  Internally, some modules of the
+multifpga router need to know if it is safe to schedule an access to
+the shared router buffer.  To do this, they need to track buffer
+availability.  As a result, they need to see dequeue operations from
+the soft connection components.  This check in adds the necessary
+visibility.  Existing SC implementations will see the original SC
+interface.  

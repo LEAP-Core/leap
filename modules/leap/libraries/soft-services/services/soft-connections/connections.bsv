@@ -137,7 +137,6 @@ interface CONNECTION_CHAIN#(type msg_T);
 
 endinterface
 
-
 // Connection Constructors
 
 // These are implemented as calls to the actual constructor dispatcher later.

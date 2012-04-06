@@ -25,14 +25,14 @@
 
 module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_station, Bool optional, String origtype)
     // interface:
-        (CONNECTION_SEND#(t_MSG))
+        (PHYSICAL_SEND#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SZ),
          Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    Vector#(t_NUM_PHYSICAL_CONNS, CONNECTION_SEND#(Bit#(PHYSICAL_CONNECTION_SIZE))) v = newVector();
+    Vector#(t_NUM_PHYSICAL_CONNS, PHYSICAL_SEND#(Bit#(PHYSICAL_CONNECTION_SIZE))) v = newVector();
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
@@ -63,6 +63,18 @@ module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_st
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           res = res && v[x].notFull();
+        end
+
+        return res;
+
+    endmethod
+
+    method Bool dequeued();
+
+        Bool res = True;
+        for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+        begin
+          res = res && v[x].dequeued();
         end
 
         return res;
@@ -133,14 +145,14 @@ endmodule
 
 module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION) m_station, String origtype)
     // interface:
-        (CONNECTION_SEND_MULTI#(t_MSG))
+        (PHYSICAL_SEND_MULTI#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SZ),
          Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    Vector#(t_NUM_PHYSICAL_CONNS, CONNECTION_SEND_MULTI#(Bit#(PHYSICAL_CONNECTION_SIZE))) v = newVector();
+    Vector#(t_NUM_PHYSICAL_CONNS, PHYSICAL_SEND_MULTI#(Bit#(PHYSICAL_CONNECTION_SIZE))) v = newVector();
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
@@ -189,6 +201,19 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION)
         return res;
 
     endmethod
+
+    method Bool dequeued();
+
+        Bool res = True;
+        for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
+        begin
+          res = res && v[x].dequeued();
+        end
+
+        return res;
+
+    endmethod
+
 
 endmodule
 

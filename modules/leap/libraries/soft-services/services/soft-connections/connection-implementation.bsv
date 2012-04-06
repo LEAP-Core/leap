@@ -23,7 +23,6 @@
 
 `include "awb/provides/physical_platform.bsh"
 
-
 module [t_CONTEXT] mkPhysicalConnectionSend#(
     String send_name,
     Maybe#(STATION) m_station,
@@ -31,7 +30,7 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
     String original_type,
     Bool enableDebug)
     // interface:
-        (CONNECTION_SEND#(t_MSG))
+        (PHYSICAL_SEND#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SIZE),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -46,6 +45,9 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
     // This queue could be turned into a BypassFIFO to reduce latency. 
     FIFOF#(t_MSG) q <- mkUGSizedFIFOF(`CON_BUFFERING);
     
+    // some wiring needed in the multi-FPGA implementations
+    PulseWire sendDequeued <- mkPulseWire;
+
     // Bind a local interface to a name for convenience.
     let outg = (interface PHYSICAL_CONNECTION_OUT;
 
@@ -59,8 +61,11 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
                  method Bool notEmpty() = q.notEmpty();
                  
                  // If we were successful we can dequeue.
-	         method Action deq() = q.deq();
-
+	         method Action deq();
+                     q.deq();
+                     sendDequeued.send;
+                 endmethod                     
+              
                  interface Clock clock = localClock;
                  interface Reset reset = localReset;
 
@@ -129,6 +134,8 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
 
     method Bool notFull() = q.notFull();
 
+    method Bool dequeued() = sendDequeued;
+
 endmodule
 
 
@@ -163,6 +170,11 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
 
 	         // Part 2 of the anti-method to get(). If someone actually was listening, then the get() succeeded.
                  method Bool success();
+	           return enW;
+	         endmethod
+
+	         // Part 2 of the anti-method to get(). If someone actually was listening, then the get() succeeded.
+                 method Bool dequeued();
 	           return enW;
 	         endmethod
 
@@ -232,7 +244,7 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
     String original_type,
     Bool enableDebug)
     //interface:
-        (CONNECTION_SEND_MULTI#(t_MSG))
+        (PHYSICAL_SEND_MULTI#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SIZE),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -246,6 +258,9 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
 
     FIFOF#(Tuple2#(CONNECTION_TAG, t_MSG)) q <- mkUGSizedFIFOF(`CON_BUFFERING);
     
+    // some wiring needed in the multi-FPGA implementations
+    PulseWire sendDequeued <- mkPulseWire;
+
     // Bind a local interface to a name for convenience.
     let outg = (interface PHYSICAL_CONNECTION_OUT_MULTI;
 
@@ -261,7 +276,10 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
                  method Bool notEmpty() = q.notEmpty();
                  
                  // If we were successful we can dequeue.
-	         method Action deq() = q.deq();
+	         method Action deq();
+                     q.deq();
+                     sendDequeued.send();
+                 endmethod
 
                  interface Clock clock = localClock;
                  interface Reset reset = localReset;
@@ -274,7 +292,8 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
         LOGICAL_SEND_MULTI_INFO 
         {
             logicalName: send_name, 
-            logicalType: original_type, 
+            logicalType: original_type,
+            bitWidth: valueof(SizeOf#(t_MSG)),  
             computePlatform: platformName,
             outgoing: outg
         };
@@ -335,6 +354,8 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
 
     method Bool notFull() = q.notFull();
 
+    method Bool dequeued = sendDequeued;
+
 endmodule
 
 
@@ -383,6 +404,7 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
         {
             logicalName: recv_name, 
             logicalType: original_type,  
+            bitWidth: valueof(SizeOf#(t_MSG)), 
             computePlatform: platformName,
             incoming: inc
         };
@@ -438,6 +460,8 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
   RWire#(msg_T)  dataW  <- mkRWire();
   PulseWire      enW    <- mkPulseWire();
   FIFOF#(msg_T)  q       <- mkUGFIFOF();
+  // some wiring needed in the multi-FPGA implementations
+  PulseWire sendDequeued <- mkPulseWire;
 
   let inc = (interface PHYSICAL_CHAIN_IN;
 
@@ -452,6 +476,8 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
                  return enW;
                endmethod
 
+               method Bool dequeued() = sendDequeued;
+ 
                interface Clock clock = localClock;
                interface Reset reset = localReset;               
               
@@ -469,7 +495,10 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
                method Bool notEmpty() = q.notEmpty();
 
                // If we were successful we can dequeue.
-	       method Action deq() = q.deq();
+	       method Action deq();
+                   q.deq();
+                   sendDequeued.send;
+               endmethod
 
                interface Clock clock = localClock;
                interface Reset reset = localReset;
