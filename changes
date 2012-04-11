@@ -12354,3 +12354,14 @@ availability.  As a result, they need to see dequeue operations from
 the soft connection components.  This check in adds the necessary
 visibility.  Existing SC implementations will see the original SC
 interface.  
+
+----------
+mcadler     Date: Wed Apr 11 09:50:22 EDT 2012  CSN: CSN-leap-274
+                  Wed Apr 11 13:50:22 UTC 2012
+
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.cpp   Locally Modified          273 
+
+Add a temporary hack that seems to eliminate startup problems for multi-FPGA
+models on ACP:  a 1 second delay before host-generated I/O.

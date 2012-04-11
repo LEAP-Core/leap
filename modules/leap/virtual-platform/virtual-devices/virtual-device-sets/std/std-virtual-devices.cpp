@@ -42,6 +42,10 @@ VIRTUAL_DEVICES_CLASS::~VIRTUAL_DEVICES_CLASS()
 void
 VIRTUAL_DEVICES_CLASS::Init()
 {
+    // Temporary hack to eliminate ACP startup hangs in multi-FPGA models until
+    // we figure out the source of the hang.
+    sleep(1);
+
     // Init our children.
     commonUtilities->Init();
     commonServices->Init();
