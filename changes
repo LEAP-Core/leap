@@ -12365,3 +12365,18 @@ Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
 
 Add a temporary hack that seems to eliminate startup problems for multi-FPGA
 models on ACP:  a 1 second delay before host-generated I/O.
+
+----------
+emer        Date: Thu Apr 12 13:40:51 EDT 2012  CSN: CSN-leap-275
+                  Thu Apr 12 17:40:51 UTC 2012
+
+
+Directory debian
+ control                   Locally Modified          274 
+ changelog                 Locally Modified          274 
+ rules                     Locally Modified          274 
+
+Directory admin/packages
+ leap                      Locally Modified          274 
+
+Prepare for v12.04 release.
