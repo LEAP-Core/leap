@@ -403,6 +403,42 @@ sub setup_benchmark {
 }
 
 ############################################################
+# checkFileName -- confirm that a build tree name is unique.
+
+my %uniqueFileNameTest;
+
+sub checkFileName($$$)
+{
+    my $module = shift;
+    my $src = shift;
+    my $tgt = shift;
+
+    if (exists($uniqueFileNameTest{$tgt})) {
+        print STDERR "\nDuplicate name in build tree: ${tgt}\n";
+
+        if (defined($src)) {
+            print STDERR "   from " . $module->provides() . ": ${src}\n";
+        }
+        else {
+            print STDERR "   generated for " . $module->provides() . "\n";
+        }
+
+        my @conflict = @{$uniqueFileNameTest{$tgt}};
+        if (defined($conflict[1])) {
+            print STDERR "   and " . $conflict[0]->provides() . ": $conflict[1]\n";
+        }
+        else {
+            print STDERR "   and generated for " . $conflict[0]->provides() . "\n";
+        }
+
+        exit(1);
+    }
+
+    @{$uniqueFileNameTest{$tgt}} = ($module, $src);
+}
+
+
+############################################################
 # build_build_tree
 
 sub build_build_tree {
@@ -969,6 +1005,7 @@ sub __make_bsvfiles {
 
     close(BSHFILE);
 
+    checkFileName($module, undef, $bsvfile);
     unlink("${bsvfile}");
     if (@bsv_sources) {
         open(BSVFILE, ">${bsvfile}");
@@ -1162,10 +1199,12 @@ sub __make_symlinks {
         my $src = Asim::resolve(Leap::Util::path_append($base_dir,$f));
         my $tgt = Leap::Util::path_append($my_dir,$f);
 
-        if (! -e $src) {
+        if (! defined($src) || ! -e $src) {
           Leap::Util::WARN_AND_DIE("Module file $f does not exist in $base_dir");
         }
         
+        checkFileName($module, $src, $tgt);
+
         # make src relative
         my $relsrc = File::Spec->abs2rel($src, dirname($tgt));
         $status = system("ln -f -s $relsrc $tgt");

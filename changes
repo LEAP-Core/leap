@@ -12380,3 +12380,13 @@ Directory admin/packages
  leap                      Locally Modified          274 
 
 Prepare for v12.04 release.
+
+----------
+mcadler     Date: Thu Apr 12 15:00:31 EDT 2012  CSN: CSN-leap-276
+                  Thu Apr 12 19:00:31 UTC 2012
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          275 
+
+Check for conflicts in build tree file names.
