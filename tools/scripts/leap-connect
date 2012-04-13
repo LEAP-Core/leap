@@ -35,12 +35,14 @@ my $status;
 my $help = 0;
 my $debug = 0;
 my $dynsize = 0;
+my $genDummyFile = 0;
 
 $status = GetOptions( "debug!"     => \$debug,
                       "help!"      => \$help,
                       "softservices!" => \$softservices,
                       "dynsize!"   => \$dynsize, 
-                      "alternative_logfile=s"  => \$alternative_logfile
+                      "alternative_logfile=s"  => \$alternative_logfile,
+                      "dummy"      => \$genDummyFile
 		      );
 
 my $prog = basename($0);
@@ -85,37 +87,39 @@ sub create_dynsize_bsh {
     my $metatype = basename($log_file);
     $metatype =~ s/_Wrapper\.log$//;
 
-    my @conns = parse_dangling_connections($log_file);
     my $sends = 0;
     my $recvs = 0;
     my $send_multis = 0;
     my $recv_multis = 0;
     my $chains = 0;
 
-    if ($softservices) {
-        for (my $i = 0; $i < scalar(@conns); $i++) {
-            if ($conns[$i]->{"sc_type"} eq "Send") {
-                $sends += 1;
-            } elsif ($conns[$i]->{"sc_type"} eq "Recv") {
-                $recvs += 1;
-            } elsif ($conns[$i]->{"sc_type"} eq "RecvMulti") {
-                $recv_multis += 1;
-            } elsif ($conns[$i]->{"sc_type"} eq "SendMulti") {
-                $send_multis += 1;
-            } elsif ($conns[$i]->{"sc_type"} eq "Chain") {
-                $chains += 1;
-            } else {
-                DIE("Soft Serices: Unrecognized type of dangling connection: $1\n");
+    if (! $genDummyFile) {
+        my @conns = parse_dangling_connections($log_file);
+        if ($softservices) {
+            for (my $i = 0; $i < scalar(@conns); $i++) {
+                if ($conns[$i]->{"sc_type"} eq "Send") {
+                    $sends += 1;
+                } elsif ($conns[$i]->{"sc_type"} eq "Recv") {
+                    $recvs += 1;
+                } elsif ($conns[$i]->{"sc_type"} eq "RecvMulti") {
+                    $recv_multis += 1;
+                } elsif ($conns[$i]->{"sc_type"} eq "SendMulti") {
+                    $send_multis += 1;
+                } elsif ($conns[$i]->{"sc_type"} eq "Chain") {
+                    $chains += 1;
+                } else {
+                    DIE("Soft Serices: Unrecognized type of dangling connection: $1\n");
+                }
             }
-        }
-    } else {
-        foreach $conn_r (@conns) {
-            if ($conn_r->[0] eq "Send") {
-                $sends += 1;
-            } elsif ($conn_r->[0] eq "Rec") {
-                $recvs += 1;
-            } else {
-                DIE("Unrecognized type of dangling connection: $1\n");
+        } else {
+            foreach $conn_r (@conns) {
+                if ($conn_r->[0] eq "Send") {
+                    $sends += 1;
+                } elsif ($conn_r->[0] eq "Rec") {
+                    $recvs += 1;
+                } else {
+                    DIE("Unrecognized type of dangling connection: $1\n");
+                }
             }
         }
     }

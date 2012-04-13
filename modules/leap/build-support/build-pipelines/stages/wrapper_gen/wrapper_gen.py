@@ -36,6 +36,11 @@ class WrapperGen():
       # change only when some other file changes.
       ignore_bsv.write(conSizePath);
 
+      # Generate a dummy connection size file to avoid errors during dependence
+      # analysis.
+      if not os.path.exists(conSizePath):
+        os.system('leap-connect --dummy --dynsize ' + module.name + ' ' + conSizePath)
+
       ignore_bsv.close();
 
       wrapper_bsv.write('import HList::*;\n')

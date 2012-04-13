@@ -12390,3 +12390,23 @@ Directory tools/scripts
  leap-configure            Locally Modified          275 
 
 Check for conflicts in build tree file names.
+
+----------
+mcadler     Date: Fri Apr 13 16:24:54 EDT 2012  CSN: CSN-leap-277
+                  Fri Apr 13 20:24:54 UTC 2012
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified          276 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices-local-scratchpad.apm Locally Modified          276 
+ xup-virtual-devices.apm   Locally Modified          276 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          276 
+
+- Eliminate warning message in first build of a model cause by harmless
+  lack of synthesis boundary soft connection vector size .bsh file.
+
+- Update a couple of config files.
