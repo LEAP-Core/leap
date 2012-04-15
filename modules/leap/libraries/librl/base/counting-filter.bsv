@@ -120,8 +120,15 @@ module mkSizedDecodeFilter#(DEBUG_FILE debugLog)
     // interface:
     (DECODE_FILTER#(t_ENTRY, nFilterBits))
     provisos (Bits#(t_ENTRY, t_ENTRY_SZ),
-       
               Alias#(Bit#(TLog#(nFilterBits)), t_FILTER_IDX));
+
+    if (valueOf(t_ENTRY_SZ) < valueOf(TLog#(nFilterBits)))
+    begin
+        t_ENTRY dummy = ?;
+        error("mkSizedDecodeFilter:  filter is larger than needed: " +
+              integerToString(valueOf(nFilterBits)) + " entries for a " +
+              printType(typeOf(dummy)));
+    end
 
     Reg#(Bit#(nFilterBits)) fv <- mkReg(0);
 

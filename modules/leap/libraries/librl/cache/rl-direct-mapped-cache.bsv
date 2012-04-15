@@ -288,7 +288,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     MEMORY_HEAP_IMM#(RL_DM_WRITE_DATA_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
 
     // Incoming data.  One method may fire at a time.
-    FIFO#(t_CACHE_REQ) newReqQ <- mkFIFO();
+    FIFOF#(t_CACHE_REQ) newReqQ <- mkFIFOF();
 
     // Pipelines
     FIFO#(t_CACHE_REQ) cacheLookupQ <- mkFIFO();
@@ -331,25 +331,105 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     //
     // All incoming requests start here.
     //
+    //     At most one request per line may be active.  When a new request
+    //     arrives for an active line, the request is shunted to the
+    //     sideReqQ in order to allow other requests to flow past it.
+    //     Because the line filter is expensive, the side queue and the
+    //     new request queues share a single filter.  Priority for new
+    //     requests and side requests is updated each cycle.
+    //
     // ====================================================================
 
+    FIFOF#(t_CACHE_REQ) sideReqQ <- mkSizedFIFOF(8);
+    LUTRAM#(Bit#(5), Bit#(2)) sideReqFilter <- mkLUTRAM(0);
+    Reg#(Bit#(2)) newReqArb <- mkReg(0);
+    Wire#(Tuple2#(Bool, t_CACHE_REQ)) curReq <- mkWire();
+
+    //
+    // pickReqQ --
+    //     Decide whether to consider the new request or side request queue
+    //     this cycle.  Filtering both is too expensive.
+    //
+    rule pickReqQ (True);
+        Bool pick_new_req = newReqQ.notEmpty &&
+                            ((newReqArb != 0) || ! sideReqQ.notEmpty);
+
+        let r = pick_new_req ? newReqQ.first() : sideReqQ.first();
+        curReq <= tuple2(pick_new_req, r);
+    endrule
+
+    //
+    // startReq --
+    //     Start the current request if the line is available.  If the line
+    //     is busy, shunt the request to the side in case another request
+    //     to a different line is also pending.
+    //
+    //     *** This rule could logically be merged with pickReqQ above, but
+    //     *** the Bluespec compiler chokes on the single rule version.
+    //
     rule startNewReq (True);
-        let r = newReqQ.first();
+        match {.pick_new_req, .r} = curReq;
         match {.tag, .entryIdx} = cacheEntryFromAddr(r.addr);
 
-        // Is the entry busy?
-        let success <- entryFilter.insert(entryIdx);
-        if (success)
+        Bool forwarded_req = False;
+        
+        // Is the request a candidate for forwarding?  Side requests are always
+        // candidates.  To preserve read/write and write/write order, new
+        // requests may be forwarded as long as no side request exists to the
+        // same line.  The array sideReqFilter tracks lines active in the
+        // side request queue.
+        if (! pick_new_req || (sideReqFilter.sub(resize(entryIdx)) == 0))
         begin
-            debugLog.record($format("    startNewReq: addr=0x%x, entry=0x%x", r.addr, entryIdx));
+            // Is the line busy?
+            forwarded_req <- entryFilter.insert(entryIdx);
+            if (forwarded_req)
+            begin
+                // Not busy -- forward request...
+                debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
+                                        pick_new_req ? "startNewReq" : "startSideReq",
+                                        r.addr, entryIdx));
 
-            // Read the entry either to return the value (READ) or to see whether
-            // the entry is dirty and flush it.
-            cache.readReq(entryIdx);
+                // Read the entry either to return the value (READ) or to see whether
+                // the entry is dirty and flush it.
+                cache.readReq(entryIdx);
 
-            cacheLookupQ.enq(r);
-            newReqQ.deq();
+                cacheLookupQ.enq(r);
+
+                if (pick_new_req)
+                begin
+                    newReqQ.deq();
+                end
+                else
+                begin
+                    sideReqQ.deq();
+                    sideReqFilter.upd(resize(entryIdx),
+                                      sideReqFilter.sub(resize(entryIdx)) - 1);
+                end
+            end
         end
+
+        if (! forwarded_req &&
+            pick_new_req &&
+            (sideReqFilter.sub(resize(entryIdx)) != maxBound) &&
+            (cacheMode != RL_DM_MODE_DISABLED))
+        begin
+            // Line is busy.  Push request to side buffer so other requests
+            // may flow around it.
+            debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, entryIdx));
+
+            sideReqQ.enq(r);
+            newReqQ.deq();
+
+            // Note line present in sideReqQ
+            sideReqFilter.upd(resize(entryIdx),
+                              sideReqFilter.sub(resize(entryIdx)) + 1);
+        end
+    endrule
+
+
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule incrReqArb (True);
+        newReqArb <= newReqArb + 1;
     endrule
 
 

@@ -12410,3 +12410,28 @@ Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
   lack of synthesis boundary soft connection vector size .bsh file.
 
 - Update a couple of config files.
+
+----------
+mcadler     Date: Sun Apr 15 11:13:12 EDT 2012  CSN: CSN-leap-278
+                  Sun Apr 15 15:13:12 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          277 
+ rl-set-assoc-cache.bsv    Locally Modified          277 
+
+Directory modules/leap/libraries/librl/base
+ counting-filter.bsv       Locally Modified          277 
+
+- Add a side-buffer to the direct mapped cache to store requests to lines that
+  are currently busy, allowing later requests to non-busy lines to go first.
+  The side-buffer is light weight (just a FIFO) and it shares filtering logic
+  with the new request queue, using a counter as an arbiter to determine which
+  FIFO is considered each cycle.
+
+- Grow the side buffer in the set associative cache (used by the central cache)
+  to allow more busy references in flight.
+
+- Add an error message to a counting filter when the filter array is larger
+  than the index space.  None of our code actually triggered it, but I noticed
+  the case and it seemed like the right thing to do.

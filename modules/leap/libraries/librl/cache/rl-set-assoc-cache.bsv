@@ -244,7 +244,7 @@ endinterface: RL_SA_CACHE_LOCAL_DATA
 // conflicting requests to a side queue in order to allow other non-conflicting
 // requests to proceed.
 //
-typedef 8 RL_SA_CONFLICTQ_ENTRIES;
+typedef 16 RL_SA_CONFLICTQ_ENTRIES;
 typedef Bit#(TLog#(RL_SA_CONFLICTQ_ENTRIES)) RL_SA_CONFLICTQ_IDX;
 
 //
