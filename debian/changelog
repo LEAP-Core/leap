@@ -1,7 +1,7 @@
-leap (12.04~svn20120412r266+lucid) lucid; urgency=low
+leap (12.04+fixes~svn20120416r280+lucid) lucid; urgency=low
 
   [ Joel Emer ]
 
   * Move to version v12.04. The was no version v12.02
 
- -- Joel Emer <emer@csail.mit.edu>  Thu, 12 Apr 2012 12:24:17 -0400
+ -- Joel Emer <emer@csail.mit.edu>  Mon, 16 Apr 2012 11:37:46 -0400
