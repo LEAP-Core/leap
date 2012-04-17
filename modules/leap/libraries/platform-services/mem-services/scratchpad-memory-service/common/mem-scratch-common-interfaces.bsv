@@ -43,13 +43,16 @@
 `define VDEV_SCRATCH__NENTRIES 0
 `endif
 
-typedef `VDEV_SCRATCH__NENTRIES SCRATCHPAD_N_CLIENTS;
+//
+// Port 0 is reserved for the server.  Add 1 to the number of clients.
+//
+typedef TAdd#(`VDEV_SCRATCH__NENTRIES, 1) SCRATCHPAD_N_CLIENTS;
 
 //
-// Scratchpad port number.  Add 2 to the number of clients in case there are
-// zero or one clients.  Bit#(0) is not a valid array index.
+// Scratchpad port number.  Add 1 to the number of clients in case there are
+// no clients.  Bit#(0) is not a valid array index.
 //
-typedef Bit#(TLog#(TAdd#(2, SCRATCHPAD_N_CLIENTS))) SCRATCHPAD_PORT_NUM;
+typedef Bit#(TLog#(TAdd#(1, SCRATCHPAD_N_CLIENTS))) SCRATCHPAD_PORT_NUM;
 
 //
 // Scratpads are not required to return read results in order.  Clients

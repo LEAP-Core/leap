@@ -12435,3 +12435,24 @@ Directory modules/leap/libraries/librl/base
 - Add an error message to a counting filter when the filter array is larger
   than the index space.  None of our code actually triggered it, but I noticed
   the case and it seemed like the right thing to do.
+
+----------
+mcadler     Date: Mon Apr 16 21:36:48 EDT 2012  CSN: CSN-leap-281
+                  Tue Apr 17 01:36:48 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          278 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          278 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          278 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          278 
+
+Off-by-1 error in the scratchpad service caused the highest-indexed scratchpad
+to bypass the central cache, always going to host memory, when the number of
+scratchpads was 2^n + 1!
