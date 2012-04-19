@@ -319,7 +319,7 @@ sub print_send_response_definition
                 $self->_make_put_header("sendResponse",
                                         $self->outargs()->makelist());
 
-    print $file ";\n";
+    print $file " if (! mar.notEmpty);\n";
 
     # pack all elements into a struct
     print $file $indent . "    let resp = " .
@@ -393,7 +393,7 @@ sub print_make_request_definition
                 $self->_make_put_header("makeRequest",
                                         $self->inargs()->makelist());
 
-    print $file ";\n";
+    print $file " if (! mar.notEmpty);\n";
 
     # pack all elements into a struct
     print $file $indent . "    let req = " .

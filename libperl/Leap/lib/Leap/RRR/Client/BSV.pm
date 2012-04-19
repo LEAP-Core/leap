@@ -117,6 +117,7 @@ sub print_stub
     {
         print $file "`include \"awb/provides/soft_connections.bsh\"\n";
     }
+    print $file "`include \"awb/provides/librl_bsv_base.bsh\"\n";
     print $file "`include \"awb/provides/rrr.bsh\"\n";
     print $file "`include \"awb/provides/rrr_common.bsh\"\n";
     print $file "`include \"awb/provides/umf.bsh\"\n";
@@ -235,7 +236,7 @@ sub _print_state
         print $file "\n";
     }
 
-    print $file "    RRR_MARSHALLER#(Bit#($maxinsize), UMF_CHUNK) mar <- mkRRRMarshaller();\n";
+    print $file "    MARSHALLER_N#(UMF_CHUNK, Bit#($maxinsize)) mar <- mkSimpleMarshallerN(True);\n";
 
     if ($maxoutsize != 0)
     {

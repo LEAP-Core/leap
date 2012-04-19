@@ -20,6 +20,7 @@ import FIFO::*;
 import FIFOF::*;
 import Vector::*;
 import List::*;
+import ConfigReg::*;
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/soft_services.bsh"
@@ -733,23 +734,31 @@ module mkStdIOReqMarshaller
               Bits#(STDIO_REQ_HEADER, t_REQ_HEADER_SZ),
               Bits#(STDIO_REQ#(t_DATA), t_REQ_SZ),
               // Number of chunks to send a full message
-              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ, t_REQ_SZ)),
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA, STDIO_REQ#(t_DATA))),
               Div#(t_DATA_SZ, t_FIFO_DATA_SZ, t_CHUNKS_PER_DATA),
               Div#(t_FIFO_DATA_SZ, t_DATA_SZ, t_DATA_PER_CHUNK));
 
     Reg#(Vector#(n, t_FIFO_DATA)) buffer <- mkRegU();
     Reg#(Bit#(TAdd#(1, TLog#(n)))) count <- mkReg(0);
-    Reg#(Bool) empty <- mkReg(True);
+    Reg#(Bool) empty <- mkConfigReg(True);
 
-    method Action enq(STDIO_REQ#(t_DATA) msg) if (empty);
+    RWire#(STDIO_REQ#(t_DATA)) incomingData <- mkRWire();
+
+    //
+    // All the operations could be accomplished in methods, but Bluespec's
+    // scheduler can't detect mutually that calls to enq() and deq() are
+    // mutually exclusive when called in different module hierarchy levels.
+    //
+
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule incoming (empty &&& incomingData.wget() matches tagged Valid .msg);
         empty <= False;
 
         // Send only as much of the message as necessary.  Most messages
         // don't require the entire buffer.  Computing the true space is
         // made easier by the requirement that the data size be a power of 2.
 
-        let hdr_cnt = valueOf(MARSHALLER_MSG_LEN#(t_FIFO_DATA_SZ,
-                                                  t_REQ_HEADER_SZ));
+        let hdr_cnt = valueOf(MARSHALLER_MSG_LEN#(t_FIFO_DATA, STDIO_REQ_HEADER));
 
         if (valueOf(t_FIFO_DATA_SZ) <= valueOf(t_DATA_SZ))
         begin
@@ -774,6 +783,11 @@ module mkStdIOReqMarshaller
 
         // Convert the message to a vector of the marshalled size.
         buffer <= toChunks(msg);
+    endrule
+
+
+    method Action enq(STDIO_REQ#(t_DATA) msg) if (empty);
+        incomingData.wset(msg);
     endmethod
 
     method Action deq() if (! empty);
@@ -852,10 +866,7 @@ module mkStdIORspDemarshaller
         // a marshaller with t_DATA as the marshalled size and t_FIFO_DATA as
         // the unmarshalled message.
         //
-        MARSHALLER_N#(t_DATA,
-                      t_FIFO_DATA,
-                      Bit#(TAdd#(1, TLog#(MARSHALLER_MSG_LEN#(t_DATA_SZ, t_FIFO_DATA_SZ)))))
-            mar <- mkSimpleMarshallerN(True);
+        MARSHALLER_N#(t_DATA, t_FIFO_DATA) mar <- mkSimpleMarshallerN(True);
 
         method Action enq(t_FIFO_DATA chunk, Bit#(2) nValid);
             mar.enq(chunk, resize(nValid) + 1);
