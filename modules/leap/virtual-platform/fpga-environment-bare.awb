@@ -1,0 +1,8 @@
+%name Bare FPGA Environment
+%desc Bare FPGA Environment
+
+%provides fpgaenv_bare
+
+%requires physical_platform
+%requires soft_connections
+%requires build_pipeline

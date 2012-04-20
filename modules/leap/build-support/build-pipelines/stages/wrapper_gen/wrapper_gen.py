@@ -53,7 +53,7 @@ class WrapperGen():
         for wrapper in [wrapper_bsv, log_bsv]:      
           wrapper.write('// These are well-known/required leap modules\n')
           wrapper.write('// import non-synthesis public files\n')
-          wrapper.write('`include "project-hybrid-main.bsv"\n')
+          wrapper.write('`include "' + module.name + '.bsv"\n')
           
           wrapper.write('// import non-synthesis private files\n')
 

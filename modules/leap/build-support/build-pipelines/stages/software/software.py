@@ -135,4 +135,4 @@ class Software():
             sw_env.Append(LINKFLAGS=['-Wl,--whole-archive'] + whole_libs + ['-Wl,--no-whole-archive'])
 
 
-    moduleList.topDependency = moduleList.topDependency + [sw_exe]     
+        moduleList.topDependency = moduleList.topDependency + [sw_exe]     
