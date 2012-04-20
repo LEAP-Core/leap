@@ -222,17 +222,6 @@ class BSV():
       os.system('cd '+ MODULE_PATH + '/' + TMP_BSC_DIR + '; rm -f *.ba *.c *.h *.sched')
 
 
-    ## Builder for running just the compiler front end on a wrapper to find
-    ## the dangling connections.  This will then be passed to leap-connect
-    ## to determine the required connection array sizes.
-    def compile_bsc_log(source, target, env, for_signature):
-      ## Note -- we pipe through sed during the build to get rid of an extra
-      ##         newline emitted by bsc's printType().  New compilers will make
-      ##         this unnecessary
-      cmd = compile_bo_bsc_base(target) + ' -KILLexpanded ' + str(source[0]) + \
-            ' 2>&1 | sed \':S;/{[^}]*$/{N;bS};s/\\n/\\\\n/g\' | tee ' + str(target[0]) + ' ; test $${PIPESTATUS[0]} -eq 0'
-      return cmd
-
     ##
     ## Every generated .bo file also has a generated .bi and .log file.  This is
     ## how scons learns about them.
@@ -253,26 +242,35 @@ class BSV():
       cmd = compile_bo_bsc_base(target) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
       return cmd
 
-    def compile_rm_bo(source, target, env, for_signature):
-      cmd = 'rm -f ' + str(target[0]) + ' ; ' + compile_bo_bsc_base(target) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
+    ## Builder for running the compiler and generating a log file with the
+    ## compiler's messages.  These messages are used to note dangling
+    ## connections and to generate the global string table.
+    ## Kill compilation as soon as all the log data is generated, since
+    ## no binary is needed.
+    def compile_log_only(source, target, env, for_signature):
+      cmd = compile_bo_bsc_base(target) + ' -KILLexpanded ' + str(source[0]) + \
+            ' 2>&1 | tee ' + str(target[0]) + ' ; test $${PIPESTATUS[0]} -eq 0'
       return cmd
 
+    ## Builder for generating a binary and a log file.
+    def compile_bo_log(source, target, env, for_signature):
+      cmd = compile_bo_bsc_base([target[0]]) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0]) + \
+            ' 2>&1 | tee ' + str(target[1]) + ' ; test $${PIPESTATUS[0]} -eq 0'
+      return cmd
 
     bsc = moduleList.env.Builder(generator = compile_bo, suffix = '.bo', src_suffix = '.bsv',
                                  emitter = emitter_bo)
+
+    bsc_log = moduleList.env.Builder(generator = compile_bo_log, suffix = '.bo', src_suffix = '.bsv',
+                                     emitter = emitter_bo)
 
 
     # This guy has to depend on children existing?
     # and requires a bash shell
     moduleList.env['SHELL'] = 'bash' # coerce commands to be spanwed under bash
-    bsc_log = moduleList.env.Builder(generator = compile_bsc_log, suffix = '.log', src_suffix = '.bsv')
+    bsc_log_only = moduleList.env.Builder(generator = compile_log_only, suffix = '.log', src_suffix = '.bsv')
     
-
-    # SUBD method for building generated .bsv file.  Can't use automatic
-    # suffix detection since source must be named explicitly.
-    bsc_subd = moduleList.env.Builder(generator = compile_bo, emitter = emitter_bo)
-
-    env.Append(BUILDERS = {'BSC' : bsc, 'BSC_LOG' : bsc_log, 'BSC_SUBD' : bsc_subd})
+    env.Append(BUILDERS = {'BSC' : bsc, 'BSC_LOG' : bsc_log, 'BSC_LOG_ONLY' : bsc_log_only})
 
 
     moduleList.env.BuildDir(MODULE_PATH + '/' + TMP_BSC_DIR, '.', duplicate=0)
@@ -286,29 +284,43 @@ class BSV():
       ## First pass just generates a log file to figure out cross synthesis
       ## boundary soft connection array sizes.
       ##
+      ## All but the top level build need the log build pass to compute
+      ## the size of the external soft connection vector.  The top level has
+      ## no exposed connections and can generate the log file, needed
+      ## for global strings, during the final build.
+      ##
       logfile = MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.log')
-      log = env.BSC_LOG(logfile, MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log'))
-      module.moduleDependency['BSV_LOG'] += [log]
+      module.moduleDependency['BSV_LOG'] += [logfile]
+      if (module.name != moduleList.topModule.name):
+        log = env.BSC_LOG_ONLY(logfile, MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log'))
 
-      ##
-      ## Parse the log, generate a stub file
-      ##
-      stub_name = bsv.replace('.bsv', '_con_size.bsh')
-      stub = env.Command(MODULE_PATH + '/' + stub_name, log, 'leap-connect --softservice --dynsize $SOURCE $TARGET')
+        ##
+        ## Parse the log, generate a stub file
+        ##
+        stub_name = bsv.replace('.bsv', '_con_size.bsh')
+        stub = env.Command(MODULE_PATH + '/' + stub_name, log, 'leap-connect --softservice --dynsize $SOURCE $TARGET')
 
       ##
       ## Now we are ready for the real build
       ##
-      wrapper_bo = env.BSC(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
+      if (module.name != moduleList.topModule.name):
+        wrapper_bo = env.BSC(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
+        moduleList.env.Depends(wrapper_bo, stub)
+      else:
+        wrapper_bo = env.BSC_LOG([MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''),
+                                  logfile],
+                                 MODULE_PATH + '/' + bsv)
 
-      if(getBuildPipelineDebug(moduleList) != 0):
-        print 'wrapper_bo: ' + str(wrapper_bo)
-        print 'stub: ' + str(stub)
-      moduleList.env.Depends(wrapper_bo, stub)
+      ##
+      ## All but the top level build need the log build pass to compute
+      ## the size of the external soft connection vector.  The top level has
+      ## no exposed connections and needs no log build pass.
+      ##
+      if (module.name != moduleList.topModule.name):
+        if (getBuildPipelineDebug(moduleList) != 0):
+          print 'wrapper_bo: ' + str(wrapper_bo)
+          print 'stub: ' + str(stub)
 
-      # now we should call leap-connect soft-services again
-      # unfortunately leap-connect wants this file to reside in our 
-      if(module.name != moduleList.topModule.name):
         synth_stub_path = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'
         synth_stub = synth_stub_path + module.name +'.bsv'
         c = env.Command(synth_stub, # target

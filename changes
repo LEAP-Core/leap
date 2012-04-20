@@ -12512,3 +12512,16 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 Add a bare model optimized for fast building with no LEAP features, no
 hybrid I/O, no software and no soft connections.
+
+----------
+mcadler     Date: Thu Apr 19 23:59:10 EDT 2012  CSN: CSN-leap-284
+                  Fri Apr 20 03:59:10 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          283 
+
+The top level build no longer needs to separate the log file pass from the
+main compilation pass.  The log file pass was only needed to figure out the
+size of the exposed soft connections vector, which does not exist at the
+top level.
