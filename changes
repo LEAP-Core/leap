@@ -12525,3 +12525,13 @@ The top level build no longer needs to separate the log file pass from the
 main compilation pass.  The log file pass was only needed to figure out the
 size of the exposed soft connections vector, which does not exist at the
 top level.
+
+----------
+mcadler     Date: Fri Apr 20 16:58:05 EDT 2012  CSN: CSN-leap-285
+                  Fri Apr 20 20:58:05 UTC 2012
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          284 
+
+Fix running of Bluesim-only models (no hybrid software component).
