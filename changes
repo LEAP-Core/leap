@@ -12537,3 +12537,20 @@ Backport of changes in CSN-leap-283 by mcadler
 Add a bare model optimized for fast building with no LEAP features, no
 hybrid I/O, no software and no soft connections.
 
+
+----------
+emer        Date: Sat Apr 21 13:47:33 EDT 2012  CSN: CSN-leap-289
+                  Sat Apr 21 17:47:33 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          288 
+
+
+Backport of changes in CSN-leap-284 by mcadler
+          
+The top level build no longer needs to separate the log file pass from the
+main compilation pass.  The log file pass was only needed to figure out the
+size of the exposed soft connections vector, which does not exist at the
+top level.
+
