@@ -32,8 +32,7 @@ import Arbiter::*;
 
 module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCache)
     // interface:
-    ()
-    provisos (Max#(SCRATCHPAD_N_CLIENTS, 1, n_SCRATCHPAD_CLIENTS_NONZERO));
+    ();
     
     //
     // Instantiate a scratchpad implementation.

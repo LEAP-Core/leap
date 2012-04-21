@@ -739,7 +739,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     method Action readReq(SCRATCHPAD_MEM_ADDRESS addr,
                           SCRATCHPAD_MEM_MASK byteMask,
-                          SCRATCHPAD_REF_INFO refInfo);
+                          SCRATCHPAD_REF_INFO refInfo) if (! initQ.notEmpty);
         //
         // Take different paths depending on whether the scratchpad is permitted
         // to store data in the central cache.
@@ -829,7 +829,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //     Write to scratchpad.  WARNING: this is permitted only for scratchpads
     //     that use the central cache.
     //
-    method Action write(SCRATCHPAD_MEM_ADDRESS addr, SCRATCHPAD_MEM_VALUE val, SCRATCHPAD_PORT_NUM portNum);
+    method Action write(SCRATCHPAD_MEM_ADDRESS addr, SCRATCHPAD_MEM_VALUE val, SCRATCHPAD_PORT_NUM portNum) if (! initQ.notEmpty);
         match {.line_addr, .word_idx} = makeCacheAddr(portNum, addr);
         debugLog.record($format("port %0d: write addr=0x%x, l_addr=0x%x, wIdx=%0d, val=0x%x", portNum, addr, line_addr, word_idx, val));
 
@@ -870,7 +870,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     method ActionValue#(Bool) init(SCRATCHPAD_MEM_ADDRESS allocLastWordIdx,
                                    SCRATCHPAD_PORT_NUM portNum,
                                    Bool useCentralCache);
-        debugLog.record($format("port %0d: init lastWordIdx=0x%x", portNum, allocLastWordIdx));
+        debugLog.record($format("port %0d: init lastWordIdx=0x%x, cached %0d", portNum, allocLastWordIdx, useCentralCache));
 
         initQ.enq(tuple3(portNum, allocLastWordIdx, useCentralCache));
         return True;

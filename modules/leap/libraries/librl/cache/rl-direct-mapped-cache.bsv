@@ -345,12 +345,21 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
     Wire#(Tuple2#(Bool, t_CACHE_REQ)) curReq <- mkWire();
 
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule incrReqArb (True);
+        newReqArb <= newReqArb + 1;
+    endrule
+
     //
     // pickReqQ --
     //     Decide whether to consider the new request or side request queue
     //     this cycle.  Filtering both is too expensive.
     //
-    rule pickReqQ (True);
+    rule pickReqQueue (True);
+        // New requests win over side requests if there is a new request
+        // and the arbiter is non-zero.  If the arbitration counter newReqArb
+        // is larger than 1 bit this favors new requests over side-buffer
+        // requests in an effort to have as many requests in flight as possible.
         Bool pick_new_req = newReqQ.notEmpty &&
                             ((newReqArb != 0) || ! sideReqQ.notEmpty);
 
@@ -364,8 +373,8 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     //     is busy, shunt the request to the side in case another request
     //     to a different line is also pending.
     //
-    //     *** This rule could logically be merged with pickReqQ above, but
-    //     *** the Bluespec compiler chokes on the single rule version.
+    //     *** This rule could logically be merged with pickReqQueue above,
+    //     *** but the Bluespec compiler chokes on the single rule version.
     //
     rule startNewReq (True);
         match {.pick_new_req, .r} = curReq;
@@ -424,12 +433,6 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
             sideReqFilter.upd(resize(entryIdx),
                               sideReqFilter.sub(resize(entryIdx)) + 1);
         end
-    endrule
-
-
-    (* fire_when_enabled, no_implicit_conditions *)
-    rule incrReqArb (True);
-        newReqArb <= newReqArb + 1;
     endrule
 
 

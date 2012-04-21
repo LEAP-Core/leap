@@ -12448,3 +12448,28 @@ Directory admin/packages
  leap                      Locally Modified          279 
 
 Release v12.04.
+
+----------
+emer        Date: Sat Apr 21 13:39:24 EDT 2012  CSN: CSN-leap-286
+                  Sat Apr 21 17:39:24 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          280 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          280 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          280 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          280 
+
+
+Backport of changes in CSN-leap-281 by mcadler
+          
+Off-by-1 error in the scratchpad service caused the highest-indexed scratchpad
+to bypass the central cache, always going to host memory, when the number of
+scratchpads was 2^n + 1!
+
