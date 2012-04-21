@@ -12473,3 +12473,35 @@ Off-by-1 error in the scratchpad service caused the highest-indexed scratchpad
 to bypass the central cache, always going to host memory, when the number of
 scratchpads was 2^n + 1!
 
+
+----------
+emer        Date: Sat Apr 21 13:44:40 EDT 2012  CSN: CSN-leap-287
+                  Sat Apr 21 17:44:40 UTC 2012
+
+
+Directory libperl/Leap/lib/Leap/RRR/Method
+ BSV.pm                    Locally Modified          286 
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ BSV.pm                    Locally Modified          286 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ BSV.pm                    Locally Modified          286 
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          286 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-local.bsv           Locally Modified          286 
+
+
+Backport of changes in CSN-leap-282 by mcadler
+          
+- Change the MARSHALLER_N interface so it computes the size of the enq()
+  number of chunks parameter on its own.
+
+- Get rid of scheduler warnings in STDIO marshaller.
+
+- Get ride of scheduler warnings in RRR interface and switch to the LIBRL
+  marshaller.
+
