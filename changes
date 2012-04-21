@@ -12505,3 +12505,35 @@ Backport of changes in CSN-leap-282 by mcadler
 - Get ride of scheduler warnings in RRR interface and switch to the LIBRL
   marshaller.
 
+
+----------
+emer        Date: Sat Apr 21 13:46:43 EDT 2012  CSN: CSN-leap-288
+                  Sat Apr 21 17:46:43 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-bare.apm          Locally Added               0 
+
+Directory modules/leap/virtual-platform
+ fpga-environment-bare.awb Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          287 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          287 
+
+Directory modules/leap/build-support/project
+ project-bare-hw-main.bsv  Locally Added               0 
+ project-pipeline-bare-hw.awb Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ null-connected-module.bsv Locally Added               0 
+ null-soft-connections.awb Locally Added               0 
+
+
+Backport of changes in CSN-leap-283 by mcadler
+          
+Add a bare model optimized for fast building with no LEAP features, no
+hybrid I/O, no software and no soft connections.
+

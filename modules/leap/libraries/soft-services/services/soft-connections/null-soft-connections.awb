@@ -1,0 +1,8 @@
+%name NULL Soft Connections 
+%desc NULL Soft Connections 
+
+%provides soft_connections
+
+%attributes bluespec
+
+%public null-connected-module.bsv

@@ -1,0 +1,47 @@
+
+[Global]
+SaveParameters=0
+Description=FPGA Environment for bare hardware only simulation
+File=fpgaenv-bare
+Version=2.2
+Name=Bare FPGA Environment
+DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
+Type=Leap
+Class=Asim::Model
+DefaultRunOpts=
+RootName=Bare FPGA Environment
+RootProvides=fpgaenv_bare
+
+[Model]
+DefaultAttributes=exe
+model=Bare FPGA Environment
+
+[Null Physical Platform]
+File=modules/bluespec/common/fpgaenv/physical-platform/null/null-physical-platfrom.awb
+Packagehint=leap-platforms
+
+[Build Pipeline Bluesim]
+File=config/pm/leap/submodels/pipelines/build-pipeline-bluesim.apm
+Packagehint=leap
+
+
+
+
+
+
+
+
+
+
+[NULL Soft Connections]
+File=modules/leap/libraries/soft-services/services/soft-connections/null-soft-connections.awb
+Packagehint=leap
+
+[Bare FPGA Environment]
+File=modules/leap/virtual-platform/fpga-environment-bare.awb
+Packagehint=leap
+
+[Bare FPGA Environment/Requires]
+physical_platform=Null Physical Platform
+build_pipeline=Build Pipeline Bluesim
+soft_connections=NULL Soft Connections
