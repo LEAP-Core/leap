@@ -12554,3 +12554,17 @@ main compilation pass.  The log file pass was only needed to figure out the
 size of the exposed soft connections vector, which does not exist at the
 top level.
 
+
+----------
+emer        Date: Sat Apr 21 13:48:21 EDT 2012  CSN: CSN-leap-290
+                  Sat Apr 21 17:48:21 UTC 2012
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          289 
+
+
+Backport of changes in CSN-leap-285 by mcadler
+          
+Fix running of Bluesim-only models (no hybrid software component).
+
