@@ -29,8 +29,8 @@ class BSV():
     else:
        bsc_events_flag = ' -D HASIM_EVENTS_ENABLED=True '
 
-    self.BSC_FLAGS = BSC_FLAGS  + bsc_events_flag
-   
+    self.BSC_FLAGS = BSC_FLAGS + bsc_events_flag
+
     moduleList.env.BuildDir(TMP_BSC_DIR, '.', duplicate=0)
     moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
 
@@ -307,6 +307,8 @@ class BSV():
         wrapper_bo = env.BSC(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
         moduleList.env.Depends(wrapper_bo, stub)
       else:
+        ## Top level build can generate the log in a single pass since no
+        ## connections are exposed.
         wrapper_bo = env.BSC_LOG([MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''),
                                   logfile],
                                  MODULE_PATH + '/' + bsv)
