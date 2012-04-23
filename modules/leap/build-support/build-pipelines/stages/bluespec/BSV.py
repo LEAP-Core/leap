@@ -4,7 +4,6 @@ import re
 import string
 import SCons.Script
 from model import  *
-from config import *
 
 def get_wrapper(module):
   return  module.name + '_Wrapper.bsv'
@@ -29,7 +28,7 @@ class BSV():
     else:
        bsc_events_flag = ' -D HASIM_EVENTS_ENABLED=True '
 
-    self.BSC_FLAGS = BSC_FLAGS + bsc_events_flag
+    self.BSC_FLAGS = moduleList.getAWBParam('bsv_tool', 'BSC_FLAGS') + bsc_events_flag
 
     moduleList.env.BuildDir(TMP_BSC_DIR, '.', duplicate=0)
     moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
@@ -349,7 +348,7 @@ class BSV():
       env.Precious(bld_v)
 
 
-      if(BUILD_VERILOG == 1):
+      if (moduleList.getAWBParam('bsv_tool', 'BUILD_VERILOG') == 1):
         module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
       if(getBuildPipelineDebug(moduleList) != 0):

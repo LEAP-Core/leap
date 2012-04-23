@@ -2,7 +2,6 @@ import os
 import sys
 import re
 import SCons.Script
-from config import  *
 from model import  *
 
 def host_defs():

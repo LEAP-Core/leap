@@ -12545,3 +12545,65 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
  BSV.py                    Locally Modified          285 
 
 Changes to comments/formatting to match multi-FPGA version.
+
+----------
+mcadler     Date: Mon Apr 23 18:58:52 EDT 2012  CSN: CSN-leap-292
+                  Mon Apr 23 22:58:52 UTC 2012
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
+ FPGAProg.py               Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/vico_software
+ vico_software.py          Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_MAP.py             Locally Modified          291 
+ XILINX_XST.py             Locally Modified          291 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ SynplifySub.py            Locally Modified          291 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          291 
+ ModuleList.py             Locally Modified          291 
+ Module.py                 Locally Modified          291 
+ CommandLine.py            Locally Modified          291 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.cpp    Locally Modified          291 
+ assertions-service.h      Locally Modified          291 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          291 
+
+Take advantage of the Python code running with SCons in the build manager
+and permit overriding of AWB parameters as arguments to SCons.  Overridden
+parameters are stored in compile-time generated .bsh and .h files that
+update the values set by leap-configure.  The Python code doesn't yet
+have enough information to simply replace the original leap-generated
+parameter include files.
+
+AWB parameters are now stored along with the module name within the Python
+code and are no longer seen as global variables.  Modules no longer import
+their local "config.py".  Instead, they query a ModuleList method.
+
+The end result is it is now trivial to build a model with a new FPGA
+frequency, without having to make permanent changes to configuration files:
+
+    scons MODEL_CLOCK_FREQ=100

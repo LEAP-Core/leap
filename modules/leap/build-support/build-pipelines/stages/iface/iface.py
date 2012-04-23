@@ -3,7 +3,6 @@ import re
 import sys
 import string
 import SCons.Script
-from config import *
 from model import  *
 
 class Iface():
@@ -98,7 +97,7 @@ class Iface():
     # not really sure why srcs stopped working?
     # leap-configure creates this dynamic_params.dic. Gotta handle is specially. Boo. 
     extra_dicts = []
-    if(re.search('\w',EXTRA_DICTS)):
+    if(re.search('\w', moduleList.getAWBParam('iface_tool', 'EXTRA_DICTS'))):
       extra_dicts = EXTRA_DICTS.split(':') 
     dicts = map(addPathDic,moduleList.getAllDependencies('GIVEN_DICTS')+['dynamic_params.dic'] + extra_dicts)
 
@@ -122,7 +121,7 @@ class Iface():
 
     # Add dependence info computed by previous RRR builds (it uses cpp).
     extra_rrrs = []
-    if(re.search('\w',EXTRA_RRRS)):
+    if(re.search('\w', moduleList.getAWBParam('iface_tool', 'EXTRA_RRRS'))):
       extra_rrrs = EXTRA_RRRS.split(':') 
     rrrs = map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS') + extra_rrrs)
    
@@ -135,7 +134,7 @@ class Iface():
     #  NOTE: like dictionaries, some files must be created even when no .rrr
     #  files exist.
     generate_vico = ''
-    if(GENERATE_VICO):
+    if (moduleList.getAWBParam('iface_tool', 'GENERATE_VICO')):
       generate_vico = '--vico'
     r_tgt = moduleList.env.Command(rrr_inc_tgt + '/service_ids.h',
                        rrrs,

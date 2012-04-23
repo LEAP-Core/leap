@@ -707,6 +707,11 @@ sub init_sim_config_file($)
     $sim_config->print("//\n");
     $sim_config->print("\n");
 
+    $sim_config->print("#ifdef AWB_DEFS_ONLY\n");
+    $sim_config->print("    #define AWB_DEFS_ONLY_WAS_DEFINED\n");
+    $sim_config->print("#endif\n");
+    $sim_config->print("#define AWB_DEFS_ONLY\n\n");
+
     $sim_config->print("#ifndef Register\n");
     $sim_config->print("#define Register(NAME,DESC,TYPE,VAR,VAL)\n");
     $sim_config->print("#endif\n\n");
@@ -780,12 +785,13 @@ sub dyn_params($)
     print PARAM "//\n";
     print PARAM "\n";
 
-    print PARAM "#include \"asim/param.h\"\n";
+    print PARAM "#include \"awb/provides/sim_config.h\"\n";
+    print PARAM "#include \"awb/param.h\"\n";
     print PARAM "#include <strings.h>\n";
     print PARAM "#include \"asim/atoi.h\"\n\n";
 
     foreach my $param (sort keys(%dynamic_params)) {
-        print PARAM "$dynamic_params{$param}[2] ${param} = $dynamic_params{$param}[1];\n";
+        print PARAM "$dynamic_params{$param}[2] ${param} = ${param}_DYNDEFAULT;\n";
     }
 
     print PARAM "\n";
@@ -858,6 +864,9 @@ sub make_bsvfiles {
                     Leap::Util::path_append($builddir,"hw/include/awb/provides"),
                     Leap::Util::path_append($builddir,"sw/include/awb/provides"));
 
+    $sim_config->print("\n#ifndef AWB_DEFS_ONLY_WAS_DEFINED\n");
+    $sim_config->print("    #undef AWB_DEFS_ONLY\n");
+    $sim_config->print("#endif\n");
     $sim_config->close();
 
     dyn_params($model);
@@ -912,6 +921,7 @@ sub __make_bsvfiles {
 
     my @bsv_sources = $module->sources("BSV", "PUBLIC");
 
+    $sim_config->print("\n#include \"awb/provides/${provides}.h\"\n");
     $sim_config->print("Register(\"Module_${provides}\",\"provides ${provides} (${description})\",UINT64,module_${provides},true)\n");
 
     unlink($bshfile);
@@ -953,6 +963,10 @@ sub __make_bsvfiles {
       my $pname = $p->name();
       my $pvalue = $p->value();
       
+      if ($p->dynamic()) {
+          $pname .= "_DYNDEFAULT";
+      }
+
       print PARAMSBSHFILE "`define $pname $pvalue\n";
 
       ## Make SYNTH_INSTANCES globally useful
@@ -971,8 +985,13 @@ sub __make_bsvfiles {
       }
     }
     print PARAMSBSHFILE "\n";
-  
-    
+
+    ##
+    ## SCons build rules may override parameters at compile time.
+    ##
+    print PARAMSBSHFILE "`include \"awb/provides/${provides}_params_override.bsh\"\n";
+    print PARAMSBSHFILE "\n";
+
     # .bsh (include) files get included in the synthesized headers.  That way
     # a module can declare a set of public files that get included as source.
     # Bluespec would normally import a compiled file and not see the source.
@@ -1048,11 +1067,12 @@ sub __make_bsvfiles {
     print HFILE "//\n";
     print HFILE "\n";
 
-    print HFILE "#ifndef INCLUDED_MODULE_$provides\n";
-    print HFILE "#define INCLUDED_MODULE_$provides\n";
-    print HFILE "\n";
-
-    # add defines for parameters
+    ##
+    ## Add defines for parameters.  These go before the tests for AWB_DEFS_ONLY
+    ## and whether the include file has already been included so that it
+    ## is possible to load just parameter values and, on a later pass in the
+    ## same compilation, to load the full include file.
+    ##
     @p = ();
     push(@p, $module->parameters());
 
@@ -1098,24 +1118,50 @@ sub __make_bsvfiles {
                         print HFILE "#define $pname $pvalue\n";
                     }
                 }
-                $sim_config->print("Register(\"Param_${pname}\",\"${descr}\",${type},param_${pname},${pvalue})\n");
+                $sim_config->print("Register(\"Param_${pname}\",\"${descr}\",${type},param_${pname},${pname})\n");
             }
             else {
-                print HFILE "extern ${type} ${pname};\n";
-
-                $sim_config->print("Declare(extern ${type} ${pname})\n");
-                $sim_config->print("RegisterDyn(\"Param_${pname}\",\"${descr} (dynamic)\",${type},${pname})\n");
-                if ($p->isInt()) {
-                    $sim_config->print("RegisterDynDict(${pname},PARAMS_" . uc($safe_provides) . "_" . uc($pname) . ")\n");
-                }
-
-                $dynamic_params{$pname} = [$safe_provides, $pvalue, $type, $p->description()];
+                # Dynamic parameter.  Declare a default value that may be
+                # overridden during build.  (That default may then be overridden
+                # again at run time.
+                print HFILE "#define ${pname}_DYNDEFAULT $pvalue;\n";
             }
         }
     }
     print HFILE "\n";
 
-    print HFILE "#ifndef AWB_DEFS_ONLY\n";
+    ##
+    ## SCons build rules may override parameters at compile time.
+    ##
+    print HFILE "#include \"${provides}_params_override.h\"\n";
+    print HFILE "\n";
+
+    print HFILE "#ifndef AWB_DEFS_ONLY\n\n";
+
+    print HFILE "#ifndef INCLUDED_MODULE_$provides\n";
+    print HFILE "#define INCLUDED_MODULE_$provides\n";
+    print HFILE "\n";
+
+    foreach my $p (@p) {
+        my $pname = $p->name();
+        my $pvalue = $p->value();
+      
+        if ($p->dynamic()) {
+            my $type = $p->isInt() ? "UINT64" : "std::string";
+            my $descr = $p->description();
+
+            print HFILE "extern ${type} ${pname};\n";
+
+            $sim_config->print("Declare(extern ${type} ${pname})\n");
+            $sim_config->print("RegisterDyn(\"Param_${pname}\",\"${descr} (dynamic)\",${type},${pname})\n");
+            if ($p->isInt()) {
+                $sim_config->print("RegisterDynDict(${pname},PARAMS_" . uc($safe_provides) . "_" . uc($pname) . ")\n");
+            }
+
+            $dynamic_params{$pname} = [$safe_provides, $pvalue, $type, $p->description()];
+        }
+    }
+    print HFILE "\n";
 
     # add includes for all public C/C++ include files
     if ($public) {
@@ -1124,9 +1170,9 @@ sub __make_bsvfiles {
         }
     }
 
-    print HFILE "#endif  // AWB_DEFS_ONLY\n";
-    print HFILE "\n";
     print HFILE "#endif  // INCLUDED_MODULE_$provides\n";
+    print HFILE "\n";
+    print HFILE "#endif  // AWB_DEFS_ONLY\n";
 
     close(HFILE);
     
@@ -1400,9 +1446,6 @@ sub __generate_build_libraries {
 	return 0;
     }        
     
-    #import the local config
-    print INIT "from config import *\n";    
-    
     foreach my $library (@libraries) {
 	# Make a symlink
         # rebase the simlink for portability
@@ -1427,6 +1470,7 @@ sub __generate_build_libraries {
     }
 
     # dump out python parameters
+    print CONFIG "awbParams = {\n";
     my @parameters = $module->parameters();
     
     foreach my $p (@parameters) {
@@ -1434,10 +1478,25 @@ sub __generate_build_libraries {
 	my $pvalue = $p->value();
 	
 	if ($pname ne "SYNTH_BOUNDARY") {  
-	    print CONFIG "$pname = $pvalue\n";
+            if ($p->dynamic()) {
+                $pname .= "_DYNDEFAULT";
+            }
+
+            if (Scalar::Util::looks_like_number($pvalue)) {
+                print CONFIG "    '${pname}': ${pvalue},\n";
+            }
+            elsif ($pvalue =~ /^['"].*['"]$/) {
+                # String already quoted
+                print CONFIG "    '${pname}': ${pvalue},\n";
+            }
+            else {
+                # String needs quotes
+                print CONFIG "    '${pname}': \"${pvalue}\",\n";
+            }
 	}
     }
 
+    print CONFIG "}\n";
         
     close(INIT);
     close(CONFIG);
@@ -1623,11 +1682,11 @@ sub __generate_makefile_hw_top {
     }
 
 
-    ## @SYNTH_BOUNDARIES@ 
+    ## @MODULE_LIST@
     ## generate data structures for use in scons python code
     ## we do this last so as to collect the GENerated files uttered above.
     my $pythonRepresentation = Leap::Build::pythonize_module($module);
-    Leap::Util::hash_append($replacements_r," ",'@SYNTH_BOUNDARIES@',$pythonRepresentation);
+    Leap::Util::hash_append($replacements_r," ",'@MODULE_LIST@',$pythonRepresentation);
 
 }
 

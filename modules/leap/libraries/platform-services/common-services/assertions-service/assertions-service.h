@@ -24,7 +24,6 @@
 // this module handles reporting assertion failures.
 
 typedef class ASSERTIONS_SERVER_CLASS* ASSERTIONS_SERVER;
-typedef class ASSERTIONS_SERVER_CLASS* ASSERTIONS_SERVER;
 class ASSERTIONS_SERVER_CLASS: public RRR_SERVER_CLASS,
                      public PLATFORMS_MODULE_CLASS
 {

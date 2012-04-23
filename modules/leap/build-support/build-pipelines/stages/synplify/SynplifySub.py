@@ -5,7 +5,7 @@ import SCons.Script
 from model import  *
 # need to get the model clock frequency
 from clocks_device import  *
-from config import  *
+
 
 #
 # Generate path string to add source file into the Synplify project
@@ -59,9 +59,9 @@ def _xst_top_level(moduleList):
   newXSTFile = open(topXSTPath, 'w')
   oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst','r')
   newXSTFile.write(oldXSTFile.read());
-  if XST_PARALLEL_CASE:
+  if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
     newXSTFile.write('-vlgcase parallel\n');
-  if XST_INSERT_IOBUF:
+  if moduleList.getAWBParam('synthesis_tool', 'XST_INSERT_IOBUF'):
     newXSTFile.write('-iobuf yes\n');
   else:
     newXSTFile.write('-iobuf no\n');

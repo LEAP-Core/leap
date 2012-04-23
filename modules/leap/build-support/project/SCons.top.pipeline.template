@@ -43,8 +43,8 @@ defs = {
     'M5_BUILD_DIR'       : '@M5_BUILD_DIR@',    # Defined if m5 simulator is present
     'MAKE_ALL_TARGET'    : '@MAKE_ALL_TARGET@',
     'MAP_OPTIONS'        : '@MAP_OPTIONS@',
-    'SYNTHESIS_TOOL'     : '@SYNTHESIS_TOOL@',
-    'WORKSPACE_ROOT'     : '@MODEL_ROOT@',
+    'MODEL_ROOT'         : '@MODEL_ROOT@',
+    'MODULE_LIST'        : [@MODULE_LIST@],
     'ROOT_DIR_MODEL'     : '@ROOT_DIR_MODEL@',
     'ROOT_DIR_HW'        : '@ROOT_DIR_HW@',
     'ROOT_DIR_HW_INC'    : '@ROOT_DIR_HW_INC@',
@@ -55,7 +55,7 @@ defs = {
     'SW_LIBS'            : '@SW_LIBS@',
     'SYNTH_TOP'          : '@SYNTH_TOP@',
     'SYNTH_WRAPPERS'     : '@SYNTH_WRAPPERS@',
-    'SYNTH_BOUNDARIES'   : [@SYNTH_BOUNDARIES@],
+    'SYNTHESIS_TOOL'     : '@SYNTHESIS_TOOL@',
     'TMP_BSC_DIR'        : '@TMP_BSC_DIR@',
     'TMP_XILINX_DIR'     : '@TMP_XILINX_DIR@',
     'WORKSPACE_ROOT'     : '@WORKSPACE_ROOT@',
@@ -111,7 +111,7 @@ env['DEFS']['COST_TABLE'] = ARGUMENTS.get('COST_TABLE', env['DEFS']['COST_TABLE'
 
 TMP_XILINX_DIR = env['DEFS']['TMP_XILINX_DIR']
 
-moduleList = ModuleList(env, defs['SYNTH_BOUNDARIES'], ARGUMENTS, COMMAND_LINE_TARGETS)
+moduleList = ModuleList(env, defs['MODULE_LIST'], ARGUMENTS, COMMAND_LINE_TARGETS)
 
 # we will build whatever the user wants us to build
 Build(moduleList)

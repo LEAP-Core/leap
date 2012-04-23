@@ -2,7 +2,7 @@ import os
 import pprint
 import SCons.Script
 from model import  *
-from config import *
+
 
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
@@ -11,6 +11,7 @@ class MAP():
   def __init__(self, moduleList):
 
     global MAPPER_OPTIONS
+    MAPPER_OPTIONS = moduleList.getAWBParam('xilinx_map', 'MAPPER_OPTIONS')
 
     fpga_part_xilinx = moduleList.env['DEFS']['FPGA_PART_XILINX']
     xilinx_apm_name = moduleList.compileDirectory + '/' + moduleList.apmName          

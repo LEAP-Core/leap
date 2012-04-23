@@ -22,7 +22,6 @@
 #include <unordered_map>
 
 #include "asim/syntax.h"
-#include "asim/config.h"
 
 #include "platforms-module.h"
 #include "awb/provides/rrr.h"

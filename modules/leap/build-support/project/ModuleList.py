@@ -16,7 +16,6 @@ import pygraph.algorithms.sorting
 import Module
 import Utils
 from CommandLine import *
-from config import *
 
 def checkSynth(module):
   return module.isSynthBoundary
@@ -47,6 +46,7 @@ class ModuleList:
     givenVHDs = Utils.clean_split(env['DEFS']['GIVEN_VHDS'], sep = ' ') 
     self.apmName = env['DEFS']['APM_NAME']
     self.moduleList = []
+    self.awbParams = {}
     
     #We should be invoking this elsewhere?
     #self.wrapper_v = env.SConscript([env['DEFS']['ROOT_DIR_HW_MODEL'] + '/SConscript'])
@@ -66,7 +66,6 @@ class ModuleList:
     self.m5BuildDir = env['DEFS']['M5_BUILD_DIR'] 
     self.rootDirSw = env['DEFS']['ROOT_DIR_SW_MODEL']
     self.rootDirInc = env['DEFS']['ROOT_DIR_SW_INC']
-
 
     if len(env['DEFS']['GIVEN_ELFS']) != 0:
       elf = ' -bd ' + str.join(' -bd ',Utils.clean_split(env['DEFS']['GIVEN_ELFS'], sep = ' '))
@@ -95,13 +94,20 @@ class ModuleList:
       self.smartguide = ''
 
     # deal with other modules
+    emit_override_params = (getCommandLineTargets(self) != [ 'depends-init' ])
+    Module.initAWBParamParser(arguments, emit_override_params)
 
     for module in modulePickle:
+      # Loading module parameters delayed to here in order to support
+      # command-line overrides.  Build a dictionary indexed by module name.
+      self.awbParams[module.name] = module.parseAWBParams()
+
       # check to see if this is the top module (has no parent)
       if(module.parent == ''): 
         self.topModule = module
       else:
         self.moduleList.append(module)
+
       #This should be done in xst process 
       module.moduleDependency['VERILOG'] = givenVerilogs
       module.moduleDependency['BA'] = []
@@ -137,7 +143,11 @@ class ModuleList:
     self.topDependency=[]
     self.graphize()
     self.graphizeSynth()
+
     
+  def getAWBParam(self, moduleName, param):
+    return self.awbParams[moduleName][param]
+
   def getAllDependencies(self, key):
     # we must check to see if the dependencies actually exist.
     # generally we have to make sure to remove duplicates

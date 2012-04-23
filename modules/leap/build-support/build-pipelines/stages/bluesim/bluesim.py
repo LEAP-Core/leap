@@ -6,7 +6,7 @@ import string
 from model import  *
 from bsv_tool import *
 from software_tool import *
-from config import *
+
 
 class Bluesim():
 

@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include "awb/provides/assertions_service.h"
+#include "awb/provides/librl_bsv_base.h"
 #include "awb/rrr/service_ids.h"
 
 #include "awb/dict/ASSERTIONS.h"
@@ -69,7 +70,7 @@ ASSERTIONS_SERVER_CLASS::Init(
     parent = p;
     
     // Open the output file
-    assertionsFile = fopen("leap_debug/assertions.out", "w+");
+    assertionsFile = fopen(DEBUG_LOG_DIR "/assertions.out", "w+");
 }
 
 // uninit: we have to write this explicitly

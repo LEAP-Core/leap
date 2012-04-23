@@ -4,7 +4,7 @@ import SCons.Script
 from model import  *
 # need to pick up clock frequencies for xcf
 from clocks_device import *
-from config import *
+
 
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
@@ -15,6 +15,7 @@ class Synthesize():
     # string together the xcf, sort of like the ucf
     # Concatenate XCF files
     xcfSrcs = moduleList.getAllDependencies('XCF')
+    MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
     if (len(xcfSrcs) > 0):
       if (getBuildPipelineDebug(moduleList) != 0):
         for xcf in xcfSrcs:
@@ -46,9 +47,9 @@ class Synthesize():
     newXSTFile = open(topXSTPath, 'w')
     oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst', 'r')
     newXSTFile.write(oldXSTFile.read());
-    if XST_PARALLEL_CASE:
+    if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
         newXSTFile.write('-vlgcase parallel\n');
-    if XST_INSERT_IOBUF:
+    if moduleList.getAWBParam('synthesis_tool', 'XST_INSERT_IOBUF'):
         newXSTFile.write('-iobuf yes\n');
     else:
         newXSTFile.write('-iobuf no\n');
@@ -65,7 +66,7 @@ class Synthesize():
         newXSTFile = open(newXSTPath, 'w')
         oldXSTFile = open('config/' + module.wrapperName() + '.xst', 'r')
         newXSTFile.write(oldXSTFile.read());
-        if XST_PARALLEL_CASE:
+        if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
             newXSTFile.write('-vlgcase parallel\n');
         newXSTFile.write('-iobuf no\n');
         newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
@@ -95,7 +96,7 @@ class Synthesize():
         SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
     
 
-    if XST_BLUESPEC_BASICINOUT:
+    if moduleList.getAWBParam('synthesis_tool', 'XST_BLUESPEC_BASICINOUT'):
         basicio_cmd = env['ENV']['BLUESPECDIR'] + '/bin/basicinout ' + 'hw/' + moduleList.topModule.buildPath + '/.bsc/' + moduleList.topModule.wrapperName() + '.v',     #patch top verilog
     else:
         basicio_cmd = '@echo Bluespec basicinout disabled'

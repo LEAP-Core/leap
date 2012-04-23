@@ -5,7 +5,6 @@ import os
 import sys
 import string
 import Utils
-from config import *
 
 
 ##
@@ -52,5 +51,4 @@ def getEvents(moduleList):
 ## Build pipeline debug state (emit messages during build)
 ##
 def getBuildPipelineDebug(moduleList):
-    return max(int(moduleList.arguments.get('BUILD_PIPELINE_DEBUG', 0)),
-               BUILD_PIPELINE_DEBUG)
+    return moduleList.getAWBParam('model', 'BUILD_PIPELINE_DEBUG')

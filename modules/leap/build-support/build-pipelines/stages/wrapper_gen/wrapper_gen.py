@@ -3,7 +3,6 @@ import sys
 import re
 import SCons.Script
 from model import  *
-from config import *
  
 
 #this might be better implemented as a 'Node' in scons, but 
