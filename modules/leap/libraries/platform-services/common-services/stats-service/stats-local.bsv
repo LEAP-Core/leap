@@ -329,6 +329,7 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
     let chainPut = tpl_2(chainGP).put;
 
     Vector#(n_STATS, Reg#(Bit#(`STATS_SIZE))) statPool <- replicateM(mkReg(0));
+    Vector#(n_STATS,RWire#(STAT_VALUE)) incrWires <- replicateM(mkRWire);
 
     Reg#(STAT_STATE) state <- mkReg(STAT_RECORDING);
     Reg#(Bool) enabled <- mkReg(False);
@@ -475,7 +476,12 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
         state <= STAT_DUMP;
     endrule
 
-
+    for(Integer i = 0; i < valueof(n_STATS); i = i + 1)
+    begin
+        rule nbUpdate(incrWires[i].wget matches tagged Valid .value &&& enabled &&& (state == STAT_RECORDING));          
+            statPool[i] <= statPool[i] + value;    
+        endrule
+    end
 
     method Action incr(t_STAT_IDX idx) if (state == STAT_RECORDING);
         if (enabled)
@@ -492,18 +498,15 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
         end
     endmethod
 
+    // We need the RWire indirection here to ensure that these methods can _never_ block
+    // this is because STAT_DUMPING state can last an arbitrary amount time, which seems
+    // to overwhelm buffers in the multiFPGA routers. 
     method Action incr_NB(t_STAT_IDX idx);
-        if (enabled && (state == STAT_RECORDING))
-        begin
-            statPool[idx] <= statPool[idx] + 1;
-        end
+        incrWires[idx].wset(1);      
     endmethod
 
     method Action incrBy_NB(t_STAT_IDX idx, STAT_VALUE amount);
-        if (enabled && (state == STAT_RECORDING))
-        begin
-            statPool[idx] <= statPool[idx] + amount;
-        end
+        incrWires[idx].wset(amount);        
     endmethod
 endmodule
 
