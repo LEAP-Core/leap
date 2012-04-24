@@ -280,7 +280,7 @@ sub NoteIncludes($$)
             # where it is since bsc -E doesn't give a full path.
             my $inc_base = $1;
             my $inc = $inc_base;
-            if (! -f $inc)
+            if (! -f $inc && ! -l $inc)
             {
                 $inc = FindBSVFile($inc);
                 if (! defined($inc))
@@ -342,7 +342,7 @@ sub ParseBSVFile($$)
 
     return if (exists($derivedBSV{$fn}));
 
-    ErrorExit("Can't find file $fName") if (! -f $fName);
+    ErrorExit("Can't find file $fName") if (! -f $fName && ! -l $fName);
 
     my $inComment = 0;
     my $BSV;

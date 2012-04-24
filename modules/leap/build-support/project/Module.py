@@ -1,4 +1,5 @@
 # -*-Python-*-
+import os
 import ProjectDependency 
 
 class Module(ProjectDependency.ProjectDependency):
@@ -50,7 +51,15 @@ class Module(ProjectDependency.ProjectDependency):
   ##   values on the build command line.
   ##
   def parseAWBParams(self):
-    self.initOverrideFile()
+    found_override = False;
+    hw_path = 'hw/include/awb/provides/' + self.name + '_params_override.bsh'
+    sw_path = 'sw/include/awb/provides/' + self.name + '_params_override.h'
+
+    if emitOverrideFiles:
+      if os.path.exists(hw_path):
+        os.unlink(hw_path)
+      if os.path.exists(sw_path):
+        os.unlink(sw_path)
 
     try:
       p = __import__(self.name + '.config')
@@ -58,19 +67,33 @@ class Module(ProjectDependency.ProjectDependency):
       # Replace with command line arguments
       for k, v in p.config.awbParams.iteritems():
         if k in arguments and v != arguments[k]:
+          # Force the type of the override to match the type of the original
           if type(v) is str:
             new_val = str(arguments[k])
           else:
             new_val = int(arguments[k])
 
+          # Generate the header files if this is the first override
+          # for the module.
+          if not found_override:
+            found_override = True;
+            self.initOverrideFile()
+
+          # Replace the old value with the new one
           p.config.awbParams[k] = new_val
           self.overrideAWBParam(k, new_val, type(v) is str)
 
-      return p.config.awbParams
+      params = p.config.awbParams
 
     except ImportError:
       # Should check whether module exists or whether it is some other error
-      return {}
+      params = {}
+
+    if not found_override and emitOverrideFiles:
+      os.symlink('/dev/null', hw_path)
+      os.symlink('/dev/null', sw_path)
+
+    return params
 
 
   ##
@@ -110,7 +133,7 @@ class Module(ProjectDependency.ProjectDependency):
       if (value[0] != '"' or value[-1] != '"'):
         value = '"' + value + '"'
 
-    print 'Overriding AWB parameter ' + param + ': ' + value
+    print 'Overriding AWB parameter ' + self.name + '.' + param + ': ' + value
 
     param_bsh = open('hw/include/awb/provides/' + self.name + '_params_override.bsh', 'a')
     param_bsh.write('`undef ' + param + '\n')

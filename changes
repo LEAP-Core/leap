@@ -12607,3 +12607,17 @@ The end result is it is now trivial to build a model with a new FPGA
 frequency, without having to make permanent changes to configuration files:
 
     scons MODEL_CLOCK_FREQ=100
+
+----------
+mcadler     Date: Mon Apr 23 22:42:31 EDT 2012  CSN: CSN-leap-293
+                  Tue Apr 24 02:42:31 UTC 2012
+
+
+Directory tools/scripts
+ leap-bsc-mkdepend         Locally Modified          292 
+
+Directory modules/leap/build-support/project
+ Module.py                 Locally Modified          292 
+
+Use links to /dev/null instead of empty files for override include files
+that are empty (the usual case).
