@@ -12634,3 +12634,23 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
 Made the vector stats non-blocking methods non-blocking.  They weren't
 actually non-blocking before, probably because Bluespec doesn't do
 implicit condition hoisting for methods?  RWires to the rescue!
+
+----------
+mcadler     Date: Tue Apr 24 20:20:56 EDT 2012  CSN: CSN-leap-295
+                  Wed Apr 25 00:20:56 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          294 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          294 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          294 
+
+- Support the latest Bluespec compiler that doesn't generate .bi files.
+  Still supports older compilers.
+
+- Add fire_when_enabled/no_implicit_conditions to increment rule in statistics
+  so the compiler enforces correctness.

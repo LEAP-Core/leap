@@ -144,7 +144,8 @@ class Iface():
     # Compile generated BSV stubs
     #
     def emitter_bo(target, source, env):
-        target.append(str(target[0]).replace('.bo', '.bi'))
+        if (getBluespecVersion() < 26572):
+            target.append(str(target[0]).replace('.bo', '.bi'))
         return target, source
 
     def compile_bo(source, target, env, for_signature):

@@ -222,11 +222,12 @@ class BSV():
 
 
     ##
-    ## Every generated .bo file also has a generated .bi and .log file.  This is
-    ## how scons learns about them.
+    ## Older versions of Bluespec generated a .bi along with every .bo.
+    ## This is how scons learns about them.
     ##
     def emitter_bo(target, source, env):
-      target.append(str(target[0]).replace('.bo', '.bi'))
+      if (getBluespecVersion() < 26572):
+        target.append(str(target[0]).replace('.bo', '.bi'))
       return target, source
 
     def compile_bo_bsc_base(target):

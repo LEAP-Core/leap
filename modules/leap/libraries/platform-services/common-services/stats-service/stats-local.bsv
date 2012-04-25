@@ -476,31 +476,28 @@ module [CONNECTED_MODULE] mkStatCounterVec_Enabled#(GLOBAL_STRING_UID desc)
         state <= STAT_DUMP;
     endrule
 
-    for(Integer i = 0; i < valueof(n_STATS); i = i + 1)
+    for (Integer i = 0; i < valueof(n_STATS); i = i + 1)
     begin
-        rule nbUpdate(incrWires[i].wget matches tagged Valid .value &&& enabled &&& (state == STAT_RECORDING));          
-            statPool[i] <= statPool[i] + value;    
+        (* fire_when_enabled, no_implicit_conditions *)
+        rule nbUpdate(incrWires[i].wget matches tagged Valid .value &&&
+		      enabled &&&
+		      (state == STAT_RECORDING));
+            statPool[i] <= statPool[i] + value;
         endrule
     end
 
-    method Action incr(t_STAT_IDX idx) if (state == STAT_RECORDING);
-        if (enabled)
-        begin
-            statPool[idx] <= statPool[idx] + 1;
-        end
-    endmethod
 
+    method Action incr(t_STAT_IDX idx) if (state == STAT_RECORDING);
+        incrWires[idx].wset(1);      
+    endmethod
 
     method Action incrBy(t_STAT_IDX idx, STAT_VALUE amount) if (state == STAT_RECORDING);
-        if (enabled)
-        begin
-            statPool[idx] <= statPool[idx] + amount;
-        end
+        incrWires[idx].wset(amount);        
     endmethod
 
-    // We need the RWire indirection here to ensure that these methods can _never_ block
-    // this is because STAT_DUMPING state can last an arbitrary amount time, which seems
-    // to overwhelm buffers in the multiFPGA routers. 
+    // We need the RWire indirection here to ensure that these methods can
+    // _never_ block.  This is because STAT_DUMPING state can last an arbitrary
+    // amount time, which seems to overwhelm buffers in the multiFPGA routers. 
     method Action incr_NB(t_STAT_IDX idx);
         incrWires[idx].wset(1);      
     endmethod
