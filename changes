@@ -12654,3 +12654,18 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
 
 - Add fire_when_enabled/no_implicit_conditions to increment rule in statistics
   so the compiler enforces correctness.
+
+----------
+mcadler     Date: Wed Apr 25 21:49:47 EDT 2012  CSN: CSN-leap-296
+                  Thu Apr 26 01:49:47 UTC 2012
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified          295 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          295 
+
+Add [Module] types to synthesis-boundary top-level modules in order to compile
+correctly when no compiler back end is enabled.  (Per recommendation from
+Bluespec.)

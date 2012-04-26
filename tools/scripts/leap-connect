@@ -256,7 +256,7 @@ sub add_connections {
 	print $of "    // Obtain model clock from context\n";
         print $of "    LOGICAL_CLOCK_INFO model_clock <- getContext();\n";
        	print $of "    // Instantiate wrapper using the correct clock.\n";
-	print $of "    SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}, `CHAINS_${metatype}) $wrap_var <- $mk_wrapper(clocked_by model_clock.clk, reset_by model_clock.rst);\n";
+	print $of "    SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_${metatype}, `CON_SEND_${metatype}, `CON_RECV_MULTI_${metatype}, `CON_SEND_MULTI_${metatype}, `CHAINS_${metatype}) $wrap_var <- liftModule($mk_wrapper(clocked_by model_clock.clk, reset_by model_clock.rst));\n";
         print $of "    messageM(\"Instantiating ${metatype} Stub\");\n";
         print $of "    // Begin: Register Soft Connections\n";
         print $of "    let connections = tpl_1($wrap_var.services);\n";
