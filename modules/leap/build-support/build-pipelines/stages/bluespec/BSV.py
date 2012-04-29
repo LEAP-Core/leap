@@ -5,6 +5,9 @@ import string
 import SCons.Script
 from model import  *
 
+def get_buildpath(moduleList, module):
+  return moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath
+
 def get_wrapper(module):
   return  module.name + '_Wrapper.bsv'
 
@@ -84,7 +87,7 @@ class BSV():
       for module in topo:
         all_logs.extend(module.moduleDependency['BSV_LOG'])
       str = moduleList.env.Command(TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
-                                   all_logs,
+                                   sorted(all_logs),
                                    [ self.gen_global_string_table,
                                      '@ln -fs $TARGET ' + moduleList.env['DEFS']['APM_NAME'] + '.str' ])
       moduleList.topModule.moduleDependency['STR'] += [str]
@@ -124,8 +127,9 @@ class BSV():
 
     ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
  
-    LOG_BSV = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'+ get_log(module)
-    WRAPPER_BSV = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + get_wrapper(module)
+    targets = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + get_wrapper(module) ]
+    if (module.name != moduleList.topModule.name):
+      targets.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'+ get_log(module))
 
     # We must depend on all sythesis boundaries. They can be instantiated anywhere.
     surrogate_children = moduleList.synthBoundaries()
@@ -142,10 +146,10 @@ class BSV():
 
     depends_bsv = MODULE_PATH + '/.depends-bsv'
     moduleList.env.NoCache(depends_bsv)
-    compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/awb/provides:' + ALL_LIB_DIRS_FROM_ROOT + ' ' + LOG_BSV + ' ' + WRAPPER_BSV + ' > ' + depends_bsv
+    compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/awb/provides:' + ALL_LIB_DIRS_FROM_ROOT + ' ' + ' '.join(targets) + ' > ' + depends_bsv
 
     dep = moduleList.env.Command(depends_bsv,
-                                 [ LOG_BSV, WRAPPER_BSV ] +
+                                 targets +
                                  moduleList.topModule.moduleDependency['IFACE_HEADERS'],
                                  compile_deps)
 
@@ -254,8 +258,8 @@ class BSV():
 
     ## Builder for generating a binary and a log file.
     def compile_bo_log(source, target, env, for_signature):
-      cmd = compile_bo_bsc_base([target[0]]) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0]) + \
-            ' 2>&1 | tee ' + str(target[1]) + ' ; test $${PIPESTATUS[0]} -eq 0'
+      cmd = compile_bo_bsc_base(target) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0]) + \
+            ' 2>&1 | tee ' + str(target[0]).replace('.bo', '.log') + ' ; test $${PIPESTATUS[0]} -eq 0'
       return cmd
 
     bsc = moduleList.env.Builder(generator = compile_bo, suffix = '.bo', src_suffix = '.bsv',
@@ -309,9 +313,12 @@ class BSV():
       else:
         ## Top level build can generate the log in a single pass since no
         ## connections are exposed.
-        wrapper_bo = env.BSC_LOG([MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''),
-                                  logfile],
+        wrapper_bo = env.BSC_LOG(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''),
                                  MODULE_PATH + '/' + bsv)
+        ## SCons doesn't deal well with logfile as a 2nd target to BSC_LOG rule,
+        ## failing to derive dependence correctly.
+        env.Command(logfile, wrapper_bo, '')
+        env.Precious(logfile)
 
       ##
       ## All but the top level build need the log build pass to compute
@@ -324,11 +331,10 @@ class BSV():
           print 'stub: ' + str(stub)
 
         synth_stub_path = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'
-        synth_stub = synth_stub_path + module.name +'.bsv'
-        c = env.Command(synth_stub, # target
-                        [stub, wrapper_bo],
-                        ['leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
-
+        synth_stub = synth_stub_path + module.name +'_synth.bsv'
+        env.Command(synth_stub, # target
+                    [stub, wrapper_bo],
+                    ['leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
 
       ##
       ## The mk_<wrapper>.v file is really built by the Wrapper() builder

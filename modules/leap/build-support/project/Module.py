@@ -18,6 +18,7 @@ class Module(ProjectDependency.ProjectDependency):
     self.buildPath = buildPath
     self.parent = parent
     self.childArray = childArray
+
     self.isSynthBoundary = (synthBoundary != [])
     if(self.isSynthBoundary):
       self.synthBoundaryModule = synthBoundary[0]
@@ -28,8 +29,13 @@ class Module(ProjectDependency.ProjectDependency):
       else:
         Module.lastSynthId += 1
         self.synthBoundaryUID = Module.lastSynthId
+
+      # Multi-FPGA mapping.  Set default values that may be updated later.
+      self.synthBoundaryPlatformName = "default"
+      self.synthBoundaryPlatformUID = 0
     else:
       self.synthBoundaryModule = ""
+
     self.synthParent = synthParent
     self.synthChildArray = synthChildArray
     self.computePlatform = computePlatform
@@ -40,6 +46,10 @@ class Module(ProjectDependency.ProjectDependency):
     # downstream tools 
     self.moduleDependency = sources 
           
+
+  def setSynthBoundaryPlatform(self, name, uid):
+      self.synthBoundaryPlatformName = name
+      self.synthBoundaryPlatformUID = uid
 
   def wrapperName(self):
     return 'mk_' + self.name + '_Wrapper'
@@ -147,6 +157,18 @@ class Module(ProjectDependency.ProjectDependency):
     param_h.write('#undef ' + param + '\n')
     param_h.write('#define ' + param + ' ' + value + '\n')
     param_h.close()
+
+  ## Base object methods
+  def __str__(self): return str(self.name)
+
+  def __lt__(self, other): return self.name <  other.name
+  def __le__(self, other): return self.name <= other.name
+  def __eq__(self, other): return self.name == other.name
+  def __ne__(self, other): return self.name != other.name
+  def __gt__(self, other): return self.name >  other.name
+  def __ge__(self, other): return self.name >= other.name  
+
+  def __hash__(self): return self.name.__hash__()
 
 
 ##

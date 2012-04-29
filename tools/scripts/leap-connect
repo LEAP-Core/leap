@@ -92,9 +92,12 @@ sub create_dynsize_bsh {
     my $send_multis = 0;
     my $recv_multis = 0;
     my $chains = 0;
+    my $total_conns = 0;
 
     if (! $genDummyFile) {
         my @conns = parse_dangling_connections($log_file);
+        $total_conns = $#conns + 1;
+
         if ($softservices) {
             for (my $i = 0; $i < scalar(@conns); $i++) {
                 if ($conns[$i]->{"sc_type"} eq "Send") {
@@ -121,6 +124,14 @@ sub create_dynsize_bsh {
                     DIE("Unrecognized type of dangling connection: $1\n");
                 }
             }
+        }
+
+        ## Don't allow the total number of connections to be 0.  If 0 the
+        ## entire synthesis boundary may be optimized away and symbols
+        ## defined in Xilinx configuration files may then be missing.
+        ## (E.g. CLK)
+        if ($total_coons == 0) {
+            $recvs += 1;
         }
     }
 
@@ -168,15 +179,16 @@ sub create_surrogate {
     my $filename = shift;
 
     my $metatype = basename($filename);
-    $metatype =~ s/\.bsv//;
+    $metatype =~ s/\.bsv$//;
+    $metatype =~ s/_synth$//;
 
     my $model = Asim::Model->new($modelfile);
 
     if (defined(&Asim::Model::embed_submodels)) {
-      print "Using Asim::Model embed_submodels\n";
-      $model->embed_submodels();
+        print "Using Asim::Model embed_submodels\n" if (! $genDummyFile);
+        $model->embed_submodels();
     } else {
-      print "Using Asim::Model without embed_submodels\n";
+        print "Using Asim::Model without embed_submodels\n" if (! $genDummyFile);
     }       
 
     my $root = $model->modelroot();
@@ -247,6 +259,10 @@ sub add_connections {
     my $of = shift;
     my $logfile_name = shift;
     my $metatype = shift;
+
+    if ($genDummyFile) {
+        return;
+    }
 
     my $wrap_var = "wrap_" . $metatype;
     my $mk_wrapper = make_module_name(make_wrapper_name($metatype));

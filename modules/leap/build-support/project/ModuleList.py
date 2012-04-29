@@ -4,7 +4,6 @@ import os
 import sys
 import errno
 
-import string
 import pygraph
 try:
   from pygraph.classes.digraph import digraph
@@ -17,8 +16,13 @@ import Module
 import Utils
 from CommandLine import *
 
-def checkSynth(module):
-  return module.isSynthBoundary
+try:
+  from fpgamap_parser import *
+  from fpga_environment_parser import *
+  multiFPGAAvail = True
+except ImportError:
+  # Not multi-FPGA
+  multiFPGAAvail = False
 
 
 class ModuleList:
@@ -45,6 +49,7 @@ class ModuleList:
     givenNGCs = Utils.clean_split(env['DEFS']['GIVEN_NGCS'], sep = ' ') 
     givenVHDs = Utils.clean_split(env['DEFS']['GIVEN_VHDS'], sep = ' ') 
     self.apmName = env['DEFS']['APM_NAME']
+    self.apmFile = env['DEFS']['APM_FILE']
     self.moduleList = []
     self.awbParams = {}
     
@@ -97,7 +102,7 @@ class ModuleList:
     emit_override_params = (getCommandLineTargets(self) != [ 'depends-init' ])
     Module.initAWBParamParser(arguments, emit_override_params)
 
-    for module in modulePickle:
+    for module in sorted(modulePickle):
       # Loading module parameters delayed to here in order to support
       # command-line overrides.  Build a dictionary indexed by module name.
       self.awbParams[module.name] = module.parseAWBParams()
@@ -124,7 +129,6 @@ class ModuleList:
       module.moduleDependency['BA'] = []
       module.moduleDependency['BSV_LOG'] = []
 
-
     #Notice that we call get_bluespec_verilog here this will
     #eventually called by the BLUESPEC build rule
     self.topModule.moduleDependency['XST'] = ['config/' + self.topModule.wrapperName() + '.xst']
@@ -140,9 +144,18 @@ class ModuleList:
     self.topModule.moduleDependency['BSV_LOG'] = []   # Synth boundary build log file
     self.topModule.moduleDependency['STR'] = []       # Global string table
 
+    try:
+      self.localPlatformUID = self.getAWBParam('physical_platform_utils', 'FPGA_PLATFORM_ID')
+      self.localPlatformValid = True
+    except:
+      self.localPlatformUID = 0
+      self.localPlatformValid = False
+
     self.topDependency=[]
     self.graphize()
     self.graphizeSynth()
+
+    self.loadFPGAMapping()
 
     
   def getAWBParam(self, moduleName, param):
@@ -316,10 +329,55 @@ class ModuleList:
           self.graphSynth.add_edge((module,child)) 
   # and this concludes the graph build
 
+  ##
+  ## Load multi-FPGA mapping and decorate the module class
+  ##
+  def loadFPGAMapping(self):
+    if not multiFPGAAvail or not self.localPlatformValid:
+      return
 
-  # returns a dependency based topological sort of the source tree 
+    envFile = self.getAllDependenciesWithPaths('GIVEN_FPGAENV_MAPPINGS')
+    if (len(envFile) != 1):
+      sys.exit('Found more than one mapping file: ' + str(envFile) + ', exiting')
+    mapping = parseFPGAMap(self.env['DEFS']['ROOT_DIR_HW'] + '/' + envFile[0])
+
+    envFile = self.getAllDependenciesWithPaths('GIVEN_FPGAENVS')
+    if (len(envFile) != 1):
+      sys.exit('Found more than one environment file: ' + str(envFile) + ', exiting')
+    environment = parseFPGAEnvironment(self.env['DEFS']['ROOT_DIR_HW'] + '/' + envFile[0])
+
+    for module in [self.topModule] + self.synthBoundaries():
+      n = mapping.getSynthesisBoundaryPlatform(module.name)
+      module.setSynthBoundaryPlatform(n, environment.getSynthesisBoundaryPlatformID(n))
+      if (getBuildPipelineDebug(self) > 0):
+        print 'MList mapping: ' + module.name + ' -> (' + module.synthBoundaryPlatformName + ', ' + str(module.synthBoundaryPlatformUID) + ')'
+
+
+  ## Returns a dependency based topological sort of the source tree 
   def topologicalOrderSynth(self):
     return pygraph.algorithms.sorting.topological_sorting(self.graphSynth)
 
+  ## Same as topologicalOrderSynth but returns only boundaries local to
+  ## the FPGA that is the target of this compilation.
+  def topologicalOrderSynthThisFPGA(self):
+    return [m for m in self.topologicalOrderSynth() \
+              if m.synthBoundaryPlatformUID == self.localPlatformUID]
+
+  ## Return all modules that are synthesis boundaries.  This list does
+  ## NOT include the top module.
   def synthBoundaries(self):
     return filter(checkSynth, self.moduleList)
+
+  ## Return all modules that are synthesis boundaries and are mapped to the
+  ## FPGA targeted in this compilation.
+  def synthBoundariesThisFPGA(self):
+    return [m for m in self.synthBoundaries() \
+              if m.synthBoundaryPlatformUID == self.localPlatformUID]
+
+
+##
+## Helper functions
+##
+
+def checkSynth(module):
+  return module.isSynthBoundary

@@ -12669,3 +12669,53 @@ Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
 Add [Module] types to synthesis-boundary top-level modules in order to compile
 correctly when no compiler back end is enabled.  (Per recommendation from
 Bluespec.)
+
+----------
+mcadler     Date: Sat Apr 28 19:56:00 EDT 2012  CSN: CSN-leap-297
+                  Sat Apr 28 23:56:00 UTC 2012
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified          296 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          296 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          296 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          296 
+ ModuleList.py             Locally Modified          296 
+ Module.py                 Locally Modified          296 
+
+Replace our topological build with a build of all synthesis boundaries in parallel
+followed by a final "link" step in which all boundaries are included by the
+top level model build.
+
+In the old scheme each synthesis boundary built a wrapper module that was
+the true boundary compilation and a stub module that included the exposed
+wires from the boundary.  The parent was required to instantiate the stub.
+
+The new scheme is similar.  There is still a wrapper with the true compilation
+and a stub.  However, the stub is instantiated by the top level module
+automatically by the build manager.  A dummy stub module that does nothing
+is created by the build manager for two purposes:  compatibility with the
+old scheme and so that parent modules may continue to act as though they
+instantiate subordinate modules.  This also allows for writing code that will
+work unchanged for declaring a module a synthesis boundary or not a boundary.
+
+- BSV.py now creates the synthesis boundary stub in as <module_name>_synth.bsv
+  instead of <module_name.bsv.  Also fixed a bug related to multiple targets
+  in the top-level model build.
+
+- Move management of multi-FPGA FPGA assignment from the wrapper gen code
+  in the multi-FPGA library to standard Module.py.  Modules are now decorated
+  with FPGA assignment in the Python SCons code.
+
+- wrapper_gen.py instantiates all synthesis boundaries in a special module
+  (instantiateAllSynthBoundaries).  The top level Bluespec model must instantiate
+  this module because it must be done within the soft connections context.
+
+- leap-connect now understands the new synthesis boundary compilation names and
+  how to create dummy stubs.
