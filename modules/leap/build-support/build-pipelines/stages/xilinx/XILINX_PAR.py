@@ -26,10 +26,12 @@ def getXilinxVersion():
 class PAR():
   def __init__(self, moduleList):
 
+    self.COST_TABLE = moduleList.getAWBParam('xilinx_map', 'COST_TABLE')
+
     xilinx_version = getXilinxVersion()
 
     # xilinx changed the -t option in versions greater than 12.1
-    placer_table = ' -t ' + moduleList.env['DEFS']['COST_TABLE'] + ' '
+    placer_table = ' -t ' + str(self.COST_TABLE) + ' '
     multi_thread = ''
     if(xilinx_version > 120):
       placer_table = ' '

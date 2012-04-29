@@ -12719,3 +12719,20 @@ work unchanged for declaring a module a synthesis boundary or not a boundary.
 
 - leap-connect now understands the new synthesis boundary compilation names and
   how to create dummy stubs.
+
+----------
+mcadler     Date: Sat Apr 28 21:42:52 EDT 2012  CSN: CSN-leap-298
+                  Sun Apr 29 01:42:52 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-map.awb            Locally Modified          297 
+ XILINX_MAP.py             Locally Modified          297 
+ XILINX_PAR.py             Locally Modified          297 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          297 
+
+Move COST_TABLE to the build manager so that changing it doesn't cause
+Bluespec recompilation.  (A consequence of build-time control over AWB
+parameters.)

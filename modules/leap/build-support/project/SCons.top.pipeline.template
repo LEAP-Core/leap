@@ -20,7 +20,6 @@ defs = {
     'BSC_FLAGS_SIM'      : '@BSC_FLAGS_SIM@',
     'BUILD_DIR'          : '@BUILD_DIR@',
     'CONNECTION_SCRIPT'  : 'leap-connect',
-    'COST_TABLE'         : '@COST_TABLE@',
     'FPGA_PART_XILINX'   : '@FPGA_PART_XILINX@',
     'GIVEN_BAS'          : '@GIVEN_BAS@',
     'GIVEN_VHDS'         : '@GIVEN_VHDS@',
@@ -95,12 +94,6 @@ except AttributeError:
 ############################################################################
 
 APM_NAME = env['DEFS']['APM_NAME']
-
-##
-## Override Xilinx COST_TABLE with command line
-##
-env['DEFS']['COST_TABLE'] = ARGUMENTS.get('COST_TABLE', env['DEFS']['COST_TABLE'])
-
 
 
 ############################################################################

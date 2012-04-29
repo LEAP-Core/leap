@@ -13,6 +13,4 @@
 %scons %library XILINX_MAP.py
 
 %param --global MAPPER_OPTIONS  "-global_opt on"  "Xilinx mapper options"
-
-
-
+%param COST_TABLE   1   "Placement and routing cost table"
