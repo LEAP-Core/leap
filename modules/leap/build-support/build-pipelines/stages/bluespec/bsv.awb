@@ -15,4 +15,5 @@
 
 %param BSC_FLAGS  "-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -verilog -remove-dollar"  "Bluespec compiler options"
 
-%param BUILD_VERILOG  1  "Direct BSC to build verilog"
+%param BUILD_VERILOG  1             "Direct BSC to build verilog"
+%param --global BUILD_LOGS_ONLY 0   "True if we should build only logfiles"

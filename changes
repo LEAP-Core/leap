@@ -12736,3 +12736,21 @@ Directory modules/leap/build-support/project
 Move COST_TABLE to the build manager so that changing it doesn't cause
 Bluespec recompilation.  (A consequence of build-time control over AWB
 parameters.)
+
+----------
+mcadler     Date: Sun Apr 29 19:30:23 EDT 2012  CSN: CSN-leap-299
+                  Sun Apr 29 23:30:23 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          298 
+ bsv.awb                   Locally Modified          298 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          298 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          298 
+
+Incorporate minor differences from leap-multifpga.
+

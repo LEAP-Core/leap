@@ -146,9 +146,11 @@ class ModuleList:
 
     try:
       self.localPlatformUID = self.getAWBParam('physical_platform_utils', 'FPGA_PLATFORM_ID')
+      self.localPlatformName = self.getAWBParam('physical_platform_utils', 'FPGA_PLATFORM_NAME')
       self.localPlatformValid = True
     except:
       self.localPlatformUID = 0
+      self.localPlatformName = 'default'
       self.localPlatformValid = False
 
     self.topDependency=[]
@@ -334,6 +336,9 @@ class ModuleList:
   ##
   def loadFPGAMapping(self):
     if not multiFPGAAvail or not self.localPlatformValid:
+      ## Not multi-FPGA.  Set simple default values.
+      for module in [self.topModule] + self.synthBoundaries():
+        module.setSynthBoundaryPlatform(self.localPlatformName, self.localPlatformUID)
       return
 
     envFile = self.getAllDependenciesWithPaths('GIVEN_FPGAENV_MAPPINGS')

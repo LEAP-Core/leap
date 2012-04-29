@@ -320,6 +320,9 @@ class BSV():
         env.Command(logfile, wrapper_bo, '')
         env.Precious(logfile)
 
+        ## In case Bluespec build is the end of the build pipeline.
+        moduleList.topDependency += [logfile]
+
       ##
       ## All but the top level build need the log build pass to compute
       ## the size of the external soft connection vector.  The top level has
