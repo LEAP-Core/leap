@@ -86,8 +86,7 @@ class Module(ProjectDependency.ProjectDependency):
           # Generate the header files if this is the first override
           # for the module.
           if not found_override:
-            found_override = True;
-            self.initOverrideFile()
+            found_override = self.initOverrideFile()
 
           # Replace the old value with the new one
           p.config.awbParams[k] = new_val
@@ -112,7 +111,13 @@ class Module(ProjectDependency.ProjectDependency):
   ##
   def initOverrideFile(self):
     if not emitOverrideFiles:
-      return
+      return False
+
+    # Don't override build pipeline parameters in order to avoid rebuilding
+    # sources.  We don't want to force recompilation due to the
+    # BUILD_PIPELINE_DEBUG switch change.
+    if self.name == 'build_pipeline':
+      return False
 
     # Generate parameter override header files
     param_bsh = open('hw/include/awb/provides/' + self.name + '_params_override.bsh', 'w')
@@ -127,6 +132,8 @@ class Module(ProjectDependency.ProjectDependency):
     param_h.write('//\n\n')
     param_h.close()
 
+    return True
+
 
   ##
   ## overrideAWBParam --
@@ -135,6 +142,12 @@ class Module(ProjectDependency.ProjectDependency):
   ##
   def overrideAWBParam(self, param, value, is_str):
     if not emitOverrideFiles:
+      return
+
+    # Don't override build pipeline parameters in order to avoid rebuilding
+    # sources.  We don't want to force recompilation due to the
+    # BUILD_PIPELINE_DEBUG switch change.
+    if self.name == 'build_pipeline':
       return
 
     # Make sure string is quoted

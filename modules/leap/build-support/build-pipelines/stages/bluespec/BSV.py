@@ -148,6 +148,15 @@ class BSV():
     moduleList.env.NoCache(depends_bsv)
     compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + TMP_BSC_DIR + DERIVED + ' -p +:' + ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/awb/provides:' + ALL_LIB_DIRS_FROM_ROOT + ' ' + ' '.join(targets) + ' > ' + depends_bsv
 
+    # Delete depends_bsv if it is empty under the assumption that something
+    # went wrong when creating it.  An empty dependence file would never be
+    # rebuilt without this.
+    try:
+      if (os.path.getsize(depends_bsv) == 0):
+        os.unlink(depends_bsv)
+    except:
+      None
+
     dep = moduleList.env.Command(depends_bsv,
                                  targets +
                                  moduleList.topModule.moduleDependency['IFACE_HEADERS'],

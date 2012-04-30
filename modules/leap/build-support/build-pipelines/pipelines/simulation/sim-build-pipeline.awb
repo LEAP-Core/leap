@@ -17,3 +17,5 @@
 %notes README
 
 %scons %library SimulationPipeline.py
+
+%param BUILD_PIPELINE_DEBUG 0 "Enable build pipeline debug"

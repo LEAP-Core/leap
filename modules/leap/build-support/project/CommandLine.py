@@ -51,4 +51,4 @@ def getEvents(moduleList):
 ## Build pipeline debug state (emit messages during build)
 ##
 def getBuildPipelineDebug(moduleList):
-    return moduleList.getAWBParam('model', 'BUILD_PIPELINE_DEBUG')
+    return moduleList.getAWBParam('build_pipeline', 'BUILD_PIPELINE_DEBUG')
