@@ -123,7 +123,7 @@ sub generate_files_xilinx {
     close(PRJFILE);
 
     ## Replicate template to each true prj file
-    replicate_prj_files($model->modelroot(), $name, $config_path);
+    replicate_prj_files($model->modelroot(), $name, $config_path, 0);
     # Base file was just a template that is no longer needed
     unlink($final_prj_file);
 
@@ -212,7 +212,8 @@ sub generate_files_synplify {
     close(SDFFILE);
     prj_file_for_synth_boundary($base_sdf_file,
                                 $final_sdf_file,
-                                $wrapper);    
+                                $wrapper,
+                                0);
 
 }
 
@@ -347,11 +348,12 @@ sub replicate_prj_files {
     my $module = shift;
     my $base_name = shift;
     my $config_path = shift;
+    my $depth = shift;
 
     # recurse
     Leap::Build::check_submodules_defined($module);
     foreach my $child ($module->submodules()) {
-        replicate_prj_files($child, $base_name, $config_path);
+        replicate_prj_files($child, $base_name, $config_path, $depth + 1);
     }
 
     if (Leap::Build::is_synthesis_boundary($module)) {
@@ -361,14 +363,16 @@ sub replicate_prj_files {
             my $wrapper = Leap::Build::get_wrapper($module);
             prj_file_for_synth_boundary("${config_path}/${base_name}.prj_base",
                                         "${config_path}/${wrapper}.prj",
-                                        $wrapper);
+                                        $wrapper,
+                                        $depth);
         }
         else {
             for (my $i = 0; $i < $n_instances; $i++) {
                 my $wrapper = "mk_" . Leap::Build::make_instance_wrapper_name($module->provides(), $i);
                 prj_file_for_synth_boundary("${config_path}/${base_name}.prj_base",
                                             "${config_path}/${wrapper}.prj",
-                                            $wrapper);
+                                            $wrapper,
+                                            $depth);
             }
         }
     }
@@ -382,6 +386,7 @@ sub prj_file_for_synth_boundary {
     my $src_file = shift;
     my $dst_file = shift;
     my $wrapper = shift;
+    my $depth = shift;
 
     open(SRC, "< $src_file") || return undef;
     open(DST, "> $dst_file") || return undef;
@@ -393,7 +398,12 @@ sub prj_file_for_synth_boundary {
         my $p = $_;
         my $match = $Leap::Bluespec::tmp_bsc_dir . "/" . $wrapper;
         $p =~ s/${match}_stub.v/${match}.v/;
-        print DST "$p\n";
+        if ($depth > 0) {
+            # Only the top level build needs to include all the stubs.
+            # All other builds are independent.
+            $p =~ s/.*_stub.v\s*$//;
+        }
+        print DST "$p\n" if ($p ne "");
     }
 
     close(SRC);

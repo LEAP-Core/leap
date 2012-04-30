@@ -80,10 +80,8 @@ class Synthesize():
         sub_netlist = moduleList.env.Command(
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
             sorted(module.moduleDependency['VERILOG']) +
-            sorted(moduleList.getAllDependencies('VERILOG_STUB')) +
             sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
             module.moduleDependency['XST'] +
-            moduleList.topModule.moduleDependency['XST'] +
             [ newXSTPath ] +
             xilinx_child_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),

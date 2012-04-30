@@ -12754,3 +12754,25 @@ Directory modules/leap/build-support/project
 
 Incorporate minor differences from leap-multifpga.
 
+
+----------
+mcadler     Date: Mon Apr 30 08:50:05 EDT 2012  CSN: CSN-leap-300
+                  Mon Apr 30 12:50:05 UTC 2012
+
+
+Directory libperl/Leap/lib/Leap
+ Xilinx.pm                 Locally Modified          299 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          299 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          299 
+
+- Synthesis boundary Xst builds no longer need to include any other Verilog
+  stub files.  I believe the only thing keeping synthesis boundary Xst
+  builds from starting immediately after a boundary is compiled is the
+  MCD pipeline stage.  The MCD stage forces all Xst builds to wait for
+  the top-level model compilation.
+
+- Fix SCons warning about BuildDir.

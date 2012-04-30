@@ -33,7 +33,7 @@ class BSV():
 
     self.BSC_FLAGS = moduleList.getAWBParam('bsv_tool', 'BSC_FLAGS') + bsc_events_flag
 
-    moduleList.env.BuildDir(TMP_BSC_DIR, '.', duplicate=0)
+    moduleList.env.VariantDir(TMP_BSC_DIR, '.', duplicate=0)
     moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
 
     # Walk synthesis boundaries in reverse topological order
@@ -277,7 +277,7 @@ class BSV():
     env.Append(BUILDERS = {'BSC' : bsc, 'BSC_LOG' : bsc_log, 'BSC_LOG_ONLY' : bsc_log_only})
 
 
-    moduleList.env.BuildDir(MODULE_PATH + '/' + TMP_BSC_DIR, '.', duplicate=0)
+    moduleList.env.VariantDir(MODULE_PATH + '/' + TMP_BSC_DIR, '.', duplicate=0)
 
     bsc_builds = []
     for bsv in BSVS + GEN_BSVS:
