@@ -220,8 +220,13 @@ typedef struct
  
    // Flush / inval info
    Bool fullHierarchy;
+
+   // Hashed address and tag, passed through the pipeline instead of recomputed.
+   t_CACHE_TAG tag;
+   t_CACHE_IDX idx;
 }
-RL_DM_CACHE_REQ#(type t_CACHE_ADDR, type t_CACHE_REF_INFO)
+RL_DM_CACHE_REQ#(type t_CACHE_ADDR, type t_CACHE_REF_INFO,
+                 type t_CACHE_TAG, type t_CACHE_IDX)
     deriving (Eq, Bits);
 
 
@@ -268,7 +273,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
               Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, t_CACHE_IDX_SZ)), t_CACHE_TAG),
               Alias#(Maybe#(RL_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG)), t_CACHE_ENTRY),
 
-              Alias#(RL_DM_CACHE_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO), t_CACHE_REQ),
+              Alias#(RL_DM_CACHE_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
               Alias#(RL_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_REF_INFO), t_CACHE_LOAD_RESP),
        
               // Required by the compiler:
@@ -281,7 +286,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized(tagged Invalid);
 
     // Track busy entries
-    COUNTING_FILTER#(t_CACHE_IDX) entryFilter <- mkCountingFilter(False, debugLog);
+    COUNTING_FILTER#(t_CACHE_IDX, 0) entryFilter <- mkCountingFilter(debugLog);
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
@@ -324,6 +329,19 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
             a = unpack(hashBits_inv(pack(a)));
 
         return a;
+    endfunction
+
+    // When addresses are hashed, the hash is computed once and stored in
+    // the request.  When not hashed, the bits come directly from the address.
+    // We do this, hoping that an optimizer will get rid of the .tag
+    // and .idx fields in the t_CACHE_REQ stored in the FIFOs when they
+    // are unhashed duplicates of the address.
+    function t_CACHE_IDX cacheIdx(t_CACHE_REQ r);
+        return hashAddresses ? r.idx : tpl_2(cacheEntryFromAddr(r.addr));
+    endfunction
+
+    function t_CACHE_TAG cacheTag(t_CACHE_REQ r);
+        return hashAddresses ? r.tag : tpl_1(cacheEntryFromAddr(r.addr));
     endfunction
 
 
@@ -369,70 +387,72 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
 
     //
     // startReq --
-    //     Start the current request if the line is available.  If the line
-    //     is busy, shunt the request to the side in case another request
-    //     to a different line is also pending.
+    //     Start the current request if the line is not busy.
     //
     //     *** This rule could logically be merged with pickReqQueue above,
     //     *** but the Bluespec compiler chokes on the single rule version.
     //
-    rule startNewReq (True);
+    //     In order to preserve read/write and write/write order, the current
+    //     request must either come from the side buffer or be a new request
+    //     referencing a line not already in the side buffer.
+    //
+    //     The array sideReqFilter tracks lines active in the side request
+    //     queue.
+    //
+    (* fire_when_enabled *)
+    rule startReq ((! tpl_1(curReq) ||
+                    (sideReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) == 0)) &&&
+                   entryFilter.test(cacheIdx(tpl_2(curReq))) matches tagged Valid .filter_state);
         match {.pick_new_req, .r} = curReq;
-        match {.tag, .entryIdx} = cacheEntryFromAddr(r.addr);
+        let idx = cacheIdx(r);
 
-        Bool forwarded_req = False;
-        
-        // Is the request a candidate for forwarding?  Side requests are always
-        // candidates.  To preserve read/write and write/write order, new
-        // requests may be forwarded as long as no side request exists to the
-        // same line.  The array sideReqFilter tracks lines active in the
-        // side request queue.
-        if (! pick_new_req || (sideReqFilter.sub(resize(entryIdx)) == 0))
+        entryFilter.set(filter_state);
+
+        // Not busy -- forward request...
+        debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
+                                pick_new_req ? "startNewReq" : "startSideReq",
+                                r.addr, idx));
+
+        // Read the entry either to return the value (READ) or to see whether
+        // the entry is dirty and flush it.
+        cache.readReq(idx);
+        cacheLookupQ.enq(r);
+
+        if (pick_new_req)
         begin
-            // Is the line busy?
-            forwarded_req <- entryFilter.insert(entryIdx);
-            if (forwarded_req)
-            begin
-                // Not busy -- forward request...
-                debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
-                                        pick_new_req ? "startNewReq" : "startSideReq",
-                                        r.addr, entryIdx));
-
-                // Read the entry either to return the value (READ) or to see whether
-                // the entry is dirty and flush it.
-                cache.readReq(entryIdx);
-
-                cacheLookupQ.enq(r);
-
-                if (pick_new_req)
-                begin
-                    newReqQ.deq();
-                end
-                else
-                begin
-                    sideReqQ.deq();
-                    sideReqFilter.upd(resize(entryIdx),
-                                      sideReqFilter.sub(resize(entryIdx)) - 1);
-                end
-            end
-        end
-
-        if (! forwarded_req &&
-            pick_new_req &&
-            (sideReqFilter.sub(resize(entryIdx)) != maxBound) &&
-            (cacheMode != RL_DM_MODE_DISABLED))
-        begin
-            // Line is busy.  Push request to side buffer so other requests
-            // may flow around it.
-            debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, entryIdx));
-
-            sideReqQ.enq(r);
             newReqQ.deq();
-
-            // Note line present in sideReqQ
-            sideReqFilter.upd(resize(entryIdx),
-                              sideReqFilter.sub(resize(entryIdx)) + 1);
         end
+        else
+        begin
+            sideReqQ.deq();
+            sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) - 1);
+        end
+    endrule
+
+    //
+    // shuntNewReq --
+    //     If the current request is new (not a shunted request) and the
+    //     line is busy, shunt the new request to a side queue in order to
+    //     attempt to process a later request that may be ready to go.
+    //
+    //     This rule will not fire if startReq fires.
+    //
+    (* descending_urgency = "startReq, shuntNewReq" *)
+    rule shuntNewReq (tpl_1(curReq) &&
+                      (sideReqFilter.sub(resize(tpl_2(curReq).idx)) != maxBound) &&
+                      (cacheMode != RL_DM_MODE_DISABLED));
+        match {.pick_new_req, .r} = curReq;
+        let idx = cacheIdx(r);
+
+        // Line is busy.  Push request to side buffer so other requests
+        // may flow around it.
+        debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
+
+        sideReqQ.enq(r);
+        newReqQ.deq();
+
+        // Note line present in sideReqQ
+        sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) + 1);
     endrule
 
 
@@ -447,18 +467,19 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         let r = cacheLookupQ.first();
         cacheLookupQ.deq();
 
-        let cur_entry <- cache.readRsp();
+        let idx = cacheIdx(r);
+        let tag = cacheTag(r);
 
-        match {.r_tag, .entryIdx} = cacheEntryFromAddr(r.addr);
+        let cur_entry <- cache.readRsp();
 
         Bool needFill = True;
 
         if (cacheMode != RL_DM_MODE_DISABLED &&& cur_entry matches tagged Valid .e)
         begin
-            if (e.tag == r_tag)
+            if (e.tag == tag)
             begin
                 // Hit!
-                debugLog.record($format("    lookupRead: HIT addr=0x%x, entry=0x%x, val=0x%x", r.addr, entryIdx, e.val));
+                debugLog.record($format("    lookupRead: HIT addr=0x%x, entry=0x%x, val=0x%x", r.addr, idx, e.val));
                 readHitW.send();
 
                 t_CACHE_LOAD_RESP resp;
@@ -466,14 +487,15 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
                 resp.refInfo = r.refInfo;
                 readRespQ.enq(resp);
 
-                entryFilter.remove(entryIdx);
+                entryFilter.remove(idx);
+
                 needFill = False;
             end
             else if (e.dirty)
             begin
                 // Miss.  Need to flush old data?
-                let old_addr = cacheAddrFromEntry(e.tag, entryIdx);
-                debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, entryIdx, e.val));
+                let old_addr = cacheAddrFromEntry(e.tag, idx);
+                debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
 
                 sourceData.write(old_addr, e.val, r.refInfo);
                 dirtyEntryFlushW.send();
@@ -538,9 +560,10 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         let r = cacheLookupQ.first();
         cacheLookupQ.deq();
 
-        let cur_entry <- cache.readRsp();
+        let idx = cacheIdx(r);
+        let tag = cacheTag(r);
 
-        match {.r_tag, .entryIdx} = cacheEntryFromAddr(r.addr);
+        let cur_entry <- cache.readRsp();
 
         // New data to write
         let w_data = reqInfo_writeData.sub(r.writeDataIdx);
@@ -549,16 +572,16 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         if (cacheMode != RL_DM_MODE_WRITE_BACK)
         begin
             // Caching writes is disabled.  Write through or around.
-            debugLog.record($format("    doWrite: WRITE THROUGH addr=0x%x, entry=0x%x, val=0x%x", r.addr, entryIdx, w_data));
+            debugLog.record($format("    doWrite: WRITE THROUGH addr=0x%x, entry=0x%x, val=0x%x", r.addr, idx, w_data));
             sourceData.write(r.addr, w_data, r.refInfo);
         end
         else if (cur_entry matches tagged Valid .e &&&
                  e.dirty &&&
-                 e.tag != r_tag)
+                 e.tag != tag)
         begin
             // Dirty data must be flushed
-            let old_addr = cacheAddrFromEntry(e.tag, entryIdx);
-            debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, entryIdx, e.val));
+            let old_addr = cacheAddrFromEntry(e.tag, idx);
+            debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
 
             sourceData.write(old_addr, e.val, r.refInfo);
             dirtyEntryFlushW.send();
@@ -567,17 +590,17 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         // Now do the write.  The write may be skipped in NO ALLOC mode as long
         // as the current cache entry isn't for the address being written.
         if ((cacheMode != RL_DM_MODE_WRITE_NO_ALLOC) ||
-            (isValid(cur_entry) && (validValue(cur_entry).tag == r_tag)))
+            (isValid(cur_entry) && (validValue(cur_entry).tag == tag)))
         begin
-            debugLog.record($format("    doWrite: WRITE addr=0x%x, entry=0x%x, val=0x%x", r.addr, entryIdx, w_data));
+            debugLog.record($format("    doWrite: WRITE addr=0x%x, entry=0x%x, val=0x%x", r.addr, idx, w_data));
 
             writeHitW.send();
-            cache.write(entryIdx, tagged Valid RL_DM_CACHE_ENTRY { dirty: (cacheMode == RL_DM_MODE_WRITE_BACK),
-                                                                   tag: r_tag,
-                                                                   val: w_data });
+            cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: (cacheMode == RL_DM_MODE_WRITE_BACK),
+                                                              tag: tag,
+                                                              val: w_data });
         end
 
-        entryFilter.remove(entryIdx);
+        entryFilter.remove(idx);
     endrule
 
 
@@ -593,19 +616,20 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         let r = cacheLookupQ.first();
         cacheLookupQ.deq();
 
+        let idx = cacheIdx(r);
+        let tag = cacheTag(r);
+
         let cur_entry <- cache.readRsp();
 
-        match {.r_tag, .entryIdx} = cacheEntryFromAddr(r.addr);
-
-        if (cur_entry matches tagged Valid .e &&& (e.tag == r_tag))
+        if (cur_entry matches tagged Valid .e &&& (e.tag == tag))
         begin
             forceInvalLineW.send();
 
             if (e.dirty)
             begin
                 // Dirty data must be flushed
-                let old_addr = cacheAddrFromEntry(e.tag, entryIdx);
-                debugLog.record($format("    evictForInval: FLUSH addr=0x%x, entry=0x%x, sync=%0d, val=0x%x", old_addr, entryIdx, r.fullHierarchy, e.val));
+                let old_addr = cacheAddrFromEntry(e.tag, idx);
+                debugLog.record($format("    evictForInval: FLUSH addr=0x%x, entry=0x%x, sync=%0d, val=0x%x", old_addr, idx, r.fullHierarchy, e.val));
 
                 sourceData.write(old_addr, e.val, r.refInfo);
             end
@@ -613,15 +637,15 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
             // Clear the entry if invalidating
             if (r.act == DM_CACHE_INVAL)
             begin
-                debugLog.record($format("    evictForInval: INVAL addr=0x%x, entry=0x%x", r.addr, entryIdx));
-                cache.write(entryIdx, tagged Invalid);
+                debugLog.record($format("    evictForInval: INVAL addr=0x%x, entry=0x%x", r.addr, idx));
+                cache.write(idx, tagged Invalid);
             end
             else
             begin
                 // Just ensure dirty bit is clear for flush
                 let upd_entry = e;
                 upd_entry.dirty = False;
-                cache.write(entryIdx, tagged Valid upd_entry);
+                cache.write(idx, tagged Valid upd_entry);
             end
         end
 
@@ -634,7 +658,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         let r = invalQ.first();
         invalQ.deq();
 
-        match {.r_tag, .entryIdx} = cacheEntryFromAddr(r.addr);
+        let idx = cacheIdx(r);
 
         //
         // Pass the message down the hierarchy.  There might be another cache
@@ -648,7 +672,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
                 sourceData.flushReq(r.addr, True, r.refInfo);
         end
 
-        entryFilter.remove(entryIdx);
+        entryFilter.remove(idx);
     endrule
 
 
@@ -665,6 +689,11 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         r.act = DM_CACHE_READ;
         r.addr = addr;
         r.refInfo = refInfo;
+
+        match {.tag, .idx} = cacheEntryFromAddr(addr);
+        r.tag = tag;
+        r.idx = idx;
+
         newReqQ.enq(r);
     endmethod
 
@@ -690,6 +719,11 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         r.addr = addr;
         r.refInfo = refInfo;
         r.writeDataIdx = data_idx;
+
+        match {.tag, .idx} = cacheEntryFromAddr(addr);
+        r.tag = tag;
+        r.idx = idx;
+
         newReqQ.enq(r);
 
         debugLog.record($format("  New request: WRITE addr=0x%x, wData heap=%0d, val=0x%x", addr, data_idx, val));
@@ -704,6 +738,11 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         r.addr = addr;
         r.refInfo = refInfo;
         r.fullHierarchy = fullHierarchy;
+
+        match {.tag, .idx} = cacheEntryFromAddr(addr);
+        r.tag = tag;
+        r.idx = idx;
+
         newReqQ.enq(r);
     endmethod
 
@@ -715,6 +754,11 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         r.addr = addr;
         r.refInfo = refInfo;
         r.fullHierarchy = fullHierarchy;
+
+        match {.tag, .idx} = cacheEntryFromAddr(addr);
+        r.tag = tag;
+        r.idx = idx;
+
         newReqQ.enq(r);
     endmethod
 

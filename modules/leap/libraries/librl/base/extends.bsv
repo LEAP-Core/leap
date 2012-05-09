@@ -11,6 +11,23 @@ function t_DST resize(t_SRC src)
     return unpack(truncateNP(x));
 endfunction
 
+//
+// sameSizeNP --
+//     Assert that src and dst types are the same size.  This is only
+//     needed when the compiler fails to prove that a pair of complex
+//     types are guaranteed to be the same size.
+function t_DST sameSizeNP(t_SRC src)
+    provisos (Bits#(t_DST, n_DST_BITS),
+              Bits#(t_SRC, n_SRC_BITS));
+    
+    let sb = valueOf(n_SRC_BITS);
+    let db = valueOf(n_DST_BITS);
+    let err = error("incorrect sameSizeNP from " + integerToString(sb) + 
+                    " to " + integerToString(db) + ".");
+
+    return (sb != db) ? err : unpack(truncateNP(pack(src)));
+endfunction
+
 
 //
 // Provided by Bluespec

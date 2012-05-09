@@ -9,7 +9,6 @@
 
 %public bluespec-def.bsv
 %public counters.bsv
-%public counting-filter.bsv
 %public debug-file.bsv
 %public extends.bsv
 %public fifo-functions.bsv

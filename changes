@@ -12803,3 +12803,64 @@ Directory modules/leap/build-support/project
 
 - BUILD_PIPELINE_DEBUG flag shouldn't cause recompilation.
 - Treat an empty .depends-bsv file as a likely error and rebuild it.
+
+----------
+mcadler     Date: Wed May  9 10:16:06 EDT 2012  CSN: CSN-leap-302
+                  Wed May  9 14:16:06 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          301 
+ rl-set-assoc-cache.bsv    Locally Modified          301 
+
+Directory modules/leap/libraries/librl/storage
+ counting-filter.bsv       Locally Added               - 
+ librl-bsv-storage.awb     Locally Modified          301 
+
+Directory modules/leap/libraries/librl/base
+ bluespec-def.bsv          Locally Modified          301 
+ counting-filter.bsv       Locally Removed           301 
+ extends.bsv               Locally Modified          301 
+ librl-bsv-base.awb        Locally Modified          301 
+
+Counting filters used by the libRL cache implementations were taking a
+surprisingly large area.
+
+Counting filter:
+  - Change the interface to test/set methods so the test can be used as
+    a predicate to a rule.  The old interface combined the two as a single
+    actionvalue method.
+  - Pass an opaque message from test to set to avoid recomputing state
+    required by both methods.
+  - Using an opaque type required significant reworking of the static logic
+    that picked either a Bloom or decode filter depending on the size of
+    the set.
+  - Reimplemented decode filter as a pair of LUTRAMs.  One RAM is updated
+    by set() and the other by remove().  The restructuring doubles the
+    storage but requires only one write port for each of set() and remove().
+    The old code required fan out of set/remove requests to logic combining
+    requests at every bit.
+  - Simplified Bloom filter.
+  - Moved to librl/storage since LUTRAM is now required.
+
+Extends:
+  Add sameSizeNP to the no-proviso family of truncate/extend functions.
+  sameSizeNP asserts that the returned type is the same size as the
+  input type for situations where the compiler fails to convince itself
+  without provisos.
+
+Type logic operators in bluespec-def:
+  The counting filter requires calculation of the size of a type as a function
+  of polymorphic numeric type parameters.  A general library now supports this,
+  adding: TBool, TNot, TAnd, Tor, TGT, TGE, TNE, TEq, and TSelect.
+
+Direct mapped cache:
+  - Simplify the rule set that picks the next request using the counting
+    filter test() to decide whether to fire a rule.
+  - When address hashing is enabled compute the hash only once and pass it
+    through the pipeline.
+
+Set associative cache:
+  - Copy the logic from the direct cache for picking either a new request
+    or a side request to process.  The old code tried both in parallel, which
+    is optimal for time but doubles the already large bloom filter test.
