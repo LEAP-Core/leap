@@ -4,5 +4,6 @@
 %provides fpgaenv_bare
 
 %requires physical_platform
+%requires fpga_components
 %requires soft_connections
 %requires build_pipeline

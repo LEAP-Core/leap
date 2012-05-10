@@ -24,15 +24,6 @@ Packagehint=leap-platforms
 File=config/pm/leap/submodels/pipelines/build-pipeline-bluesim.apm
 Packagehint=leap
 
-
-
-
-
-
-
-
-
-
 [NULL Soft Connections]
 File=modules/leap/libraries/soft-services/services/soft-connections/null-soft-connections.awb
 Packagehint=leap
@@ -45,3 +36,8 @@ Packagehint=leap
 physical_platform=Null Physical Platform
 build_pipeline=Build Pipeline Bluesim
 soft_connections=NULL Soft Connections
+fpga_components=Bare FPGA Components
+
+[Bare FPGA Components]
+File=modules/bluespec/common/fpgaenv/fpga-components/bare-fpga-components.awb
+Packagehint=leap-platforms

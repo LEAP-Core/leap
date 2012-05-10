@@ -12891,3 +12891,16 @@ Directory modules/leap/libraries/librl/cache
  rl-set-assoc-cache.bsv    Locally Modified          303 
 
 Simplify the startReq rule predicates.
+
+----------
+mcadler     Date: Thu May 10 14:24:14 EDT 2012  CSN: CSN-leap-305
+                  Thu May 10 18:24:14 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-bare.apm          Locally Modified          304 
+
+Directory modules/leap/virtual-platform
+ fpga-environment-bare.awb Locally Modified          304 
+
+Add fpga_components to the bare environment.
