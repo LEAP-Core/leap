@@ -265,11 +265,8 @@ typedef COUNTING_FILTER_IFC#(t_ENTRY, BLOOM_FILTER_STATE#(nFilterBits))
                            numeric type nFilterBits,
                            numeric type nCounterBits);
 
-typedef Vector#(nFilterBits, Bool)
-    BLOOM_FILTER_HASH_MASK#(numeric type nFilterBits);
-
 // State passed from test() to set() methods.
-typedef BLOOM_FILTER_HASH_MASK#(nFilterBits)
+typedef Vector#(4, Bit#(TLog#(nFilterBits)))
     BLOOM_FILTER_STATE#(numeric type nFilterBits);
 
 //
@@ -285,23 +282,29 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
               Add#(TLog#(nFilterBits), a__, 8),
               Add#(nFilterBits, 0, TExp#(TLog#(nFilterBits))),
 
-              Alias#(BLOOM_FILTER_HASH_MASK#(nFilterBits), t_HASH_MASK),
+              Alias#(Vector#(4, t_FILTER_IDX), t_FILTER_HASHES),
               Alias#(BLOOM_FILTER_STATE#(nFilterBits), t_FILTER_STATE));
     
-    // Filter bits (counters)
-    Reg#(Vector#(nFilterBits, Bit#(nCounterBits))) bf <- mkReg(replicate(0));
+    // The counters associated with each hash are stored independently in
+    // separate LUTRAMs.  This allows us to use memories with a single
+    // write port that are much more efficient than LUT-based vectors.
+    // Like the decode filter, counter RAMs are separated into "in"
+    // and "out" vectors in order to double the write bandwidth while
+    // still using RAMS with one write port.  "In" is updated by the
+    // set() method and "out" by remove().
+    Vector#(4, LUTRAM#(t_FILTER_IDX, Bit#(nCounterBits))) bfIn <- replicateM(mkLUTRAMU);
+    Vector#(4, LUTRAM#(t_FILTER_IDX, Bit#(nCounterBits))) bfOut <- replicateM(mkLUTRAMU);
 
-    // Insert and remove requests are passed on wires to a single rule so
-    // both methods may be called in the same cycle.
-    RWire#(t_HASH_MASK) insertVec <- mkRWire();
-    RWire#(t_ENTRY) removeId <- mkRWire();
-    Wire#(Tuple2#(t_HASH_MASK, t_HASH_MASK)) updateBits <- mkBypassWire();
+    // Insert and remove requests are passed on wires to internal rules
+    // to control the use of LUTRAM ports.
+    RWire#(t_FILTER_HASHES) insertEntryW <- mkRWire();
+    RWire#(t_ENTRY) removeEntryW <- mkRWire();
 
     //
-    // computeHashMask --
-    //     Calculate the mask of positions in the filter for the entry.
+    // computeHashes --
+    //     Calculate the Bloom filter hash values for an entry.
     //
-    function t_HASH_MASK computeHashMask(t_ENTRY entryId);
+    function t_FILTER_HASHES computeHashes(t_ENTRY entryId);
         //
         // Map however many entry bits there are to 32 bits.  This hash function
         // is a compromise for FPGA area.  It works well for current functional
@@ -312,128 +315,86 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
 
         // Get four 8 bit hashes.  The optimal number is probably 5 or 6 but
         // the FPGA area required is too large.
-        Vector#(4, t_FILTER_IDX) hash = newVector();
-        hash[0] = truncate(hash8(idx32[7:0]));
+        t_FILTER_HASHES hash = newVector();
+        hash[0] = truncate(idx32[7:0]);
         hash[1] = truncate(hash8a(idx32[15:8]));
         hash[2] = truncate(hash8b(idx32[23:16]));
         hash[3] = truncate(hash8c(idx32[31:24]));
     
-        Vector#(4, t_HASH_MASK) masks = replicate(replicate(False));
-        masks[0][hash[0]] = True;
-        masks[1][hash[1]] = True;
-        masks[2][hash[2]] = True;
-        masks[3][hash[3]] = True;
-
-        return unpack(pack(masks[0]) | pack(masks[1]) |
-                      pack(masks[2]) | pack(masks[3]));
+        return hash;
     endfunction
 
-
-    //
-    // updateFilter --
-    //
-    //     Two part, single cycle rule to update the Bloom filter.  The
-    //     first rule consumes this cycle's insert and remove calls and constructs
-    //     a pair of vectors of filter positions that will change.  The second
-    //     rule consumes those vectors as wires and updates the Bloom filter.
-    //
-    //     While these rules are logically a single rule, combining them causes
-    //     the Bluespec optimizer to attempt to figure out exactly which bits
-    //     changed and the combinatorics grow quite large.
-    //
-    (* fire_when_enabled, no_implicit_conditions *)
-    rule updateFilter1 (True);
-        //
-        // Construct a vector of filter positions to increment.
-        //
-        t_HASH_MASK bf_incr_mask = newVector();
-        if (insertVec.wget() matches tagged Valid .mask)
-        begin
-            bf_incr_mask = mask;
-        end
-        else
-        begin
-            bf_incr_mask = replicate(False);
-        end
-
-        //
-        // Construct a vector of filter positions to decrement.
-        //
-        // Removal request comes in as the index to the filter instead of a
-        // set of hash buckets.  This puts the computation of hashes in a single
-        // rule.  We would do this for the test method, too, except that
-        // the test method returns a response that is a function of the hashes.
-        //
-        t_HASH_MASK bf_decr_mask = newVector();
-        if (removeId.wget() matches tagged Valid .remId)
-        begin
-            bf_decr_mask = computeHashMask(remId);
-        end
-        else
-        begin
-            bf_decr_mask = replicate(False);
-        end
-
-        // Pass the update vectors to the next rule (same cycle)
-        updateBits <= tuple2(bf_incr_mask, bf_decr_mask);
-    endrule
-
-    (* fire_when_enabled, no_implicit_conditions *)
-    rule updateFilter2 (True);
-        //
-        // Consume the result of updateFilter1 and update the Bloom filter.
-        //
-        match {.bf_incr_mask, .bf_decr_mask} = updateBits;
-
-        // Update function invoked below to change the state of one counter
-        function Bit#(nCounterBits) updateCounter(Bit#(nCounterBits) cur,
-                                                  Bool req_incr,
-                                                  Bool req_decr);
-            // No change if the increment and decrement request states are
-            // the same.
-            if (req_incr == req_decr)
-                return cur;
-            else
-                return cur + (req_incr ? 1 : -1);
-        endfunction
-
-        bf <= zipWith3(updateCounter, bf, bf_incr_mask, bf_decr_mask);
-    endrule
-
-
-    //
-    // Is any counter zero in the set?  If yes then the entry is not
-    // currently active in the filter.
-    //
-    function Bool counterInSetIsClear(Bool inSet, Bit#(nCounterBits) counter);
-        return inSet && (counter == 0);
+    function counterIsZero(Integer position, t_FILTER_IDX hash);
+        return bfIn[position].sub(hash) == bfOut[position].sub(hash);
     endfunction
-    
-    //
-    // Is any counter in the set at its maximum?  If so, the entry can't
-    // be added to the filter even if it isn't currently present.
-    //
-    function Bool wouldOverflow(Bool inSet, Bit#(nCounterBits) counter);
-        return inSet && (counter == maxBound);
+
+    // Would a counter overflow if incremented?
+    function counterWouldOverflow(Integer position, t_FILTER_IDX hash);
+        return (bfIn[position].sub(hash) + 1) == bfOut[position].sub(hash);
     endfunction
 
     function Bool isTrue(Bool b) = b;
 
+    //
+    // An entry is not set in the filter if any hash bucket is zero.
+    //
+    function Bool entryNotSet(t_FILTER_HASHES hashes);
+        let not_set = zipWith(counterIsZero, genVector(), hashes);
+        return any(isTrue, not_set);
+    endfunction
 
-    method Maybe#(t_FILTER_STATE) test(t_ENTRY newEntry);
-        let mask = computeHashMask(newEntry);
+    function Bool entryWouldCauseOverflow(t_FILTER_HASHES hashes);
+        let would_overflow = zipWith(counterWouldOverflow, genVector(), hashes);
+        return any(isTrue, would_overflow);
+    endfunction
 
-        //
-        // Compute properties of the current counter states given a mask
-        // of counters in the entry's set.
-        //
-        t_HASH_MASK not_all_set = zipWith(counterInSetIsClear, mask, bf);
-        t_HASH_MASK overflow = zipWith(wouldOverflow, mask, bf);
 
-        if (any(isTrue, not_all_set) && ! any(isTrue, overflow))
+    Reg#(Bool) ready <- mkReg(False);
+    Reg#(t_FILTER_IDX) initIdx <- mkReg(0);
+    
+    rule init (! ready);
+        for (Integer i = 0; i < 4; i = i + 1)
+        begin
+            bfIn[i].upd(initIdx, 0);
+            bfOut[i].upd(initIdx, 0);
+        end
+
+        ready <= (initIdx == maxBound);
+        initIdx <= initIdx + 1;
+    endrule
+
+    //
+    // Add an entry to the filter.
+    //
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule insertEntry (ready &&& insertEntryW.wget() matches tagged Valid .hashes);
+        for (Integer i = 0; i < 4; i = i + 1)
+        begin
+            bfIn[i].upd(hashes[i], 1 + bfIn[i].sub(hashes[i]));
+        end
+    endrule
+
+    //
+    // Remove an entry from the filter.
+    //
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule removeEntry (ready &&& removeEntryW.wget() matches tagged Valid .oldEntry);
+        let hashes = computeHashes(oldEntry);
+
+        for (Integer i = 0; i < 4; i = i + 1)
+        begin
+            bfOut[i].upd(hashes[i], 1 + bfOut[i].sub(hashes[i]));
+        end
+    endrule
+
+
+    method Maybe#(t_FILTER_STATE) test(t_ENTRY newEntry) if (ready);
+        let hashes = computeHashes(newEntry);
+
+        if (entryNotSet(hashes) && ! entryWouldCauseOverflow(hashes))
         begin
             // May insert
-            return tagged Valid mask;
+            return tagged Valid hashes;
         end
         else
         begin
@@ -442,25 +403,26 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
         end
     endmethod
 
-    method Action set(t_FILTER_STATE stateUpdate);
-        t_HASH_MASK mask = stateUpdate;
+    method Action set(t_FILTER_STATE stateUpdate) if (ready);
+        t_FILTER_HASHES hashes = stateUpdate;
+        insertEntryW.wset(hashes);
 
-        debugLog.record($format("    Bloom filter SET, mask=0x%h", mask));
-        insertVec.wset(mask);
+        debugLog.record($format("    Bloom filter SET: h0=%0d, h1=%0d, h2=%0d, h3=%0d", hashes[0], hashes[1], hashes[2], hashes[3]));
     endmethod
 
-    method Action remove(t_ENTRY oldEntry);
+    method Action remove(t_ENTRY oldEntry) if (ready);
+        removeEntryW.wset(oldEntry);
+
         debugLog.record($format("    Bloom filter REMOVE %0d", oldEntry));
-        removeId.wset(oldEntry);
     endmethod
 
-    method Bool notSet(t_ENTRY entry);
-        let mask = computeHashMask(entry);
-        t_HASH_MASK not_all_set = zipWith(counterInSetIsClear, mask, bf);
-        return any(isTrue, not_all_set);
+    method Bool notSet(t_ENTRY entry) if (ready);
+        let hashes = computeHashes(entry);
+        return entryNotSet(hashes);
     endmethod
 
-    method Action reset();
-        bf <= replicate(0);
+    method Action reset() if (ready);
+        ready <= False;
+        initIdx <= 0;
     endmethod
 endmodule

@@ -12864,3 +12864,19 @@ Set associative cache:
   - Copy the logic from the direct cache for picking either a new request
     or a side request to process.  The old code tried both in parallel, which
     is optimal for time but doubles the already large bloom filter test.
+
+----------
+mcadler     Date: Wed May  9 22:51:21 EDT 2012  CSN: CSN-leap-303
+                  Thu May 10 02:51:21 UTC 2012
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified          302 
+
+Directory modules/leap/libraries/librl/storage
+ counting-filter.bsv       Locally Modified          302 
+
+Realized that the Bloom filter's counters don't have to be shared by all
+hashes.  Using separate storage for counters associated with each hash
+both has fewer false positives and can be implemented using LUTRAMs
+instead of a large array of small adders and inefficient storage.

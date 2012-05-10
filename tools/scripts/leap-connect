@@ -130,7 +130,7 @@ sub create_dynsize_bsh {
         ## entire synthesis boundary may be optimized away and symbols
         ## defined in Xilinx configuration files may then be missing.
         ## (E.g. CLK)
-        if ($total_coons == 0) {
+        if ($total_conns == 0) {
             $recvs += 1;
         }
     }
