@@ -12880,3 +12880,14 @@ Realized that the Bloom filter's counters don't have to be shared by all
 hashes.  Using separate storage for counters associated with each hash
 both has fewer false positives and can be implemented using LUTRAMs
 instead of a large array of small adders and inefficient storage.
+
+----------
+mcadler     Date: Thu May 10 11:38:37 EDT 2012  CSN: CSN-leap-304
+                  Thu May 10 15:38:37 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          303 
+ rl-set-assoc-cache.bsv    Locally Modified          303 
+
+Simplify the startReq rule predicates.

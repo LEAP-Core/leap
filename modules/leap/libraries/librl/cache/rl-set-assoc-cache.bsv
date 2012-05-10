@@ -778,7 +778,9 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // cache.
     LUTRAM#(Bit#(6), Bit#(3)) sideReqFilter <- mkLUTRAM(0);
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
-    Wire#(Tuple2#(Bool, Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ))) curReq <- mkWire();
+    Wire#(Tuple3#(Bool,
+                  Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ),
+                  Maybe#(CF_OPAQUE#(t_CACHE_SET_IDX, 1)))) curReq <- mkWire();
 
     (* fire_when_enabled, no_implicit_conditions *)
     rule incrReqArb (True);
@@ -799,33 +801,37 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                             ((newReqArb != 0) || ! sideReqQ.notEmpty);
 
         let r = pick_new_req ? newReqQ.first() : sideReqQ.first();
-        curReq <= tuple2(pick_new_req, r);
-    endrule
 
+        match {.req_base, .req} = r;
+        let tag = req_base.tag;
+        let set = req_base.set;
+
+        if (! recentReadLineLocked(tag, set))
+        begin
+            // In order to preserve read/write and write/write order, the
+            // request must either come from the side buffer or be a new request
+            // referencing a line not already in the side buffer.
+            //
+            // The array sideReqFilter tracks lines active in the side request
+            // queue.
+            if (! pick_new_req || sideReqFilter.sub(resize(set)) == 0)
+            begin
+                curReq <= tuple3(pick_new_req, r, setFilter.test(set));
+            end
+            else
+            begin
+                curReq <= tuple3(pick_new_req, r, tagged Invalid);
+            end
+        end
+    endrule
 
     //
     // startReq --
     //     Start the current request if the line is not busy.
     //
-    //     *** This rule could logically be merged with pickReqQueue above,
-    //     *** but the Bluespec compiler chokes on the single rule version.
-    //
-    //     In order to preserve read/write and write/write order, the current
-    //     request must either come from the side buffer or be a new request
-    //     referencing a line not already in the side buffer.
-    //
-    //     The array sideReqFilter tracks lines active in the side request
-    //     queue.
-    //
-    match {.curReq_pick_new_req, .curReq_r} = curReq;
-    match {.curReq_req_base, .curReq_req} = curReq_r;
-
     (* fire_when_enabled *)
-    rule startReq (! recentReadLineLocked(curReq_req_base.tag, curReq_req_base.set) &&&
-                   (! curReq_pick_new_req ||
-                    sideReqFilter.sub(resize(curReq_req_base.set)) == 0) &&&
-                   setFilter.test(curReq_req_base.set) matches tagged Valid .filter_state);
-        match {.pick_new_req, .r} = curReq;
+    rule startReq (tpl_3(curReq) matches tagged Valid .filter_state);
+        match {.pick_new_req, .r, .cf_opaque} = curReq;
         match {.req_base, .req} = r;
 
         let tag = req_base.tag;
@@ -833,7 +839,6 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
         setFilter.set(filter_state);
 
-        // Not busy -- forward request...
         debugLog.record($format("  FWD %s to ReqQ: addr=0x%x, set=0x%x",
                                 pick_new_req ? "new" : "side",
                                 debugAddrFromTag(tag, set), set));
@@ -861,19 +866,19 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     //     This rule will not fire if startReq fires.
     //
-    (* descending_urgency = "startReq, shuntNewReq" *)
-    rule shuntNewReq (! recentReadLineLocked(curReq_req_base.tag, curReq_req_base.set) &&
-                      curReq_pick_new_req &&
+    match {.curReq_req_base, .curReq_req} = tpl_2(curReq);
+
+    (* fire_when_enabled *)
+    rule shuntNewReq (tpl_1(curReq) &&
                       (sideReqFilter.sub(resize(curReq_req_base.set)) != maxBound) &&
+                      ! isValid(tpl_3(curReq)) &&
                       cacheEnabled);
-        match {.pick_new_req, .r} = curReq;
+        match {.pick_new_req, .r, .cf_opaque} = curReq;
         match {.req_base, .req} = r;
 
         let tag = req_base.tag;
         let set = req_base.set;
 
-        // Line is busy.  Push request to side buffer so other requests
-        // may flow around it.
         debugLog.record($format("  SIDE shunt req: addr=0x%x, set=0x%x",
                                 debugAddrFromTag(tag, set), set));
 

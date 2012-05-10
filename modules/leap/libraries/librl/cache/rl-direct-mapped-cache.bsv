@@ -361,7 +361,9 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     FIFOF#(t_CACHE_REQ) sideReqQ <- mkSizedFIFOF(8);
     LUTRAM#(Bit#(5), Bit#(2)) sideReqFilter <- mkLUTRAM(0);
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
-    Wire#(Tuple2#(Bool, t_CACHE_REQ)) curReq <- mkWire();
+
+    Wire#(Tuple3#(Bool, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0))))
+        curReq <- mkWire();
 
     (* fire_when_enabled, no_implicit_conditions *)
     rule incrReqArb (True);
@@ -382,33 +384,34 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
                             ((newReqArb != 0) || ! sideReqQ.notEmpty);
 
         let r = pick_new_req ? newReqQ.first() : sideReqQ.first();
-        curReq <= tuple2(pick_new_req, r);
+
+        // In order to preserve read/write and write/write order, the
+        // request must either come from the side buffer or be a new request
+        // referencing a line not already in the side buffer.
+        //
+        // The array sideReqFilter tracks lines active in the side request
+        // queue.
+        if (! pick_new_req || (sideReqFilter.sub(resize(cacheIdx(r))) == 0))
+        begin
+            curReq <= tuple3(pick_new_req, r, entryFilter.test(cacheIdx(r)));
+        end
+        else
+        begin
+            curReq <= tuple3(pick_new_req, r, tagged Invalid);
+        end
     endrule
 
     //
     // startReq --
     //     Start the current request if the line is not busy.
     //
-    //     *** This rule could logically be merged with pickReqQueue above,
-    //     *** but the Bluespec compiler chokes on the single rule version.
-    //
-    //     In order to preserve read/write and write/write order, the current
-    //     request must either come from the side buffer or be a new request
-    //     referencing a line not already in the side buffer.
-    //
-    //     The array sideReqFilter tracks lines active in the side request
-    //     queue.
-    //
     (* fire_when_enabled *)
-    rule startReq ((! tpl_1(curReq) ||
-                    (sideReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) == 0)) &&&
-                   entryFilter.test(cacheIdx(tpl_2(curReq))) matches tagged Valid .filter_state);
-        match {.pick_new_req, .r} = curReq;
+    rule startReq (tpl_3(curReq) matches tagged Valid .filter_state);
+        match {.pick_new_req, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
 
         entryFilter.set(filter_state);
 
-        // Not busy -- forward request...
         debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
                                 pick_new_req ? "startNewReq" : "startSideReq",
                                 r.addr, idx));
@@ -437,15 +440,14 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     //
     //     This rule will not fire if startReq fires.
     //
-    (* descending_urgency = "startReq, shuntNewReq" *)
+    (* fire_when_enabled *)
     rule shuntNewReq (tpl_1(curReq) &&
                       (sideReqFilter.sub(resize(tpl_2(curReq).idx)) != maxBound) &&
+                      ! isValid(tpl_3(curReq)) &&
                       (cacheMode != RL_DM_MODE_DISABLED));
-        match {.pick_new_req, .r} = curReq;
+        match {.pick_new_req, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
 
-        // Line is busy.  Push request to side buffer so other requests
-        // may flow around it.
         debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
 
         sideReqQ.enq(r);
