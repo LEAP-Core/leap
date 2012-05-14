@@ -117,7 +117,7 @@ class Software():
     
             # m5 needs python
             sw_libpath += [ os.path.join(sys.exec_prefix, 'lib') ]
-            sw_link_libs += [ 'python' + sys.version[:3] ]
+            sw_link_libs += [ 'python' + sys.version[:3] ] + [ 'util' ]
     
     
         ##
@@ -132,7 +132,7 @@ class Software():
         ## part of the link step.  There currently is not.
         ##
         if (whole_libs != []):
-            sw_env.Append(LINKFLAGS=['-Wl,--whole-archive'] + whole_libs + ['-Wl,--no-whole-archive'])
+            sw_env.Append(LINKFLAGS=['-Wl,--export-dynamic'] + ['-Wl,--whole-archive'] + whole_libs + ['-Wl,--no-whole-archive'])
 
 
         moduleList.topDependency = moduleList.topDependency + [sw_exe]     

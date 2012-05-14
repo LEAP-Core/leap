@@ -12904,3 +12904,13 @@ Directory modules/leap/virtual-platform
  fpga-environment-bare.awb Locally Modified          304 
 
 Add fpga_components to the bare environment.
+
+----------
+mcadler     Date: Mon May 14 09:09:53 EDT 2012  CSN: CSN-leap-306
+                  Mon May 14 13:09:53 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          305 
+
+Set --export-dynamic linker option when embedding Python.
