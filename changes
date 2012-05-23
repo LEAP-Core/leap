@@ -12914,3 +12914,14 @@ Directory modules/leap/build-support/build-pipelines/stages/software
  software.py               Locally Modified          305 
 
 Set --export-dynamic linker option when embedding Python.
+
+----------
+mcadler     Date: Wed May 23 14:57:31 EDT 2012  CSN: CSN-leap-307
+                  Wed May 23 18:57:31 UTC 2012
+
+
+Directory modules/leap/build-support/project
+ Module.py                 Locally Modified          306 
+
+Use links to empty files instead of to /dev/null for parameter .h and .bsh files
+with no modified values.  This works better when collecting a build tree tarball.

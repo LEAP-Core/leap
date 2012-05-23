@@ -46,6 +46,20 @@ class Module(ProjectDependency.ProjectDependency):
     # downstream tools 
     self.moduleDependency = sources 
           
+    # Make empty EMPTY_params_override Bluespec and C files.  When a module
+    # has no overrides, its override file will link to this file.  We could
+    # have simply linked to /dev/null, but tar --dereference simply eliminates
+    # files linked to /dev/null.  We sometimes want to tar a build tree and
+    # send it to Bluespec.
+    hw_path = 'hw/include/awb/provides/EMPTY_params_override.bsh'
+    if not os.path.exists(hw_path):
+      f = open(hw_path, 'w')
+      f.close()
+    sw_path = 'sw/include/awb/provides/EMPTY_params_override.h'
+    if not os.path.exists(sw_path):
+      f = open(sw_path, 'w')
+      f.close()
+
 
   def setSynthBoundaryPlatform(self, name, uid):
       self.synthBoundaryPlatformName = name
@@ -99,8 +113,8 @@ class Module(ProjectDependency.ProjectDependency):
       params = {}
 
     if not found_override and emitOverrideFiles:
-      os.symlink('/dev/null', hw_path)
-      os.symlink('/dev/null', sw_path)
+      os.symlink('EMPTY_params_override.bsh', hw_path)
+      os.symlink('EMPTY_params_override.h', sw_path)
 
     return params
 
