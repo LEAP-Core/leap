@@ -149,18 +149,20 @@ STDIO_SERVER_CLASS::getFile(UINT8 idx)
 //     Receive a request chunk from hardware.
 //
 void
-STDIO_SERVER_CLASS::Req(UINT32 data, UINT8 eom)
+STDIO_SERVER_CLASS::Req(UINT64 data, UINT8 eom)
 {
-    VERIFYX(reqBufferWriteIdx < (sizeof(reqBuffer) / sizeof(reqBuffer[0])));
+    VERIFYX((reqBufferWriteIdx + 1) < (sizeof(reqBuffer) / sizeof(reqBuffer[0])));
 
+    // Data arrives as a pair of 32 bit values combined into a 64 bit chunk
     reqBuffer[reqBufferWriteIdx++] = data;
+    reqBuffer[reqBufferWriteIdx++] = data >> 32;
 
     if (eom)
     {
         VERIFY(reqBufferWriteIdx > 1, "STDIO service received partial request");
 
         // Decode the header
-        UINT64 header = reqBuffer[0];
+        UINT32 header = reqBuffer[0];
 
         STDIO_REQ_HEADER req;
         req.command = STDIO_REQ_COMMAND(reqBuffer[0] & 255);
@@ -297,7 +299,8 @@ STDIO_SERVER_CLASS::Req_fread(const STDIO_REQ_HEADER &req)
             if (marshalled_elem_per_msg == 0)
             {
                 //
-                // 64 bit reads are require two marshalled messages per element
+                // 64 bit reads use a special RRR service to send the value in
+                // a single message.
                 //
                 for (size_t i = 0; i < n; i += 1)
                 {
@@ -305,8 +308,8 @@ STDIO_SERVER_CLASS::Req_fread(const STDIO_REQ_HEADER &req)
                     UINT8 meta = 0;
                     if (--n_elem_req == 0) meta = 4;
 
-                    clientStub->Rsp(req.clientID, STDIO_RSP_FREAD, 0, buf[i * 2]);
-                    clientStub->Rsp(req.clientID, STDIO_RSP_FREAD, meta, buf[i * 2 + 1]);
+                    UINT64* val_p = (UINT64*)&buf[i * 2];
+                    clientStub->Rsp64(req.clientID, STDIO_RSP_FREAD, meta, *val_p);
                 }
             }
             else

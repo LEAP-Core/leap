@@ -134,7 +134,7 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Cleanup();
 
     // FPGA to software request chunks
-    void Req(UINT32 data, UINT8 eom);
+    void Req(UINT64 data, UINT8 eom);
 };
 
 // server stub

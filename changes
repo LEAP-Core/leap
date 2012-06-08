@@ -12925,3 +12925,18 @@ Directory modules/leap/build-support/project
 
 Use links to empty files instead of to /dev/null for parameter .h and .bsh files
 with no modified values.  This works better when collecting a build tree tarball.
+
+----------
+mcadler     Date: Fri Jun  8 14:14:20 EDT 2012  CSN: CSN-leap-308
+                  Fri Jun  8 18:14:20 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          307 
+ stdio-service.rrr         Locally Modified          307 
+ stdio-service.h           Locally Modified          307 
+ stdio-service.bsv         Locally Modified          307 
+
+Use 64 bit values in RRR methods.  For 64 bit I/O this reduces the RRR traffic
+by about 50%.  FPGA-side STDIO ring traffic is unchanged (32 bits), though RRR
+is likely the rate-limiting component.

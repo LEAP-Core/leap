@@ -44,6 +44,8 @@ module [CONNECTED_MODULE] mkStdIOService
     CONNECTION_ADDR_RING#(STDIO_CLIENT_ID, STDIO_RSP) rspChain <-
         mkConnectionAddrRingNode("stdio_rsp_ring", 0);
     
+    Reg#(Maybe#(STDIO_REQ_RING_CHUNK)) mergeChunk <- mkReg(tagged Invalid);
+    Reg#(Maybe#(Tuple2#(STDIO_CLIENT_ID, STDIO_RSP))) rspBuf <- mkReg(tagged Invalid);
 
     // ****** Rules ******
 
@@ -54,7 +56,28 @@ module [CONNECTED_MODULE] mkStdIOService
     //  
     rule processReq (True);
         match {.chunk, .eom} <- reqChain.recvFromPrev();
-        clientStub.makeRequest_Req(chunk, zeroExtend(pack(eom)));
+
+        //
+        // To reduce trips through the software stack we combine two chunks
+        // into a larger chunk.
+        //
+
+        if (mergeChunk matches tagged Valid .prev)
+        begin
+            // New chunk fills the buffer.  Send the group.
+            clientStub.makeRequest_Req({chunk, prev}, zeroExtend(pack(eom)));
+            mergeChunk <= tagged Invalid;
+        end
+        else if (eom)
+        begin
+            // At EOM send whatever we have.
+            clientStub.makeRequest_Req(zeroExtend(chunk), zeroExtend(pack(eom)));
+        end
+        else
+        begin
+            // Buffer the current chunk and send it later.
+            mergeChunk <= tagged Valid chunk;
+        end
     endrule
 
     //
@@ -62,12 +85,48 @@ module [CONNECTED_MODULE] mkStdIOService
     //
     //     Process a response from software.
     //
-    rule processRsp (True);
+    rule processRsp (! isValid(rspBuf));
         let rsp <- serverStub.acceptRequest_Rsp();
         rspChain.enq(rsp.tgtNode,
                      STDIO_RSP { eom: unpack(rsp.meta[2]),
                                  nValid: rsp.meta[1:0],
                                  data: rsp.data,
                                  operation: unpack(truncate(rsp.command)) });
+    endrule
+
+    //
+    // processRsp64 --
+    //
+    //     Process a 64-bit response from software.  The response has to
+    //     be marshalled into a pair of 32-bit chunks.
+    //
+    (* descending_urgency = "processRsp64, processRsp" *)
+    rule processRsp64 (! isValid(rspBuf));
+        let rsp <- serverStub.acceptRequest_Rsp64();
+
+        // Send the low 32 bits first.  The metadata for the first chunk is
+        // always 0.
+        rspChain.enq(rsp.tgtNode,
+                     STDIO_RSP { eom: False,
+                                 nValid: 0,
+                                 data: rsp.data[31:0],
+                                 operation: unpack(truncate(rsp.command)) });
+
+        // Buffer the rest of the response for the later
+        rspBuf <= tagged Valid tuple2(rsp.tgtNode,
+                                      STDIO_RSP { eom: unpack(rsp.meta[2]),
+                                                  nValid: rsp.meta[1:0],
+                                                  data: rsp.data[63:32],
+                                                  operation: unpack(truncate(rsp.command)) });
+    endrule
+
+    //
+    // processRspBuf --
+    //
+    //     Finish a 64-bit response.
+    //
+    rule processRspBuf (rspBuf matches tagged Valid {.tgtNode, .rsp});
+        rspChain.enq(tgtNode, rsp);
+        rspBuf <= tagged Invalid;
     endrule
 endmodule
