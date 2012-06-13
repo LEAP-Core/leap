@@ -600,3 +600,31 @@ module [t_CONTEXT] addConnectionDebugInfo#(CONNECTION_DEBUG_INFO dbg_info) ()
     putContext(ctxt);
 
 endmodule
+
+// ========================================================================
+//
+// Latency control info
+//
+// ========================================================================
+
+module [t_CONTEXT] getConnectionLatencyInfo (List#(CONNECTION_LATENCY_INFO))
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.latencyInfo;
+
+endmodule
+
+
+module [t_CONTEXT] addConnectionLatencyInfo#(CONNECTION_LATENCY_INFO dbg_info) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.latencyInfo = List::cons(dbg_info, ctxt.latencyInfo);
+    putContext(ctxt);
+
+endmodule

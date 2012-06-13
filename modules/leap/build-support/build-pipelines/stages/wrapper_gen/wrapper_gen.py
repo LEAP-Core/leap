@@ -109,6 +109,7 @@ class WrapperGen():
           wrapper.write('`include "awb/provides/soft_services.bsh"\n')
           wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
           wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
+          wrapper.write('`include "awb/provides/soft_connections_latency.bsh"\n')
           wrapper.write('// import non-synthesis public files\n')
           wrapper.write('`include "' + module.name + '_compile.bsv"\n')
           wrapper.write('\n\n')
@@ -137,7 +138,8 @@ class WrapperGen():
           wrapper.write('    // By convention, global string ID 0 (the first string) is the module name\n');
           wrapper.write('    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, getGlobalStringUID("' + module.synthBoundaryPlatformName + ':' + module.name + '"));\n');
           wrapper.write('    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, ' + module.synthBoundaryModule + ');\n')
-          wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx5, mkSoftConnectionDebugInfo);\n')
+          wrapper.write('    match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, mkSoftConnectionDebugInfo);\n')
+          wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx6, mkSoftConnectionLatencyInfo);\n')
           wrapper.write('    let service_ifc <- exposeServiceContext(final_ctx);\n')
           wrapper.write('    interface services = service_ifc;\n')
           wrapper.write('    interface device = m_final;\n')

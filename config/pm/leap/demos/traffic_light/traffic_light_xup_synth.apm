@@ -39,13 +39,7 @@ File=modules/leap/build-support/project/application-env/soft-services/applicatio
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
-platform_services=Standard Platform Services
-soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
-
-[Standard Platform Services]
-File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
-Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/leap/submodels/common/project-common-default.apm
@@ -59,10 +53,6 @@ Packagehint=leap
 project_common=Default Hybrid Project Common Utilities
 fpgaenv=Hybrid XUP-v5 PCIE FPGA Environment
 application_env=Soft Services Hybrid Application Environment
-
-[Soft Services Submodel]
-File=config/pm/leap/submodels/common/soft-services.apm
-Packagehint=leap
 
 [Hybrid XUP-v5 PCIE FPGA Environment]
 File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-xup-v5-pcie.apm

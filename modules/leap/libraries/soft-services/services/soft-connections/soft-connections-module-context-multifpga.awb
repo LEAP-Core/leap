@@ -18,8 +18,16 @@
 %public addressable-ring.bsv
 %public connected-module.bsv
 %public bury-connections.bsv
+%public test-fifo.bsv
 
 %sources --t BSH --v PUBLIC soft-connections-backward-deps.bsh
 
 %param --global IGNORE_PLATFORM_MISMATCH 0 "Specifies name of multi-fpga target"
 %param --global CLOSE_CHAINS 1 "should we close chains at the top level"
+
+%param --global  LATENCY_DELTA 0 "Enable Latency Test Infrastructure?"
+%param --dynamic LATENCY_DELTA_ID 0 "Which soft connection should get extra latency?"
+%param --dynamic LATENCY_DELTA_DELAY 0 "Which soft connection should get extra latency?"
+%param --dynamic LATENCY_DELTA_DEPTH 0 "Which soft connection should get extra latency?"
+
+

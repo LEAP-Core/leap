@@ -17,10 +17,10 @@ class FPGAProgram(ProjectDependency):
       FPGA_PLATFORM = 'DEFAULT'
 
     try:
-      FPGA_PLATFORM = moduleList.getAWBParam('physical_channel', 'SOFT_RESET')
+      SOFT_RESET = moduleList.getAWBParam('physical_channel', 'SOFT_RESET')
     except:
       SOFT_RESET = 1
 
-    fpgaFile.write('FPGA=' + FPGA_PLATFORM + '\n')
+    fpgaFile.write('FPGA=' + str(FPGA_PLATFORM) + '\n')
     fpgaFile.write('SOFT_RESET=' + str(SOFT_RESET) + '\n')
 

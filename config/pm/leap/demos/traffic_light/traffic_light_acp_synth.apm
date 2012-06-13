@@ -48,16 +48,7 @@ File=modules/leap/build-support/project/application-env/soft-services/applicatio
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
-platform_services=Standard Platform Services
-soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
-
-[Hybrid ACP M2 Compute Environment - No Central Cache (Nallatech)/Params]
-XST_INSERT_IOBUF=0
-
-[Standard Platform Services]
-File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
-Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/leap/submodels/common/project-common-default.apm
@@ -67,6 +58,3 @@ Packagehint=leap
 File=config/pm/leap/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech-no-cache.apm
 Packagehint=leap-platforms-acp
 
-[Soft Services Submodel]
-File=config/pm/leap/submodels/common/soft-services.apm
-Packagehint=leap

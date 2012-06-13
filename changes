@@ -12940,3 +12940,55 @@ Directory modules/leap/libraries/platform-services/common-services/stdio-service
 Use 64 bit values in RRR methods.  For 64 bit I/O this reduces the RRR traffic
 by about 50%.  FPGA-side STDIO ring traffic is unchanged (32 bits), though RRR
 is likely the rate-limiting component.
+
+----------
+kfleming    Date: Wed Jun 13 14:03:30 EDT 2012  CSN: CSN-leap-309
+                  Wed Jun 13 18:03:30 UTC 2012
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_xup_synth.apm Locally Modified          308 
+ traffic_light_exe_synth.apm Locally Modified          308 
+ traffic_light_acp_synth.apm Locally Modified          308 
+
+Directory config/pm/leap/submodels/common
+ soft-services.apm         Locally Modified          308 
+
+Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
+ FPGAProg.py               Locally Modified          308 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          308 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          308 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-mem.bsv              Locally Modified          308 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          308 
+ soft-connections-common-module-context.awb Locally Modified          308 
+ soft-connections-module-context-multifpga.awb Locally Modified          308 
+ latency/                  Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/latency
+ connections-latency.awb   Locally Added               0 
+ connections-latency.bsv   Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          308 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context.awb Locally Modified          308 
+ latency-fifo.bsv          Locally Added               0 
+ connection-context.bsv    Locally Modified          308 
+ connection-implementation.bsv Locally Modified          308 
+
+
+Added support for a testing module to Soft connections.  Soft
+connections can now insert a variable latency and variable buffer FIFO
+instead of the usual two entry FIFO.  These FIFOs are controllable via
+dynamic parameter, and can be removed by regular parameter. 
+
+

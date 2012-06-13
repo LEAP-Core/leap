@@ -19,7 +19,7 @@
 import Connectable::*;
 import Vector::*;
 import Clocks::*;
-
+import FIFO::*;
 
 //------------------ Connection Information ----------------------//
 //                                                                //
@@ -37,6 +37,9 @@ typedef Bit#(TSub#(`CON_CWIDTH, 32)) PHYSICAL_CONNECTION_PAYLOAD;
 // Data types for routing multicast connections and performing logical broadcasts.
 typedef `CONNECTION_IDX_SIZE CONNECTION_IDX_SIZE;
 typedef Bit#(CONNECTION_IDX_SIZE) CONNECTION_IDX;
+typedef function m#(FIFO#(Bit#(PHYSICAL_DATA_SIZE))) f() CONNECTION_BUFFER_CONSTRUCTOR#(type m);
+
+
 
 typedef union tagged
 {
@@ -244,6 +247,33 @@ typedef struct
 
 // ========================================================================
 //
+// Latency control.  Permits us to toggle the buffering an latency of the 
+// softconnections at runtime as a test fixture.
+//
+// ========================================================================
+
+
+typedef Bit#(16) LATENCY_FIFO_DELAY;
+
+typedef Bit#(2) LATENCY_FIFO_DEPTH;
+
+interface CONNECTION_LATENCY_CONTROL;
+
+    method Action setControl(Bool enable);
+    method Action setDelay(LATENCY_FIFO_DELAY delay);
+    method Action setDepth(LATENCY_FIFO_DEPTH depth);
+
+endinterface
+
+typedef struct
+{
+    String sendName;
+    CONNECTION_LATENCY_CONTROL control;
+}
+    CONNECTION_LATENCY_INFO;
+
+// ========================================================================
+//
 // BACKWARDS COMPATABILITY: Data about connection chains
 //
 // ========================================================================
@@ -286,6 +316,7 @@ typedef struct
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
     List#(CONNECTION_DEBUG_INFO) debugInfo;
+    List#(CONNECTION_LATENCY_INFO) latencyInfo;
     String synthesisBoundaryPlatform;
     Integer synthesisBoundaryPlatformID;  // UID for a given FPGA
     Integer synthesisBoundaryID;          // UID a synthesis boundary within a single platform

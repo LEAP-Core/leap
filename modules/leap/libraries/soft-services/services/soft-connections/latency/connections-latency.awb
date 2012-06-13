@@ -1,0 +1,11 @@
+%name Soft Connections Latency Test Fixture
+%desc Soft Connections Latency Test Fixture
+
+%provides soft_connections_latency
+
+%attributes bluespec
+
+%public connections-latency.bsv
+
+
+

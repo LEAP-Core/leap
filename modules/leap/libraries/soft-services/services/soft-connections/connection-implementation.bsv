@@ -41,10 +41,20 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
     Reset localReset <- exposeCurrentReset();
 
     // ****** Local State ****** //
-
-    // This queue could be turned into a BypassFIFO to reduce latency. 
-    FIFOF#(t_MSG) q <- mkUGSizedFIFOF(`CON_BUFFERING);
-    
+ 
+    SCFIFOF#(t_MSG) sc_buffer = ?; 
+    FIFOF#(t_MSG) q = ?; 
+    if(`CON_LATENCY_ENABLE > 0)
+    begin
+        sc_buffer <- mkSCFIFOFUG(); 
+        q = sc_buffer.fifo;  
+    end
+    else 
+    begin
+        sc_buffer = ?; 
+        q <-  mkUGSizedFIFOF(`CON_BUFFERING);  
+    end
+  
     // some wiring needed in the multi-FPGA implementations
     PulseWire sendDequeued <- mkPulseWire;
 
@@ -121,6 +131,10 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
         addConnectionDebugInfo(dbg_info);
     end
 
+    if(`CON_LATENCY_ENABLE > 0)
+    begin
+        addConnectionLatencyInfo(CONNECTION_LATENCY_INFO{ sendName: send_name, control:sc_buffer.control});
+    end
 
     // ****** Interface to User ****** //
 

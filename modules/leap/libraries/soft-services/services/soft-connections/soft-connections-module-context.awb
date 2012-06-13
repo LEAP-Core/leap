@@ -5,6 +5,7 @@
 %requires physical_interconnect
 %requires soft_connections_common
 %requires soft_connections_debug
+%requires soft_connections_latency
 
 %attributes bluespec
 
@@ -20,3 +21,7 @@
 %public bury-connections.bsv
 
 %sources --t BSH --v PUBLIC soft-connections-backward-deps.bsh
+%param --dynamic LATENCY_DELTA_ID 0 "Which soft connection should get extra latency?"
+%param --dynamic LATENCY_DELTA_INVERSE_TEST 0 "Should we modify all fifos, except this one?"
+%param --dynamic LATENCY_DELTA_DELAY 0 "Which soft connection should get extra latency?"
+%param --dynamic LATENCY_DELTA_DEPTH 0 "Which soft connection should get extra latency?"

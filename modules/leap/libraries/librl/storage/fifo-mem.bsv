@@ -247,8 +247,7 @@ module mkMemoryFIFOF#(MEMORY_IFC#(Bit#(TLog#(n_ENTRIES)), t_DATA) mem)
 endmodule
 
 
-
-module mkSizedLUTRAMFIFOF#(NumTypeParam#(t_DEPTH) dummy) 
+module mkSizedLUTRAMFIFOFUG#(NumTypeParam#(t_DEPTH) dummy) 
   //
   //interface:
               (FIFOF#(data_T))
@@ -263,14 +262,14 @@ module mkSizedLUTRAMFIFOF#(NumTypeParam#(t_DEPTH) dummy)
   Bool full  = head.value() == (tail.value() + 1);
   Bool empty = head.value() == tail.value();
     
-  method Action enq(data_T d) if (!full);
+  method Action enq(data_T d);
   
     rs.upd(tail.value(), d);
     tail.up();
    
   endmethod  
   
-  method data_T first() if (!empty);
+  method data_T first();
     
     return rs.sub(head.value());
   
@@ -298,6 +297,43 @@ module mkSizedLUTRAMFIFOF#(NumTypeParam#(t_DEPTH) dummy)
   endmethod
 
 endmodule
+
+
+module mkSizedLUTRAMFIFOF#(NumTypeParam#(t_DEPTH) dummy) 
+    //
+    //interface:
+              (FIFOF#(data_T))
+    provisos
+          (Bits#(data_T, data_SZ));
+
+    let q <- mkSizedLUTRAMFIFOFUG(dummy);
+    
+    method Action enq(data_T d) if (q.notFull);
+
+        q.enq(d);   
+
+    endmethod  
+  
+    method data_T first() if (q.notEmpty);
+
+        return q.first();     
+
+    endmethod   
+  
+    method Action deq() if (q.notEmpty);
+  
+        q.deq();
+    
+    endmethod
+
+    method clear = q.clear;
+  
+    method notEmpty = q.notEmpty;
+  
+    method notFull = q.notFull;
+
+endmodule
+
 
 module mkSizedLUTRAMFIFO#(NumTypeParam#(t_DETPH) dummy) (FIFO#(data_T))
   provisos

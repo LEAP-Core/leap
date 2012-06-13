@@ -32,6 +32,7 @@ import Clocks::*;
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/soft_connections_debug.bsh"
+`include "awb/provides/soft_connections_latency.bsh"
 `include "awb/provides/platform_services.bsh"
 
 module [Module] mkModel
@@ -119,4 +120,9 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem#(LowLevelPlatformInterface llpi)
     // we could push the call down into instantiateWithConnections().
     //
     let dbg <- mkSoftConnectionDebugInfo();
+
+    //
+    // Call latency test generation for the same reasons listed above
+    // 
+    let lat <- mkSoftConnectionLatencyInfo();
 endmodule
