@@ -12992,3 +12992,14 @@ instead of the usual two entry FIFO.  These FIFOs are controllable via
 dynamic parameter, and can be removed by regular parameter. 
 
 
+
+----------
+keflemin    Date: Thu Jun 14 09:44:15 EDT 2012  CSN: CSN-leap-310
+                  Thu Jun 14 13:44:15 UTC 2012
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-module-context-multifpga.awb Locally Modified          309 
+
+
+MultiFPGA now supports the latency test rig. 
