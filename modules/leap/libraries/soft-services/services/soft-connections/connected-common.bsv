@@ -253,15 +253,18 @@ typedef struct
 // ========================================================================
 
 
-typedef Bit#(16) LATENCY_FIFO_DELAY;
+typedef 256 LATENCY_FIFO_DELAY;
+typedef Bit#(TAdd#(1,TLog#(LATENCY_FIFO_DELAY))) LATENCY_FIFO_DELAY_CONTAINER;
 
-typedef Bit#(2) LATENCY_FIFO_DEPTH;
+typedef 2 LATENCY_FIFO_DEPTH;
+typedef Bit#(TAdd#(1,TLog#(LATENCY_FIFO_DEPTH))) LATENCY_FIFO_DEPTH_CONTAINER;
 
 interface CONNECTION_LATENCY_CONTROL;
 
     method Action setControl(Bool enable);
-    method Action setDelay(LATENCY_FIFO_DELAY delay);
-    method Action setDepth(LATENCY_FIFO_DEPTH depth);
+    method Action setDelay(LATENCY_FIFO_DELAY_CONTAINER delay);
+    method Action setDepth(LATENCY_FIFO_DEPTH_CONTAINER depth);
+    method Bool   incrStat();
 
 endinterface
 

@@ -13003,3 +13003,20 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 
 MultiFPGA now supports the latency test rig. 
+
+----------
+keflemin    Date: Tue Jun 19 21:57:09 EDT 2012  CSN: CSN-leap-311
+                  Wed Jun 20 01:57:09 UTC 2012
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          310 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/latency
+ connections-latency.bsv   Locally Modified          310 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ latency-fifo.bsv          Locally Modified          310 
+
+
+Added counters to soft connection instrumentation.

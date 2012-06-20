@@ -29,53 +29,9 @@ import FIFO::*;
 `include "awb/provides/librl_bsv_storage.bsh"
 
 typedef struct {
-  Bit#(16) stamp;
+  LATENCY_FIFO_DELAY_CONTAINER stamp;
   t_MSG payload;
 } TimestampedValue#(type t_MSG) deriving (Bits,Eq);
-
-typedef 8 TestFIFODepth;
-
-
-/* 
-// Probably need to pull the parameters out of the context
-module [t_CONTEXT] mkAdjustableFIFOUG#(String name, Bool guarded) (FIFO#(t_MSG));
-     let fifo <- mkSizedLUTRAMFIFOFUG(valueof(TestFIFODepth));
-     Reg#(Bit#(16)) current <- mkReg(0);
-     // I'm too lazy to implement a lutram count fifo.. 
-     COUNTER#(TLog#(TestFIFODepth)) count <- mkLCounter(0);     
-     COUNTER#(TLog#(t_DEPTH)) head <- mkLCounter(0);
-     GLOBAL_STRING_UID tag <- getGlobalStringUID(name + "_LATENCY_TEST");
-     Param#(SizeOf#(GLOBAL_STRING_UID)) idExternal <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_ID,paramNode);
-     Param#(16) delayExternal <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_DELAY,paramNode);
-     Param#(TLog#(t_DEPTH)) depthExternal <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_DEPTH,paramNode);
-
-     let delay = (idExternal == tag)?delayExternal:0;
-     let depth = (idExternal == tag)?depthExternal:`CON_BUFFERING;
-
-     rule tickCurrent;
-         current <= current + 1;
-     endrule
-
-     method first();
-         return fifo.first.payload;
-     endmethod
-
-     method Action deq();
-         fifo.deq; 
-         count.down;
-     endmethod
-
-     method Action enq(t_MSG value);
-         count.up();
-         fifo.enq(TimestampedValue{stamp: current, payload: value});
-     endmethod
-
-
-     method Bool notEmpty = fifo.notEmpty && (delay < abs(fifo.first.stamp - current));   
-     method Bool notFull = fifo.notFull && (count.value != depth);
-
-endmodule
-*/
 
 
 
@@ -86,22 +42,23 @@ endinterface
 
 // Probably need to pull the parameters out of the context
 module mkSCFIFOFUG (SCFIFOF#(t_MSG))
-provisos( Bits#(t_MSG, t_MSG_sz)//,
-          /*Add#(16, b__, a__)*/ ); //??
+provisos( Bits#(t_MSG, t_MSG_sz) );
 
-     NumTypeParam#(TExp#(SizeOf#(LATENCY_FIFO_DEPTH))) sizeParam = ?;
-     let fifoMem <- mkSizedLUTRAMFIFOFUG(sizeParam);
-     Reg#(Bit#(16)) current <- mkReg(0);
+     NumTypeParam#(LATENCY_FIFO_DEPTH) sizeParam = ?;
+     let fifoMem <- mkUGSizedFIFOF(valueof(LATENCY_FIFO_DEPTH));
+     Reg#(LATENCY_FIFO_DELAY_CONTAINER) current <- mkReg(0);
      // I'm too lazy to implement a lutram count fifo.. 
-     COUNTER#(SizeOf#(LATENCY_FIFO_DEPTH)) count <- mkLCounter(0);     
+     COUNTER#(SizeOf#(LATENCY_FIFO_DEPTH_CONTAINER)) count <- mkLCounter(0);     
      Reg#(Bool) enable <- mkReg(False);
-     Reg#(LATENCY_FIFO_DELAY) delayExternal <- mkReg(0);
-     Reg#(LATENCY_FIFO_DEPTH) depthExternal <- mkReg(`CON_BUFFERING);
+     Reg#(LATENCY_FIFO_DELAY_CONTAINER) delayExternal <- mkReg(0);
+     Reg#(LATENCY_FIFO_DEPTH_CONTAINER) depthExternal <- mkReg(`CON_BUFFERING);
+
+     PulseWire statIncr <- mkPulseWire();
 
      let delay = (enable)?delayExternal:0;
      let depth = (enable)?depthExternal:`CON_BUFFERING;
 
-     Int#(SizeOf#(LATENCY_FIFO_DELAY)) stampDelta = unpack(abs(current-fifoMem.first.stamp));
+     Int#(SizeOf#(LATENCY_FIFO_DELAY_CONTAINER)) stampDelta = unpack(abs(current-fifoMem.first.stamp));
 
      rule tickCurrent;
          current <= current + 1;
@@ -116,7 +73,7 @@ provisos( Bits#(t_MSG, t_MSG_sz)//,
          method Action deq();
              fifoMem.deq; 
              count.down;
-
+             statIncr.send;
          endmethod
 
          method Action enq(t_MSG value);
@@ -126,7 +83,7 @@ provisos( Bits#(t_MSG, t_MSG_sz)//,
 
 
          method Bool notEmpty = fifoMem.notEmpty && (delay < pack(abs(stampDelta)));   
-         method Bool notFull = fifoMem.notFull && (count.value < depth);
+         method Bool notFull = fifoMem.notFull && (count.value <= depth);
 
     endinterface
 
@@ -137,6 +94,8 @@ provisos( Bits#(t_MSG, t_MSG_sz)//,
         method setDelay = delayExternal._write();
  
         method setDepth = depthExternal._write();
+
+        method incrStat = statIncr._read();
 
     endinterface
 
