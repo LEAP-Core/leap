@@ -13020,3 +13020,18 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 
 Added counters to soft connection instrumentation.
+
+----------
+kfleming    Date: Wed Jun 27 10:55:48 EDT 2012  CSN: CSN-leap-312
+                  Wed Jun 27 14:55:48 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          311 
+ platform-scratchpad-memory.bsv Locally Modified          311 
+
+
+Two small changes 
+
+1) Renamed scratchpad rings to make them more obvious in compile dumps
+2) Inserted scratchpad cache instrumentation, which can be toggled by the debug compile flag.

@@ -198,7 +198,13 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ));
 
-    let m <- mkMultiReadStatsScratchpad(scratchpadID, cached, mkNullScratchpadCacheStats);
+    let statsConstructor = mkNullScratchpadCacheStats;
+    if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE != 0)
+    begin
+        statsConstructor = mkBasicScratchpadCacheStats("Scratchpad_","_"+integerToString(scratchpadID) + "_");
+    end
+
+    let m <- mkMultiReadStatsScratchpad(scratchpadID, cached, statsConstructor);
     return m;
 endmodule
 
@@ -409,10 +415,10 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
     let my_port = scratchpadPortId(scratchpadID);
     
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), my_port);
+        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Req", my_port);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), my_port);
+        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Resp", my_port);
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
