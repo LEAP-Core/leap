@@ -27,9 +27,5 @@ APPLICATION_ENV_CLASS::RunApp(int argc, char** argv)
     // return app->Main(argc, argv);
     app->Main();
 
-    // Emit statistics
-    STATS_SERVER_CLASS::GetInstance()->DumpStats();
-    STATS_SERVER_CLASS::GetInstance()->EmitFile();
-
     return 0;
 }

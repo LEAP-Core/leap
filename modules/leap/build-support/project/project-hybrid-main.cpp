@@ -34,6 +34,7 @@
 #include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/virtual_devices.h"
 #include "awb/provides/starter_device.h"
+#include "awb/provides/stats_service.h"
 #include "awb/provides/application_env.h"
 #include "awb/provides/command_switches.h"
 #include "awb/provides/model.h"
@@ -81,6 +82,9 @@ int main(int argc, char *argv[])
     if (PLATFORM_SERVICES_AVAILABLE)
     {
         STARTER_DEVICE_CLASS::GetInstance()->WaitForHardware();
+        // Emit statistics
+        STATS_SERVER_CLASS::GetInstance()->DumpStats();
+        STATS_SERVER_CLASS::GetInstance()->EmitFile();
     }
 
     // Cleanup and exit

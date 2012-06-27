@@ -13046,3 +13046,22 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 
 
 Forgot to rename some scratchpad instances.
+
+----------
+kfleming    Date: Wed Jun 27 16:32:30 EDT 2012  CSN: CSN-leap-314
+                  Wed Jun 27 20:32:30 UTC 2012
+
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.cpp   Locally Modified          313 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ application-env-hybrid-soft-service.cpp Locally Modified          313 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          313 
+
+
+1) Moved stats dump until after completion of wait for hardware call.
+2) Changed naming scheme of scratchpad stats to prevent runtime error
+in mutliple scratchpad designs.

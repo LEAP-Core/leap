@@ -201,7 +201,7 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
     let statsConstructor = mkNullScratchpadCacheStats;
     if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE != 0)
     begin
-        statsConstructor = mkBasicScratchpadCacheStats("Scratchpad_","_"+integerToString(scratchpadID) + "_");
+        statsConstructor = mkBasicScratchpadCacheStats("Scratchpad_" + integerToString(scratchpadID) + "_", "");
     end
 
     let m <- mkMultiReadStatsScratchpad(scratchpadID, cached, statsConstructor);
