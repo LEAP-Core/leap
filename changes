@@ -13035,3 +13035,14 @@ Two small changes
 
 1) Renamed scratchpad rings to make them more obvious in compile dumps
 2) Inserted scratchpad cache instrumentation, which can be toggled by the debug compile flag.
+
+----------
+kfleming    Date: Wed Jun 27 13:21:27 EDT 2012  CSN: CSN-leap-313
+                  Wed Jun 27 17:21:27 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          312 
+
+
+Forgot to rename some scratchpad instances.

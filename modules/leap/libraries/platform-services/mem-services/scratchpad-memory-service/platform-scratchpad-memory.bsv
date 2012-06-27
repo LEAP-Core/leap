@@ -752,10 +752,11 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
     let my_port = scratchpadPortId(scratchpadID);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), my_port);
+        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Req", my_port);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), my_port);
+        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Resp", my_port);
+
 
     Reg#(Bool) initialized <- mkReg(False);
 
@@ -911,10 +912,11 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
     let my_port = scratchpadPortId(scratchpadID);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_REQ), my_port);
+        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Req", my_port);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnectionTokenRingNode(`SCRATCHPAD_PLATFORM + integerToString(`RINGID_SCRATCHPAD_MEMORY_RSP), my_port);
+        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Resp", my_port);
+
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
