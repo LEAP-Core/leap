@@ -13065,3 +13065,29 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 1) Moved stats dump until after completion of wait for hardware call.
 2) Changed naming scheme of scratchpad stats to prevent runtime error
 in mutliple scratchpad designs.
+
+----------
+mcadler     Date: Fri Jun 29 16:00:17 EDT 2012  CSN: CSN-leap-315
+                  Fri Jun 29 20:00:17 UTC 2012
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          314 
+
+Directory libperl/Leap/lib/Leap
+ Xilinx.pm                 Locally Modified          314 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          314 
+
+Directory modules/leap/libraries/librl/base
+ lists.bsv                 Locally Modified          314 
+
+- Run script now passes the device-id to the bitfile download script.
+- Bitfile download script:
+  - Now generated at build time.
+  - Queries host FPGA database for a programming cable ID (thus supporting
+    multiple devices on a single host.)
+
+- Add list() function provided by Bluespec to generate a list of arbitrary
+  length.

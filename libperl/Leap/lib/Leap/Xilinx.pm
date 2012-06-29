@@ -140,7 +140,6 @@ sub generate_files_xilinx {
     #Concatenate all found .ut files
     my @model_ut_files = find_all_files_with_suffix($model->modelroot(), ".ut");
     generate_concatenation_file($model, $name, $builddir, *UTFILE{IO}, @model_ut_files);
-    generate_download_file($model, $builddir);
 }
 
 
@@ -448,52 +447,6 @@ sub gen_xst_synth_files {
     }
 }
 
-
-############################################################
-# generate_download_file:
-sub generate_download_file {
-    my $model = shift;
-    my $builddir = shift;
-    my $name = Leap::Build::get_model_name($model);
-    
-    my $download_file = Leap::Util::path_append($builddir,$xilinx_config_dir,$name . ".download");
-
-    my $replacements_r = Leap::Util::empty_hash_ref();
-    
-    Leap::Util::common_replacements($model, $replacements_r);
-    
-    my $apm = Leap::Build::get_model_name($model);
-    Leap::Util::hash_set($replacements_r,'@APM_NAME@',$apm);
-
-    # Concatenate all found .download files
-    my @model_dwn_files = find_all_files_with_suffix($model->modelroot(), ".download");
-    if (@model_dwn_files) {
-        open(DWNFILE, "> $download_file") || return undef;
-
-        print DWNFILE "#!/usr/bin/perl\n";
-   
-        print DWNFILE "open (BATCH,\">batch.opt\");\n";
-
-        print DWNFILE "print BATCH \"";
-        foreach my $model_dwn_file (@model_dwn_files) {
-            Leap::Templates::do_template_replacements($model_dwn_file, *DWNFILE{IO}, $replacements_r);
-        }
-        print DWNFILE "\nEOF\";\n";
-        print DWNFILE "close(BATCH);\n";
-        print DWNFILE "open (PIPE, \"impact -batch batch.opt 2>&1 | tee \$ARGV[0] |\");\n";
-
-        print DWNFILE "while(<PIPE>) {\n";
-        print DWNFILE "if(\$_ =~ /ERROR:iMPACT/){exit(257);}\n";
-        print DWNFILE "if(\$_ =~ /autodetection failed/){exit(257);}\n";
-        print DWNFILE "}\nexit(0);\n";
-
-        close(DWNFILE);
-        chmod(0755, $download_file);
-    }
-    else {
-        unlink($download_file);
-    }
-}
 
 ############################################################
 # bluespec_dir:

@@ -1,4 +1,5 @@
 import os
+import stat
 import SCons.Script
 from model import  *
 
@@ -28,13 +29,61 @@ class LOADER():
     
     moduleList.topModule.moduleDependency['SIGNATURE'] = [signature]
 
-    #
-    # The final step must leave a few files in well-known locations since they are
-    # used by the run scripts.  moduleList.apmName is the software side, if there is one.
-    #
     if (getBuildPipelineDebug(moduleList) != 0):
         print  moduleList.swExeOrTarget + "\n"
 
+    ##
+    ## Generate a script for loading bitfiles onto an FPGA.
+    ##
+    def leap_xilinx_loader(xilinx_apm_name):
+      fpga_pos = moduleList.getAWBParam('physical_platform', 'FPGA_POSITION')
+
+      def leap_xilinx_loader_closure(target, source, env):
+        lf = open(str(target[0]), 'w')
+
+        lf.write('#!/usr/bin/perl\n')
+        lf.write('\n')
+        lf.write('use Getopt::Long;\n')
+        lf.write('my $dev_id = undef;\n')
+        lf.write('GetOptions(\'device-id=i\', \$dev_id);\n')
+        lf.write('\n')
+        lf.write('# Specify specific cable if device database includes a cable ID\n')
+        lf.write('my $setCable = \'setCable -p auto\';\n')
+        lf.write('if (defined($dev_id)) {\n')
+        lf.write('  my $cable_uid = `leap-fpga-ctrl --device-id=${dev_id} --getconfig prog_cable_id`;\n')
+        lf.write('  chomp($cable_uid);\n')
+        lf.write('  $setCable = "setCable -p usb1 -esn $cable_uid" if ($cable_uid ne "");\n')
+        lf.write('}\n')
+        lf.write('\n')
+        lf.write('open (BATCH,">batch.opt");\n')
+        lf.write('print BATCH "setMode -bscan\n')
+        lf.write('${setCable}\n')
+        lf.write('identify\n')
+        lf.write('assignfile -p 2 -file .xilinx/hello_hybrid_htg_par.bit\n')
+        lf.write('program -p 2\n')
+        lf.write('quit\n')
+        lf.write('EOF\n')
+        lf.write('";\n')
+        lf.write('close(BATCH);\n')
+        lf.write('open (PIPE, "impact -batch batch.opt 2>&1 | tee $ARGV[0] |");\n')
+        lf.write('while(<PIPE>) {\n')
+        lf.write('  if ($_ =~ /ERROR:iMPACT/) {exit(257);}\n')
+        lf.write('  if ($_ =~ /autodetection failed/) {exit(257);}\n')
+        lf.write('}\n')
+        lf.write('exit(0);\n')
+
+        lf.close()
+        os.chmod(str(target[0]), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
+                                 stat.S_IRGRP | stat.S_IXGRP |
+                                 stat.S_IROTH | stat.S_IXOTH)
+
+      return leap_xilinx_loader_closure
+
+
+    ##
+    ## Generate a summary of the build and write a target file describing
+    ## whether the build was successful.
+    ##
     def leap_xilinx_summary(xilinx_apm_name):
       def leap_xilinx_summary_closure(target, source, env):
         map_file = open(xilinx_apm_name + '_map.map','r')
@@ -109,6 +158,11 @@ class LOADER():
       return leap_xilinx_summary_closure
  
     loader = moduleList.env.Command(
+      'config/' + moduleList.apmName + '.download',
+      [],
+      leap_xilinx_loader(xilinx_apm_name))
+
+    summary = moduleList.env.Command(
       moduleList.apmName + '_hw.errinfo',
       moduleList.getAllDependencies('SIGNATURE') + moduleList.swExe + moduleList.getAllDependencies('TRCE'),
       [ '@ln -fs ' + moduleList.swExeOrTarget + ' ' + moduleList.apmName,
@@ -117,5 +171,7 @@ class LOADER():
         '@echo "++++++++++++ Post-Place & Route ++++++++"',
         leap_xilinx_summary(xilinx_apm_name) ])
 
-    moduleList.topModule.moduleDependency['LOADER'] = [loader]
-    moduleList.topDependency = moduleList.topDependency + [loader]     
+    moduleList.env.Depends(summary, loader)
+
+    moduleList.topModule.moduleDependency['LOADER'] = [summary]
+    moduleList.topDependency = moduleList.topDependency + [summary]     
