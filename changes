@@ -13091,3 +13091,15 @@ Directory modules/leap/libraries/librl/base
 
 - Add list() function provided by Bluespec to generate a list of arbitrary
   length.
+
+----------
+mcadler     Date: Sat Jun 30 08:21:18 EDT 2012  CSN: CSN-leap-316
+                  Sat Jun 30 12:21:18 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          315 
+
+The programming cable id now is passed to setCable directly, allowing
+for a more general string.  This enables support for Digilent JTAG
+devices (e.g. on the VC707).
