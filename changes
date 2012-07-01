@@ -13103,3 +13103,13 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 The programming cable id now is passed to setCable directly, allowing
 for a more general string.  This enables support for Digilent JTAG
 devices (e.g. on the VC707).
+
+----------
+mcadler     Date: Sat Jun 30 23:00:40 EDT 2012  CSN: CSN-leap-317
+                  Sun Jul  1 03:00:40 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          316 
+
+Emit a NULL download script when FPGA_POSITION is undefined.  Needed for ACP.
