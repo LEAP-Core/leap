@@ -75,6 +75,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  synthesisBoundaryPlatform: fpgaPlatformName,
                  synthesisBoundaryPlatformID: fpgaPlatformID,
                  synthesisBoundaryID: 0,
+                 synthesisBoundaryName: "Unknown",
                  rootStationName: "InvalidRootStation",
                  softReset: sReset
              };
@@ -118,10 +119,19 @@ instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(
 
 endinstance
 
+// We should refactor this code
 module printDanglingSend#(Integer cur_out, LOGICAL_SEND_INFO cur) (Empty);
     let opt = (cur.optional) ? "True" : "False";
-    messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth));
+    messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth) + ":" + cur.moduleName + ":None" );
 endmodule
+
+module printDanglingRecv#(Integer cur_out, LOGICAL_RECV_INFO cur) (Empty);
+
+    let opt = (cur.optional) ? "True" : "False";
+    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_out) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth) + ":" + cur.moduleName+ ":None" );
+
+endmodule
+
 
 // Expose dangling sends to other synthesis boundaries via compilation messages
 
@@ -173,12 +183,6 @@ module exposeDanglingSends#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
 
 endmodule
 
-module printDanglingRecv#(Integer cur_out, LOGICAL_RECV_INFO cur) (Empty);
-
-    let opt = (cur.optional) ? "True" : "False";
-    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_out) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth));
-
-endmodule
 
 // Expose dangling receives to other synthesis boundaries via compilation messages
 
@@ -364,7 +368,7 @@ endmodule*/
 
 // make the printout similar to connections.  this may assist in parsing later.
 module printChain#(Integer cur_out, LOGICAL_CHAIN_INFO cur) (Empty);
-    messageM("Dangling Chain {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":False:" + integerToString(cur.bitWidth));
+    messageM("Dangling Chain {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":False:" + integerToString(cur.bitWidth) + ":" + cur.moduleNameIncoming+ ":" + cur.moduleNameOutgoing);
 endmodule
 
 module exposeChains#(LOGICAL_CONNECTION_INFO ctx) (Vector#(n, PHYSICAL_CHAIN));

@@ -152,13 +152,15 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         // Good news! We didn't blow up.
         // Actually do the connection, with a new LOGICAL_CHAIN_INFO 
         // This lets us keep a single LOGICAL_CHAIN_INFO
-        messageM("Adding Link to Chain: [" + new_link.logicalName + "]");
+        messageM("Adding Link to Chain: [" + new_link.logicalName + "] from " + new_link.moduleNameIncoming);
         connectOutToIn(new_link.outgoing, latest_link.incoming);
 
         // Add the new link to the list.
         putChain(LOGICAL_CHAIN_INFO{logicalName: new_link.logicalName, 
                                                logicalType: new_link.logicalType, 
                                                computePlatform: new_link.computePlatform,
+                                               moduleNameIncoming: new_link.moduleNameIncoming,
+                                               moduleNameOutgoing: latest_link.moduleNameOutgoing,
                                                bitWidth: new_link.bitWidth, 
                                                incoming: new_link.incoming, 
                                                outgoing: latest_link.outgoing});

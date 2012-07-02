@@ -13113,3 +13113,29 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
  XILINX_LOADER.py          Locally Modified          316 
 
 Emit a NULL download script when FPGA_POSITION is undefined.  Needed for ACP.
+
+----------
+kfleming    Date: Mon Jul  2 16:09:04 EDT 2012  CSN: CSN-leap-318
+                  Mon Jul  2 20:09:04 UTC 2012
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified          317 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          317 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          317 
+ connected-common.bsv      Locally Modified          317 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          317 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-context.bsv    Locally Modified          317 
+ connection-implementation.bsv Locally Modified          317 
+
+
+Added module tags to the softconnection data dump.  We need this
+information for the multifpga placer tool.

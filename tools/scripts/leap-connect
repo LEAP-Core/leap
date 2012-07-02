@@ -285,17 +285,19 @@ sub add_connections {
             my $conplat = $conns[$i]->{"platform"};
             my $conopt  = $conns[$i]->{"optional"};
             my $conbitwidth  = $conns[$i]->{"bitwidth"};
+            my $boundaryname  = $conns[$i]->{"boundaryname"};
+            my $chainrootboundaryname  = $conns[$i]->{"chainrootboundaryname"};
 
             if ($conns[$i]->{"sc_type"} eq "Send") {
-                print $of "    registerSend(LOGICAL_SEND_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoing[$conidx], bitWidth: $conbitwidth});\n";
+                print $of "    registerSend(LOGICAL_SEND_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoing[$conidx], bitWidth: $conbitwidth, moduleName: \"$boundaryname\"});\n";
             } elsif ($conns[$i]->{"sc_type"} eq "Recv") {
-                print $of "    registerRecv(LOGICAL_RECV_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, incoming: connections.incoming[$conidx],  bitWidth: $conbitwidth });\n";
+                print $of "    registerRecv(LOGICAL_RECV_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, incoming: connections.incoming[$conidx],  bitWidth: $conbitwidth, moduleName: \"$boundaryname\"});\n";
             } elsif ($conns[$i]->{"sc_type"} eq "SendMulti") {
                 print $of "    registerSendMulti(LOGICAL_SEND_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, outgoing: connections.outgoingMultis[$conidx] });\n";
             } elsif ($conns[$i]->{"sc_type"} eq "RecvMulti") {
                 print $of "    registerRecvMulti(LOGICAL_RECV_MULTI_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", optional: $conopt, incoming: connections.incomingMultis[$conidx] });\n";
 	    } elsif ($conns[$i]->{"sc_type"} eq "Chain") {
-                print $of "    registerChain(LOGICAL_CHAIN_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", incoming: connections.chains[$conidx].incoming, outgoing: connections.chains[$conidx].outgoing,  bitWidth: $conbitwidth });\n";
+                print $of "    registerChain(LOGICAL_CHAIN_INFO { logicalName: \"$conname\", logicalType: \"$contype\", computePlatform: \"$conplat\", incoming: connections.chains[$conidx].incoming, outgoing: connections.chains[$conidx].outgoing,  bitWidth: $conbitwidth, moduleNameIncoming: \"$boundaryname\", moduleNameOutgoing: \"$chainrootboundaryname\" });\n";
             }
 
         }
@@ -450,7 +452,7 @@ sub parse_dangling_connections {
 	$line_count = $line_count + 1;
         if ($line =~ /^Compilation message: .*: Dangling /) {
             if ($softservices) {
-	        if ($line =~ /.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\w+):(\d+)/) {
+	        if ($line =~ /.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\w+):(\d+):(\w+):(\w+)/) {
 		    my %connection = (
                         sc_type => $1,
                         name => $4,
@@ -458,7 +460,9 @@ sub parse_dangling_connections {
                         idx => $3,
                         platform => $5,
                         optional => $6, 
-                        bitwidth => $7
+                        bitwidth => $7,
+                        boundaryname => $8,
+                        chainrootboundaryname => $9
                     );
 		    push(@conns, \%connection);
 		}

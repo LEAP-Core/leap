@@ -69,6 +69,16 @@ module [t_CONTEXT] getSynthesisBoundaryID (Integer)
 
 endmodule
 
+module [t_CONTEXT] getSynthesisBoundaryName (String)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.synthesisBoundaryName;
+
+endmodule
+
 module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -219,6 +229,17 @@ module [t_CONTEXT] putSynthesisBoundaryID#(Integer new_id) ()
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
     ctxt.synthesisBoundaryID = new_id;
+    putContext(ctxt);
+
+endmodule
+
+module [t_CONTEXT] putSynthesisBoundaryName#(String new_name) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.synthesisBoundaryName = new_name;
     putContext(ctxt);
 
 endmodule

@@ -83,12 +83,14 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
 
     // Collect up our info.
     String platformName <- getSynthesisBoundaryPlatform(); 
+    String moduleName   <- getSynthesisBoundaryName(); 
     let info = 
         LOGICAL_SEND_INFO 
         {
             logicalName: send_name, 
             logicalType: original_type, 
             computePlatform: platformName,
+            moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
             outgoing: outg
@@ -199,12 +201,14 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
 
     // Collect up our info.
     String platformName <- getSynthesisBoundaryPlatform(); 
+    String moduleName   <- getSynthesisBoundaryName(); 
     let info = 
         LOGICAL_RECV_INFO 
         {
             logicalName: recv_name, 
             logicalType: original_type, 
             computePlatform: platformName,
+            moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
             incoming: inc
@@ -520,7 +524,7 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
 	     endinterface);
 
   String platform <- getSynthesisBoundaryPlatform();
-
+  String moduleName   <- getSynthesisBoundaryName(); 
   // Collect up our info.
   let info = 
       LOGICAL_CHAIN_INFO 
@@ -528,6 +532,8 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
           logicalName: chain_name, 
           logicalType: original_type, 
           computePlatform: platform,
+          moduleNameIncoming: moduleName,
+          moduleNameOutgoing: moduleName,
           bitWidth: valueof(SizeOf#(msg_T)),  
           incoming: inc,
           outgoing: outg

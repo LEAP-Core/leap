@@ -167,6 +167,7 @@ typedef struct
     String logicalName;
     String logicalType;
     String computePlatform;
+    String moduleName;
     Bool optional;
     Integer bitWidth;
     PHYSICAL_CONNECTION_OUT outgoing;
@@ -179,6 +180,7 @@ typedef struct
     String logicalName;
     String logicalType;
     String computePlatform;
+    String moduleName;
     Bool optional;
     Integer bitWidth;
     PHYSICAL_CONNECTION_IN incoming;
@@ -295,6 +297,8 @@ typedef struct
     String  logicalName;
     String  logicalType;
     String  computePlatform;
+    String  moduleNameIncoming;
+    String  moduleNameOutgoing;
     Integer bitWidth;
     PHYSICAL_CHAIN_IN  incoming;
     PHYSICAL_CHAIN_OUT outgoing;
@@ -323,6 +327,7 @@ typedef struct
     String synthesisBoundaryPlatform;
     Integer synthesisBoundaryPlatformID;  // UID for a given FPGA
     Integer synthesisBoundaryID;          // UID a synthesis boundary within a single platform
+    String synthesisBoundaryName;
     String rootStationName;
     Reset softReset;
 }
