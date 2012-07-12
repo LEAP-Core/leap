@@ -318,6 +318,23 @@ STATS_SERVER_CLASS::NodeInfo(GLOBAL_STRING_UID desc)
     free(str);
 }
 
+// Reset Stats values
+// Calls a dump stats followed by setting all the software side stats to
+// zero.  This effectively clears all the statistics values.
+void STATS_SERVER_CLASS::ResetStatValues()
+{
+    clientStub->DumpStats(0);
+
+    // Zero all stats vectors
+    for (list<STAT_VECTOR>::iterator li = statVectors.begin();
+         li != statVectors.end(); li++)
+    {
+      for(int i = 0; i < (*li)->GetLength(); i++) {
+            (*li)->SetEntry(i,0);
+        }
+    }
+
+}
 
 // DumpStats
 void
@@ -326,16 +343,9 @@ STATS_SERVER_CLASS::DumpStats()
     clientStub->DumpStats(0);
 }
 
-
-//
-// EmitStatsFile --
-//    Dump the in-memory statistics to a file.
-//
 void
-STATS_SERVER_CLASS::EmitFile()
+STATS_SERVER_CLASS::EmitFile(string statsFileName)
 {
-    // Open the output file
-    string statsFileName = string(globalArgs->Workload()) + ".stats";
     ofstream statsFile(statsFileName.c_str());
 
     if (! statsFile.is_open())
@@ -375,6 +385,18 @@ STATS_SERVER_CLASS::EmitFile()
     }
 
     statsFile.close();
+}
+
+//
+// EmitStatsFile --
+//    Dump the in-memory statistics to a file.
+//
+void
+STATS_SERVER_CLASS::EmitFile()
+{
+    // Open the output file
+    string statsFileName = string(globalArgs->Workload()) + ".stats";
+    EmitFile(statsFileName);
 }
 
 

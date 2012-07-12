@@ -46,6 +46,7 @@ class STAT_COUNTER_CLASS
     
     void IncrBy(UINT64 inc) { value += inc; };
     UINT64 GetValue() { return value; };
+    UINT64 SetValue(UINT64 newValue) { value = newValue; };
 };
 
 
@@ -55,6 +56,7 @@ class STAT_COUNTER_CLASS
 //     (tag and description).
 //
 typedef class STAT_VECTOR_CLASS* STAT_VECTOR;
+
 
 class STAT_VECTOR_CLASS
 {
@@ -84,6 +86,12 @@ class STAT_VECTOR_CLASS
     {
         ASSERTX(n < length);
         return &v[n];
+    };
+
+    void SetEntry(UINT32 n, UINT64 value)
+    {
+        ASSERTX(n < length);
+        v[n].SetValue(value);
     };
 };
 
@@ -200,6 +208,7 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     void ResetStatValues();
     void DumpStats();
     void EmitFile();
+    void EmitFile(string statsFileName);
 
     // static methods
     static STATS_SERVER GetInstance() { return &instance; }

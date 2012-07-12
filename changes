@@ -13139,3 +13139,16 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 Added module tags to the softconnection data dump.  We need this
 information for the multifpga placer tool.
+
+----------
+kfleming    Date: Thu Jul 12 10:15:27 EDT 2012  CSN: CSN-leap-319
+                  Thu Jul 12 14:15:27 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          318 
+ stats-service.cpp         Locally Modified          318 
+
+
+Added support for resetting statistics counters at runtime, and
+dumping the stats to a specific file.
