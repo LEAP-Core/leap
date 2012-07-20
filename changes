@@ -13152,3 +13152,16 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
 
 Added support for resetting statistics counters at runtime, and
 dumping the stats to a specific file.
+
+----------
+keflemin    Date: Thu Jul 19 21:28:05 EDT 2012  CSN: CSN-leap-320
+                  Fri Jul 20 01:28:05 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Modified          319 
+ local-mem-central-cache.bsv Locally Modified          319 
+
+
+Central cache stats are now augmented with platform name, permitting
+us to collect stats on all FPGAs in a multi-FPGA environment.

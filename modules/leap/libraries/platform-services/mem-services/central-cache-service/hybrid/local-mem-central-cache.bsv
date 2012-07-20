@@ -134,10 +134,9 @@ module [CONNECTED_MODULE] mkCentralCache
                                             debugLogInt);
 
     // Attach statistics to the cache
-    if (`CENTRAL_CACHE_STATS != 0)
-    begin
-        let cacheStats <- mkCentralCacheStats(cache.stats);
-    end 
+   
+    let cacheStats <- mkCentralCacheStats(cache.stats);
+   
 
     // Manage routing of flush/inval ACK back to requesting port
     FIFO#(CENTRAL_CACHE_PORT_NUM) flushAckRespQ <- mkFIFO();
