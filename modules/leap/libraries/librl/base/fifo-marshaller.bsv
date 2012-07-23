@@ -259,6 +259,11 @@ module mkSimpleMarshallerN#(Bool lowFirst)
 endmodule
 
 
+//
+// mkSimpleDemarshaller --
+//     Basic demarshaller that maps a fixed size number of marshalled messages
+//     back to an original type.
+//
 module mkSimpleDemarshaller
     // Interface:
         (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
@@ -330,6 +335,176 @@ module mkSimpleDemarshaller
             end
 
             count <= (is_last ? 0 : count + 1);
+        endmethod
+
+        method Action deq() if (full);
+            entry0Q.deq();
+            deqComplete.send();
+        endmethod
+
+        method t_DATA first() if (full);
+            // Return an entire demarshalled message.
+            return unpack(truncateNP({ pack(buffer), pack(entry0Q.first) }));
+        endmethod
+
+        method Bool notFull() = (! full || entry0Q.notFull);
+        method Bool notEmpty() = full;
+    end
+endmodule
+
+
+//
+// mkSimpleDemarshallerN --
+//     Demarshall a stream back to an original type.
+//
+//     The msgChunks function must compute the number of chunks for each
+//     marshalled message based only on the first chunk received.  The
+//     unnecessarily large return type of msgChunks is to avoid a dependence
+//     loop for clients of mkSimpleDemarshallerN that need to add extra
+//     state to a marshalled message in order to compute that message's
+//     size.  The state adds more bits to the marshalled message, potentially
+//     increasing the number of chunks in the encoded message.  We avoid
+//     the loop by making the data type larger than needed.  This will
+//     not affect generated hardware, as the true size will be truncated.
+//
+module mkSimpleDemarshallerN#(function Bit#(t_FIFO_DATA_SZ) msgChunks(t_FIFO_DATA head))
+    // Interface:
+        (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
+    provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              // Number of chunks to send a full message
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA, t_DATA)),
+              Alias#(MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, t_DATA), t_NUM_CHUNKS),
+              Bits#(t_NUM_CHUNKS, t_NUM_CHUNKS_SZ));
+
+    if (valueOf(n) <= 1)
+    begin
+        //
+        // Trivial case where the marshalling container is at least as large
+        // as the data.
+        //
+
+        FIFOF#(t_DATA) msgQ <- mkFIFOF();
+
+        method Action enq(t_FIFO_DATA dat) = msgQ.enq(unpack(truncateNP(pack(dat))));
+        method Action deq() = msgQ.deq;
+        method t_DATA first() = msgQ.first;
+        method Bool notFull() = msgQ.notFull;
+        method Bool notEmpty() = msgQ.notEmpty;
+    end
+    else if (valueOf(t_NUM_CHUNKS_SZ) > valueOf(t_FIFO_DATA_SZ))
+    begin
+        error("Demarshaller configuration error: chunk size too small to encode length in one chunk (" +
+              integerToString(valueOf(t_NUM_CHUNKS_SZ)) + " vs. " +
+              integerToString(valueOf(t_FIFO_DATA_SZ)) + ")");
+        return ?;
+    end
+    else
+    begin
+        //
+        // More interesting case: message is marshalled in multiple chunks.
+        //
+
+        // In order to avoid a pipeline bubble with a stream of multiple
+        // messages the element in slot 0 is stored in a FIFO.  The rest
+        // is stored in a register (buffer).
+        FIFOF#(t_FIFO_DATA) entry0Q <- mkUGLFIFOF();
+        Reg#(Vector#(TSub#(n, 1), t_FIFO_DATA)) buffer <- mkRegU();
+
+        Reg#(t_NUM_CHUNKS) n_chunks_remaining <- mkReg(0);
+
+        Reg#(Bool) skipChunks <- mkReg(False);
+        Reg#(t_NUM_CHUNKS) n_chunks_skipped <- mkReg(0);
+        // Avoid a scheduling warning between enq() method and handleUnsentChunks
+        // with this hack.
+        PulseWire schedCtrl <- mkPulseWire();
+
+        //
+        // Full logic implemented as a rule to keep the scheduler happy
+        //
+        Reg#(Bool) full <- mkReg(False);
+        PulseWire enqComplete <- mkPulseWire();
+        PulseWire deqComplete <- mkPulseWire();
+
+        (* fire_when_enabled, no_implicit_conditions *)
+        rule updateFull (True);
+            // - Set full when a full set of enqs are complete
+            // - Clear full when deq happens
+            // - Preserve full otherwise
+            // deqComplete and enqComplete will never both be set.
+            full <= unpack(pack(full) ^ pack(deqComplete)) || enqComplete;
+        endrule
+
+
+        //
+        // handleUnsentChunks --
+        //     When the marshaller sends a fraction of the full message,
+        //     the receive buffer holds the data in the wrong location.
+        //     To avoid building a full MUX we use the same logic as normal
+        //     data, adding bubble cycles to the receiver equal to the number
+        //     of unsent chunks.
+        //
+        //     This remains useful in some cases:
+        //       - The case of sending only 1 chunk remains optimized without
+        //         delay slots because of special handling in the enq() method.
+        //       - When multiple marshalled data streams share a single
+        //         physical resource (e.g. an inter-FPGA link), reducing the
+        //         traffic improves throughput even with this delay.
+        //
+        rule handleUnsentChunks ((n_chunks_skipped != 0) && skipChunks && ! schedCtrl);
+            buffer <= shiftInAtN(buffer, ?);
+
+            if (n_chunks_skipped == 1)
+            begin
+                // Last chunk in message
+                enqComplete.send();
+                skipChunks <= False;
+            end
+
+            n_chunks_skipped <= n_chunks_skipped - 1;
+        endrule
+
+
+        method Action enq(t_FIFO_DATA dat) if ((! full || entry0Q.notFull) && ! skipChunks);
+            // Dummy dependence to avoid scheduling warning with handleUnsentChunks
+            schedCtrl.send();
+
+            t_NUM_CHUNKS cur_chunks_remaining = n_chunks_remaining;
+            let cur_chunks_skipped = n_chunks_skipped;
+
+            if (n_chunks_remaining == 0)
+            begin
+                // First chunk in a new message
+                entry0Q.enq(dat);
+
+                // msgChunks computes the total number of chunks in the encoded
+                // message.
+                cur_chunks_remaining = truncateNP(msgChunks(dat));
+
+                // Compute the number of chunks that won't be sent, given the
+                // maximum size of the message.  Sending only one chunk is a
+                // special case since the first chunk is stored in entry0Q.
+                cur_chunks_skipped = (cur_chunks_remaining == 1) ?
+                                         0 :
+                                         fromInteger(valueOf(n)) - cur_chunks_remaining;
+                n_chunks_skipped <= cur_chunks_skipped;
+            end
+            else
+            begin
+                // Continue with current message
+                buffer <= shiftInAtN(buffer, dat);
+            end
+
+            if (cur_chunks_remaining == 1)
+            begin
+                // Last chunk in message
+                if (cur_chunks_skipped == 0)
+                    enqComplete.send();
+                else
+                    skipChunks <= True;
+            end
+
+            n_chunks_remaining <= cur_chunks_remaining - 1;
         endmethod
 
         method Action deq() if (full);

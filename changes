@@ -13165,3 +13165,42 @@ Directory modules/leap/libraries/platform-services/mem-services/central-cache-se
 
 Central cache stats are now augmented with platform name, permitting
 us to collect stats on all FPGAs in a multi-FPGA environment.
+
+----------
+mcadler     Date: Mon Jul 23 08:09:15 EDT 2012  CSN: CSN-leap-321
+                  Mon Jul 23 12:09:15 UTC 2012
+
+
+Directory modules/leap/build-support/project
+ Module.py                 Locally Modified          320 
+
+Directory modules/leap/libraries/librl/base
+ compress.bsv              Locally Added               0 
+ fifo-marshaller.bsv       Locally Modified          320 
+ librl-bsv-base.awb        Locally Modified          320 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-compressed.bsv Locally Added               0 
+ soft-connections-module-context-multifpga.awb Locally Modified          320 
+ soft-connections-module-context.awb Locally Modified          320 
+ connections.bsv           Locally Modified          320 
+
+- Add a Compress typeclass that specifies two modules: one to compress a stream
+  and the other to decompress it.
+
+  - Both modules have FIFO-like interfaces, though the input and output types
+    of each module are different.
+
+  - A compressor describes the likely breakdown of compressed sizes.  A
+    typeclass is provided to walk the description and recursively build
+    connections of appropriate sizes.  A soft-connection implementation is
+    provided.
+
+  - Connected versions of the typeclass also exist (CompressMC)
+
+  - A sample implementation of Maybe#() compression is provided that transmits
+    the payload only when it is valid.
+
+  - A sample marshaller/demarshaller is provided for use with compressors.
+
+- Add a demarshaller that accepts variable sized messages.

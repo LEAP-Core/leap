@@ -194,6 +194,15 @@ module [t_CONTEXT] mkConnectionSendSharedOptional#(String name, STATION station)
 
 endmodule
 
+// Dummy connection, useful when no data is actually required but a client
+// expects a connection.
+module mkConnectionSendDummy#(String name) (CONNECTION_SEND#(t_MSG));
+
+    method Action send(t_MSG data) = ?;
+    method Bool notFull() = True;
+
+endmodule
+
 // 1-to-Many logical send. These are always optional.
 module [t_CONTEXT] mkConnectionSendMulti#(String name) (CONNECTION_SEND_MULTI#(t_MSG))
     provisos
@@ -268,6 +277,16 @@ module [t_CONTEXT] mkConnectionRecvSharedOptional#(String name, STATION station)
 
     let m <- mkConnectionDispatchRecv(name, tagged Valid station, True, True);
     return m;
+
+endmodule
+
+// Dummy connection, useful when no data is actually required but a client
+// expects a connection.
+module mkConnectionRecvDummy#(String name) (CONNECTION_RECV#(t_MSG));
+
+    method Action deq() = ?;
+    method Bool   notEmpty() = False;
+    method t_MSG  receive() = ?;
 
 endmodule
 
@@ -822,3 +841,27 @@ instance Connectable#(function Action f(data_t t),
 
     endmodule
 endinstance
+
+
+//
+// Convert a libRL marshaller to a CONNECTION_SEND.
+//
+function CONNECTION_SEND#(t_DATA) marshallerToConnectionSend(MARSHALLER#(t_FIFO_DATA, t_DATA) mar);
+    return
+        interface CONNECTION_SEND#(t_DATA);
+            method Action send(t_DATA data) = mar.enq(data);
+            method Bool notFull() = mar.notFull();
+        endinterface;
+endfunction
+
+//
+// Convert a libRL demarshaller to a CONNECTION_RECV.
+//
+function CONNECTION_RECV#(t_DATA) demarshallerToConnectionReceive(DEMARSHALLER#(t_FIFO_DATA, t_DATA) dem);
+    return
+        interface CONNECTION_RECV#(t_DATA);
+            method Action deq() = dem.deq();
+            method Bool notEmpty() = dem.notEmpty();
+            method t_DATA receive() = dem.first();
+        endinterface;
+endfunction

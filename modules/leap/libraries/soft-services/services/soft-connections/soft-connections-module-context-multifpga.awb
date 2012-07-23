@@ -12,6 +12,7 @@
 %public connection-context.bsv
 %public connection-matching.bsv
 %public connections.bsv
+%public connection-compressed.bsv
 %public connection-dispatchers.bsv
 %public connection-vectors.bsv
 %public connection-implementation.bsv

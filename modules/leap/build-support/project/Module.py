@@ -176,7 +176,7 @@ class Module(ProjectDependency.ProjectDependency):
     param_bsh.write('`undef ' + param + '\n')
     param_bsh.write('`undef ' + param + '_Z\n')
     param_bsh.write('`define ' + param + ' ' + value + '\n')
-    if (value == 0):
+    if (value == 0 or value == '0'):
       param_bsh.write('`define ' + param + '_Z 0\n')
     param_bsh.close()
 
