@@ -101,13 +101,13 @@ module [CONNECTED_MODULE] mkSoftConnectionLatencyInfo (Empty);
             Param#(SizeOf#(GLOBAL_STRING_UID)) idExternal <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_ID,paramNode);
             Param#(1) inverseTest <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_INVERSE_TEST,paramNode);
             Param#(SizeOf#(LATENCY_FIFO_DELAY_CONTAINER)) delayExternal <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_DELAY,paramNode);
-            //Param#(SizeOf#(LATENCY_FIFO_DEPTH_CONTAINER)) depthExternal <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_DEPTH,paramNode);
+            Param#(SizeOf#(LATENCY_FIFO_DEPTH_CONTAINER)) depthExternal <- mkDynamicParameter(`PARAMS_SOFT_CONNECTIONS_LATENCY_DELTA_DEPTH,paramNode);
 
             rule driveIface(((idExternal == tag) &&  !unpack(inverseTest)) ||
                             ((idExternal != tag) &&  unpack(inverseTest)));
                 elem.control.setControl(True);
                 elem.control.setDelay(delayExternal);
-                //elem.control.setDepth(depthExternal);
+                elem.control.setDepth(depthExternal);
             endrule
 
             info = List::tail(info);

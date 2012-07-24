@@ -13204,3 +13204,17 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
   - A sample marshaller/demarshaller is provided for use with compressors.
 
 - Add a demarshaller that accepts variable sized messages.
+
+----------
+kfleming    Date: Tue Jul 24 13:48:35 EDT 2012  CSN: CSN-leap-322
+                  Tue Jul 24 17:48:35 UTC 2012
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          321 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/latency
+ connections-latency.bsv   Locally Modified          321 
+
+
+Re-enabled FIFO depth control in latency debug mode.
