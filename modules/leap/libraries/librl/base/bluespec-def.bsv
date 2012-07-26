@@ -57,6 +57,7 @@ endinstance
 typedef Bit#(n) NumTypeParam#(numeric type n);
 
 
+// ========================================================================
 //
 // It would be nice if Bluespec provided numeric type comparison functions.
 // These may be needed in complex operations on polymorphic types, where
@@ -69,6 +70,7 @@ typedef Bit#(n) NumTypeParam#(numeric type n);
 // These are made more difficult since Bluespec types don't work when
 // the value falls below 0.
 //
+// ========================================================================
 
 // TBool: 0 if A == 0, otherwise 1
 typedef TMin#(a, 1)
@@ -122,3 +124,61 @@ typedef TNot#(TNE#(a, b))
 // TSelect: A ? B : C
 typedef TAdd#(TMul#(TBool#(a), b), TMul#(TNot#(a), c))
     TSelect#(numeric type a, numeric type b, numeric type c);
+
+
+// ========================================================================
+//
+// Bluespec ought to have included the following for HList.
+//
+// ========================================================================
+
+//
+// HLast --
+//   Find the last type in an HList, when used as a proviso.  The "hLast()"
+//   function returns the value of the last element in an HList.
+//
+typeclass HLast#(type t_HLIST, type t_LAST)
+    dependencies (t_HLIST determines t_LAST);
+    function t_LAST hLast(t_HLIST lst);
+endtypeclass
+
+instance HLast#(HNil, HNil);
+    function hLast(lst) = ?;
+endinstance
+
+instance HLast#(HCons#(t_HEAD, HNil), t_HEAD);
+    function hLast(lst) = hHead(lst);
+endinstance
+
+instance HLast#(HCons#(t_HEAD, t_TAIL), t_LAST)
+    provisos (HLast#(t_TAIL, t_LAST));
+    function hLast(lst) = hLast(hTail(lst));
+endinstance
+
+
+//
+// Map an HList to Bits.  All the types in the list must also belong
+// to Bits.
+//
+instance Bits#(HNil, 0);
+    function pack(x) = 0;
+    function unpack(x) = hNil;
+endinstance
+
+instance Bits#(HCons#(t_HEAD, HNil), t_SZ)
+    provisos (Bits#(t_HEAD, t_SZ));
+    function pack(x) = pack(hHead(x));
+    function unpack(x) = hList1(unpack(x));
+endinstance
+
+instance Bits#(HCons#(t_HEAD, t_TAIL), t_SZ)
+    provisos (Bits#(t_HEAD, t_HEAD_SZ),
+              Bits#(t_TAIL, t_TAIL_SZ),
+              Add#(t_HEAD_SZ, t_TAIL_SZ, t_SZ));
+    function pack(x) = { pack(hHead(x)), pack(hTail(x)) };
+    function unpack(x);
+        t_HEAD h = unpack(x[valueOf(t_SZ)-1 : valueOf(t_TAIL_SZ)]);
+        t_TAIL t = unpack(x[valueOf(t_TAIL_SZ)-1 : 0]);
+        return hCons(h, t);
+    endfunction
+endinstance

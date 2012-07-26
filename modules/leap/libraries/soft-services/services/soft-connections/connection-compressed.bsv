@@ -49,35 +49,22 @@ module [CONNECTED_MODULE] mkCompressedConnectionSend#(String name)
     // Interface:
     (CONNECTION_SEND#(t_MSG))
     provisos (Bits#(t_MSG, t_MSG_SZ),
-              CompressMC#(t_MSG, t_ENC_DATA, t_DECODER, t_MAPPING, CONNECTED_MODULE),
+              CompressMC#(t_MSG, t_ENC_DATA, t_DECODER, CONNECTED_MODULE),
               Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
-              CompressionPos#(t_MAPPING, n_START_POS, n_BITS),
-              // Compute the size of this and all subordinate chunks (n_TOTAL_BITS)
-              Add#(n_START_POS, n_BITS, t_MAPPING_SZ),
-              CompressionMappingMC#(t_MAPPING,
-                                    COMPRESSED_CONNECTION_SEND#(t_MAPPING_SZ),
+              CompressionMappingMC#(t_ENC_DATA,
+                                    COMPRESSED_CONNECTION_SEND#(t_ENC_DATA),
                                     CONNECTED_MODULE));
 
     // The encoder transforms input messages to a compressed stream
     COMPRESSION_ENCODER#(t_MSG, t_ENC_DATA) encoder <- mkCompressorMC();
 
     // Instantiate the set of sender soft connections
-    t_MSG msg = ?;
-    t_MAPPING map = ?;    
-    COMPRESSED_CONNECTION_SEND#(t_MAPPING_SZ) con <-
+    t_ENC_DATA map = ?;    
+    COMPRESSED_CONNECTION_SEND#(t_ENC_DATA) con <-
         mkCompressedChannelMC(map, name, 0);
 
     // Connect the compressing encoder to the outbound soft connections
-    if (valueOf(t_MAPPING_SZ) == valueOf(t_ENC_DATA_SZ))
-    begin
-        mkConnection(encoder, con);
-    end
-    else
-    begin
-        error("Encoded size of outbound soft connection " + name + " != mapped size (" +
-              integerToString(valueOf(t_MAPPING_SZ)) + " vs. " +
-              integerToString(valueOf(t_ENC_DATA_SZ)) + ")");
-    end
+    mkConnection(encoder, con);
 
     method Action send(t_MSG data) = encoder.enq(data);
     method Bool notFull() = encoder.notFull();
@@ -93,14 +80,11 @@ module [CONNECTED_MODULE] mkCompressedConnectionRecv#(String name)
     // Interface:
     (CONNECTION_RECV#(t_MSG))
     provisos (Bits#(t_MSG, t_MSG_SZ),
-              CompressMC#(t_MSG, t_ENC_DATA, t_DECODER, t_MAPPING, CONNECTED_MODULE),
+              CompressMC#(t_MSG, t_ENC_DATA, t_DECODER, CONNECTED_MODULE),
               Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
               Bits#(t_DECODER, t_DECODER_SZ),    
-              CompressionPos#(t_MAPPING, n_START_POS, n_BITS),
-              // Compute the size of this and all subordinate chunks (n_TOTAL_BITS)
-              Add#(n_START_POS, n_BITS, t_MAPPING_SZ),
-              CompressionMappingMC#(t_MAPPING,
-                                    COMPRESSED_CONNECTION_RECV#(t_MAPPING_SZ),
+              CompressionMappingMC#(t_ENC_DATA,
+                                    COMPRESSED_CONNECTION_RECV#(t_ENC_DATA),
                                     CONNECTED_MODULE));
 
     // The decoder transforms received messages to an output decompressed stream
@@ -108,22 +92,12 @@ module [CONNECTED_MODULE] mkCompressedConnectionRecv#(String name)
         mkDecompressorMC();
 
     // Instantiate the set of receiver soft connections
-    t_MSG msg = ?;
-    t_MAPPING map = ?;    
-    COMPRESSED_CONNECTION_RECV#(t_MAPPING_SZ) con <-
+    t_ENC_DATA map = ?;    
+    COMPRESSED_CONNECTION_RECV#(t_ENC_DATA) con <-
         mkCompressedChannelMC(map, name, 0);
 
     // Connect the inbound soft connections to the input of the decoder
-    if (valueOf(t_MAPPING_SZ) == valueOf(t_ENC_DATA_SZ))
-    begin
-        mkConnection(con, decoder);
-    end
-    else
-    begin
-        error("Encoded size of inbound soft connection " + name + " != mapped size (" +
-              integerToString(valueOf(t_MAPPING_SZ)) + " vs. " +
-              integerToString(valueOf(t_ENC_DATA_SZ)) + ")");
-    end
+    mkConnection(con, decoder);
 
     method Action deq() = decoder.deq();
     method Bool notEmpty() = decoder.notEmpty();
@@ -137,15 +111,15 @@ endmodule
 // actual soft connections instantiated below through these interfaces.
 //
 
-interface COMPRESSED_CONNECTION_SEND#(numeric type t_MSG_SZ);
-    method Action send(Bit#(t_MSG_SZ) data, Integer nValidBits);
+interface COMPRESSED_CONNECTION_SEND#(type t_MSG);
+    method Action send(t_MSG data, Integer nValidBits);
     method Bool notFull();
 endinterface
 
-interface COMPRESSED_CONNECTION_RECV#(numeric type t_MSG_SZ);
+interface COMPRESSED_CONNECTION_RECV#(type t_MSG);
     method Action deq(Integer nBits);
     method Bool notEmpty();
-    method Bit#(t_MSG_SZ) receive(Integer nBits);
+    method t_MSG receive(Integer nBits);
 endinterface
 
 
@@ -155,29 +129,29 @@ endinterface
 //
 
 instance Connectable#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA),
-                      COMPRESSED_CONNECTION_SEND#(t_ENC_DATA_SZ))
+                      COMPRESSED_CONNECTION_SEND#(t_ENC_DATA))
     // We avoid associating t_ENC_DATA and t_END_DATA_SZ because it causes
     // a ripple of provisos up the chain.
     provisos (Bits#(t_ENC_DATA, a__));
     module mkConnection#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA) enc,
-                         COMPRESSED_CONNECTION_SEND#(t_ENC_DATA_SZ) con)
+                         COMPRESSED_CONNECTION_SEND#(t_ENC_DATA) con)
     (Empty);
 
         rule connect;
             match {.cval, .valid_bits} = enc.first();
             enc.deq();
         
-            con.send(sameSizeNP(pack(cval)), valid_bits);
+            con.send(cval, valid_bits);
         endrule
 
     endmodule
 endinstance
 
 // Reverse argument order of above (same connection)
-instance Connectable#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA_SZ),
+instance Connectable#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA),
                       COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA))
     provisos (Bits#(t_ENC_DATA, a__));
-    module mkConnection#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA_SZ) con,
+    module mkConnection#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA) con,
                          COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA) enc)
     (Empty);
 
@@ -187,13 +161,13 @@ instance Connectable#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA_SZ),
     endmodule
 endinstance
 
-instance Connectable#(COMPRESSED_CONNECTION_RECV#(t_ENC_DATA_SZ),
+instance Connectable#(COMPRESSED_CONNECTION_RECV#(t_ENC_DATA),
                       COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER))
     // We avoid associating t_ENC_DATA and t_END_DATA_SZ because it causes
     // a ripple of provisos up the chain.
     provisos (Bits#(t_ENC_DATA, a__),
               Bits#(t_DECODER, t_DECODER_SZ));
-    module mkConnection#(COMPRESSED_CONNECTION_RECV#(t_ENC_DATA_SZ) con,
+    module mkConnection#(COMPRESSED_CONNECTION_RECV#(t_ENC_DATA) con,
                          COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) dec)
     (Empty);
 
@@ -201,12 +175,12 @@ instance Connectable#(COMPRESSED_CONNECTION_RECV#(t_ENC_DATA_SZ),
             // Compute the number of input bits for the current message by
             // first reading the number of decoder bits from the current message.
             let base_chunk_bits = con.receive(valueOf(t_DECODER_SZ));
-            let in_bits = dec.numInBits(unpack(truncateNP(base_chunk_bits)));
+            let in_bits = dec.numInBits(unpack(truncateNP(pack(base_chunk_bits))));
 
             let cval = con.receive(in_bits);
             con.deq(in_bits);
 
-            dec.enq(sameSizeNP(cval));
+            dec.enq(cval);
         endrule
 
     endmodule
@@ -214,11 +188,11 @@ endinstance
 
 // Reverse argument order of above (same connection)
 instance Connectable#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER),
-                      COMPRESSED_CONNECTION_RECV#(t_ENC_DATA_SZ))
+                      COMPRESSED_CONNECTION_RECV#(t_ENC_DATA))
     provisos (Bits#(t_ENC_DATA, a__),
               Bits#(t_DECODER, t_DECODER_SZ));
     module mkConnection#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) dec,
-                         COMPRESSED_CONNECTION_RECV#(t_ENC_DATA_SZ) con)
+                         COMPRESSED_CONNECTION_RECV#(t_ENC_DATA) con)
     (Empty);
 
         let c <- mkConnection(con, dec);
@@ -232,17 +206,15 @@ endinstance
 // a group of soft connections for a compressed sender's channel.
 //
 instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
-                               COMPRESSED_CONNECTION_SEND#(n_TOTAL_BITS),
+                               COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, t_REM)),
                                CONNECTED_MODULE)
-    provisos (Alias#(t_MAPPING, HCons#(t_HEAD, t_REM)),
-              // Compute the starting position and size of this chunk
-              CompressionPos#(t_MAPPING, n_START_POS, n_BITS),
-              // Compute the size of this and all subordinate chunks (n_TOTAL_BITS)
-              Add#(n_START_POS, n_BITS, n_TOTAL_BITS),
+    provisos (Alias#(t_ENC_DATA, HCons#(t_HEAD, t_REM)),
+              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
+              Bits#(t_HEAD, t_HEAD_SZ),
+              Bits#(t_REM, t_REM_SZ),
               // Prepare to map subordinate chunks
-              NumAlias#(n_START_POS, t_SUB_BITS),
               CompressionMappingMC#(t_REM,
-                                    COMPRESSED_CONNECTION_SEND#(t_SUB_BITS),
+                                    COMPRESSED_CONNECTION_SEND#(t_REM),
                                     CONNECTED_MODULE));
 
     //
@@ -250,41 +222,41 @@ instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
     //     Recursive instantiation of send connections for current and all
     //     subordinate compression chunks.
     //
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_MAPPING map,
+    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
                                                      String name,
                                                      Integer depth)
         // Interface:
-        (COMPRESSED_CONNECTION_SEND#(n_TOTAL_BITS));
+        (COMPRESSED_CONNECTION_SEND#(t_ENC_DATA));
 
         // Is this the lowest (right-most) chunk?
-        let isLowestChunk = (valueOf(n_START_POS) == 0);
+        let isLowestChunk = (valueOf(t_REM_SZ) == 0);
 
         // Allocate the subordinate chunks
-        COMPRESSED_CONNECTION_SEND#(t_SUB_BITS) subChunks = ?;
+        COMPRESSED_CONNECTION_SEND#(t_REM) subChunks = ?;
         if (! isLowestChunk)
         begin
             subChunks <- mkCompressedChannelMC(hTail(map), name, depth + 1);
         end
 
         // Allocate an actual soft connection for the current chunk
-        CONNECTION_SEND#(Bit#(n_BITS)) thisChunk;
-        if (valueOf(n_BITS) != 0)
+        CONNECTION_SEND#(t_HEAD) thisChunk;
+        if (valueOf(t_HEAD_SZ) != 0)
             thisChunk <- mkConnectionSend(name + "_cmpmap" + integerToString(depth));
         else
             thisChunk <- mkConnectionSendDummy(name + "_cmpmap" + integerToString(depth));
 
-        method Action send(Bit#(n_TOTAL_BITS) data, Integer nValidBits);
+        method Action send(t_ENC_DATA data, Integer nValidBits);
             // If this is not the chunk for bit position 0 forward the send
             // request down the recursive chain.
             if (! isLowestChunk)
             begin
-                subChunks.send(data[valueOf(n_START_POS) - 1 : 0], nValidBits);
+                subChunks.send(hTail(data), nValidBits);
             end
 
             // Is there compressed data to be sent for the current chunk?
-            if (nValidBits > valueOf(n_START_POS))
+            if (nValidBits > valueOf(t_REM_SZ))
             begin
-                thisChunk.send(data[valueOf(n_TOTAL_BITS) - 1 : valueOf(n_START_POS)]);
+                thisChunk.send(hHead(data));
             end
         endmethod
 
@@ -302,59 +274,44 @@ endinstance
 // a group of soft connections for a compressed receiver's channel.
 //
 instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
-                               COMPRESSED_CONNECTION_RECV#(n_TOTAL_BITS),
+                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, t_REM)),
                                CONNECTED_MODULE)
-    provisos (Alias#(t_MAPPING, HCons#(t_HEAD, t_REM)),
-              // Compute the starting position and size of this chunk
-              CompressionPos#(t_MAPPING, n_START_POS, n_BITS),
-              // Compute the size of this and all subordinate chunks (n_TOTAL_BITS)
-              Add#(n_START_POS, n_BITS, n_TOTAL_BITS),
+    provisos (Alias#(t_ENC_DATA, HCons#(t_HEAD, t_REM)),
+              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
+              Bits#(t_HEAD, t_HEAD_SZ),
+              Bits#(t_REM, t_REM_SZ),
               // Prepare to map subordinate chunks
-              NumAlias#(n_START_POS, t_SUB_BITS),
               CompressionMappingMC#(t_REM,
-                                    COMPRESSED_CONNECTION_RECV#(t_SUB_BITS),
+                                    COMPRESSED_CONNECTION_RECV#(t_REM),
                                     CONNECTED_MODULE));
 
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_MAPPING map,
+    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
                                                      String name,
                                                      Integer depth)
         // Interface:
-        (COMPRESSED_CONNECTION_RECV#(n_TOTAL_BITS));
-
-        // Is this the lowest (right-most) chunk?
-        let isLowestChunk = (valueOf(n_START_POS) == 0);
+        (COMPRESSED_CONNECTION_RECV#(t_ENC_DATA));
 
         // Allocate the subordinate chunks
-        COMPRESSED_CONNECTION_RECV#(t_SUB_BITS) subChunks = ?;
-        if (! isLowestChunk)
-        begin
-            subChunks <- mkCompressedChannelMC(hTail(map), name, depth + 1);
-        end
+        COMPRESSED_CONNECTION_RECV#(t_REM) subChunks <-
+            mkCompressedChannelMC(hTail(map), name, depth + 1);
 
         // Allocate an actual soft connection for the current chunk
-        CONNECTION_RECV#(Bit#(n_BITS)) thisChunk;
-        if (valueOf(n_BITS) != 0)
+        CONNECTION_RECV#(t_HEAD) thisChunk;
+        if (valueOf(t_HEAD_SZ) != 0)
             thisChunk <- mkConnectionRecv(name + "_cmpmap" + integerToString(depth));
         else
             thisChunk <- mkConnectionRecvDummy(name + "_cmpmap" + integerToString(depth));
 
         method Action deq(nBits);
-            if (isLowestChunk)
+            //
+            // The "nBits" argument to deq() indicates how many valid
+            // bits were transmitted for the current message.  Only
+            // channels with valid bits are dequeued.
+            //
+            subChunks.deq(nBits);
+            if (nBits > valueOf(t_REM_SZ))
             begin
                 thisChunk.deq();
-            end
-            else
-            begin
-                //
-                // The "nBits" argument to deq() indicates how many valid
-                // bits were transmitted for the current message.  Only
-                // channels with valid bits are dequeued.
-                //
-                subChunks.deq(nBits);
-                if (nBits > valueOf(n_START_POS))
-                begin
-                    thisChunk.deq();
-                end
             end
         endmethod
 
@@ -364,31 +321,63 @@ instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
         // mkCompressedConnectionRecv, which doesn't care.
         //
         method Bool notEmpty();
-            return (isLowestChunk ? thisChunk.notEmpty() : subChunks.notEmpty());
+            return subChunks.notEmpty();
         endmethod
 
         method receive(nBits);
-            if (isLowestChunk)
+            //
+            // Concatenate received chunks into a response, recursively
+            // visiting all channels.  Only read channels corresponding
+            // to bit positions within the requested low nBits.
+            //
+            let sub_chunks = subChunks.receive(nBits);
+            if ((nBits > valueOf(t_REM_SZ)) && (valueOf(t_HEAD_SZ) != 0))
             begin
-                return {?, thisChunk.receive()};
+                return hCons(thisChunk.receive(), sub_chunks);
             end
             else
             begin
-                //
-                // Concatenate received bits into a response, recursively
-                // visiting all channels.  Only read channels corresponding
-                // to bit positions within the requested low nBits.
-                //
-                let sub_chunks = subChunks.receive(nBits);
-                if ((nBits > valueOf(n_START_POS)) && (valueOf(n_BITS) != 0))
-                begin
-                    return {thisChunk.receive(), sub_chunks};
-                end
-                else
-                begin
-                    return {?, sub_chunks};
-                end
+                return hCons(?, sub_chunks);
             end
+        endmethod
+    endmodule
+endinstance
+
+
+//
+// Special case of compressed receive channel for the bit 0 position (the
+// end of the HList).
+//
+instance CompressionMappingMC#(HCons#(t_HEAD, HNil),
+                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, HNil)),
+                               CONNECTED_MODULE)
+    provisos (Alias#(t_ENC_DATA, HCons#(t_HEAD, HNil)),
+              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
+              Bits#(t_HEAD, t_HEAD_SZ));
+
+    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
+                                                     String name,
+                                                     Integer depth)
+        // Interface:
+        (COMPRESSED_CONNECTION_RECV#(t_ENC_DATA));
+
+        // Allocate an actual soft connection for the current chunk
+        CONNECTION_RECV#(t_HEAD) thisChunk;
+        if (valueOf(t_HEAD_SZ) != 0)
+            thisChunk <- mkConnectionRecv(name + "_cmpmap" + integerToString(depth));
+        else
+            thisChunk <- mkConnectionRecvDummy(name + "_cmpmap" + integerToString(depth));
+
+        method Action deq(nBits);
+            thisChunk.deq();
+        endmethod
+
+        method Bool notEmpty();
+            return thisChunk.notEmpty();
+        endmethod
+
+        method receive(nBits);
+            return hList1(thisChunk.receive());
         endmethod
     endmodule
 endinstance

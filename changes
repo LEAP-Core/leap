@@ -13218,3 +13218,29 @@ Directory modules/leap/libraries/soft-services/services/soft-connections/latency
 
 
 Re-enabled FIFO depth control in latency debug mode.
+
+----------
+mcadler     Date: Thu Jul 26 08:23:00 EDT 2012  CSN: CSN-leap-323
+                  Thu Jul 26 12:23:00 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ compress.bsv              Locally Modified          322 
+ bluespec-def.bsv          Locally Modified          322 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-compressed.bsv Locally Modified          322 
+
+- Simplify the Compress typeclass by using the encoded type to describe the
+  chunking of the output data.  Removed the mapping parameter.  The encoded
+  type can now be an HList of types which, in theory, compose more easily
+  with secondary compressors.
+
+- Take advantage of new HList Bits and HLast classes (see below) to manage
+  the encoded types.
+
+- Add HList instances that should have been in the Bluespec distribution
+  to bluespec-def.bsv:
+
+  * Instance of Bits for HLists
+  * HLast/hLast for finding the last non-nil member of an HList.

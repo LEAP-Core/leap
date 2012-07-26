@@ -27,11 +27,11 @@ import HList::*;
 // appropriate, ranging from simple optimization of Maybe#() to stateful
 // run-length encoding.
 //
-// Given an input t_DATA type, an instance of Compress provides the type of
+// Given an input t_DATA type, an instance of Compress provides the t_ENC_DATA
 // encoded data and a minimal type on the receiver side used to determine how
 // many bits are needed to decode a message (t_DECODER).
 //
-// The standard t_MAPPING type is an HList describing the positions
+// The standard t_ENC_DATA type is an HList describing the positions
 // and sizes of "fields" in the compressed data.  A sender/receiver
 // pair may take advantage of these chunks to optimize communication.
 // For example, individual soft connections may be allocated for each
@@ -39,16 +39,17 @@ import HList::*;
 // but may no message may be needed sometimes when compressed data has
 // no information in a chunk.
 //
-// The t_MAPPING is a list of Bit#(n) types, where "n" is the size of
-// a chunk.  The first entry corresponds to the highest bit position.
-// The last entry corresponds to the chunk starting at bit 0.  t_DECODER
-// is typically at most the size of the lowest bit position chunk.
+// When t_ENC_DATA is an HList, the first entry corresponds to the highest
+// bit position.  The last entry corresponds to the chunk starting at bit 0.
+// t_DECODER is typically at most the size of the last chunk.  Note that
+// LEAP provides an HLast typeclass for finding the last entry in an HList.
+// It also provides HList instances of Bits, making it easy to flatten
+// and restore HLists from Bit types.  (See bluespec-def.bsv)
 //
 typeclass Compress#(type t_DATA,
                     type t_ENC_DATA,
-                    type t_DECODER,
-                    type t_MAPPING)
-    dependencies (t_DATA determines (t_ENC_DATA, t_DECODER, t_MAPPING));
+                    type t_DECODER)
+    dependencies (t_DATA determines (t_ENC_DATA, t_DECODER));
 
     // Encode the original data into compressed form.
     module mkCompressor (COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA));
@@ -65,9 +66,8 @@ endtypeclass
 typeclass CompressMC#(type t_DATA,
                       type t_ENC_DATA,
                       type t_DECODER,
-                      type t_MAPPING,
                       type t_MODULE)
-    dependencies ((t_DATA, t_MODULE) determines (t_ENC_DATA, t_DECODER, t_MAPPING));
+    dependencies ((t_DATA, t_MODULE) determines (t_ENC_DATA, t_DECODER));
 
     // Encode the original data into compressed form.
     module [t_MODULE] mkCompressorMC (COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA));
@@ -108,30 +108,12 @@ endinterface
 
 
 //
-// CompressionPos --
-//     Compute the position and size of the left-most chunk in a t_MAPPING.
-//     Used in a proviso given a t_MAPPING.
-//
-typeclass CompressionPos#(type t_MAPPING,
-                          numeric type n_START_POS,
-                          numeric type n_BITS)
-    dependencies (t_MAPPING determines (n_START_POS, n_BITS));
-endtypeclass
-
-instance CompressionPos#(HCons#(t_HEAD, t_REM), n_START_POS, n_BITS)
-    provisos (CompressionNextBit#(HCons#(t_HEAD, t_REM), n_END_POS),
-              Bits#(t_HEAD, n_BITS),
-              Add#(n_START_POS, n_BITS, n_END_POS));
-endinstance
-
-
-//
 // CompressionMapping --
 //     Construct a set of I/O channels to carry compressed data, based
-//     on the size hints in a t_MAPPING.
+//     on the size hints in a t_ENC_DATA.
 //
-typeclass CompressionMapping#(type t_MAPPING, type t_CHAN);
-    module mkCompressedChannel#(t_MAPPING map,
+typeclass CompressionMapping#(type t_ENC_DATA, type t_CHAN);
+    module mkCompressedChannel#(t_ENC_DATA map,
                                 String name,
                                 Integer depth) (t_CHAN);
 endtypeclass
@@ -140,38 +122,20 @@ endtypeclass
 // CompressionMappingMC is the same as CompressionMapping, but a module type
 // is specified to support module contexts and connected modules.
 //
-typeclass CompressionMappingMC#(type t_MAPPING, type t_CHAN, type t_MODULE);
-    module [t_MODULE] mkCompressedChannelMC#(t_MAPPING map,
+typeclass CompressionMappingMC#(type t_ENC_DATA, type t_CHAN, type t_MODULE);
+    module [t_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
                                              String name,
                                              Integer depth) (t_CHAN);
 endtypeclass
 
 
-// Base case for a recursize parsing of a t_MAPPING HList.
+// Base case for a recursize parsing of a t_ENC_DATA HList.
 instance CompressionMapping#(HList::HNil, t_CHAN);
     module mkCompressedChannel#(HList::HNil map,
                                 String name,
                                 Integer depth) (t_CHAN);
         return ?;
     endmodule
-endinstance
-
-
-//
-// CompressionNextBit --
-//    Useful mainly as an internal typeclass used by CompressionPos above.
-//    Compute the position of the next higher bit following the end of
-//    the left-most chunk in a t_MAPPING.
-//
-typeclass CompressionNextBit#(type t_MAPPING, numeric type n_END_BIT_POS)
-    dependencies (t_MAPPING determines n_END_BIT_POS);
-endtypeclass
-
-instance CompressionNextBit#(HNil, 0); endinstance
-
-instance CompressionNextBit#(HCons#(t_HEAD, t_REM), n_NEXT_POS)
-    provisos (CompressionNextBit#(t_REM, n_START_POS),
-              Add#(n_START_POS, SizeOf#(t_HEAD), n_NEXT_POS));
 endinstance
 
 
@@ -254,15 +218,14 @@ endinstance
 instance Compress#(// Original type
                    Maybe#(t_DATA),
                    // Compressed container (maximum size)
-                   Bit#(t_CONTAINER_SZ),
+                   HList2#(t_DATA, Bool),
                    // Portion of container required to compute message size
-                   Bit#(1),
-                   // Container chunks (data and Maybe bit)
-                   HList2#(Bit#(t_DATA_SZ), Bit#(1)))
+                   Bool)
     provisos (Bits#(t_DATA, t_DATA_SZ),
-              Add#(1, t_DATA_SZ, t_CONTAINER_SZ));
+              Alias#(t_ENC_DATA, HList2#(t_DATA, Bool)),
+              Bits#(t_ENC_DATA, t_ENC_DATA_SZ));
 
-    module mkCompressor (COMPRESSION_ENCODER#(Maybe#(t_DATA), Bit#(t_CONTAINER_SZ)));
+    module mkCompressor (COMPRESSION_ENCODER#(Maybe#(t_DATA), t_ENC_DATA));
         FIFOF#(Maybe#(t_DATA)) inQ <- mkBypassFIFOF();
 
         method enq(val) = inQ.enq(val);
@@ -271,25 +234,21 @@ instance Compress#(// Original type
         method first();
             let val = inQ.first();
 
-            // Extract the tag (high bit) and data (the remainder)
-            Bit#(1) tag = pack(isValid(val));
-            Bit#(t_DATA_SZ) data = pack(validValue(val));
-
             // Compute the compressed message length (in bits).
-            Integer data_len = (isValid(val) ? valueOf(t_CONTAINER_SZ) : 1);
+            Integer data_len = (isValid(val) ? valueOf(t_ENC_DATA_SZ) : 1);
 
             // The message is compressed by moving the tag to the low bit so it
             // will be next to the useful data.  The 2nd element in the returned
             // tuple is the compressed length.
-            return tuple2({ data, tag }, data_len);
+            return tuple2(hList2(validValue(val), isValid(val)), data_len);
         endmethod
 
         method notFull() = inQ.notFull();
         method notEmpty() = inQ.notEmpty();
     endmodule
 
-    module mkDecompressor (COMPRESSION_DECODER#(Maybe#(t_DATA), Bit#(t_CONTAINER_SZ), Bit#(1)));
-        FIFOF#(Bit#(t_CONTAINER_SZ)) inQ <- mkBypassFIFOF();
+    module mkDecompressor (COMPRESSION_DECODER#(Maybe#(t_DATA), t_ENC_DATA, Bool));
+        FIFOF#(t_ENC_DATA) inQ <- mkBypassFIFOF();
 
         method Action enq(cval) = inQ.enq(cval);
         method Action deq() = inQ.deq();
@@ -298,20 +257,20 @@ instance Compress#(// Original type
             let cval = inQ.first();
 
             // Separate the tag and data
-            Bit#(1) tag = lsb(cval);
-            Bit#(t_DATA_SZ) data = truncateLSB(cval);
+            Bool tag = hLast(cval);
+            t_DATA data = hHead(cval);
 
-            if (tag == 0)
-                return tagged Invalid;
+            if (tag)
+                return tagged Valid data;
             else
-                return tagged Valid unpack(data);
+                return tagged Invalid;
         endmethod
 
         method Bool notFull() = inQ.notFull();
         method Bool notEmpty() = inQ.notEmpty();
 
-        method Integer numInBits(partialVal);
-            return (partialVal == 0) ? 1 : valueOf(t_CONTAINER_SZ);
+        method Integer numInBits(tag);
+            return tag ? valueOf(t_ENC_DATA_SZ) : 1;
         endmethod
     endmodule
 endinstance
@@ -334,7 +293,7 @@ module mkCompressingMarshaller
         (MARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Compress#(t_DATA, t_ENC_DATA, t_DECODER, t_MAPPING),
+              Compress#(t_DATA, t_ENC_DATA, t_DECODER),
               Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
               Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_DATA_SZ)), t_MSG_LEN),
               Bits#(t_MSG_LEN, t_MSG_LEN_SZ));
@@ -382,7 +341,7 @@ module mkCompressingDemarshaller
         (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Compress#(t_DATA, t_ENC_DATA, t_DECODER, t_MAPPING),
+              Compress#(t_DATA, t_ENC_DATA, t_DECODER),
               Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
               Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_DATA_SZ)), t_MSG_LEN),
               Bits#(t_MSG_LEN, t_MSG_LEN_SZ));
