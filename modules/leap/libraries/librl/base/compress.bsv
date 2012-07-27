@@ -25,55 +25,21 @@ import HList::*;
 // Instances of the "Compress" typeclass provide modules for converting
 // types to compressed form.  Modules may implement whatever compression is
 // appropriate, ranging from simple optimization of Maybe#() to stateful
-// run-length encoding.
+// run-length encoding.  Given an input t_DATA type, an instance of
+// Compress provides the t_ENC_DATA encoded data.
 //
-// Given an input t_DATA type, an instance of Compress provides the t_ENC_DATA
-// encoded data and a minimal type on the receiver side used to determine how
-// many bits are needed to decode a message (t_DECODER).
+// By convention, t_ENC_DATA is a tagged union.  The multi-FPGA router
+// generator is capable of converting these tagged unions into multi-
+// channel, variable size messages.
 //
-// The standard t_ENC_DATA type is an HList describing the positions
-// and sizes of "fields" in the compressed data.  A sender/receiver
-// pair may take advantage of these chunks to optimize communication.
-// For example, individual soft connections may be allocated for each
-// chunk.  Messages would always be sent on the lowest position chunk
-// but may no message may be needed sometimes when compressed data has
-// no information in a chunk.
-//
-// When t_ENC_DATA is an HList, the first entry corresponds to the highest
-// bit position.  The last entry corresponds to the chunk starting at bit 0.
-// t_DECODER is typically at most the size of the last chunk.  Note that
-// LEAP provides an HLast typeclass for finding the last entry in an HList.
-// It also provides HList instances of Bits, making it easy to flatten
-// and restore HLists from Bit types.  (See bluespec-def.bsv)
-//
-typeclass Compress#(type t_DATA,
-                    type t_ENC_DATA,
-                    type t_DECODER)
-    dependencies (t_DATA determines (t_ENC_DATA, t_DECODER));
+typeclass Compress#(type t_DATA, type t_ENC_DATA)
+    dependencies (t_DATA determines t_ENC_DATA);
 
     // Encode the original data into compressed form.
     module mkCompressor (COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA));
 
     // Restore original data given a compressed value.
-    module mkDecompressor (COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER));
-endtypeclass
-
-
-//
-// CompressMC is the same as Compress, but a module type is specified to
-// support module contexts and connected modules.
-//
-typeclass CompressMC#(type t_DATA,
-                      type t_ENC_DATA,
-                      type t_DECODER,
-                      type t_MODULE)
-    dependencies ((t_DATA, t_MODULE) determines (t_ENC_DATA, t_DECODER));
-
-    // Encode the original data into compressed form.
-    module [t_MODULE] mkCompressorMC (COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA));
-
-    // Restore original data given a compressed value.
-    module [t_MODULE] mkDecompressorMC (COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER));
+    module mkDecompressor (COMPRESSION_DECODER#(t_DATA, t_ENC_DATA));
 endtypeclass
 
 
@@ -82,38 +48,138 @@ endtypeclass
 //
 interface COMPRESSION_ENCODER#(type t_DATA, type t_ENC_DATA);
     method Action enq(t_DATA val);
-    method Action deq();
-    // The first entry is the encoded data.  The second is the length
-    // of the encoded data in bits, starting with the low bit.
-    method Tuple2#(t_ENC_DATA, Integer) first();
     method Bool notFull();
+
+    method t_ENC_DATA first();
+    method Action deq();
     method Bool notEmpty();
 endinterface
 
 //
 // The interface for a decompressor.
 //
-interface COMPRESSION_DECODER#(type t_DATA, type t_ENC_DATA, type t_DECODER);
+interface COMPRESSION_DECODER#(type t_DATA, type t_ENC_DATA);
     method Action enq(t_ENC_DATA cval);
-    method Action deq();
-    method t_DATA first();
     method Bool notFull();
-    method Bool notEmpty();
 
-    // Return the number of bits of valid data in an encoded message, based
-    // on the low bits of the message.  enq() requires the returned number of
-    // bits to decode a message properly.
-    method Integer numInBits(t_DECODER partialVal);
+    method t_DATA first();
+    method Action deq();
+    method Bool notEmpty();
 endinterface
+
+
+// ========================================================================
+//
+//   Convert encoded data to transmittable chunks.
+//
+// ========================================================================
+
+//
+// The standard t_ENC_DATA type is a tagged union.  The multi-FPGA router
+// generator is capable of decomposing tagged unions into multi-channel
+// messages, sending only the channels needed for a given tag.
+//
+// To perform similar compression directly within Bluespec more information
+// is required.  The CompressionChunks typeclass maps a t_ENC_DATA tagged
+// union into an HList.  A sender/receiver pair may take advantage of these
+// chunks to optimize communication.  For example, individual soft
+// connections may be allocated for each chunk.
+//
+typeclass CompressionChunks#(type t_ENC_DATA,
+                             type t_ENC_CHUNKS)
+    provisos (HList#(t_ENC_CHUNKS))
+    dependencies (t_ENC_DATA determines t_ENC_CHUNKS);
+
+    // Convert encoded data to chunks
+    function t_ENC_CHUNKS encDataToChunks(t_ENC_DATA data);
+
+    // Mask of chunks containing valid data
+    function COMPRESSION_CHUNKS_MASK#(t_ENC_DATA) encDataToChunksMask(t_ENC_DATA data);
+
+
+    // Restore encoded data from chunks
+    function t_ENC_DATA chunksToEncData(t_ENC_CHUNKS chunks);
+
+    // Return a mask of the chunks that must be read in order to determine
+    // the true chunk mask for a message.  The mask returned here most likely
+    // indicates the chunk with the tag.
+    function COMPRESSION_CHUNKS_MASK#(t_ENC_DATA) decodeRequiredChunksMask();
+
+    // Given the read value from set of chunks from decodeRequiredChunksMask(),
+    // return a mask of chunks that must be read to decode the value.  Chunks
+    // passed to the function that are not in decodeRequiredChunksMask() are
+    // permitted to have undefined values.
+    function COMPRESSION_CHUNKS_MASK#(t_ENC_DATA) chunksToEncDataMask(t_ENC_CHUNKS key);
+endtypeclass
+
+
+typedef List#(Bool) COMPRESSION_CHUNKS_MASK#(type t_ENC_DATA);
+
+
+//
+// CompressionChunksBits --
+//     Compute the size of an encoded message.  t_ENC_CHUNKS_SZ is the
+//     full size of all chunks in t_ENC_CHUNKS, combined.
+//
+typeclass CompressionChunksBits#(type t_ENC_CHUNKS, numeric type t_ENC_CHUNKS_SZ)
+    dependencies (t_ENC_CHUNKS determines t_ENC_CHUNKS_SZ);
+
+    // Return the sum of the sizes of all valid chunks in a given message.
+    function Integer validChunksSize(t_ENC_CHUNKS msg, List#(Bool) validChunks);
+
+    // Return the size of a message assuming the sender is obligated to
+    // send all chunks to the right of the first active chunk.  "Right" means
+    // lower bit positions and later in the chunks HList.  A serialized
+    // transmission channel, such as a compressing marshaller, may use
+    // this method.  Because of rMsgSize, CompressionChunks instances should
+    // arrange chunks so frequently sent values are at the end of the
+    // chunks list.
+    function Integer rMsgSize(t_ENC_CHUNKS msg, List#(Bool) validChunks);
+endtypeclass
+
+instance CompressionChunksBits#(HNil, 0);
+    function validChunksSize(msg, validChunks) = 0;
+    function rMsgSize(msg, validChunks) = 0;
+endinstance
+
+// Terminal instance
+instance CompressionChunksBits#(HCons#(t_HEAD, HNil), t_HEAD_SZ)
+    provisos (Bits#(t_HEAD, t_HEAD_SZ));
+
+    function validChunksSize(msg, validChunks);
+        return List::head(validChunks) ? valueOf(t_HEAD_SZ) : 0;
+    endfunction
+
+    function rMsgSize(msg, validChunks);
+        return List::head(validChunks) ? valueOf(t_HEAD_SZ) : 0;
+    endfunction
+endinstance
+
+instance CompressionChunksBits#(HCons#(t_HEAD, t_TAIL), t_SZ)
+    provisos (CompressionChunksBits#(t_TAIL, t_TAIL_SZ),
+              Bits#(t_HEAD, t_HEAD_SZ),
+              Add#(t_HEAD_SZ, t_TAIL_SZ, t_SZ));
+
+    function validChunksSize(msg, validChunks);
+        return validChunksSize(hTail(msg), List::tail(validChunks)) +
+               (List::head(validChunks) ? valueOf(t_HEAD_SZ) : 0);
+    endfunction
+
+    function rMsgSize(msg, validChunks);
+        return List::head(validChunks) ? valueOf(t_SZ) :
+                                         rMsgSize(hTail(msg), List::tail(validChunks));
+    endfunction
+endinstance
 
 
 //
 // CompressionMapping --
-//     Construct a set of I/O channels to carry compressed data, based
-//     on the size hints in a t_ENC_DATA.
+//     A helper typeclass to recursively walk a t_ENC_CHUNKS HList of encoded
+//     chunks and map them to a set of communication channels, such as
+//     soft connections.
 //
-typeclass CompressionMapping#(type t_ENC_DATA, type t_CHAN);
-    module mkCompressedChannel#(t_ENC_DATA map,
+typeclass CompressionMapping#(type t_ENC_CHUNKS, type t_CHAN);
+    module mkCompressedChannel#(t_ENC_CHUNKS map,
                                 String name,
                                 Integer depth) (t_CHAN);
 endtypeclass
@@ -122,14 +188,14 @@ endtypeclass
 // CompressionMappingMC is the same as CompressionMapping, but a module type
 // is specified to support module contexts and connected modules.
 //
-typeclass CompressionMappingMC#(type t_ENC_DATA, type t_CHAN, type t_MODULE);
-    module [t_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
+typeclass CompressionMappingMC#(type t_ENC_CHUNKS, type t_CHAN, type t_MODULE);
+    module [t_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
                                              String name,
                                              Integer depth) (t_CHAN);
 endtypeclass
 
 
-// Base case for a recursize parsing of a t_ENC_DATA HList.
+// Base case for a recursize parsing of a t_ENC_CHUNKS HList.
 instance CompressionMapping#(HList::HNil, t_CHAN);
     module mkCompressedChannel#(HList::HNil map,
                                 String name,
@@ -176,9 +242,9 @@ instance ToPut#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA), t_DATA);
     endfunction
 endinstance
 
-instance Connectable#(Put#(t_DATA), COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER));
+instance Connectable#(Put#(t_DATA), COMPRESSION_DECODER#(t_DATA, t_ENC_DATA));
     module mkConnection#(Put#(t_DATA) client,
-                         COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) server) (Empty);
+                         COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) server) (Empty);
         rule connect;
             server.deq();
             client.put(server.first());
@@ -186,8 +252,8 @@ instance Connectable#(Put#(t_DATA), COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_D
     endmodule
 endinstance
 
-instance Connectable#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER), Put#(t_DATA));
-    module mkConnection#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) server,
+instance Connectable#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA), Put#(t_DATA));
+    module mkConnection#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) server,
                          Put#(t_DATA) client) (Empty);
         rule connect;
             server.deq();
@@ -196,8 +262,8 @@ instance Connectable#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER), Put#(
     endmodule
 endinstance
 
-instance ToGet#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER), t_DATA);
-    function Get#(t_DATA) toGet(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) recv);
+instance ToGet#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA), t_DATA);
+    function Get#(t_DATA) toGet(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) recv);
         let get = interface Get;
                       method ActionValue#(t_DATA) get();
                           recv.deq;
@@ -215,64 +281,78 @@ endinstance
 //
 // ========================================================================
 
+//
+// Maybe#() is already a tagged union, so technically no compressor is
+// required.  This typeclass merely guarantees that Maybe#() is a member
+// of Compress.
+//
 instance Compress#(// Original type
                    Maybe#(t_DATA),
                    // Compressed container (maximum size)
-                   HList2#(t_DATA, Bool),
-                   // Portion of container required to compute message size
-                   Bool)
+                   Maybe#(t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
-              Alias#(t_ENC_DATA, HList2#(t_DATA, Bool)),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ));
+              Alias#(Maybe#(t_DATA), t_ENC_DATA));
 
-    module mkCompressor (COMPRESSION_ENCODER#(Maybe#(t_DATA), t_ENC_DATA));
+    module mkCompressor
+        // Interface:
+        (COMPRESSION_ENCODER#(Maybe#(t_DATA), t_ENC_DATA));
+
         FIFOF#(Maybe#(t_DATA)) inQ <- mkBypassFIFOF();
 
         method enq(val) = inQ.enq(val);
         method deq() = inQ.deq();
 
-        method first();
-            let val = inQ.first();
-
-            // Compute the compressed message length (in bits).
-            Integer data_len = (isValid(val) ? valueOf(t_ENC_DATA_SZ) : 1);
-
-            // The message is compressed by moving the tag to the low bit so it
-            // will be next to the useful data.  The 2nd element in the returned
-            // tuple is the compressed length.
-            return tuple2(hList2(validValue(val), isValid(val)), data_len);
-        endmethod
-
+        method first() = inQ.first();
         method notFull() = inQ.notFull();
         method notEmpty() = inQ.notEmpty();
     endmodule
 
-    module mkDecompressor (COMPRESSION_DECODER#(Maybe#(t_DATA), t_ENC_DATA, Bool));
+    module mkDecompressor
+        // Interface:
+        (COMPRESSION_DECODER#(Maybe#(t_DATA), t_ENC_DATA));
+
         FIFOF#(t_ENC_DATA) inQ <- mkBypassFIFOF();
 
         method Action enq(cval) = inQ.enq(cval);
         method Action deq() = inQ.deq();
 
-        method first();
-            let cval = inQ.first();
-
-            // Separate the tag and data
-            Bool tag = hLast(cval);
-            t_DATA data = hHead(cval);
-
-            if (tag)
-                return tagged Valid data;
-            else
-                return tagged Invalid;
-        endmethod
-
+        method first() = inQ.first();
         method Bool notFull() = inQ.notFull();
         method Bool notEmpty() = inQ.notEmpty();
-
-        method Integer numInBits(tag);
-            return tag ? valueOf(t_ENC_DATA_SZ) : 1;
-        endmethod
     endmodule
+endinstance
+
+
+//
+// Chunker for Maybe#() tagged unions.  Rearrange the tag so it is in the low
+// bits, making the chunks more suitable for passing through a compressing
+// marshaller.
+//
+instance CompressionChunks#(Maybe#(t_MSG),
+                            HList2#(t_MSG, Bool))
+    provisos (Alias#(t_ENC_DATA, t_MSG),
+              Alias#(t_ENC_CHUNKS, HList2#(t_MSG, Bool)),
+              HList#(t_ENC_CHUNKS));
+
+    // Map Maybe#() to chunks
+    function encDataToChunks(data) = hList2(validValue(data), isValid(data));
+
+    // Which chunks are valid?
+    function encDataToChunksMask(data) = list(isValid(data), True);
+
+
+    // Map chunks to Maybe#()
+    function chunksToEncData(chunks);
+        return hLast(chunks) ? tagged Valid hHead(chunks) :
+                               tagged Invalid;
+    endfunction
+
+    // The tag chunk must be read to decode a chunk.
+    function decodeRequiredChunksMask() = list(False, True);
+
+    // Which chunks are valid?  The Bool chunk is always valid and the message
+    // chunk is valid when the Bool chunk is True.
+    function chunksToEncDataMask(key) = list(hLast(key), True);
 endinstance
 
 
@@ -293,21 +373,23 @@ module mkCompressingMarshaller
         (MARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Compress#(t_DATA, t_ENC_DATA, t_DECODER),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
-              Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_DATA_SZ)), t_MSG_LEN),
+              Compress#(t_DATA, t_ENC_DATA),
+              CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              CompressionChunksBits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
+              Bits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
+              Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_CHUNKS_SZ)), t_MSG_LEN),
               Bits#(t_MSG_LEN, t_MSG_LEN_SZ));
 
     // The message being transmitted is the combination of the original message
     // and the message's actual length (in t_FIFO_DATA chunks).
-    MARSHALLER_N#(t_FIFO_DATA, Tuple2#(t_ENC_DATA, t_MSG_LEN)) m <-
+    MARSHALLER_N#(t_FIFO_DATA, Tuple2#(t_ENC_CHUNKS, t_MSG_LEN)) m <-
         mkSimpleMarshallerN(True);
 
     // The compressor
     COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA) encoder <- mkCompressor();
 
-    // Compute a message length in chunks given a length in bits.
-    function t_MSG_LEN bitsToChunks(Integer nBits);
+    // Compute a message length in marshaller chunks given a length in bits.
+    function t_MSG_LEN bitsToMarshallerChunks(Integer nBits);
         return fromInteger((valueOf(t_MSG_LEN_SZ) +
                             nBits +
                             valueOf(t_FIFO_DATA_SZ) - 1) / valueOf(t_FIFO_DATA_SZ));
@@ -315,11 +397,17 @@ module mkCompressingMarshaller
 
     // Connect the encoder to the marshaller
     rule connect;
-        match {.cval, .valid_bits} = encoder.first();
+        let enc_data = encoder.first();
         encoder.deq();
-        
-        let chunks = bitsToChunks(valid_bits);
-        m.enq(tuple2(cval, chunks), truncateNP(chunks));
+
+        // Convert encoded tagged union to a list of chunks
+        let enc_msg = encDataToChunks(enc_data);
+        // Compute the size of the encoded message
+        let enc_msg_sz = rMsgSize(enc_msg, encDataToChunksMask(enc_data));
+        // Convert the size (bits) to marshaller chunks
+        let mar_chunks = bitsToMarshallerChunks(enc_msg_sz);
+
+        m.enq(tuple2(enc_msg, mar_chunks), truncateNP(mar_chunks));
     endrule
 
     method Action enq(t_DATA inData) = encoder.enq(inData);
@@ -341,9 +429,11 @@ module mkCompressingDemarshaller
         (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Compress#(t_DATA, t_ENC_DATA, t_DECODER),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
-              Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_DATA_SZ)), t_MSG_LEN),
+              Compress#(t_DATA, t_ENC_DATA),
+              CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              CompressionChunksBits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
+              Bits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
+              Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_CHUNKS_SZ)), t_MSG_LEN),
               Bits#(t_MSG_LEN, t_MSG_LEN_SZ));
 
     // Compute the number of chunks actually transmitted for a message, given
@@ -352,18 +442,18 @@ module mkCompressingDemarshaller
     // simply returning the entire chunk with the count in the LSBs is fine.
     function compressedLen(t_FIFO_DATA chunk0) = pack(chunk0);
 
-    DEMARSHALLER#(t_FIFO_DATA, Tuple2#(t_ENC_DATA, t_MSG_LEN)) dem <-
+    DEMARSHALLER#(t_FIFO_DATA, Tuple2#(t_ENC_CHUNKS, t_MSG_LEN)) dem <-
         mkSimpleDemarshallerN(compressedLen);
 
     // The decompressor
-    COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) decoder <- mkDecompressor();
+    COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) decoder <- mkDecompressor();
 
     // Connect the demarshaller to the decoder
     rule connect;
-        let v = tpl_1(dem.first());
+        let msg = chunksToEncData(tpl_1(dem.first()));
         dem.deq();
 
-        decoder.enq(v);
+        decoder.enq(msg);
     endrule
 
     method Action enq(t_FIFO_DATA fifoData) = dem.enq(fifoData);

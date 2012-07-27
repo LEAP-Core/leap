@@ -13244,3 +13244,21 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
   * Instance of Bits for HLists
   * HLast/hLast for finding the last non-nil member of an HList.
+
+----------
+mcadler     Date: Fri Jul 27 17:09:58 EDT 2012  CSN: CSN-leap-324
+                  Fri Jul 27 21:09:58 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ compress.bsv              Locally Modified          323 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-compressed.bsv Locally Modified          323 
+
+The expected compressed output type of a Compress typeclass is now a tagged
+union, making it easier for the multi-FPGA compiler to manage channel
+mapping.  For channel mapping within Bluespec, a new CompressionChunks
+typeclass is now available for converting a tagged union to an HList of
+chunks.  The existing CompressionMapping typeclass can then map the chunks
+to I/O channels.

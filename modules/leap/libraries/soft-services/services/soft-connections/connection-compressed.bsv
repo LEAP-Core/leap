@@ -30,7 +30,7 @@ import HList::*;
 // See compress.bsv in LibRL.
 //
 
-// Base case for a recursize parsing of a t_MAPPING HList.
+// Base case for a recursize parsing of a mapping HList.
 instance CompressionMappingMC#(HList::HNil, t_CHAN, CONNECTED_MODULE);
     module [CONNECTED_MODULE] mkCompressedChannelMC#(HList::HNil map,
                                                      String name,
@@ -48,19 +48,20 @@ endinstance
 module [CONNECTED_MODULE] mkCompressedConnectionSend#(String name)
     // Interface:
     (CONNECTION_SEND#(t_MSG))
-    provisos (Bits#(t_MSG, t_MSG_SZ),
-              CompressMC#(t_MSG, t_ENC_DATA, t_DECODER, CONNECTED_MODULE),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
-              CompressionMappingMC#(t_ENC_DATA,
-                                    COMPRESSED_CONNECTION_SEND#(t_ENC_DATA),
+    provisos (Compress#(t_MSG, t_ENC_DATA),
+              CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK),
+              CompressionMappingMC#(t_ENC_CHUNKS,
+                                    COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS,
+                                                                t_CHUNKS_MASK),
                                     CONNECTED_MODULE));
 
     // The encoder transforms input messages to a compressed stream
-    COMPRESSION_ENCODER#(t_MSG, t_ENC_DATA) encoder <- mkCompressorMC();
+    COMPRESSION_ENCODER#(t_MSG, t_ENC_DATA) encoder <- mkCompressor();
 
     // Instantiate the set of sender soft connections
-    t_ENC_DATA map = ?;    
-    COMPRESSED_CONNECTION_SEND#(t_ENC_DATA) con <-
+    t_ENC_CHUNKS map = ?;    
+    COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, t_CHUNKS_MASK) con <-
         mkCompressedChannelMC(map, name, 0);
 
     // Connect the compressing encoder to the outbound soft connections
@@ -79,21 +80,20 @@ endmodule
 module [CONNECTED_MODULE] mkCompressedConnectionRecv#(String name)
     // Interface:
     (CONNECTION_RECV#(t_MSG))
-    provisos (Bits#(t_MSG, t_MSG_SZ),
-              CompressMC#(t_MSG, t_ENC_DATA, t_DECODER, CONNECTED_MODULE),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
-              Bits#(t_DECODER, t_DECODER_SZ),    
-              CompressionMappingMC#(t_ENC_DATA,
-                                    COMPRESSED_CONNECTION_RECV#(t_ENC_DATA),
+    provisos (Compress#(t_MSG, t_ENC_DATA),
+              CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK),
+              CompressionMappingMC#(t_ENC_CHUNKS,
+                                    COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS,
+                                                                t_CHUNKS_MASK),
                                     CONNECTED_MODULE));
 
     // The decoder transforms received messages to an output decompressed stream
-    COMPRESSION_DECODER#(t_MSG, t_ENC_DATA, t_DECODER) decoder <-
-        mkDecompressorMC();
+    COMPRESSION_DECODER#(t_MSG, t_ENC_DATA) decoder <- mkDecompressor();
 
     // Instantiate the set of receiver soft connections
-    t_ENC_DATA map = ?;    
-    COMPRESSED_CONNECTION_RECV#(t_ENC_DATA) con <-
+    t_ENC_CHUNKS map = ?;    
+    COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, t_CHUNKS_MASK) con <-
         mkCompressedChannelMC(map, name, 0);
 
     // Connect the inbound soft connections to the input of the decoder
@@ -106,20 +106,20 @@ endmodule
 
 
 //
-// Internal interfaces for multi-soft connection compressed streams.  The
+// Internal interfaces for multi-soft-connection compressed streams.  The
 // modules with CONNECTION_SEND/RECV interfaces above communicate with the
 // actual soft connections instantiated below through these interfaces.
 //
 
-interface COMPRESSED_CONNECTION_SEND#(type t_MSG);
-    method Action send(t_MSG data, Integer nValidBits);
-    method Bool notFull();
+interface COMPRESSED_CONNECTION_SEND#(type t_ENC_CHUNKS, type t_CHUNKS_MASK);
+    method Action send(t_ENC_CHUNKS data, t_CHUNKS_MASK toChunks);
+    method Bool notFull(t_CHUNKS_MASK toChunks);
 endinterface
 
-interface COMPRESSED_CONNECTION_RECV#(type t_MSG);
-    method Action deq(Integer nBits);
-    method Bool notEmpty();
-    method t_MSG receive(Integer nBits);
+interface COMPRESSED_CONNECTION_RECV#(type t_ENC_CHUNKS, type t_CHUNKS_MASK);
+    method Action deq(t_CHUNKS_MASK fromChunks);
+    method Bool notEmpty(t_CHUNKS_MASK fromChunks);
+    method t_ENC_CHUNKS receive(t_CHUNKS_MASK fromChunks);
 endinterface
 
 
@@ -129,29 +129,31 @@ endinterface
 //
 
 instance Connectable#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA),
-                      COMPRESSED_CONNECTION_SEND#(t_ENC_DATA))
-    // We avoid associating t_ENC_DATA and t_END_DATA_SZ because it causes
-    // a ripple of provisos up the chain.
-    provisos (Bits#(t_ENC_DATA, a__));
+                      COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, t_CHUNKS_MASK))
+    provisos (CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK));
+
     module mkConnection#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA) enc,
-                         COMPRESSED_CONNECTION_SEND#(t_ENC_DATA) con)
+                         COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, t_CHUNKS_MASK) con)
     (Empty);
 
         rule connect;
-            match {.cval, .valid_bits} = enc.first();
+            let cval = enc.first();
             enc.deq();
         
-            con.send(cval, valid_bits);
+            con.send(encDataToChunks(cval), encDataToChunksMask(cval));
         endrule
 
     endmodule
 endinstance
 
 // Reverse argument order of above (same connection)
-instance Connectable#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA),
+instance Connectable#(COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, t_CHUNKS_MASK),
                       COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA))
-    provisos (Bits#(t_ENC_DATA, a__));
-    module mkConnection#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA) con,
+    provisos (CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK));
+
+    module mkConnection#(COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, t_CHUNKS_MASK) con,
                          COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA) enc)
     (Empty);
 
@@ -161,38 +163,39 @@ instance Connectable#(COMPRESSED_CONNECTION_SEND#(t_ENC_DATA),
     endmodule
 endinstance
 
-instance Connectable#(COMPRESSED_CONNECTION_RECV#(t_ENC_DATA),
-                      COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER))
-    // We avoid associating t_ENC_DATA and t_END_DATA_SZ because it causes
-    // a ripple of provisos up the chain.
-    provisos (Bits#(t_ENC_DATA, a__),
-              Bits#(t_DECODER, t_DECODER_SZ));
-    module mkConnection#(COMPRESSED_CONNECTION_RECV#(t_ENC_DATA) con,
-                         COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) dec)
+instance Connectable#(COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, t_CHUNKS_MASK),
+                      COMPRESSION_DECODER#(t_DATA, t_ENC_DATA))
+    provisos (CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK));
+
+    module mkConnection#(COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, t_CHUNKS_MASK) con,
+                         COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) dec)
     (Empty);
 
         rule connect;
-            // Compute the number of input bits for the current message by
-            // first reading the number of decoder bits from the current message.
-            let base_chunk_bits = con.receive(valueOf(t_DECODER_SZ));
-            let in_bits = dec.numInBits(unpack(truncateNP(pack(base_chunk_bits))));
+            // Compute the number of input chunks for the current message.
+            COMPRESSION_CHUNKS_MASK#(t_ENC_DATA) mask = decodeRequiredChunksMask();
+            let key = con.receive(mask);
+            COMPRESSION_CHUNKS_MASK#(t_ENC_DATA) in_chunks = chunksToEncDataMask(key);
 
-            let cval = con.receive(in_bits);
-            con.deq(in_bits);
+            // Read all required chunks
+            let cval = con.receive(in_chunks);
+            con.deq(in_chunks);
 
-            dec.enq(cval);
+            dec.enq(chunksToEncData(cval));
         endrule
 
     endmodule
 endinstance
 
 // Reverse argument order of above (same connection)
-instance Connectable#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER),
-                      COMPRESSED_CONNECTION_RECV#(t_ENC_DATA))
-    provisos (Bits#(t_ENC_DATA, a__),
-              Bits#(t_DECODER, t_DECODER_SZ));
-    module mkConnection#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA, t_DECODER) dec,
-                         COMPRESSED_CONNECTION_RECV#(t_ENC_DATA) con)
+instance Connectable#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA),
+                      COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, t_CHUNKS_MASK))
+    provisos (CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
+              Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK));
+
+    module mkConnection#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) dec,
+                         COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, t_CHUNKS_MASK) con)
     (Empty);
 
         let c <- mkConnection(con, dec);
@@ -206,15 +209,13 @@ endinstance
 // a group of soft connections for a compressed sender's channel.
 //
 instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
-                               COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, t_REM)),
+                               COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, t_REM), List#(Bool)),
                                CONNECTED_MODULE)
-    provisos (Alias#(t_ENC_DATA, HCons#(t_HEAD, t_REM)),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
+    provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, t_REM)),
               Bits#(t_HEAD, t_HEAD_SZ),
-              Bits#(t_REM, t_REM_SZ),
               // Prepare to map subordinate chunks
               CompressionMappingMC#(t_REM,
-                                    COMPRESSED_CONNECTION_SEND#(t_REM),
+                                    COMPRESSED_CONNECTION_SEND#(t_REM, List#(Bool)),
                                     CONNECTED_MODULE));
 
     //
@@ -222,21 +223,15 @@ instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
     //     Recursive instantiation of send connections for current and all
     //     subordinate compression chunks.
     //
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
+    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
                                                      String name,
                                                      Integer depth)
         // Interface:
-        (COMPRESSED_CONNECTION_SEND#(t_ENC_DATA));
-
-        // Is this the lowest (right-most) chunk?
-        let isLowestChunk = (valueOf(t_REM_SZ) == 0);
+        (COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, List#(Bool)));
 
         // Allocate the subordinate chunks
-        COMPRESSED_CONNECTION_SEND#(t_REM) subChunks = ?;
-        if (! isLowestChunk)
-        begin
-            subChunks <- mkCompressedChannelMC(hTail(map), name, depth + 1);
-        end
+        COMPRESSED_CONNECTION_SEND#(t_REM, List#(Bool)) subChunks <-
+            mkCompressedChannelMC(hTail(map), name, depth + 1);
 
         // Allocate an actual soft connection for the current chunk
         CONNECTION_SEND#(t_HEAD) thisChunk;
@@ -245,26 +240,56 @@ instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
         else
             thisChunk <- mkConnectionSendDummy(name + "_cmpmap" + integerToString(depth));
 
-        method Action send(t_ENC_DATA data, Integer nValidBits);
-            // If this is not the chunk for bit position 0 forward the send
-            // request down the recursive chain.
-            if (! isLowestChunk)
-            begin
-                subChunks.send(hTail(data), nValidBits);
-            end
+        method Action send(data, toChunks);
+            // Send to subordinate chunks
+            subChunks.send(hTail(data), List::tail(toChunks));
 
             // Is there compressed data to be sent for the current chunk?
-            if (nValidBits > valueOf(t_REM_SZ))
+            if (List::head(toChunks))
             begin
                 thisChunk.send(hHead(data));
             end
         endmethod
 
-        // notFull requires that all chunks be notFull.
-        method Bool notFull();
-            Bool sub_state = (isLowestChunk ? True : subChunks.notFull());
-            return sub_state && thisChunk.notFull();
+        // notFull for masked set of chunks
+        method Bool notFull(toChunks) = (thisChunk.notFull || ! List::head(toChunks)) &&
+                                        subChunks.notFull(List::tail(toChunks));
+    endmodule
+endinstance
+
+
+//
+// Special case of compressed send channel for the bit 0 position (the
+// end of the HList).
+//
+instance CompressionMappingMC#(HCons#(t_HEAD, HNil),
+                               COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, HNil), List#(Bool)),
+                               CONNECTED_MODULE)
+    provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, HNil)),
+              Bits#(t_HEAD, t_HEAD_SZ));
+
+    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
+                                                     String name,
+                                                     Integer depth)
+        // Interface:
+        (COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, List#(Bool)));
+
+        // Allocate an actual soft connection for the current chunk
+        CONNECTION_SEND#(t_HEAD) thisChunk;
+        if (valueOf(t_HEAD_SZ) != 0)
+            thisChunk <- mkConnectionSend(name + "_cmpmap" + integerToString(depth));
+        else
+            thisChunk <- mkConnectionSendDummy(name + "_cmpmap" + integerToString(depth));
+
+        method Action send(data, toChunks);
+            // Is there compressed data to be sent for the current chunk?
+            if (List::head(toChunks))
+            begin
+                thisChunk.send(hHead(data));
+            end
         endmethod
+
+        method Bool notFull(toChunks) = thisChunk.notFull() || ! List::head(toChunks);
     endmodule
 endinstance
 
@@ -274,25 +299,23 @@ endinstance
 // a group of soft connections for a compressed receiver's channel.
 //
 instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
-                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, t_REM)),
+                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, t_REM), List#(Bool)),
                                CONNECTED_MODULE)
-    provisos (Alias#(t_ENC_DATA, HCons#(t_HEAD, t_REM)),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
+    provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, t_REM)),
               Bits#(t_HEAD, t_HEAD_SZ),
-              Bits#(t_REM, t_REM_SZ),
               // Prepare to map subordinate chunks
               CompressionMappingMC#(t_REM,
-                                    COMPRESSED_CONNECTION_RECV#(t_REM),
+                                    COMPRESSED_CONNECTION_RECV#(t_REM, List#(Bool)),
                                     CONNECTED_MODULE));
 
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
+    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
                                                      String name,
                                                      Integer depth)
         // Interface:
-        (COMPRESSED_CONNECTION_RECV#(t_ENC_DATA));
+        (COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, List#(Bool)));
 
         // Allocate the subordinate chunks
-        COMPRESSED_CONNECTION_RECV#(t_REM) subChunks <-
+        COMPRESSED_CONNECTION_RECV#(t_REM, List#(Bool)) subChunks <-
             mkCompressedChannelMC(hTail(map), name, depth + 1);
 
         // Allocate an actual soft connection for the current chunk
@@ -302,36 +325,31 @@ instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
         else
             thisChunk <- mkConnectionRecvDummy(name + "_cmpmap" + integerToString(depth));
 
-        method Action deq(nBits);
+        method Action deq(fromChunks);
             //
-            // The "nBits" argument to deq() indicates how many valid
-            // bits were transmitted for the current message.  Only
-            // channels with valid bits are dequeued.
+            // The fromChunks mask is a list, corresponding to the list of chunks,
+            // indicating which chunks held valid messages.
             //
-            subChunks.deq(nBits);
-            if (nBits > valueOf(t_REM_SZ))
+            subChunks.deq(List::tail(fromChunks));
+            if (List::head(fromChunks))
             begin
                 thisChunk.deq();
             end
         endmethod
 
-        //
-        // For now, notEmpty() only indicates whether the lowest chunk is not
-        // empty.  The only expected consumer of these channels is 
-        // mkCompressedConnectionRecv, which doesn't care.
-        //
-        method Bool notEmpty();
-            return subChunks.notEmpty();
+        method Bool notEmpty(fromChunks);
+            return (thisChunk.notEmpty || ! List::head(fromChunks)) &&
+                   subChunks.notEmpty(List::tail(fromChunks));
         endmethod
 
-        method receive(nBits);
+        method receive(fromChunks);
             //
             // Concatenate received chunks into a response, recursively
             // visiting all channels.  Only read channels corresponding
-            // to bit positions within the requested low nBits.
+            // to requested chunks.
             //
-            let sub_chunks = subChunks.receive(nBits);
-            if ((nBits > valueOf(t_REM_SZ)) && (valueOf(t_HEAD_SZ) != 0))
+            let sub_chunks = subChunks.receive(List::tail(fromChunks));
+            if (List::head(fromChunks) && (valueOf(t_HEAD_SZ) != 0))
             begin
                 return hCons(thisChunk.receive(), sub_chunks);
             end
@@ -349,17 +367,16 @@ endinstance
 // end of the HList).
 //
 instance CompressionMappingMC#(HCons#(t_HEAD, HNil),
-                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, HNil)),
+                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, HNil), List#(Bool)),
                                CONNECTED_MODULE)
-    provisos (Alias#(t_ENC_DATA, HCons#(t_HEAD, HNil)),
-              Bits#(t_ENC_DATA, t_ENC_DATA_SZ),
+    provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, HNil)),
               Bits#(t_HEAD, t_HEAD_SZ));
 
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_DATA map,
+    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
                                                      String name,
                                                      Integer depth)
         // Interface:
-        (COMPRESSED_CONNECTION_RECV#(t_ENC_DATA));
+        (COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, List#(Bool)));
 
         // Allocate an actual soft connection for the current chunk
         CONNECTION_RECV#(t_HEAD) thisChunk;
@@ -368,16 +385,18 @@ instance CompressionMappingMC#(HCons#(t_HEAD, HNil),
         else
             thisChunk <- mkConnectionRecvDummy(name + "_cmpmap" + integerToString(depth));
 
-        method Action deq(nBits);
-            thisChunk.deq();
-        endmethod
+        method Action deq(fromChunks) = thisChunk.deq();
+        method Bool notEmpty(fromChunks) = thisChunk.notEmpty() || ! List::head(fromChunks);
 
-        method Bool notEmpty();
-            return thisChunk.notEmpty();
-        endmethod
-
-        method receive(nBits);
-            return hList1(thisChunk.receive());
+        method receive(fromChunks);
+            if (List::head(fromChunks) && (valueOf(t_HEAD_SZ) != 0))
+            begin
+                return hList1(thisChunk.receive());
+            end
+            else
+            begin
+                return hList1(?);
+            end
         endmethod
     endmodule
 endinstance
