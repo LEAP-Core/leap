@@ -138,16 +138,16 @@ COMMAND_SWITCH_PROCESSOR_CLASS::ShowArgsHelp(bool fromRunScript)
     COMMAND_SWITCH first_switch = COMMAND_SWITCH_CLASS::switchProcessors;
     COMMAND_SWITCH cur_switch = first_switch;
     
+    char* cur_line = new char[255];
     while (cur_switch != NULL)
     {
-        char* cur_line = new char[255];
         bool disp_switch = cur_switch->ShowSwitch(cur_line);
         if (disp_switch)
         {
             cerr << "   " << cur_line << endl;
         }
-        delete cur_line;
         cur_switch = cur_switch->GetNextProcessor();
     }
+    delete[] cur_line;
     cerr << endl;
 }

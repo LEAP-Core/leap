@@ -32,14 +32,14 @@ import HList::*;
 // generator is capable of converting these tagged unions into multi-
 // channel, variable size messages.
 //
-typeclass Compress#(type t_DATA, type t_ENC_DATA)
-    dependencies (t_DATA determines t_ENC_DATA);
+typeclass Compress#(type t_DATA, type t_ENC_DATA, type t_MODULE)
+    dependencies (t_DATA determines (t_ENC_DATA, t_MODULE));
 
     // Encode the original data into compressed form.
-    module mkCompressor (COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA));
+    module [t_MODULE] mkCompressor (COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA));
 
     // Restore original data given a compressed value.
-    module mkDecompressor (COMPRESSION_DECODER#(t_DATA, t_ENC_DATA));
+    module [t_MODULE] mkDecompressor (COMPRESSION_DECODER#(t_DATA, t_ENC_DATA));
 endtypeclass
 
 
@@ -178,28 +178,19 @@ endinstance
 //     chunks and map them to a set of communication channels, such as
 //     soft connections.
 //
-typeclass CompressionMapping#(type t_ENC_CHUNKS, type t_CHAN);
-    module mkCompressedChannel#(t_ENC_CHUNKS map,
-                                String name,
-                                Integer depth) (t_CHAN);
-endtypeclass
-
-//
-// CompressionMappingMC is the same as CompressionMapping, but a module type
-// is specified to support module contexts and connected modules.
-//
-typeclass CompressionMappingMC#(type t_ENC_CHUNKS, type t_CHAN, type t_MODULE);
-    module [t_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
-                                             String name,
-                                             Integer depth) (t_CHAN);
+typeclass CompressionMapping#(type t_ENC_CHUNKS, type t_CHAN, type t_MODULE);
+    module [t_MODULE] mkCompressedChannel#(t_ENC_CHUNKS map,
+                                           String name,
+                                           Integer depth) (t_CHAN);
 endtypeclass
 
 
 // Base case for a recursize parsing of a t_ENC_CHUNKS HList.
-instance CompressionMapping#(HList::HNil, t_CHAN);
-    module mkCompressedChannel#(HList::HNil map,
-                                String name,
-                                Integer depth) (t_CHAN);
+instance CompressionMapping#(HList::HNil, t_CHAN, t_MODULE)
+    provisos (IsModule#(t_MODULE, m__));
+    module [t_MODULE] mkCompressedChannel#(HList::HNil map,
+                                           String name,
+                                           Integer depth) (t_CHAN);
         return ?;
     endmodule
 endinstance
@@ -289,11 +280,13 @@ endinstance
 instance Compress#(// Original type
                    Maybe#(t_DATA),
                    // Compressed container (maximum size)
-                   Maybe#(t_DATA))
+                   Maybe#(t_DATA),
+                   t_MODULE)
     provisos (Bits#(t_DATA, t_DATA_SZ),
-              Alias#(Maybe#(t_DATA), t_ENC_DATA));
+              Alias#(Maybe#(t_DATA), t_ENC_DATA),
+              IsModule#(t_MODULE, m__));
 
-    module mkCompressor
+    module [t_MODULE] mkCompressor
         // Interface:
         (COMPRESSION_ENCODER#(Maybe#(t_DATA), t_ENC_DATA));
 
@@ -307,7 +300,7 @@ instance Compress#(// Original type
         method notEmpty() = inQ.notEmpty();
     endmodule
 
-    module mkDecompressor
+    module [t_MODULE] mkDecompressor
         // Interface:
         (COMPRESSION_DECODER#(Maybe#(t_DATA), t_ENC_DATA));
 
@@ -368,17 +361,18 @@ endinstance
 //     function to individual input messages before marshalling them through the
 //     output type.
 //
-module mkCompressingMarshaller
+module [t_MODULE] mkCompressingMarshaller
     // Interface:
         (MARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Compress#(t_DATA, t_ENC_DATA),
+              Compress#(t_DATA, t_ENC_DATA, t_MODULE),
               CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
               CompressionChunksBits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
               Bits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
               Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_CHUNKS_SZ)), t_MSG_LEN),
-              Bits#(t_MSG_LEN, t_MSG_LEN_SZ));
+              Bits#(t_MSG_LEN, t_MSG_LEN_SZ),
+              IsModule#(t_MODULE, m__));
 
     // The message being transmitted is the combination of the original message
     // and the message's actual length (in t_FIFO_DATA chunks).
@@ -424,17 +418,18 @@ endmodule
 // mkCompressingDemarshaller --
 //     The receiving side of a mkCompressingMarshaller.
 //
-module mkCompressingDemarshaller
+module [t_MODULE] mkCompressingDemarshaller
     // Interface:
         (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
-              Compress#(t_DATA, t_ENC_DATA),
+              Compress#(t_DATA, t_ENC_DATA, t_MODULE),
               CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
               CompressionChunksBits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
               Bits#(t_ENC_CHUNKS, t_ENC_CHUNKS_SZ),
               Alias#(COMPRESSING_MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, Bit#(t_ENC_CHUNKS_SZ)), t_MSG_LEN),
-              Bits#(t_MSG_LEN, t_MSG_LEN_SZ));
+              Bits#(t_MSG_LEN, t_MSG_LEN_SZ),
+              IsModule#(t_MODULE, m__));
 
     // Compute the number of chunks actually transmitted for a message, given
     // the first chunk.  The demarshaller will automatically truncate the

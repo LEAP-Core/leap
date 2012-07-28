@@ -34,7 +34,7 @@ class COMMAND_SWITCH_CLASS
         COMMAND_SWITCH GetNextProcessor() { return nextProcessor; }
 
         virtual void ProcessSwitch(const char *arg) {}
-        virtual bool ShowSwitch(const char *buff) { return false; }
+        virtual bool ShowSwitch(char *buff) { return false; }
 };
 
 // COMMAND_SWITCH_VOID

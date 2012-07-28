@@ -30,16 +30,6 @@ import HList::*;
 // See compress.bsv in LibRL.
 //
 
-// Base case for a recursize parsing of a mapping HList.
-instance CompressionMappingMC#(HList::HNil, t_CHAN, CONNECTED_MODULE);
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(HList::HNil map,
-                                                     String name,
-                                                     Integer depth) (t_CHAN);
-        return ?;
-    endmodule
-endinstance
-
-
 //
 // mkCompressedConnectionSend --
 //     Same interface as a mkConnectionSend, but instantiates multiple
@@ -48,13 +38,13 @@ endinstance
 module [CONNECTED_MODULE] mkCompressedConnectionSend#(String name)
     // Interface:
     (CONNECTION_SEND#(t_MSG))
-    provisos (Compress#(t_MSG, t_ENC_DATA),
+    provisos (Compress#(t_MSG, t_ENC_DATA, CONNECTED_MODULE),
               CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
               Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK),
-              CompressionMappingMC#(t_ENC_CHUNKS,
-                                    COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS,
-                                                                t_CHUNKS_MASK),
-                                    CONNECTED_MODULE));
+              CompressionMapping#(t_ENC_CHUNKS,
+                                  COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS,
+                                                              t_CHUNKS_MASK),
+                                  CONNECTED_MODULE));
 
     // The encoder transforms input messages to a compressed stream
     COMPRESSION_ENCODER#(t_MSG, t_ENC_DATA) encoder <- mkCompressor();
@@ -62,7 +52,7 @@ module [CONNECTED_MODULE] mkCompressedConnectionSend#(String name)
     // Instantiate the set of sender soft connections
     t_ENC_CHUNKS map = ?;    
     COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, t_CHUNKS_MASK) con <-
-        mkCompressedChannelMC(map, name, 0);
+        mkCompressedChannel(map, name, 0);
 
     // Connect the compressing encoder to the outbound soft connections
     mkConnection(encoder, con);
@@ -80,13 +70,13 @@ endmodule
 module [CONNECTED_MODULE] mkCompressedConnectionRecv#(String name)
     // Interface:
     (CONNECTION_RECV#(t_MSG))
-    provisos (Compress#(t_MSG, t_ENC_DATA),
+    provisos (Compress#(t_MSG, t_ENC_DATA, CONNECTED_MODULE),
               CompressionChunks#(t_ENC_DATA, t_ENC_CHUNKS),
               Alias#(COMPRESSION_CHUNKS_MASK#(t_ENC_DATA), t_CHUNKS_MASK),
-              CompressionMappingMC#(t_ENC_CHUNKS,
-                                    COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS,
-                                                                t_CHUNKS_MASK),
-                                    CONNECTED_MODULE));
+              CompressionMapping#(t_ENC_CHUNKS,
+                                  COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS,
+                                                              t_CHUNKS_MASK),
+                                  CONNECTED_MODULE));
 
     // The decoder transforms received messages to an output decompressed stream
     COMPRESSION_DECODER#(t_MSG, t_ENC_DATA) decoder <- mkDecompressor();
@@ -94,7 +84,7 @@ module [CONNECTED_MODULE] mkCompressedConnectionRecv#(String name)
     // Instantiate the set of receiver soft connections
     t_ENC_CHUNKS map = ?;    
     COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, t_CHUNKS_MASK) con <-
-        mkCompressedChannelMC(map, name, 0);
+        mkCompressedChannel(map, name, 0);
 
     // Connect the inbound soft connections to the input of the decoder
     mkConnection(con, decoder);
@@ -208,30 +198,30 @@ endinstance
 // Instance of soft-connection based compression mapping that allocates
 // a group of soft connections for a compressed sender's channel.
 //
-instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
-                               COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, t_REM), List#(Bool)),
-                               CONNECTED_MODULE)
+instance CompressionMapping#(HCons#(t_HEAD, t_REM),
+                             COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, t_REM), List#(Bool)),
+                             CONNECTED_MODULE)
     provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, t_REM)),
               Bits#(t_HEAD, t_HEAD_SZ),
               // Prepare to map subordinate chunks
-              CompressionMappingMC#(t_REM,
-                                    COMPRESSED_CONNECTION_SEND#(t_REM, List#(Bool)),
-                                    CONNECTED_MODULE));
+              CompressionMapping#(t_REM,
+                                  COMPRESSED_CONNECTION_SEND#(t_REM, List#(Bool)),
+                                  CONNECTED_MODULE));
 
     //
     // mkCompressedSendChannel --
     //     Recursive instantiation of send connections for current and all
     //     subordinate compression chunks.
     //
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
-                                                     String name,
-                                                     Integer depth)
+    module [CONNECTED_MODULE] mkCompressedChannel#(t_ENC_CHUNKS map,
+                                                   String name,
+                                                   Integer depth)
         // Interface:
         (COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, List#(Bool)));
 
         // Allocate the subordinate chunks
         COMPRESSED_CONNECTION_SEND#(t_REM, List#(Bool)) subChunks <-
-            mkCompressedChannelMC(hTail(map), name, depth + 1);
+            mkCompressedChannel(hTail(map), name, depth + 1);
 
         // Allocate an actual soft connection for the current chunk
         CONNECTION_SEND#(t_HEAD) thisChunk;
@@ -262,15 +252,15 @@ endinstance
 // Special case of compressed send channel for the bit 0 position (the
 // end of the HList).
 //
-instance CompressionMappingMC#(HCons#(t_HEAD, HNil),
-                               COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, HNil), List#(Bool)),
-                               CONNECTED_MODULE)
+instance CompressionMapping#(HCons#(t_HEAD, HNil),
+                             COMPRESSED_CONNECTION_SEND#(HCons#(t_HEAD, HNil), List#(Bool)),
+                             CONNECTED_MODULE)
     provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, HNil)),
               Bits#(t_HEAD, t_HEAD_SZ));
 
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
-                                                     String name,
-                                                     Integer depth)
+    module [CONNECTED_MODULE] mkCompressedChannel#(t_ENC_CHUNKS map,
+                                                   String name,
+                                                   Integer depth)
         // Interface:
         (COMPRESSED_CONNECTION_SEND#(t_ENC_CHUNKS, List#(Bool)));
 
@@ -298,25 +288,25 @@ endinstance
 // Instance of soft-connection based compression mapping that allocates
 // a group of soft connections for a compressed receiver's channel.
 //
-instance CompressionMappingMC#(HCons#(t_HEAD, t_REM),
-                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, t_REM), List#(Bool)),
-                               CONNECTED_MODULE)
+instance CompressionMapping#(HCons#(t_HEAD, t_REM),
+                             COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, t_REM), List#(Bool)),
+                             CONNECTED_MODULE)
     provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, t_REM)),
               Bits#(t_HEAD, t_HEAD_SZ),
               // Prepare to map subordinate chunks
-              CompressionMappingMC#(t_REM,
-                                    COMPRESSED_CONNECTION_RECV#(t_REM, List#(Bool)),
-                                    CONNECTED_MODULE));
+              CompressionMapping#(t_REM,
+                                  COMPRESSED_CONNECTION_RECV#(t_REM, List#(Bool)),
+                                  CONNECTED_MODULE));
 
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
-                                                     String name,
-                                                     Integer depth)
+    module [CONNECTED_MODULE] mkCompressedChannel#(t_ENC_CHUNKS map,
+                                                   String name,
+                                                   Integer depth)
         // Interface:
         (COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, List#(Bool)));
 
         // Allocate the subordinate chunks
         COMPRESSED_CONNECTION_RECV#(t_REM, List#(Bool)) subChunks <-
-            mkCompressedChannelMC(hTail(map), name, depth + 1);
+            mkCompressedChannel(hTail(map), name, depth + 1);
 
         // Allocate an actual soft connection for the current chunk
         CONNECTION_RECV#(t_HEAD) thisChunk;
@@ -366,15 +356,15 @@ endinstance
 // Special case of compressed receive channel for the bit 0 position (the
 // end of the HList).
 //
-instance CompressionMappingMC#(HCons#(t_HEAD, HNil),
-                               COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, HNil), List#(Bool)),
-                               CONNECTED_MODULE)
+instance CompressionMapping#(HCons#(t_HEAD, HNil),
+                             COMPRESSED_CONNECTION_RECV#(HCons#(t_HEAD, HNil), List#(Bool)),
+                             CONNECTED_MODULE)
     provisos (Alias#(t_ENC_CHUNKS, HCons#(t_HEAD, HNil)),
               Bits#(t_HEAD, t_HEAD_SZ));
 
-    module [CONNECTED_MODULE] mkCompressedChannelMC#(t_ENC_CHUNKS map,
-                                                     String name,
-                                                     Integer depth)
+    module [CONNECTED_MODULE] mkCompressedChannel#(t_ENC_CHUNKS map,
+                                                   String name,
+                                                   Integer depth)
         // Interface:
         (COMPRESSED_CONNECTION_RECV#(t_ENC_CHUNKS, List#(Bool)));
 
