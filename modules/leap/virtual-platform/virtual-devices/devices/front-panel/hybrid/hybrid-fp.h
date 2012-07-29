@@ -26,7 +26,7 @@ class FRONT_PANEL_COMMAND_SWITCHES_CLASS : public COMMAND_SWITCH_OPTIONAL_STRING
         
         void ProcessSwitchVoid();
         void ProcessSwitchString(char *switch_arg);
-        virtual bool ShowSwitch(char *buff);
+        void ShowSwitch(std::ostream& ostr, const string& prefix);
 
         bool ShowFrontPanel()   { return showFrontPanel; }
         bool ShowLEDsOnStdOut() { return showLEDsOnStdOut; }

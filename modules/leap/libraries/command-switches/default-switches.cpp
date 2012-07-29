@@ -18,11 +18,10 @@ MODEL_DIR_SWITCH_CLASS::ProcessSwitchString(const char *arg)
     modelDir = strdup(arg);
 }
 
-bool
-MODEL_DIR_SWITCH_CLASS::ShowSwitch(char *buff)
+void
+MODEL_DIR_SWITCH_CLASS::ShowSwitch(std::ostream& ostr, const string& prefix)
 {
-    strcpy(buff, "[--modeldir=<dir>]      Model directory");
-    return true;
+    ostr << prefix << "[--modeldir=<dir>]      Model directory" << endl;
 }
 
 WORKLOAD_SWITCH_CLASS::WORKLOAD_SWITCH_CLASS() :
@@ -37,11 +36,10 @@ WORKLOAD_SWITCH_CLASS::ProcessSwitchString(const char *arg)
     workload = strdup(arg);
 }
 
-bool
-WORKLOAD_SWITCH_CLASS::ShowSwitch(char *buff)
+void
+WORKLOAD_SWITCH_CLASS::ShowSwitch(std::ostream& ostr, const string& prefix)
 {
-    strcpy(buff, "[--workload=\"<args>\"]   Workload name (affects .stats file name)");
-    return true;
+    ostr << prefix << "[--workload=\"<args>\"]   Workload name (affects .stats file name)" << endl;
 }
 
 FUNCP_SWITCH_CLASS::FUNCP_SWITCH_CLASS() :
@@ -60,11 +58,10 @@ FUNCP_SWITCH_CLASS::ProcessSwitchList(int switch_argc, char **switch_argv)
     funcpArgv = switch_argv;
 }
 
-bool
-FUNCP_SWITCH_CLASS::ShowSwitch(char *buff)
+void
+FUNCP_SWITCH_CLASS::ShowSwitch(std::ostream& ostr, const string& prefix)
 {
-    strcpy(buff, "[--funcp=\"<args>\"]      Arguments for the functional platform");
-    return true;
+    ostr << prefix << "[--funcp=\"<args>\"]      Arguments for the functional platform" << endl;
 }
 
 DYN_PARAM_SWITCH_CLASS::DYN_PARAM_SWITCH_CLASS() :
@@ -98,11 +95,10 @@ DYN_PARAM_SWITCH_CLASS::ProcessSwitchString(const char *arg)
     free(name);
 }
 
-bool
-DYN_PARAM_SWITCH_CLASS::ShowSwitch(char *buff)
+void
+DYN_PARAM_SWITCH_CLASS::ShowSwitch(std::ostream& ostr, const string& prefix)
 {
-    strcpy(buff, "[--param NAME=VALUE]    Set a dynamic parameter");
-    return true;
+    ostr << prefix << "[--param NAME=VALUE]    Set a dynamic parameter" << endl;
 }
 
 
@@ -118,11 +114,10 @@ LISTPARAM_SWITCH_CLASS::ProcessSwitchVoid()
     exit(0);
 }
 
-bool
-LISTPARAM_SWITCH_CLASS::ShowSwitch(char *buff)
+void
+LISTPARAM_SWITCH_CLASS::ShowSwitch(std::ostream& ostr, const string& prefix)
 {
-    strcpy(buff, "[--listparam]           List dynamic parameters");
-    return true;
+    ostr << prefix << "[--listparam]           List dynamic parameters" << endl;
 }
 
 
@@ -196,13 +191,12 @@ HASIM_TRACE_FLAG_CLASS::ProcessSwitchString(const char *command)
     TRACEABLE_CLASS::EnableTraceByRegex(regex, level);
 }
 
-bool
-HASIM_TRACE_FLAG_CLASS::ShowSwitch(char *buff) 
+void
+HASIM_TRACE_FLAG_CLASS::ShowSwitch(std::ostream& ostr, const string& prefix)
 {
-    strcpy(buff, "[--tr=[</regex/[=012]]] Set trace level by regular expression. Can be given\n \
-                          multiple times.  If not specified, the trace level will\n \
-                          default to 1 and the regex to .*\n");
-    return true;
+    ostr << prefix << "[--tr=[</regex/[=012]]] Set trace level by regular expression. Can be given" << endl
+         << prefix << "                        multiple times.  If not specified, the trace level" << endl
+         << prefix << "                        will default to 1 and the regex to .*" << endl;
 }
 
 

@@ -13281,3 +13281,25 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 - Add module context option to Compress typeclass.
 - Fix --help printing in command switches (mismatched const param in virtual
   specification caused virtual methods not to match).
+
+----------
+mcadler     Date: Sun Jul 29 14:26:41 EDT 2012  CSN: CSN-leap-326
+                  Sun Jul 29 18:26:41 UTC 2012
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.cpp             Locally Modified          325 
+ hybrid-fp.h               Locally Modified          325 
+
+Directory modules/leap/libraries/command-switches
+ default-switches.h        Locally Modified          325 
+ command-switch-processor.cpp Locally Modified          325 
+ command-switches.h        Locally Modified          325 
+ default-switches.cpp      Locally Modified          325 
+
+The old ShowSwitch interface, used when --help was on the command line, was
+too gross to be allowed to persist.  Switch from copying text into a buffer
+of indetermine size to passing an ostream and writing the message to the
+stream.
+
+The argument parsing mechanism is still to complicated.

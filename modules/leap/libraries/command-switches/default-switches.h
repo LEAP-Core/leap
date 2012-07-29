@@ -12,7 +12,7 @@ class MODEL_DIR_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
         const char* ModelDir() { return modelDir; }
 
         void ProcessSwitchString(const char* arg);
-        bool ShowSwitch(char* buff);
+        void ShowSwitch(std::ostream& ostr, const string& prefix);
     private:
         const char* modelDir;
 
@@ -26,7 +26,7 @@ class WORKLOAD_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
         const char* Workload() { return workload; }
 
         void ProcessSwitchString(const char* arg);
-        bool ShowSwitch(char* buff);
+        void ShowSwitch(std::ostream& ostr, const string& prefix);
     private:
         const char* workload;
 
@@ -41,7 +41,7 @@ class FUNCP_SWITCH_CLASS : public COMMAND_SWITCH_LIST_CLASS
         char** FuncPlatformArgv() { return funcpArgv; }
 
         void ProcessSwitchList(int argv, char** argc);
-        bool ShowSwitch(char* buff);
+        void ShowSwitch(std::ostream& ostr, const string& prefix);
     private:
         int funcpArgc;
         char** funcpArgv;
@@ -55,7 +55,7 @@ class DYN_PARAM_SWITCH_CLASS : public COMMAND_SWITCH_STRING_CLASS
         ~DYN_PARAM_SWITCH_CLASS() {}
 
         void ProcessSwitchString(const char* arg);
-        bool ShowSwitch(char* buff);
+        void ShowSwitch(std::ostream& ostr, const string& prefix);
 };
 
 class LISTPARAM_SWITCH_CLASS : public COMMAND_SWITCH_VOID_CLASS
@@ -65,7 +65,7 @@ class LISTPARAM_SWITCH_CLASS : public COMMAND_SWITCH_VOID_CLASS
         ~LISTPARAM_SWITCH_CLASS() {}
 
         void ProcessSwitchVoid();
-        bool ShowSwitch(char* buff);
+        void ShowSwitch(std::ostream& ostr, const string& prefix);
 };
 
 class HASIM_TRACE_FLAG_CLASS : public COMMAND_SWITCH_STRING_CLASS
@@ -75,7 +75,7 @@ class HASIM_TRACE_FLAG_CLASS : public COMMAND_SWITCH_STRING_CLASS
         ~HASIM_TRACE_FLAG_CLASS() {}
 
         void ProcessSwitchString(const char* arg);
-        bool ShowSwitch(char* buff);
+        void ShowSwitch(std::ostream& ostr, const string& prefix);
 };
 
 typedef class GLOBAL_ARGS_CLASS* GLOBAL_ARGS;

@@ -335,9 +335,8 @@ FRONT_PANEL_COMMAND_SWITCHES_CLASS::ProcessSwitchString(char *switch_arg)
     }
 }
 
-bool
-FRONT_PANEL_COMMAND_SWITCHES_CLASS::ShowSwitch(char *buff)
+void
+FRONT_PANEL_COMMAND_SWITCHES_CLASS::ShowSwitch(std::ostream& ostr, const string& prefix)
 {
-    strcpy(buff, "[--showfp[=gui|stdout|none]]");
-    return true;
+    ostr << prefix << "[--showfp[=gui|stdout|none]]" << endl;
 }

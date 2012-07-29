@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <getopt.h>
+#include <ostream>
+#include <string>
 
 #include "asim/syntax.h"
 #include "asim/mesg.h"
@@ -34,7 +36,7 @@ class COMMAND_SWITCH_CLASS
         COMMAND_SWITCH GetNextProcessor() { return nextProcessor; }
 
         virtual void ProcessSwitch(const char *arg) {}
-        virtual bool ShowSwitch(char *buff) { return false; }
+        virtual void ShowSwitch(std::ostream& ostr, const string& prefix) {}
 };
 
 // COMMAND_SWITCH_VOID
