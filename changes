@@ -13303,3 +13303,17 @@ of indetermine size to passing an ostream and writing the message to the
 stream.
 
 The argument parsing mechanism is still to complicated.
+
+----------
+mcadler     Date: Thu Aug  2 17:30:54 EDT 2012  CSN: CSN-leap-327
+                  Thu Aug  2 21:30:54 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ compress.bsv              Locally Modified          326 
+
+Directory modules/leap/libraries/librl/base/support
+ hash-check.c              Locally Modified          326 
+
+- Change Compress typeclass so t_MODULE doesn't depend on the base type.
+- Add avalanche hash test.

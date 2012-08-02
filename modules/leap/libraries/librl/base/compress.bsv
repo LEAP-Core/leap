@@ -33,7 +33,7 @@ import HList::*;
 // channel, variable size messages.
 //
 typeclass Compress#(type t_DATA, type t_ENC_DATA, type t_MODULE)
-    dependencies (t_DATA determines (t_ENC_DATA, t_MODULE));
+    dependencies ((t_DATA, t_MODULE) determines t_ENC_DATA);
 
     // Encode the original data into compressed form.
     module [t_MODULE] mkCompressor (COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA));

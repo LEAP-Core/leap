@@ -798,6 +798,74 @@ uint32_t crc4inv(uint32_t in)
     return out;
 }
 
+uint32_t newHash32(uint32_t key32)
+{
+    uint32_t key = key32;
+    key = key + ~(key << 15);
+    key = key ^ (key >> 10);
+    key = key + (key << 3);
+    key = key ^ (key >> 6);
+    key = key + ~(key << 11);
+    key = key ^ (key >> 16);
+    return key;
+}
+
+
+//
+// Compute avalance
+//
+static void avalanche(void)
+{
+    uint32_t j, k;
+    uint32_t iters = 0;
+    uint32_t hash0, hash1;
+    uint32_t distance, min_distance, max_distance, sum_distance, sum_distance_sq;
+
+    min_distance = ~0;
+    max_distance = 0;
+    sum_distance = 0;
+    sum_distance_sq = 0;
+
+    srandom(1);
+
+    // For each input bit
+    for (j = 0; j < 32; ++j)
+    {
+        // Check some number of values
+        for (k = 0; k < 1024; k += 1)
+        {
+            // Construct random values, differing by 1 bit
+            uint32_t r = random();
+            uint32_t tst0 = r;
+            uint32_t tst1 = r ^ (1 << j);
+
+            hash0 = crc32(tst0);
+            hash1 = crc32(tst1);
+
+            // Compute the hamming distance between the two hashes
+            uint32_t distance = 0;
+            uint32_t diff = (hash0 ^ hash1);
+            while (diff)
+            {
+                distance += (diff & 1);
+                diff >>= 1;
+            }
+                    
+            if (min_distance > distance) min_distance = distance;
+            if (max_distance < distance) max_distance = distance;
+            sum_distance += distance;
+            sum_distance_sq += (distance * distance);
+            iters += 1;
+        }
+    }
+        
+    double mean = (double)sum_distance / (double)iters;
+    double variance = ((double)sum_distance_sq - mean) / (double)iters;
+
+    printf("\n\nOne bit change of the source resulted in\n");
+    printf("mean=%lf and variance=%lf\nbit changes of the hash value.\n\n", mean, variance);
+    printf("The minimum number of bit changes was %u,\nand the maximum was %u, out of %u total.\n\n", min_distance, max_distance, 32);
+}
 
 main()
 {
@@ -805,6 +873,8 @@ main()
     uint64_t c, c_inv;
 
     uint64_t max = 0x100 >> 1;
+
+    avalanche();
 
     for (i = 0; i < max; i++)
     {
