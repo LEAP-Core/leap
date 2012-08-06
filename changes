@@ -13317,3 +13317,51 @@ Directory modules/leap/libraries/librl/base/support
 
 - Change Compress typeclass so t_MODULE doesn't depend on the base type.
 - Add avalanche hash test.
+
+----------
+emer        Date: Mon Aug  6 17:10:03 EDT 2012  CSN: CSN-leap-328
+                  Mon Aug  6 21:10:03 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          327 
+ Makefile.in               Locally Modified          327 
+
+Directory debian
+ control                   Locally Modified          327 
+
+Directory .
+ configure.in              Locally Modified          327 
+
+Directory tools/leap
+ Makefile.in               Locally Modified          327 
+
+Directory tools/leap/leap-front-panel
+ leap_front_panel.ui       Locally Removed           327 
+ leap_front_panel.ui.h     Locally Removed           327 
+ leap_front_panel_header.pl Locally Removed           327 
+
+Directory tools/leap
+ Makefile.am               Locally Modified          327 
+ leap-front-panel-qt3/     Locally Added               0 
+
+Directory tools/leap/leap-front-panel-qt3
+ Makefile.in               Locally Added               - 
+ leap_front_panel.ui       Locally Added               - 
+ Makefile.am               Locally Added               - 
+ leap_front_panel.ui.h     Locally Added               - 
+ leap_front_panel_header.pl Locally Added               - 
+
+Directory .
+ aclocal.m4                Locally Modified          327 
+
+Prepare leap package for using perlqt4 with conditional build
+of leap-front-panel-qt3 or leap-front-panel (currently empty).
+Control of build if provided with a --enable-perlqt4 switch
+to ./configure. Default for that switch is 'no', but is 
+automatically turned to yes for Ubuntu Oneiric and later.
+
+Also removed build dependence on libperl-qt for debian package
+builds, because libperl-qt is for qt3 and the package name
+is different on qt4, and there is no way to choose a build
+dependence conditionally.

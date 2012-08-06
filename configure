@@ -585,6 +585,8 @@ packagedir
 configdir
 release
 package
+ENABLE_PERLQT4_FALSE
+ENABLE_PERLQT4_TRUE
 am__untar
 am__tar
 AMTAR
@@ -651,6 +653,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_perl_vendor_install
+enable_perlqt4
 enable_dependency_tracking
 '
       ac_precious_vars='build_alias
@@ -1278,6 +1281,8 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-perl-vendor-install
                           Do a perl vendor install
+  --enable-perlqt4=ARG    use perlqt4 [[ARG=no|yes]] (default=no with
+                          system-specific exceptions)
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
 
@@ -2368,6 +2373,35 @@ else
 fi
 
 
+#
+# --enable-perlqt4
+#
+# Check whether --enable-perlqt4 was given.
+if test "${enable_perlqt4+set}" = set; then :
+  enableval=$enable_perlqt4; asim_cv_enable_perlqt4=$enableval
+else
+  asim_cv_enable_perlqt4=no
+fi
+
+
+# Force qt4 for Ubuntu Oneiric or later
+
+if test $asim_cv_enable_perlqt4 = "no" -a -x /usr/bin/lsb_release -a $(lsb_release -s -i) = "Ubuntu" -a $(lsb_release -s -r | sed 's/\.//') -ge 1110
+then
+    asim_cv_enable_perlqt4="yes"
+else
+    asim_cv_enable_perlqt4="no"
+fi
+
+ if test "$asim_cv_enable_perlqt4" = yes; then
+  ENABLE_PERLQT4_TRUE=
+  ENABLE_PERLQT4_FALSE='#'
+else
+  ENABLE_PERLQT4_TRUE='#'
+  ENABLE_PERLQT4_FALSE=
+fi
+
+
 
 
 package=leap
@@ -3451,6 +3485,8 @@ ac_config_files="$ac_config_files tools/leap/Makefile"
 # tools/scripts
 ac_config_files="$ac_config_files tools/leap/leap-front-panel/Makefile"
 
+ac_config_files="$ac_config_files tools/leap/leap-front-panel-qt3/Makefile"
+
 
 ac_config_files="$ac_config_files Makefile"
 
@@ -3559,6 +3595,10 @@ else
   am__EXEEXT_FALSE=
 fi
 
+if test -z "${ENABLE_PERLQT4_TRUE}" && test -z "${ENABLE_PERLQT4_FALSE}"; then
+  as_fn_error "conditional \"ENABLE_PERLQT4\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
   as_fn_error "conditional \"AMDEP\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -4173,6 +4213,7 @@ do
     "tools/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES tools/scripts/Makefile" ;;
     "tools/leap/Makefile") CONFIG_FILES="$CONFIG_FILES tools/leap/Makefile" ;;
     "tools/leap/leap-front-panel/Makefile") CONFIG_FILES="$CONFIG_FILES tools/leap/leap-front-panel/Makefile" ;;
+    "tools/leap/leap-front-panel-qt3/Makefile") CONFIG_FILES="$CONFIG_FILES tools/leap/leap-front-panel-qt3/Makefile" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

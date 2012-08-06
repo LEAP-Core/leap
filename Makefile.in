@@ -35,7 +35,8 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure \
 	$(top_srcdir)/include/config.h.in INSTALL aux-scripts/compile \
-	aux-scripts/depcomp aux-scripts/install-sh aux-scripts/missing
+	aux-scripts/depcomp aux-scripts/install-sh aux-scripts/missing \
+	config.guess config.sub
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \

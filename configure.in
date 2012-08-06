@@ -22,6 +22,26 @@ AC_ARG_ENABLE([perl-vendor-install],
       perlinstalldirs=vendor,
       perlinstalldirs=site)
 
+#
+# --enable-perlqt4
+#
+AC_ARG_ENABLE([perlqt4],
+      AC_HELP_STRING([--enable-perlqt4=ARG],
+                     [use perlqt4 [[ARG=no|yes]] (default=no with system-specific exceptions)]),
+      asim_cv_enable_perlqt4=$enableval,
+      asim_cv_enable_perlqt4=no)
+
+# Force qt4 for Ubuntu Oneiric or later
+
+if test $asim_cv_enable_perlqt4 = "no" -a -x /usr/bin/lsb_release -a $(lsb_release -s -i) = "Ubuntu" -a $(lsb_release -s -r | sed 's/\.//') -ge 1110
+then
+    asim_cv_enable_perlqt4="yes"
+else
+    asim_cv_enable_perlqt4="no"
+fi
+
+AM_CONDITIONAL([ENABLE_PERLQT4], [test "$asim_cv_enable_perlqt4" = yes])
+
 
 AC_SUBST(package)
 package=leap
@@ -82,5 +102,6 @@ AC_CONFIG_FILES(tools/leap/Makefile)
 
 # tools/scripts
 AC_CONFIG_FILES(tools/leap/leap-front-panel/Makefile)
+AC_CONFIG_FILES(tools/leap/leap-front-panel-qt3/Makefile)
 
 AC_OUTPUT(Makefile)
