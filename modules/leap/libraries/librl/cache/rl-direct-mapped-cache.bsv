@@ -32,7 +32,6 @@ import SpecialFIFOs::*;
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/fpga_components.bsh"
 
-
 // ===================================================================
 //
 // PUBLIC DATA STRUCTURES
@@ -72,12 +71,33 @@ typedef enum
     RL_DM_MODE_WRITE_BACK = 0,
     RL_DM_MODE_WRITE_THROUGH = 1,
     RL_DM_MODE_WRITE_NO_ALLOC = 2,
-    RL_DM_MODE_DISABLED = 3
+    RL_DM_MODE_DISABLED = 3    
 }
 RL_DM_CACHE_MODE
     deriving (Eq, Bits);
 
-
+//
+// Cache prefetch mode
+//
+typedef enum
+{
+    RL_DM_PREFETCH_DISABLE = 0,
+    RL_DM_PREFETCH_ENABLE  = 1
+}
+RL_DM_CACHE_PREFETCH_MODE
+    deriving (Eq, Bits);
+   
+//
+// Reference info wrapped by the cache 
+// (adding prefetch info to distinguish between prefetch and cache requests/responses)
+//
+typedef struct
+{
+    t_CACHE_REF_INFO clientRef; 
+    Bool isPrefetch;
+}
+RL_DM_CACHE_REF_INFO#(type t_CACHE_REF_INFO)
+    deriving (Eq, Bits);
 
 //
 // Direct mapped cache interface.
@@ -118,11 +138,12 @@ interface RL_DM_CACHE#(type t_CACHE_ADDR,
     method Action invalOrFlushWait();
     
     //
-    // Set cache mode.  Mostly useful for debugging.  This may not be changed
+    // Set cache and prefetch mode.  Mostly useful for debugging.  This may not be changed
     // in the middle of a run!
     //
     method Action setCacheMode(RL_DM_CACHE_MODE mode);
-
+    method Action setPrefetchMode(RL_DM_CACHE_PREFETCH_MODE en);
+    
     interface RL_CACHE_STATS stats;
 
 endinterface: RL_DM_CACHE
@@ -135,7 +156,7 @@ typedef struct
 {
     t_CACHE_ADDR addr;
     t_CACHE_WORD val;
-    t_CACHE_REF_INFO refInfo;
+    RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo;
 }
 RL_DM_CACHE_FILL_RESP#(type t_CACHE_ADDR,
                        type t_CACHE_WORD,
@@ -154,7 +175,7 @@ interface RL_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
 
     // Fill request and response with data.  Since the response is tagged with
     // the details of the request, responses may be returned in any order.
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_REF_INFO refInfo);
+    method Action readReq(t_CACHE_ADDR addr, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
     method ActionValue#(RL_DM_CACHE_FILL_RESP#(t_CACHE_ADDR,
                                                t_CACHE_WORD,
                                                t_CACHE_REF_INFO)) readResp();
@@ -165,13 +186,13 @@ interface RL_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
     // Asynchronous write (no response)
     method Action write(t_CACHE_ADDR addr,
                         t_CACHE_WORD val,
-                        t_CACHE_REF_INFO refInfo);
+                        RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
     
     // Pass invalidate and flush requests down the hierarchy.  If sendAck is
     // true then invalOrFlushWait must block until the operation is complete.
     // If sendAck is false invalOrflushWait will not be called.
-    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
-    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
+    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
+    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
     method Action invalOrFlushWait();
 
 endinterface: RL_DM_CACHE_SOURCE_DATA
@@ -194,7 +215,15 @@ typedef enum
 RL_DM_CACHE_ACTION
     deriving (Eq, Bits);
 
-
+typedef enum
+{
+    DM_CACHE_NEW_REQ,
+    DM_CACHE_SIDE_REQ,
+    DM_CACHE_PREFETCH_REQ
+}
+RL_DM_CACHE_REQ_TYPE
+    deriving (Eq, Bits);
+       
 //
 // Index of the write data heap index.  To save space, write data is passed
 // through the cache pipelines as a pointer.  The heap size limits the number
@@ -213,7 +242,7 @@ typedef struct
 {
    RL_DM_CACHE_ACTION act;
    t_CACHE_ADDR addr;
-   t_CACHE_REF_INFO refInfo;
+   RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo;
  
    // Write data index
    RL_DM_WRITE_DATA_HEAP_IDX writeDataIdx;
@@ -256,6 +285,7 @@ RL_DM_CACHE_ENTRY#(type t_CACHE_WORD, type t_CACHE_TAG)
 //   number of entries will be rounded up to a power of 2.
 //
 module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_REF_INFO) sourceData,
+                            CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_REF_INFO) prefetcher,
                             NumTypeParam#(n_ENTRIES) dummy,
                             Bool hashAddresses,
                             DEBUG_FILE debugLog)
@@ -281,7 +311,8 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
               Bits#(t_CACHE_TAG, t_CACHE_TAG_SZ));
     
     Reg#(RL_DM_CACHE_MODE) cacheMode <- mkReg(RL_DM_MODE_WRITE_BACK);
-
+    Reg#(RL_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(RL_DM_PREFETCH_DISABLE);
+    
     // Cache data and tag
     BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized(tagged Invalid);
 
@@ -362,7 +393,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     LUTRAM#(Bit#(5), Bit#(2)) sideReqFilter <- mkLUTRAM(0);
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
 
-    Wire#(Tuple3#(Bool, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0))))
+    Wire#(Tuple3#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0))))
         curReq <- mkWire();
 
     (* fire_when_enabled, no_implicit_conditions *)
@@ -375,29 +406,59 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     //     Decide whether to consider the new request or side request queue
     //     this cycle.  Filtering both is too expensive.
     //
+    //     If the cache prefecher is enabled, choose among new request, side 
+    //     request, and prefetch request queues.
+    // 
     rule pickReqQueue (True);
         // New requests win over side requests if there is a new request
         // and the arbiter is non-zero.  If the arbitration counter newReqArb
         // is larger than 1 bit this favors new requests over side-buffer
         // requests in an effort to have as many requests in flight as possible.
+        //
+        // Choose from prefech request queue is the prefetcher is enabled and 
+        // the arbitration counter newReqArb is larger than a certain threshold
+        
         Bool pick_new_req = newReqQ.notEmpty &&
                             ((newReqArb != 0) || ! sideReqQ.notEmpty);
 
-        let r = pick_new_req ? newReqQ.first() : sideReqQ.first();
-
+        t_CACHE_REQ r = ?;
+        RL_DM_CACHE_REQ_TYPE req_type;
+        
+        if ( prefetchMode == RL_DM_PREFETCH_ENABLE && prefetcher.hasReq() && 
+           ((!newReqQ.notEmpty && !sideReqQ.notEmpty) || 
+           ((newReqArb > 2) && (prefetcher.peekReq().prio == PREFETCH_PRIO_LOW)) || 
+           ((newReqArb > 1) && (prefetcher.peekReq().prio == PREFETCH_PRIO_HIGH))))
+        begin
+            req_type      = DM_CACHE_PREFETCH_REQ;
+            let pref_req <- prefetcher.getReq();
+            r.act         = DM_CACHE_READ;
+            r.addr        = pref_req.addr;
+            r.refInfo     = RL_DM_CACHE_REF_INFO { clientRef: pref_req.refInfo,
+                                                   isPrefetch: True };
+            match {.tag, .idx} = cacheEntryFromAddr(pref_req.addr);
+            r.tag = tag;
+            r.idx = idx;
+            debugLog.record($format("    pick prefetch req: addr=0x%x, entry=0x%x", r.addr, idx));
+        end
+        else
+        begin
+            r = pick_new_req ? newReqQ.first() : sideReqQ.first();
+            req_type = pick_new_req ? DM_CACHE_NEW_REQ : DM_CACHE_SIDE_REQ;
+        end
+        
         // In order to preserve read/write and write/write order, the
         // request must either come from the side buffer or be a new request
         // referencing a line not already in the side buffer.
         //
         // The array sideReqFilter tracks lines active in the side request
         // queue.
-        if (! pick_new_req || (sideReqFilter.sub(resize(cacheIdx(r))) == 0))
+        if ( req_type == DM_CACHE_SIDE_REQ || (sideReqFilter.sub(resize(cacheIdx(r))) == 0))
         begin
-            curReq <= tuple3(pick_new_req, r, entryFilter.test(cacheIdx(r)));
+            curReq <= tuple3(req_type, r, entryFilter.test(cacheIdx(r)));
         end
         else
         begin
-            curReq <= tuple3(pick_new_req, r, tagged Invalid);
+            curReq <= tuple3(req_type, r, tagged Invalid);
         end
     endrule
 
@@ -407,25 +468,26 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     //
     (* fire_when_enabled *)
     rule startReq (tpl_3(curReq) matches tagged Valid .filter_state);
-        match {.pick_new_req, .r, .cf_opaque} = curReq;
+        match {.req_type, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
 
         entryFilter.set(filter_state);
 
         debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
-                                pick_new_req ? "startNewReq" : "startSideReq",
-                                r.addr, idx));
+                                req_type == DM_CACHE_NEW_REQ ? "startNewReq" : 
+                                ( req_type == DM_CACHE_SIDE_REQ ? "startSideReq" :
+                                  "startPrefetchReq" ), r.addr, idx));
 
         // Read the entry either to return the value (READ) or to see whether
         // the entry is dirty and flush it.
         cache.readReq(idx);
         cacheLookupQ.enq(r);
 
-        if (pick_new_req)
+        if (req_type == DM_CACHE_NEW_REQ)
         begin
             newReqQ.deq();
         end
-        else
+        else if (req_type == DM_CACHE_SIDE_REQ)
         begin
             sideReqQ.deq();
             sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) - 1);
@@ -441,11 +503,11 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
     //     This rule will not fire if startReq fires.
     //
     (* fire_when_enabled *)
-    rule shuntNewReq (tpl_1(curReq) &&
+    rule shuntNewReq ( tpl_1(curReq) == DM_CACHE_NEW_REQ &&
                       (sideReqFilter.sub(resize(tpl_2(curReq).idx)) != maxBound) &&
                       ! isValid(tpl_3(curReq)) &&
                       (cacheMode != RL_DM_MODE_DISABLED));
-        match {.pick_new_req, .r, .cf_opaque} = curReq;
+        match {.req_type, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
 
         debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
@@ -478,19 +540,23 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
 
         if (cacheMode != RL_DM_MODE_DISABLED &&& cur_entry matches tagged Valid .e)
         begin
-            if (e.tag == tag)
+            if (e.tag == tag) // Hit!
             begin
-                // Hit!
                 debugLog.record($format("    lookupRead: HIT addr=0x%x, entry=0x%x, val=0x%x", r.addr, idx, e.val));
-                readHitW.send();
-
-                t_CACHE_LOAD_RESP resp;
-                resp.val = e.val;
-                resp.refInfo = r.refInfo;
-                readRespQ.enq(resp);
-
+                // Ignore prefetch hit response and prefetch hit status
+                if (!r.refInfo.isPrefetch)
+                begin
+                    readHitW.send();
+                    if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+                    begin
+                        prefetcher.readHit(idx, r.addr);
+                    end
+                    t_CACHE_LOAD_RESP resp;
+                    resp.val = e.val;
+                    resp.refInfo = r.refInfo.clientRef;
+                    readRespQ.enq(resp);
+                end
                 entryFilter.remove(idx);
-
                 needFill = False;
             end
             else if (e.dirty)
@@ -498,7 +564,6 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
                 // Miss.  Need to flush old data?
                 let old_addr = cacheAddrFromEntry(e.tag, idx);
                 debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
-
                 sourceData.write(old_addr, e.val, r.refInfo);
                 dirtyEntryFlushW.send();
             end
@@ -506,7 +571,14 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
 
         // Request fill of new value
         if (needFill)
+        begin
             fillReqQ.enq(r);
+            if (cacheMode != RL_DM_MODE_DISABLED && !r.refInfo.isPrefetch && prefetchMode == RL_DM_PREFETCH_ENABLE)
+            begin
+                prefetcher.readMiss(r.addr);
+            end
+            debugLog.record($format("    lookupRead: MISS addr=0x%x, entry=0x%x", r.addr, idx));
+        end
     endrule
 
 
@@ -520,7 +592,10 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
 
         debugLog.record($format("    fillReq: addr=0x%x", r.addr));
 
-        readMissW.send();
+        if (!r.refInfo.isPrefetch)
+        begin
+            readMissW.send();
+        end
         sourceData.readReq(r.addr, r.refInfo);
     endrule
     
@@ -537,10 +612,21 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
 
         debugLog.record($format("    fillResp: FILL addr=0x%x, entry=0x%x, val=0x%x", f.addr, entryIdx, f.val));
 
-        t_CACHE_LOAD_RESP resp;
-        resp.val = f.val;
-        resp.refInfo = f.refInfo;
-        readRespQ.enq(resp);
+        if (f.refInfo.isPrefetch)
+        begin
+            prefetcher.loadPrefetch(entryIdx);
+        end
+        else
+        begin
+            t_CACHE_LOAD_RESP resp;
+            resp.val = f.val;
+            resp.refInfo = f.refInfo.clientRef;
+            readRespQ.enq(resp);
+            if(prefetchMode == RL_DM_PREFETCH_ENABLE)
+            begin
+              prefetcher.loadNormal(entryIdx);
+            end
+        end
         
         // Save value in cache
         cache.write(entryIdx, tagged Valid RL_DM_CACHE_ENTRY { dirty: False,
@@ -690,11 +776,17 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         t_CACHE_REQ r = ?;
         r.act = DM_CACHE_READ;
         r.addr = addr;
-        r.refInfo = refInfo;
+        r.refInfo = RL_DM_CACHE_REF_INFO { clientRef: refInfo,
+                                           isPrefetch: False };
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
         r.tag = tag;
         r.idx = idx;
+
+        if (cacheMode != RL_DM_MODE_DISABLED && prefetchMode == RL_DM_PREFETCH_ENABLE)
+        begin
+            prefetcher.reqLearn(addr);
+        end
 
         newReqQ.enq(r);
     endmethod
@@ -719,7 +811,8 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         t_CACHE_REQ r = ?;
         r.act = DM_CACHE_WRITE;
         r.addr = addr;
-        r.refInfo = refInfo;
+        r.refInfo = RL_DM_CACHE_REF_INFO { clientRef: refInfo,
+                                           isPrefetch: False };
         r.writeDataIdx = data_idx;
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
@@ -738,7 +831,8 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         t_CACHE_REQ r = ?;
         r.act = DM_CACHE_INVAL;
         r.addr = addr;
-        r.refInfo = refInfo;
+        r.refInfo = RL_DM_CACHE_REF_INFO { clientRef: refInfo,
+                                           isPrefetch: False };
         r.fullHierarchy = fullHierarchy;
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
@@ -754,7 +848,8 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         t_CACHE_REQ r = ?;
         r.act = DM_CACHE_FLUSH;
         r.addr = addr;
-        r.refInfo = refInfo;
+        r.refInfo = RL_DM_CACHE_REF_INFO { clientRef: refInfo,
+                                           isPrefetch: False };
         r.fullHierarchy = fullHierarchy;
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
@@ -770,9 +865,12 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         sourceData.invalOrFlushWait();
     endmethod
 
-
     method Action setCacheMode(RL_DM_CACHE_MODE mode);
-        cacheMode <= mode;
+        cacheMode    <= mode;
+    endmethod
+
+    method Action setPrefetchMode(RL_DM_CACHE_PREFETCH_MODE en);
+        prefetchMode <= en;
     endmethod
 
     interface RL_CACHE_STATS stats;
@@ -815,12 +913,12 @@ module mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     rule getReadResp (True);
         let r <- sourceData.readResp();
-        readRespQ.enq(RL_DM_CACHE_LOAD_RESP { val: r.val, refInfo: r.refInfo });
+        readRespQ.enq(RL_DM_CACHE_LOAD_RESP { val: r.val, refInfo: r.refInfo.clientRef });
     endrule
 
-
     method Action readReq(t_CACHE_ADDR addr, t_CACHE_REF_INFO refInfo);
-        sourceData.readReq(addr, refInfo);
+        sourceData.readReq(addr, RL_DM_CACHE_REF_INFO { clientRef: refInfo, 
+                                                        isPrefetch: False });
     endmethod
 
     method ActionValue#(RL_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_REF_INFO)) readResp();
@@ -836,17 +934,26 @@ module mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     method Action write(t_CACHE_ADDR addr, t_CACHE_WORD val, t_CACHE_REF_INFO refInfo);
         debugLog.record($format("  Write: WRITE addr=0x%x, val=0x%x", addr, val));      
-        sourceData.write(addr, val, refInfo);
+        sourceData.write(addr, 
+                         val, 
+                         RL_DM_CACHE_REF_INFO { clientRef: refInfo, 
+                                                isPrefetch: False });
     endmethod
     
     method Action invalReq(t_CACHE_ADDR addr, Bool fullHierarchy, t_CACHE_REF_INFO refInfo);
         if (fullHierarchy)
-            sourceData.invalReq(addr, True, refInfo);
+            sourceData.invalReq(addr, 
+                                True, 
+                                RL_DM_CACHE_REF_INFO { clientRef: refInfo, 
+                                                       isPrefetch: False });
     endmethod
 
     method Action flushReq(t_CACHE_ADDR addr, Bool fullHierarchy, t_CACHE_REF_INFO refInfo);
         if (fullHierarchy)
-            sourceData.flushReq(addr, True, refInfo);
+            sourceData.flushReq(addr, 
+                                True, 
+                                RL_DM_CACHE_REF_INFO { clientRef: refInfo, 
+                                                       isPrefetch: False });
     endmethod
 
     method Action invalOrFlushWait();
@@ -857,6 +964,10 @@ module mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         noAction;
     endmethod
 
+    method Action setPrefetchMode(RL_DM_CACHE_PREFETCH_MODE en);
+        noAction;
+    endmethod
+    
     interface RL_CACHE_STATS stats;
         method Bool readHit() = False;
         method Bool readMiss() = False;

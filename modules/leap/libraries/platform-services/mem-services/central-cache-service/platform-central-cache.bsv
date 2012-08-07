@@ -167,9 +167,10 @@ function String backingPortName(Integer n) = "vdev_cache_backing_" + integerToSt
 //     the central cache with no intermediate private cache.
 //
 module [CONNECTED_MODULE] mkCentralCacheClient#(Integer cacheID,
-                                            NumTypeParam#(n_ENTRIES) nEntries,
-                                            Bool hashLocalCacheAddrs,
-                                            CENTRAL_CACHE_CLIENT_BACKING#(t_ADDR, t_DATA, t_REF_INFO) backing)
+                                                NumTypeParam#(n_ENTRIES) nEntries,
+                                                CACHE_PREFETCHER#(UInt#(TLog#(n_ENTRIES)), t_ADDR, t_REF_INFO) prefetcher,
+                                                Bool hashLocalCacheAddrs,
+                                                CENTRAL_CACHE_CLIENT_BACKING#(t_ADDR, t_DATA, t_REF_INFO) backing)
     // interface:
     (CENTRAL_CACHE_CLIENT#(t_ADDR, t_DATA, t_REF_INFO))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
@@ -198,12 +199,14 @@ module [CONNECTED_MODULE] mkCentralCacheClient#(Integer cacheID,
     //
     RL_DM_CACHE_SOURCE_DATA#(t_ADDR, t_DATA, t_REF_INFO) centralCacheConnection <-
         mkCentralCacheConnection(cacheID, backing, debugLog);
-
+        
+    // Private cache
     RL_DM_CACHE#(t_ADDR, t_DATA, t_REF_INFO) pvtCache;
     if (valueOf(n_ENTRIES) == 0)
         pvtCache <- mkNullCacheDirectMapped(centralCacheConnection, debugLog);
     else
         pvtCache <- mkCacheDirectMapped(centralCacheConnection,
+                                        prefetcher,
                                         nEntries,
                                         hashLocalCacheAddrs,
                                         debugLog);
@@ -274,8 +277,14 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
 
         let addr = centralAddrToAddr(req.addr, 0);
         debugLog.record($format("backReadLineReq: addr=0x%x, l_addr=0x%x", addr, req.addr));
-
-        backing.readLineReq(addr, unpack(truncate(req.refInfo)));
+        
+        //
+        //workaround solution
+        //backing storage request requires original ref info from the client
+        //will be fixed with MAF implementation
+        //
+        RL_DM_CACHE_REF_INFO#(t_REF_INFO) cache_ref_info = unpack(truncateNP(req.refInfo));
+        backing.readLineReq(addr, cache_ref_info.clientRef);
     endrule
 
     rule backingReadResp (True);
@@ -290,8 +299,12 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         let addr = centralAddrToAddr(req.addr, 0);
 
         debugLog.record($format("backWrite: addr=0x%x, l_addr=0x%x, valid=0x%x", addr, req.addr, req.wordValidMask));
-
-        backing.writeLineReq(addr, req.wordValidMask, unpack(truncate(req.refInfo)), req.sendAck);
+        
+        //
+        //backing storage request requires original ref info from the client
+        //
+        RL_DM_CACHE_REF_INFO#(t_REF_INFO) cache_ref_info = unpack(truncateNP(req.refInfo));
+        backing.writeLineReq(addr, req.wordValidMask, cache_ref_info.clientRef, req.sendAck);
     endrule
 
     rule backingWriteData (link_cache_backing.getReq() matches tagged CENTRAL_CACHE_BACK_WDATA .val);
@@ -323,11 +336,11 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
     // ====================================================================
 
     // Read request
-    method Action readReq(t_ADDR addr, t_REF_INFO refInfo);
+    method Action readReq(t_ADDR addr, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
         let r = CENTRAL_CACHE_READ_REQ { addr: l_addr,
                                          wordIdx: w_idx,
-                                         refInfo: zeroExtend(pack(refInfo))};
+                                         refInfo: zeroExtendNP(pack(refInfo))};
 
         link_cache.makeReq(tagged CENTRAL_CACHE_READ r);
         debugLog.record($format("readReq: addr=0x%x, l_addr=0x%x, wIdx=%0d", addr, l_addr, w_idx));
@@ -341,7 +354,7 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         t_DATA val = unpack(truncate(resp.val));
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
-                                        refInfo: unpack(truncate(resp.refInfo)) };
+                                        refInfo: unpack(truncateNP(resp.refInfo)) };
 
         debugLog.record($format("readResp: addr=0x%x, val=0x%x", addr, val));
 
@@ -355,18 +368,18 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         t_DATA val = unpack(truncate(resp.val));
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
-                                        refInfo: unpack(truncate(resp.refInfo)) };
+                                        refInfo: unpack(truncateNP(resp.refInfo)) };
 
         return r;
     endmethod
 
     // Write request
-    method Action write(t_ADDR addr, t_DATA val, t_REF_INFO refInfo);
+    method Action write(t_ADDR addr, t_DATA val, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
         let r = CENTRAL_CACHE_WRITE_REQ { addr: l_addr,
                                           wordIdx: w_idx,
                                           val: zeroExtend(pack(val)),
-                                          refInfo: zeroExtend(pack(refInfo))};
+                                          refInfo: zeroExtendNP(pack(refInfo))};
 
         link_cache.makeReq(tagged CENTRAL_CACHE_WRITE r);
         debugLog.record($format("write: addr=0x%x, l_addr=0x%x, wIdx=%0d, val=0x%x", addr, l_addr, w_idx, val));
@@ -374,22 +387,22 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
 
 
     // Line invalidation request
-    method Action invalReq(t_ADDR addr, Bool sendAck, t_REF_INFO refInfo);
+    method Action invalReq(t_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
         let r = CENTRAL_CACHE_INVAL_REQ { addr: l_addr,
                                           sendAck: sendAck,
-                                          refInfo: zeroExtend(pack(refInfo)) };
+                                          refInfo: zeroExtendNP(pack(refInfo)) };
 
         link_cache.makeReq(tagged CENTRAL_CACHE_INVAL r);
         debugLog.record($format("inval: addr=0x%x, l_addr=0x%x, ack=%0d", addr, l_addr, sendAck));
     endmethod
 
     // Line flush request
-    method Action flushReq(t_ADDR addr, Bool sendAck, t_REF_INFO refInfo);
+    method Action flushReq(t_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
         let r = CENTRAL_CACHE_INVAL_REQ { addr: l_addr,
                                           sendAck: sendAck,
-                                          refInfo: zeroExtend(pack(refInfo)) };
+                                          refInfo: zeroExtendNP(pack(refInfo)) };
 
         link_cache.makeReq(tagged CENTRAL_CACHE_FLUSH r);
         debugLog.record($format("flush: addr=0x%x, l_addr=0x%x, ack=%0d", addr, l_addr, sendAck));

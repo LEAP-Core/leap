@@ -251,13 +251,18 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
         // word size.
         NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_ENTRIES) n_cache_entries = ?;
         NumTypeParam#(t_SCRATCHPAD_MEM_VALUE_SZ) scratchpad_data_sz = ?;
+        NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_cache_prefetch_learners = ?;
 
         if (cached == SCRATCHPAD_CACHED)
         begin
             memory <- mkMemPackMultiRead(scratchpad_data_sz,
                                          mkUnmarshalledCachedScratchpad(scratchpadID,
                                                                         `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE,
+                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_PRIO,
+                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_MECHANISM,
+                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG,
                                                                         n_cache_entries,
+                                                                        n_cache_prefetch_learners,
                                                                         statsConstructor));
         end
         else
@@ -563,8 +568,12 @@ endmodule
 //     data sizes.
 //
 module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID, 
-                                                          Integer cacheModeParam, 
+                                                          Integer cacheModeParam,
+                                                          Integer prefetchPrioParam,
+                                                          Integer prefetchMechanismParam,
+                                                          Integer prefetchLearnerSizeLogParam,
                                                           NumTypeParam#(n_CACHE_ENTRIES) nCacheEntries,
+                                                          NumTypeParam#(n_PREFETCH_LEARNER_SIZE) nPrefetchLearners,
                                                           SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE))
@@ -581,25 +590,42 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
               // Reference info passed to the cache needed to route the response
               Alias#(Tuple2#(Bit#(n_SAFE_READERS_SZ), t_REORDER_ID), t_REF_INFO));
 
+              
     String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
     DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
 
+    // Debug file and log for the cache prefetcher
+    String debugLogFilenameForPrefetcher = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + "_prefetch.out";
+    DEBUG_FILE debugLogForPrefetcher <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
+                                        mkDebugFile(debugLogFilenameForPrefetcher):
+                                        mkDebugFileNull(debugLogFilenameForPrefetcher); 
+                           
     // Dynamic parameters
-    PARAMETER_NODE paramNode <- mkDynamicParameterNode();
-    Param#(2) cacheMode <- mkDynamicParameter(fromInteger(cacheModeParam), paramNode);
+    PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
+    Param#(3) cacheMode              <- mkDynamicParameter(fromInteger(cacheModeParam), paramNode);
+    Param#(2) prefetchPrio           <- mkDynamicParameter(fromInteger(prefetchPrioParam), paramNode);
+    Param#(7) prefetchMechanism      <- mkDynamicParameter(fromInteger(prefetchMechanismParam), paramNode);
+    Param#(3) prefetchLearnerSizeLog <- mkDynamicParameter(fromInteger(prefetchLearnerSizeLogParam), paramNode);
 
     // Connection between private cache and the scratchpad virtual device
     RL_DM_CACHE_SOURCE_DATA#(Bit#(t_MEM_ADDRESS_SZ),
                              SCRATCHPAD_MEM_VALUE,
                              t_REF_INFO) sourceData <- mkScratchpadCacheSourceData(scratchpadID);
-
-
+                             
+    // Cache Prefetcher
+    CACHE_PREFETCHER#(UInt#(TLog#(n_CACHE_ENTRIES)), 
+                      Bit#(t_MEM_ADDRESS_SZ), 
+                      t_REF_INFO) prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1)?
+                                                mkCachePrefetcher(nPrefetchLearners, debugLogForPrefetcher):
+                                                mkNullCachePrefetcher(nPrefetchLearners, debugLogForPrefetcher);
+    
     // Private cache
     RL_DM_CACHE#(Bit#(t_MEM_ADDRESS_SZ),
                        SCRATCHPAD_MEM_VALUE,
                        t_REF_INFO) cache <- mkCacheDirectMapped(sourceData,
+                                                                prefetcher, 
                                                                 nCacheEntries,
                                                                 True,
                                                                 debugLog);
@@ -617,15 +643,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
     // Cache responses are not ordered.  Sort them with a reorder buffer.
     Vector#(n_READERS, SCOREBOARD_FIFOF#(SCRATCHPAD_PORT_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
-
     
     // Initialization
     Reg#(Bool) initialized <- mkReg(False);
     rule doInit (! initialized);
-        cache.setCacheMode(unpack(cacheMode));
+        cache.setCacheMode(unpack(cacheMode[1:0]));
+        cache.setPrefetchMode(unpack(cacheMode[2]));
+        prefetcher.setPrefetchMode(unpack(prefetchPrio),unpack(prefetchMechanism),unpack(prefetchLearnerSizeLog));
         initialized <= True;
     endrule
-
 
     //
     // Forward merged requests to the cache.
@@ -776,7 +802,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         debugLog.record($format("init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
     endrule
 
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_REF_INFO refInfo) if (initialized);
+    method Action readReq(t_CACHE_ADDR addr, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo) if (initialized);
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
                                         byteReadMask: replicate(True),
@@ -814,7 +840,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
     // Asynchronous write (no response)
     method Action write(t_CACHE_ADDR addr,
                         SCRATCHPAD_MEM_VALUE val,
-                        t_CACHE_REF_INFO refInfo) if (initialized);
+                        RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo) if (initialized);
         let req = SCRATCHPAD_WRITE_REQ { port: my_port,
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
@@ -826,11 +852,11 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
     //
     // Invalidate / flush not required for scratchpad memory.
     //
-    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
+    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
         noAction;
     endmethod
 
-    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
+    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
         noAction;
     endmethod
 

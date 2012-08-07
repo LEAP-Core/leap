@@ -13379,3 +13379,24 @@ Conditionally set the proper installation dependencies on
 perl qt (for either qt3 or qt4) in debian package based
 on the target release.
 
+
+----------
+hsinjung    Date: Tue Aug  7 11:16:36 EDT 2012  CSN: CSN-leap-330
+                  Tue Aug  7 15:16:36 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          329 
+ rl-prefetch.bsv           Locally Added               0 
+ librl-cache.awb           Locally Modified          329 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Modified          329 
+ platform-scratchpad-memory.bsv Locally Modified          329 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ platform-central-cache.bsv Locally Modified          329 
+
+ A prefetcher for the direct-mapped cache is built.
+ The prefetcher is instantiated in the scratchpad. 
+ To turn on the prefetcher, change bit 2 of dynamic parameter SCRATCHPAD_PVT_CACHE_MODE to 1. 
