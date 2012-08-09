@@ -13400,3 +13400,39 @@ Directory modules/leap/libraries/platform-services/mem-services/central-cache-se
  A prefetcher for the direct-mapped cache is built.
  The prefetcher is instantiated in the scratchpad. 
  To turn on the prefetcher, change bit 2 of dynamic parameter SCRATCHPAD_PVT_CACHE_MODE to 1. 
+
+----------
+joel        Date: Wed Aug  8 20:40:28 EDT 2012  CSN: CSN-leap-331
+                  Thu Aug  9 00:40:28 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          330 
+ Makefile.in               Locally Modified          330 
+ configure.in              Locally Modified          330 
+
+Directory libperl
+ Makefile.in               Locally Modified          330 
+
+Directory tools/scripts
+ Makefile.in               Locally Modified          330 
+
+Directory tools/leap
+ Makefile.in               Locally Modified          330 
+
+Directory tools/leap/leap-front-panel
+ Makefile.in               Locally Modified          330 
+
+Directory tools/leap/leap-front-panel-qt3
+ Makefile.in               Locally Modified          330 
+
+Directory tools
+ Makefile.in               Locally Modified          330 
+
+Directory .
+ aclocal.m4                Locally Modified          330 
+
+Fixed bug in configure.in that set the --enable_qt4 flag
+to 'no' after it had manually been set to 'yes' that I
+had introduced here and in the awb package and which 
+Mohit fixed in awb.
