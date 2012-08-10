@@ -93,6 +93,13 @@ interface PHYSICAL_SEND#(type t_MSG);
 
 endinterface
 
+typeclass ToPhysicalSend#(type t_IFC, type t_MSG)
+    dependencies (t_IFC determines t_MSG);
+    // Convert original type to physical send.
+    module mkPhysicalSend#(t_IFC ifc) (PHYSICAL_SEND#(t_MSG));
+
+endtypeclass
+
 interface PHYSICAL_SEND_MULTI#(type t_MSG);
 
     method Action broadcast(t_MSG msg);
@@ -101,6 +108,9 @@ interface PHYSICAL_SEND_MULTI#(type t_MSG);
     method Bool   dequeued();
 
 endinterface
+
+
+
 
 // Phsyical incoming connection capable of multicast.
 interface PHYSICAL_CONNECTION_IN_MULTI;
@@ -258,7 +268,7 @@ typedef struct
 typedef 256 LATENCY_FIFO_DELAY;
 typedef Bit#(TAdd#(1,TLog#(LATENCY_FIFO_DELAY))) LATENCY_FIFO_DELAY_CONTAINER;
 
-typedef 4 LATENCY_FIFO_DEPTH;
+typedef 2 LATENCY_FIFO_DEPTH;
 typedef Bit#(TAdd#(1,TLog#(LATENCY_FIFO_DEPTH))) LATENCY_FIFO_DEPTH_CONTAINER;
 
 interface CONNECTION_LATENCY_CONTROL;

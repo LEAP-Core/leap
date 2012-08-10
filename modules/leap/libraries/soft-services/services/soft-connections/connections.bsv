@@ -36,6 +36,15 @@ interface CONNECTION_SEND#(type t_MSG);
   
 endinterface
 
+typeclass ToConnectionSend#(type t_IFC, type t_MSG)
+    dependencies (t_IFC determines t_MSG);
+    // Encode the original data into compressed form.
+    function CONNECTION_SEND#(t_MSG) toConnectionSend (t_IFC ifc);
+
+endtypeclass
+
+
+
 
 // The basic receiving connection.
 
@@ -46,6 +55,14 @@ interface CONNECTION_RECV#(type t_MSG);
     method t_MSG  receive();
 
 endinterface
+
+typeclass ToConnectionRecv#(type t_IFC, type t_MSG)
+    dependencies (t_IFC determines t_MSG);
+    // Encode the original data into compressed form.
+    function CONNECTION_RECV#(t_MSG) toConnectionRecv (t_IFC ifc);
+
+endtypeclass
+
 
 
 // A client sends requests and receives responses
@@ -606,7 +623,19 @@ endinstance
 instance ToPut#(CONNECTION_SEND#(data_t), data_t);
     function Put#(data_t) toPut(CONNECTION_SEND#(data_t) send);
         let put = interface Put;
-                      method Action put(data_t value);
+                      method Action put(data_t value) if(send.notFull);
+                          send.send(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
+endinstance
+
+instance ToPut#(PHYSICAL_SEND#(data_t), data_t);
+    function Put#(data_t) toPut(PHYSICAL_SEND#(data_t) send);
+        let put = interface Put;
+                      method Action put(data_t value) if(send.notFull()); // Physical sends may be unguarded!
+		          $display("PhysicalSend consuming data");
                           send.send(value);
                       endmethod
                   endinterface; 
@@ -617,8 +646,9 @@ endinstance
 instance ToGet#(CONNECTION_RECV#(data_t), data_t);
     function Get#(data_t) toGet(CONNECTION_RECV#(data_t) recv);
         let get = interface Get;
-                      method ActionValue#(data_t) get();
+                      method ActionValue#(data_t) get() if(recv.notEmpty());
                           recv.deq;
+                          $display("PhysicalRecv producing data");	
                           return recv.receive; 
                       endmethod
                   endinterface;  
@@ -630,7 +660,7 @@ instance Connectable#(CONNECTION_SEND#(data_t), Get#(data_t));
     module mkConnection#(CONNECTION_SEND#(data_t) client, 
                          Get#(data_t) server) (Empty);
 
-        rule connect;
+        rule connect(client.notFull);
             let data <- server.get();
             client.send(data);
         endrule
@@ -644,7 +674,7 @@ instance Connectable#(function ActionValue#(data_t) f(),
     module mkConnection#(function ActionValue#(data_t) f(),
                          CONNECTION_SEND#(data_t) client) (Empty);
 
-        rule connect;
+        rule connect(client.notFull);
             let data <- f();
             client.send(data);
         endrule
@@ -865,3 +895,7 @@ function CONNECTION_RECV#(t_DATA) demarshallerToConnectionReceive(DEMARSHALLER#(
             method t_DATA receive() = dem.first();
         endinterface;
 endfunction
+
+
+
+

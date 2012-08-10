@@ -348,6 +348,127 @@ instance CompressionChunks#(Maybe#(t_MSG),
     function chunksToEncDataMask(key) = list(hLast(key), True);
 endinstance
 
+// ========================================================================
+//
+//   Unbalanced Maybe - if the tagged Invalid leg is even remotely common, 
+//   run-length encoding is a win.  However, we distinguish this type from 
+//   Maybe for the time being to give the programmer some level of control.
+//
+// ========================================================================
+
+typedef union tagged {
+    t_DATA UnbalancedValid;
+    void   UnbalancedInvalid;
+} UnbalancedMaybe#(type t_DATA) deriving (Bits,Eq);
+
+typedef union tagged {
+    t_DATA    UnbalancedValid;
+    Bit#(3)   UnbalancedInvalid;
+} CompressedUnbalancedMaybe#(type t_DATA) deriving (Bits,Eq);
+
+instance Compress#(// Original type
+                   UnbalancedMaybe#(t_DATA),
+                   // Compressed container (maximum size)
+                   CompressedUnbalancedMaybe#(t_DATA),
+                   t_MODULE)
+    provisos (Bits#(t_DATA, t_DATA_SZ),
+              Alias#(CompressedUnbalancedMaybe#(t_DATA), t_ENC_DATA),
+              IsModule#(t_MODULE, m__));
+
+    module mkCompressor (COMPRESSION_ENCODER#(UnbalancedMaybe#(t_DATA), 
+                                              CompressedUnbalancedMaybe#(t_DATA)));
+        FIFOF#(UnbalancedMaybe#(t_DATA)) inQ <- mkBypassFIFOF();
+        FIFOF#(CompressedUnbalancedMaybe#(t_DATA)) outQ <- mkBypassFIFOF();
+	Reg#(Bit#(3)) invalidCount <- mkReg(0);
+	Reg#(Bit#(3)) flushCount <- mkReg(0);
+
+	rule tickFlush;
+	    flushCount <= flushCount + 1;
+        endrule
+
+	rule flush(flushCount == maxBound && invalidCount > 0 && !inQ.notEmpty);
+            Bit#(3) tag = invalidCount;
+            invalidCount <= 0;
+            outQ.enq(tagged UnbalancedInvalid invalidCount);
+        endrule
+
+        rule transfer(inQ.notEmpty);
+            let val = inQ.first();
+
+	    CompressedUnbalancedMaybe#(t_DATA) compressedToken = tagged UnbalancedInvalid invalidCount;
+
+	    Bool send = True;
+	    if(inQ.first matches tagged UnbalancedValid .payload)
+            begin
+		compressedToken = tagged UnbalancedValid payload;
+		invalidCount <= 0;
+                if(invalidCount == 0)
+                begin
+                    inQ.deq();
+                end	
+            end
+            else 
+            begin
+	        invalidCount <= invalidCount + 1;
+		if(invalidCount + 1 != 0)
+                begin
+	  	    inQ.deq;
+		    send = False;
+                end
+            end
+
+            // The message is compressed by moving the tag to the low bit so it
+            // will be next to the useful data.  The 2nd element in the returned
+            // tuple is the compressed length
+
+            if(send)
+            begin 
+	        flushCount <= 0;
+                outQ.enq(compressedToken);
+            end
+        endrule
+
+        method enq(val) = inQ.enq(val);
+        method deq() = outQ.deq();
+
+	method first = outQ.first();
+        method notFull() = inQ.notFull();
+        method notEmpty() = outQ.notEmpty();
+    endmodule
+
+    module mkDecompressor (COMPRESSION_DECODER#(UnbalancedMaybe#(t_DATA), 
+                                                CompressedUnbalancedMaybe#(t_DATA)));
+        FIFOF#(CompressedUnbalancedMaybe#(t_DATA)) inQ <- mkBypassFIFOF();
+        FIFOF#(UnbalancedMaybe#(t_DATA)) outQ <- mkBypassFIFOF();
+	Reg#(Bit#(3)) invalidCount <- mkReg(0);
+
+	rule transferInvalid(invalidCount > 0);
+	    invalidCount <= invalidCount - 1;
+            outQ.enq(tagged UnbalancedInvalid);
+	endrule
+
+        rule transfer(invalidCount == 0);
+            CompressedUnbalancedMaybe#(t_DATA) compressedToken = inQ.first();
+	    inQ.deq();
+            // Separate the tag and data
+            if (compressedToken matches tagged UnbalancedValid .data)
+	    begin
+                outQ.enq(tagged UnbalancedValid data);
+	    end
+            else if(compressedToken matches tagged UnbalancedInvalid .invalids)
+	    begin
+	        invalidCount <= invalids;
+            end
+        endrule
+
+        method Action enq(cval) = inQ.enq(cval);
+        method Action deq() = outQ.deq();
+	method first = outQ.first();
+        method Bool notFull() = inQ.notFull();
+        method Bool notEmpty() = inQ.notEmpty();
+
+    endmodule
+endinstance
 
 // ========================================================================
 //

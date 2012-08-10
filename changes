@@ -13436,3 +13436,19 @@ Fixed bug in configure.in that set the --enable_qt4 flag
 to 'no' after it had manually been set to 'yes' that I
 had introduced here and in the awb package and which 
 Mohit fixed in awb.
+
+----------
+kfleming    Date: Fri Aug 10 14:06:47 EDT 2012  CSN: CSN-leap-332
+                  Fri Aug 10 18:06:47 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ compress.bsv              Locally Modified          331 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          331 
+ connection-compressed.bsv Locally Modified          331 
+ connections.bsv           Locally Modified          331 
+
+
+Added new typeclasses in support of automatic compressor instantiation.

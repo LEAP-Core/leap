@@ -16,9 +16,15 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections_common.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+
 import GetPut::*;
 import Connectable::*;
 import HList::*;
+import FIFO::*;
+import FIFOF::*;
 
 //
 // Compressed soft connections.  Provide the illusion of a single soft
@@ -388,5 +394,75 @@ instance CompressionMapping#(HCons#(t_HEAD, HNil),
                 return hList1(?);
             end
         endmethod
+    endmodule
+endinstance
+
+
+instance ToConnectionSend#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA), t_ENC_DATA);
+    function CONNECTION_SEND#(t_ENC_DATA) toConnectionSend(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) decoder);
+        let send = interface CONNECTION_SEND;
+                       method Action send(t_ENC_DATA data);
+		           decoder.enq(data);
+	               endmethod
+
+                       method Bool notFull();
+		           return decoder.notFull();
+		       endmethod
+                  endinterface;  
+        return send;
+    endfunction
+endinstance
+
+instance ToConnectionRecv#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA), t_ENC_DATA);
+    function CONNECTION_RECV#(t_ENC_DATA) toConnectionRecv(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA) encoder);
+        let recv = interface CONNECTION_RECV;
+
+                       method Action deq();
+		           encoder.deq();
+		       endmethod
+
+                       method Bool   notEmpty();
+                           return encoder.notEmpty();
+                       endmethod 
+
+                       method t_ENC_DATA  receive();
+		           return encoder.first();
+                       endmethod 
+
+                  endinterface; 
+        return recv; 
+    endfunction
+endinstance
+
+
+
+instance ToPhysicalSend#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA), t_ENC_DATA)
+    provisos(Bits#(t_ENC_DATA, t_ENC_DATA_SZ));
+
+    module mkPhysicalSend#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) decoder) 
+               (PHYSICAL_SEND#(t_ENC_DATA))
+        provisos(Bits#(t_ENC_DATA, t_ENC_DATA_SZ));
+
+	FIFOF#(t_ENC_DATA) fifo <- mkSizedFIFOF(`CON_BUFFERING);
+	PulseWire dequeue <- mkPulseWire;
+
+	rule transfer;
+            dequeue.send;
+            decoder.enq(fifo.first);
+            fifo.deq;
+        endrule
+
+        method Action send(t_ENC_DATA data);
+	    fifo.enq(data);
+	endmethod
+
+        method Bool notFull();
+	    return fifo.notFull();
+	endmethod
+
+	method Bool dequeued();
+            return dequeue;
+        endmethod
+
     endmodule
 endinstance
