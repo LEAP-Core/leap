@@ -26,7 +26,6 @@
 
 import FIFO::*;
 import SpecialFIFOs::*;
-import FIFOLevel :: * ;
 
 // Project foundation imports.
 
@@ -46,8 +45,7 @@ import FIFOLevel :: * ;
 typedef enum
 {
     PREFETCH_PRIO_LOW     = 0,
-    PREFETCH_PRIO_HIGH    = 1,
-    PREFETCH_NON_BLOCKING = 2
+    PREFETCH_PRIO_HIGH    = 1
 }
 PREFETCH_PRIO
     deriving (Eq, Bits);
@@ -57,10 +55,10 @@ PREFETCH_PRIO
 //
 typedef enum
 {
-    PREFETCH_BASIC_TAGGED = 0,
-    PREFETCH_STRIDE_LEARN_ON_MISS = 1,  //learn only when read miss
-    PREFETCH_STRIDE_LEARN_ON_BOTH = 2,  //learn when read miss/hit
-    PREFETCH_STRIDE_LEARN_ON_REQ  = 3   //learn when clients send read reqs
+    PREFETCH_BASIC_TAGGED = 0,          //prefetch when miss/prefetch hit, stride fixed
+    PREFETCH_STRIDE_LEARN_ON_MISS = 1,  //learn only when read miss, prefetch when miss
+    PREFETCH_STRIDE_LEARN_ON_BOTH = 2,  //learn when read miss/hit, prefetch when miss
+    PREFETCH_STRIDE_HYBRID = 3          //learn when miss/hit and prefetch when miss/prefetch hit
 }
 PREFETCH_MODE
     deriving (Eq, Bits);
@@ -71,6 +69,15 @@ PREFETCH_MODE
 // (used in dynamic parameter settings)
 //
 typedef UInt#(3) PREFETCH_LEARNER_SIZE_LOG;
+
+// Prefetch lookahead distance
+typedef UInt#(3) PREFETCH_DIST;
+
+// Prefetch stats type
+// typedef STAT_VALUE PREFETCH_STAT_VALUE
+// typedef STAT_VECTOR_INDEX PREFETCH_STAT_IDX
+typedef Bit#(9)  PREFETCH_STAT_IDX;
+typedef Bit#(16) PREFETCH_STAT_VALUE;
 
 //
 // Prefetch request
@@ -84,7 +91,20 @@ typedef struct
 PREFETCH_REQ#(type t_CACHE_ADDR,
               type t_CACHE_REF_INFO)
     deriving (Eq, Bits);
-    
+
+//
+// Prefetch learner stats
+//
+typedef struct
+{
+    PREFETCH_STAT_IDX    idx;   
+    Bool                 isActive;
+    PREFETCH_STAT_VALUE  stride;
+    PREFETCH_STAT_VALUE  laDist;
+}
+PREFETCH_LEARNER_STATS
+    deriving (Eq, Bits);
+
 //
 // Prefetcher interface.
 //
@@ -92,7 +112,7 @@ interface CACHE_PREFETCHER#(type t_CACHE_IDX,
                             type t_CACHE_ADDR,
                             type t_CACHE_REF_INFO);
     
-    method Action setPrefetchMode(PREFETCH_PRIO prio, Tuple3#(PREFETCH_MODE, PREFETCH_SIZE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
+    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
     
     // Return true if the prefetch request queue is not empty
     method Bool hasReq();
@@ -106,13 +126,19 @@ interface CACHE_PREFETCHER#(type t_CACHE_IDX,
     //
     // Cache provides hit/miss information
     method Action readHit(t_CACHE_IDX idx, t_CACHE_ADDR addr);
-    method Action readMiss(t_CACHE_ADDR addr);
-    // Update the prefetcher's tag array (when prefetch read)
-    method Action loadPrefetch(t_CACHE_IDX idx);
-    // Update the prefetcher's tag array (when normal cache read (miss) or a cache write)
-    method Action loadNormal(t_CACHE_IDX idx);
-    // Update stride learner when there is a read request
-    method Action reqLearn(t_CACHE_ADDR addr);
+    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch);
+    // prefetch status reset by write/invalid reqeust
+    method Action prefetchInval(t_CACHE_IDX idx);
+    //cache request is blocked by the busy cache line (may due to prefetch request)
+    method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr);
+
+    //
+    // Collect prefetch stats and update prefetch tag/busy bits
+    //
+    method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
+    method Action prefetchDroppedByHit();
+
+    interface RL_PREFETCH_STATS stats;
     
 endinterface: CACHE_PREFETCHER
 
@@ -122,11 +148,8 @@ endinterface: CACHE_PREFETCHER
 //
 // ===================================================================
 
-// Prefetch size
+// Prefetch size (# prefetch requests)
 typedef UInt#(2) PREFETCH_SIZE;
-
-// Prefetch distance
-typedef UInt#(3) PREFETCH_DIST;
 
 // Prefetch learner index
 typedef UInt#(n_IDX_BITS) PREFETCH_LEARNER_IDX#(numeric type n_IDX_BITS);
@@ -141,15 +164,18 @@ typedef struct
 {
     t_CACHE_ADDR addr;
     PREFETCH_STRIDE#(SizeOf#(t_CACHE_ADDR)) stride;
+    PREFETCH_DIST laDist;
 }
 PREFETCH_REQ_SOURCE#(type t_CACHE_ADDR)
     deriving (Eq, Bits);    
 
 //
-// Tag bit for each cache line 
-//(indicating the cache line is filled from the prefetch or cache request)
+// Prefetch status for each cache line
 //
-typedef Bit#(1)  PREFETCH_TAG;
+// 1: the cache line is (going to be) filled by the prefetch 
+//    request and has not been accessed yet
+// 0: otherwise
+typedef Bit#(1) PREFETCH_STATUS;    
 
 //
 // For stream prefetcher
@@ -172,6 +198,7 @@ typedef struct
     t_STREAMER_ADDR         preAddr;
     t_STREAMER_STRIDE       stride;
     PREFETCH_STREAMER_STATE state;
+    PREFETCH_DIST           laDist;
 }
 PREFETCH_STREAMER#(type t_STREAMER_TAG,
                    type t_STREAMER_ADDR,
@@ -190,6 +217,8 @@ PREFETCH_STREAMER#(type t_STREAMER_TAG,
 `define PREFETCH_DEFAULT_STRIDE 1
 // Prefetch default distance
 `define PREFETCH_DEFAULT_DIST 1
+// Prefetch default priority
+`define PREFETCH_DEFAULT_PRIO PREFETCH_PRIO_HIGH
 
 // ===================================================================
 //
@@ -200,7 +229,7 @@ PREFETCH_STREAMER#(type t_STREAMER_TAG,
 //
 // mkCachePrefetcher 
 //
-module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
+module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, DEBUG_FILE debugLog)
     // interface:
     (CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_REF_INFO))
     provisos (Bits#(t_CACHE_IDX,      t_CACHE_IDX_SZ),
@@ -210,14 +239,10 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
               Alias#(PREFETCH_STRIDE#(t_CACHE_ADDR_SZ), t_STRIDE),
               Bits#(t_PREFETCH_REQ,   t_PREFETCH_REQ_SZ),
               Bounded#(t_CACHE_IDX));
-
-    Reg#(PREFETCH_PRIO) prefetchPrioDefault <- mkReg(PREFETCH_PRIO_HIGH);
-    Reg#(PREFETCH_PRIO) prefetchPrio        <- mkReg(PREFETCH_PRIO_HIGH);
-    Reg#(PREFETCH_MODE) prefetchMode        <- mkReg(PREFETCH_STRIDE_LEARN_ON_BOTH);
     
     // Prefetch request queue
-    FIFOLevelIfc#(t_PREFETCH_REQ, 8) prefetchReqQ <- mkFIFOLevel();
-    
+    FIFOF#(t_PREFETCH_REQ) prefetchReqQ <- mkSizedFIFOF(8);
+
     // Number of words to prefetch
     Reg#(PREFETCH_SIZE) prefetchNum <- mkReg(`PREFETCH_DEFAULT_SIZE);
     
@@ -231,11 +256,14 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
     Reg#(t_CACHE_ADDR) prefetchAddr <- mkReg(unpack(0));
 
     PulseWire startPrefetch <- mkPulseWire();
+    
+    // Wires for communicating stats
+    PulseWire prefetchDroppedByBusyW <- mkPulseWire();
+    PulseWire prefetchDroppedByHitW  <- mkPulseWire();
+    PulseWire prefetchIssuedW        <- mkPulseWire();
 
-    // Prefetch learners
-    CACHE_PREFETCH_LEARNER#(t_CACHE_IDX, t_CACHE_ADDR) taggedLearner <- mkCachePrefetchTaggedLearner(dummy, debugLog);
-    CACHE_PREFETCH_LEARNER#(t_CACHE_IDX, t_CACHE_ADDR) strideLearner <- mkCachePrefetchStrideLearner(dummy, debugLog);
-    CACHE_PREFETCH_LEARNER#(t_CACHE_IDX, t_CACHE_ADDR) learner = (prefetchMode == PREFETCH_BASIC_TAGGED)? taggedLearner : strideLearner;
+    // Prefetch learner
+    CACHE_PREFETCH_LEARNER#(t_CACHE_IDX, t_CACHE_ADDR) learner <- mkCachePrefetchStrideLearner(dummy, hashAddresses, debugLog);
     
     rule createPrefetchReq (True);
         t_CACHE_ADDR new_addr;
@@ -244,53 +272,41 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
         begin
             let req_source <- learner.getReqSource();
             prefetchStride <= req_source.stride;
-            diff_addr = unpack(pack(req_source.stride)*zeroExtendNP(pack(prefetchDist)));
-            new_addr = unpack(pack(req_source.addr) + pack(diff_addr));
-            debugLog.record($format(" generate prefetch req: addr=0x%x (base_addr:0x%x, stride:0x%x)", new_addr, req_source.addr, req_source.stride));
+            prefetchDist   <= req_source.laDist;
+            diff_addr = unpack(pack(req_source.stride)*zeroExtendNP(pack(req_source.laDist)));
+            new_addr  = unpack(pack(req_source.addr) + pack(diff_addr));
+            debugLog.record($format(" generate prefetch req: addr=0x%x (base_addr:0x%x, stride:0x%x, dist:0x%x)", new_addr, req_source.addr, req_source.stride, req_source.laDist));
         end
         else
         begin
             diff_addr = unpack(pack(prefetchStride)*zeroExtendNP(pack(prefetchDist)));
             new_addr = unpack(pack(prefetchAddr) + pack(diff_addr));
-            debugLog.record($format(" generate prefetch req: addr=0x%x (base_addr:0x%x, stride:0x%x)", new_addr, prefetchAddr, prefetchStride));
+            debugLog.record($format(" generate prefetch req: addr=0x%x (base_addr:0x%x, stride:0x%x, dist:0x%x)", new_addr, prefetchAddr, prefetchStride, prefetchDist));
         end
         prefetchAddr <= new_addr;
         let req = PREFETCH_REQ { addr: new_addr, 
                                  refInfo: ?, 
-                                 prio: prefetchPrio };
+                                 prio: `PREFETCH_DEFAULT_PRIO };
         prefetchReqQ.enq(req);
         startPrefetch.send();
+        prefetchIssuedW.send();
     endrule
     
     rule updatePrefetchNum (startPrefetch);
         prefetchNum <= ( prefetchNum == `PREFETCH_DEFAULT_SIZE ) ? 0 : prefetchNum + 1;
     endrule
-    
-    rule updatePrefetchPrio (True);
-        if (prefetchReqQ.isGreaterThan(6))
-        begin
-            prefetchPrio <= PREFETCH_PRIO_HIGH;
-        end
-        else if(prefetchReqQ.isLessThan(2))
-        begin
-            prefetchPrio <= prefetchPrioDefault;
-        end
-    endrule
-    
+        
     // ====================================================================
     //
     // Methods
     //
     // ====================================================================
 
-    method Action setPrefetchMode(PREFETCH_PRIO prio, Tuple3#(PREFETCH_MODE, PREFETCH_SIZE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
-        prefetchPrioDefault <= prio;
-        match {.prefetch_type, .prefetch_num, .prefetch_dist} = mode; 
-        prefetchNum  <= prefetch_num;
-        prefetchMode <= prefetch_type;
-        prefetchDist <= prefetch_dist;
-        strideLearner.setLearnerSize(size);
-        strideLearner.setLearnerMode(prefetch_type);
+    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
+        match {.prefetch_type, .prefetch_dist} = mode; 
+        learner.setLearnerLookaheadDist(prefetch_dist);
+        learner.setLearnerSize(size);
+        learner.setLearnerMode(prefetch_type);
     endmethod
 
     method Bool hasReq() = prefetchReqQ.notEmpty;
@@ -304,13 +320,31 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
     method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO) peekReq();
         return prefetchReqQ.first();
     endmethod
-    
+        
     method Action readHit(t_CACHE_IDX idx, t_CACHE_ADDR addr) = learner.readHit(idx, addr);
-    method Action readMiss(t_CACHE_ADDR addr) = learner.readMiss(addr);
-    method Action loadPrefetch(t_CACHE_IDX idx) = learner.loadPrefetch(idx);
-    method Action loadNormal(t_CACHE_IDX idx) = learner.loadNormal(idx);
-    method Action reqLearn(t_CACHE_ADDR addr) = learner.reqLearn(addr);
-
+    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch) = learner.readMiss(idx, addr, isPrefetch);
+    method Action prefetchInval(t_CACHE_IDX idx) = learner.prefetchInval(idx);
+    method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr) = learner.shuntNewCacheReq(idx, addr);
+    
+    //stats from the cache
+    method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
+        prefetchDroppedByBusyW.send();
+        learner.prefetchDroppedByBusy(addr);
+    endmethod
+    method Action prefetchDroppedByHit();
+        prefetchDroppedByHitW.send();
+    endmethod
+    
+    interface RL_PREFETCH_STATS stats;
+        method Bool prefetchHit() = learner.prefetchHit();
+        method Bool prefetchDroppedByBusy() = prefetchDroppedByBusyW;
+        method Bool prefetchDroppedByHit() = prefetchDroppedByHitW;
+        method Bool prefetchLate() = learner.prefetchLate();
+        method Bool prefetchUseless() = learner.prefetchUseless();
+        method Bool prefetchIssued() = prefetchIssuedW;
+        method Maybe#(PREFETCH_LEARNER_STATS) hitLearnerInfo() = learner.hitLearnerInfo();
+    endinterface
+    
 endmodule
 
 
@@ -325,19 +359,27 @@ interface CACHE_PREFETCH_LEARNER#(type t_CACHE_IDX,
                                   type t_CACHE_ADDR);
     // Set learner size
     method Action setLearnerSize(PREFETCH_LEARNER_SIZE_LOG size);
-    // Set learner mode (for stride prefetcher sub-mode) 
+    // Set learner mode
     method Action setLearnerMode(PREFETCH_MODE mode);
-
+    // Set learner look ahead distance
+    method Action setLearnerLookaheadDist(PREFETCH_DIST laDist);
+    
     // Get source of prefetch request
     method ActionValue#(PREFETCH_REQ_SOURCE#(t_CACHE_ADDR)) getReqSource();
     
-    // Learn the prefetch mechanism by providing hit/miss, cache filling, or request information
+    // Methods to learn the prefetch mechanism and prefetch stats
     method Action readHit(t_CACHE_IDX idx, t_CACHE_ADDR addr);
-    method Action readMiss(t_CACHE_ADDR addr);
-    method Action loadPrefetch(t_CACHE_IDX idx);
-    method Action loadNormal(t_CACHE_IDX idx);
-    method Action reqLearn(t_CACHE_ADDR addr);
-
+    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch);
+    method Action prefetchInval(t_CACHE_IDX idx);
+    method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr); 
+    method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
+    
+    // Learner's stat methods
+    method Bool prefetchHit();
+    method Bool prefetchLate();
+    method Bool prefetchUseless();
+    method Maybe#(PREFETCH_LEARNER_STATS) hitLearnerInfo();
+    
 endinterface: CACHE_PREFETCH_LEARNER
 
 //
@@ -345,7 +387,7 @@ endinterface: CACHE_PREFETCH_LEARNER
 //     the basic learner prefetch next (few) lines (with fixed stride) 
 //     when there is a cache miss or prefetch hit
 //
-module mkCachePrefetchTaggedLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
+module mkCachePrefetchTaggedLearner#(DEBUG_FILE debugLog)
     // interface:
     (CACHE_PREFETCH_LEARNER#(t_CACHE_IDX, t_CACHE_ADDR))
     provisos (Bits#(t_CACHE_IDX,  t_CACHE_IDX_SZ),
@@ -354,27 +396,47 @@ module mkCachePrefetchTaggedLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
               Alias#(PREFETCH_STRIDE#(t_CACHE_ADDR_SZ), t_PREFETCH_STRIDE),
               Bits#(t_PREFETCH_REQ_SOURCE, t_PREFETCH_REQ_SOURCE_SZ),
               Bounded#(t_CACHE_IDX));
-              
-    // Store tag bit per cache line (indicating whether it is first loaded from prefetch)
-    LUTRAM#(t_CACHE_IDX, PREFETCH_TAG) prefetchTags <- mkLUTRAM(0);
-    // Queue of prefetch request sources
-    FIFO#(t_PREFETCH_REQ_SOURCE) reqSourceQ         <- mkSizedFIFO(8);
-    Reg#(t_PREFETCH_STRIDE) prefetchStride          <- mkReg(`PREFETCH_DEFAULT_STRIDE);
-   
-    Wire#(t_CACHE_IDX) cacheIdxPrefetchHit   <- mkWire();
-    Wire#(t_CACHE_IDX) cacheIdxPrefetchFill  <- mkWire();
-    Wire#(t_CACHE_IDX) cacheIdxCacheFill     <- mkWire();
-    PulseWire          isPrefetchHit         <- mkPulseWire();
-    PulseWire          isPrefetchFill        <- mkPulseWire();
-    PulseWire          isCacheFill           <- mkPulseWire();
 
-    rule prefetchTagUpdate (True);
-        if (isCacheFill)
-            prefetchTags.upd(cacheIdxCacheFill,0);
-        else if (isPrefetchFill)
-            prefetchTags.upd(cacheIdxPrefetchFill,1);
-        else if (isPrefetchHit)
-            prefetchTags.upd(cacheIdxPrefetchHit,0);
+    Reg#(PREFETCH_DIST)     prefetchDist           <- mkReg(unpack(`PREFETCH_DEFAULT_DIST));
+    Reg#(Bool)              learnDist              <- mkReg(False);
+    
+    // Store prefetch status bit per cache line (indicating whether it is first loaded from prefetch)
+    LUTRAM#(t_CACHE_IDX, PREFETCH_STATUS) prefetchStatuses <- mkLUTRAM(0);
+    
+    // Queue of prefetch request sources
+    FIFO#(t_PREFETCH_REQ_SOURCE) reqSourceQ        <- mkSizedFIFO(8);
+
+    FIFO#(Tuple2#(t_CACHE_IDX, Bool)) blockedReqQ  <- mkFIFO();
+
+    PulseWire             readHitW                 <- mkPulseWire();
+    PulseWire             readMissW                <- mkPulseWire();
+    PulseWire             prefetchInvalW           <- mkPulseWire();
+    
+    // Wires for communicating stats
+    PulseWire             prefetchDroppedByBusyW   <- mkPulseWire();
+    PulseWire             prefetchHitW             <- mkPulseWire();
+    PulseWire             prefetchUselessW         <- mkPulseWire();
+    PulseWire             prefetchLateW            <- mkPulseWire();
+    RWire#(PREFETCH_LEARNER_STATS) hitLearnerInfoW <- mkRWire();
+    
+    rule checkLatePrefetch (!readHitW && !readMissW && !prefetchInvalW);
+        let lateReq = blockedReqQ.first();
+        blockedReqQ.deq();
+	    match {.idx, .is_prefetch_req} = lateReq;
+        if (is_prefetch_req) // prefetchDroppedByBusy
+		begin
+		    prefetchDroppedByBusyW.send();
+		end
+		else if (prefetchStatuses.sub(idx) != 0) // new cache req is blocked by a prefetch req
+		begin
+            prefetchLateW.send();
+		end
+    endrule
+    
+    rule updatePrefetchDist (learnDist && (prefetchLateW || prefetchDroppedByBusyW));
+        PREFETCH_DIST max_dist = unpack('1);
+        if (prefetchDist != max_dist)
+            prefetchDist <= prefetchDist + 1;
     endrule
 
     // ====================================================================
@@ -390,6 +452,12 @@ module mkCachePrefetchTaggedLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
     method Action setLearnerMode(PREFETCH_MODE mode);
         noAction;
     endmethod
+    
+    method Action setLearnerLookaheadDist(PREFETCH_DIST laDist);
+        learnDist <= (laDist == 0);
+        if (laDist != 0)
+            prefetchDist <= laDist;
+    endmethod    
 
     method ActionValue#(PREFETCH_REQ_SOURCE#(t_CACHE_ADDR)) getReqSource();
         let req_source = reqSourceQ.first();
@@ -398,50 +466,83 @@ module mkCachePrefetchTaggedLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
     endmethod
     
     method Action readHit(t_CACHE_IDX idx, t_CACHE_ADDR addr);
+        readHitW.send();
         // continue prefetching if it is the first hit of prefetch data
-        if (prefetchTags.sub(idx) != 0) 
+        if (prefetchStatuses.sub(idx) != 0) 
         begin
-            // prefetchTags.upd(idx,0);
-            cacheIdxPrefetchHit <= idx;
-            isPrefetchHit.send();
-            reqSourceQ.enq(PREFETCH_REQ_SOURCE{ addr: addr, stride: prefetchStride });
-            debugLog.record($format(" Prefetch hit: addr=0x%x, entry=0x%x", addr, idx));
+            prefetchStatuses.upd(idx, 0);
+            reqSourceQ.enq(PREFETCH_REQ_SOURCE{ addr: addr, 
+                                                stride: unpack(`PREFETCH_DEFAULT_STRIDE),
+                                                laDist: prefetchDist });
+            // stats
+            prefetchHitW.send();
+            hitLearnerInfoW.wset(PREFETCH_LEARNER_STATS{ idx: unpack(0),
+                                                         isActive: True,
+                                                         stride: unpack(`PREFETCH_DEFAULT_STRIDE),
+                                                         laDist: unpack(zeroExtend(pack(prefetchDist))) });
+
+            debugLog.record($format(" Prefetch hit: addr=0x%x", addr));
         end
     endmethod
     
-    method Action readMiss(t_CACHE_ADDR addr);
-        reqSourceQ.enq(PREFETCH_REQ_SOURCE{ addr: addr, stride: prefetchStride });
-        debugLog.record($format(" Cache miss: addr=0x%x", addr));
-    endmethod
-    
-    method Action loadPrefetch(t_CACHE_IDX idx);
-        cacheIdxPrefetchFill <= idx;
-        isPrefetchFill.send();
-        debugLog.record($format(" Prefetch fill resp: entry=0x%x", idx));
-    endmethod
-    
-    method Action loadNormal(t_CACHE_IDX idx);
-        cacheIdxCacheFill <= idx;
-        isCacheFill.send();
-        debugLog.record($format(" Cache fill resp: entry=0x%x", idx));
+    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch);
+        readMissW.send();
+        // prefetch data is replaced before being accessed
+        if (prefetchStatuses.sub(idx) != 0)
+            prefetchUselessW.send();
+        // update prefetch status depending on request type
+        if (isPrefetch)
+        begin
+            prefetchStatuses.upd(idx, 1);
+        end
+        else
+        begin
+            prefetchStatuses.upd(idx, 0);
+            reqSourceQ.enq(PREFETCH_REQ_SOURCE{ addr: addr, 
+                                                stride: unpack(`PREFETCH_DEFAULT_STRIDE),
+                                                laDist: prefetchDist });
+            // stats
+            hitLearnerInfoW.wset(PREFETCH_LEARNER_STATS{ idx: unpack(0),
+                                                         isActive: True,
+                                                         stride: unpack(`PREFETCH_DEFAULT_STRIDE),
+                                                         laDist: unpack(zeroExtend(pack(prefetchDist))) });
+            
+            debugLog.record($format(" Cache miss: addr=0x%x", addr));
+        end
     endmethod
 
-    method Action reqLearn(t_CACHE_ADDR addr);
-        noAction;
+    method Action prefetchInval(t_CACHE_IDX idx);
+        prefetchInvalW.send();
+        if (prefetchStatuses.sub(idx) != 0)  //prefetch data is replaced before being accessed
+            prefetchUselessW.send();
+    endmethod
+    
+    method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr);
+        blockedReqQ.enq(tuple2(idx, False));
     endmethod
 
+    method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
+        blockedReqQ.enq(tuple2(?, True));
+	endmethod    
+    
+    // Learner's stat methods
+    method Bool prefetchHit() = prefetchHitW;
+    method Bool prefetchLate() = prefetchLateW;
+    method Bool prefetchUseless() = prefetchUselessW;
+    method Maybe#(PREFETCH_LEARNER_STATS) hitLearnerInfo() = hitLearnerInfoW.wget(); 
+    
 endmodule
 
 //
 // mkCachePrefetchStrideLearner -- 
-//     set up stride learners (one for each pre-defined memory space) to learn 
-//     stride patterns of memory accesses. (adopting the concepts of stream 
+//     set up stride learners (called streamers) (one for each pre-defined memory space) 
+//     to learn stride patterns of memory accesses. (adopting the concepts of stream 
 //     prefetchers in processor's L2 cache but simplifying the fully associative 
 //     cache of streamers to direct-mapped cache of streamers)
 //
 // This is the learner designed for testing prefetch parameters dynamically 
 //
-module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
+module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, DEBUG_FILE debugLog)
     // interface:
     (CACHE_PREFETCH_LEARNER#(t_CACHE_IDX, t_CACHE_ADDR))
     provisos (Bits#(t_CACHE_IDX,  t_CACHE_IDX_SZ),
@@ -455,34 +556,51 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
               Alias#(PREFETCH_LEARNER_IDX#(TMin#(t_STREAMER_IDX_SZ, t_STREAMER_TAG_SZ)), t_STREAMER_IDX),
               Alias#(PREFETCH_STRIDE#(t_CACHE_IDX_SZ), t_STREAMER_STRIDE),
               Alias#(Maybe#(PREFETCH_STREAMER#(t_STREAMER_TAG, t_STREAMER_ADDR, t_STREAMER_STRIDE)), t_STREAMER),
-              Bits#(t_PREFETCH_REQ_SOURCE, t_PREFETCH_REQ_SOURCE_SZ));
+              Bits#(t_PREFETCH_REQ_SOURCE, t_PREFETCH_REQ_SOURCE_SZ),
+              Bounded#(t_CACHE_IDX));
 
-    Reg#(PREFETCH_MODE) learnerMode        <- mkReg(PREFETCH_STRIDE_LEARN_ON_BOTH);
+    
+    // Queue of prefetch request sources
+    FIFO#(t_PREFETCH_REQ_SOURCE) reqSourceQ                       <- mkSizedFIFO(8);
+    FIFO#(Tuple3#(t_CACHE_IDX, t_CACHE_ADDR, Bool)) blockedReqQ   <- mkFIFO();
+              
+    Reg#(PREFETCH_MODE) learnerMode                <- mkReg(PREFETCH_STRIDE_HYBRID);
+    Reg#(Bool)          learnDist                  <- mkReg(False);
+    Reg#(PREFETCH_DIST) prefetchDistDefault        <- mkReg(unpack(`PREFETCH_DEFAULT_DIST));
+    Reg#(PREFETCH_DIST) prefetchDistBasic          <- mkReg(unpack(`PREFETCH_DEFAULT_DIST));     // for PREFETCH_BASIC_TAGGED
 
     // A direct-mapped cache of streamers
-    LUTRAM#(t_STREAMER_IDX, t_STREAMER) streamers <- mkLUTRAM(tagged Invalid);
-    // Queue of prefetch request sources
-    FIFO#(t_PREFETCH_REQ_SOURCE) reqSourceQ       <- mkSizedFIFO(8);
+    LUTRAM#(t_STREAMER_IDX, t_STREAMER) streamers  <- mkLUTRAM(tagged Invalid);
+
+    // Store prefetch status bit per cache line (indicating whether it is first loaded from prefetch)
+    LUTRAM#(t_CACHE_IDX, PREFETCH_STATUS) prefetchStatuses <- mkLUTRAM(0);
     
     // Masks for streamer idx 
     // (for dynamically change the number of entries in the streamer cache)
     Reg#(t_STREAMER_IDX) idxMask <- mkReg(unpack('1));
     
-    Reg#(t_CACHE_ADDR) learnedCacheAddr <- mkReg(unpack(0));
-    Reg#(t_STREAMER_STRIDE) learnedStride <- mkReg(0);
-    Reg#(PREFETCH_STREAMER_STATE) learnedState <- mkReg(STREAMER_INIT);
-
-    Wire#(t_CACHE_ADDR) addrReadReq  <- mkWire();
-    Wire#(t_CACHE_ADDR) addrReadMiss <- mkWire();
-    Wire#(t_CACHE_ADDR) addrReadHit  <- mkWire();
-
+    PulseWire           readHitW                   <- mkPulseWire();
+    PulseWire           readMissW                  <- mkPulseWire();
+    PulseWire           prefetchInvalW             <- mkPulseWire();
+    Wire#(t_CACHE_ADDR) addrReadMiss               <- mkWire();
+    Wire#(t_CACHE_ADDR) addrReadHit                <- mkWire();
+    Wire#(t_CACHE_ADDR) addrLate                   <- mkWire();
+    
+    // Wires for communicating stats
+    PulseWire             prefetchDroppedByBusyW   <- mkPulseWire();
+    PulseWire             prefetchHitW             <- mkPulseWire();
+    PulseWire             prefetchUselessW         <- mkPulseWire();
+    PulseWire             prefetchLateW            <- mkPulseWire();
+    RWire#(PREFETCH_LEARNER_STATS) hitLearnerInfoW <- mkRWire();
+    
     //
     // Convert cache address to/from streamer index, tag, and address 
     //
     function Tuple3#(t_STREAMER_IDX, t_STREAMER_TAG, t_STREAMER_ADDR) streamerEntryFromCacheAddr(t_CACHE_ADDR cache_addr);
         Tuple2#(t_STREAMER_TAG, t_STREAMER_ADDR) streamer_entry = unpack(truncateNP(pack(cache_addr)));
         match {.tag, .addr} = streamer_entry;
-        t_STREAMER_IDX idx = unpack(truncateNP(pack(tag)));
+        let t = hashAddresses ? hashBits(pack(tag)) : pack(tag);
+        t_STREAMER_IDX idx = unpack(truncateNP(t));
         return tuple3 (unpack(pack(idx) & pack(idxMask)), tag, addr);
     endfunction
 
@@ -497,31 +615,34 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
         return new_state;
     endfunction
 
-    function Action reqSourceGen(t_CACHE_ADDR cache_addr, t_STREAMER_STRIDE stride, PREFETCH_STREAMER_STATE state);
+    function Action reqSourceGen(t_CACHE_ADDR cache_addr, t_STREAMER_STRIDE stride, PREFETCH_STREAMER_STATE state, PREFETCH_DIST la_dist, t_STREAMER_IDX idx);
         return
             action
+                PREFETCH_STAT_IDX stat_idx = unpack(zeroExtendNP(pack(idx)));
                 if (stride != 0 && (state == STREAMER_STEADY || state == STREAMER_TRANSIENT))
                 begin
-                    reqSourceQ.enq(PREFETCH_REQ_SOURCE{ addr: cache_addr, stride: signExtendNP(stride) });
-                    debugLog.record($format(" Prefetch req source: addr=0x%x, stride=0x%x", cache_addr, stride));
+                    hitLearnerInfoW.wset(PREFETCH_LEARNER_STATS{ idx: stat_idx,
+                                                                 isActive: True,
+                                                                 stride: unpack(signExtendNP(pack(stride))),
+                                                                 laDist: unpack(zeroExtend(pack(la_dist))) });
+                    reqSourceQ.enq(PREFETCH_REQ_SOURCE{ addr: cache_addr, stride: signExtendNP(stride), laDist: la_dist });
+                    debugLog.record($format(" Prefetch req source: addr=0x%x, stride=0x%x, lookahead distance=%d", cache_addr, stride, la_dist));
+                end
+                else
+                begin
+                    hitLearnerInfoW.wset(PREFETCH_LEARNER_STATS{ idx: stat_idx,
+                                                                 isActive: False,
+                                                                 stride: ?,
+                                                                 laDist: ? });
                 end
             endaction;
     endfunction
 
-    function Action nullReqSourceGen(t_CACHE_ADDR cache_addr, t_STREAMER_STRIDE stride, PREFETCH_STREAMER_STATE state);
+    function Action nullReqSourceGen(t_CACHE_ADDR cache_addr, t_STREAMER_STRIDE stride, PREFETCH_STREAMER_STATE state, PREFETCH_DIST la_dist, t_STREAMER_IDX idx);
         return noAction;
     endfunction
-
-    function Action storeReqSourceGen(t_CACHE_ADDR cache_addr, t_STREAMER_STRIDE stride, PREFETCH_STREAMER_STATE state);
-        return
-            action
-                learnedCacheAddr <= cache_addr;
-                learnedStride    <= stride;
-                learnedState     <= state;
-            endaction;
-    endfunction
-    
-    function Action strideLearn(t_CACHE_ADDR cache_addr, function Action req_source_gen(t_CACHE_ADDR x, t_STREAMER_STRIDE y, PREFETCH_STREAMER_STATE z));
+   
+    function Action strideLearn(t_CACHE_ADDR cache_addr, function Action req_source_gen(t_CACHE_ADDR x, t_STREAMER_STRIDE y, PREFETCH_STREAMER_STATE z, PREFETCH_DIST u, t_STREAMER_IDX v));
         return 
             action
                 let streamer_entry = streamerEntryFromCacheAddr(cache_addr);
@@ -533,50 +654,119 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
                 Bool predict_correct = False;
                 t_STREAMER_STRIDE new_stride = 0;
                 PREFETCH_STREAMER_STATE new_state = STREAMER_INIT; 
- 
+                PREFETCH_DIST new_dist = prefetchDistDefault;
+                
                 if (cur_streamer matches tagged Valid .s &&& s.tag == tag) // streamer hit!
                 begin
-                    debugLog.record($format(" Streamer hit: tag=0x%x, addr=0x%x, stride=0x%x, state=%d", s.tag, s.preAddr, s.stride, s.state));
+                    debugLog.record($format(" Streamer hit: tag=0x%x, addr=0x%x, stride=0x%x, state=%d, laDist=%d", s.tag, s.preAddr, s.stride, s.state, s.laDist));
                     t_STREAMER_STRIDE stride =  unpack( pack(cur_addr) - pack(s.preAddr) );
                     predict_correct = ( stride == s.stride );
                     new_state  = (stride != 0)? streamerStateTransition(s.state, predict_correct) : s.state;
                     new_stride = (stride != 0)? ((s.state == STREAMER_STEADY && !predict_correct)? 0 : stride) : s.stride;
                     // issuing prefetch request(s)
-                    req_source_gen(cache_addr, stride, new_state);
+                    new_dist   = s.laDist;
+                    req_source_gen(cache_addr, stride, new_state, new_dist, idx);
                 end
         
-                streamers.upd(idx, tagged Valid PREFETCH_STREAMER{ tag: tag,
+                streamers.upd(idx, tagged Valid PREFETCH_STREAMER{ tag:     tag,
                                                                    preAddr: cur_addr,
-                                                                   stride: new_stride,
-                                                                   state: new_state });
+                                                                   stride:  new_stride,
+                                                                   state:   new_state,
+                                                                   laDist:  new_dist});
 
-                debugLog.record($format(" Streamer update: tag=0x%x, addr=0x%x, stride=0x%x, state=%d", tag, cur_addr, new_stride, new_state));
+                debugLog.record($format(" Streamer update: tag=0x%x, addr=0x%x, stride=0x%x, state=%d, laDist=%d", tag, cur_addr, new_stride, new_state, new_dist));
             endaction;
     endfunction
   
-    (* mutually_exclusive = "learnOnHit, learnOnMiss" *)
-    rule learnOnHit (learnerMode == PREFETCH_STRIDE_LEARN_ON_BOTH);
-        strideLearn(addrReadHit, nullReqSourceGen);
+    function Action basicReqSourceGen(t_CACHE_ADDR cache_addr);
+        return 
+            action
+                reqSourceQ.enq(PREFETCH_REQ_SOURCE{ addr:   cache_addr, 
+                                                    stride: unpack(`PREFETCH_DEFAULT_STRIDE),
+                                                    laDist: prefetchDistBasic });
+            endaction;
+    endfunction
+
+    function Action basicStatsGen();
+        return
+            action
+                hitLearnerInfoW.wset(PREFETCH_LEARNER_STATS{ idx: unpack(0),
+                                                             isActive: True,
+                                                             stride: unpack(`PREFETCH_DEFAULT_STRIDE),
+                                                             laDist: unpack(zeroExtend(pack(prefetchDistBasic))) });
+            endaction;
+    endfunction    
+  
+    (* mutually_exclusive = "learnOnHit, learnOnMiss, basicPrefetchOnHit, basicPrefetchOnMiss" *)
+    rule learnOnHit (learnerMode == PREFETCH_STRIDE_LEARN_ON_BOTH || learnerMode == PREFETCH_STRIDE_HYBRID);
+        if (prefetchHitW && learnerMode == PREFETCH_STRIDE_HYBRID)
+            strideLearn(addrReadHit, reqSourceGen);
+        else
+            strideLearn(addrReadHit, nullReqSourceGen);
     endrule
 
-    rule learnOnMiss (learnerMode != PREFETCH_STRIDE_LEARN_ON_REQ);
+    rule learnOnMiss (learnerMode != PREFETCH_BASIC_TAGGED);
         strideLearn(addrReadMiss, reqSourceGen);
     endrule
 
-    rule learnOnReq (learnerMode == PREFETCH_STRIDE_LEARN_ON_REQ);
-        strideLearn(addrReadReq, storeReqSourceGen);
+    rule basicPrefetchOnMiss (learnerMode == PREFETCH_BASIC_TAGGED);
+        basicReqSourceGen(addrReadMiss);
+        basicStatsGen();
     endrule
 
-    rule prefetchReqSourceGen (learnerMode == PREFETCH_STRIDE_LEARN_ON_REQ);
-        let streamer_entry = streamerEntryFromCacheAddr(addrReadMiss);
-        match {.idx, .tag, .cur_addr} = streamer_entry;
-        if (pack(learnedCacheAddr) == pack(addrReadMiss)) // streamer hit!
-        begin
-            debugLog.record($format(" Streamer hit: tag=0x%x, addr=0x%x, stride=0x%x, state=%d", tag, cur_addr, learnedStride, learnedState));
-            reqSourceGen(addrReadMiss, learnedStride, learnedState);
-        end
+    rule basicPrefetchOnHit (prefetchHitW && learnerMode == PREFETCH_BASIC_TAGGED);
+        basicReqSourceGen(addrReadHit);
+        basicStatsGen();
     endrule
-
+    
+    rule checkLatePrefetch (!readHitW && !readMissW && !prefetchInvalW);
+        let req = blockedReqQ.first();
+        blockedReqQ.deq();
+	    match {.idx, .addr, .is_prefetch_req} = req;
+        if (is_prefetch_req) // prefetchDroppedByBusy
+		begin
+		    prefetchDroppedByBusyW.send();
+			addrLate <= addr;
+			debugLog.record($format(" prefetchDroppedByBusy: addr=0x%x", addr));
+		end
+		else  // new cache request is blocked
+		begin
+  		    if (prefetchStatuses.sub(idx) != 0) // blocked by prefetch request
+	        begin
+                prefetchLateW.send();
+			    addrLate <= addr;
+				debugLog.record($format(" newReqBlocked: addr=0x%x", addr));
+	        end
+		end
+    endrule
+    
+    (* descending_urgency = "learnOnHit, learnOnMiss, basicPrefetchOnMiss, basicPrefetchOnHit, checkLatePrefetch, updatePrefetchDist" *)
+    rule updatePrefetchDist (learnDist && (prefetchLateW || prefetchDroppedByBusyW));
+        PREFETCH_DIST max_dist = unpack('1);
+        if (learnerMode == PREFETCH_BASIC_TAGGED)
+		begin
+  		    if (prefetchDistBasic != max_dist)
+                prefetchDistBasic <= prefetchDistBasic + 1;
+		end
+		else
+		begin
+            let streamer_entry = streamerEntryFromCacheAddr(addrLate);
+            match {.idx, .tag, .cur_addr} = streamer_entry;
+			let cur_streamer = streamers.sub(idx);
+            if (cur_streamer matches tagged Valid .s &&& s.tag == tag) // streamer hit!
+            begin
+                debugLog.record($format(" Streamer hit: tag=0x%x, addr=0x%x, stride=0x%x, state=%d", s.tag, s.preAddr, s.stride, s.state));
+  		        let new_dist = (s.laDist != max_dist) ? (s.laDist + 1) : s.laDist;
+				streamers.upd(idx, tagged Valid PREFETCH_STREAMER{ tag:     s.tag,
+                                                                   preAddr: s.preAddr,
+                                                                   stride:  s.stride,
+                                                                   state:   s.state,
+                                                                   laDist:  new_dist });
+            end			
+		end
+    endrule
+    
+    
     // ====================================================================
     //
     // Methods
@@ -590,9 +780,18 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
     endmethod
 
     method Action setLearnerMode(PREFETCH_MODE mode);
-        learnerMode    <= mode;
+        learnerMode <= mode;
     endmethod
 
+    method Action setLearnerLookaheadDist(PREFETCH_DIST laDist);
+        learnDist <= (laDist == 0);
+        if (laDist != 0)
+        begin
+            prefetchDistDefault <= laDist;
+            prefetchDistBasic   <= laDist;
+        end
+    endmethod
+    
     method ActionValue#(PREFETCH_REQ_SOURCE#(t_CACHE_ADDR)) getReqSource();
         let req_source = reqSourceQ.first();
         reqSourceQ.deq();
@@ -600,28 +799,57 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE
     endmethod
     
     method Action readHit(t_CACHE_IDX idx, t_CACHE_ADDR cache_addr);
-        debugLog.record($format(" Cache hit: addr=0x%x", cache_addr));
+        readHitW.send();
         addrReadHit <= cache_addr;
+        debugLog.record($format(" Cache hit: addr=0x%x", cache_addr));
+        // continue prefetching if it is the first hit of prefetch data
+        if (prefetchStatuses.sub(idx) != 0) 
+        begin
+            prefetchStatuses.upd(idx, 0);
+            prefetchHitW.send();
+            debugLog.record($format(" Prefetch hit: addr=0x%x", cache_addr));
+        end
     endmethod
     
-    method Action readMiss(t_CACHE_ADDR cache_addr);
-        debugLog.record($format(" Cache miss: addr=0x%x", cache_addr));
-        addrReadMiss <= cache_addr;
+    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR cache_addr, Bool isPrefetch);
+        readMissW.send();
+        // prefetch data is replaced before being accessed
+        if (prefetchStatuses.sub(idx) != 0)
+            prefetchUselessW.send();
+        // update prefetch status depending on request type
+        if (isPrefetch)
+        begin
+            prefetchStatuses.upd(idx, 1);
+        end
+        else
+        begin
+            prefetchStatuses.upd(idx, 0);
+            addrReadMiss <= cache_addr;
+            debugLog.record($format(" Cache miss: addr=0x%x", cache_addr));
+        end
+    endmethod    
+
+    method Action prefetchInval(t_CACHE_IDX idx);
+        prefetchInvalW.send();
+        //prefetch data is replaced before being accessed
+        if (prefetchStatuses.sub(idx) != 0)
+            prefetchUselessW.send();
     endmethod
     
-    method Action loadPrefetch(t_CACHE_IDX idx);
-        noAction;
-    endmethod
-    
-    method Action loadNormal(t_CACHE_IDX idx);
-        noAction;
+    method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR cache_addr);
+        blockedReqQ.enq(tuple3(idx, cache_addr, False));
     endmethod
 
-    method Action reqLearn(t_CACHE_ADDR cache_addr);
-        debugLog.record($format(" Read Req: addr=0x%x", cache_addr));
-        addrReadReq <= cache_addr;
+    method Action prefetchDroppedByBusy(t_CACHE_ADDR cache_addr);
+        blockedReqQ.enq(tuple3(?, cache_addr, True));
     endmethod
-
+    
+    // Learner's stat methods
+    method Bool prefetchHit() = prefetchHitW;
+    method Bool prefetchLate() = prefetchLateW;
+    method Bool prefetchUseless() = prefetchUselessW;
+    method Maybe#(PREFETCH_LEARNER_STATS) hitLearnerInfo() = hitLearnerInfoW.wget(); 
+    
 endmodule
 
 
@@ -635,32 +863,24 @@ endmodule
 // mkNullCachePrefetcher --
 //     never generates prefetch requests
 //
-module mkNullCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugLog)
+module mkNullCachePrefetcher
     // interface:
     (CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_REF_INFO))
     provisos (Bits#(t_CACHE_IDX,      t_CACHE_IDX_SZ),
               Bits#(t_CACHE_ADDR,     t_CACHE_ADDR_SZ),
               Bits#(t_CACHE_REF_INFO, t_CACHE_REF_INFO_SZ));
     
-    method Action setPrefetchMode(PREFETCH_PRIO prio, Tuple3#(PREFETCH_MODE, PREFETCH_SIZE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
-        noAction;
-    endmethod
-
-    method Action loadPrefetch(t_CACHE_IDX idx);
-        noAction;
-    endmethod
-    
-    method Action loadNormal(t_CACHE_IDX idx);
+    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
         noAction;
     endmethod
    
     method Bool hasReq() = False;
     
-    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO)) getReq() if (False);
+    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO)) getReq();
         return ?;
     endmethod
     
-    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO) peekReq() if (False);
+    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO) peekReq();
         return ?;
     endmethod
     
@@ -668,12 +888,34 @@ module mkNullCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, DEBUG_FILE debugL
         noAction;
     endmethod
     
-    method Action readMiss(t_CACHE_ADDR addr);
+    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch);
         noAction;
     endmethod
 
-    method Action reqLearn(t_CACHE_ADDR addr);
+    method Action prefetchInval(t_CACHE_IDX idx);
         noAction;
     endmethod
+	
+    method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr);
+        noAction;
+    endmethod
+	
+    method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
+        noAction;
+    endmethod
+
+    method Action prefetchDroppedByHit();
+        noAction;
+    endmethod
+    
+    interface RL_PREFETCH_STATS stats;
+        method Bool prefetchHit() = False;
+        method Bool prefetchDroppedByBusy() = False;
+        method Bool prefetchDroppedByHit() = False;
+        method Bool prefetchLate() = False;
+        method Bool prefetchUseless() = False;
+        method Bool prefetchIssued() = False;
+        method Maybe#(PREFETCH_LEARNER_STATS) hitLearnerInfo() = tagged Invalid; 
+    endinterface
 
 endmodule

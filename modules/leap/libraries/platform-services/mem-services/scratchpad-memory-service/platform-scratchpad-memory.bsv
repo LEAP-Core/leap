@@ -199,12 +199,20 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
               Bits#(t_DATA, t_DATA_SZ));
 
     let statsConstructor = mkNullScratchpadCacheStats;
+    let prefetchStatsConstructor = mkNullScratchpadPrefetchStats;
+
+    NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
+
     if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE != 0)
     begin
         statsConstructor = mkBasicScratchpadCacheStats("Scratchpad_" + integerToString(scratchpadID) + "_", "");
+        if (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1)
+        begin
+            prefetchStatsConstructor = mkBasicScratchpadPrefetchStats("Scratchpad_" + integerToString(scratchpadID) + "_", "", n_prefetch_learners);
+        end
     end
 
-    let m <- mkMultiReadStatsScratchpad(scratchpadID, cached, statsConstructor);
+    let m <- mkMultiReadStatsScratchpad(scratchpadID, cached, statsConstructor, prefetchStatsConstructor);
     return m;
 endmodule
 
@@ -216,8 +224,8 @@ endmodule
 //
 module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
                                                       SCRATCHPAD_CACHE_MODE cached,
-                                                      SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor
-)
+                                                      SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
+                                                      SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
@@ -258,12 +266,12 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
             memory <- mkMemPackMultiRead(scratchpad_data_sz,
                                          mkUnmarshalledCachedScratchpad(scratchpadID,
                                                                         `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE,
-                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_PRIO,
                                                                         `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_MECHANISM,
                                                                         `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG,
                                                                         n_cache_entries,
                                                                         n_cache_prefetch_learners,
-                                                                        statsConstructor));
+                                                                        statsConstructor,
+                                                                        prefetchStatsConstructor));
         end
         else
         begin
@@ -569,12 +577,12 @@ endmodule
 //
 module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID, 
                                                           Integer cacheModeParam,
-                                                          Integer prefetchPrioParam,
                                                           Integer prefetchMechanismParam,
                                                           Integer prefetchLearnerSizeLogParam,
                                                           NumTypeParam#(n_CACHE_ENTRIES) nCacheEntries,
                                                           NumTypeParam#(n_PREFETCH_LEARNER_SIZE) nPrefetchLearners,
-                                                          SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor)
+                                                          SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
+                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE))
     provisos (Bits#(t_MEM_ADDRESS, t_MEM_ADDRESS_SZ),
@@ -605,8 +613,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     // Dynamic parameters
     PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
     Param#(3) cacheMode              <- mkDynamicParameter(fromInteger(cacheModeParam), paramNode);
-    Param#(2) prefetchPrio           <- mkDynamicParameter(fromInteger(prefetchPrioParam), paramNode);
-    Param#(7) prefetchMechanism      <- mkDynamicParameter(fromInteger(prefetchMechanismParam), paramNode);
+    Param#(5) prefetchMechanism      <- mkDynamicParameter(fromInteger(prefetchMechanismParam), paramNode);
     Param#(3) prefetchLearnerSizeLog <- mkDynamicParameter(fromInteger(prefetchLearnerSizeLogParam), paramNode);
 
     // Connection between private cache and the scratchpad virtual device
@@ -618,8 +625,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     CACHE_PREFETCHER#(UInt#(TLog#(n_CACHE_ENTRIES)), 
                       Bit#(t_MEM_ADDRESS_SZ), 
                       t_REF_INFO) prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1)?
-                                                mkCachePrefetcher(nPrefetchLearners, debugLogForPrefetcher):
-                                                mkNullCachePrefetcher(nPrefetchLearners, debugLogForPrefetcher);
+                                                mkCachePrefetcher(nPrefetchLearners, False, debugLogForPrefetcher):
+                                                mkNullCachePrefetcher;
     
     // Private cache
     RL_DM_CACHE#(Bit#(t_MEM_ADDRESS_SZ),
@@ -632,6 +639,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
     // Hook up stats
     let cacheStats <- statsConstructor(cache.stats);
+    let prefetchStats <- prefetchStatsConstructor(prefetcher.stats);
+
     // Merge FIFOF combines read and write requests in temporal order,
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot.  The write port is always last.
@@ -647,9 +656,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     // Initialization
     Reg#(Bool) initialized <- mkReg(False);
     rule doInit (! initialized);
-        cache.setCacheMode(unpack(cacheMode[1:0]));
-        cache.setPrefetchMode(unpack(cacheMode[2]));
-        prefetcher.setPrefetchMode(unpack(prefetchPrio),unpack(prefetchMechanism),unpack(prefetchLearnerSizeLog));
+        cache.setCacheMode(unpack(cacheMode[1:0]), unpack(cacheMode[2]));
+        prefetcher.setPrefetchMode(unpack(prefetchMechanism),unpack(prefetchLearnerSizeLog));
         initialized <= True;
     endrule
 

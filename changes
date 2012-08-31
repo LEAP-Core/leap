@@ -13452,3 +13452,23 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 
 Added new typeclasses in support of automatic compressor instantiation.
+
+----------
+hsinjung    Date: Fri Aug 31 15:43:54 EDT 2012  CSN: CSN-leap-333
+                  Fri Aug 31 19:43:54 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-prefetch-stats.bsv     Locally Added               0 
+ rl-direct-mapped-cache.bsv Locally Modified          332 
+ rl-prefetch.bsv           Locally Modified          332 
+ librl-cache.awb           Locally Modified          332 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Modified          332 
+ platform-scratchpad-memory-utils.bsv Locally Modified          332 
+ platform-scratchpad-memory.bsv Locally Modified          332 
+
+Add prefetch stats.
+Tune the prefetching algorithm. (hybrid mode+look ahead distance)
+To turn on the prefetcher, change SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE parameter to 1.

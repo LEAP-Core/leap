@@ -11,3 +11,4 @@
 %public rl-set-assoc-cache.bsv
 %public rl-tiny-cache.bsv
 %public rl-prefetch.bsv
+%public rl-prefetch-stats.bsv

@@ -141,8 +141,7 @@ interface RL_DM_CACHE#(type t_CACHE_ADDR,
     // Set cache and prefetch mode.  Mostly useful for debugging.  This may not be changed
     // in the middle of a run!
     //
-    method Action setCacheMode(RL_DM_CACHE_MODE mode);
-    method Action setPrefetchMode(RL_DM_CACHE_PREFETCH_MODE en);
+    method Action setCacheMode(RL_DM_CACHE_MODE mode, RL_DM_CACHE_PREFETCH_MODE en);
     
     interface RL_CACHE_STATS stats;
 
@@ -517,6 +516,20 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
 
         // Note line present in sideReqQ
         sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) + 1);
+		
+		if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+		begin
+		    prefetcher.shuntNewCacheReq(idx, r.addr);
+		end
+    endrule
+    
+    //
+    // For collecting prefetch stats
+    //
+    (* fire_when_enabled *)
+    rule dropPrefetchReqByBusy ( tpl_1(curReq) == DM_CACHE_PREFETCH_REQ && 
+                                 !isValid(tpl_3(curReq)) );
+        prefetcher.prefetchDroppedByBusy(tpl_2(curReq).addr);
     endrule
 
 
@@ -556,6 +569,10 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
                     resp.refInfo = r.refInfo.clientRef;
                     readRespQ.enq(resp);
                 end
+                else
+                begin
+                    prefetcher.prefetchDroppedByHit();
+                end
                 entryFilter.remove(idx);
                 needFill = False;
             end
@@ -573,10 +590,10 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         if (needFill)
         begin
             fillReqQ.enq(r);
-            if (cacheMode != RL_DM_MODE_DISABLED && !r.refInfo.isPrefetch && prefetchMode == RL_DM_PREFETCH_ENABLE)
-            begin
-                prefetcher.readMiss(r.addr);
-            end
+            if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+			begin
+			    prefetcher.readMiss(idx, r.addr, r.refInfo.isPrefetch);
+			end
             debugLog.record($format("    lookupRead: MISS addr=0x%x, entry=0x%x", r.addr, idx));
         end
     endrule
@@ -612,20 +629,12 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
 
         debugLog.record($format("    fillResp: FILL addr=0x%x, entry=0x%x, val=0x%x", f.addr, entryIdx, f.val));
 
-        if (f.refInfo.isPrefetch)
-        begin
-            prefetcher.loadPrefetch(entryIdx);
-        end
-        else
+        if (!f.refInfo.isPrefetch)
         begin
             t_CACHE_LOAD_RESP resp;
             resp.val = f.val;
             resp.refInfo = f.refInfo.clientRef;
             readRespQ.enq(resp);
-            if(prefetchMode == RL_DM_PREFETCH_ENABLE)
-            begin
-              prefetcher.loadNormal(entryIdx);
-            end
         end
         
         // Save value in cache
@@ -686,6 +695,8 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
             cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: (cacheMode == RL_DM_MODE_WRITE_BACK),
                                                               tag: tag,
                                                               val: w_data });
+            if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+                prefetcher.prefetchInval(idx);
         end
 
         entryFilter.remove(idx);
@@ -727,6 +738,8 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
             begin
                 debugLog.record($format("    evictForInval: INVAL addr=0x%x, entry=0x%x", r.addr, idx));
                 cache.write(idx, tagged Invalid);
+                if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+                    prefetcher.prefetchInval(idx);
             end
             else
             begin
@@ -736,7 +749,7 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
                 cache.write(idx, tagged Valid upd_entry);
             end
         end
-
+		
         invalQ.enq(r);
     endrule
 
@@ -782,11 +795,6 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         match {.tag, .idx} = cacheEntryFromAddr(addr);
         r.tag = tag;
         r.idx = idx;
-
-        if (cacheMode != RL_DM_MODE_DISABLED && prefetchMode == RL_DM_PREFETCH_ENABLE)
-        begin
-            prefetcher.reqLearn(addr);
-        end
 
         newReqQ.enq(r);
     endmethod
@@ -865,12 +873,12 @@ module mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD,
         sourceData.invalOrFlushWait();
     endmethod
 
-    method Action setCacheMode(RL_DM_CACHE_MODE mode);
-        cacheMode    <= mode;
-    endmethod
-
-    method Action setPrefetchMode(RL_DM_CACHE_PREFETCH_MODE en);
-        prefetchMode <= en;
+    method Action setCacheMode(RL_DM_CACHE_MODE mode, RL_DM_CACHE_PREFETCH_MODE en);
+        cacheMode <= mode;
+		if (mode == RL_DM_MODE_DISABLED)
+		    prefetchMode <= RL_DM_PREFETCH_DISABLE;
+		else
+		    prefetchMode <= en;
     endmethod
 
     interface RL_CACHE_STATS stats;
@@ -960,11 +968,7 @@ module mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         sourceData.invalOrFlushWait();
     endmethod
     
-    method Action setCacheMode(RL_DM_CACHE_MODE mode);
-        noAction;
-    endmethod
-
-    method Action setPrefetchMode(RL_DM_CACHE_PREFETCH_MODE en);
+    method Action setCacheMode(RL_DM_CACHE_MODE mode, RL_DM_CACHE_PREFETCH_MODE en);
         noAction;
     endmethod
     
