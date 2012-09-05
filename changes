@@ -13472,3 +13472,33 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 Add prefetch stats.
 Tune the prefetching algorithm. (hybrid mode+look ahead distance)
 To turn on the prefetcher, change SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE parameter to 1.
+
+----------
+mgambhir    Date: Wed Sep  5 15:26:31 EDT 2012  CSN: CSN-leap-334
+                  Wed Sep  5 19:26:31 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          333 
+ Makefile.in               Locally Modified          333 
+ configure.in              Locally Modified          333 
+
+Directory tools/leap
+ leap-front-panel/         Locally Modified          333 
+
+Directory tools/leap/leap-front-panel
+ Makefile.am               Locally Modified          333 
+ leap_front_panel_header.pl Locally Added               0 
+ leap_front_panel.qrc      Locally Added               0 
+ Makefile.in               Locally Modified          333 
+ leap_front_panel.pm       Locally Added               0 
+ leap_front_panel.ui       Locally Added               0 
+ images/                   Locally Added               0 
+
+Directory tools/leap/leap-front-panel/images
+ ledoff.png                Locally Added               0 
+ ledon.png                 Locally Added               0 
+
+- Initial port of leap-front-panel to PerlQt4
+  - LEDs do not work yet. PerlQt3 version seems to be broken as well.
+- changed --enable-perlqt4 switch to --enable-qt4 to make it consistent with awb

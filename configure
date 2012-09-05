@@ -662,7 +662,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_perl_vendor_install
-enable_perlqt4
+enable_qt4
 enable_dependency_tracking
 '
       ac_precious_vars='build_alias
@@ -1291,7 +1291,7 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-perl-vendor-install
                           Do a perl vendor install
-  --enable-perlqt4=ARG    use perlqt4 [[ARG=no|yes]] (default=no with
+  --enable-qt4=ARG        use qt4 [[ARG=no|yes]] (default=no with
                           system-specific exceptions)
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
@@ -2391,24 +2391,24 @@ fi
 
 
 #
-# --enable-perlqt4
+# --enable-qt4
 #
-# Check whether --enable-perlqt4 was given.
-if test "${enable_perlqt4+set}" = set; then :
-  enableval=$enable_perlqt4; asim_cv_enable_perlqt4=$enableval
+# Check whether --enable-qt4 was given.
+if test "${enable_qt4+set}" = set; then :
+  enableval=$enable_qt4; asim_cv_enable_qt4=$enableval
 else
-  asim_cv_enable_perlqt4=no
+  asim_cv_enable_qt4=no
 fi
 
 
 # Force qt4 for Ubuntu Oneiric or later
 
-if test $asim_cv_enable_perlqt4 = "no" -a -x /usr/bin/lsb_release -a $(lsb_release -s -i) = "Ubuntu" -a $(lsb_release -s -r | sed 's/\.//') -ge 1110
+if test $asim_cv_enable_qt4 = "no" -a -x /usr/bin/lsb_release -a $(lsb_release -s -i) = "Ubuntu" -a $(lsb_release -s -r | sed 's/\.//') -ge 1110
 then
-    asim_cv_enable_perlqt4="yes"
+    asim_cv_enable_qt4="yes"
 fi
 
- if test "$asim_cv_enable_perlqt4" = yes; then
+ if test "$asim_cv_enable_qt4" = yes; then
   ENABLE_PERLQT4_TRUE=
   ENABLE_PERLQT4_FALSE='#'
 else
