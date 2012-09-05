@@ -43,11 +43,11 @@ import List::*;
 interface CENTRAL_CACHE_BACKING#(type t_CACHE_ADDR,
                                  type t_CACHE_LINE,
                                  numeric type nWordsPerLine,
-                                 type t_CACHE_REF_INFO);
+                                 type t_CACHE_READ_META);
     interface RL_SA_CACHE_SOURCE_DATA#(t_CACHE_ADDR,
                                        t_CACHE_LINE,
                                        nWordsPerLine,
-                                       t_CACHE_REF_INFO) sourceData;
+                                       t_CACHE_READ_META) sourceData;
     
     // Debug info for DEBUG_SCAN
     method Bit#(4) nReadsInFlight();
@@ -109,7 +109,7 @@ module [CONNECTED_MODULE] mkCentralCache
     CENTRAL_CACHE_BACKING#(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ),
                            CENTRAL_CACHE_LINE,
                            CENTRAL_CACHE_WORDS_PER_LINE,
-                           CENTRAL_CACHE_REF_INFO) backingConnection <- mkCentralCacheBacking(backingStore);
+                           CENTRAL_CACHE_READ_META) backingConnection <- mkCentralCacheBacking(backingStore);
 
 
     //
@@ -126,7 +126,7 @@ module [CONNECTED_MODULE] mkCentralCache
     RL_SA_CACHE#(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ),
                  CENTRAL_CACHE_WORD,
                  CENTRAL_CACHE_WORDS_PER_LINE,
-                 CENTRAL_CACHE_REF_INFO
+                 CENTRAL_CACHE_READ_META
                  ) cache <- mkCacheSetAssoc(backingConnection.sourceData,
                                             cacheLocalData,
                                             nRecentReadCacheIdxBits,
@@ -194,8 +194,8 @@ module [CONNECTED_MODULE] mkCentralCache
 
         reqQ.deq();
 
-        debugLog.record($format("port %0d: write addr=0x%x, refInfo=0x%x, wIdx=%d, val=0x%x", port, r.addr, r.refInfo, r.wordIdx, r.val));
-        cache.write(addr, r.val, r.wordIdx, r.refInfo);
+        debugLog.record($format("port %0d: write addr=0x%x, wIdx=%d, val=0x%x", port, r.addr, r.wordIdx, r.val));
+        cache.write(addr, r.val, r.wordIdx);
     endrule
 
 
@@ -207,8 +207,8 @@ module [CONNECTED_MODULE] mkCentralCache
 
         reqQ.deq();
 
-        debugLog.record($format("port %0d: inval addr=0x%x, refInfo=0x%x, ack=%d", port, r.addr, r.refInfo, r.sendAck));
-        cache.invalReq(addr, r.sendAck, r.refInfo);
+        debugLog.record($format("port %0d: inval addr=0x%x, ack=%d", port, r.addr, r.sendAck));
+        cache.invalReq(addr, r.sendAck);
 
         if (r.sendAck)
         begin
@@ -226,8 +226,8 @@ module [CONNECTED_MODULE] mkCentralCache
 
         reqQ.deq();
 
-        debugLog.record($format("port %0d: flush addr=0x%x, refInfo=0x%x, ack=%d", port, r.addr, r.refInfo, r.sendAck));
-        cache.flushReq(addr, r.sendAck, r.refInfo);
+        debugLog.record($format("port %0d: flush addr=0x%x, ack=%d", port, r.addr, r.sendAck));
+        cache.flushReq(addr, r.sendAck);
 
         if (r.sendAck)
         begin
@@ -258,8 +258,8 @@ module [CONNECTED_MODULE] mkCentralCache
 
         reqQ.deq();
 
-        debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, refInfo=0x%x", port, r.addr, r.wordIdx, r.refInfo));
-        cache.readReq(addr, r.wordIdx, r.refInfo);
+        debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, readMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta));
+        cache.readReq(addr, r.wordIdx, r.readMeta);
 
         dbgCacheReadsInFlight.up();
     endrule
@@ -284,12 +284,12 @@ module [CONNECTED_MODULE] mkCentralCache
         r.val = validValue(d.words[d.reqWordIdx]);
         r.addr = addr;
         r.wordIdx = d.reqWordIdx;
-        r.refInfo = d.refInfo;
+        r.readMeta = d.readMeta;
 
         // Forward data to the correct port
         readRespQ.enq(tuple2(port, r));
 
-        debugLog.record($format("port %0d: queue readResp addr=0x%x, wordIdx=0x%x, refInfo=0x%x", port, r.addr, r.wordIdx, r.refInfo));
+        debugLog.record($format("port %0d: queue readResp addr=0x%x, wordIdx=0x%x, readMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta));
     endrule
 
 
@@ -350,8 +350,6 @@ module [CONNECTED_MODULE] mkCentralCache
     //
     for (Integer p = 0; p < valueOf(CENTRAL_CACHE_N_CLIENTS); p = p + 1)
     begin
-        let backing_source = backingStore[p].cacheSourceData;
-
         clientPortsLocal[p] = (
             interface CENTRAL_CACHE_CLIENT_PORT;
                 method Action newReq(CENTRAL_CACHE_REQ req);
@@ -364,7 +362,7 @@ module [CONNECTED_MODULE] mkCentralCache
                     let r = tpl_2(readRespQ.first());
                     readRespQ.deq();
 
-                    debugLog.record($format("port %0d: readResp addr=0x%x, refInfo=0x%x", p, r.addr, r.refInfo));
+                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x", p, r.addr, r.readMeta));
                     return r;
                 endmethod
 
@@ -396,7 +394,7 @@ module mkCentralCacheBacking#(Vector#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_BAC
     (CENTRAL_CACHE_BACKING#(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ),
                             CENTRAL_CACHE_LINE,
                             CENTRAL_CACHE_WORDS_PER_LINE,
-                            CENTRAL_CACHE_REF_INFO))
+                            CENTRAL_CACHE_READ_META))
     provisos (Bits#(CENTRAL_CACHE_LINE_ADDR, t_CENTRAL_CACHE_LINE_ADDR_SZ),
               Bits#(CENTRAL_CACHE_PORT_NUM, t_CENTRAL_CACHE_PORT_NUM_SZ),
               Add#(t_CENTRAL_CACHE_PORT_NUM_SZ, t_CENTRAL_CACHE_LINE_ADDR_SZ, t_CENTRAL_CACHE_INTERNAL_ADDR_SZ),
@@ -421,11 +419,11 @@ module mkCentralCacheBacking#(Vector#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_BAC
 
 
     interface RL_SA_CACHE_SOURCE_DATA sourceData;
-        method Action readReq(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ) addr, CENTRAL_CACHE_REF_INFO refInfo);
+        method Action readReq(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ) addr, CENTRAL_CACHE_READ_META readMeta);
             // Figure out from which central cache port to request the data and
             // forward the request.
             match {.i_port, .i_addr} = splitInternalAddr(addr);
-            backingStore[i_port].cacheSourceData.readReq(i_addr, refInfo);
+            backingStore[i_port].cacheSourceData.readReq(i_addr, readMeta);
 
             // Note read request port ID
             readQ.enq(i_port);
@@ -444,20 +442,18 @@ module mkCentralCacheBacking#(Vector#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_BAC
         // Asynchronous write (no response)
         method Action write(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ) addr,
                             Vector#(CENTRAL_CACHE_WORDS_PER_LINE, Bool) wordValidMask,
-                            CENTRAL_CACHE_LINE val,
-                            CENTRAL_CACHE_REF_INFO refInfo);
+                            CENTRAL_CACHE_LINE val);
             // Figure out to which central cache port the write should be sent.
             match {.i_port, .i_addr} = splitInternalAddr(addr);
-            backingStore[i_port].cacheSourceData.write(i_addr, wordValidMask, val, refInfo);
+            backingStore[i_port].cacheSourceData.write(i_addr, wordValidMask, val);
         endmethod
 
         // Synchronous write.  writeSyncWait() blocks until the response arrives.
         method Action writeSyncReq(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ) addr,
                                    Vector#(CENTRAL_CACHE_WORDS_PER_LINE, Bool) wordValidMask,
-                                   CENTRAL_CACHE_LINE val,
-                                   CENTRAL_CACHE_REF_INFO refInfo);
+                                   CENTRAL_CACHE_LINE val);
             match {.i_port, .i_addr} = splitInternalAddr(addr);
-            backingStore[i_port].cacheSourceData.writeSyncReq(i_addr, wordValidMask, val, refInfo);
+            backingStore[i_port].cacheSourceData.writeSyncReq(i_addr, wordValidMask, val);
 
             // Note sync request port ID
             writeSyncQ.enq(i_port);

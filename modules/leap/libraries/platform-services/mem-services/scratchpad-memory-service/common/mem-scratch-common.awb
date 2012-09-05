@@ -9,4 +9,4 @@
 
 %param --global SCRATCHPAD_MEMORY_DEBUG_ENABLE 1 "Enables the scratchpad memory debug"
 
-%param --global SCRATCHPAD_CLIENT_REF_INFO_BITS  11 "Bits available to clients to tag a reference."
+%param --global SCRATCHPAD_CLIENT_READ_UID_BITS 9 "Bits available to clients to tag and reorder read responses."

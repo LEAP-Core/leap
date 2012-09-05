@@ -68,13 +68,19 @@ typedef Bit#(TLog#(CENTRAL_CACHE_WORDS_PER_LINE)) CENTRAL_CACHE_WORD_IDX;
 // request.  The data is returned along with a response and forwarded to the
 // backing storage requests generated as side effects of any requests.  The
 // reference info may hold context ID or anything else needed by the client.
+// The reference info is typically the client's own index into a MAF (miss
+// address file) holding the details of a request.
+//
+// For READ requests, the reference info MUST BE UNIQUE for all in-flight
+// reads from the client so that the value can be used as a MAF (miss address
+// file) index inside the central cache.
 //
 // The central cache is constructed before any of the clients, so the
 // reference info type here is necessarily generic.  The only requirement
 // is that the reference info type here must be at least as big as
 // the largest required by all clients.
 //
-typedef Bit#(`CENTRAL_CACHE_REFINFO_BITS) CENTRAL_CACHE_REF_INFO;
+typedef Bit#(`CENTRAL_CACHE_READ_META_BITS) CENTRAL_CACHE_READ_META;
 
 
 //
@@ -85,7 +91,7 @@ typedef struct
 {
     CENTRAL_CACHE_LINE_ADDR addr;
     CENTRAL_CACHE_WORD_IDX wordIdx;
-    CENTRAL_CACHE_REF_INFO refInfo;
+    CENTRAL_CACHE_READ_META readMeta;
 }
 CENTRAL_CACHE_READ_REQ
     deriving (Eq, Bits);
@@ -97,7 +103,6 @@ typedef struct
     CENTRAL_CACHE_LINE_ADDR addr;
     CENTRAL_CACHE_WORD_IDX wordIdx;
     CENTRAL_CACHE_WORD val;
-    CENTRAL_CACHE_REF_INFO refInfo;
 }
 CENTRAL_CACHE_WRITE_REQ
     deriving (Eq, Bits);
@@ -109,7 +114,6 @@ typedef struct
 {
     CENTRAL_CACHE_LINE_ADDR addr;
     Bool sendAck;
-    CENTRAL_CACHE_REF_INFO refInfo;
 }
 CENTRAL_CACHE_INVAL_REQ
     deriving (Eq, Bits);
@@ -133,7 +137,7 @@ typedef struct
     CENTRAL_CACHE_WORD val;
     CENTRAL_CACHE_LINE_ADDR addr;
     CENTRAL_CACHE_WORD_IDX wordIdx;
-    CENTRAL_CACHE_REF_INFO refInfo;
+    CENTRAL_CACHE_READ_META readMeta;
 }
 CENTRAL_CACHE_READ_RESP
     deriving (Eq, Bits);
@@ -162,7 +166,7 @@ endinterface: CENTRAL_CACHE_CLIENT_PORT
 typedef struct
 {
     CENTRAL_CACHE_LINE_ADDR addr;
-    CENTRAL_CACHE_REF_INFO refInfo;
+    CENTRAL_CACHE_READ_META readMeta;
 }
 CENTRAL_CACHE_BACKING_READ_REQ
     deriving (Eq, Bits);
@@ -175,7 +179,6 @@ typedef struct
 {
     CENTRAL_CACHE_LINE_ADDR addr;
     Vector#(CENTRAL_CACHE_WORDS_PER_LINE, Bool) wordValidMask;
-    CENTRAL_CACHE_REF_INFO refInfo;
     Bool sendAck;
 }
 CENTRAL_CACHE_BACKING_WRITE_REQ

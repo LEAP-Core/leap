@@ -43,7 +43,7 @@ interface CENTRAL_CACHE_BACKING_CONNECTION;
     interface RL_SA_CACHE_SOURCE_DATA#(CENTRAL_CACHE_LINE_ADDR,
                                        CENTRAL_CACHE_LINE,
                                        CENTRAL_CACHE_WORDS_PER_LINE,
-                                       CENTRAL_CACHE_REF_INFO) cacheSourceData;
+                                       CENTRAL_CACHE_READ_META) cacheSourceData;
 endinterface: CENTRAL_CACHE_BACKING_CONNECTION
 
 //
@@ -107,7 +107,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
             let r = readReqQ.first();
             readReqQ.deq();
     
-            debugLog.record($format("port %0d: BACKING getReadReq addr=0x%x, refInfo=0x%x", port, r.addr, r.refInfo));
+            debugLog.record($format("port %0d: BACKING getReadReq addr=0x%x, readMeta=0x%x", port, r.addr, r.readMeta));
 
             return r;
         endmethod
@@ -142,7 +142,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
             let w = writeCtrlQ.first();
             writeCtrlQ.deq();
 
-            debugLog.record($format("port %0d: BACKING getWriteReq addr=0x%x, wMask=0x%x, refInfo=0x%x, ack=%d", port, w.addr, w.wordValidMask, w.refInfo, w.sendAck));
+            debugLog.record($format("port %0d: BACKING getWriteReq addr=0x%x, wMask=0x%x, ack=%d", port, w.addr, w.wordValidMask, w.sendAck));
     
             return w;
         endmethod
@@ -181,10 +181,10 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     //
     interface RL_SA_CACHE_SOURCE_DATA cacheSourceData;
         method Action readReq(CENTRAL_CACHE_LINE_ADDR addr,
-                              CENTRAL_CACHE_REF_INFO refInfo) if (! readReqCredits.isZero());
+                              CENTRAL_CACHE_READ_META readMeta) if (! readReqCredits.isZero());
             readReqCredits.down();
-            readReqQ.enq(CENTRAL_CACHE_BACKING_READ_REQ { addr: addr, refInfo: refInfo });
-            debugLog.record($format("port %0d: BACKING readReq addr=0x%x, refInfo=0x%x", port, addr, refInfo));
+            readReqQ.enq(CENTRAL_CACHE_BACKING_READ_REQ { addr: addr, readMeta: readMeta });
+            debugLog.record($format("port %0d: BACKING readReq addr=0x%x, readMeta=0x%x", port, addr, readMeta));
         endmethod
 
         method ActionValue#(CENTRAL_CACHE_LINE) readResp();
@@ -200,35 +200,31 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
         // Asynchronous write (no response)
         method Action write(CENTRAL_CACHE_LINE_ADDR addr,
                             Vector#(CENTRAL_CACHE_WORDS_PER_LINE, Bool) wordValidMask,
-                            CENTRAL_CACHE_LINE val,
-                            CENTRAL_CACHE_REF_INFO refInfo);
+                            CENTRAL_CACHE_LINE val);
 
             CENTRAL_CACHE_BACKING_WRITE_REQ w;
             w.addr = addr;
             w.wordValidMask = wordValidMask;
-            w.refInfo = refInfo;
             w.sendAck = False;
 
             writeCtrlQ.enq(w);
             writeDataQ.enq(val);
-            debugLog.record($format("port %0d: BACKING write addr=0x%x, wMask=0x%x, refInfo=0x%x, ack=%d, val=0x%x", port, w.addr, w.wordValidMask, w.refInfo, w.sendAck, val));
+            debugLog.record($format("port %0d: BACKING write addr=0x%x, wMask=0x%x, ack=%d, val=0x%x", port, w.addr, w.wordValidMask, w.sendAck, val));
         endmethod
     
         // Synchronous write.  writeSyncWait() blocks until the response arrives.
         method Action writeSyncReq(CENTRAL_CACHE_LINE_ADDR addr,
                                    Vector#(CENTRAL_CACHE_WORDS_PER_LINE, Bool) wordValidMask,
-                                   CENTRAL_CACHE_LINE val,
-                                   CENTRAL_CACHE_REF_INFO refInfo);
+                                   CENTRAL_CACHE_LINE val);
 
             CENTRAL_CACHE_BACKING_WRITE_REQ w;
             w.addr = addr;
             w.wordValidMask = wordValidMask;
-            w.refInfo = refInfo;
             w.sendAck = True;
 
             writeCtrlQ.enq(w);
             writeDataQ.enq(val);
-            debugLog.record($format("port %0d: BACKING write addr=0x%x, wMask=0x%x, refInfo=0x%x, ack=%d, val=0x%x", port, w.addr, w.wordValidMask, w.refInfo, w.sendAck, val));
+            debugLog.record($format("port %0d: BACKING write addr=0x%x, wMask=0x%x, ack=%d, val=0x%x", port, w.addr, w.wordValidMask, w.sendAck, val));
         endmethod
 
         method Action writeSyncWait() if (writeAckQ.notEmpty());

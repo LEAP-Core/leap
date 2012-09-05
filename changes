@@ -13502,3 +13502,55 @@ Directory tools/leap/leap-front-panel/images
 - Initial port of leap-front-panel to PerlQt4
   - LEDs do not work yet. PerlQt3 version seems to be broken as well.
 - changed --enable-perlqt4 switch to --enable-qt4 to make it consistent with awb
+
+----------
+mcadler     Date: Wed Sep  5 17:23:13 EDT 2012  CSN: CSN-leap-335
+                  Wed Sep  5 21:23:13 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          334 
+ rl-prefetch.bsv           Locally Modified          334 
+ rl-set-assoc-cache.bsv    Locally Modified          334 
+ rl-cache.bsv              Locally Modified          334 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          334 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common.awb    Locally Modified          334 
+ mem-scratch-common-interfaces.bsv Locally Modified          334 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          334 
+ platform-scratchpad-memory.bsv Locally Modified          334 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          334 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ platform-central-cache.bsv Locally Modified          334 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-bypass.bsv  Locally Modified          334 
+ central-cache-interfaces.bsv Locally Modified          334 
+ central-cache-common.awb  Locally Modified          334 
+ central-cache-backing-store.bsv Locally Modified          334 
+
+- Use MAF structures for scratchpad requests when appropriate instead of
+  sending wide data all the way through the memory subsystem.  The read request
+  metadata passed around is reduced from the previous maximum of 64 bits
+  to 12, for now.
+
+- Eliminate metadata from cache write interfaces.  They made no sense since
+  spills are generated inside caches and there is no required correlation between
+  the metadata from a request causing a spill and the spilled data.
+
+- Rename cache REF_INFO structures to READ_META to make it a little clearer
+  what is being passed around.  I spent a long time trying to guarantee that
+  READ_META was actually a UID when passed to caches that could be used for
+  indexing a MAF.  This proved extremely difficult to do well as requests
+  merge down the cache hierarchy, particularly because the metadata types
+  are not all the same.  It would also not have provided much benefit, since
+  the only code currently needing to index a MAF is at the top of the hierarchy,
+  closest to the client.

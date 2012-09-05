@@ -55,28 +55,33 @@ typedef TAdd#(`VDEV_SCRATCH__NENTRIES, 1) SCRATCHPAD_N_CLIENTS;
 typedef Bit#(TLog#(TAdd#(1, SCRATCHPAD_N_CLIENTS))) SCRATCHPAD_PORT_NUM;
 
 //
-// Scratpads are not required to return read results in order.  Clients
-// are expected to use the SCRATCHPAD_CLIENT_REF_INFO type to tag read requests
-// with information to route them correctly.
+// Scratchpads are not required to return read results in order.  Clients
+// are expected to use the SCRATCHPAD_CLIENT_READ_UID type to tag read requests
+// with information to sort them correctly.
 //
-typedef `SCRATCHPAD_CLIENT_REF_INFO_BITS SCRATCHPAD_CLIENT_REF_INFO_SZ;
-typedef Bit#(SCRATCHPAD_CLIENT_REF_INFO_SZ) SCRATCHPAD_CLIENT_REF_INFO;
+// DON'T MAKE THE READ UID TOO LARGE!  It is used as an index to arrays
+// holding details of in-flight reads.
+//
+typedef `SCRATCHPAD_CLIENT_READ_UID_BITS SCRATCHPAD_CLIENT_READ_UID_SZ;
+typedef Bit#(SCRATCHPAD_CLIENT_READ_UID_SZ) SCRATCHPAD_CLIENT_READ_UID;
 
 //
-// Scratchpad reference ID.  Used for directing requests to the right
-// ports and reordering cache reads.
+// Scratchpad read UID.  Used for directing read responses to the right
+// ports and sorting read responses.  The read UID associates a read
+// request with its corresponding response and may be used by caches
+// to build associative structures that track details of in-flight reads.
 //
 typedef struct
 {
     SCRATCHPAD_PORT_NUM portNum;
-    SCRATCHPAD_CLIENT_REF_INFO clientRefInfo;
+    SCRATCHPAD_CLIENT_READ_UID clientReadUID;
 }
-SCRATCHPAD_REF_INFO
+SCRATCHPAD_READ_UID
     deriving (Eq, Bits);
 
 //
 // Scratchpad read response returns metadata along with the value.  The
-// refInfo field contains tags to direct the response to the correct port
+// readUID field contains tags to direct the response to the correct port
 // and to sort responses chronologically.  (The scratchpad memory may return
 // results out of order due to cache effects.)
 //
@@ -89,7 +94,7 @@ typedef struct
 {
     t_DATA val;
     t_ADDR addr;
-    SCRATCHPAD_REF_INFO refInfo;
+    SCRATCHPAD_READ_UID readUID;
 }
 SCRATCHPAD_READ_RESP#(type t_ADDR, type t_DATA)
     deriving (Eq, Bits);
@@ -185,13 +190,13 @@ SCRATCHPAD_RING_REQ
 // The platform interface module may fan out connections to clients of the
 // scratchpad using, for example, multiple soft connections.
 //
-// The REF_INFO is used to determine address spaces and route reponses back
+// The READ_UID is used to determine address spaces and route reponses back
 // to the corresponding requester.
 //
 interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MASK);
     method Action readReq(t_ADDR addr,
                           t_MASK byteMask,
-                          SCRATCHPAD_REF_INFO refInfo);
+                          SCRATCHPAD_READ_UID readUID);
     method ActionValue#(SCRATCHPAD_READ_RESP#(t_ADDR, t_DATA)) readRsp();
  
     method Action write(t_ADDR addr,
@@ -205,7 +210,7 @@ interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MAS
     // Initialize a port, requesting an allocation of allocLastWordIdx + 1
     // SCRATCHPAD_MEM_VALUE sized words.
     method ActionValue#(Bool) init(t_ADDR allocLastWordIdx,
-                                    SCRATCHPAD_PORT_NUM portNum,
+                                   SCRATCHPAD_PORT_NUM portNum,
                                    Bool useCentralCache);
 endinterface: SCRATCHPAD_MEMORY_VIRTUAL_DEVICE
 

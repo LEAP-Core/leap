@@ -48,7 +48,7 @@ module mkBypassCentralCache
     //
     Vector#(CENTRAL_CACHE_N_CLIENTS, FIFOF#(Tuple3#(CENTRAL_CACHE_LINE_ADDR,
                                                     CENTRAL_CACHE_WORD_IDX,
-                                                    CENTRAL_CACHE_REF_INFO))) readQ <- replicateM(mkFIFOF());
+                                                    CENTRAL_CACHE_READ_META))) readQ <- replicateM(mkFIFOF());
     Vector#(CENTRAL_CACHE_N_CLIENTS, FIFO#(Bool)) invalAckQ <- replicateM(mkFIFO());
 
 
@@ -85,15 +85,15 @@ module mkBypassCentralCache
                     case (req) matches
                         tagged CENTRAL_CACHE_READ .rd:
                         begin
-                            debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, refInfo=0x%x", p, rd.addr, rd.wordIdx, rd.refInfo));
+                            debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, readMeta=0x%x", p, rd.addr, rd.wordIdx, rd.readMeta));
 
-                            backing_source.readReq(rd.addr, rd.refInfo);
-                            readQ[p].enq(tuple3(rd.addr, rd.wordIdx, rd.refInfo));
+                            backing_source.readReq(rd.addr, rd.readMeta);
+                            readQ[p].enq(tuple3(rd.addr, rd.wordIdx, rd.readMeta));
                         end
 
                         tagged CENTRAL_CACHE_WRITE .wr:
                         begin
-                            debugLog.record($format("port %0d: write addr=0x%x, refInfo=0x%x, wIdx=%d, val=0x%x", p, wr.addr, wr.refInfo, wr.wordIdx, wr.val));
+                            debugLog.record($format("port %0d: write addr=0x%x, wIdx=%d, val=0x%x", p, wr.addr, wr.wordIdx, wr.val));
 
                             //
                             // Backing storage write takes a line and a mask to indicate
@@ -105,12 +105,12 @@ module mkBypassCentralCache
                             Vector#(CENTRAL_CACHE_WORDS_PER_LINE, Bool) mask = replicate(False);
                             mask[wr.wordIdx] = True;
            
-                            backing_source.write(wr.addr, mask, pack(v), wr.refInfo);
+                            backing_source.write(wr.addr, mask, pack(v));
                         end
 
                         tagged CENTRAL_CACHE_INVAL .inv:
                         begin
-                            debugLog.record($format("port %0d: inval addr=0x%x, refInfo=0x%x, ack=%d", p, inv.addr, inv.refInfo, inv.sendAck));
+                            debugLog.record($format("port %0d: inval addr=0x%x, ack=%d", p, inv.addr, inv.sendAck));
 
                             if (inv.sendAck)
                             begin
@@ -120,7 +120,7 @@ module mkBypassCentralCache
 
                         tagged CENTRAL_CACHE_FLUSH .fl:
                         begin
-                            debugLog.record($format("port %0d: flush addr=0x%x, refInfo=0x%x, ack=%d", p, fl.addr, fl.refInfo, fl.sendAck));
+                            debugLog.record($format("port %0d: flush addr=0x%x, ack=%d", p, fl.addr, fl.sendAck));
 
                             if (fl.sendAck)
                             begin
@@ -134,17 +134,17 @@ module mkBypassCentralCache
                 method ActionValue#(CENTRAL_CACHE_READ_RESP) readResp();
                     let d <- backing_source.readResp();
 
-                    match {.addr, .word_idx, .ref_info} = readQ[p].first();
+                    match {.addr, .word_idx, .read_meta} = readQ[p].first();
                     readQ[p].deq();
            
-                    debugLog.record($format("port %0d: readResp addr=0x%x, refInfo=0x%x, val=0x%x", p, addr, ref_info, d));
+                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x, val=0x%x", p, addr, read_meta, d));
 
                     Vector#(CENTRAL_CACHE_WORDS_PER_LINE, CENTRAL_CACHE_WORD) v = unpack(d);
                     CENTRAL_CACHE_READ_RESP r;
                     r.val = v[word_idx];
                     r.addr = addr;
                     r.wordIdx = word_idx;
-                    r.refInfo = ref_info;
+                    r.readMeta = read_meta;
 
                     return r;
                 endmethod

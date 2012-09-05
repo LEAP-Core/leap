@@ -63,12 +63,12 @@ typedef struct
     t_CACHE_ADDR addr;
     // Word index requested by read.
     Bit#(TLog#(nWordsPerLine)) reqWordIdx;
-    t_CACHE_REF_INFO refInfo;
+    t_CACHE_READ_META readMeta;
 }
 RL_SA_CACHE_LOAD_RESP#(type t_CACHE_ADDR,
                        type t_CACHE_WORD,
                        numeric type nWordsPerLine,
-                       type t_CACHE_REF_INFO)
+                       type t_CACHE_READ_META)
     deriving (Eq, Bits);
 
 
@@ -92,14 +92,14 @@ RL_SA_CACHE_MODE
 // debugging.  This specified number of low bits are prepanded to cache
 // tags so addresses match those seen in other modules.
 //
-// t_CACHE_REF_INFO is metadata associated with a reference.  Metadata is
+// t_CACHE_READ_META is metadata associated with a reference.  Metadata is
 // passed to the backing store for fills.  The metadata is not stored in
 // the cache.
 //
 interface RL_SA_CACHE#(type t_CACHE_ADDR,
                        type t_CACHE_WORD,
                        numeric type nWordsPerLine,
-                       type t_CACHE_REF_INFO);
+                       type t_CACHE_READ_META);
 
     // Read up to a full line.  Read from backing store if not already cached.
     // The read response is guaranteed to return at least the requested
@@ -107,9 +107,9 @@ interface RL_SA_CACHE#(type t_CACHE_ADDR,
     // be returned as well.
     method Action readReq(t_CACHE_ADDR addr,
                           Bit#(TLog#(nWordsPerLine)) wordIdx,
-                          t_CACHE_REF_INFO refInfo);
+                          t_CACHE_READ_META readMeta);
 
-    method ActionValue#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_REF_INFO)) readResp();
+    method ActionValue#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META)) readResp();
 
     // Some clients need the address to route responses.  Having a peek method
     // for response addresses avoids extra buffering in these clients.
@@ -123,14 +123,13 @@ interface RL_SA_CACHE#(type t_CACHE_ADDR,
     // low bits of a cache line.
     method Action write(t_CACHE_ADDR addr,
                         t_CACHE_WORD val,
-                        Bit#(TLog#(nWordsPerLine)) wordIdx,
-                        t_CACHE_REF_INFO refInfo);
+                        Bit#(TLog#(nWordsPerLine)) wordIdx);
     
     // Invalidate & flush requests.  Both write dirty lines back.  Invalidate drops
     // the line from the cache.  Flush keeps the line in the cache.  A response
     // is returned for invalOrFlushWait iff sendAck is true.
-    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
-    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
+    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck);
+    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck);
     method Action invalOrFlushWait();
     
     //
@@ -156,28 +155,26 @@ endinterface: RL_SA_CACHE
 // The caller must provide an instance of the RL_SA_CACHE_SOURCE_DATA interface
 // so the cache can read and write data from the next level in the hierarchy.
 //
-// See RL_SA_CACHE interface for description of refInfo.
+// See RL_SA_CACHE interface for description of readUID.
 //
 interface RL_SA_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
                                    type t_CACHE_LINE,
                                    numeric type nWordsPerLine,
-                                   type t_CACHE_REF_INFO);
+                                   type t_CACHE_READ_UID);
 
     // Read request and response with data
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_REF_INFO refInfo);
+    method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_UID readUID);
     method ActionValue#(t_CACHE_LINE) readResp();
     
     // Asynchronous write (no response)
     method Action write(t_CACHE_ADDR addr,
                         Vector#(nWordsPerLine, Bool) wordValidMask,
-                        t_CACHE_LINE val,
-                        t_CACHE_REF_INFO refInfo);
+                        t_CACHE_LINE val);
     
     // Synchronous write.  writeSyncWait() blocks until the response arrives.
     method Action writeSyncReq(t_CACHE_ADDR addr,
                                Vector#(nWordsPerLine, Bool) wordValidMask,
-                               t_CACHE_LINE val,
-                               t_CACHE_REF_INFO refInfo);
+                               t_CACHE_LINE val);
     method Action writeSyncWait();
 
 endinterface: RL_SA_CACHE_SOURCE_DATA
@@ -359,12 +356,12 @@ typedef struct
 
     // Meta-data associated with the reference.  Meta-data has meaning only to the
     // caller.
-    t_CACHE_REF_INFO refInfo;
+    t_CACHE_READ_META readMeta;
 }
 RL_SA_CACHE_REQ_BASE#(type t_CACHE_TAG,
                       type t_CACHE_SET_IDX,
                       type t_CACHE_WAY_IDX,
-                      type t_CACHE_REF_INFO)
+                      type t_CACHE_READ_META)
     deriving(Bits, Eq);
 
 typedef union tagged
@@ -390,20 +387,20 @@ RL_SA_CACHE_REQ#(numeric type nWordsPerLine)
 //
 //    NOTE: mkCacheSetAssoc may return read responses out of order relative
 //          to the request order!  For in-order responses the caller
-//          must add a tag to the t_CACHE_REF_INFO type and use the
+//          must add a tag to the t_CACHE_READ_META type and use the
 //          tag to sort the responses.  A SCOREBOARD_FIFO would do the job.
 //
 // ========================================================================
 
-module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_LINE, nWordsPerLine, t_CACHE_REF_INFO) sourceData,
+module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_LINE, nWordsPerLine, t_CACHE_READ_META) sourceData,
                         RL_SA_CACHE_LOCAL_DATA#(t_CACHE_ADDR_SZ, t_CACHE_WORD, nWordsPerLine, nSets, nWays) localData,
                         NumTypeParam#(t_RECENT_READ_CACHE_IDX_SZ) param0,
                         NumTypeParam#(nTagExtraLowBits) param1,
                         DEBUG_FILE debugLog)
     // interface:
-        (RL_SA_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_REF_INFO))
+        (RL_SA_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META))
     provisos (Bits#(t_CACHE_LINE, t_CACHE_LINE_SZ),
-              Bits#(t_CACHE_REF_INFO, t_CACHE_REF_INFO_SZ),
+              Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
               Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
 
               // Write word size must tile into cache line
@@ -425,11 +422,11 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
               Alias#(RL_SA_CACHE_WAY_IDX#(nWays), t_CACHE_WAY_IDX),
               Alias#(RL_SA_CACHE_DATA_IDX#(nWays, t_CACHE_SET_IDX), t_CACHE_DATA_IDX),
               Alias#(RL_SA_CACHE_WAY_METADATA#(t_CACHE_ADDR_SZ, nWordsPerLine, nSets), t_METADATA),
-              Alias#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_REF_INFO), t_CACHE_LOAD_RESP),
+              Alias#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META), t_CACHE_LOAD_RESP),
               Alias#(Vector#(nWays, RL_SA_CACHE_WAY_IDX#(nWays)), t_LRU_LIST),
               Alias#(Vector#(nWays, Maybe#(t_METADATA)), t_METADATA_VECTOR),
               Alias#(RL_SA_CACHE_SET_METADATA#(t_CACHE_ADDR_SZ, nWordsPerLine, nSets, nWays), t_SET_METADATA),
-              Alias#(RL_SA_CACHE_REQ_BASE#(t_CACHE_TAG, t_CACHE_SET_IDX, t_CACHE_WAY_IDX, t_CACHE_REF_INFO), t_CACHE_REQ_BASE),
+              Alias#(RL_SA_CACHE_REQ_BASE#(t_CACHE_TAG, t_CACHE_SET_IDX, t_CACHE_WAY_IDX, t_CACHE_READ_META), t_CACHE_REQ_BASE),
               Alias#(RL_SA_CACHE_REQ#(nWordsPerLine), t_CACHE_REQ),
               Alias#(Bit#(TLog#(nWordsPerLine)), t_CACHE_WRITE_WORD_IDX),
               Alias#(RL_SA_CACHE_WRITE_INFO#(t_CACHE_WORD, t_CACHE_WRITE_WORD_IDX), t_CACHE_WRITE_INFO),
@@ -1078,7 +1075,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
         // Flush for invalidate request.  Use sync method to know the
         // data arrived.
-        sourceData.writeSyncReq(cacheAddr(tag, set), word_valid_mask, flush_data, req_base.refInfo);
+        sourceData.writeSyncReq(cacheAddr(tag, set), word_valid_mask, flush_data);
         flushAckQ.enq(tuple2(set, need_ack));
     endrule
 
@@ -1300,7 +1297,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             Vector#(nWordsPerLine, Bool) mask = replicate(False);
             mask[w_req.wordIdx] = True;
             Vector#(nWordsPerLine, t_CACHE_WORD) val = replicate(w_data.val);
-            sourceData.write(cacheAddr(tag, set), mask, unpack(pack(val)), req_base.refInfo);
+            sourceData.write(cacheAddr(tag, set), mask, unpack(pack(val)));
         end
 
         reqInfo_writeData.free(w_req.dataIdx);
@@ -1334,7 +1331,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         readMissW.send();
 
         let addr = cacheAddr(tag, set);
-        sourceData.readReq(addr, req_base.refInfo);
+        sourceData.readReq(addr, req_base.readMeta);
         fillLineQ.enq(tuple3(req_base, req, word_valid_mask));
 
         debugLog.record($format("  READ WORD MISS (FILL): addr=0x%x, set=0x%x, way=%0d", debugAddr(addr), set, req_base.way));
@@ -1401,7 +1398,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         if (! flushed_dirty)
         begin
             let addr = cacheAddr(tag, set);
-            sourceData.readReq(addr, req_base_out.refInfo);
+            sourceData.readReq(addr, req_base_out.readMeta);
             fillLineQ.enq(tuple3(req_base_out, req, replicate(False)));
 
             debugLog.record($format("  READ MISS (FILL): addr=0x%x, set=0x%x, way=%0d", debugAddr(addr), set, req_base_out.way));
@@ -1500,7 +1497,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         debugLog.record($format("  Write back DIRTY: addr=0x%x, set=0x%x, way=%0d, mask=0x%x, data=0x%x", debugAddrFromTag(flush_meta.tag, set), set, way, flush_meta.wordValid, flush_data));
 
         // Normal flush before a fill
-        sourceData.write(cacheAddr(flush_meta.tag, set), flush_meta.wordValid, flush_data, req_base.refInfo);
+        sourceData.write(cacheAddr(flush_meta.tag, set), flush_meta.wordValid, flush_data);
 
         if (req matches tagged HCOP_WRITE .wReq)
         begin
@@ -1524,7 +1521,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let way = req_base.way;
 
         let addr = cacheAddr(tag, set);
-        sourceData.readReq(addr, req_base.refInfo);
+        sourceData.readReq(addr, req_base.readMeta);
         fillLineQ.enq(tuple3(req_base, req, replicate(False)));
     endrule
 
@@ -1634,7 +1631,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     function ActionValue#(t_CACHE_SET_IDX) genRequest(t_CACHE_REQ req,
                                                       t_CACHE_ADDR addr,
-                                                      t_CACHE_REF_INFO refInfo);
+                                                      t_CACHE_READ_META readMeta);
     actionvalue
         match {.tag, .set} = cacheTagAndSet(addr);
 
@@ -1642,7 +1639,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         req_base.tag = tag;
         req_base.set = set;
         req_base.way = ?;  // Way won't be known until the set meta data is read
-        req_base.refInfo = refInfo;
+        req_base.readMeta = readMeta;
         
         newReqQ.enq(tuple2(req_base, req));
 
@@ -1656,12 +1653,12 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     method Action readReq(t_CACHE_ADDR addr,
                           Bit#(TLog#(nWordsPerLine)) wordIdx,
-                          t_CACHE_REF_INFO refInfo);
+                          t_CACHE_READ_META readMeta);
 
         RL_SA_CACHE_READ_REQ#(nWordsPerLine) req;
         req.wordIdx = wordIdx;
     
-        let set <- genRequest(tagged HCOP_READ req, addr, refInfo);
+        let set <- genRequest(tagged HCOP_READ req, addr, readMeta);
         debugLog.record($format("  New request: READ addr=0x%x, set=0x%x, word=%0d", debugAddr(addr), set, wordIdx));
     endmethod
 
@@ -1675,7 +1672,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             rsp.words[w] = valid_words[w] ? tagged Valid value[w] : tagged Invalid;
         rsp.addr = cacheAddr(req_base.tag, req_base.set);
         rsp.reqWordIdx = r_req.wordIdx;
-        rsp.refInfo = req_base.refInfo;
+        rsp.readMeta = req_base.readMeta;
 
         return rsp;
     endmethod
@@ -1692,7 +1689,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     // write -- Write a word to a line.
     //
-    method Action write(t_CACHE_ADDR addr, t_CACHE_WORD val, t_CACHE_WRITE_WORD_IDX wordIdx, t_CACHE_REF_INFO refInfo);
+    method Action write(t_CACHE_ADDR addr, t_CACHE_WORD val, t_CACHE_WRITE_WORD_IDX wordIdx);
         t_CACHE_WRITE_INFO w_info;
         w_info.val = val;
 
@@ -1703,7 +1700,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         w_req.wordIdx = wordIdx;    
         w_req.dataIdx = h;
 
-        let set <- genRequest(tagged HCOP_WRITE w_req, addr, refInfo);
+        let set <- genRequest(tagged HCOP_WRITE w_req, addr, ?);
 
         debugLog.record($format("  New request: WRITE addr=0x%x, set=0x%x, data=0x%x, word=%0d, wData heap=%0d", debugAddr(addr), set, val, wordIdx, h));
     endmethod
@@ -1712,17 +1709,17 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     // invalReq -- Invalidate (remove) a line from the cache
     //
-    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
+    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck);
         if (sendAck)
         begin
             let idx <- invalReqDoneQ.enq();
-            let set <- genRequest(tagged HCOP_INVAL tagged Valid idx, addr, refInfo);
+            let set <- genRequest(tagged HCOP_INVAL tagged Valid idx, addr, ?);
 
             debugLog.record($format("  New request: INVAL addr=0x%x, set=0x%x, invalIdx=%d", debugAddr(addr), set, idx));
         end
         else
         begin
-            let set <- genRequest(tagged HCOP_INVAL tagged Invalid, addr, refInfo);
+            let set <- genRequest(tagged HCOP_INVAL tagged Invalid, addr, ?);
 
             debugLog.record($format("  New request: INVAL addr=0x%x, set=0x%x", debugAddr(addr), set));
         end
@@ -1733,17 +1730,17 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // flushReq --
     //     Flush (write back) a line from the cache but keep the line cached.
     //
-    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck, t_CACHE_REF_INFO refInfo);
+    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck);
         if (sendAck)
         begin
             let idx <- invalReqDoneQ.enq();
-            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Valid idx, addr, refInfo);
+            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Valid idx, addr, ?);
 
             debugLog.record($format("  New request: FLUSH addr=0x%x, set=0x%x, invalIdx=%d", debugAddr(addr), set, idx));
         end
         else
         begin
-            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Invalid, addr, refInfo);
+            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Invalid, addr, ?);
 
             debugLog.record($format("  New request: FLUSH addr=0x%x, set=0x%x", debugAddr(addr), set));
         end

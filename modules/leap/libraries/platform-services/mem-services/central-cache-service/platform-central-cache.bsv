@@ -52,17 +52,17 @@ import SpecialFIFOs::*;
 // standard direct mapped cache interface.
 //
 
-typedef RL_DM_CACHE#(t_ADDR, t_DATA, t_REF_INFO)
-    CENTRAL_CACHE_CLIENT#(type t_ADDR, type t_DATA, type t_REF_INFO);
+typedef RL_DM_CACHE#(t_ADDR, t_DATA, t_READ_META)
+    CENTRAL_CACHE_CLIENT#(type t_ADDR, type t_DATA, type t_READ_META);
 
 
 //
 // Interface for filling and spilling the cache.  An instance of this interface
 // must be created by the client and passed to the central cache module.
 //
-interface CENTRAL_CACHE_CLIENT_BACKING#(type t_ADDR, type t_DATA, type t_REF_INFO);
+interface CENTRAL_CACHE_CLIENT_BACKING#(type t_ADDR, type t_DATA, type t_READ_META);
     // Request a full line
-    method Action readLineReq(t_ADDR addr, t_REF_INFO refInfo);
+    method Action readLineReq(t_ADDR addr, t_READ_META readMeta);
 
     // The read line response is pipelined.  For every readLineReq there must
     // be one readResp for every word in the requested line.  Cache entries
@@ -75,7 +75,6 @@ interface CENTRAL_CACHE_CLIENT_BACKING#(type t_ADDR, type t_DATA, type t_REF_INF
     // in a cache line.
     method Action writeLineReq(t_ADDR addr,
                                Vector#(CENTRAL_CACHE_WORDS_PER_LINE, Bool) wordValidMask,
-                               t_REF_INFO refInfo,
                                Bool sendAck);
 
     // Called multiple times after a write request is received -- once for
@@ -168,22 +167,24 @@ function String backingPortName(Integer n) = "vdev_cache_backing_" + integerToSt
 //
 module [CONNECTED_MODULE] mkCentralCacheClient#(Integer cacheID,
                                                 NumTypeParam#(n_ENTRIES) nEntries,
-                                                CACHE_PREFETCHER#(UInt#(TLog#(n_ENTRIES)), t_ADDR, t_REF_INFO) prefetcher,
+                                                CACHE_PREFETCHER#(UInt#(TLog#(n_ENTRIES)), t_ADDR, t_READ_META) prefetcher,
                                                 Bool hashLocalCacheAddrs,
-                                                CENTRAL_CACHE_CLIENT_BACKING#(t_ADDR, t_DATA, t_REF_INFO) backing)
+                                                CENTRAL_CACHE_CLIENT_BACKING#(t_ADDR, t_DATA, t_BACKING_READ_META) backing)
     // interface:
-    (CENTRAL_CACHE_CLIENT#(t_ADDR, t_DATA, t_REF_INFO))
+    (CENTRAL_CACHE_CLIENT#(t_ADDR, t_DATA, t_READ_META))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ),
-              Bits#(t_REF_INFO, t_REF_INFO_SZ),
+              Bits#(t_READ_META, t_READ_META_SZ),
        
               // data must fit in central cache space
               Bits#(CENTRAL_CACHE_WORD, t_CENTRAL_CACHE_WORD_SZ),
               Add#(extraDataBits, t_DATA_SZ, t_CENTRAL_CACHE_WORD_SZ),
 
-              // refInfo must fit in central cache space
-              Bits#(CENTRAL_CACHE_REF_INFO, t_CENTRAL_CACHE_REF_INFO_SZ),
-              Add#(extraRefInfoBits, t_REF_INFO_SZ, t_CENTRAL_CACHE_REF_INFO_SZ),
+              // readMeta must fit in central cache space
+              Bits#(CENTRAL_CACHE_READ_META, t_CENTRAL_CACHE_READ_META_SZ),
+              Alias#(RL_DM_CACHE_READ_META#(t_READ_META), t_BACKING_READ_META),
+              Bits#(t_BACKING_READ_META, t_BACKING_READ_META_SZ),
+              Add#(extraReadMetaBits, t_BACKING_READ_META_SZ, t_CENTRAL_CACHE_READ_META_SZ),
 
               // Address space must fit in central cache addressing
               Bits#(CENTRAL_CACHE_LINE_ADDR, t_CENTRAL_CACHE_LINE_ADDR_SZ),
@@ -195,21 +196,28 @@ module [CONNECTED_MODULE] mkCentralCacheClient#(Integer cacheID,
     DEBUG_FILE debugLog <- mkDebugFile("memory_central_cache_" + integerToString(cacheID - `CACHE_BASE) + ".out");
 
     //
-    // Allocate the connection between a private cache and the central cache.
+    // Function to allocate the connection between a private cache and the
+    // central cache.
     //
-    RL_DM_CACHE_SOURCE_DATA#(t_ADDR, t_DATA, t_REF_INFO) centralCacheConnection <-
-        mkCentralCacheConnection(cacheID, backing, debugLog);
-        
+    let centralCacheConnection <- mkCentralCacheConnection(cacheID,
+                                                           backing,
+                                                           debugLog);
+
     // Private cache
-    RL_DM_CACHE#(t_ADDR, t_DATA, t_REF_INFO) pvtCache;
+    RL_DM_CACHE#(t_ADDR, t_DATA, t_READ_META) pvtCache;
     if (valueOf(n_ENTRIES) == 0)
-        pvtCache <- mkNullCacheDirectMapped(centralCacheConnection, debugLog);
+    begin
+        pvtCache <- mkNullCacheDirectMapped(centralCacheConnection,
+                                            debugLog);
+    end
     else
+    begin
         pvtCache <- mkCacheDirectMapped(centralCacheConnection,
                                         prefetcher,
                                         nEntries,
                                         hashLocalCacheAddrs,
                                         debugLog);
+    end
 
     return pvtCache;
 endmodule
@@ -230,21 +238,21 @@ endmodule
 //     to make the connection to the central cache.
 //
 module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
-                                                CENTRAL_CACHE_CLIENT_BACKING#(t_ADDR, t_DATA, t_REF_INFO) backing,
-                                                DEBUG_FILE debugLog)
+                                                    CENTRAL_CACHE_CLIENT_BACKING#(t_ADDR, t_DATA, t_READ_META) backing,
+                                                    DEBUG_FILE debugLog)
     // interface:
-    (RL_DM_CACHE_SOURCE_DATA#(t_ADDR, t_DATA, t_REF_INFO))
+    (RL_DM_CACHE_SOURCE_DATA#(t_ADDR, t_DATA, t_READ_META))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ),
-              Bits#(t_REF_INFO, t_REF_INFO_SZ),
+              Bits#(t_READ_META, t_READ_META_SZ),
        
               // data must fit in central cache space
               Bits#(CENTRAL_CACHE_WORD, t_CENTRAL_CACHE_WORD_SZ),
               Add#(extraDataBits, t_DATA_SZ, t_CENTRAL_CACHE_WORD_SZ),
 
-              // refInfo must fit in central cache space
-              Bits#(CENTRAL_CACHE_REF_INFO, t_CENTRAL_CACHE_REF_INFO_SZ),
-              Add#(extraRefInfoBits, t_REF_INFO_SZ, t_CENTRAL_CACHE_REF_INFO_SZ),
+              // readMeta must fit in central cache space
+              Bits#(CENTRAL_CACHE_READ_META, t_CENTRAL_CACHE_READ_META_SZ),
+              Add#(extraReadMetaBits, t_READ_META_SZ, t_CENTRAL_CACHE_READ_META_SZ),
 
               // Address space must fit in central cache addressing
               Bits#(CENTRAL_CACHE_LINE_ADDR, t_CENTRAL_CACHE_LINE_ADDR_SZ),
@@ -283,8 +291,8 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         //backing storage request requires original ref info from the client
         //will be fixed with MAF implementation
         //
-        RL_DM_CACHE_REF_INFO#(t_REF_INFO) cache_ref_info = unpack(truncateNP(req.refInfo));
-        backing.readLineReq(addr, cache_ref_info.clientRef);
+        t_READ_META cache_read_meta = unpack(truncate(req.readMeta));
+        backing.readLineReq(addr, cache_read_meta);
     endrule
 
     rule backingReadResp (True);
@@ -300,11 +308,7 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
 
         debugLog.record($format("backWrite: addr=0x%x, l_addr=0x%x, valid=0x%x", addr, req.addr, req.wordValidMask));
         
-        //
-        //backing storage request requires original ref info from the client
-        //
-        RL_DM_CACHE_REF_INFO#(t_REF_INFO) cache_ref_info = unpack(truncateNP(req.refInfo));
-        backing.writeLineReq(addr, req.wordValidMask, cache_ref_info.clientRef, req.sendAck);
+        backing.writeLineReq(addr, req.wordValidMask, req.sendAck);
     endrule
 
     rule backingWriteData (link_cache_backing.getReq() matches tagged CENTRAL_CACHE_BACK_WDATA .val);
@@ -336,25 +340,25 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
     // ====================================================================
 
     // Read request
-    method Action readReq(t_ADDR addr, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
+    method Action readReq(t_ADDR addr, t_READ_META readMeta);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
         let r = CENTRAL_CACHE_READ_REQ { addr: l_addr,
                                          wordIdx: w_idx,
-                                         refInfo: zeroExtendNP(pack(refInfo))};
+                                         readMeta: zeroExtend(pack(readMeta))};
 
         link_cache.makeReq(tagged CENTRAL_CACHE_READ r);
         debugLog.record($format("readReq: addr=0x%x, l_addr=0x%x, wIdx=%0d", addr, l_addr, w_idx));
     endmethod
 
     // Read response
-    method ActionValue#(RL_DM_CACHE_FILL_RESP#(t_ADDR, t_DATA, t_REF_INFO)) readResp() if (link_cache.getResp() matches tagged CENTRAL_CACHE_READ .resp);
+    method ActionValue#(RL_DM_CACHE_FILL_RESP#(t_ADDR, t_DATA, t_READ_META)) readResp() if (link_cache.getResp() matches tagged CENTRAL_CACHE_READ .resp);
         link_cache.deq();
 
         let addr = centralAddrToAddr(resp.addr, resp.wordIdx);
         t_DATA val = unpack(truncate(resp.val));
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
-                                        refInfo: unpack(truncateNP(resp.refInfo)) };
+                                        readMeta: unpack(truncate(resp.readMeta)) };
 
         debugLog.record($format("readResp: addr=0x%x, val=0x%x", addr, val));
 
@@ -362,24 +366,23 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
     endmethod
 
     // Read response peek
-    method RL_DM_CACHE_FILL_RESP#(t_ADDR, t_DATA, t_REF_INFO) peekResp() if (link_cache.getResp() matches tagged CENTRAL_CACHE_READ .resp);
+    method RL_DM_CACHE_FILL_RESP#(t_ADDR, t_DATA, t_READ_META) peekResp() if (link_cache.getResp() matches tagged CENTRAL_CACHE_READ .resp);
 
         let addr = centralAddrToAddr(resp.addr, resp.wordIdx);
         t_DATA val = unpack(truncate(resp.val));
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
-                                        refInfo: unpack(truncateNP(resp.refInfo)) };
+                                        readMeta: unpack(truncate(resp.readMeta)) };
 
         return r;
     endmethod
 
     // Write request
-    method Action write(t_ADDR addr, t_DATA val, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
+    method Action write(t_ADDR addr, t_DATA val);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
         let r = CENTRAL_CACHE_WRITE_REQ { addr: l_addr,
                                           wordIdx: w_idx,
-                                          val: zeroExtend(pack(val)),
-                                          refInfo: zeroExtendNP(pack(refInfo))};
+                                          val: zeroExtend(pack(val)) };
 
         link_cache.makeReq(tagged CENTRAL_CACHE_WRITE r);
         debugLog.record($format("write: addr=0x%x, l_addr=0x%x, wIdx=%0d, val=0x%x", addr, l_addr, w_idx, val));
@@ -387,22 +390,18 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
 
 
     // Line invalidation request
-    method Action invalReq(t_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
+    method Action invalReq(t_ADDR addr, Bool sendAck);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
-        let r = CENTRAL_CACHE_INVAL_REQ { addr: l_addr,
-                                          sendAck: sendAck,
-                                          refInfo: zeroExtendNP(pack(refInfo)) };
+        let r = CENTRAL_CACHE_INVAL_REQ { addr: l_addr, sendAck: sendAck };
 
         link_cache.makeReq(tagged CENTRAL_CACHE_INVAL r);
         debugLog.record($format("inval: addr=0x%x, l_addr=0x%x, ack=%0d", addr, l_addr, sendAck));
     endmethod
 
     // Line flush request
-    method Action flushReq(t_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_REF_INFO) refInfo);
+    method Action flushReq(t_ADDR addr, Bool sendAck);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
-        let r = CENTRAL_CACHE_INVAL_REQ { addr: l_addr,
-                                          sendAck: sendAck,
-                                          refInfo: zeroExtendNP(pack(refInfo)) };
+        let r = CENTRAL_CACHE_INVAL_REQ { addr: l_addr, sendAck: sendAck };
 
         link_cache.makeReq(tagged CENTRAL_CACHE_FLUSH r);
         debugLog.record($format("flush: addr=0x%x, l_addr=0x%x, ack=%0d", addr, l_addr, sendAck));

@@ -16,6 +16,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+// ========================================================================
+//
+// Cache statistics.
+//
+// ========================================================================
+
 //
 // Statistics wires for caches so individual caches can have their hit rates logged.
 // When a line becomes true the coresponding statistic should be incremented.

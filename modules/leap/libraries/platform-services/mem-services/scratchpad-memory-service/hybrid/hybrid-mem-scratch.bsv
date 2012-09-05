@@ -71,7 +71,7 @@ typedef struct
 {
     SCRATCHPAD_MEM_ADDRESS addr;
     SCRATCHPAD_MEM_MASK byteMask;
-    SCRATCHPAD_REF_INFO refInfo;
+    SCRATCHPAD_READ_UID readUID;
 }
 SCRATCHPAD_HYBRID_READ_REQ
     deriving (Eq, Bits);
@@ -105,7 +105,7 @@ typedef struct
 
     SCRATCHPAD_WORD_IDX wordIdx;
     SCRATCHPAD_MEM_ADDRESS addr;
-    SCRATCHPAD_REF_INFO refInfo;
+    SCRATCHPAD_READ_UID readUID;
 }
 SCRATCHPAD_HYBRID_READ_INFO
     deriving (Eq, Bits);
@@ -149,7 +149,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
 
     FIFOF#(Tuple3#(SCRATCHPAD_MEM_ADDRESS,
                    SCRATCHPAD_MEM_VALUE,
-                   SCRATCHPAD_REF_INFO)) uncachedReadRspQ <- mkLFIFOF();
+                   SCRATCHPAD_READ_UID)) uncachedReadRspQ <- mkLFIFOF();
 
     // RRR routethrough FIFOs.  These will pass local requests to the hybrid
     // connector.
@@ -551,7 +551,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     (* conservative_implicit_conditions *)
     rule uncachedReadReq (! initQ.notEmpty() &&&
                           uncachedReqQ.first() matches tagged SCRATCHPAD_HYBRID_READ .r_req);
-        let port = r_req.refInfo.portNum;
+        let port = r_req.readUID.portNum;
         let l_addr = scratchpadLineAddr(r_req.addr);
         let w_idx = scratchpadWordIdx(r_req.addr);
 
@@ -584,7 +584,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             begin
                 // Hit.  Return the store buffer.
                 uncachedReqQ.deq();
-                uncachedReadRspQ.enq(tuple3(r_req.addr, sb_val[w_idx], r_req.refInfo));
+                uncachedReadRspQ.enq(tuple3(r_req.addr, sb_val[w_idx], r_req.readUID));
                 debugLog.record($format("port %0d: uncachedReadReq: SB hit, addr=0x%x, idx=%0d, val=0x%x, mask=%b", port, l_addr, w_idx, sb_val[w_idx], pack(r_req.byteMask)));
             end
             else
@@ -613,7 +613,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             info.mergedWithLastLineReq = True;
             info.addr = r_req.addr;
             info.wordIdx = w_idx;
-            info.refInfo = r_req.refInfo;
+            info.readUID = r_req.readUID;
             readReqInfoQ.enq(info);
 
             debugLog.record($format("port %0d: uncachedReadReq: Stream addr=0x%x", port, l_addr));
@@ -636,7 +636,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             info.mergedWithLastLineReq = False;
             info.addr = r_req.addr;
             info.wordIdx = w_idx;
-            info.refInfo = r_req.refInfo;
+            info.readUID = r_req.readUID;
             readReqInfoQ.enq(info);
 
             uncachedLastReadAddr.upd(port, tagged Valid l_addr);
@@ -655,7 +655,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         let info = readReqInfoQ.first();
         readReqInfoQ.deq();
 
-        let port = info.refInfo.portNum;
+        let port = info.readUID.portNum;
         let l_addr = scratchpadLineAddr(info.addr);
 
         t_SCRATCHPAD_LINE line;
@@ -687,7 +687,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
 
         // Only one word from the line is expected.  Pick the right one.
         let v = line[info.wordIdx];
-        uncachedReadRspQ.enq(tuple3(info.addr, v, info.refInfo));
+        uncachedReadRspQ.enq(tuple3(info.addr, v, info.readUID));
 
         debugLog.record($format("port %0d: uncachedReadResp %s: val=0x%x", port, read_source, pack(v)));
     endrule
@@ -739,37 +739,33 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     method Action readReq(SCRATCHPAD_MEM_ADDRESS addr,
                           SCRATCHPAD_MEM_MASK byteMask,
-                          SCRATCHPAD_REF_INFO refInfo) if (! initQ.notEmpty);
+                          SCRATCHPAD_READ_UID readUID) if (! initQ.notEmpty);
         //
         // Take different paths depending on whether the scratchpad is permitted
         // to store data in the central cache.
         //
-        if (! portUsesCentralCache[refInfo.portNum])
+        if (! portUsesCentralCache[readUID.portNum])
         begin
             // No caching.  Direct to host.
             SCRATCHPAD_HYBRID_READ_REQ r_req;
             r_req.addr = addr;
             r_req.byteMask = byteMask;
-            r_req.refInfo = refInfo;
+            r_req.readUID = readUID;
 
             uncachedReqQ.enq(tagged SCRATCHPAD_HYBRID_READ r_req);
-            debugLog.record($format("port %0d: readReq uncached addr=0x%x", refInfo.portNum, addr));
+            debugLog.record($format("port %0d: readReq uncached addr=0x%x", readUID.portNum, addr));
         end
         else
         begin
             // Forward the read request to the central cache.
 
-            match {.line_addr, .word_idx} = makeCacheAddr(refInfo.portNum, addr);
-            debugLog.record($format("port %0d: readReq addr=0x%x, l_addr=0x%x, wIdx=%0d", refInfo.portNum, addr, line_addr, word_idx));
-
-            // Add the word index to the reference info sent to the central cache.
-            // We'll need it to pick out the right word from the returned line.
-            Tuple2#(SCRATCHPAD_REF_INFO, SCRATCHPAD_WORD_IDX) local_ref_info = tuple2(refInfo, word_idx);
+            match {.line_addr, .word_idx} = makeCacheAddr(readUID.portNum, addr);
+            debugLog.record($format("port %0d: readReq addr=0x%x, l_addr=0x%x, wIdx=%0d", readUID.portNum, addr, line_addr, word_idx));
 
             // Look for the value in the central cache
             let req = CENTRAL_CACHE_READ_REQ { addr: line_addr,
                                                wordIdx: word_idx,
-                                               refInfo: zeroExtend(pack(local_ref_info)) };
+                                               readMeta: zeroExtend(pack(readUID)) };
             centralCachePort.newReq(tagged CENTRAL_CACHE_READ req);
         end
     endmethod
@@ -793,12 +789,12 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             //
             // Uncached response directly from the host.
             //
-            match {.addr, .val, .ref_info} = uncachedReadRspQ.first();
+            match {.addr, .val, .read_uid} = uncachedReadRspQ.first();
             uncachedReadRspQ.deq();
             
             r.val = val;
             r.addr = addr;
-            r.refInfo = ref_info;
+            r.readUID = read_uid;
         end
         else
         begin
@@ -808,18 +804,17 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             let d <- centralCachePort.readResp();
 
             // Extract the base reference info and the word index stored by readReq.
-            Tuple2#(SCRATCHPAD_REF_INFO, SCRATCHPAD_WORD_IDX) local_ref_info = unpack(truncate(d.refInfo));
-            match {.ref_info, .word_idx} = local_ref_info;
+            SCRATCHPAD_READ_UID read_uid = unpack(truncate(d.readMeta));
 
             r.val = d.val;
             // Reconstruct the scratchpad word address from the line address and
             // the word index.  This will fail if the central cache address space
             // is too small for the scratchpad address space:
-            r.addr = makeScratchpadAddr(d.addr, word_idx);
-            r.refInfo = ref_info;
+            r.addr = makeScratchpadAddr(d.addr, d.wordIdx);
+            r.readUID = read_uid;
         end
 
-        debugLog.record($format("port %0d: readRsp addr=0x%x, val=0x%x", r.refInfo.portNum, r.addr, r.val));
+        debugLog.record($format("port %0d: readRsp addr=0x%x, val=0x%x", r.readUID.portNum, r.addr, r.val));
         return r;
     endmethod
  
@@ -833,12 +828,10 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         match {.line_addr, .word_idx} = makeCacheAddr(portNum, addr);
         debugLog.record($format("port %0d: write addr=0x%x, l_addr=0x%x, wIdx=%0d, val=0x%x", portNum, addr, line_addr, word_idx, val));
 
-        // Store the value in the central cache.  Don't bother constructing
-        // a useful refInfo for the cache since nothing will ever see it.
+        // Store the value in the central cache.
         let req = CENTRAL_CACHE_WRITE_REQ { addr: line_addr,
                                             wordIdx: word_idx,
-                                            val: val,
-                                            refInfo: ? };
+                                            val: val };
         centralCachePort.newReq(tagged CENTRAL_CACHE_WRITE req);
     endmethod
 

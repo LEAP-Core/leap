@@ -84,12 +84,12 @@ typedef Bit#(16) PREFETCH_STAT_VALUE;
 //
 typedef struct
 {
-    t_CACHE_ADDR     addr;
-    t_CACHE_REF_INFO refInfo;
-    PREFETCH_PRIO    prio;
+    t_CACHE_ADDR addr;
+    t_CACHE_READ_META readMeta;
+    PREFETCH_PRIO prio;
 }
 PREFETCH_REQ#(type t_CACHE_ADDR,
-              type t_CACHE_REF_INFO)
+              type t_CACHE_READ_META)
     deriving (Eq, Bits);
 
 //
@@ -110,7 +110,7 @@ PREFETCH_LEARNER_STATS
 //
 interface CACHE_PREFETCHER#(type t_CACHE_IDX,
                             type t_CACHE_ADDR,
-                            type t_CACHE_REF_INFO);
+                            type t_CACHE_READ_META);
     
     method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
     
@@ -118,8 +118,8 @@ interface CACHE_PREFETCHER#(type t_CACHE_IDX,
     method Bool hasReq();
     
     // Return a read request to prefetch a word (from the prefetch request queue)
-    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO)) getReq();
-    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO) peekReq();
+    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META)) getReq();
+    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META) peekReq();
     
     //
     // Learn the prefetch mechanism 
@@ -231,11 +231,11 @@ PREFETCH_STREAMER#(type t_STREAMER_TAG,
 //
 module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, DEBUG_FILE debugLog)
     // interface:
-    (CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_REF_INFO))
+    (CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_READ_META))
     provisos (Bits#(t_CACHE_IDX,      t_CACHE_IDX_SZ),
               Bits#(t_CACHE_ADDR,     t_CACHE_ADDR_SZ),
-              Bits#(t_CACHE_REF_INFO, t_CACHE_REF_INFO_SZ),
-              Alias#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO), t_PREFETCH_REQ),
+              Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
+              Alias#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META), t_PREFETCH_REQ),
               Alias#(PREFETCH_STRIDE#(t_CACHE_ADDR_SZ), t_STRIDE),
               Bits#(t_PREFETCH_REQ,   t_PREFETCH_REQ_SZ),
               Bounded#(t_CACHE_IDX));
@@ -285,7 +285,7 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, D
         end
         prefetchAddr <= new_addr;
         let req = PREFETCH_REQ { addr: new_addr, 
-                                 refInfo: ?, 
+                                 readMeta: ?,
                                  prio: `PREFETCH_DEFAULT_PRIO };
         prefetchReqQ.enq(req);
         startPrefetch.send();
@@ -311,13 +311,13 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, D
 
     method Bool hasReq() = prefetchReqQ.notEmpty;
  
-    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO)) getReq();
+    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META)) getReq();
         let req = prefetchReqQ.first();
         prefetchReqQ.deq();
         return req;
     endmethod
     
-    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO) peekReq();
+    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META) peekReq();
         return prefetchReqQ.first();
     endmethod
         
@@ -865,10 +865,10 @@ endmodule
 //
 module mkNullCachePrefetcher
     // interface:
-    (CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_REF_INFO))
+    (CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_READ_META))
     provisos (Bits#(t_CACHE_IDX,      t_CACHE_IDX_SZ),
               Bits#(t_CACHE_ADDR,     t_CACHE_ADDR_SZ),
-              Bits#(t_CACHE_REF_INFO, t_CACHE_REF_INFO_SZ));
+              Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ));
     
     method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST) mode, PREFETCH_LEARNER_SIZE_LOG size);
         noAction;
@@ -876,11 +876,11 @@ module mkNullCachePrefetcher
    
     method Bool hasReq() = False;
     
-    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO)) getReq();
+    method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META)) getReq();
         return ?;
     endmethod
     
-    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_REF_INFO) peekReq();
+    method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META) peekReq();
         return ?;
     endmethod
     

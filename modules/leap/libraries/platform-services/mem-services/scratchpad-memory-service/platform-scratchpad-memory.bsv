@@ -85,7 +85,7 @@ typedef struct
     SCRATCHPAD_PORT_NUM port;
     SCRATCHPAD_MEM_ADDRESS addr;
     SCRATCHPAD_MEM_MASK byteReadMask;
-    SCRATCHPAD_CLIENT_REF_INFO clientRefInfo;
+    SCRATCHPAD_CLIENT_READ_UID readUID;
 }
 SCRATCHPAD_READ_REQ
     deriving (Eq, Bits);
@@ -133,7 +133,7 @@ typedef struct
 {
     SCRATCHPAD_MEM_VALUE val;
     SCRATCHPAD_MEM_ADDRESS addr;
-    SCRATCHPAD_CLIENT_REF_INFO clientRefInfo;
+    SCRATCHPAD_CLIENT_READ_UID readUID;
 }
 SCRATCHPAD_READ_RSP
     deriving (Eq, Bits);
@@ -238,6 +238,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ));
 
     MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory;
+
 
     if (cached == SCRATCHPAD_UNCACHED)
     begin
@@ -405,15 +406,12 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
     provisos (Bits#(t_MEM_ADDRESS, t_MEM_ADDRESS_SZ),
               Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
 
-              // Compute a non-zero size for the read port index
-              Max#(n_READERS, 2, n_SAFE_READERS),
-              Log#(n_SAFE_READERS, n_SAFE_READERS_SZ),
-
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
 
-              // Reference info passed to the scratchpad needed to route the response
-              Alias#(Tuple2#(Bit#(n_SAFE_READERS_SZ), t_REORDER_ID), t_REF_INFO));
+              // MAF for in-flight reads
+              Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
+              Bits#(t_MAF_IDX, t_MAF_IDX_SZ));
     
     if (valueOf(t_MEM_ADDRESS_SZ) > valueOf(t_SCRATCHPAD_MEM_ADDRESS_SZ))
     begin
@@ -470,17 +468,17 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
     // Read requests
     rule forwardReadReq (initialized && (incomingReqQ.firstPortID() < fromInteger(valueOf(n_READERS))));
         let port = incomingReqQ.firstPortID();
-        match {.addr, .idx} = incomingReqQ.first();
+        match {.addr, .rob_idx} = incomingReqQ.first();
         incomingReqQ.deq();
 
-        // The clientRefInfo for this request is the concatenation of the
+        // The read UID for this request is the concatenation of the
         // port ID and the ROB index.
-        t_REF_INFO ref_info = unpack(truncateNP({ port, idx }));
+        t_MAF_IDX maf_idx = tuple2(truncateNP(port), rob_idx);
 
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
                                         byteReadMask: replicate(True),
-                                        clientRefInfo: zeroExtendNP(pack(ref_info)) };
+                                        readUID: zeroExtendNP(pack(maf_idx)) };
 
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
     endrule
@@ -509,12 +507,12 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
         let s = link_mem_rsp.first();
         link_mem_rsp.deq();
 
-        // The clientRefInfo field holds the concatenation of the port ID and
+        // The read UID field holds the concatenation of the port ID and
         // the port's reorder buffer index.
-        t_REF_INFO port_idx = unpack(truncateNP(s.clientRefInfo));
-        match {.port, .idx} = port_idx;
+        t_MAF_IDX maf_idx = unpack(truncateNP(s.readUID));
+        match {.port, .rob_idx} = maf_idx;
 
-        sortResponseQ[port].setValue(idx, s.val);
+        sortResponseQ[port].setValue(rob_idx, s.val);
     endrule
 
 
@@ -588,27 +586,23 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     provisos (Bits#(t_MEM_ADDRESS, t_MEM_ADDRESS_SZ),
               Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
 
-              // Compute a non-zero size for the read port index
-              Max#(n_READERS, 2, n_SAFE_READERS),
-              Log#(n_SAFE_READERS, n_SAFE_READERS_SZ),
-
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
-       
-              // Reference info passed to the cache needed to route the response
-              Alias#(Tuple2#(Bit#(n_SAFE_READERS_SZ), t_REORDER_ID), t_REF_INFO));
 
+              // MAF for in-flight reads
+              Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
+              Bits#(t_MAF_IDX, t_MAF_IDX_SZ));
               
     String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
-    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
-                           mkDebugFile(debugLogFilename):
-                           mkDebugFileNull(debugLogFilename); 
+    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
+                               mkDebugFile(debugLogFilename):
+                               mkDebugFileNull(debugLogFilename); 
 
     // Debug file and log for the cache prefetcher
     String debugLogFilenameForPrefetcher = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + "_prefetch.out";
-    DEBUG_FILE debugLogForPrefetcher <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
-                                        mkDebugFile(debugLogFilenameForPrefetcher):
-                                        mkDebugFileNull(debugLogFilenameForPrefetcher); 
+    DEBUG_FILE debugLogForPrefetcher <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
+                                            mkDebugFile(debugLogFilenameForPrefetcher):
+                                            mkDebugFileNull(debugLogFilenameForPrefetcher); 
                            
     // Dynamic parameters
     PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
@@ -617,25 +611,21 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     Param#(3) prefetchLearnerSizeLog <- mkDynamicParameter(fromInteger(prefetchLearnerSizeLogParam), paramNode);
 
     // Connection between private cache and the scratchpad virtual device
-    RL_DM_CACHE_SOURCE_DATA#(Bit#(t_MEM_ADDRESS_SZ),
-                             SCRATCHPAD_MEM_VALUE,
-                             t_REF_INFO) sourceData <- mkScratchpadCacheSourceData(scratchpadID);
+    let sourceData <- mkScratchpadCacheSourceData(scratchpadID);
                              
     // Cache Prefetcher
-    CACHE_PREFETCHER#(UInt#(TLog#(n_CACHE_ENTRIES)), 
-                      Bit#(t_MEM_ADDRESS_SZ), 
-                      t_REF_INFO) prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1)?
-                                                mkCachePrefetcher(nPrefetchLearners, False, debugLogForPrefetcher):
-                                                mkNullCachePrefetcher;
+    let prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1) ?
+                          mkCachePrefetcher(nPrefetchLearners, False, debugLogForPrefetcher):
+                          mkNullCachePrefetcher();
     
     // Private cache
     RL_DM_CACHE#(Bit#(t_MEM_ADDRESS_SZ),
                        SCRATCHPAD_MEM_VALUE,
-                       t_REF_INFO) cache <- mkCacheDirectMapped(sourceData,
-                                                                prefetcher, 
-                                                                nCacheEntries,
-                                                                True,
-                                                                debugLog);
+                       t_MAF_IDX) cache <- mkCacheDirectMapped(sourceData,
+                                                               prefetcher, 
+                                                               nCacheEntries,
+                                                               True,
+                                                               debugLog);
 
     // Hook up stats
     let cacheStats <- statsConstructor(cache.stats);
@@ -673,7 +663,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         let val = writeDataQ.first();
         writeDataQ.deq();
 
-        cache.write(pack(addr), val, ?);
+        cache.write(pack(addr), val);
     endrule
 
 
@@ -684,12 +674,12 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
             match {.addr, .idx} = incomingReqQ.first();
             incomingReqQ.deq();
 
-            // The refInfo for this request is the concatenation of the
+            // The read UID for this request is the concatenation of the
             // port ID and the ROB index.
-            t_REF_INFO ref_info = tuple2(fromInteger(p), idx);
+            t_MAF_IDX maf_idx = tuple2(fromInteger(p), idx);
 
             // Request data from the cache
-            cache.readReq(pack(addr), ref_info);
+            cache.readReq(pack(addr), maf_idx);
         endrule
 
         //
@@ -697,14 +687,14 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         //     Push read responses to the reorder buffer.  They will be returned
         //     through readRsp() in order.
         //
-        rule receiveResp (tpl_1(cache.peekResp().refInfo) == fromInteger(p));
+        rule receiveResp (tpl_1(cache.peekResp().readMeta) == fromInteger(p));
             let r <- cache.readResp();
 
-            // The clientRefInfo field holds the concatenation of the port ID and
+            // The readUID field holds the concatenation of the port ID and
             // the port's reorder buffer index.
-            match {.port, .idx} = r.refInfo;
+            match {.port, .maf_idx} = r.readMeta;
 
-            sortResponseQ[p].setValue(idx, r.val);
+            sortResponseQ[p].setValue(maf_idx, r.val);
         endrule
     end
 
@@ -763,19 +753,26 @@ endmodule
 //
 // mkScratchpadCacheSourceData --
 //     Connection between a private cache for a scratchpad and the platform's
-//     scratchpad virtual device.
+//     scratchpad virtual device.  Requests arrive here when the cache either
+//     misses or needs to flush dirty data.  Requests will be forwarded to
+//     the main scratchpad controller.
 //
 module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
     // interface:
-    (RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, SCRATCHPAD_MEM_VALUE, t_CACHE_REF_INFO))
+    (RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, SCRATCHPAD_MEM_VALUE, t_MAF_IDX))
     provisos (Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
-              Bits#(t_CACHE_REF_INFO, t_CACHE_REF_INFO_SZ),
+              Bits#(t_MAF_IDX, t_MAF_IDX_SZ),
               Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
-              Alias#(RL_DM_CACHE_FILL_RESP#(t_CACHE_ADDR, SCRATCHPAD_MEM_VALUE, t_CACHE_REF_INFO), t_CACHE_FILL_RESP));
+              Alias#(RL_DM_CACHE_FILL_RESP#(t_CACHE_ADDR, SCRATCHPAD_MEM_VALUE, t_MAF_IDX), t_CACHE_FILL_RESP));
 
     if (valueOf(t_CACHE_ADDR_SZ) > valueOf(t_SCRATCHPAD_MEM_ADDRESS_SZ))
     begin
         error("Scratchpad ID " + integerToString(scratchpadID) + " address is too large: " + integerToString(valueOf(t_CACHE_ADDR_SZ)) + " bits");
+    end
+
+    if (valueOf(t_MAF_IDX_SZ) > valueOf(SCRATCHPAD_CLIENT_READ_UID_SZ))
+    begin
+        error("Scratchpad ID " + integerToString(scratchpadID) + " read UID is too large: " + integerToString(valueOf(t_MAF_IDX_SZ)) + " bits");
     end
 
     String debugLogFilename = "memory_scratchpad_src_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
@@ -810,16 +807,32 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         debugLog.record($format("init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
     endrule
 
-    method Action readReq(t_CACHE_ADDR addr, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo) if (initialized);
+    //
+    // readReq --
+    //     Read miss from the private cache.  Request a fill from the scratchpad
+    //     controller's backing storage.
+    //
+    method Action readReq(t_CACHE_ADDR addr, t_MAF_IDX readUID) if (initialized);
+        //
+        // Construct a generic scratchpad device request by padding the
+        // requesting scratchpad's UID (port number) to the request.
+        //
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
                                         byteReadMask: replicate(True),
-                                        clientRefInfo: zeroExtendNP(pack(refInfo)) };
+                                        readUID: zeroExtendNP(pack(readUID)) };
+
+        // Forward the request to the scratchpad virtual device that handles
+        // all scratchpad backing storage I/O.
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
 
         debugLog.record($format("read REQ ID %0d: addr 0x%x", my_port, req.addr));
     endmethod
 
+    //
+    // readResp --
+    //     Fill response from scratchpad controller backing storage.
+    //
     method ActionValue#(t_CACHE_FILL_RESP) readResp();
         let s = link_mem_rsp.first();
         link_mem_rsp.deq();
@@ -827,7 +840,9 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         t_CACHE_FILL_RESP r;
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
-        r.refInfo = unpack(truncateNP(s.clientRefInfo));
+        // Restore local read metadata.  The generic response is large enough for    
+        // any client's metadata and extra bits can simply be truncated.
+        r.readMeta = unpack(truncateNP(s.readUID));
 
         debugLog.record($format("read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
 
@@ -840,15 +855,14 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         t_CACHE_FILL_RESP r;
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
-        r.refInfo = unpack(truncateNP(s.clientRefInfo));
+        r.readMeta = unpack(truncateNP(s.readUID));
 
         return r;
     endmethod
 
     // Asynchronous write (no response)
     method Action write(t_CACHE_ADDR addr,
-                        SCRATCHPAD_MEM_VALUE val,
-                        RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo) if (initialized);
+                        SCRATCHPAD_MEM_VALUE val) if (initialized);
         let req = SCRATCHPAD_WRITE_REQ { port: my_port,
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
@@ -860,11 +874,11 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
     //
     // Invalidate / flush not required for scratchpad memory.
     //
-    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
+    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck);
         noAction;
     endmethod
 
-    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck, RL_DM_CACHE_REF_INFO#(t_CACHE_REF_INFO) refInfo);
+    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck);
         noAction;
     endmethod
 
@@ -906,14 +920,15 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
                      t_NATURAL_IDX),
 
               // Compute a non-zero size for the read port index
-              Max#(n_READERS, 2, n_SAFE_READERS),
-              NumAlias#(TLog#(n_SAFE_READERS), n_SAFE_READERS_SZ),
+              Alias#(Bit#(TMax#(1, TLog#(n_READERS))), t_PORT_IDX),
 
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS), t_REORDER_ID),
 
-              // Reference info passed to the scratchpad needed to route the response
-              Alias#(Tuple3#(Bit#(n_SAFE_READERS_SZ), t_NATURAL_IDX, t_REORDER_ID), t_REF_INFO));
+              // MAF for in-flight reads
+              Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
+              Bits#(t_MAF_IDX, t_MAF_IDX_SZ),
+              Alias#(t_NATURAL_IDX, t_MAF_DATA));
 
     String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
     DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
@@ -942,6 +957,13 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
         error("Address space too large.");
     end
 
+    // MAF must fit in the readUID field
+    if (valueOf(t_MAF_IDX_SZ) > valueOf(SCRATCHPAD_CLIENT_READ_UID_SZ))
+    begin
+        error("MAF index size (" + integerToString(valueOf(t_MAF_IDX_SZ)) +
+              ") doesn't fit in scratchpad's read UID");
+    end
+
 
     let my_port = scratchpadPortId(scratchpadID);
 
@@ -958,6 +980,9 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
     Vector#(n_READERS,
             SCOREBOARD_FIFOF#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS,
                               t_DATA)) sortResponseQ <- replicateM(mkBRAMScoreboardFIFOF());
+
+    // MAF to hold properties of outstanding reads
+    LUTRAM#(t_MAF_IDX, t_MAF_DATA) maf <- mkLUTRAMU();
 
     // Buffer between reorder buffer (sortResponseQ) and output methods to
     // reduce timing pressure.
@@ -988,7 +1013,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
     // Record the source of the next read response (either backing storage
     // or a repeat of the last read's location.
     FIFO#(Tuple4#(Bool,
-                  Bit#(n_SAFE_READERS_SZ),
+                  t_PORT_IDX,
                   t_NATURAL_IDX,
                   t_REORDER_ID))
         readRspSourceQ <- mkSizedFIFO(valueOf(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS));
@@ -1090,25 +1115,24 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
 
             t_NATURAL_IDX addr_idx = scratchpadAddrIdx(addr);
 
+            // Update the MAF with details of the read
+            t_MAF_IDX maf_idx = tuple2(truncateNP(port), rob_idx);
+            maf.upd(maf_idx, addr_idx);
+
             if (lastReadAddr matches tagged Valid .lr_addr &&&
                 s_addr == lr_addr)
             begin
                 // Reading the same address as the last request.  Reuse the response.
-                readRspSourceQ.enq(tuple4(True, zeroExtendNP(port), addr_idx, rob_idx));
+                readRspSourceQ.enq(tuple4(True, truncateNP(port), addr_idx, rob_idx));
 
                 debugLog.record($format("read port %0d: reuse addr=0x%x, s_addr=0x%x, s_idx=%0d", port, addr, s_addr, addr_idx));
             end
             else
             begin
-                // The clientRefInfo for this request is the concatenation of the
-                // port ID, the offset in the scratchpad value, and the ROB index.
-                // Resize just eliminates a proviso...
-                t_REF_INFO ref_info = resize(tuple3(port, addr_idx, rob_idx));
-
                 let req = SCRATCHPAD_READ_REQ { port: my_port,
                                                 addr: s_addr,
                                                 byteReadMask: scratchpadByteMask(addr),
-                                                clientRefInfo: resize(pack(ref_info)) };
+                                                readUID: zeroExtendNP(pack(maf_idx)) };
 
                 link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
 
@@ -1186,10 +1210,11 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
         let s = link_mem_rsp.first();
         link_mem_rsp.deq();
 
-        // The clientRefInfo field holds the concatenation of the port ID and
+        // The read UID field holds the concatenation of the port ID and
         // the port's reorder buffer index.
-        t_REF_INFO ref_info = unpack(truncateNP(s.clientRefInfo));
-        match {.port, .addr_idx, .rob_idx} = ref_info;
+        t_MAF_IDX maf_idx = unpack(truncateNP(s.readUID));
+        match {.port, .rob_idx} = maf_idx;
+        let addr_idx = maf.sub(maf_idx);
 
         Vector#(TDiv#(t_SCRATCHPAD_MEM_VALUE_SZ, t_NATURAL_SZ), Bit#(t_NATURAL_SZ)) d;
         // The resize here is required only to avoid a proviso asserting the
