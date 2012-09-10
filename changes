@@ -13554,3 +13554,19 @@ Directory modules/leap/libraries/platform-services/mem-services/central-cache-se
   are not all the same.  It would also not have provided much benefit, since
   the only code currently needing to index a MAF is at the top of the hierarchy,
   closest to the client.
+
+----------
+kfleming    Date: Mon Sep 10 16:49:25 EDT 2012  CSN: CSN-leap-336
+                  Mon Sep 10 20:49:25 UTC 2012
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          335 
+
+Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
+ FPGAProg.py               Locally Modified          335 
+
+
+run.bmark now supports multi-process simulation.
+
+Since we use perl eval to acquire variables, we must format our files in a way that perl eval understands.

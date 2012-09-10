@@ -21,6 +21,6 @@ class FPGAProgram(ProjectDependency):
     except:
       SOFT_RESET = 1
 
-    fpgaFile.write('FPGA=' + str(FPGA_PLATFORM) + '\n')
+    fpgaFile.write('FPGA="' + str(FPGA_PLATFORM) + '"\n')
     fpgaFile.write('SOFT_RESET=' + str(SOFT_RESET) + '\n')
 
