@@ -1,0 +1,45 @@
+
+[Global]
+SaveParameters=0
+Description=Hello World Demo using hybrid streams for ML605 v6 PCIe
+File=hello_hybrid_ml605
+Version=2.2
+Name=Hello World for XUP v5 JTAG
+DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
+Type=Leap
+Class=Asim::Model
+DefaultRunOpts=
+RootName=HW/SW Hybrid Pipeline Build
+RootProvides=model
+
+[Model]
+DefaultAttributes=hello unconnected hybrid project ml605 
+model=HW/SW Hybrid Pipeline Build
+
+[Hello World]
+File=modules/leap/examples/hello-world/hello-world.awb
+Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid ml605 PCIE FPGA Environment
+application_env=Soft Services Hybrid Application Environment
+
+[HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-pipeline.awb
+Packagehint=leap
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/leap/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Soft Services Hybrid Application Environment]
+File=modules/leap/build-support/project/application-env/soft-services/application-env-hybrid-soft-service.awb
+Packagehint=leap
+
+[Soft Services Hybrid Application Environment/Requires]
+connected_application=Hello World
+
+[Hybrid ml605 PCIE FPGA Environment]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-ml605-pcie.apm
+Packagehint=leap
