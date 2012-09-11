@@ -95,6 +95,7 @@ typedef struct
     t_DATA val;
     t_ADDR addr;
     SCRATCHPAD_READ_UID readUID;
+    Bool isCacheable;
 }
 SCRATCHPAD_READ_RESP#(type t_ADDR, type t_DATA)
     deriving (Eq, Bits);

@@ -149,7 +149,8 @@ module [CONNECTED_MODULE] mkCentralCacheService
                 case (resp) matches
                     tagged CENTRAL_CACHE_BACK_READ .r:
                     begin
-                        centralCache.backingPorts[p].sendReadResp(r);
+                        centralCache.backingPorts[p].sendReadResp(r.wordVal,
+                                                                  r.isCacheable);
                     end
 
                     tagged CENTRAL_CACHE_BACK_WACK .dummy:

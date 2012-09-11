@@ -134,6 +134,7 @@ typedef struct
     SCRATCHPAD_MEM_VALUE val;
     SCRATCHPAD_MEM_ADDRESS addr;
     SCRATCHPAD_CLIENT_READ_UID readUID;
+    Bool isCacheable;
 }
 SCRATCHPAD_READ_RSP
     deriving (Eq, Bits);
@@ -840,6 +841,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         t_CACHE_FILL_RESP r;
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
+        r.isCacheable = s.isCacheable;
         // Restore local read metadata.  The generic response is large enough for    
         // any client's metadata and extra bits can simply be truncated.
         r.readMeta = unpack(truncateNP(s.readUID));
@@ -855,6 +857,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         t_CACHE_FILL_RESP r;
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
+        r.isCacheable = s.isCacheable;
         r.readMeta = unpack(truncateNP(s.readUID));
 
         return r;

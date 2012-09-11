@@ -114,6 +114,7 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCa
         resp.val = r.val;
         resp.addr = r.addr;
         resp.readUID = r.readUID.clientReadUID;
+        resp.isCacheable = r.isCacheable;
 
         link_mem_rsp.enq(r.readUID.portNum, resp);
     endrule

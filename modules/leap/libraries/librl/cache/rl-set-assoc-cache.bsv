@@ -63,6 +63,7 @@ typedef struct
     t_CACHE_ADDR addr;
     // Word index requested by read.
     Bit#(TLog#(nWordsPerLine)) reqWordIdx;
+    Bool isCacheable;
     t_CACHE_READ_META readMeta;
 }
 RL_SA_CACHE_LOAD_RESP#(type t_CACHE_ADDR,
@@ -152,6 +153,17 @@ endinterface: RL_SA_CACHE
 
 
 //
+// Source data fill response
+//
+typedef struct
+{
+    Bool isCacheable;
+    t_CACHE_LINE val;
+}
+RL_SA_CACHE_FILL_RESP#(type t_CACHE_LINE)
+    deriving (Eq, Bits);
+
+//
 // The caller must provide an instance of the RL_SA_CACHE_SOURCE_DATA interface
 // so the cache can read and write data from the next level in the hierarchy.
 //
@@ -164,7 +176,7 @@ interface RL_SA_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
 
     // Read request and response with data
     method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_UID readUID);
-    method ActionValue#(t_CACHE_LINE) readResp();
+    method ActionValue#(RL_SA_CACHE_FILL_RESP#(t_CACHE_LINE)) readResp();
     
     // Asynchronous write (no response)
     method Action write(t_CACHE_ADDR addr,
@@ -329,6 +341,18 @@ RL_SA_CACHE_DATA_IDX#(numeric type nWays, type t_CACHE_SET_IDX)
 //
 typedef 16 RL_SA_CACHE_MAX_INVAL;
 typedef Bit#(TLog#(RL_SA_CACHE_MAX_INVAL)) RL_SA_CACHE_INVAL_IDX;
+
+
+//
+// Specify read client for localData.metaData reads.
+//
+typedef enum
+{
+    RL_SA_CACHE_META_CLIENT_STD,
+    RL_SA_CACHE_META_CLIENT_UNCACHEABLE
+}
+RL_SA_CACHE_META_CLIENT
+    deriving (Eq, Bits);
 
 
 //
@@ -497,6 +521,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // Fill for read path
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) fillLineRequestQ <- mkFIFOF();
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK)) fillLineQ <- mkSizedFIFOF(16);
+    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_WORD_VALID_MASK)) fillLineUncacheableQ <- mkFIFOF();
 
     // Write data to an allocated queue entry
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, RL_SA_CACHE_WRITE_REQ#(nWordsPerLine))) writeDataQ <- mkFIFOF();
@@ -508,7 +533,10 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     FIFOF#(t_CACHE_SET_IDX) doneQ <- mkFIFOF();
 
     // Read responses may be returned out of order relative to request order!
-    FIFOF#(Tuple4#(t_CACHE_REQ_BASE, RL_SA_CACHE_READ_REQ#(nWordsPerLine), t_CACHE_LINE, t_CACHE_WORD_VALID_MASK)) readRespToClientQ_OOO <- mkFIFOF();
+    FIFOF#(Tuple5#(t_CACHE_REQ_BASE, RL_SA_CACHE_READ_REQ#(nWordsPerLine), t_CACHE_LINE, t_CACHE_WORD_VALID_MASK, Bool)) readRespToClientQ_OOO <- mkFIFOF();
+
+    // Who asked for localData.metaData?
+    FIFOF#(RL_SA_CACHE_META_CLIENT) metaClientQ <- mkFIFOF();
 
     // Invalidate and flush requests are always returned in the order they
     // were requested.
@@ -917,10 +945,11 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                 debugLog.record($format("  Read RECENT HIT: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", debugAddrFromTag(tag, set), set, recent_word_valid_mask, recent_line));
                 readRecentLineHitW.send();
 
-                readRespToClientQ_OOO.enq(tuple4(req_base,
+                readRespToClientQ_OOO.enq(tuple5(req_base,
                                                  rReq,
                                                  recent_line,
-                                                 recent_word_valid_mask));
+                                                 recent_word_valid_mask,
+                                                 True));
 
                 doneQ.enq(set);
                 early_exit = True;
@@ -943,6 +972,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
             // Read meta data and LRU hints
             localData.metaData.readReq(req_base.set);
+            metaClientQ.enq(RL_SA_CACHE_META_CLIENT_STD);
 
             processReqQ1.enq(tuple2(req_base, req));
         end
@@ -974,12 +1004,14 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     in the cache.
     //
     (* conservative_implicit_conditions *)
-    rule handleInvalOrFlush (reqIsInvalOrFlush(tpl_2(processReqQ1.first())));
+    rule handleInvalOrFlush (reqIsInvalOrFlush(tpl_2(processReqQ1.first())) &&
+                             (metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD));
 
         match {.req_base_in, .req} = processReqQ1.first();
         processReqQ1.deq();
 
         let meta <- localData.metaData.readRsp();
+        metaClientQ.deq();
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -1117,12 +1149,14 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     First unique stage of cache READ path.
     //
     (* conservative_implicit_conditions *)
-    rule handleRead (tpl_2(processReqQ1.first()) matches tagged HCOP_READ .rReq);
+    rule handleRead (tpl_2(processReqQ1.first()) matches tagged HCOP_READ .rReq &&&
+                     metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD);
 
         match {.req_base_in, .req} = processReqQ1.first();
         processReqQ1.deq();
 
         let meta <- localData.metaData.readRsp();
+        metaClientQ.deq();
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -1180,12 +1214,14 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     First unique stage of cache WRITE path.
     //
     (* conservative_implicit_conditions *)
-    rule handleWrite (tpl_2(processReqQ1.first()) matches tagged HCOP_WRITE .wReq);
+    rule handleWrite (tpl_2(processReqQ1.first()) matches tagged HCOP_WRITE .wReq &&&
+                      metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD);
 
         match {.req_base_in, .req} = processReqQ1.first();
         processReqQ1.deq();
 
         let meta <- localData.metaData.readRsp();
+        metaClientQ.deq();
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -1264,7 +1300,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                                                  v,
                                                  word_valid_mask));
 
-        readRespToClientQ_OOO.enq(tuple4(req_base, rReq, v, word_valid_mask));
+        readRespToClientQ_OOO.enq(tuple5(req_base, rReq, v, word_valid_mask, True));
 
         // Done with this read request
         doneQ.enq(set);
@@ -1535,7 +1571,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         match {.req_base, .req, .cur_word_valid_mask} = fillLineQ.first();
         fillLineQ.deq();
 
-        let v <- sourceData.readResp();
+        let rsp <- sourceData.readResp();
 
         let tag = req_base.tag;
         let set = req_base.set;
@@ -1550,16 +1586,76 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         // stage and more wires to read the dirty data from the cache.
         //
         t_CACHE_WORD_VALID_MASK ret_valid_words = unpack(~pack(cur_word_valid_mask));
-        localData.dataWrite(set, way, ret_valid_words, unpack(pack(v)));
+        localData.dataWrite(set, way, ret_valid_words, unpack(pack(rsp.val)));
 
         // Update the recent line cache
-        updateRecentReadLine(tag, set,
-                             tagged Valid tuple3(recentLineTag(tag, set),
-                                                 v,
-                                                 ret_valid_words));
+        if (rsp.isCacheable)
+        begin
+            updateRecentReadLine(tag, set,
+                                 tagged Valid tuple3(recentLineTag(tag, set),
+                                                     rsp.val,
+                                                     ret_valid_words));
+        end
 
-        readRespToClientQ_OOO.enq(tuple4(req_base, rReq, v, ret_valid_words));
-        debugLog.record($format("  Read FILL: addr=0x%x, set=0x%x, way=%0d, mask=0x%x, data=0x%x", debugAddrFromTag(tag, set), set, way, ret_valid_words, v));
+        readRespToClientQ_OOO.enq(tuple5(req_base,
+                                         rReq,
+                                         rsp.val,
+                                         ret_valid_words,
+                                         rsp.isCacheable));
+
+        debugLog.record($format("  Read FILL%s: addr=0x%x, set=0x%x, way=%0d, mask=0x%x, data=0x%x",
+                                (rsp.isCacheable ? "" : " [NOT CACHEABLE]"),
+                                debugAddrFromTag(tag, set), set, way, ret_valid_words, rsp.val));
+
+        if (rsp.isCacheable)
+        begin
+            // Normal path.  Fill is complete and line is marked valid in the
+            // cache.
+            doneQ.enq(set);
+        end
+        else
+        begin
+            // Abnormal path.  Response is uncacheable.  The line has already
+            // been marked valid in anticipation of the response, so the
+            // metadata must now be fixed.
+            localData.metaData.readReq(set);
+            metaClientQ.enq(RL_SA_CACHE_META_CLIENT_UNCACHEABLE);
+            fillLineUncacheableQ.enq(tuple2(req_base, cur_word_valid_mask));
+        end
+
+    endrule
+
+    //
+    // fixupUncacheableFillForRead --
+    //     Fill response flaged the line uncacheable.  The way's metadata is
+    //     speculatively set to valid when the fill is requested and must be
+    //     marked invalid.
+    //
+    rule fixupUncacheableFillForRead (metaClientQ.first() == RL_SA_CACHE_META_CLIENT_UNCACHEABLE);
+
+        match {.req_base, .old_word_valid_mask} = fillLineUncacheableQ.first();
+        fillLineUncacheableQ.deq();
+
+        let meta <- localData.metaData.readRsp();
+        metaClientQ.deq();
+
+        let tag = req_base.tag;
+        let set = req_base.set;
+        let way = req_base.way;
+
+        // If no words were valid in the line before the fill then simply
+        // mark the line invalid.  If words were valid then the line contained
+        // partial write data.  In that case, restore the line to the state
+        // before the fill request.
+        let old_meta = validValue(meta.ways[way]);
+        meta.ways[way] = (pack(old_word_valid_mask) == 0) ?
+            tagged Invalid :
+            tagged Valid metaData(old_meta.tag, old_meta.dirty, old_word_valid_mask);
+
+        localData.metaData.write(set, meta);
+
+        debugLog.record($format("  Read FILL uncacheable: restored addr=0x%x, set=0x%x, way=%0d, mask=%b",
+                                debugAddrFromTag(tag, set), set, way, old_word_valid_mask));
 
         doneQ.enq(set);
     endrule
@@ -1572,7 +1668,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // ====================================================================
 
     // BE CAREFUL HERE!  Poor choice of order can cause deadlocks.
-    (* descending_urgency = "writeCacheData, handleFlushACK, handleFillForRead, handleReadCacheHit, evictDirtyForFill, flushDirtyLine, sendFillRequest, handleWordMissForRead, handleMissForRead, handleMissForWrite, handleRead, handleWrite, handleInvalOrFlush, handleIncomingReq1" *)
+    (* descending_urgency = "writeCacheData, handleFlushACK, fixupUncacheableFillForRead, handleFillForRead, handleReadCacheHit, evictDirtyForFill, flushDirtyLine, sendFillRequest, handleWordMissForRead, handleMissForRead, handleMissForWrite, handleRead, handleWrite, handleInvalOrFlush, handleIncomingReq1" *)
 
     //
     // doneWithRef --
@@ -1595,6 +1691,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     List#(Tuple2#(String, Bool)) ds_data = List::nil;
 
     ds_data = List::cons(tuple2("SA Cache localData_MetaNotEmpty", localData.metaData.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache metaClientQNotEmpty", metaClientQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("SA Cache localData_Data0NotEmpty", localData.dataReadNotEmpty(0)), ds_data);
     ds_data = List::cons(tuple2("SA Cache localData_Data1NotEmpty", localData.dataReadNotEmpty(1)), ds_data);
     ds_data = List::cons(tuple2("SA Cache localData_Data2NotEmpty", localData.dataReadNotEmpty(2)), ds_data);
@@ -1612,6 +1709,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     ds_data = List::cons(tuple2("SA Cache fillLineRequestQNotEmpty", fillLineRequestQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("SA Cache newReqNotEmpty", newReqQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("SA Cache fillLineQNotEmpty", fillLineQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache fillLineUncacheableQNotEmpty", fillLineUncacheableQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("SA Cache doneQNotEmpty", doneQ.notEmpty), ds_data);
 
     let debugScanData = ds_data;
@@ -1663,7 +1761,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     endmethod
 
     method ActionValue#(t_CACHE_LOAD_RESP) readResp();
-        match {.req_base, .r_req, .v, .valid_words} = readRespToClientQ_OOO.first();
+        match {.req_base, .r_req, .v, .valid_words, .is_cacheable} = readRespToClientQ_OOO.first();
         readRespToClientQ_OOO.deq();
         Vector#(nWordsPerLine, t_CACHE_WORD) value = unpack(pack(v));
 
@@ -1672,6 +1770,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             rsp.words[w] = valid_words[w] ? tagged Valid value[w] : tagged Invalid;
         rsp.addr = cacheAddr(req_base.tag, req_base.set);
         rsp.reqWordIdx = r_req.wordIdx;
+        rsp.isCacheable = is_cacheable;
         rsp.readMeta = req_base.readMeta;
 
         return rsp;

@@ -284,6 +284,7 @@ module [CONNECTED_MODULE] mkCentralCache
         r.val = validValue(d.words[d.reqWordIdx]);
         r.addr = addr;
         r.wordIdx = d.reqWordIdx;
+        r.isCacheable = d.isCacheable;
         r.readMeta = d.readMeta;
 
         // Forward data to the correct port
@@ -430,7 +431,7 @@ module mkCentralCacheBacking#(Vector#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_BAC
             nActiveReads.up();
         endmethod
 
-        method ActionValue#(CENTRAL_CACHE_LINE) readResp();
+        method ActionValue#(RL_SA_CACHE_FILL_RESP#(CENTRAL_CACHE_LINE)) readResp();
             // The cache expects readReq/readResp in order.  Forward the response from
             // the appropriate central cache port.
             let r <- backingStore[readQ.first()].cacheSourceData.readResp();

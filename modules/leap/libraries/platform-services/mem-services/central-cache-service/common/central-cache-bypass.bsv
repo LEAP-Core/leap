@@ -132,18 +132,19 @@ module mkBypassCentralCache
 
 
                 method ActionValue#(CENTRAL_CACHE_READ_RESP) readResp();
-                    let d <- backing_source.readResp();
+                    let rsp <- backing_source.readResp();
 
                     match {.addr, .word_idx, .read_meta} = readQ[p].first();
                     readQ[p].deq();
            
-                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x, val=0x%x", p, addr, read_meta, d));
+                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x, val=0x%x", p, addr, read_meta, rsp.val));
 
-                    Vector#(CENTRAL_CACHE_WORDS_PER_LINE, CENTRAL_CACHE_WORD) v = unpack(d);
+                    Vector#(CENTRAL_CACHE_WORDS_PER_LINE, CENTRAL_CACHE_WORD) v = unpack(rsp.val);
                     CENTRAL_CACHE_READ_RESP r;
                     r.val = v[word_idx];
                     r.addr = addr;
                     r.wordIdx = word_idx;
+                    r.isCacheable = rsp.isCacheable;
                     r.readMeta = read_meta;
 
                     return r;

@@ -137,6 +137,7 @@ typedef struct
     CENTRAL_CACHE_WORD val;
     CENTRAL_CACHE_LINE_ADDR addr;
     CENTRAL_CACHE_WORD_IDX wordIdx;
+    Bool isCacheable;
     CENTRAL_CACHE_READ_META readMeta;
 }
 CENTRAL_CACHE_READ_RESP
@@ -197,8 +198,11 @@ interface CENTRAL_CACHE_BACKING_PORT;
     // Read request and response with data.  The read response is pipelined.
     // For every getReadReq there must be one sendReadResp for every word in
     // the requested line.  Low bits of the line are received first.
+    // The "isCacheable" parameter to sendReadResp indicates whether the
+    // line may be stored in the cache for future reads.  It parameter
+    // has meaning only for the last word in a line.
     method ActionValue#(CENTRAL_CACHE_BACKING_READ_REQ) getReadReq();
-    method Action sendReadResp(CENTRAL_CACHE_WORD val);
+    method Action sendReadResp(CENTRAL_CACHE_WORD val, Bool isCacheable);
     
     // Write to backing storage.  A write begins with a write request.
     // It is followed by multiple write data calls, one call per word

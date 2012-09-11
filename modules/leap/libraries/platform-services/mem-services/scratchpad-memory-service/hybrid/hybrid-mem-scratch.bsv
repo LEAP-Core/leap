@@ -374,7 +374,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         readWordIdx <= readWordIdx + 1;
 
         debugLog.record($format("backingReadResp: val=0x%x", pack(v)));
-        centralCacheBackingPort.sendReadResp(pack(v));
+        centralCacheBackingPort.sendReadResp(pack(v), True);
     endrule
 
     //
@@ -795,6 +795,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             r.val = val;
             r.addr = addr;
             r.readUID = read_uid;
+            r.isCacheable = True;
         end
         else
         begin
@@ -812,6 +813,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             // is too small for the scratchpad address space:
             r.addr = makeScratchpadAddr(d.addr, d.wordIdx);
             r.readUID = read_uid;
+            r.isCacheable = d.isCacheable;
         end
 
         debugLog.record($format("port %0d: readRsp addr=0x%x, val=0x%x", r.readUID.portNum, r.addr, r.val));

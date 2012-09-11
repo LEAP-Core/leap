@@ -202,6 +202,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         r.val = val;
         r.addr = addr;
         r.refInfo = ref_info;
+        r.isCacheable = True;
 
         return r;
     endmethod

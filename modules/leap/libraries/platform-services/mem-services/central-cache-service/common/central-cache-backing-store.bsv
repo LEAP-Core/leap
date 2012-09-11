@@ -74,7 +74,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     FIFOF#(Bool) writeAckQ <- mkBypassFIFOF();
 
     // Buffering for read responses
-    FIFO#(CENTRAL_CACHE_LINE) readRespQ <- mkSizedFIFO(valueOf(CENTRAL_CACHE_BACKING_MAX_LIVE_READS));
+    FIFO#(RL_SA_CACHE_FILL_RESP#(CENTRAL_CACHE_LINE)) readRespQ <- mkSizedFIFO(valueOf(CENTRAL_CACHE_BACKING_MAX_LIVE_READS));
     COUNTER_Z#(TLog#(TAdd#(1, CENTRAL_CACHE_BACKING_MAX_LIVE_READS))) readReqCredits <-
         mkLCounter_Z(fromInteger(valueOf(CENTRAL_CACHE_BACKING_MAX_LIVE_READS)));
 
@@ -117,7 +117,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
         // Provide read data in response to getReadReq.  This method is called
         // multiple times for each getReadReq.
         //
-        method Action sendReadResp(CENTRAL_CACHE_WORD val);
+        method Action sendReadResp(CENTRAL_CACHE_WORD val, Bool isCacheable);
             readData[readWordIdx] <= val;
 
             debugLog.record($format("port %0d: BACKING sendReadResp idx=%0d, val=0x%x", port, readWordIdx, val));
@@ -128,7 +128,10 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
                 // Yes.  Forward the response to the central cache.
                 let rd = readData;
                 rd[valueOf(CENTRAL_CACHE_WORDS_PER_LINE) - 1] = val;
-                readRespQ.enq(unpack(pack(rd)));
+
+                let rsp = RL_SA_CACHE_FILL_RESP { val: unpack(pack(rd)),
+                                                  isCacheable: isCacheable };
+                readRespQ.enq(rsp);
             end
     
             readWordIdx <= readWordIdx + 1;
@@ -187,13 +190,13 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
             debugLog.record($format("port %0d: BACKING readReq addr=0x%x, readMeta=0x%x", port, addr, readMeta));
         endmethod
 
-        method ActionValue#(CENTRAL_CACHE_LINE) readResp();
-            let v = readRespQ.first();
+        method ActionValue#(RL_SA_CACHE_FILL_RESP#(CENTRAL_CACHE_LINE)) readResp();
+            let rsp = readRespQ.first();
             readRespQ.deq();
             readReqCredits.up();
 
-            debugLog.record($format("port %0d: BACKING readResp val=0x%x", port, v));
-            return v;
+            debugLog.record($format("port %0d: BACKING readResp val=0x%x, cacheable=%d", port, rsp.val, rsp.isCacheable));
+            return rsp;
         endmethod
 
     

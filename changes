@@ -13570,3 +13570,46 @@ Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
 run.bmark now supports multi-process simulation.
 
 Since we use perl eval to acquire variables, we must format our files in a way that perl eval understands.
+
+----------
+mcadler     Date: Mon Sep 10 21:43:12 EDT 2012  CSN: CSN-leap-337
+                  Tue Sep 11 01:43:12 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          336 
+ rl-set-assoc-cache.bsv    Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local
+ local-mem-scratch.bsv     Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsv Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ platform-central-cache.bsv Locally Modified          336 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-bypass.bsv  Locally Modified          336 
+ central-cache-interfaces.bsv Locally Modified          336 
+ central-cache-backing-store.bsv Locally Modified          336 
+
+Add support for speculative (prefetch) reads in the cache hierarchy.  Reads
+that have no value associated with the address now return an "uncacheable"
+response.  Scratchpads can never be in this state, but HAsim's functional
+memory can.

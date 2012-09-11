@@ -67,8 +67,10 @@ interface CENTRAL_CACHE_CLIENT_BACKING#(type t_ADDR, type t_DATA, type t_READ_ME
     // The read line response is pipelined.  For every readLineReq there must
     // be one readResp for every word in the requested line.  Cache entries
     // have CENTRAL_CACHE_WORDS_PER_LINE.  Low bits of the line are received
-    // first.
-    method ActionValue#(t_DATA) readResp();
+    // first.  The bool argument indicates whether the line is cacheable.
+    // The value has is consumed only in the cycle when the last word in a
+    // line is transmitted.
+    method ActionValue#(Tuple2#(t_DATA, Bool)) readResp();
     
     // Write to backing storage.  A write begins with a write request.
     // It is followed by multiple write data calls, one call per word
@@ -128,11 +130,20 @@ CENTRAL_CACHE_BACKING_REQ
     deriving (Eq, Bits);
 
 
+typedef struct
+{
+    CENTRAL_CACHE_WORD wordVal;
+    Bool isCacheable;
+}
+CENTRAL_CACHE_BACK_READ_RSP
+    deriving (Eq, Bits);
+
+
 // Responses from client to cache
 typedef union tagged
 {
-    CENTRAL_CACHE_WORD CENTRAL_CACHE_BACK_READ;
-    Bool               CENTRAL_CACHE_BACK_WACK;
+    CENTRAL_CACHE_BACK_READ_RSP CENTRAL_CACHE_BACK_READ;
+    Bool                        CENTRAL_CACHE_BACK_WACK;
 }
 CENTRAL_CACHE_BACKING_RESP
     deriving (Eq, Bits);
@@ -296,10 +307,13 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
     endrule
 
     rule backingReadResp (True);
-        let val <- backing.readResp();
-        debugLog.record($format("backReadResp: val=0x%x", val));
+        match {.val, .is_cacheable} <- backing.readResp();
+        debugLog.record($format("backReadResp: val=0x%x, cacheable=%b", val, is_cacheable));
 
-        link_cache_backing.makeResp(tagged CENTRAL_CACHE_BACK_READ zeroExtend(pack(val)));
+        let rsp = CENTRAL_CACHE_BACK_READ_RSP { wordVal: zeroExtend(pack(val)),
+                                                isCacheable: is_cacheable };
+
+        link_cache_backing.makeResp(tagged CENTRAL_CACHE_BACK_READ rsp);
     endrule
     
     rule backingWriteLineReq (link_cache_backing.getReq() matches tagged CENTRAL_CACHE_BACK_WREQ .req);
@@ -358,6 +372,7 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         t_DATA val = unpack(truncate(resp.val));
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
+                                        isCacheable: resp.isCacheable,
                                         readMeta: unpack(truncate(resp.readMeta)) };
 
         debugLog.record($format("readResp: addr=0x%x, val=0x%x", addr, val));
@@ -372,6 +387,7 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         t_DATA val = unpack(truncate(resp.val));
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
+                                        isCacheable: resp.isCacheable,
                                         readMeta: unpack(truncate(resp.readMeta)) };
 
         return r;

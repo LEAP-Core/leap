@@ -44,6 +44,7 @@ import SpecialFIFOs::*;
 typedef struct
 {
     t_CACHE_WORD val;
+    Bool isCacheable;
     t_CACHE_READ_META readMeta;
 }
 RL_DM_CACHE_LOAD_RESP#(type t_CACHE_WORD,
@@ -142,6 +143,7 @@ typedef struct
 {
     t_CACHE_ADDR addr;
     t_CACHE_WORD val;
+    Bool isCacheable;
     t_CACHE_READ_META readMeta;
 }
 RL_DM_CACHE_FILL_RESP#(type t_CACHE_ADDR,
@@ -566,6 +568,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                     end
                     t_CACHE_LOAD_RESP resp;
                     resp.val = e.val;
+                    resp.isCacheable = True;
                     resp.readMeta = r.readMeta.clientReadMeta;
                     readRespQ.enq(resp);
                 end
@@ -615,6 +618,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         begin
             readMissW.send();
         end
+
         sourceData.readReq(r.addr, r.readMeta);
     endrule
     
@@ -627,24 +631,34 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     rule fillResp (True);
         let f <- sourceData.readResp();
         
-        match {.tag, .entryIdx} = cacheEntryFromAddr(f.addr);
+        match {.tag, .idx} = cacheEntryFromAddr(f.addr);
 
-        debugLog.record($format("    fillResp: FILL addr=0x%x, entry=0x%x, val=0x%x", f.addr, entryIdx, f.val));
+        debugLog.record($format("    fillResp: FILL addr=0x%x, entry=0x%x, cacheable=%b, val=0x%x", f.addr, idx, f.isCacheable, f.val));
 
         if (! f.readMeta.isPrefetch)
         begin
             t_CACHE_LOAD_RESP resp;
             resp.val = f.val;
+            resp.isCacheable = f.isCacheable;
             resp.readMeta = f.readMeta.clientReadMeta;
             readRespQ.enq(resp);
         end
         
         // Save value in cache
-        cache.write(entryIdx, tagged Valid RL_DM_CACHE_ENTRY { dirty: False,
-                                                               tag: tag,
-                                                               val: f.val });
+        if (f.isCacheable)
+        begin
+            cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: False,
+                                                              tag: tag,
+                                                              val: f.val });
+        end
+        else if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+        begin
+            // Prefetch of uncacheable address is useless.  Suggest the
+            // prefetcher cut it out.
+            prefetcher.prefetchInval(idx);
+        end
 
-        entryFilter.remove(entryIdx);
+        entryFilter.remove(idx);
     endrule
 
 
@@ -698,7 +712,9 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                                               tag: tag,
                                                               val: w_data });
             if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+            begin
                 prefetcher.prefetchInval(idx);
+            end
         end
 
         entryFilter.remove(idx);
@@ -740,8 +756,11 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             begin
                 debugLog.record($format("    evictForInval: INVAL addr=0x%x, entry=0x%x", r.addr, idx));
                 cache.write(idx, tagged Invalid);
+
                 if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+                begin
                     prefetcher.prefetchInval(idx);
+                end
             end
             else
             begin
@@ -874,10 +893,10 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     method Action setCacheMode(RL_DM_CACHE_MODE mode, RL_DM_CACHE_PREFETCH_MODE en);
         cacheMode <= mode;
-		if (mode == RL_DM_MODE_DISABLED)
-		    prefetchMode <= RL_DM_PREFETCH_DISABLE;
-		else
-		    prefetchMode <= en;
+        if (mode == RL_DM_MODE_DISABLED)
+            prefetchMode <= RL_DM_PREFETCH_DISABLE;
+        else
+            prefetchMode <= en;
     endmethod
 
     interface RL_CACHE_STATS stats;
@@ -921,7 +940,9 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
 
     rule getReadResp (True);
         let r <- sourceData.readResp();
-        readRespQ.enq(RL_DM_CACHE_LOAD_RESP { val: r.val, readMeta: r.readMeta.clientReadMeta });
+        readRespQ.enq(RL_DM_CACHE_LOAD_RESP { val: r.val,
+                                              isCacheable: r.isCacheable,
+                                              readMeta: r.readMeta.clientReadMeta });
     endrule
 
     method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_META readMeta);
