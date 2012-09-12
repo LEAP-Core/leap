@@ -13613,3 +13613,14 @@ Add support for speculative (prefetch) reads in the cache hierarchy.  Reads
 that have no value associated with the address now return an "uncacheable"
 response.  Scratchpads can never be in this state, but HAsim's functional
 memory can.
+
+----------
+mcadler     Date: Wed Sep 12 16:39:49 EDT 2012  CSN: CSN-leap-339
+                  Wed Sep 12 20:39:49 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          338 
+
+FPGA bitfile download script used constant file name and position instead
+of filling in the model-specific values.
