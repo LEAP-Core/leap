@@ -41,6 +41,8 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
 
   Clock clk <- exposeCurrentClock();
 
+  String errorStr = "";
+
   // Backwards compatability: Connect all chains in the resulting context.
   connectChains(clk, info.chains); 
 
@@ -63,18 +65,21 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     // clear out leftovers from model top level 
     if(cur.computePlatform != fpgaPlatformName)
       begin
-        messageM("Top Level Dropping Send: ");
-	printSend(cur); 
+	let newStr <- printSend(cur);
+        errorStr = "Dropping: " + newStr + errorStr;	
       end
     else if(cur.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingSend(x,cur);
+	let newStr <- printSend(cur);
+        errorStr = "Matched Send: " + newStr + errorStr;	
       end
     else if (!cur.optional)
       begin
         messageM("ERROR: Unmatched logical send: ");
-        printSend(cur);
+	let newStr <- printSend(cur);
+        errorStr = "ERROR: Unmatched logical send" + integerToString(x) + ": " + newStr + errorStr;	
         error_occurred = True;
       end
   end
@@ -88,17 +93,21 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     if(cur.computePlatform != fpgaPlatformName)
       begin
         messageM("Top Level Dropping Recv: ");
-	printRecv(cur); 
+	let newStr <- printRecv(cur);		 
+        errorStr = "Dropping Top Level: " + newStr + errorStr; 
       end
     else if(cur.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingRecv(x,cur);
+	let newStr <- printRecv(cur);		 
+        errorStr = "Matched Recv: " + newStr + errorStr; 
       end
     else if (!cur.optional)
       begin
         messageM("ERROR: Unmatched logical receive: ");
-        printRecv(cur);
+	let newStr <- printRecv(cur);		 
+        errorStr = "ERROR: Unmatched logical receive " + integerToString(x) + ": " + newStr + errorStr; 
         error_occurred = True;
       end
   end
@@ -107,7 +116,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   printGlobStrings(info.globalStrings);
 
   if (error_occurred)
-    error("Error: Unmatched logical connections at top level.");
+    error("\nError: Unmatched logical connections at top level. \n" + errorStr);
 
 endmodule
 

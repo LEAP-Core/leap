@@ -13624,3 +13624,19 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 FPGA bitfile download script used constant file name and position instead
 of filling in the model-specific values.
+
+----------
+kfleming    Date: Wed Sep 19 10:54:56 EDT 2012  CSN: CSN-leap-340
+                  Wed Sep 19 14:54:56 UTC 2012
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-top-level.bsv     Locally Modified          339 
+ connect-top-level-multifpga.bsv Locally Modified          339 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          339 
+
+
+Changed printing of unmatched connections to guarantee that the show
+up. In some multiple FPGA compilation this was not happening.

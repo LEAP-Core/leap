@@ -226,16 +226,20 @@ module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SI
 endmodule
 
 
-module printSend#(LOGICAL_SEND_INFO send) (Empty);
-  messageM("Send: " + send.logicalName + " " + send.computePlatform);
+module printSend#(LOGICAL_SEND_INFO send) (String);
+  String printStr = "Send: " + send.logicalName + " " + send.computePlatform + "\n";
+  messageM(printStr);
+  return printStr;
 endmodule
 
 module printSends#(List#(LOGICAL_SEND_INFO) sends) (Empty);
   List::mapM(printSend, sends);
 endmodule
 
-module printRecv#(LOGICAL_RECV_INFO recv) (Empty);
-  messageM("Recv: " + recv.logicalName + " " + recv.computePlatform);
+module printRecv#(LOGICAL_RECV_INFO recv) (String);
+  String printStr = "Recv: " + recv.logicalName + " " + recv.computePlatform + "\n";
+  messageM(printStr);
+  return printStr;
 endmodule
 
 module printRecvs#(List#(LOGICAL_RECV_INFO) recvs) (Empty);

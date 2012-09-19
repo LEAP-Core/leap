@@ -51,6 +51,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
 
   // Error out if there are dangling connections
   Bool error_occurred = False;
+  String errorStr = "";
   // Final Dangling sends
   for (Integer x = 0; x < List::length(unmatched_sends); x = x + 1)
   begin
@@ -58,6 +59,8 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     if (!cur.optional)
       begin
         messageM("ERROR: Unmatched logical send: " +  cur.logicalName);
+	let newStr <- printSend(cur);
+        errorStr = "Unmatched Send: " + newStr + errorStr;	
         error_occurred = True;
       end
   end
@@ -69,6 +72,8 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     if (!cur.optional)
       begin
         messageM("ERROR: Unmatched logical receive: " + cur.logicalName);
+	let newStr <- printRecv(cur);		 
+        errorStr = "ERROR: Unmatched logical receive " + integerToString(x) + ": " + newStr + errorStr; 
         error_occurred = True;
       end
   end
@@ -77,7 +82,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   printGlobStrings(info.globalStrings);
 
   if (error_occurred)
-    error("Error: Unmatched logical connections at top level.");
+    error("\nError: Unmatched logical connections at top level. \n" + errorStr);
 
 endmodule
 
