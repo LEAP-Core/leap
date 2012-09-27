@@ -3504,6 +3504,10 @@ ac_config_files="$ac_config_files tools/leap/leap-front-panel/Makefile"
 ac_config_files="$ac_config_files tools/leap/leap-front-panel-qt3/Makefile"
 
 
+# docs
+ac_config_files="$ac_config_files docs/Makefile"
+
+
 ac_config_files="$ac_config_files Makefile"
 
 cat >confcache <<\_ACEOF
@@ -4249,6 +4253,7 @@ do
     "tools/leap/Makefile") CONFIG_FILES="$CONFIG_FILES tools/leap/Makefile" ;;
     "tools/leap/leap-front-panel/Makefile") CONFIG_FILES="$CONFIG_FILES tools/leap/leap-front-panel/Makefile" ;;
     "tools/leap/leap-front-panel-qt3/Makefile") CONFIG_FILES="$CONFIG_FILES tools/leap/leap-front-panel-qt3/Makefile" ;;
+    "docs/Makefile") CONFIG_FILES="$CONFIG_FILES docs/Makefile" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

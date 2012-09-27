@@ -13640,3 +13640,29 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 Changed printing of unmatched connections to guarantee that the show
 up. In some multiple FPGA compilation this was not happening.
+
+----------
+mgambhir    Date: Thu Sep 27 05:16:24 EDT 2012  CSN: CSN-leap-342
+                  Thu Sep 27 09:16:24 UTC 2012
+
+
+Directory .
+ configure                 Locally Modified          341 
+ configure.in              Locally Modified          341 
+
+Directory docs
+ Makefile.am               Locally Added               0 
+ doxylayout.xml            Locally Added               0 
+ doxygen.config            Locally Added               0 
+ Makefile.in               Locally Added               0 
+
+Directory .
+ docs/                     Locally Added               0 
+
+- Added doxygen.config and doxylayout.xml that are used to generate bluespec API documentation. 
+  - type make doc inside the package dir to generate documentation. 
+  - documentation gets generated inside leap/docs/dox
+- bsv.filter script that exists inside awb package is used to convert Bluespec code/comments into Java style code/comments parsed natively by doxygen. 
+TODO:
+- Doxygen seg faults if doxylayout.xml is used 
+- Currently the filter was tested only with a few *.bsv files. Further filtering of comments is required when the filter is used to generate documentation for the entire repository

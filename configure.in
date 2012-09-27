@@ -102,4 +102,7 @@ AC_CONFIG_FILES(tools/leap/Makefile)
 AC_CONFIG_FILES(tools/leap/leap-front-panel/Makefile)
 AC_CONFIG_FILES(tools/leap/leap-front-panel-qt3/Makefile)
 
+# docs
+AC_CONFIG_FILES(docs/Makefile)
+
 AC_OUTPUT(Makefile)
