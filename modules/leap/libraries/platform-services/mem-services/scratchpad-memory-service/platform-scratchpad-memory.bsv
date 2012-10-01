@@ -253,7 +253,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
     begin
         // A special case:  cached scratchpad requested but the container
         // is smaller than the cache would have been.  Just allocate a BRAM.
-        memory <- mkBRAMBufferedPseudoMultiReadInitialized(unpack(0));
+        memory <- mkBRAMBufferedPseudoMultiReadInitialized(True, unpack(0));
     end
     else
     begin

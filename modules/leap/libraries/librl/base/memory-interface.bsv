@@ -251,39 +251,6 @@ module mkMultiMemIfcToMemIfc#(MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) multiMem
     method Bool writeNotFull() = multiMem.writeNotFull();
 endmodule
 
-
-//
-// mkMemIfcToMultiMemIfc --
-//     Inverse of mkMultiMemIfcToMemIfc above.  Convert a standard MEMORY_IFC
-//     to a MEMORY_MULTI_READ_IFC with a single read port.
-//
-module mkMemIfcToMultiMemIfc#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
-    // interface:
-    (MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA))
-    provisos (Bits#(t_ADDR, t_ADDR_SZ),
-              Bits#(t_DATA, t_DATA_SZ));
-
-    Vector#(1, MEMORY_READER_IFC#(t_ADDR, t_DATA)) portsLocal = newVector();
-    portsLocal[0] =
-        interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
-            method Action readReq(t_ADDR addr) = mem.readReq(addr);
-
-            method ActionValue#(t_DATA) readRsp();
-                let v <- mem.readRsp();
-                return v;
-            endmethod
-
-            method t_DATA peek() = mem.peek();
-            method Bool notEmpty() = mem.notEmpty();
-            method Bool notFull() = mem.notFull();
-        endinterface;
-
-    interface readPorts = portsLocal;
-
-    method Action write(t_ADDR addr, t_DATA val) = mem.write(addr, val);
-    method Bool writeNotFull() = mem.writeNotFull();
-endmodule
-
 //
 // mkMultiReadMemToVectorMemIfc --
 //     Converts a MEMORY_MULTI_READ_IFC to a Vector of MEMORY_IFC each of which 
@@ -636,4 +603,280 @@ module mkSafeSizedMemoryReader#(NumTypeParam#(n_ENTRIES) p, MEMORY_READER_IFC#(t
     method notEmpty = outputFIFO.notEmpty;
     method notFull = tokenFIFO.notFull;
 
+endmodule
+
+
+// ========================================================================
+//
+// Convert a single read port memory interface to a multi read port
+// interface.  A number of modules are provided using a variety of
+// strategies.
+//
+// ========================================================================
+
+//
+// mkMemIfcToMultiMemIfc --
+//     Convert a standard MEMORY_IFC to a MEMORY_MULTI_READ_IFC with a
+//     single read port.  This conversion is a simple interface method
+//     mapping.
+//
+module mkMemIfcToMultiMemIfc#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
+    // interface:
+    (MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    Vector#(1, MEMORY_READER_IFC#(t_ADDR, t_DATA)) portsLocal = newVector();
+    portsLocal[0] =
+        interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
+            method Action readReq(t_ADDR addr) = mem.readReq(addr);
+
+            method ActionValue#(t_DATA) readRsp();
+                let v <- mem.readRsp();
+                return v;
+            endmethod
+
+            method t_DATA peek() = mem.peek();
+            method Bool notEmpty() = mem.notEmpty();
+            method Bool notFull() = mem.notFull();
+        endinterface;
+
+    interface readPorts = portsLocal;
+
+    method Action write(t_ADDR addr, t_DATA val) = mem.write(addr, val);
+    method Bool writeNotFull() = mem.writeNotFull();
+endmodule
+
+
+//
+// mkMemIfcToPseudoMultiMemSyncWrites --
+//     Provide the illusion of multiple read ports by multiplexing all
+//     requests on a single physical read port.  Limited buffering is
+//     provided for holding responses in order prevent one port from
+//     blocking another.
+//
+//     In this implementation, writes are sequenced along with reads.
+//     A write request arriving on the same cycle as a set of read
+//     requests will be processed AFTER the read requests.  The write
+//     will be processed BEFORE and subsequent read requests arriving
+//     on later cycles.
+//
+module mkMemIfcToPseudoMultiMemSyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
+    // interface:
+    (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+
+              // Compute minimum size for storing read port ID (must be at least
+              // 1 bit).
+              Log#(n_READERS, n_READERS_SZ),
+              Max#(n_READERS_SZ, 1, n_READERS_SAFE_SZ));
+
+    // Sort incoming requests.  One port for each read port and another for writes.
+    MERGE_FIFOF#(TAdd#(n_READERS, 1), t_ADDR) incomingReqQ <- mkMergeBypassFIFOF();
+
+    // Write data
+    FIFO#(t_DATA) writeDataQ <- mkBypassFIFO();
+
+    // Match requests to ports.  Add 1 to the number of readers to guarantee
+    // we never try to allocate a Bit#(0).
+    FIFO#(Bit#(n_READERS_SAFE_SZ)) noteReqQ <- mkFIFO();
+
+    // How much buffering is available?  Buffering matches the depth of mkBRAM.
+    Vector#(n_READERS, COUNTER#(2)) bufferingAvailable <- replicateM(mkLCounter(2));
+    Vector#(n_READERS, FIFOF#(t_DATA)) buffer <- replicateM(mkSizedBypassFIFOF(2));
+
+    //
+    // processWriteReq --
+    //     Send writes to the BRAM.  Write port is the last port in the
+    //     request queue.
+    //
+    rule processWriteReq (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS)));
+        let addr = incomingReqQ.first();
+        incomingReqQ.deq();
+
+        let val = writeDataQ.first();
+        writeDataQ.deq();
+        
+        mem.write(addr, val);
+    endrule
+
+
+    //
+    // Read rules
+    //
+    for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        //
+        // processReadReq --
+        //     Forward read requests to the memory.
+        //
+        rule processReadReq ((incomingReqQ.firstPortID() == fromInteger(p)) &&
+                             (bufferingAvailable[p].value() > 0));
+            let addr = incomingReqQ.first();
+            incomingReqQ.deq();
+
+            mem.readReq(addr);
+
+            noteReqQ.enq(fromInteger(p));
+            bufferingAvailable[p].down();
+        endrule
+
+        //
+        // enqIntoFIFO --
+        //     Forward BRAM response to read port's response buffer.
+        //
+        rule enqIntoFIFO (noteReqQ.first() == fromInteger(p));
+            noteReqQ.deq();
+
+            let data <- mem.readRsp();
+            buffer[p].enq(data);
+        endrule
+    end
+    
+
+    //
+    // readPorts
+    //
+
+    Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) portsLocal = newVector();
+
+    for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        portsLocal[p] =
+            interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
+                method Action readReq(t_ADDR a);
+                    incomingReqQ.ports[p].enq(a);
+                endmethod
+
+                method ActionValue#(t_DATA) readRsp();
+                    bufferingAvailable[p].up();
+
+                    let v = buffer[p].first();
+                    buffer[p].deq();
+
+                    return v;
+                endmethod
+
+                method t_DATA peek() = buffer[p].first();
+                method Bool notEmpty() = buffer[p].notEmpty();
+                method Bool notFull() = incomingReqQ.ports[p].notFull();
+            endinterface;
+    end
+
+    interface readPorts = portsLocal;
+
+    method Action write(t_ADDR addr, t_DATA val);
+        // Write port is the last of the incomingReqQ ports.
+        incomingReqQ.ports[valueOf(n_READERS)].enq(addr);
+        writeDataQ.enq(val);
+    endmethod
+
+    method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
+endmodule
+
+
+//
+// mkMemIfcToPseudoMultiMemAsyncWrites --
+//     Provide the same buffering for mapping logical read ports to a single
+//     physical read port as mkMemIfcToPseudoMultiMemSyncWrites above.
+//
+//     In this implementation, write sequencing is independent of reads.
+//     Writes are emitted the cycle they arrive.  Reads may be buffered
+//     and emitted later.  BE CAREFUL!  This implementation may have
+//     better performance, but requires more attention to management of
+//     read/write ordering.
+//
+module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
+    // interface:
+    (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+
+              // Compute minimum size for storing read port ID (must be at least
+              // 1 bit).
+              Log#(n_READERS, n_READERS_SZ),
+              Max#(n_READERS_SZ, 1, n_READERS_SAFE_SZ));
+
+    // Sort incoming requests.  One port for each read port.
+    MERGE_FIFOF#(n_READERS, t_ADDR) incomingReqQ <- mkMergeBypassFIFOF();
+
+    // Match requests to ports.  Add 1 to the number of readers to guarantee
+    // we never try to allocate a Bit#(0).
+    FIFO#(Bit#(n_READERS_SAFE_SZ)) noteReqQ <- mkFIFO();
+
+    // How much buffering is available?  Buffering matches the depth of mkBRAM.
+    Vector#(n_READERS, COUNTER#(2)) bufferingAvailable <- replicateM(mkLCounter(2));
+    Vector#(n_READERS, FIFOF#(t_DATA)) buffer <- replicateM(mkSizedBypassFIFOF(2));
+        
+
+    //
+    // Read rules
+    //
+    for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        //
+        // processReadReq --
+        //     Forward read requests to the memory.
+        //
+        rule processReadReq ((incomingReqQ.firstPortID() == fromInteger(p)) &&
+                             (bufferingAvailable[p].value() > 0));
+            let addr = incomingReqQ.first();
+            incomingReqQ.deq();
+
+            mem.readReq(addr);
+
+            noteReqQ.enq(fromInteger(p));
+            bufferingAvailable[p].down();
+        endrule
+
+        //
+        // enqIntoFIFO --
+        //     Forward BRAM response to read port's response buffer.
+        //
+        rule enqIntoFIFO (noteReqQ.first() == fromInteger(p));
+            noteReqQ.deq();
+
+            let data <- mem.readRsp();
+            buffer[p].enq(data);
+        endrule
+    end
+    
+
+    //
+    // readPorts
+    //
+
+    Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) portsLocal = newVector();
+
+    for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        portsLocal[p] =
+            interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
+                method Action readReq(t_ADDR a);
+                    incomingReqQ.ports[p].enq(a);
+                endmethod
+
+                method ActionValue#(t_DATA) readRsp();
+                    bufferingAvailable[p].up();
+
+                    let v = buffer[p].first();
+                    buffer[p].deq();
+
+                    return v;
+                endmethod
+
+                method t_DATA peek() = buffer[p].first();
+                method Bool notEmpty() = buffer[p].notEmpty();
+                method Bool notFull() = incomingReqQ.ports[p].notFull();
+            endinterface;
+    end
+
+    interface readPorts = portsLocal;
+
+    method Action write(t_ADDR addr, t_DATA val);
+        mem.write(addr, val);
+    endmethod
+
+    method Bool writeNotFull = True;
 endmodule

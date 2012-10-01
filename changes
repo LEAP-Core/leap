@@ -13666,3 +13666,24 @@ Directory .
 TODO:
 - Doxygen seg faults if doxylayout.xml is used 
 - Currently the filter was tested only with a few *.bsv files. Further filtering of comments is required when the filter is used to generate documentation for the entire repository
+
+----------
+mcadler     Date: Mon Oct  1 18:39:29 EDT 2012  CSN: CSN-leap-343
+                  Mon Oct  1 22:39:29 UTC 2012
+
+
+Directory modules/leap/libraries/librl/base
+ memory-interface.bsv      Locally Modified          342 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          342 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-common.awb  Locally Modified          342 
+
+Add new memory interface mappers that present a multi-read port interface
+to the client but maintain storage within a memory having a single read port.
+There are two versions.  One maintains strict read/write ordering relative to
+the times at which requests arrive.  The other triggers writes immediately.
+The latter is more efficient as long as the client can deal with the
+unpredictability.
