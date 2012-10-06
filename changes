@@ -13712,3 +13712,17 @@ Directory config/pm/leap/submodels/fpgaenv
 
 
 Inverted ml605 reset (this was previously done at the model apm).
+
+----------
+kfleming    Date: Sat Oct  6 19:17:57 EDT 2012  CSN: CSN-leap-346
+                  Sat Oct  6 23:17:57 UTC 2012
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_ml605.apm    Locally Modified          345 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          345 
+
+
+Gave non-default clocks for ml605 examples.

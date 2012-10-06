@@ -57,7 +57,7 @@ physical_platform=ML605 V6 Platform with BlueNoC
 channelio=Basic Virtual Channel Multiplexer
 rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
-local_mem=NULL Local Memory Interface
+local_mem=Local Memory Interface using BRAM
 remote_memory=Null Remote Memory
 
 [Common Physical Platform Utilities]
@@ -82,13 +82,6 @@ rrr_common=RRR Common Module
 [Null Remote Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
 Packagehint=leap
-
-[NULL Local Memory Interface]
-File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
-Packagehint=leap
-
-[NULL Local Memory Interface/Params]
-LOCAL_MEM_ADDR_BITS=26
 
 [Bluespec PCIE Physical Channel]
 File=modules/leap/virtual-platform/physical-channel/pcie/bluespec/pcie-bluespec-physical-channel.awb
@@ -147,3 +140,10 @@ Packagehint=leap-platforms
 
 [Differential Crystal Clocks Device/Params]
 RESET_ACTIVE_HIGH=1
+
+[Local Memory Interface using BRAM/Params]
+LOCAL_MEM_ADDR_BITS=14
+
+[Local Memory Interface using BRAM]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
+Packagehint=leap
