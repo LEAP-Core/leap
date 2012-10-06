@@ -144,3 +144,6 @@ XILINX_FAMILY="virtex6"
 [Differential Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
+
+[Differential Crystal Clocks Device/Params]
+RESET_ACTIVE_HIGH=1

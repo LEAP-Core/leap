@@ -13701,3 +13701,14 @@ Directory config/pm/leap/submodels/fpgaenv
 
 
 ml605's now use the differential clock. 
+
+----------
+kfleming    Date: Sat Oct  6 10:19:18 EDT 2012  CSN: CSN-leap-345
+                  Sat Oct  6 14:19:18 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          344 
+
+
+Inverted ml605 reset (this was previously done at the model apm).
