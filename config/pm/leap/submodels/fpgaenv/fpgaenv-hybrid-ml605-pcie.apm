@@ -123,7 +123,7 @@ bluenoc_core=BlueNoC Core for ML605
 
 [ML605 V6 Platform with BlueNoC/Requires]
 pcie_device=Bluespec PCIE Device (Bluenoc)
-clocks_device=Fixed ML605 Clocks Device
+clocks_device=Differential Crystal Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
 
 [ML605 V6 Platform with BlueNoC]
@@ -141,8 +141,6 @@ Packagehint=leap-platforms
 [Hardware FPGA Components for Virtex 6 (Generic)/Params]
 XILINX_FAMILY="virtex6"
 
-
-
-[Fixed ML605 Clocks Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/fixed-ml605/single-ended-clocks-device.awb
+[Differential Crystal Clocks Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms

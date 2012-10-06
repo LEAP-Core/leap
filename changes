@@ -13687,3 +13687,17 @@ There are two versions.  One maintains strict read/write ordering relative to
 the times at which requests arrive.  The other triggers writes immediately.
 The latter is more efficient as long as the client can deal with the
 unpredictability.
+
+----------
+kfleming    Date: Fri Oct  5 23:34:33 EDT 2012  CSN: CSN-leap-344
+                  Sat Oct  6 03:34:33 UTC 2012
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_ml605.apm    Locally Modified          343 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          343 
+
+
+ml605's now use the differential clock. 
