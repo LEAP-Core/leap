@@ -1,0 +1,14 @@
+
+%name Bluespec PCIE Physical Channel (4byte)
+%desc Bluespec PCIE Physical Channel (4byte)
+
+%provides physical_channel
+
+%notes README
+
+%sources -t BSV -v PUBLIC   pcie-bluespec-physical-channel.bsv
+%sources -t H   -v PUBLIC   pcie-bluespec-physical-channel.h
+%sources -t CPP -v PUBLIC   pcie-bluespec-physical-channel.cpp
+
+%param SOFT_RESET 0 "Does this channel support soft reset?"
+
