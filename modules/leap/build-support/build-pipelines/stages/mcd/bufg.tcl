@@ -13,7 +13,8 @@ set version "$major_version.$minor_version"
 global env
 namespace import ::Bluetcl::* 
 
-source $env(BLUESPECDIR)/tcllib/bluespec/portUtil.tcl
+package require utils
+package require portUtil
 
 # processSwitches also sets these switches (feel free to set them yourself)
 # flags set "-verilog -vdir obj -bdir obj -simdir obj -p obj:.:+"
@@ -26,9 +27,21 @@ proc usage {} {
     exit
 }
 
-portUtil::processSwitches [list {p "+"}]
-flags set "-verilog -p +:$p"
+set valOptions [list -p]
+set boolOptions [list -verilog]
 
+if { [catch [list ::utils::scanOptions $boolOptions $valOptions true OPT "$argv"] opts] } {
+    puts stderr $opts
+    usage
+    exit 1
+}
+
+set bsdir $::env(BLUESPECDIR)
+set libs [list [file join $bsdir "Prelude"] [file join $bsdir "Libraries"]]
+
+portUtil::processSwitches [list {p "+"}]
+Bluetcl::flags set -verilog
+Bluetcl::flags set -p $OPT(-p):[join $libs ":"]
 
 # set path to whatever 
 module load mk_model_Wrapper

@@ -13726,3 +13726,15 @@ Directory config/pm/leap/submodels/fpgaenv
 
 
 Gave non-default clocks for ml605 examples.
+
+----------
+mcadler     Date: Fri Oct 12 15:44:21 EDT 2012  CSN: CSN-leap-348
+                  Fri Oct 12 19:44:21 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/mcd
+ bufg.tcl                  Locally Modified          347 
+ mcd.tcl                   Locally Modified          347 
+
+Clean up command line argument parsing, required for latest Bluespec
+compiler.  Still works with older compilers.
