@@ -13738,3 +13738,14 @@ Directory modules/leap/build-support/build-pipelines/stages/mcd
 
 Clean up command line argument parsing, required for latest Bluespec
 compiler.  Still works with older compilers.
+
+----------
+mcadler     Date: Fri Oct 12 15:57:41 EDT 2012  CSN: CSN-leap-349
+                  Fri Oct 12 19:57:41 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-common.awb  Locally Modified          348 
+
+Grow the default metadata size by a few bits -- enough now for reasonably
+large L1 caches and current 128-core functional memory cache.
