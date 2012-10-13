@@ -140,6 +140,7 @@ Packagehint=leap-platforms
 
 [Differential Crystal Clocks Device/Params]
 RESET_ACTIVE_HIGH=1
+CRYSTAL_CLOCK_FREQ=200
 
 [Local Memory Interface using BRAM/Params]
 LOCAL_MEM_ADDR_BITS=14

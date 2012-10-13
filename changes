@@ -13749,3 +13749,14 @@ Directory modules/leap/libraries/platform-services/mem-services/central-cache-se
 
 Grow the default metadata size by a few bits -- enough now for reasonably
 large L1 caches and current 128-core functional memory cache.
+
+----------
+kfleming    Date: Sat Oct 13 15:41:24 EDT 2012  CSN: CSN-leap-350
+                  Sat Oct 13 19:41:24 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          349 
+
+
+Changed crystal clock to reflect actual 200MHz frequency.
