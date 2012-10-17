@@ -64,7 +64,7 @@ module mkScoreboardFIFOF
         Alias#(SCOREBOARD_FIFO_ENTRY_ID#(t_NUM_ENTRIES), t_SCOREBOARD_FIFO_ENTRY_ID));
     
     COUNTER#(TLog#(TAdd#(t_NUM_ENTRIES, 1))) nEntries <- mkLCounter(0);
-    Vector#(t_NUM_ENTRIES, Reg#(t_DATA)) values <- replicateM(mkRegU());
+    LUTRAM#(Bit#(TLog#(t_NUM_ENTRIES)), t_DATA) values <- mkLUTRAMU();
 
     // Pointers to next enq and deq slots in the ring buffer
     Reg#(t_SCOREBOARD_FIFO_ENTRY_ID) nextEnq <- mkReg(0);
@@ -76,8 +76,7 @@ module mkScoreboardFIFOF
     LUTRAM#(Bit#(TLog#(t_NUM_ENTRIES)), Bool) reqVec <- mkLUTRAMU();
     LUTRAM#(Bit#(TLog#(t_NUM_ENTRIES)), Bool) readyVec <- mkLUTRAMU();
 
-    // Value flowing out from the FIFO to first() / deq().
-    RWire#(t_DATA) exitVal <- mkRWire();
+    // Signal whether value is available
     Wire#(Bool) oldestIsReady <- mkDWire(False);
 
     function isNotFull() = (nEntries.value() != fromInteger(valueOf(t_NUM_ENTRIES)));
@@ -101,7 +100,7 @@ module mkScoreboardFIFOF
 
 
     //
-    // Send the outbound, oldest, value out on a wire instead of reading
+    // Send the outbound, oldest, status out on a wire instead of reading
     // the values in the methods below to avoid painfully slow Bluespec
     // scheduler attempts to see through subscripting.
     //
@@ -113,11 +112,6 @@ module mkScoreboardFIFOF
         //
         Bool ready = (reqVec.sub(nextDeq) == readyVec.sub(nextDeq));
         oldestIsReady <= isNotEmpty() && ready;
-    endrule
-
-    (* fire_when_enabled, no_implicit_conditions *)
-    rule readOldest if (oldestIsReady);
-        exitVal.wset(values[nextDeq]);
     endrule
 
 
@@ -174,14 +168,14 @@ module mkScoreboardFIFOF
         valueSlot.wset(id);
 
         // Write value to buffer
-        values[id] <= data;
+        values.upd(id, data);
     endmethod
 
-    method t_DATA first() if (exitVal.wget() matches tagged Valid .v);
-        return v;
+    method t_DATA first() if (oldestIsReady);
+        return values.sub(nextDeq);
     endmethod
 
-    method Action deq() if (exitVal.wget() matches tagged Valid .v);
+    method Action deq() if (oldestIsReady);
         // Pop oldest entry from FIFO
         nEntries.down();
         nextDeq <= nextDeq + 1;

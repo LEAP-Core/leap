@@ -635,7 +635,6 @@ instance ToPut#(PHYSICAL_SEND#(data_t), data_t);
     function Put#(data_t) toPut(PHYSICAL_SEND#(data_t) send);
         let put = interface Put;
                       method Action put(data_t value) if(send.notFull()); // Physical sends may be unguarded!
-		          $display("PhysicalSend consuming data");
                           send.send(value);
                       endmethod
                   endinterface; 
@@ -648,7 +647,6 @@ instance ToGet#(CONNECTION_RECV#(data_t), data_t);
         let get = interface Get;
                       method ActionValue#(data_t) get() if(recv.notEmpty());
                           recv.deq;
-                          $display("PhysicalRecv producing data");	
                           return recv.receive; 
                       endmethod
                   endinterface;  

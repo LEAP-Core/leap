@@ -13760,3 +13760,17 @@ Directory config/pm/leap/submodels/fpgaenv
 
 
 Changed crystal clock to reflect actual 200MHz frequency.
+
+----------
+mcadler     Date: Wed Oct 17 07:42:05 EDT 2012  CSN: CSN-leap-351
+                  Wed Oct 17 11:42:05 UTC 2012
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-scoreboard.bsv       Locally Modified          350 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connections.bsv           Locally Modified          350 
+
+Use a LUTRAM for storing scoreboard FIFO data instead of a vector of registers.
+I have no idea why we didn't do this in the first place.
