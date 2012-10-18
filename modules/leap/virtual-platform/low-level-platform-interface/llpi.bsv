@@ -25,10 +25,11 @@
 `include "awb/provides/clocks_device.bsh"
 `include "awb/provides/umf.bsh"
 
-// LowLevelPlatformInterface
-
+//
+// LowLevelPlatformInterface.
+//
 // A convenient bundle of all ways to interact with the outside world.
-
+//
 interface LowLevelPlatformInterface;
 
     interface RRR_CLIENT                rrrClient;
@@ -41,10 +42,11 @@ interface LowLevelPlatformInterface;
 
 endinterface
 
+//
 // mkLowLevelPlatformInterface
-
+//
 // Instantiate the subcomponents in one module.
-
+//
 module mkLowLevelPlatformInterface
     //interface:
     (LowLevelPlatformInterface);

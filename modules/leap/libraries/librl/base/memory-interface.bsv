@@ -153,10 +153,8 @@ endinterface
 
 
 //
-// Memory with one writer and multiple readers.
-//
-
 // Single reader interface
+//
 interface MEMORY_READER_IFC#(type t_ADDR, type t_DATA);
     method Action readReq(t_ADDR addr);
     method ActionValue#(t_DATA) readRsp();
@@ -165,15 +163,20 @@ interface MEMORY_READER_IFC#(type t_ADDR, type t_DATA);
     method Bool notFull();
 endinterface
 
+//
 // Single writer interface
 // This might initially seem counter-intuitive, but we'll use this function
 // to manipulate vectorized interfaces later.
+//
 interface MEMORY_WRITER_IFC#(type t_ADDR, type t_DATA);
     method Action write(t_ADDR addr, t_DATA val);
     // Write request possible?
     method Bool writeNotFull();
 endinterface
 
+//
+// Memory with one writer and multiple readers.
+//
 interface MEMORY_MULTI_READ_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA);
     interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
 

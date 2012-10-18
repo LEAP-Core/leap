@@ -16,13 +16,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+//
 // Vectors of send/recv connections used for "chunking" up large message sizes.
 // Note that for a shared connection with a station the vector will be 
 // transmitted one element at a time. This could be improved because currently
 // each element of the vector will take a separate line in the routing table.
 // It may be more efficient to build more "packetizing" into the Station and
 // thus keep its routing table smaller.
-
+//
 module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_station, Bool optional, String origtype)
     // interface:
         (PHYSICAL_SEND#(t_MSG))

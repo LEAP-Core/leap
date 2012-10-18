@@ -20,7 +20,9 @@
 `include "awb/provides/jtag_device.bsh"
 `include "awb/provides/umf.bsh"
 
-// ============== Physical Channel ===============
+// ===========================================================================
+//                         Physical Channel
+//============================================================================
 
 // interface
 interface PHYSICAL_CHANNEL;

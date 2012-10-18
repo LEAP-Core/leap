@@ -17,16 +17,14 @@
 //
 
 
-
+//
 // initRoutingTable
-
+//
 // Given information about all sends and recvs local to a station, and all the children,
 // build a routing table that will guide the station in moving messages.
-
 // Also return information that will be passed to the parent of this station.
-
 // This is a module rather than a function so we can do messageMs for debugging or type errors.
-
+//
 module initRoutingTable#(List#(PHYSICAL_STATION_INFO) children_infos) 
     // interface:
         (PHYSICAL_STATION_INFO);
@@ -220,12 +218,12 @@ module initRoutingTable#(List#(PHYSICAL_STATION_INFO) children_infos)
 endmodule
 
 
-
+//
 // initLogicalMap
-
+//
 // Groups the logical receives of children stations together.
 // Logical receives with more than one physical receiver become multicast.
-
+//
 module initLogicalMap#(List#(PHYSICAL_STATION_INFO) children_infos) (LOGICAL_MAP);
     
     // Start the lists at nil and build them as we go.
@@ -310,13 +308,13 @@ module initLogicalMap#(List#(PHYSICAL_STATION_INFO) children_infos) (LOGICAL_MAP
 
 endmodule
 
-
+//
 // initRoutingTableLeaf
-
+//
 // A convenience function... A leaf station is one whose children are all physical INs or OUTs.
 // These we can route easily by pretending they are very simple stations with only one send/recv.
 // Then we can use our normal routing table function.
-
+//
 module initRoutingTableLeaf#(List#(LOGICAL_RECV_INFO) recvs,
                              List#(LOGICAL_SEND_INFO) sends,
                              List#(LOGICAL_RECV_MULTI_INFO) recv_multis,

@@ -26,10 +26,9 @@ function String debugPath(String fname) = `DEBUG_LOG_DIR + "/" + fname;
 //
 // ========================================================================
 
-// DEBUG_FILE
-
+//
 // A wrapper for a simulation debugging file.
-
+//
 interface DEBUG_FILE;
 
     method Action record(Fmt fmt);

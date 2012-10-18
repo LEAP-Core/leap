@@ -19,11 +19,11 @@
 import List::*;
 import FIFOF::*;
 
-// connectMulticasts
-
+//
+// connectMulticasts. 
 // One-to-many and Many-to-ones are deffered to the top-level. This actually connects them.
 // Return a list of dangling 1-to-1 connections that were not connected to multicasts.
-
+//
 module connectMulticasts#(Clock clk, LOGICAL_CONNECTION_INFO info) (Tuple2#(List#(LOGICAL_SEND_INFO), List#(LOGICAL_RECV_INFO)));
 
     let soft_reset = info.softReset;
@@ -146,11 +146,10 @@ module connectMulticasts#(Clock clk, LOGICAL_CONNECTION_INFO info) (Tuple2#(List
 
 endmodule
 
-
-// connectOneToMany
-
+//
+// connectOneToMany.
 // Do the actual business of connecting a 1-to-many send to many receivers.
-
+//
 module connectOneToMany#(LOGICAL_SEND_MULTI_INFO csend, List#(LOGICAL_RECV_INFO) crecvs) ();
 
 
@@ -259,11 +258,10 @@ module connectOneToMany#(LOGICAL_SEND_MULTI_INFO csend, List#(LOGICAL_RECV_INFO)
 
 endmodule
 
-
-// connectManyToOne
-
+//
+// connectManyToOne.
 // Connect many sends to a many-to-1 receive.
-
+//
 module connectManyToOne#(LOGICAL_RECV_MULTI_INFO crecv, List#(LOGICAL_SEND_INFO) csends) ();
 
     for (Integer x = 0; x < List::length(csends); x = x + 1)
@@ -299,10 +297,10 @@ module connectManyToOne#(LOGICAL_RECV_MULTI_INFO crecv, List#(LOGICAL_SEND_INFO)
 
 endmodule
 
-// connectManyToMany
-
+//
+// connectManyToMany.
 // Connect many sendMultis to many recvMultis. Note that either list may be 0 (or 1).
-
+//
 module connectManyToMany#(String name, List#(LOGICAL_SEND_MULTI_INFO) csends, List#(LOGICAL_RECV_MULTI_INFO) crecvs) ();
 
     List#(List#(FIFOF#(PHYSICAL_CONNECTION_DATA))) qGroups = Nil;

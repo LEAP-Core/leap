@@ -13774,3 +13774,50 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 Use a LUTRAM for storing scoreboard FIFO data instead of a vector of registers.
 I have no idea why we didn't do this in the first place.
+
+----------
+mgambhir    Date: Thu Oct 18 09:45:08 EDT 2012  CSN: CSN-leap-352
+                  Thu Oct 18 13:45:08 UTC 2012
+
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/passthrough
+ pcie-passthrough-physical-channel.bsv Locally Modified          351 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag/altera
+ jtag-physical-channel.bsv Locally Modified          351 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.bsv                  Locally Modified          351 
+
+Directory modules/leap/libraries/librl/base
+ debug-file.bsv            Locally Modified          351 
+ memory-interface.bsv      Locally Modified          351 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-local.bsv           Locally Modified          351 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-local.bsv Locally Modified          351 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-multicasts.bsv    Locally Modified          351 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          351 
+ connection-vectors.bsv    Locally Modified          351 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree
+ tree-routing-table.bsv    Locally Modified          351 
+
+Directory docs
+ doxygen.config            Locally Modified          351 
+
+- Fixed some comments to make them more consistent thus making it easier for doxygen filter to parse them
+- Changed several configuration settings for doxygen
+    - Added frames to the html output
+    - Removed Javadoc style brief description where first line of the comment is taken as brief description
+    - Doxygen now uses the layout file with the html output
+    - Private members and anonymous namespaces not extracted anymore
+    - ...
+    
+    

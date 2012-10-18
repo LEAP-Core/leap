@@ -17,10 +17,9 @@
 //
 
 //
-// @file dynamic-paramters.bsv
+// @file dynamic-paramters-local.bsv
 // @brief Dynamic parameters.  The size of the parameter is an argument to
 //        the declaration.  Parameters may be at most 64 bits.
-//
 // @author Michael Adler
 //
 

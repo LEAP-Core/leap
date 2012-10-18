@@ -42,15 +42,6 @@ typedef enum {
 STDIO_STD_FILES
     deriving (Eq, Bits);
 
-//
-// For now, RRR does not provide virtual channels for each service.  As
-// a result, it is possible to deadlock the shared RRR I/O channel if
-// responses to read requests back up.  Instead of forcing each STDIO
-// client to manage buffers, the implementation here guarantees to provide
-// buffering for all outstanding read requests.  (This would also let us
-// replace RRR with virtual channels and change only the code here to
-// eliminate the buffering.
-//
 
 // Maximum number of read requests in flight
 typedef 4 STDIO_MAX_READS_IN_FLIGHT;
@@ -60,6 +51,15 @@ typedef TDiv#(TDiv#(32768, STDIO_MAX_READS_IN_FLIGHT), SizeOf#(t_DATA))
     STDIO_MAX_ELEM_PER_READ#(type t_DATA);
 typedef Bit#(TLog#(STDIO_MAX_ELEM_PER_READ#(t_DATA))) STDIO_NUM_READ_ELEMS#(type t_DATA);
 
+//
+// For now, RRR does not provide virtual channels for each service.  As
+// a result, it is possible to deadlock the shared RRR I/O channel if
+// responses to read requests back up.  Instead of forcing each STDIO
+// client to manage buffers, the implementation here guarantees to provide
+// buffering for all outstanding read requests.  (This would also let us
+// replace RRR with virtual channels and change only the code here to
+// eliminate the buffering.
+//
 interface STDIO#(type t_DATA);
     // fopen is a request/response interface, returning the file handle
     method Action fopen_req(GLOBAL_STRING_UID nameID, GLOBAL_STRING_UID modeID);

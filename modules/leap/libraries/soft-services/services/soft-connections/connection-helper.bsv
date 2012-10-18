@@ -19,9 +19,12 @@
 import Clocks::*;
 import Connectable::*;
 
-// ****** Helper Functions ******
-
+//============================================================================
+// Helper Functions
+//
 // Connections can be hooked up using the standard mkConnection function
+//=============================================================================
+
 
 instance Connectable#(CONNECTION_OUT#(t_MSG), CONNECTION_IN#(t_MSG));
 
@@ -176,11 +179,11 @@ function Bool primNameDoesNotMatch(String rinfo, s sinfo)
   return !primNameMatches(rinfo, sinfo);
 endfunction
 
-// connectOutToIn
-
+//
+// connectOutToIn.
 // This is the module that actually performs the connection between two
 // physical endpoints. This is for 1-to-1 communication only.
-
+//
 module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin) ();
   
   if(sameFamily(cin.clock,cout.clock))
