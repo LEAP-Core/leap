@@ -57,7 +57,7 @@ physical_platform=ML605 V6 Platform with BlueNoC
 channelio=Basic Virtual Channel Multiplexer
 rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
-local_mem=Local Memory Interface using BRAM
+local_mem=Local Memory Interface using DDR2 Memory
 remote_memory=Null Remote Memory
 
 [Common Physical Platform Utilities]
@@ -118,6 +118,7 @@ bluenoc_core=BlueNoC Core for ML605
 pcie_device=Bluespec PCIE Device (Bluenoc)
 clocks_device=Differential Crystal Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
+ddr2_device=DDR3 SDRAM Physical Device
 
 [ML605 V6 Platform with BlueNoC]
 File=modules/bluespec/common/fpgaenv/physical-platform/ml605/pcie-bluenoc/xilinx-xup-pcie.awb
@@ -142,9 +143,13 @@ Packagehint=leap-platforms
 RESET_ACTIVE_HIGH=1
 CRYSTAL_CLOCK_FREQ=200
 
-[Local Memory Interface using BRAM/Params]
-LOCAL_MEM_ADDR_BITS=14
+[DDR3 SDRAM Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr3-sdram/ddr3-sdram-device.awb
+Packagehint=leap-platforms
 
-[Local Memory Interface using BRAM]
-File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
+[Local Memory Interface using DDR2 Memory]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
 Packagehint=leap
+
+[Local Memory Interface using DDR2 Memory/Params]
+LOCAL_MEM_WORDS_PER_LINE=8
