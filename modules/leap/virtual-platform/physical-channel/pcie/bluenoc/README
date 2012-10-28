@@ -1,0 +1,5 @@
+Bluespec PCIe channel tunneled through BlueNoC.
+
+This channel passes channel I/O stream as BlueNoC messages through Bluespec's PCIe
+BlueNoC implementation.  It doesn't make significant use of the NOC's routing
+capabilities.

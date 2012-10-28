@@ -119,13 +119,21 @@ def get_bluespec_verilog(env):
     
     fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Verilog/'], stdout = subprocess.PIPE)
     fileList = fileProc.stdout.read()
-    #print fileList
     fileArray = clean_split(fileList, sep = '\n')
     for file in fileArray:
         if ((file[-2:] == '.v') and
             (file != 'main.v') and
             (file != 'ConstrainedRandom.v')):
             resultArray.append(bluespecdir + '/Verilog/' + file)
+
+    fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Libraries/'], stdout = subprocess.PIPE)
+    fileList = fileProc.stdout.read()
+    fileArray = clean_split(fileList, sep = '\n')
+    for file in fileArray:
+        if ((file[-2:] == '.v') and
+            (file[:6] != 'xilinx')):
+            resultArray.append(bluespecdir + '/Libraries/' + file)
+
     return resultArray
 
 

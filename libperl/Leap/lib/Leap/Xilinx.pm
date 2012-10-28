@@ -327,6 +327,7 @@ sub __generate_prj_file {
 	    # Don't include main in an include...
 	    next if ($v_file =~ /main.v$/);
             next if ($v_file =~ /ConstrainedRandom.v$/);
+            next if ($v_file =~ /xilinx_.*_pcie_wrapper.v$/);
             $processfile->($module,$file,"",$v_file);
 	}
     }

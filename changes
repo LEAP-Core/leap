@@ -13832,3 +13832,68 @@ Directory config/pm/leap/submodels/fpgaenv
 
 
 Added ddr controller to main ml605 apm.
+
+----------
+mcadler     Date: Sun Oct 28 10:01:46 EDT 2012  CSN: CSN-leap-354
+                  Sun Oct 28 14:01:46 UTC 2012
+
+
+Directory libperl/Leap/lib/Leap
+ Xilinx.pm                 Locally Modified          353 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_ml605.apm    Locally Modified          353 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Added               0 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          353 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ bluespec/                 Locally Removed           353 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec
+ pcie-bluespec-physical-channel.cpp Locally Removed           353 
+ pcie-bluespec-physical-channel.h Locally Removed           353 
+ pcie-bluespec-physical-channel.awb Locally Removed           353 
+ pcie-bluespec-physical-channel.bsv Locally Removed           353 
+ README                    Locally Removed           353 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ bluespec-4byte/           Locally Removed           353 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec-4byte
+ pcie-bluespec-physical-channel.cpp Locally Removed           353 
+ pcie-bluespec-physical-channel.h Locally Removed           353 
+ pcie-bluespec-physical-channel.awb Locally Removed           353 
+ pcie-bluespec-physical-channel.bsv Locally Removed           353 
+ README                    Locally Removed           353 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ bluenoc/                  Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Added               0 
+ pcie-bluenoc-physical-channel.h Locally Added               0 
+ README                    Locally Added               0 
+ pcie-bluenoc-physical-channel.awb Locally Added               0 
+ pcie-bluenoc-physical-channel.bsv Locally Added               0 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          353 
+
+Directory modules/leap/libraries/librl/base
+ librl-bsv-base.awb        Locally Modified          353 
+
+- New ML605 no-memory FPGA environment for quick compilations.  No-memory
+  still has the DDR controller but has a NULL local memory and no central
+  cache.
+
+- Update BlueNoC physical channel for new driver implementation in platforms.
+  The current version has poor performance.  It assumes 8 byte beats and
+  4 byte UMF chunks.  Each UMF chunk is sent in a single BlueNoC beat as a
+  BlueNoC packet with a 4 byte payload.  The "don't wait" bit is set, forcing
+  8 byte messages.  With the UMF to BlueNoC marshaller now in Channel-I/O it
+  will be easier to take on the next step of generating more efficient streams.
+
+- Add $BLUESPECDIR/Libraries to the Verilog file search path.  BlueNoC
+  components are found there.

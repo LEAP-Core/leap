@@ -25,6 +25,7 @@
 %public guarded-pipelines.bsv
 %public register.bsv
 
-%include --type=verilog @BLUESPECDIR@/Verilog/
+%include --type=verilog @BLUESPECDIR@/Verilog
+%include --type=verilog @BLUESPECDIR@/Libraries
 
 %param DEBUG_LOG_DIR  "leap_debug"   "Debug log directory"

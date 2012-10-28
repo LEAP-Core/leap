@@ -19,12 +19,9 @@
 #ifndef __PHYSICAL_CHANNEL__
 #define __PHYSICAL_CHANNEL__
 
-#include <stdio.h>
-
 #include "awb/provides/umf.h"
-#include "awb/provides/physical_platform.h"
 #include "awb/provides/pcie_device.h"
-
+#include "awb/provides/physical_platform.h"
 
 // ============================================
 //               Physical Channel              
@@ -32,27 +29,18 @@
 
 class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 {
-
   private:
- 
-  int msg_count_in, msg_count_out;
 
-  // incomplete incoming read message
-  UMF_MESSAGE incomingMessage;
-  
-  PCIE_DEVICE pcieDevice;
-  FILE* errfd;
-  int initialized;
-
-  void   readPipe();
-
-  void   InitLocal();
+    // links to useful physical devices
+    PCIE_DEVICE pcieDev;
 
   public:
 
     PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE, PHYSICAL_DEVICES);
     ~PHYSICAL_CHANNEL_CLASS();
-    
+
+    void Init();
+
     UMF_MESSAGE Read();             // blocking read
     UMF_MESSAGE TryRead();          // non-blocking read
     void        Write(UMF_MESSAGE); // write
