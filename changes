@@ -13897,3 +13897,15 @@ Directory modules/leap/libraries/librl/base
 
 - Add $BLUESPECDIR/Libraries to the Verilog file search path.  BlueNoC
   components are found there.
+
+----------
+mcadler     Date: Sun Oct 28 11:25:43 EDT 2012  CSN: CSN-leap-355
+                  Sun Oct 28 15:25:43 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          354 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          354 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          354 
+
+Moved PCIe driver.

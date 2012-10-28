@@ -118,7 +118,7 @@ ddr2_device=DDR2 SDRAM Physical Device
 led_device=General LED Device
 jtag_device=Xilinx JTAG Physical Device
 switch_device=General Switch Device
-pci_express_device=PCI Express Physical Device (mmap-based)
+pci_express_device=CSR/mmap-based PCIe Physical Device
 
 [Xilinx JTAG Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/jtag/xilinx/jtag-device-physical.awb
@@ -129,15 +129,10 @@ File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/nu
 Packagehint=leap
 
 [Driver Header for PCIe Kernel Module]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-driver-header/pchnl_if.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-csr/pcie-driver-header/pchnl_if.awb
 Packagehint=leap-platforms
 
-[PCI Express Physical Device (mmap-based)/Requires]
-pci_express_driver_header=Driver Header for PCIe Kernel Module
 
-[PCI Express Physical Device (mmap-based)]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-new/pci-express-device-mmap.awb
-Packagehint=leap-platforms
 
 [FPGA Build Pipeline Xilinx]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
@@ -155,7 +150,13 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
 [Standard Platform Services Submodel]
 File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap
+
+[CSR/mmap-based PCIe Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-csr/pci-express-device-mmap.awb
+Packagehint=leap-platforms
+
+[CSR/mmap-based PCIe Physical Device/Requires]
+pci_express_driver_header=Driver Header for PCIe Kernel Module

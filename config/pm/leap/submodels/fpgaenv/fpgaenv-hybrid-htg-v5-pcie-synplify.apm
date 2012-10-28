@@ -69,7 +69,7 @@ local_mem=Local Memory Interface using DDR2 Memory
 remote_memory=Remote Memory using PCI Express DMA
 
 [Driver Header for PCIe Kernel Module]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-driver-header/pchnl_if.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-csr/pcie-driver-header/pchnl_if.awb
 Packagehint=leap-platforms
 
 [Single-Ended Crystal Clocks Device]
@@ -96,23 +96,18 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
 Packagehint=leap-platforms
 
-[PCI Express Physical Device (mmap-based)/Requires]
-pci_express_driver_header=Driver Header for PCIe Kernel Module
 
 [Remote Memory using PCI Express DMA]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma/remote-memory-pcie-dma.awb
 Packagehint=leap
 
-[PCI Express Physical Device (mmap-based)]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-new/pci-express-device-mmap.awb
-Packagehint=leap-platforms
 
 [DDR2 SDRAM Physical Device for Synplify]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr2-sdram/ddr2-sdram-device-synplify.awb
 Packagehint=leap-platforms
 
 [HTG Virtex 5 PCIE Enabled Synplify/Requires]
-pci_express_device=PCI Express Physical Device (mmap-based)
+pci_express_device=CSR/mmap-based PCIe Physical Device
 clocks_device=Single-Ended Crystal Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
@@ -150,7 +145,13 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
 [Standard Platform Services Submodel]
 File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap
+
+[CSR/mmap-based PCIe Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-csr/pci-express-device-mmap.awb
+Packagehint=leap-platforms
+
+[CSR/mmap-based PCIe Physical Device/Requires]
+pci_express_driver_header=Driver Header for PCIe Kernel Module
