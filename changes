@@ -13934,3 +13934,13 @@ Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
  local-mem-ddr2.bsv        Locally Modified          356 
 
 Update for new shared code between DDR2 and DDR3 SDRAM drivers.
+
+----------
+mcadler     Date: Mon Oct 29 18:49:17 EDT 2012  CSN: CSN-leap-358
+                  Mon Oct 29 22:49:17 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-no-memory.apm Locally Added               0 
+
+Add a HTG configuration with no central cache.
