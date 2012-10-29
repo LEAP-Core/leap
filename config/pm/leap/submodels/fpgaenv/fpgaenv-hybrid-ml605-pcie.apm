@@ -83,7 +83,6 @@ rrr_common=RRR Common Module
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
 Packagehint=leap
 
-
 [FPGA Build Pipeline Xilinx]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
 Packagehint=leap
@@ -100,11 +99,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap
 
-
-
-
-
-
 [Soft Services Submodel]
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
@@ -113,9 +107,6 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex6-generic.awb
 Packagehint=leap-platforms
 
-[Hardware FPGA Components for Virtex 6 (Generic)/Params]
-XILINX_FAMILY="virtex6"
-
 [Differential Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
@@ -123,16 +114,9 @@ Packagehint=leap-platforms
 [Differential Crystal Clocks Device/Params]
 CRYSTAL_CLOCK_FREQ=200
 
-[DDR3 SDRAM Physical Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr3-sdram/ddr3-sdram-device.awb
-Packagehint=leap-platforms
-
 [Local Memory Interface using DDR2 Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
 Packagehint=leap
-
-[Local Memory Interface using DDR2 Memory/Params]
-LOCAL_MEM_WORDS_PER_LINE=8
 
 [Virtex-6 PCIE Device (BlueNoC)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex6/pcie-virtex6.awb
@@ -158,8 +142,22 @@ Packagehint=leap-platforms
 pcie_device=BlueNoC PCIe Bridge
 clocks_device=Differential Crystal Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
-ddr2_device=DDR3 SDRAM Physical Device
+ddr_sdram_device=Xilinx DDR SDRAM Physical Device
 
 [BlueNoC PCIe Bridge Interfaces]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc/pcie-bluenoc-ifc.awb
 Packagehint=leap-platforms
+
+[ML605 DDR3 SDRAM]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-ml605/ddr3-sdram-device.awb
+Packagehint=leap-platforms
+
+[Xilinx DDR SDRAM Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr-sdram-xilinx.awb
+Packagehint=leap-platforms
+
+[Xilinx DDR SDRAM Physical Device/Requires]
+ddr_sdram_xilinx_driver=ML605 DDR3 SDRAM
+
+[Local Memory Interface using DDR2 Memory/Params]
+LOCAL_MEM_WORDS_PER_LINE=8

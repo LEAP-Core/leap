@@ -51,7 +51,7 @@ led_device=General LED Device
 switch_device=General Switch Device
 clocks_device=Single-Ended Crystal Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
-ddr2_device=DDR2 SDRAM Physical Device
+ddr_sdram_device=Xilinx DDR SDRAM Physical Device
 
 [General Switch Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/switches/general-switch-device.awb
@@ -84,9 +84,6 @@ remote_memory=Remote Memory using PCI Express DMA
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-csr/pcie-driver-header/pchnl_if.awb
 Packagehint=leap-platforms
 
-[DDR2 SDRAM Physical Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr2-sdram/ddr2-sdram-device.awb
-Packagehint=leap-platforms
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
@@ -112,11 +109,9 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
 Packagehint=leap-platforms
 
-
 [Remote Memory using PCI Express DMA]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma/remote-memory-pcie-dma.awb
 Packagehint=leap
-
 
 [Little-Endian Unified Message Format]
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
@@ -155,3 +150,14 @@ Packagehint=leap-platforms
 
 [CSR/mmap-based PCIe Physical Device/Requires]
 pci_express_driver_header=Driver Header for PCIe Kernel Module
+
+[Xilinx DDR SDRAM Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr-sdram-xilinx.awb
+Packagehint=leap-platforms
+
+[Xilinx DDR SDRAM Physical Device/Requires]
+ddr_sdram_xilinx_driver=HTG Virtex-5 DDR2 SDRAM
+
+[HTG Virtex-5 DDR2 SDRAM]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr2-sdram-v5-htg/ddr2-sdram-device.awb
+Packagehint=leap-platforms

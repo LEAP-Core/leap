@@ -33,7 +33,7 @@ import Vector::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/physical_platform.bsh"
-`include "awb/provides/ddr2_device.bsh"
+`include "awb/provides/ddr_sdram_device.bsh"
 
 //
 // platformHasLocalMem --
@@ -175,7 +175,7 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
 
 
     // Get a handle to the DDR2 DRAM Controller
-    Vector#(FPGA_DDR_BANKS, DDR2_DRIVER) dramDriver = drivers.ddr2Driver;
+    Vector#(FPGA_DDR_BANKS, DDR_DRIVER) dramDriver = drivers.ddrDriver;
 
     // Merge read and write requests into a single FIFO to preserve order.
     // The DDR controller does this anyway, so we lose no performance.

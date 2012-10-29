@@ -13919,3 +13919,18 @@ Directory config/pm/leap/submodels/fpgaenv
  fpgaenv-hybrid-xupv2-serial.apm Locally Modified          355 
 
 DDR driver moved.
+
+----------
+mcadler     Date: Mon Oct 29 18:45:58 EDT 2012  CSN: CSN-leap-357
+                  Mon Oct 29 22:45:58 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          356 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          356 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          356 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-ddr2.bsv        Locally Modified          356 
+
+Update for new shared code between DDR2 and DDR3 SDRAM drivers.
