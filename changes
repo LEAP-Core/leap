@@ -13909,3 +13909,13 @@ Directory config/pm/leap/submodels/fpgaenv
  fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          354 
 
 Moved PCIe driver.
+
+----------
+mcadler     Date: Mon Oct 29 10:26:02 EDT 2012  CSN: CSN-leap-356
+                  Mon Oct 29 14:26:02 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified          355 
+
+DDR driver moved.

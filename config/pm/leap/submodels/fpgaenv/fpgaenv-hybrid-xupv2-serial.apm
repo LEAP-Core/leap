@@ -89,8 +89,6 @@ File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xup/serial/xilinx-
 Packagehint=leap-platforms
 
 [NULL Local Memory Interface/Params]
-LOCAL_MEM_WORDS_PER_LINE=4
-LOCAL_MEM_WORD_BITS=64
 LOCAL_MEM_ADDR_BITS=26
 
 [NULL Local Memory Interface]
@@ -132,7 +130,7 @@ File=modules/leap/virtual-platform/physical-channel/serial/serial-physical-chann
 Packagehint=leap
 
 [DDR SDRAM Physical Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr/ddr-sdram-device.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/sdram-xupv2/ddr-sdram-device.awb
 Packagehint=leap-platforms
 
 [FPGA Build Pipeline Xilinx (Synplify)]
