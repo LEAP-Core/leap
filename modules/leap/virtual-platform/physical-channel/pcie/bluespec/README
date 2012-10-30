@@ -1,0 +1,9 @@
+Bluespec PCIe Physical Channel
+
+This is an older implementation, using PCIe directly from Bluespec-provided
+drivers.  More recent implementations use BlueNoC layered on top of the
+PCIe interface to manage DMA.
+
+This physical channel abstrancts the PCIe physical device provided by Bluespec
+Inc into UMF chunks. It does not use any advanced features of the Bluespec Inc
+device.

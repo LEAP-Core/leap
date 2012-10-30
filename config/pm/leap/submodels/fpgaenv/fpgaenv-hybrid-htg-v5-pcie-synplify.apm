@@ -96,14 +96,12 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex5.awb
 Packagehint=leap-platforms
 
-
 [Remote Memory using PCI Express DMA]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma/remote-memory-pcie-dma.awb
 Packagehint=leap
 
-
 [DDR2 SDRAM Physical Device for Synplify]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr2-sdram/ddr2-sdram-device-synplify.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr2-sdram-v5-htg/ddr2-sdram-device-synplify.awb
 Packagehint=leap-platforms
 
 [HTG Virtex 5 PCIE Enabled Synplify/Requires]

@@ -82,7 +82,7 @@ serial_device=Serial Physical Device (physical)
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
 switch_device=General Switch Device
-ddr_sdram_device=DDR SDRAM Physical Device
+ddr_sdram_device=XUPv2 DDR SDRAM Physical Device
 
 [XUP Virtex 2 Serial]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xup/serial/xilinx-xup-serial.awb
@@ -129,9 +129,6 @@ Packagehint=leap-platforms
 File=modules/leap/virtual-platform/physical-channel/serial/serial-physical-channel-8bit.awb
 Packagehint=leap
 
-[DDR SDRAM Physical Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/sdram-xupv2/ddr-sdram-device.awb
-Packagehint=leap-platforms
 
 [FPGA Build Pipeline Xilinx (Synplify)]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-synplify.apm
@@ -159,3 +156,7 @@ Packagehint=leap
 [Standard Platform Service (No Memory Service)]
 File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
 Packagehint=leap
+
+[XUPv2 DDR SDRAM Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/sdram-xupv2/ddr-sdram-device.awb
+Packagehint=leap-platforms

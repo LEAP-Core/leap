@@ -1,0 +1,14 @@
+
+%name Old-Style Bluespec PCIe Physical Channel 
+%desc Old-Style Bluespec PCIe Physical Channel
+
+%provides physical_channel
+
+%notes README
+
+%sources -t BSV -v PUBLIC   pcie-bluespec-physical-channel.bsv
+%sources -t H   -v PUBLIC   pcie-bluespec-physical-channel.h
+%sources -t CPP -v PUBLIC   pcie-bluespec-physical-channel.cpp
+
+%param SOFT_RESET 0 "Does this channel support soft reset?"
+

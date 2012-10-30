@@ -13944,3 +13944,31 @@ Directory config/pm/leap/submodels/fpgaenv
  fpgaenv-hybrid-htg-v5-pcie-no-memory.apm Locally Added               0 
 
 Add a HTG configuration with no central cache.
+
+----------
+mcadler     Date: Mon Oct 29 20:26:23 EDT 2012  CSN: CSN-leap-359
+                  Tue Oct 30 00:26:23 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified          358 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          358 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          358 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          358 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          358 
+ fpgaenv-hybrid-605d-syn.apm Locally Removed           358 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          358 
+ fpgaenv-hybrid-605d-xst.apm Locally Removed           358 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          358 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie
+ bluespec/                 Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec
+ pcie-bluespec-physical-channel.cpp Locally Added               0 
+ pcie-bluespec-physical-channel.h Locally Added               0 
+ pcie-bluespec-physical-channel.awb Locally Added               0 
+ pcie-bluespec-physical-channel.bsv Locally Added               0 
+ README                    Locally Added               0 
+
+Restore the physical channel corresponding to the XUPv5 PCIe driver.

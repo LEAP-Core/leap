@@ -107,25 +107,19 @@ File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
 Packagehint=leap
 
 [Basic Virtual Channel Multiplexer/Requires]
-physical_channel=Bluespec PCIE Physical Channel
+physical_channel=Old-Style Bluespec PCIe Physical Channel
 
 [XUP Virtex 5 PCIE SATA]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/pcie-sata/xilinx-xup-pcie-sata.awb
 Packagehint=leap-platforms
 
 [XUP Virtex 5 PCIE SATA/Requires]
-pcie_device=Bluespec PCIE Device
+pcie_device=XUPv5 PCIE Device
 clocks_device=Single-Ended Crystal Clocks Device
 sata_device=Bluespec SATA Device
 physical_platform_utils=Common Physical Platform Utilities
 
-[Bluespec PCIE Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express-bluespec/pcie-bluespec.awb
-Packagehint=leap-platforms
 
-[Bluespec PCIE Physical Channel]
-File=modules/leap/virtual-platform/physical-channel/pcie/bluespec/pcie-bluespec-physical-channel.awb
-Packagehint=leap
 
 [FPGA Build Pipeline Xilinx (Synplify)]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-synplify.apm
@@ -139,7 +133,14 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
 [Standard Platform Services Submodel]
 File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
 Packagehint=leap
+
+[Old-Style Bluespec PCIe Physical Channel]
+File=modules/leap/virtual-platform/physical-channel/pcie/bluespec/pcie-bluespec-physical-channel.awb
+Packagehint=leap
+
+[XUPv5 PCIE Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-xupv5/pcie-bluespec.awb
+Packagehint=leap-platforms
