@@ -72,6 +72,7 @@ Packagehint=leap-platforms
 unix_pipe_device=UNIX Pipe Physical Device
 clocks_device=Simulation Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
+ddr_sdram_device=DDR SDRAM Emulator in BRAM
 
 [Simulation Physical Platform]
 File=modules/bluespec/common/fpgaenv/physical-platform/simulation/sim-physical-platform.awb
@@ -85,7 +86,6 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
 Packagehint=leap-platforms
 
-
 [Simulation Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/simulation/sim-clocks-device.awb
 Packagehint=leap-platforms
@@ -93,7 +93,6 @@ Packagehint=leap-platforms
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
 Packagehint=leap-platforms
-
 
 [Null Remote Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
@@ -122,8 +121,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
-
 [Standard Virtual Devices (No Memory Service) Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-null-mem.apm
 Packagehint=leap
@@ -135,3 +132,7 @@ Packagehint=leap
 [NULL Local Memory Interface]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
+
+[DDR SDRAM Emulator in BRAM]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-bram/ddr-sdram-bram.awb
+Packagehint=leap-platforms

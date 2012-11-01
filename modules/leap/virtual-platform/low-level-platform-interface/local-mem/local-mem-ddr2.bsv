@@ -71,7 +71,7 @@ typedef TSub#(TAdd#(FPGA_DDR_ADDRESS_SZ, TLog#(FPGA_DDR_BANKS)),
 // *****
 
 // The DRAM driver breaks reads and writes into multi-cycle bursts.
-typedef TMul#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_DATA_SZ) DDR_BURST_DATA_SZ;
+typedef TMul#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT_SZ) DDR_BURST_DATA_SZ;
 typedef TDiv#(DDR_BURST_DATA_SZ, LOCAL_MEM_WORD_SZ) LOCAL_MEM_WORDS_PER_BURST;
 typedef Vector#(LOCAL_MEM_WORDS_PER_BURST, LOCAL_MEM_WORD) DDR_BURST_DATA;
 typedef Vector#(LOCAL_MEM_WORDS_PER_BURST, LOCAL_MEM_WORD_MASK) DDR_BURST_DATA_MASK;
@@ -147,7 +147,7 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
               Max#(TLog#(LOCAL_MEM_WORDS_PER_BURST), 1, t_SAFE_WORD_IDX_SZ),
               Alias#(Bit#(t_SAFE_WORD_IDX_SZ), t_SAFE_WORD_IDX));
 
-    if (valueOf(FPGA_DDR_DUALEDGE_DATA_SZ) * valueOf(FPGA_DDR_BANKS) >
+    if (valueOf(FPGA_DDR_DUALEDGE_BEAT_SZ) * valueOf(FPGA_DDR_BANKS) >
         valueOf(LOCAL_MEM_LINE_SZ))
     begin
         error("Expected LOCAL_MEM_LINE size >= one access across the width of all banks combined");
@@ -284,7 +284,7 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     Vector#(FPGA_DDR_BANKS, FIFO#(DDR_BURST_DATA)) readDDRBurstRspQ <- replicateM(mkFIFO());
     Vector#(FPGA_DDR_BANKS,
             Reg#(Vector#(FPGA_DDR_BURST_LENGTH,
-                         FPGA_DDR_DUALEDGE_DATA))) readDDRBurstBuf <- replicateM(mkRegU());
+                         FPGA_DDR_DUALEDGE_BEAT))) readDDRBurstBuf <- replicateM(mkRegU());
     Vector#(FPGA_DDR_BANKS,
             Reg#(Bit#(TLog#(FPGA_DDR_BURST_LENGTH)))) readDDRBurstIdx <- replicateM(mkReg(0));
 
@@ -372,11 +372,11 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     begin
         rule forwardWriteLineData (writeDataQ[b].first() matches tagged WRITE_LINE {.w_data, .w_mask});
             // Data for this stage in the burst
-            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_DATA) burst;
+            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT) burst;
             burst = unpack(pack(w_data[writeLineDataBurstIdx[b]]));
             let val = burst[writeDDRBurstIdx[b]];
        
-            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_DATA_MASK) burst_mask;
+            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT_MASK) burst_mask;
             burst_mask = unpack(pack(w_mask[writeLineDataBurstIdx[b]]));
             let mask = burst_mask[writeDDRBurstIdx[b]];
 
@@ -424,11 +424,11 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
             m[w_idx.wordIdx] = w_mask;
 
             // Convert to DDR types
-            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_DATA) burst;
+            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT) burst;
             burst = unpack(pack(d));
             let val = burst[writeDDRBurstIdx[b]];
        
-            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_DATA_MASK) burst_mask;
+            Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT_MASK) burst_mask;
             burst_mask = unpack(pack(m));
             let mask = burst_mask[writeDDRBurstIdx[b]];
 

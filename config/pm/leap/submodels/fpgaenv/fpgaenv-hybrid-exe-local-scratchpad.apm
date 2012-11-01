@@ -61,7 +61,7 @@ physical_platform=Simulation Physical Platform
 channelio=Basic Virtual Channel Multiplexer
 rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
-local_mem=Local Memory Interface using BRAM
+local_mem=Local Memory Interface using DDR2 Memory
 remote_memory=Null Remote Memory
 
 [UNIX Pipe Physical Device]
@@ -72,6 +72,7 @@ Packagehint=leap-platforms
 unix_pipe_device=UNIX Pipe Physical Device
 clocks_device=Simulation Clocks Device
 physical_platform_utils=Common Physical Platform Utilities
+ddr_sdram_device=DDR SDRAM Emulator in BRAM
 
 [Simulation Physical Platform]
 File=modules/bluespec/common/fpgaenv/physical-platform/simulation/sim-physical-platform.awb
@@ -85,9 +86,6 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
 Packagehint=leap-platforms
 
-[Local Memory Interface using BRAM]
-File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
-Packagehint=leap
 
 [Simulation Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/simulation/sim-clocks-device.awb
@@ -97,10 +95,6 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
 Packagehint=leap-platforms
 
-[Local Memory Interface using BRAM/Params]
-LOCAL_MEM_WRITE_LATENCY=4
-LOCAL_MEM_READ_LATENCY=8
-LOCAL_MEM_ADDR_BITS=20
 
 [Null Remote Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
@@ -136,3 +130,11 @@ Packagehint=leap
 [Standard Platform Services (Local Memory Scratchpad) Submodel]
 File=config/pm/leap/submodels/platform-services/standard-platform-local-mem.apm
 Packagehint=leap
+
+[Local Memory Interface using DDR2 Memory]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
+Packagehint=leap
+
+[DDR SDRAM Emulator in BRAM]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-bram/ddr-sdram-bram.awb
+Packagehint=leap-platforms

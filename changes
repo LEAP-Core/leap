@@ -13972,3 +13972,21 @@ Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec
  README                    Locally Added               0 
 
 Restore the physical channel corresponding to the XUPv5 PCIe driver.
+
+----------
+mcadler     Date: Thu Nov  1 08:08:51 EDT 2012  CSN: CSN-leap-360
+                  Thu Nov  1 12:08:51 UTC 2012
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_exe_nosynth.apm Locally Modified          359 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe-no-memory.apm Locally Modified          359 
+ fpgaenv-hybrid-exe.apm    Locally Modified          359 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          359 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-ddr2.bsv        Locally Modified          359 
+
+Use the new DDR RAM emulator on Bluesim platforms.
