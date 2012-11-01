@@ -136,3 +136,6 @@ Packagehint=leap-platforms
 [Local Memory Interface using DDR2 Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
 Packagehint=leap
+
+[DDR SDRAM Emulator in BRAM/Params]
+DRAM_READ_LATENCY=10

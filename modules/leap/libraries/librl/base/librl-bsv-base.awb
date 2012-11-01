@@ -12,6 +12,7 @@
 %public counters.bsv
 %public debug-file.bsv
 %public extends.bsv
+%public fifo-delay.bsv
 %public fifo-functions.bsv
 %public fifo-marshaller.bsv
 %public fifo-merge.bsv

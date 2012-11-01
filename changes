@@ -14003,3 +14003,21 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
  platform-scratchpad-memory.bsv Locally Modified          360 
 
 Update to recent scratchpad interface.
+
+----------
+mcadler     Date: Thu Nov  1 16:47:47 EDT 2012  CSN: CSN-leap-362
+                  Thu Nov  1 20:47:47 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe.apm    Locally Modified          361 
+
+Directory modules/leap/libraries/librl/base
+ fifo-delay.bsv            Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          361 
+
+- Add a new FIFO structure that adds latency to the channel.  This is probably
+  more useful in simulation  than on real hardware.
+
+- Make the default latency for simulated DDR SDRAM reads 10 cycles in Bluesim
+  to be more like real memory.
