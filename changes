@@ -13990,3 +13990,16 @@ Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
  local-mem-ddr2.bsv        Locally Modified          359 
 
 Use the new DDR RAM emulator on Bluesim platforms.
+
+----------
+mcadler     Date: Thu Nov  1 13:51:03 EDT 2012  CSN: CSN-leap-361
+                  Thu Nov  1 17:51:03 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local
+ local-mem-scratch.bsv     Locally Modified          360 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          360 
+
+Update to recent scratchpad interface.

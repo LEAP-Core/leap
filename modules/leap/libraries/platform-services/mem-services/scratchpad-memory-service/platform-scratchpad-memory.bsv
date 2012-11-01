@@ -478,7 +478,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
 
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
-                                        byteReadMask: replicate(True),
+                                        byteReadMask: unpack(~0),
                                         readUID: zeroExtendNP(pack(maf_idx)) };
 
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
@@ -820,7 +820,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         //
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
-                                        byteReadMask: replicate(True),
+                                        byteReadMask: unpack(~0),
                                         readUID: zeroExtendNP(pack(readUID)) };
 
         // Forward the request to the scratchpad virtual device that handles

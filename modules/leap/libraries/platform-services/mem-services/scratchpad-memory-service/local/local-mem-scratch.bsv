@@ -95,7 +95,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     LUTRAM#(SCRATCHPAD_PORT_NUM, Maybe#(SCRATCHPAD_MEM_ADDRESS)) portSegmentBase <- mkLUTRAM(tagged Invalid);
 
     // Direct read responses to the correct port
-    FIFOF#(Tuple2#(SCRATCHPAD_MEM_ADDRESS, SCRATCHPAD_REF_INFO)) readQ <- mkSizedFIFOF(8);
+    FIFOF#(Tuple2#(SCRATCHPAD_MEM_ADDRESS, SCRATCHPAD_READ_UID)) readQ <- mkSizedFIFOF(8);
 
 
     // ====================================================================
@@ -164,13 +164,13 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
 
     method Action readReq(SCRATCHPAD_MEM_ADDRESS addr,
                           SCRATCHPAD_MEM_MASK byteMask,
-                          SCRATCHPAD_REF_INFO refInfo) if (initDone());
-        if (portSegmentBase.sub(refInfo.portNum) matches tagged Valid .segment_base)
+                          SCRATCHPAD_READ_UID readUID) if (initDone());
+        if (portSegmentBase.sub(readUID.portNum) matches tagged Valid .segment_base)
         begin
             let p_addr = addr + segment_base;
-            debugLog.record($format("readReq port %0d: addr 0x%x, p_addr 0x%x", refInfo.portNum, addr, p_addr));
+            debugLog.record($format("readReq port %0d: addr 0x%x, p_addr 0x%x", readUID.portNum, addr, p_addr));
 
-            readQ.enq(tuple2(addr, refInfo));
+            readQ.enq(tuple2(addr, readUID));
 
 `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
             lms.makeReq(tagged LM_READ_WORD p_addr);
@@ -180,7 +180,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         end
         else
         begin
-            debugLog.record($format("ERROR: read before init %0d", refInfo.portNum));
+            debugLog.record($format("ERROR: read before init %0d", readUID.portNum));
         end
     endmethod
 
@@ -192,16 +192,16 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
                              if (lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
 `endif
 
-        match {.addr, .ref_info} = readQ.first();
+        match {.addr, .read_uid} = readQ.first();
         readQ.deq();
         lms.deq();
 
-        debugLog.record($format("readRsp port %0d: 0x%x", ref_info.portNum, val));
+        debugLog.record($format("readRsp port %0d: 0x%x", read_uid.portNum, val));
 
         SCRATCHPAD_READ_RESP#(SCRATCHPAD_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE) r;
         r.val = val;
         r.addr = addr;
-        r.refInfo = ref_info;
+        r.readUID = read_uid;
         r.isCacheable = True;
 
         return r;
