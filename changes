@@ -14075,3 +14075,16 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
   the correct implementation in AWB, though it is quite obvious when the
   wrong version is chosen as the wrong one will fail some size and proviso
   checks.
+
+----------
+mcadler     Date: Tue Nov  6 11:24:15 EST 2012  CSN: CSN-leap-364
+                  Tue Nov  6 16:24:15 UTC 2012
+
+
+Directory modules/leap/virtual-platform/channelio/basic
+ channelio-common.bsv      Locally Modified          363 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ demarshaller.bsv          Locally Modified          363 
+
+Replace complicated code with equivalent and simpler Bluespec functions.

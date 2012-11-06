@@ -50,21 +50,12 @@ module mkRRRDemarshaller
     provisos
         (Bits#(in_T, in_SZ),
          Bits#(out_T, out_SZ),
-         Div#(out_SZ, in_SZ, k__));
+         Div#(out_SZ, in_SZ, n_CHUNKS));
     
     // =============== state ================
     
-    // degree (max number of chunks) of our shift register
-    Integer degree = valueof(k__);
-    
     // shift register we fill up as chunks come in.
-    Vector#(k__, Reg#(Bit#(in_SZ))) chunks = newVector();
-    
-    // fill in the vector
-    for (Integer x = degree - 1; x >= 0; x = x - 1)
-    begin
-        chunks[x] <- mkReg(0);
-    end
+    Reg#(Vector#(n_CHUNKS, Bit#(in_SZ))) chunks <- mkRegU();
     
     // number of chunks remaining in current sequence
     Reg#(UMF_MSG_LENGTH) chunksRemaining <- mkReg(0);
@@ -89,16 +80,7 @@ module mkRRRDemarshaller
                                          chunksRemaining != 0);
     
         // newer chunks are closer to the LSB.
-        if (degree != 0)
-        begin
-            chunks[0] <= pack(chunk);
-        end
-      
-        // Do the shift with a for loop
-        for (Integer x = 1; x < degree; x = x+1)
-        begin
-            chunks[x] <= chunks[x-1];
-        end
+        chunks <= shiftInAt0(chunks, pack(chunk));
         
         // decrement chunks remaining
         chunksRemaining <= chunksRemaining - 1;
@@ -108,38 +90,23 @@ module mkRRRDemarshaller
     // return the entire vector
     method ActionValue#(out_T) readAndDelete() if (state == STATE_queueing &&
                                                    chunksRemaining == 0);
-    
- 
-        Bit#(out_SZ) final_val = truncateNP(pack(readVReg(chunks)));
-         
+
         // switch to idle state
         state <= STATE_idle;
-    
+
         // return
+        Bit#(out_SZ) final_val = truncateNP(pack(chunks));
         return unpack(final_val);
-    
+
     endmethod
 
     // return the entire vector
     method out_T peek() if (state == STATE_queueing &&
                             chunksRemaining == 0);
-    
-        Bit#(out_SZ) final_val = 0;
-      
-        // this is where the good stuff happens
-        // fill in the result one bit at a time
-        for (Integer x = 0; x < valueof(out_SZ); x = x + 1)
-        begin
-        
-            Integer j = x / valueof(in_SZ);
-            Integer k = x % valueof(in_SZ);
-            final_val[x] = chunks[j][k];
-      
-        end
-        
-        // return
+
+        Bit#(out_SZ) final_val = truncateNP(pack(chunks));
         return unpack(final_val);
-    
+
     endmethod
 
 endmodule

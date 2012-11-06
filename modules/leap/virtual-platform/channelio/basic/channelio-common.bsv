@@ -1,6 +1,25 @@
+//
+// Copyright (C) 2012 Intel Corporation
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+
 import FIFOF::*;
 import Vector::*;
 
+`include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/umf.bsh"
 
 // read/write port interfaces
@@ -26,7 +45,7 @@ module mkChannelVirtualizer#(function ActionValue#(umf_chunk) read(), function A
        provisos (Bits#(umf_chunk, TAdd#(filler_bits, TAdd#(umf_phy_pvt,
                                   TAdd#(umf_channel_id, TAdd#(umf_service_id, 
                                                         TAdd#(umf_method_id,
-                                        umf_message_len)))))));
+                                                              umf_message_len)))))));
 
     Reg#(Bit#(umf_message_len)) readChunksRemaining  <- mkReg(0);
     Reg#(Bit#(umf_message_len)) writeChunksRemaining <- mkReg(0);
@@ -40,19 +59,19 @@ module mkChannelVirtualizer#(function ActionValue#(umf_chunk) read(), function A
     // ==============================================================
 
     // create read/write buffers and link them to ports
-    FIFOF#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+    Vector#(reads, FIFOF#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
                            umf_channel_id, umf_service_id,
                            umf_method_id,  umf_message_len,
-                           umf_phy_pvt,    filler_bits), umf_chunk))  readBuffers[valueof(reads)];
+                           umf_phy_pvt,    filler_bits), umf_chunk))) readBuffers = newVector();
     Vector#(reads, CIOReadPort#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
                            umf_channel_id, umf_service_id,
                            umf_method_id,  umf_message_len,
-                           umf_phy_pvt,    filler_bits), umf_chunk)))  rports = newVector();
+                           umf_phy_pvt,    filler_bits), umf_chunk))) rports = newVector();
 
-    FIFOF#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+    Vector#(writes, FIFOF#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
                            umf_channel_id, umf_service_id,
                            umf_method_id,  umf_message_len,
-                           umf_phy_pvt,    filler_bits), umf_chunk)) writeBuffers[valueof(writes)];
+                           umf_phy_pvt,    filler_bits), umf_chunk))) writeBuffers = newVector();
     Vector#(writes, CIOWritePort#(GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
                            umf_channel_id, umf_service_id,
                            umf_method_id,  umf_message_len,
@@ -145,57 +164,39 @@ module mkChannelVirtualizer#(function ActionValue#(umf_chunk) read(), function A
     //                          Write rules
     // ==============================================================
 
-    Bool request[valueof(writes)];
-    Bool higher_priority_request[valueof(writes)];
-    Bool grant[valueof(writes)];
+    //
+    // Pick the next channel that may start a new message (assuming one isn't
+    // already in flight.  Priority is static, with highest priority going
+    // to the lowest numbered channel.
+    //
 
-    // static loop for all write channels
-    for (Integer i = 0; i < valueof(writes); i = i + 1)
-    begin
+    function Bool isNotEmpty(FIFOF#(t) f) = f.notEmpty();
 
-        // compute priority for this channel (static request/grant)
-        // current algorithm involves a chain OR, which is fine for
-        // a small number of channels
+    // start writing new message
+    rule write_physical_channel_newmsg (writeChunksRemaining == 0 &&&
+                                        findIndex(isNotEmpty, writeBuffers) matches tagged Valid .i);
 
-        request[i] = (writeChunksRemaining == 0) && (writeBuffers[i].notEmpty());
+        // get header packet
+        GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
+                       umf_channel_id, umf_service_id,
+                       umf_method_id,  umf_message_len,
+                       umf_phy_pvt,    filler_bits), umf_chunk) packet = writeBuffers[i].first();
+        writeBuffers[i].deq();
 
-        if (i == 0)
-        begin
-            grant[i] = request[i];
-            higher_priority_request[i] = request[i];
-        end
-        else
-        begin
-            grant[i] = (!higher_priority_request[i-1]) && request[i];
-            higher_priority_request[i] = higher_priority_request[i-1] || request[i];
-        end
+        // create and encode header chunk
+        //   TODO: ideally, we should explicitly set channelID here. For
+        //   now, assume upper layer is setting it correctly (upper layer
+        //   has to know its virtual channelID anyway
+        umf_chunk headerChunk = unpack(pack(packet.UMF_PACKET_header));
 
-        // start writing new message
-        rule write_physical_channel_newmsg (grant[i]);
+        // send the header chunk to the physical channel
+        write(headerChunk);
 
-            // get header packet
-            GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
-                           umf_channel_id, umf_service_id,
-                           umf_method_id,  umf_message_len,
-                           umf_phy_pvt,    filler_bits), umf_chunk) packet = writeBuffers[i].first();
-            writeBuffers[i].deq();
+        // setup remaining chunks
+        writeChunksRemaining <= packet.UMF_PACKET_header.numChunks;
+        currentWriteChannel <= zeroExtendNP(pack(i));
 
-            // create and encode header chunk
-            //   TODO: ideally, we should explicitly set channelID here. For
-            //   now, assume upper layer is setting it correctly (upper layer
-            //   has to know its virtual channelID anyway
-            umf_chunk headerChunk = unpack(pack(packet.UMF_PACKET_header));
-
-            // send the header chunk to the physical channel
-            write(headerChunk);
-
-            // setup remaining chunks
-            writeChunksRemaining <= packet.UMF_PACKET_header.numChunks;
-            currentWriteChannel <= fromInteger(i);
-
-        endrule
-
-    end // for
+    endrule
 
     // continue writing message
     rule write_physical_channel_continue (writeChunksRemaining != 0);
