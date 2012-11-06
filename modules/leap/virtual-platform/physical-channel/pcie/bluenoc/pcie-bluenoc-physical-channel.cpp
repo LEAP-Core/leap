@@ -39,6 +39,9 @@ PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
 void
 PHYSICAL_CHANNEL_CLASS::Init()
 {
+    // A single beat from host to FPGA initializes the channel.
+    pcieDev->Init();
+    pcieDev->Write(0);
 }
 
 

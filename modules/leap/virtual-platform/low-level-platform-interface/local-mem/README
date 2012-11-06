@@ -4,7 +4,30 @@ This module represents an abstraction layer for memory that is private to the
 HW. This could be accomplished using on-chip Block RAM, or by using an 
 off-chip device like DRAM or SRAM.
 
-local-mem-bram.bsv          Local memory using on-chip BRAM.
-local-mem-ddr2.bsv          DDR2 local memory for off-chip memory.
-local-mem-interface.bsv     Interface definition typedefs.
-local-mem-null.bsv          For platforms with no local memory.
+local-mem-ddr-wide
+local-mem-ddr-narrow
+    Both these modules map DRAM/SRAM with variable word sizes and numbers of
+    banks into a linear address space of local memory lines and words.  The
+    local memory line and word sizes may be different than the physical
+    memory configuration.  DDR memory often passes data as beats over multiple
+    cycles.  The local memory code manages multi-beat memory references,
+    converting them to single message requests.  We define a "burst" to be
+    with full data value passed over all beats.
+
+    The "wide" variant should be used when a physical memory burst is the
+    same size or larger than a local memory line.  The "narrow" variant
+    must be used when when the physical burst size is smaller than the
+    local memory line size.  In the narrow case, multiple bursts must be
+    combined to form a local memory line.
+
+local-mem-null
+    For platforms with no local memory.  This may be used even when the
+    platform has a DDR memory driver.  As a side effect of choosing this
+    module the central cache is disabled.
+
+local-mem-bram
+    Obsolete implementation of local memory using on-chip BRAM.  A better
+    choice would be local-mem-ddr along with a BRAM physical memory driver.
+
+local-mem-interface
+    Interface definition typedefs.

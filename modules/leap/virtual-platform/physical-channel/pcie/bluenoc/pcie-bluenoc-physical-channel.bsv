@@ -61,12 +61,27 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
 
 
     //
+    // Wait for a single beat message from the host to know that the channel
+    // is up.  No response is expected.
+    //
+    Reg#(Bool) initDone <- mkReg(False, clocked_by pcieClk, reset_by pcieRst);
+    ReadOnly#(Bool) initDone_Model  <- mkNullCrossingWire(modelClk, initDone,
+                                                          clocked_by pcieClk,
+                                                          reset_by pcieRst);
+
+    rule initFromHost (! beatsIn.empty && ! initDone);
+        beatsIn.deq();
+        initDone <= True;
+    endrule
+
+
+    //
     // For now we expect 4 byte UMF chunks and 8 byte PCIe beats.  Each chunk
     // is stored, quite inefficiently, in a single beat BlueNoC message.
     // The performance is terrible, but works.
     //
 
-    rule fwdFromHost (! beatsIn.empty);
+    rule fwdFromHost (! beatsIn.empty && initDone);
         let beat = beatsIn.first();
         beatsIn.deq();
         
@@ -74,7 +89,7 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
         fromHostSyncQ.enq(chunk);
     endrule
 
-    rule fwdToHost (True);
+    rule fwdToHost (initDone);
         let chunk = toHostSyncQ.first();
         toHostSyncQ.deq();
         Bit#(64) beat = { chunk,
@@ -87,7 +102,7 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     endrule
 
 
-    method Action write(UMF_CHUNK data);
+    method Action write(UMF_CHUNK data) if (initDone_Model);
         toHostSyncQ.enq(data);
     endmethod
    

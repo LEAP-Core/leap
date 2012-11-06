@@ -14021,3 +14021,57 @@ Directory modules/leap/libraries/librl/base
 
 - Make the default latency for simulated DDR SDRAM reads 10 cycles in Bluesim
   to be more like real memory.
+
+----------
+mcadler     Date: Mon Nov  5 19:52:57 EST 2012  CSN: CSN-leap-363
+                  Tue Nov  6 00:52:57 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          362 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          362 
+ fpgaenv-hybrid-exe.apm    Locally Modified          362 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          362 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          362 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          362 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          362 
+ pcie-bluenoc-physical-channel.awb Locally Modified          362 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          362 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-ddr2.awb        Locally Removed           362 
+ local-mem-ddr2.bsv        Locally Removed           362 
+ local-mem-ddr-narrow.awb  Locally Added               - 
+ local-mem-ddr-wide.awb    Locally Added               0 
+ local-mem-ddr-narrow.bsv  Locally Added               - 
+ local-mem-ddr-wide.bsv    Locally Added               0 
+ local-mem-ddr-common.bsv  Locally Added               0 
+ README                    Locally Modified          362 
+ local-mem-interface.bsv   Locally Modified          362 
+
+Directory modules/leap/libraries/librl/base
+ bluespec-def.bsv          Locally Modified          362 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.cpp    Locally Modified          362 
+
+- Fix a startup bug in BlueNoC channel I/O in which early messages from FPGA
+  to host were lost during reset.
+
+- Add a check for power of 2 boolean typedef to libRL.
+
+- Rewrite the local memory code.  It can now map virtually any DDR memory
+  topology to a requested line and word size.  The number of banks, DDR memory
+  word size, beat width and number of beats per burst can all be varied
+  independently.  All must be powers of 2.
+
+  Two implementations are provided:  one for when the burst size is larger
+  than or equal to the size of local memory lines.  The other for when the
+  burst is smaller than local memory lines.  The former maps multiple local
+  memory lines into a single burst.  The latter spreads a local memory line
+  across multiple bursts.  It is the responsibility of the user to select
+  the correct implementation in AWB, though it is quite obvious when the
+  wrong version is chosen as the wrong one will fail some size and proviso
+  checks.

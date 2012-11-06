@@ -158,7 +158,7 @@ void SCRATCHPAD_MEMORY_SERVER_CLASS::InitRegion(
                                                           PROT_WRITE | PROT_READ,
                                                           MAP_ANONYMOUS | MAP_PRIVATE,
                                                           -1, 0);
-    ASSERT(regionBase[regionID] != MAP_FAILED, "Scratchpad mmap failed: region " << regionID << " nWords " << nWords << " (errno " << errno << ")");
+    VERIFY(regionBase[regionID] != MAP_FAILED, "Scratchpad mmap failed: region " << regionID << " nWords " << nWords << " (errno " << errno << ")");
 }
 
 
@@ -174,8 +174,8 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::GetMemPtr(
     UINT32 region = regionID(addr);
     SCRATCHPAD_MEMORY_WORD* mem = regionBase[region] + regionOffset(addr);
     
-    ASSERTX(regionBase[region] != NULL);
-    ASSERTX(regionOffset(addr) < regionWords[region]);
+    VERIFYX(regionBase[region] != NULL);
+    VERIFYX(regionOffset(addr) < regionWords[region]);
 
     return mem;
 }
@@ -192,8 +192,8 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::LoadLine(
     UINT32 region = regionID(addr);
     SCRATCHPAD_MEMORY_WORD* line = regionBase[region] + regionOffset(addr);
     
-    ASSERTX(regionBase[region] != NULL);
-    ASSERTX(regionOffset(addr) < regionWords[region]);
+    VERIFYX(regionBase[region] != NULL);
+    VERIFYX(regionOffset(addr) < regionWords[region]);
 
     if (TRACING(1))
     {

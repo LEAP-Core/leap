@@ -77,13 +77,12 @@ physical_platform=HTG Virtex 5 PCIE Enabled
 channelio=Basic Virtual Channel Multiplexer
 rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
-local_mem=Local Memory Interface using DDR2 Memory
+local_mem=Local Memory using DDR DRAM (burst holds at least one line)
 remote_memory=Remote Memory using PCI Express DMA
 
 [Driver Header for PCIe Kernel Module]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-csr/pcie-driver-header/pchnl_if.awb
 Packagehint=leap-platforms
-
 
 [Single-Ended Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/single-ended/single-ended-clocks-device.awb
@@ -92,10 +91,6 @@ Packagehint=leap-platforms
 [Common Physical Platform Utilities]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
 Packagehint=leap-platforms
-
-[Local Memory Interface using DDR2 Memory]
-File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr2.awb
-Packagehint=leap
 
 [PCI-Express CSR-based Physical Channel]
 File=modules/leap/virtual-platform/physical-channel/pcie/csr/pcie-physical-channel.awb
@@ -161,3 +156,7 @@ ddr_sdram_xilinx_driver=HTG Virtex-5 DDR2 SDRAM
 [HTG Virtex-5 DDR2 SDRAM]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr2-sdram-v5-htg/ddr2-sdram-device.awb
 Packagehint=leap-platforms
+
+[Local Memory using DDR DRAM (burst holds at least one line)]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr-wide.awb
+Packagehint=leap

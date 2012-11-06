@@ -1,0 +1,13 @@
+%name Local Memory using DDR DRAM (burst smaller than line)
+%desc Local Memory using DDR DRAM (burst smaller than line)
+
+%provides local_mem
+
+%notes README
+
+%public local-mem-interface.bsv
+%public local-mem-ddr-common.bsv
+%public local-mem-ddr-narrow.bsv
+
+%param LOCAL_MEM_WORD_BITS      64  "Local memory word size"
+%param LOCAL_MEM_WORDS_PER_LINE  4  "Local memory words per line (must be power of 2)"

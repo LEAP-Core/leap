@@ -1,12 +1,13 @@
-%name Local Memory Interface using DDR2 Memory
-%desc Local Memory Interface using DDR2 Memory
+%name Local Memory using DDR DRAM (burst holds at least one line)
+%desc Local Memory using DDR DRAM (burst holds at least one line)
 
 %provides local_mem
 
 %notes README
 
 %public local-mem-interface.bsv
-%public local-mem-ddr2.bsv
+%public local-mem-ddr-common.bsv
+%public local-mem-ddr-wide.bsv
 
 %param LOCAL_MEM_WORD_BITS      64  "Local memory word size"
 %param LOCAL_MEM_WORDS_PER_LINE  4  "Local memory words per line (must be power of 2)"

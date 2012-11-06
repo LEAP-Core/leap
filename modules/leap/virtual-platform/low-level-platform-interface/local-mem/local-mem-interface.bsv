@@ -94,6 +94,18 @@ function Tuple2#(LOCAL_MEM_LINE_ADDR,
     return unpack(addr);
 endfunction
 
+function LOCAL_MEM_LINE_ADDR localMemLineAddr(LOCAL_MEM_ADDR addr) =
+    tpl_1(localMemSeparateAddr(addr));
+    
+function LOCAL_MEM_WORD_IDX localMemWordIdx(LOCAL_MEM_ADDR addr) =
+    tpl_2(localMemSeparateAddr(addr));
+    
+    
+//
+// localMemLineAddrToAddr --
+//     Convert a local memory line-space address to a full local memory
+//     address in word space.
+//
 function LOCAL_MEM_ADDR localMemLineAddrToAddr(LOCAL_MEM_LINE_ADDR lineAddr);
     LOCAL_MEM_WORD_IDX w_idx = 0;
     return { lineAddr, w_idx };

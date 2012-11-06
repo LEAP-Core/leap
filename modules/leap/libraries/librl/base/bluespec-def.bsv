@@ -126,6 +126,17 @@ typedef TAdd#(TMul#(TBool#(a), b), TMul#(TNot#(a), c))
     TSelect#(numeric type a, numeric type b, numeric type c);
 
 
+
+// ========================================================================
+//
+// Useful logical tests.
+//
+// ========================================================================
+
+// True (1) iff A is a power of 2
+typedef TEq#(a, TExp#(TLog#(a))) IS_POWER_OF_2#(type a);
+
+
 // ========================================================================
 //
 // Bluespec ought to have included the following for HList.

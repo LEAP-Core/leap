@@ -10,4 +10,4 @@
 %public pcie-bluenoc-physical-channel.cpp
 %public pcie-bluenoc-physical-channel.h
 
-%param SOFT_RESET 0 "Does this channel support soft reset?"
+%param SOFT_RESET 1 "Does this channel support soft reset?"
