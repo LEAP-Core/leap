@@ -159,3 +159,6 @@ ddr_sdram_xilinx_driver=ML605 DDR3 SDRAM
 [Local Memory using DDR DRAM (burst holds at least one line)]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr-wide.awb
 Packagehint=leap
+
+[Little-Endian Unified Message Format/Params]
+UMF_CHUNK_BYTES=8

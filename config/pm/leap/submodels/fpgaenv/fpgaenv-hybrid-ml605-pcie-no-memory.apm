@@ -103,8 +103,6 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex6-generic.awb
 Packagehint=leap-platforms
 
-[Hardware FPGA Components for Virtex 6 (Generic)/Params]
-XILINX_FAMILY="virtex6"
 
 [Differential Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
@@ -147,7 +145,6 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid/hybrid-fp.awb
 Packagehint=leap
 
-
 [ML605 Virtex-6 Platform with PCIe]
 File=modules/bluespec/common/fpgaenv/physical-platform/ml605/pcie-dma/ml605-v6-pcie-dma.awb
 Packagehint=leap-platforms
@@ -178,7 +175,6 @@ Packagehint=leap-platforms
 File=modules/leap/virtual-platform/physical-channel/pcie/bluenoc/pcie-bluenoc-physical-channel.awb
 Packagehint=leap
 
-
 [ML605 DDR3 SDRAM]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-ml605/ddr3-sdram-device.awb
 Packagehint=leap-platforms
@@ -189,3 +185,6 @@ Packagehint=leap-platforms
 
 [Xilinx DDR SDRAM Physical Device/Requires]
 ddr_sdram_xilinx_driver=ML605 DDR3 SDRAM
+
+[Little-Endian Unified Message Format/Params]
+UMF_CHUNK_BYTES=8

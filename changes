@@ -14088,3 +14088,30 @@ Directory modules/leap/virtual-platform/rrr/rrr-common
  demarshaller.bsv          Locally Modified          363 
 
 Replace complicated code with equivalent and simpler Bluespec functions.
+
+----------
+mcadler     Date: Thu Nov  8 07:13:42 EST 2012  CSN: CSN-leap-365
+                  Thu Nov  8 12:13:42 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          364 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          364 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          364 
+ pcie-bluenoc-physical-channel.h Locally Modified          364 
+ pcie-bluenoc-physical-channel.awb Locally Modified          364 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          364 
+
+Improved BlueNoC channel I/O performance.  ML605 throughput on RRR test was under
+1 MB/s and is now 280 MB/s host->FPGA and 40 MB/s bidirectional test.  Host->FPGA
+is approaching theoretical peak where packets are dropped with no host processing
+(360 MB/s, based on --pcie-tests.)  Multithreaded I/O management and larger chunks
+will be needed to get any more performance.
+
+The main improvements were:
+ - Switch from 4 to 8 byte UMF chunks
+ - Stop setting "don't wait" bit on every BlueNoC packet.
+ - Add a host-side buffer management layer and pass large buffers to the read()
+   method.

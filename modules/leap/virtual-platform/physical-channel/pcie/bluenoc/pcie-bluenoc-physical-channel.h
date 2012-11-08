@@ -30,9 +30,25 @@
 class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 {
   private:
+    static const int bufMaxChunks = 65536 / sizeof(UMF_CHUNK);
 
     // links to useful physical devices
     PCIE_DEVICE pcieDev;
+
+    UMF_CHUNK* outBuf;
+
+    UMF_CHUNK* inBuf;
+    UINT32 inBufCurIdx;
+    UINT32 inBufLastIdx;
+
+    // Internal implementation of Read() / TryRead()
+    UMF_MESSAGE DoRead(bool tryRead);
+
+    // Read up to nChunks from the PCIe device, returning a pointer to the
+    // chunks.  nChunks is updated with the actual number read.
+    UMF_CHUNK* ReadChunks(UINT32* nChunks);
+
+    UINT32 BlueNoCHeader(UINT8 dst, UINT8 src, UINT8 msgBytes, UINT8 flags);
 
   public:
 
@@ -41,9 +57,12 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
     void Init();
 
-    UMF_MESSAGE Read();             // blocking read
-    UMF_MESSAGE TryRead();          // non-blocking read
-    void        Write(UMF_MESSAGE); // write
+    // blocking read
+    UMF_MESSAGE Read() { return DoRead(false); }
+    // non-blocking read
+    UMF_MESSAGE TryRead();
+    // write
+    void        Write(UMF_MESSAGE);
 };
 
 #endif
