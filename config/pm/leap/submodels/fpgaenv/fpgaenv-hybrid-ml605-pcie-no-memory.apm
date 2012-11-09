@@ -103,7 +103,6 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex6-generic.awb
 Packagehint=leap-platforms
 
-
 [Differential Crystal Clocks Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
@@ -187,4 +186,4 @@ Packagehint=leap-platforms
 ddr_sdram_xilinx_driver=ML605 DDR3 SDRAM
 
 [Little-Endian Unified Message Format/Params]
-UMF_CHUNK_BYTES=8
+UMF_CHUNK_BYTES=16

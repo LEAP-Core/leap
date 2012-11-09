@@ -54,8 +54,8 @@ PHYSICAL_CHANNEL_CLASS::Init()
 {
     pcieDev->Init();
 
-    VERIFY(pcieDev->BytesPerBeat() == 8, "Expected 8-byte beats");
-    VERIFY(UMF_CHUNK_BYTES == 8, "Expected 8-byte UMF chunks");
+    VERIFY(UMF_CHUNK_BYTES >= 8, "Expected at least 8-byte UMF chunks!");
+    VERIFY(pcieDev->BytesPerBeat() == UMF_CHUNK_BYTES, "BlueNoc beat size must equal UMF chunk size!");
 
     //
     // A single beat packet from host to FPGA initializes the channel.
@@ -65,7 +65,7 @@ PHYSICAL_CHANNEL_CLASS::Init()
     //
     outBuf[0] = (BLUENOC_TIMEOUT_CYCLES << 32) | BlueNoCHeader(4, 0, 4, 1);
     VERIFY(BLUENOC_TIMEOUT_CYCLES < 2048, "BLUENOC_TIMEOUT_CYCLES must be < 2048");
-    pcieDev->Write(outBuf, 8);
+    pcieDev->Write(outBuf, UMF_CHUNK_BYTES);
 }
 
 
@@ -106,7 +106,8 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
     // Start parsing the UMF message
     UMF_MESSAGE msg = new UMF_MESSAGE_CLASS();
     msg->DecodeHeader(header >> 32);
-    n_bn_bytes_left -= 4;
+    // Subtract the payload bytes in the initial beat (header + padding)
+    n_bn_bytes_left -= (UMF_CHUNK_BYTES - 4);
 
     // Collect the remainder of the UMF message
     while (msg->CanAppend())
@@ -119,7 +120,7 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
             // Get the length of the new BlueNoC packet
             n_beats = 1;
             header = *ReadChunks(&n_beats);
-            n_bn_bytes_left = (header >> 16) & 0xff - 4;
+            n_bn_bytes_left = (header >> 16) & 0xff - (UMF_CHUNK_BYTES - 4);
 
             // The FPGA side sets the high bit of the header's flags to
             // indicate a continuation packet.  Confirm that the two sides
@@ -129,12 +130,12 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
 
         // Try to read the remainder of the BlueNoC packet.  BlueNoC packets
         // always end at the end of a UMF message, so this is safe.
-        n_beats = n_bn_bytes_left / 8;
+        n_beats = n_bn_bytes_left / UMF_CHUNK_BYTES;
         UMF_CHUNK* beats_in = ReadChunks(&n_beats);
 
         // Use whatever was returned
         msg->AppendChunks(n_beats, beats_in);
-        n_bn_bytes_left -= (n_beats * 8);
+        n_bn_bytes_left -= (n_beats * UMF_CHUNK_BYTES);
     }
 
     return msg;
@@ -161,14 +162,16 @@ PHYSICAL_CHANNEL_CLASS::TryRead()
 void
 PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
 {
-    UINT64* last_bn_header = NULL;
+    UMF_CHUNK* last_bn_header = NULL;
 
     // Compute UMF chunks in the message (rouned up)
     UINT32 umf_chunks = (msg->GetLength() + UMF_CHUNK_BYTES - 1) / UMF_CHUNK_BYTES;
 
     // BlueNoC packets are limited to 255 bytes, which may be too short
     // for the full message.
-    UINT32 bn_chunks = min(umf_chunks, UINT32(31));
+    UINT32 bn_header_payload_bytes = UMF_CHUNK_BYTES - 4;
+    UINT32 max_bn_chunks = 256 / UMF_CHUNK_BYTES - 1;
+    UINT32 bn_chunks = min(umf_chunks, max_bn_chunks);
 
     // The first beat is the combination of the UMF and BlueNoC headers
     UMF_CHUNK umf_header = msg->EncodeHeader();
@@ -176,7 +179,8 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
 
     UINT32 bn_header = BlueNoCHeader(4,
                                      0,
-                                     4 + bn_chunks * sizeof(UMF_CHUNK),
+                                     bn_header_payload_bytes +
+                                     bn_chunks * sizeof(UMF_CHUNK),
                                      0);
     
     UMF_CHUNK* op = outBuf;
@@ -201,7 +205,7 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
         if (umf_chunks != 0)
         {
             // Does the remainder of the message fit in this BlueNoC packet?
-            bn_chunks = min(umf_chunks, UINT32(31));
+            bn_chunks = min(umf_chunks, max_bn_chunks);
 
             // Send the header beat with the remainder of the beat empty.
             // This allows us to continue beat-aligning the UMF chunks.
@@ -210,7 +214,8 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
             last_bn_header = op;
             *op++ = BlueNoCHeader(4,
                                   0,
-                                  4 + bn_chunks * sizeof(UMF_CHUNK),
+                                  bn_header_payload_bytes +
+                                  bn_chunks * sizeof(UMF_CHUNK),
                                   0x80);
         }
     }
@@ -218,7 +223,7 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
     ASSERTX(umf_chunks == 0);
 
     // Set the don't wait (send immediately) flag in the last BlueNoC header
-    *last_bn_header |= UINT64(0x01000000);
+    *last_bn_header |= 0x01000000;
 
     // Emit the message
     pcieDev->Write(outBuf, (op - outBuf) * sizeof(outBuf[0]));

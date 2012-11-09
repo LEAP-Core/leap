@@ -46,15 +46,18 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     //
     // The channel is written with the following assumptions:
     //
-    if (valueOf(UMF_CHUNK_BITS) != 64)
-        errorM("This code supports only 8 byte UMF chunks");
     if (valueOf(SizeOf#(UMF_PACKET_HEADER)) - valueOf(UMF_PACKET_HEADER_FILLER_BITS) > 32)
         errorM("UMF packet header must fit in 32 bits");
-    if (valueOf(PCIE_BYTES_PER_BEAT) != 8)
-        errorM("PCIE_BYTES_PER_BEAT must be 8");
+    if (valueOf(PCIE_BYTES_PER_BEAT) < 8)
+        errorM("PCIE_BYTES_PER_BEAT must be at least 8");
+    if (valueOf(PCIE_BYTES_PER_BEAT) * 8 != valueOf(UMF_CHUNK_BITS))
+        errorM("PCIE_BYTES_PER_BEAT must be equal to the size of UMF chunks");
 
     let modelClk <- exposeCurrentClock();
     let modelRst <- exposeCurrentReset();
+
+    // Maximum UMF payload chunks that fit in a BlueNoC packet
+    Integer maxChunksPerPacket = (256 / valueOf(PCIE_BYTES_PER_BEAT)) - 1;
 
     let pcieDriver = drivers.pcieDriver;
     let pcieClk = pcieDriver.clock;
@@ -108,12 +111,13 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
         let beat = beatsIn.first();
         beatsIn.deq();
         
-        // Number of payload bytes.  Four bytes of the payload are in the
-        // remainder of this beat, so subtract 4 from the count.
+        // Number of payload bytes.  Some bytes of the payload are in the
+        // remainder of this beat, so subtract them from the count.
         UInt#(8) rem_bytes_in = unpack(beat[23:16]);
-        if (rem_bytes_in > 4)
+        UInt#(8) header_data_bytes = fromInteger(valueOf(TSub#(PCIE_BYTES_PER_BEAT, 4)));
+        if (rem_bytes_in > header_data_bytes)
         begin
-            remBytesIn <= rem_bytes_in - 4;
+            remBytesIn <= rem_bytes_in - header_data_bytes;
         end
 
         // The longest BlueNoC packets are shorter than the longest UMF
@@ -176,8 +180,7 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
         // Generate the UMF header value unconditionally to simplify hardware.
         // The receiver will look at flag bit 7 to know whether a header
         // exists.  When no header is needed the remainder of the beat
-        // will be ignored, allowing the stream of chunks to be 8-byte
-        // aligned.
+        // will be ignored, allowing the stream of chunks to be chunk-aligned.
         UMF_PACKET_HEADER umf_header = unpack(pack(chunk));
 
         //
@@ -194,11 +197,12 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
         begin
             toHostSyncQ.deq();
 
-            // 31 8-byte UMF chunks fit in the BlueNoC packet's remaining
-            // 248 maximum bytes.
-            last_bn_packet = (umf_header.numChunks <= 31);
+            // One BlueNoC packet or multiple packets?
+            last_bn_packet = (umf_header.numChunks <= fromInteger(maxChunksPerPacket));
             rem_bytes_out =
-                last_bn_packet ? resize(umf_header.numChunks) * 8 : 248;
+                fromInteger(valueOf(PCIE_BYTES_PER_BEAT)) *
+                (last_bn_packet ? resize(umf_header.numChunks) :
+                                  fromInteger(maxChunksPerPacket));
 
             remChunksOut <= umf_header.numChunks;
         end
@@ -206,8 +210,11 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
         begin
             // Same computation as header above but with what's left of
             // the continued UMF packet.
-            last_bn_packet = (remChunksOut <= 31);
-            rem_bytes_out = last_bn_packet ? resize(remChunksOut) * 8 : 248;
+            last_bn_packet = (remChunksOut <= fromInteger(maxChunksPerPacket));
+            rem_bytes_out =
+                fromInteger(valueOf(PCIE_BYTES_PER_BEAT)) *
+                (last_bn_packet ? resize(remChunksOut) :
+                                  fromInteger(maxChunksPerPacket));
         end
 
         remBytesOut <= rem_bytes_out;
@@ -220,13 +227,16 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
             flags[0] = pack(last_bn_packet);
         end
 
+        let len = rem_bytes_out +
+                  fromInteger(valueOf(TSub#(PCIE_BYTES_PER_BEAT, 4)));
+
         Bit#(64) beat = { pack(umf_header)[31:0],
                           flags,
-                          pack(rem_bytes_out + 4),   // Length
+                          pack(len),                 // Length
                           8'd4,                      // Source
                           8'd0 };                    // Destination
 
-        beatsOut.enq(beat);
+        beatsOut.enq(zeroExtend(beat));
     endrule
 
     //
@@ -265,12 +275,11 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
                          ! toHostSyncQ.notEmpty);
         if (inactiveOutCnt == 1)
         begin
-            Bit#(64) beat = { 32'd0,
-                              8'd1,       // Don't wait
+            Bit#(32) beat = { 8'd1,       // Don't wait
                               8'd0,       // Length
                               8'd4,       // Source
                               8'd0 };     // Destination
-            beatsOut.enq(beat);
+            beatsOut.enq(zeroExtend(beat));
         end
 
         inactiveOutCnt <= inactiveOutCnt - 1;

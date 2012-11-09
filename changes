@@ -14115,3 +14115,22 @@ The main improvements were:
  - Stop setting "don't wait" bit on every BlueNoC packet.
  - Add a host-side buffer management layer and pass large buffers to the read()
    method.
+
+----------
+mcadler     Date: Thu Nov  8 20:15:26 EST 2012  CSN: CSN-leap-366
+                  Fri Nov  9 01:15:26 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          365 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          365 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          365 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          365 
+
+- BlueNoC channels now configurable for variable beat size.  Beats must be
+  at least 8 bytes and the same size as UMF chunks.
+
+- Change default ML605 UMF chunk size to 16 bytes.  RRR test FPGA->host
+  throughput now 420 MB/s.

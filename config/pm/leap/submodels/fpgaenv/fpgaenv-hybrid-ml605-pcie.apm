@@ -161,4 +161,4 @@ File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-
 Packagehint=leap
 
 [Little-Endian Unified Message Format/Params]
-UMF_CHUNK_BYTES=8
+UMF_CHUNK_BYTES=16
