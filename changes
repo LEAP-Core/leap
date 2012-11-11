@@ -14134,3 +14134,34 @@ Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
 
 - Change default ML605 UMF chunk size to 16 bytes.  RRR test FPGA->host
   throughput now 420 MB/s.
+
+----------
+mcadler     Date: Sun Nov 11 13:25:10 EST 2012  CSN: CSN-leap-367
+                  Sun Nov 11 18:25:10 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          366 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          366 
+ pcie-bluenoc-physical-channel.h Locally Modified          366 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          366 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.cpp    Locally Modified          366 
+
+- Fix a timing bug during initialization.  The initDone signal was passed from the PCIe
+  clock domain to the model domain using just a null crossing wire.  When an FPGA->host
+  packet was ready and waiting for initDone, permission to write to the sync FIFO was
+  not aligned to the sending clock.  There was thus some probability of corruption in
+  the first packet sent to the sync FIFO due to hold time violations.  Fixed by holding
+  the model-side initDone_Model signal in a register.
+
+- Add a mode in which the FPGA will only send a BlueNoC packet to the host if it can
+  be proven that the full packet is data ready.  This prevents the host kernel from
+  deadlocking, waiting during a DMA transfer that doesn't complete.  The cost during
+  streaming is nil.  The cost for round-trip packets is at most a few FPGA cycles in
+  the fast, PCIe clock domain and appears to be too small to notice.
+
+- Add some simple debugging feedback of the PCIe channel outside RRR.

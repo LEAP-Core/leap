@@ -195,13 +195,13 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::LoadLine(
     VERIFYX(regionBase[region] != NULL);
     VERIFYX(regionOffset(addr) < regionWords[region]);
 
-    if (TRACING(1))
+    if (TRACING(2))
     {
-        T1("\tSCRATCHPAD load  region " << region << ": r_addr " << fmt_addr(regionOffset(addr)));
+        T2("\tSCRATCHPAD load  region " << region << ": r_addr " << fmt_addr(regionOffset(addr)));
 
         for (UINT32 i = 0; i < SCRATCHPAD_WORDS_PER_LINE; i++)
         {
-            T1("\t\tL " << i << ":\t" << fmt_data(*(line + i)));
+            T2("\t\tL " << i << ":\t" << fmt_data(*(line + i)));
         }
     }
 
@@ -244,7 +244,7 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreLine(
     UINT32 region = regionID(addr);
     SCRATCHPAD_MEMORY_WORD *store_line = regionBase[region] + regionOffset(addr);
     
-    T1("\tSCRATCHPAD store line, region " << region
+    T2("\tSCRATCHPAD store line, region " << region
                                           << ": r_addr " << fmt_addr(regionOffset(addr))
                                           << ", mask " << fmt_mask(byteMask));
 
@@ -277,28 +277,28 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreLine(
     __builtin_ia32_maskmovq(V8QI(data0), mask, (char *)(store_line + 0));
     if (UINT64(mask) & 0x8080808080808080)
     {
-        T1("\t\tS 0:\t" << fmt_data(*(store_line + 0)));
+        T2("\t\tS 0:\t" << fmt_data(*(store_line + 0)));
     }
 
     mask = V8QI(__builtin_ia32_pslld(V2SI(mask), SHIFT_BY_1));
     __builtin_ia32_maskmovq(V8QI(data1), mask, (char *)(store_line + 1));
     if (UINT64(mask) & 0x8080808080808080)
     {
-        T1("\t\tS 1:\t" << fmt_data(*(store_line + 1)));
+        T2("\t\tS 1:\t" << fmt_data(*(store_line + 1)));
     }
 
     mask = V8QI(__builtin_ia32_pslld(V2SI(mask), SHIFT_BY_1));
     __builtin_ia32_maskmovq(V8QI(data2), mask, (char *)(store_line + 2));
     if (UINT64(mask) & 0x8080808080808080)
     {
-        T1("\t\tS 2:\t" << fmt_data(*(store_line + 2)));
+        T2("\t\tS 2:\t" << fmt_data(*(store_line + 2)));
     }
 
     mask = V8QI(__builtin_ia32_pslld(V2SI(mask), SHIFT_BY_1));
     __builtin_ia32_maskmovq(V8QI(data3), mask, (char *)(store_line + 3));
     if (UINT64(mask) & 0x8080808080808080)
     {
-        T1("\t\tS 3:\t" << fmt_data(*(store_line + 3)));
+        T2("\t\tS 3:\t" << fmt_data(*(store_line + 3)));
     }
 
 #else
@@ -307,28 +307,28 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreLine(
     *(store_line + 0) = (data0 & mask) | (*(store_line + 0) & ~mask);
     if (mask)
     {
-        T1("\t\tS 0:\t" << fmt_data(*(store_line + 0)));
+        T2("\t\tS 0:\t" << fmt_data(*(store_line + 0)));
     }
 
     mask = FullByteMask(byteMask << 1);
     *(store_line + 1) = (data1 & mask) | (*(store_line + 1) & ~mask);
     if (mask)
     {
-        T1("\t\tS 0:\t" << fmt_data(*(store_line + 1)));
+        T2("\t\tS 0:\t" << fmt_data(*(store_line + 1)));
     }
 
     mask = FullByteMask(byteMask << 2);
     *(store_line + 2) = (data2 & mask) | (*(store_line + 2) & ~mask);
     if (mask)
     {
-        T1("\t\tS 0:\t" << fmt_data(*(store_line + 2)));
+        T2("\t\tS 0:\t" << fmt_data(*(store_line + 2)));
     }
 
     mask = FullByteMask(byteMask << 3);
     *(store_line + 3) = (data3 & mask) | (*(store_line + 3) & ~mask);
     if (mask)
     {
-        T1("\t\tS 0:\t" << fmt_data(*(store_line + 3)));
+        T2("\t\tS 0:\t" << fmt_data(*(store_line + 3)));
     }
 
 #endif
@@ -345,7 +345,7 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreWord(
     UINT32 region = regionID(addr);
     SCRATCHPAD_MEMORY_WORD *store_word = regionBase[region] + regionOffset(addr);
     
-    T1("\tSCRATCHPAD store word, region " << region
+    T2("\tSCRATCHPAD store word, region " << region
                                           << ": r_addr " << fmt_addr(regionOffset(addr))
                                           << ", mask " << fmt_mask(byteMask));
 
@@ -358,7 +358,7 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreWord(
     __builtin_ia32_maskmovq(V8QI(data), mask, (char *)(store_word));
     if (UINT64(mask) & 0x8080808080808080)
     {
-        T1("\t\tS 0:\t" << fmt_data(*store_word));
+        T2("\t\tS 0:\t" << fmt_data(*store_word));
     }
 
 #else
@@ -367,7 +367,7 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreWord(
     *store_word = (data & mask) | (*store_word & ~mask);
     if (mask)
     {
-        T1("\t\tS 0:\t" << fmt_data(*store_word));
+        T2("\t\tS 0:\t" << fmt_data(*store_word));
     }
 
 #endif
@@ -388,14 +388,14 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreLineUnmasked(
 
     memcpy(store_line, data, sizeof(SCRATCHPAD_MEMORY_WORD) * 4);
 
-    if (TRACING(1))
+    if (TRACING(2))
     {
-        T1("\tSCRATCHPAD store line, region " << region
+        T2("\tSCRATCHPAD store line, region " << region
                                               << ": r_addr " << fmt_addr(regionOffset(addr)));
 
         for (UINT32 i = 0; i < SCRATCHPAD_WORDS_PER_LINE; i++)
         {
-            T1("\t\tS 0:\t" << fmt_data(*(store_line + i)));
+            T2("\t\tS 0:\t" << fmt_data(*(store_line + i)));
         }
     }
 }

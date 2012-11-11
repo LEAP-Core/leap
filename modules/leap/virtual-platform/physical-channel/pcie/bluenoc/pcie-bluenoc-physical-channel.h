@@ -41,6 +41,8 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
     UINT32 inBufCurIdx;
     UINT32 inBufLastIdx;
 
+    UMF_CHUNK* debugBuf;
+
     // Internal implementation of Read() / TryRead()
     UMF_MESSAGE DoRead(bool tryRead);
 
@@ -49,6 +51,9 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
     UMF_CHUNK* ReadChunks(UINT32* nChunks);
 
     UINT32 BlueNoCHeader(UINT8 dst, UINT8 src, UINT8 msgBytes, UINT8 flags);
+
+    void Debug();
+    void DebugDump(UINT64 packet);
 
   public:
 
@@ -61,8 +66,8 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
     UMF_MESSAGE Read() { return DoRead(false); }
     // non-blocking read
     UMF_MESSAGE TryRead();
-    // write
-    void        Write(UMF_MESSAGE);
+
+    void Write(UMF_MESSAGE);
 };
 
 #endif

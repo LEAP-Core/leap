@@ -27,7 +27,8 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
     PLATFORMS_MODULE_CLASS(p)
 {
     if (posix_memalign((void**)&outBuf, 128, sizeof(UMF_CHUNK) * bufMaxChunks) != 0 ||
-		posix_memalign((void**)&inBuf, 128, sizeof(UMF_CHUNK) * bufMaxChunks) != 0)
+		posix_memalign((void**)&inBuf, 128, sizeof(UMF_CHUNK) * bufMaxChunks) != 0 ||
+		posix_memalign((void**)&debugBuf, 128, sizeof(UMF_CHUNK) * 32) != 0)
     {
 		fprintf (stderr, "PCIe Device: Failed to memalign I/O buffers: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
@@ -46,6 +47,7 @@ PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
     delete pcieDev;
     free(outBuf);
     free(inBuf);
+    free(debugBuf);
 }
 
 
@@ -63,7 +65,16 @@ PHYSICAL_CHANNEL_CLASS::Init()
     // The maximum inactivity timeout for FPGA to host packets is set here,
     // since dynamic parameters can't be passed until the channel is up.
     //
-    outBuf[0] = (BLUENOC_TIMEOUT_CYCLES << 32) | BlueNoCHeader(4, 0, 4, 1);
+    // Bit 32 of the setup message indicates whether the FPGA must guarantee
+    // that an entire BlueNoC packet is ready before attempting to transmit
+    // it (1).  Setting (0) may decrease latency by a few cycles though
+    // it can lead to host OS deadlocks.  The setting does not affect maximum
+    // throughput and, in practice, appears to have no measurable effect
+    // on latency.
+    //
+    outBuf[0] = (UMF_CHUNK(BLUENOC_TIMEOUT_CYCLES) << 33) |
+                (UMF_CHUNK(1) << 32) |
+                BlueNoCHeader(4, 0, 4, 1);
     VERIFY(BLUENOC_TIMEOUT_CYCLES < 2048, "BLUENOC_TIMEOUT_CYCLES must be < 2048");
     pcieDev->Write(outBuf, UMF_CHUNK_BYTES);
 }
@@ -87,8 +98,16 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
         n_beats = 1;
         header = *ReadChunks(&n_beats);
 
-        // Get the BlueNoC packet length from the BlueNoC header (bits 16-23)
-        n_bn_bytes_left = (header >> 16) & 0xff;
+        // Messages from port 0xff are debug state.
+        if ((header >> 8) & 0xff == 0xff)
+        {
+            DebugDump(header);
+        }
+        else
+        {
+            // Get the BlueNoC packet length from the BlueNoC header (bits 16-23)
+            n_bn_bytes_left = (header >> 16) & 0xff;
+        }
 
         // If the BlueNoC packet has no payload then it is a "flush" packet.
         // For flush packets we simply drop the BlueNoC packet and move on to
@@ -115,17 +134,36 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
         // Starting a new BlueNoC packet?  The maximum BlueNoC packet size
         // is smaller than the maximum UMF message size, so we may see
         // multiple BlueNoC packets.
-        if (n_bn_bytes_left == 0)
+        while (n_bn_bytes_left == 0)
         {
             // Get the length of the new BlueNoC packet
             n_beats = 1;
             header = *ReadChunks(&n_beats);
-            n_bn_bytes_left = (header >> 16) & 0xff - (UMF_CHUNK_BYTES - 4);
+            if ((header >> 8) & 0xff == 0xff)
+            {
+                DebugDump(header);
+            }
+            else
+            {
+                n_bn_bytes_left = (header >> 16) & 0xff;
+            }
 
-            // The FPGA side sets the high bit of the header's flags to
-            // indicate a continuation packet.  Confirm that the two sides
-            // agree.
-            ASSERTX(((header >> 31) & 1) == 1);
+            //
+            // If the number of bytes left in the new packet is 0 then it
+            // was injected due to inactivity in the FPGA->host channel.
+            // Just ignore it.  If non-zero, this is a continuation packet
+            // of a larger UMF packet.
+            //
+            if (n_bn_bytes_left != 0)
+            {
+                // The payload of a continuation header has no data.
+                n_bn_bytes_left -= (UMF_CHUNK_BYTES - 4);
+
+                // The FPGA side sets the high bit of the header's flags to
+                // indicate a continuation packet.  Confirm that the two sides
+                // agree.
+                ASSERTX(((header >> 31) & 1) == 1);
+            }
         }
 
         // Try to read the remainder of the BlueNoC packet.  BlueNoC packets
@@ -274,5 +312,34 @@ PHYSICAL_CHANNEL_CLASS::BlueNoCHeader(
     UINT8 msgBytes,
     UINT8 flags)
 {
-    return (flags << 24) | (msgBytes << 16) | (msgBytes << 8) | dst;
+    return (flags << 24) | (msgBytes << 16) | (src << 8) | dst;
+}
+
+
+//
+// Debug --
+//   Request state of the channel.  This would work better as CSRs if
+//   BlueNoC's bridge exposed some PCIe registers.
+//
+void
+PHYSICAL_CHANNEL_CLASS::Debug()
+{
+    // Request state by sending an empty message to port 0xff.  The response
+    // will come back in the message stream and will be detected by the
+    // packet processing code above and emitted by DebugDump().
+    debugBuf[0] = BlueNoCHeader(0xff, 0, 0, 1);
+    pcieDev->Write(debugBuf, sizeof(UMF_CHUNK));
+}
+
+//
+// DebugDump --
+//   Called by the packet processing code when a debug scan packet is detected.
+//
+void
+PHYSICAL_CHANNEL_CLASS::DebugDump(UINT64 packet)
+{
+    cout << "PCIe BlueNoC Debug Scan:" << endl
+         << "  fromHostSyncQ.notFull: " << ((packet >> 32) & 1) << endl
+         << "  toHostCountedQ.count:  " << ((packet >> 40) & 0xff) << endl
+         << "  remChunksOut:          " << ((packet >> 48) & 0xffff) << endl;
 }
