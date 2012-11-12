@@ -26,6 +26,7 @@
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
+`include "awb/provides/common_services.bsh"
 `include "awb/provides/local_mem.bsh"
 
 
@@ -188,4 +189,28 @@ module [CONNECTED_MODULE] mkLocalMemory#(LowLevelPlatformInterface llpi)
 
         debugLog.record($format("REQ write line addr=0x%x, val=0x%x, mask=0x%x", addr, val, mask));
     endrule
+
+
+    // ====================================================================
+    //
+    // Debugging
+    //
+    // ====================================================================
+    
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+    dbg_list <- addDebugScanField(dbg_list, "Server REQ not empty", lms.reqNotEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "Server RSP not full", lms.rspNotFull);
+    dbg_list <- addDebugScanField(dbg_list, "Server WRITE DATA not empty", lmWriteData.notEmpty);
+
+    // Append set associative cache pipeline state
+    List#(Tuple2#(String, Bool)) lm_scan = localMem.debugScanState();
+    while (lm_scan matches tagged Nil ? False : True)
+    begin
+        let fld = List::head(lm_scan);
+        dbg_list <- addDebugScanField(dbg_list, tpl_1(fld), tpl_2(fld));
+
+        lm_scan = List::tail(lm_scan);
+    end
+
+    let dbgNode <- mkDebugScanNode("Local Memory (local-memory-device-soft.bsv)", dbg_list);
 endmodule

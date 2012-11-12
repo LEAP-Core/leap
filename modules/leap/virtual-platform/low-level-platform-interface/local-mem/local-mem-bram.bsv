@@ -38,6 +38,7 @@
 import FIFO::*;
 import FIFOF::*;
 import Vector::*;
+import List::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/physical_platform.bsh"
@@ -284,5 +285,9 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
         end
 
         writeBusyCnt <= `LOCAL_MEM_WRITE_LATENCY;
+    endmethod
+
+    method List#(Tuple2#(String, Bool)) debugScanState();
+        return List::nil;
     endmethod
 endmodule

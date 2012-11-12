@@ -43,6 +43,7 @@
 // ========================================================================
 
 import FIFO::*;
+import FIFOF::*;
 import SpecialFIFOs::*;
 import Vector::*;
 
@@ -94,11 +95,11 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     // The DDR controller does this anyway, so we lose no performance.
     MERGE_FIFOF#(2, LOCAL_MEM_REQ) mergeReqQ <- mkMergeBypassFIFOF();
 
-    FIFO#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) writeDataQ <- mkBypassFIFO();
-    FIFO#(Tuple2#(LOCAL_MEM_WORD, LOCAL_MEM_WORD_MASK)) writeWordDataQ <- mkBypassFIFO();
+    FIFOF#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) writeDataQ <- mkBypassFIFOF();
+    FIFOF#(Tuple2#(LOCAL_MEM_WORD, LOCAL_MEM_WORD_MASK)) writeWordDataQ <- mkBypassFIFOF();
 
-    FIFO#(LOCAL_MEM_LINE) lineResponseQ <- mkBypassFIFO();
-    FIFO#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFO();
+    FIFOF#(LOCAL_MEM_LINE) lineResponseQ <- mkBypassFIFOF();
+    FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();
 
     // Get a handle to the DDR DRAM Controller
     Vector#(FPGA_DDR_BANKS, DDR_DRIVER) dramDriver = drivers.ddrDriver;
@@ -174,8 +175,8 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     // Process read requests
     //
 
-    FIFO#(Tuple2#(Bool, LOCAL_MEM_REQ)) activeReadQ <-
-        mkSizedFIFO(valueOf(TMul#(FPGA_DDR_BANKS, FPGA_DDR_MAX_OUTSTANDING_READS)));
+    FIFOF#(Tuple2#(Bool, LOCAL_MEM_REQ)) activeReadQ <-
+        mkSizedFIFOF(valueOf(TMul#(FPGA_DDR_BANKS, FPGA_DDR_MAX_OUTSTANDING_READS)));
 
     Reg#(t_DDR_BURST_IDX) readBurstIdx <- mkReg(0);
 
@@ -450,6 +451,32 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
 
     // ====================================================================
     //
+    // Debug
+    //
+    // ====================================================================
+
+    List#(Tuple2#(String, Bool)) ds_data = List::nil;
+    ds_data = List::cons(tuple2("LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide writeDataQ not full", writeDataQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide writeWordDataQ not empty", writeWordDataQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide writeWordDataQ not full", writeWordDataQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide activeReadQ not full", activeReadQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide lineResponseQ not full", lineResponseQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("LM DDR Wide wordResponseQ not full", wordResponseQ.notFull), ds_data);
+
+    // Collect debug scan state for physical memory controllers
+    for (Integer b = 0; b < valueOf(FPGA_DDR_BANKS); b = b + 1)
+    begin
+        ds_data = List::append(ds_data, dramDriver[b].debugScanState());
+    end
+
+    let debugScanData = ds_data;
+
+
+    // ====================================================================
+    //
     // Methods
     //
     // ====================================================================
@@ -499,5 +526,9 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
         mergeReqQ.ports[1].enq(tagged MEM_REQ_LINE addr);
         writeDataQ.enq(tuple2(data, mask));
+    endmethod
+
+    method List#(Tuple2#(String, Bool)) debugScanState();
+        return debugScanData;
     endmethod
 endmodule

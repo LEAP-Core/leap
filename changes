@@ -14165,3 +14165,23 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
   the fast, PCIe clock domain and appears to be too small to notice.
 
 - Add some simple debugging feedback of the PCIe channel outside RRR.
+
+----------
+mcadler     Date: Mon Nov 12 15:37:26 EST 2012  CSN: CSN-leap-368
+                  Mon Nov 12 20:37:26 UTC 2012
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.bsv        Locally Modified          367 
+ local-mem-ddr-narrow.bsv  Locally Modified          367 
+ local-mem-ddr-wide.bsv    Locally Modified          367 
+ local-mem-interface.bsv   Locally Modified          367 
+ local-mem-bram.bsv        Locally Modified          367 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft
+ local-memory-device-soft.bsv Locally Modified          367 
+
+Add debug scan support for the local memory device.  Platform drivers
+can't use soft connections.  Instead, scan state from local memory and
+the physical device are exported as a list that is ultimately connected
+to a debug scan node by the local memory virtual device.

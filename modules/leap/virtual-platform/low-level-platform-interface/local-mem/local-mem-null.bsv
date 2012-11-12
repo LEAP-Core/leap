@@ -20,6 +20,8 @@
 // NULL local memory.
 //
 
+import List::*;
+
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/fpga_components.bsh"
 
@@ -75,5 +77,9 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
 
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
         noAction;
+    endmethod
+
+    method List#(Tuple2#(String, Bool)) debugScanState();
+        return List::nil;
     endmethod
 endmodule
