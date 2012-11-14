@@ -110,7 +110,7 @@ SCRATCHPAD_READ_RESP#(type t_ADDR, type t_DATA)
 typedef struct 
 {
     Bit#(32) regionID;
-    Bit#(32) regionEndIdx;
+    Bit#(64) regionEndIdx;
 }
 SCRATCHPAD_RRR_INIT_REGION_REQ
     deriving (Bits,Eq);
@@ -158,10 +158,10 @@ SCRATCHPAD_RRR_LOAD_LINE_RESP
 
 typedef union tagged
 {
-  SCRATCHPAD_RRR_STORE_WORD_REQ StoreWordReq;
-  SCRATCHPAD_RRR_STORE_LINE_REQ StoreLineReq;
-  SCRATCHPAD_RRR_LOAD_LINE_REQ  LoadLineReq;
-  SCRATCHPAD_RRR_INIT_REGION_REQ InitRegionReq;
+    SCRATCHPAD_RRR_STORE_WORD_REQ StoreWordReq;
+    SCRATCHPAD_RRR_STORE_LINE_REQ StoreLineReq;
+    SCRATCHPAD_RRR_LOAD_LINE_REQ  LoadLineReq;
+    SCRATCHPAD_RRR_INIT_REGION_REQ InitRegionReq;
 }
 SCRATCHPAD_RRR_REQ
     deriving (Bits,Eq);

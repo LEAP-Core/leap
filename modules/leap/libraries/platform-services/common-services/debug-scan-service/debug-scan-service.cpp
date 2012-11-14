@@ -32,8 +32,8 @@
 #include <cmath>
 #include <list>
 
+#include "asim/syntax.h"
 #include "awb/rrr/service_ids.h"
-
 #include "awb/provides/debug_scan_service.h"
 
 using namespace std;

@@ -325,7 +325,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         portUsesCentralCache[port] <= use_central_cache;
         rrrReqQ.enq(tagged InitRegionReq
                         SCRATCHPAD_RRR_INIT_REGION_REQ { regionID: zeroExtend(port),
-                                                         regionEndIdx: alloc_last_word_idx });
+                                                         regionEndIdx: zeroExtend(alloc_last_word_idx) });
     endrule
 
 

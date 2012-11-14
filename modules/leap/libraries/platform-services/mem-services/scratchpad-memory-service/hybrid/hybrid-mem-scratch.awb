@@ -12,6 +12,6 @@
 %private  hybrid-mem-scratch.rrr
 %public   hybrid-mem-scratch.dic
 
-%param SCRATCHPAD_MEMORY_ADDR_BITS 32  "Word-level address bits per private scratchpad region"
+%param SCRATCHPAD_MEMORY_ADDR_BITS 36  "Word-level address bits per private scratchpad region"
  
 

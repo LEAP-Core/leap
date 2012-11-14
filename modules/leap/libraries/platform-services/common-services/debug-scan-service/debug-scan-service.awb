@@ -13,4 +13,5 @@
 %public debug-scan-service.cpp
 %public debug-scan-service.rrr 
 
-%param --global DEBUG_SCAN_ENABLED 1  "Enable debug scan?"
+%param --global DEBUG_SCAN_ENABLED            1  "Enable debug scan?"
+%param --dynamic DEBUG_SCAN_DEADLINK_TIMEOUT  0  "Cycles between forced dumps (for debugging when host->FPGA channel blocks)"

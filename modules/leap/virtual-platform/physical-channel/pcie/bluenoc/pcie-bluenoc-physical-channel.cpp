@@ -54,6 +54,10 @@ PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
 void
 PHYSICAL_CHANNEL_CLASS::Init()
 {
+    static bool initialized = false;
+    if (initialized) return;
+    initialized = true;
+
     pcieDev->Init();
 
     VERIFY(UMF_CHUNK_BYTES >= 8, "Expected at least 8-byte UMF chunks!");
@@ -259,6 +263,7 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
     }
 
     ASSERTX(umf_chunks == 0);
+    ASSERTX(msg->GetReadIndex() == 0);
 
     // Set the don't wait (send immediately) flag in the last BlueNoC header
     *last_bn_header |= 0x01000000;

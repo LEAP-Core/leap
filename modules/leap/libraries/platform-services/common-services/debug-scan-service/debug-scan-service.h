@@ -21,6 +21,7 @@
 
 #include <bitset>
 
+#include "asim/syntax.h"
 #include "platforms-module.h"
 #include "awb/provides/rrr.h"
 #include "awb/provides/soft_services_deps.h"

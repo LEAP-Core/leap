@@ -97,7 +97,7 @@ class SCRATCHPAD_MEMORY_SERVER_CLASS: public RRR_SERVER_CLASS,
     bool   IsTracing(int level);
 
     // RRR request methods
-    void InitRegion(UINT32 regionID, UINT32 regionEndIdx);
+    void InitRegion(UINT32 regionID, UINT64 regionEndIdx);
 
     void *GetMemPtr(SCRATCHPAD_MEMORY_ADDR addr);
 

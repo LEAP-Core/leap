@@ -14185,3 +14185,34 @@ Add debug scan support for the local memory device.  Platform drivers
 can't use soft connections.  Instead, scan state from local memory and
 the physical device are exported as a list that is ultimately connected
 to a debug scan node by the local memory virtual device.
+
+----------
+mcadler     Date: Wed Nov 14 13:42:19 EST 2012  CSN: CSN-leap-369
+                  Wed Nov 14 18:42:19 UTC 2012
+
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          368 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.cpp    Locally Modified          368 
+ hybrid-mem-scratch.rrr    Locally Modified          368 
+ hybrid-mem-scratch.h      Locally Modified          368 
+ hybrid-mem-scratch.awb    Locally Modified          368 
+ hybrid-mem-scratch.bsv    Locally Modified          368 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          368 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          368 
+ debug-scan-service.cpp    Locally Modified          368 
+ debug-scan-service.h      Locally Modified          368 
+ debug-scan-service.awb    Locally Modified          368 
+
+- Debug scan service now has a dead link timer that can be set to go off
+  at a cycle interval (DEBUG_SCAN_DEADLINK_TIMEOUT).  This is useful
+  when the host->FPGA channel deadlocks but the FPGA->host does not.  For
+  simplicity, the timer fires whether or not the link is dead.
+
+- Support scratchpad address spaces larger than 32 bits.

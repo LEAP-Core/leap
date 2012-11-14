@@ -17,8 +17,12 @@
 //
 
 
+import FIFO::*;
+
 `include "awb/rrr/server_stub_DEBUG_SCAN.bsh"
 `include "awb/rrr/client_stub_DEBUG_SCAN.bsh"
+`include "awb/dict/PARAMS_DEBUG_SCAN_SERVICE.bsh"
+`include "awb/provides/dynamic_parameters_service.bsh"
 
 
 module [CONNECTED_MODULE] mkDebugScanService
@@ -38,6 +42,17 @@ module [CONNECTED_MODULE] mkDebugScanService
     CONNECTION_CHAIN#(DEBUG_SCAN_DATA) chain0 <- mkConnectionChain("DebugScanRing_0");
     CONNECTION_CHAIN#(DEBUG_SCAN_DATA) chainG <- mkConnectionChain("DebugScanRing_G");
     
+    // Dead man's timeout.  Set the parameter to a cycle count interval when
+    // debug scan's will be initiated automatically.  This is useful when
+    // the host to FPGA channel becomes deadlocked but not the FPGA to host.
+    PARAMETER_NODE paramNode <- mkDynamicParameterNode();
+    Param#(40) deadLinkTimeout <-
+        mkDynamicParameter(`PARAMS_DEBUG_SCAN_SERVICE_DEBUG_SCAN_DEADLINK_TIMEOUT,
+                           paramNode);
+
+    Reg#(Bit#(40)) timeout <- mkReg(0);
+    FIFO#(Bool) swRequestedScan <- mkFIFO();
+    Reg#(Bool) deadLinkDumping <- mkReg(False);
 
     // ****** Rules ******
   
@@ -61,6 +76,7 @@ module [CONNECTED_MODULE] mkDebugScanService
 
         // There is only one command:  start a scan
         chain0.sendToNext(tagged DS_DUMP);
+        swRequestedScan.enq(True);
     endrule
 
     //
@@ -128,8 +144,37 @@ module [CONNECTED_MODULE] mkDebugScanService
             // Command came all the way around the loop.  Done.
             tagged DS_DUMP:
             begin
-                clientStub.makeRequest_Done(?);
+                if (swRequestedScan.first())
+                begin
+                    clientStub.makeRequest_Done(?);
+                end
+                else
+                begin
+                    deadLinkDumping <= False;
+                end
+
+                swRequestedScan.deq();
             end
         endcase
+    endrule
+
+    
+    //
+    // Rules for automatic dumping using timers
+    //
+    (* no_implicit_conditions, fire_when_enabled *)
+    rule timeoutCnt (timeout != 0);
+        timeout <= timeout - 1;
+    endrule
+
+    (* descending_urgency = "processReq, timeoutTriggerScan" *)
+    (* descending_urgency = "processRespG, timeoutTriggerScan" *)
+    rule timeoutTriggerScan ((timeout == 0) &&
+                             (deadLinkTimeout != 0) &&
+                             ! deadLinkDumping);
+        chain0.sendToNext(tagged DS_DUMP);
+        swRequestedScan.enq(False);
+        timeout <= deadLinkTimeout;
+        deadLinkDumping <= True;
     endrule
 endmodule

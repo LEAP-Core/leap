@@ -141,12 +141,15 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::IsTracing(int level)
 //
 void SCRATCHPAD_MEMORY_SERVER_CLASS::InitRegion(
     UINT32 regionID,
-    UINT32 regionEndIdx)
+    UINT64 regionEndIdx)
 {
-    UINT64 nWords = UINT64(regionEndIdx) + 1;
+    UINT64 nWords = regionEndIdx + 1;
 
     T1("\tSCRATCHPAD init region " << regionID << ": " << nWords << " words");
-    ASSERT(regionBase[regionID] == NULL, "Scratchpad region " << regionID << " already initialized");
+    VERIFY(regionBase[regionID] == NULL, "Scratchpad region " << regionID << " already initialized");
+    VERIFY(nWords <= (regionOffset(~0) + 1),
+           "Scratchpad region " << regionID << " too large for " << SCRATCHPAD_MEMORY_ADDR_BITS <<
+           " bit address space (" << (regionOffset(~0) + 1) << " bytes)");
 
     regionWords[regionID] = nWords;
     // Size must be multiple of a page for mmap.
@@ -248,8 +251,8 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreLine(
                                           << ": r_addr " << fmt_addr(regionOffset(addr))
                                           << ", mask " << fmt_mask(byteMask));
 
-    ASSERTX(regionBase[region] != NULL);
-    ASSERTX(regionOffset(addr) < regionWords[region]);
+    VERIFY(regionBase[region] != NULL);
+    VERIFY(regionOffset(addr) < regionWords[region]);
 
     //
     // The mask has been arranged so it works well with the maskmovq instruction.
