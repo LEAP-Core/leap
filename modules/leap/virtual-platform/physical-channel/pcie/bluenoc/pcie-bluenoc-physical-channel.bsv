@@ -28,6 +28,7 @@ import MsgFormat::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/pcie_device.bsh"
 `include "awb/provides/umf.bsh"
+`include "awb/provides/fpga_components.bsh"
 
 
 // ============== Physical Channel ===============
@@ -58,6 +59,13 @@ PHYSICAL_CHANNEL_TO_HOST_STATE
     deriving (Eq, Bits);
 
 
+//
+// Used only for debugging, log packet history so it can be dumped and compared
+// to expected values.
+//
+typedef Bit#(`BLUENOC_HISTORY_INDEX_BITS) PHYSICAL_CHANNEL_HISTORY_IDX;
+
+
 // module
 module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     // Interface
@@ -83,8 +91,6 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     let pcieClk = pcieDriver.clock;
     let pcieRst = pcieDriver.reset;
     let pcieNOC = pcieDriver.noc;
-
-    let debugPort = 'hff;
 
     FifoMsgSink#(PCIE_BYTES_PER_BEAT)   beatsIn  <- mkFifoMsgSink(clocked_by pcieClk, reset_by pcieRst);
     FifoMsgSource#(PCIE_BYTES_PER_BEAT) beatsOut <- mkFifoMsgSource(clocked_by pcieClk, reset_by pcieRst);
@@ -124,6 +130,36 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     CrossingReg#(Bool) initDone <-
         mkNullCrossingReg(modelClk, False, clocked_by pcieClk, reset_by pcieRst);
     Reg#(Bool) initDone_Model  <- mkReg(False);
+
+
+    //
+    // Debugging and history buffer state management
+    //
+
+    let debugPort = 'hff;
+    Reg#(Bool) inDebugPacket <- mkReg(False, clocked_by pcieClk, reset_by pcieRst);
+
+    MEMORY_IFC#(PHYSICAL_CHANNEL_HISTORY_IDX, UMF_CHUNK) historyFromHost <-
+        (`BLUENOC_HISTORY_INDEX_BITS != 0) ?
+            mkBRAMInitialized(~0, clocked_by pcieClk, reset_by pcieRst) :
+            mkNullMemory(clocked_by pcieClk, reset_by pcieRst);
+
+    Reg#(PHYSICAL_CHANNEL_HISTORY_IDX) historyFromHostNext <-
+        mkReg(0, clocked_by pcieClk, reset_by pcieRst);
+    Reg#(PHYSICAL_CHANNEL_HISTORY_IDX) historyDumpIdx <-
+        mkReg(0, clocked_by pcieClk, reset_by pcieRst);
+
+    function Action logHistoryFromHost(UMF_CHUNK chunk);
+    action
+        historyFromHost.write(historyFromHostNext, chunk);
+        historyFromHostNext <= historyFromHostNext + 1;
+    endaction
+    endfunction
+
+
+    //
+    // Initialization
+    //
 
     (* fire_when_enabled, no_implicit_conditions *)
     rule initModel (True);
@@ -180,6 +216,13 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
             let umf_header = beat[63:32];
             fromHostSyncQ.enq(unpack(zeroExtend(umf_header)));
         end
+
+        // Log the incoming beat (for debugging).  When BlueNoC beats are larger
+        // than 8 bytes there is extra, unused, space in the beat.  Write a
+        // value there indicating the packet was detected as a header.
+        Bit#(32) hist_tag = (contains_umf_header ? 'hcafef00d : 'hdeadbeef);
+        UMF_CHUNK hist_log_beat = resize({ hist_tag, beat[63:0] });
+        logHistoryFromHost(hist_log_beat);
     endrule
 
     //
@@ -189,6 +232,9 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     rule fwdChunkFromHost (! beatsIn.empty && initDone && (remBytesIn != 0));
         let beat = beatsIn.first();
         beatsIn.deq();
+
+        // Debugging log
+        logHistoryFromHost(beat);
 
         // The chunk fills the beat
         fromHostSyncQ.enq(unpack(beat));
@@ -272,6 +318,7 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     //
     rule startBlueNoCPacketToHost (initDone &&&
                                    (remBytesOut == 0) &&&
+                                   ! inDebugPacket &&&
                                    canStartPacketToHost() matches tagged Valid .state);
         let chunk = toHostCountedQ.first();
 
@@ -359,6 +406,7 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     //
     rule triggerTimeout ((inactiveOutCnt != 0) &&
                          (remBytesOut == 0) &&
+                         ! inDebugPacket &&
                          ! isValid(canStartPacketToHost()));
         if (inactiveOutCnt == 1)
         begin
@@ -378,15 +426,13 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     //   Status request initiated by software.  Both the incoming and outgoing
     //   packets are single beats.  This would work better as PCIe CSRs.
     //
-    (* descending_urgency = "debug, startBlueNoCPacketToHost" *)
-    (* descending_urgency = "debug, triggerTimeout" *)
     rule debug (! beatsIn.empty &&
                 initDone &&
                 (remBytesOut == 0) &&
                 (remBytesIn == 0) &&
+                ! inDebugPacket &&
                 (beatsIn.first()[7:0] == debugPort));
         let beat = beatsIn.first();
-        beatsIn.deq();
 
         let out_beat = beat;
         out_beat[7:0] = beat[15:8];        // Swap source and destination
@@ -394,13 +440,65 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
         out_beat[23:16] = 4;               // Length
         out_beat[31:24] = 1;               // Don't wait
 
-        out_beat[32] = pack(fromHostSyncQ.notFull);
-        out_beat[39:33] = 0;
-        
-        out_beat[47:40] = zeroExtend(pack(toHostCountedQ.count));
-        out_beat[63:48] = zeroExtend(remChunksOut);
+        if (beat[31] == 0)
+        begin
+            beatsIn.deq();
+
+            // High flag bit clear -- normal debug state
+            out_beat[32] = pack(fromHostSyncQ.notFull);
+            out_beat[39:33] = 0;
+
+            out_beat[47:40] = zeroExtend(pack(toHostCountedQ.count));
+            out_beat[63:48] = zeroExtend(remChunksOut);
+        end
+        else if (`BLUENOC_HISTORY_INDEX_BITS != 0)
+        begin
+            //
+            // Debug packet is a history log request.  The incoming request
+            // beat will be held in beatsIn while the code here cycles
+            // through all values of historyDumpIdx.
+            //
+            let idx = historyDumpIdx;
+            out_beat[63:32] = zeroExtend(idx);
+            historyFromHost.readReq(historyFromHostNext + truncate(idx));
+
+            // The history takes an entire beat.  Lock the channel by setting
+            // inDebugPacket and send the header beat.  The history log
+            // read response will trigger the payload beat.
+            inDebugPacket <= True;
+            // Adjust length
+            out_beat[23:16] = fromInteger(valueOf(TSub#(TMul#(2, PCIE_BYTES_PER_BEAT), 4)));
+
+            // Done with dump?
+            if (idx == maxBound)
+            begin
+                // Indicate last packet
+                out_beat[31] = 1;
+                beatsIn.deq();
+            end
+                
+            historyDumpIdx <= idx + 1;
+        end
+        else
+        begin
+            beatsIn.deq();
+        end
 
         beatsOut.enq(out_beat);
+    endrule
+
+    //
+    // fwdHistoryFromHost --
+    //   Complete the debug packet response by sending a from-host history
+    //   log entry.
+    //
+    (* descending_urgency = "fwdHistoryFromHost, debug, startBlueNoCPacketToHost" *)
+    (* descending_urgency = "fwdHistoryFromHost, debug, triggerTimeout" *)
+    rule fwdHistoryFromHost (remBytesOut == 0);
+        let hist <- historyFromHost.readRsp();
+        beatsOut.enq(hist);
+
+        inDebugPacket <= False;
     endrule
 
 

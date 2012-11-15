@@ -14216,3 +14216,25 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
   simplicity, the timer fires whether or not the link is dead.
 
 - Support scratchpad address spaces larger than 32 bits.
+
+----------
+mcadler     Date: Thu Nov 15 16:40:26 EST 2012  CSN: CSN-leap-370
+                  Thu Nov 15 21:40:26 UTC 2012
+
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          369 
+ pcie-bluenoc-physical-channel.h Locally Modified          369 
+ pcie-bluenoc-physical-channel.awb Locally Modified          369 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          369 
+
+Directory modules/leap/libraries/librl/base
+ memory-interface.bsv      Locally Modified          369 
+
+- Needed mutex on write method (fixed infrequent host->FPGA data stream
+  corruption).
+
+- Add option for scanning back recorded host->FPGA traffic, used for debugging
+  corruption problem.  Hopefully never needed again.
+
+- Add NULL implementation of a memory interface to librl.

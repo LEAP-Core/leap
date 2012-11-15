@@ -19,6 +19,9 @@
 #ifndef __PHYSICAL_CHANNEL__
 #define __PHYSICAL_CHANNEL__
 
+#include <stdio.h>
+#include <pthread.h>
+
 #include "awb/provides/umf.h"
 #include "awb/provides/pcie_device.h"
 #include "awb/provides/physical_platform.h"
@@ -34,6 +37,9 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
     // links to useful physical devices
     PCIE_DEVICE pcieDev;
+
+    pthread_mutex_t readLock;
+    pthread_mutex_t writeLock;
 
     UMF_CHUNK* outBuf;
 
@@ -52,8 +58,11 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
     UINT32 BlueNoCHeader(UINT8 dst, UINT8 src, UINT8 msgBytes, UINT8 flags);
 
+    // Debug support
     void Debug();
     void DebugDump(UINT64 packet);
+    void ScanHistory();
+    FILE *scanFile;
 
   public:
 

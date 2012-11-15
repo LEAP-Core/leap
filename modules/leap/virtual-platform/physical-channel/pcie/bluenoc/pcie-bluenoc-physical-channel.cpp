@@ -16,6 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+#include <stdio.h>
+
 #include "asim/syntax.h"
 #include "awb/provides/physical_channel.h"
 
@@ -36,6 +38,11 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
 
     inBufCurIdx = 0;
     inBufLastIdx = 0;
+
+    pthread_mutex_init(&readLock, NULL);
+    pthread_mutex_init(&writeLock, NULL);
+
+    scanFile = NULL;
 
     pcieDev = new PCIE_DEVICE_CLASS(p);
 }
@@ -94,6 +101,12 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
     UINT64 header;
 
     UINT32 n_beats;
+
+    // Need the read lock?  If tryRead is set it was already aquired.
+    if (! tryRead)
+    {
+        pthread_mutex_lock(&readLock);
+    }
 
     do
     {
@@ -180,6 +193,11 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
         n_bn_bytes_left -= (n_beats * UMF_CHUNK_BYTES);
     }
 
+    if (! tryRead)
+    {
+        pthread_mutex_unlock(&readLock);
+    }
+
     return msg;
 }
 
@@ -190,20 +208,26 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
 UMF_MESSAGE
 PHYSICAL_CHANNEL_CLASS::TryRead()
 {
+    UMF_MESSAGE msg = NULL;
+
+    pthread_mutex_lock(&readLock);
+
     if ((inBufCurIdx != inBufLastIdx) || pcieDev->Probe())
     {
-        return DoRead(true);
+        msg = DoRead(true);
     }
-    else
-    {
-        return NULL;
-    }
+
+    pthread_mutex_unlock(&readLock);
+
+    return msg;
 };
 
 
 void
 PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
 {
+    pthread_mutex_lock(&writeLock);
+
     UMF_CHUNK* last_bn_header = NULL;
 
     // Compute UMF chunks in the message (rouned up)
@@ -262,14 +286,15 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
         }
     }
 
-    ASSERTX(umf_chunks == 0);
-    ASSERTX(msg->GetReadIndex() == 0);
+    VERIFYX(umf_chunks == 0);
+    VERIFYX(msg->GetReadIndex() == 0);
 
     // Set the don't wait (send immediately) flag in the last BlueNoC header
     *last_bn_header |= 0x01000000;
 
     // Emit the message
     pcieDev->Write(outBuf, (op - outBuf) * sizeof(outBuf[0]));
+    pthread_mutex_unlock(&writeLock);
 
     // Write() method is expected to delete the chunk
     delete msg;
@@ -320,7 +345,6 @@ PHYSICAL_CHANNEL_CLASS::BlueNoCHeader(
     return (flags << 24) | (msgBytes << 16) | (src << 8) | dst;
 }
 
-
 //
 // Debug --
 //   Request state of the channel.  This would work better as CSRs if
@@ -343,8 +367,70 @@ PHYSICAL_CHANNEL_CLASS::Debug()
 void
 PHYSICAL_CHANNEL_CLASS::DebugDump(UINT64 packet)
 {
-    cout << "PCIe BlueNoC Debug Scan:" << endl
-         << "  fromHostSyncQ.notFull: " << ((packet >> 32) & 1) << endl
-         << "  toHostCountedQ.count:  " << ((packet >> 40) & 0xff) << endl
-         << "  remChunksOut:          " << ((packet >> 48) & 0xffff) << endl;
+    UINT64 len = (packet >> 16) & 0xff;
+
+    if (len == 4)
+    {
+        // Request initiated by Debug()
+        cout << "PCIe BlueNoC Debug Scan:" << endl
+             << "  fromHostSyncQ.notFull: " << ((packet >> 32) & 1) << endl
+             << "  toHostCountedQ.count:  " << ((packet >> 40) & 0xff) << endl
+             << "  remChunksOut:          " << ((packet >> 48) & 0xffff) << endl;
+    }
+    else
+    {
+        // Request initiated by ScanHistory()
+        VERIFYX(len == sizeof(UMF_CHUNK) * 2 - 4);
+
+        // The index is stored in the header
+        UINT64 idx = packet >> 32;
+
+        // Get the payload beat with the history entry
+        UINT32 n = 1;
+        UMF_CHUNK value = *ReadChunks(&n);
+        fprintf(scanFile, "[%05d] 0x%016llx:  0x%016llx 0x%016llx\n",
+                idx, packet, UINT64(value >> 64), UINT64(value));
+        fflush(scanFile);
+
+        // Done indicated by setting high bit of flags in header
+        if ((packet >> 31) & 1)
+        {
+            // Done
+            fclose(scanFile);
+            scanFile = NULL;
+            printf("Finished scan.\n");
+        }
+    }
+}
+
+
+//
+// ScanHistory --
+//   Scan out channel history from hardware side.  Enabled by setting
+//   AWB parameter BLUENOC_HISTORY_INDEX_BITS to a non-zero value.
+//
+void
+PHYSICAL_CHANNEL_CLASS::ScanHistory()
+{
+    if (BLUENOC_HISTORY_INDEX_BITS == 0)
+    {
+        cerr << "Scan not enabled.  BLUENOC_HISTORY_INDEX_BITS is 0!" << endl;
+        return;
+    }
+
+    printf("Starting scan...\n");
+    scanFile = fopen("scan.out", "w");
+    if (scanFile == NULL)
+    {
+        cerr << "Failed to open scan.out" << endl;
+        return;
+    }
+
+    // Request history by sending a message to the debug port and setting
+    // the high bit of the flags in the BlueNoC packet header.
+    debugBuf[0] = BlueNoCHeader(0xff, 0, 4, 0x81);
+
+    pcieDev->Write(debugBuf, sizeof(debugBuf[0]));
+
+    // The responses will be deliverd to DebugDump().
 }

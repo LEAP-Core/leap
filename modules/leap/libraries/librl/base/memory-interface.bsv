@@ -26,26 +26,95 @@ import Connectable::*;
 //
 // ========================================================================
 
+//
+// This is a general interface to a multi-cycle memory.  By making it common we
+// hope that code can switch between different memories changing only the
+// call to a module constructor.
+//
 
-typedef struct {
-  t_ADDR addr;
-  Bit#(TAdd#(1,TLog#(n_MAX_BURST))) size;
-} BURST_COMMAND#(type t_ADDR, numeric type n_MAX_BURST)
-  deriving(Bits,Eq);
+interface MEMORY_IFC#(type t_ADDR, type t_DATA);
+    method Action readReq(t_ADDR addr);
+    method ActionValue#(t_DATA) readRsp();
 
-typedef union tagged {
-  BURST_COMMAND#(t_ADDR,n_MAX_BURST) ReadReq;
-  BURST_COMMAND#(t_ADDR,n_MAX_BURST) WriteReq;
-} BURST_REQUEST#(type t_ADDR, numeric type n_MAX_BURST)
-  deriving(Bits,Eq);
+    // Look at the read response value without popping it
+    method t_DATA peek();
+
+    // Read response ready
+    method Bool notEmpty();
+
+    // Read request possible?
+    method Bool notFull();
 
 
+    method Action write(t_ADDR addr, t_DATA val);
+    
+    // Write request possible?
+    method Bool writeNotFull();
+endinterface
+
+
+//
+// Single reader interface
+//
+interface MEMORY_READER_IFC#(type t_ADDR, type t_DATA);
+    method Action readReq(t_ADDR addr);
+    method ActionValue#(t_DATA) readRsp();
+    method t_DATA peek();
+    method Bool notEmpty();
+    method Bool notFull();
+endinterface
+
+//
+// Single writer interface
+// This might initially seem counter-intuitive, but we'll use this function
+// to manipulate vectorized interfaces later.
+//
+interface MEMORY_WRITER_IFC#(type t_ADDR, type t_DATA);
+    method Action write(t_ADDR addr, t_DATA val);
+    // Write request possible?
+    method Bool writeNotFull();
+endinterface
+
+//
+// Memory with one writer and multiple readers.
+//
+interface MEMORY_MULTI_READ_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA);
+    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
+
+    method Action write(t_ADDR addr, t_DATA val);
+    method Bool writeNotFull();
+endinterface
+
+
+
+// ========================================================================
+//
+// Burst Memory interface
+//
+// ========================================================================
 
 //
 // This is a general interface to a multi-cycle memory, which may also 
 // support burst requests. MEMORY_IFC can be expressed in terms of this 
 // interface.  That would be a good excercise for some lazy Friday.
 //
+
+typedef struct
+{
+    t_ADDR addr;
+    Bit#(TAdd#(1,TLog#(n_MAX_BURST))) size;
+}
+BURST_COMMAND#(type t_ADDR, numeric type n_MAX_BURST)
+    deriving(Bits, Eq);
+
+typedef union tagged
+{
+    BURST_COMMAND#(t_ADDR,n_MAX_BURST) ReadReq;
+    BURST_COMMAND#(t_ADDR,n_MAX_BURST) WriteReq;
+}
+BURST_REQUEST#(type t_ADDR, numeric type n_MAX_BURST)
+    deriving(Bits, Eq);
+
 
 interface BURST_MEMORY_IFC#(type t_ADDR, type t_DATA, numeric type n_MAX_BURST);
     method ActionValue#(t_DATA) readRsp();
@@ -124,65 +193,6 @@ instance Connectable#(BURST_MEMORY_IFC#(t_ADDR,t_DATA,n_MAX_BURST),
 
   endmodule
 endinstance
-
-//
-// This is a general interface to a multi-cycle memory.  By making it common we
-// hope that code can switch between different memories changing only the
-// call to a module constructor.
-//
-
-interface MEMORY_IFC#(type t_ADDR, type t_DATA);
-    method Action readReq(t_ADDR addr);
-    method ActionValue#(t_DATA) readRsp();
-
-    // Look at the read response value without popping it
-    method t_DATA peek();
-
-    // Read response ready
-    method Bool notEmpty();
-
-    // Read request possible?
-    method Bool notFull();
-
-
-    method Action write(t_ADDR addr, t_DATA val);
-    
-    // Write request possible?
-    method Bool writeNotFull();
-endinterface
-
-
-//
-// Single reader interface
-//
-interface MEMORY_READER_IFC#(type t_ADDR, type t_DATA);
-    method Action readReq(t_ADDR addr);
-    method ActionValue#(t_DATA) readRsp();
-    method t_DATA peek();
-    method Bool notEmpty();
-    method Bool notFull();
-endinterface
-
-//
-// Single writer interface
-// This might initially seem counter-intuitive, but we'll use this function
-// to manipulate vectorized interfaces later.
-//
-interface MEMORY_WRITER_IFC#(type t_ADDR, type t_DATA);
-    method Action write(t_ADDR addr, t_DATA val);
-    // Write request possible?
-    method Bool writeNotFull();
-endinterface
-
-//
-// Memory with one writer and multiple readers.
-//
-interface MEMORY_MULTI_READ_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA);
-    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
-
-    method Action write(t_ADDR addr, t_DATA val);
-    method Bool writeNotFull();
-endinterface
 
 
 // ========================================================================
@@ -882,4 +892,43 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
     endmethod
 
     method Bool writeNotFull = True;
+endmodule
+
+
+// ========================================================================
+//
+// Other
+//
+// ========================================================================
+
+
+//
+// mkNullMemory --
+//   Instantiate a memory with no storage.  Useful for maintaining
+//   interface behavior but the storage isn't needed in some AWB
+//   configuration.
+//
+module mkNullMemory
+    // interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    method Action readReq(t_ADDR addr);
+        noAction;
+    endmethod
+
+    method ActionValue#(t_DATA) readRsp() if (False);
+        return ?;
+    endmethod
+
+    method t_DATA peek() = ?;
+    method Bool notEmpty() = False;
+    method Bool notFull() = True;
+
+    method Action write(t_ADDR addr, t_DATA val);
+        noAction;
+    endmethod
+
+    method Bool writeNotFull() = True;
 endmodule
