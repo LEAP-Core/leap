@@ -326,7 +326,7 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgFormatted(
                 bool maybe = (msg.Get(1) == 1);
                 if (maybe)
                 {
-                    fprintf(of, "\t%s:  Valid 0x%x\n", tok, val);
+                    fprintf(of, "\t%s:  Valid 0x%llx\n", tok, val);
                 }
                 else
                 {
@@ -335,7 +335,7 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgFormatted(
             }
             else
             {
-                fprintf(of, "\t%s:  0x%x\n", tok, val);
+                fprintf(of, "\t%s:  0x%llx\n", tok, val);
             }
 
             tok = strtok(NULL, "~");

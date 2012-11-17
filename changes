@@ -14238,3 +14238,13 @@ Directory modules/leap/libraries/librl/base
   corruption problem.  Hopefully never needed again.
 
 - Add NULL implementation of a memory interface to librl.
+
+----------
+mcadler     Date: Sat Nov 17 09:27:05 EST 2012  CSN: CSN-leap-371
+                  Sat Nov 17 14:27:05 UTC 2012
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          370 
+
+Dump 64 bit values properly.
