@@ -14248,3 +14248,13 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
  debug-scan-service.cpp    Locally Modified          370 
 
 Dump 64 bit values properly.
+
+----------
+mcadler     Date: Mon Nov 19 15:22:04 EST 2012  CSN: CSN-leap-372
+                  Mon Nov 19 20:22:04 UTC 2012
+
+
+Directory modules/leap/build-support/project/application-env/base
+ application-env-hybrid-base.bsv Locally Modified          371 
+
+Allow connected algorithms.

@@ -18,6 +18,7 @@
 
 `include "awb/provides/virtual_platform.bsh"
 `include "awb/provides/hybrid_application.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 //
 // mkApplicationEnv --
@@ -28,7 +29,7 @@
 // access to the virtual platform is typically used by small models 
 // used to debug the platform.
 //
-module mkApplicationEnv#(VIRTUAL_PLATFORM vp)
+module [CONNECTED_MODULE] mkApplicationEnv#(VIRTUAL_PLATFORM vp)
     // interface:
         ();
         
