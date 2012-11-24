@@ -14258,3 +14258,32 @@ Directory modules/leap/build-support/project/application-env/base
  application-env-hybrid-base.bsv Locally Modified          371 
 
 Allow connected algorithms.
+
+----------
+mcadler     Date: Sat Nov 24 15:44:57 EST 2012  CSN: CSN-leap-373
+                  Sat Nov 24 20:44:57 UTC 2012
+
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          372 
+ pcie-bluenoc-physical-channel.h Locally Modified          372 
+ pcie-bluenoc-physical-channel.awb Locally Modified          372 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.cpp    Locally Modified          372 
+
+Add threads to speed up I/O:
+
+ - Host -> FPGA messages now passed to a writer thread that merges messages into
+   larger buffers.
+ - FPGA -> host messages use a hybrid mode.  During a constant stream of data,
+   read buffers are filled in a separate thread and passed, raw, to the main
+   thread.  When no message buffer is ready, the primary thread takes control
+   and handles the next PCIe read in order to avoid the latency of passing
+   the buffer between threads.
+
+The RRR test on our server with an ML605 now claims peak FPGA->host I/O of 650 MB/s
+and pipelined bidirectional I/O of 850 MB/s.
+
+The new code requires Intel's TBB (Thread Building Blocks) library.
+(http://threadingbuildingblocks.org/)

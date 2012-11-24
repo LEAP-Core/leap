@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#include "tbb/concurrent_queue.h"
+
 #include "awb/provides/umf.h"
 #include "awb/provides/pcie_device.h"
 #include "awb/provides/physical_platform.h"
@@ -30,22 +32,31 @@
 //               Physical Channel              
 // ============================================
 
+typedef class PHYSICAL_CHANNEL_CLASS* PHYSICAL_CHANNEL;
+
 class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 {
   private:
+    // Size of an I/O buffer (in UMF_CHUNKS)
     static const int bufMaxChunks = 65536 / sizeof(UMF_CHUNK);
+    // Number of buffers in the read buffer pool
+    static const int nInBufs = 4;
+
+    bool initialized;
 
     // links to useful physical devices
     PCIE_DEVICE pcieDev;
 
     pthread_mutex_t readLock;
-    pthread_mutex_t writeLock;
+    bool tryReadHoldingLock;
 
     UMF_CHUNK* outBuf;
 
     UMF_CHUNK* inBuf;
     UINT32 inBufCurIdx;
     UINT32 inBufLastIdx;
+    // inBufPool needed only for clean deallocation of the input buffers
+    UMF_CHUNK* inBufPool[nInBufs];
 
     UMF_CHUNK* debugBuf;
 
@@ -57,6 +68,34 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
     UMF_CHUNK* ReadChunks(UINT32* nChunks);
 
     UINT32 BlueNoCHeader(UINT8 dst, UINT8 src, UINT8 msgBytes, UINT8 flags);
+
+    // Internal buffer state passed from reader thread to consumers
+    typedef struct
+    {
+        UMF_CHUNK* buf;
+        UINT32 nChunks;
+    }
+    PHYSICAL_CHANNEL_READ_BUF;
+
+    //
+    // Read (FPGA -> host) queue
+    //
+    friend void* BNReadThread(void* argv);
+    void ReadThread();
+    pthread_t readThreadID;
+    class tbb::concurrent_queue<PHYSICAL_CHANNEL_READ_BUF> readQueue;
+    class tbb::concurrent_queue<UMF_CHUNK*> readEmptyBufQueue;
+
+    //
+    // Write (host -> FPGA) queue
+    //
+    friend void* BNWriteThread(void* argv);
+    void WriteThread();
+    void WriteFlush();
+    pthread_t writeThreadID;
+    class tbb::concurrent_queue<UMF_MESSAGE> writeQueue;
+    UMF_CHUNK* wrNext;
+    UMF_CHUNK* wrLastBNHeader;
 
     // Debug support
     void Debug();
@@ -76,7 +115,7 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
     // non-blocking read
     UMF_MESSAGE TryRead();
 
-    void Write(UMF_MESSAGE);
+    void Write(UMF_MESSAGE msg) { writeQueue.push(msg); }
 };
 
 #endif

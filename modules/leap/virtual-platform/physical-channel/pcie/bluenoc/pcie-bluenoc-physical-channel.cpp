@@ -16,35 +16,69 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+#include <unistd.h>
 #include <stdio.h>
 
 #include "asim/syntax.h"
+#include "asim/atomic.h"
 #include "awb/provides/physical_channel.h"
 
 using namespace std;
+
+void* BNReadThread(void *argv);
+void* BNWriteThread(void *argv);
+
 
 PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
     PLATFORMS_MODULE p,
     PHYSICAL_DEVICES d) :
     PLATFORMS_MODULE_CLASS(p)
 {
-    if (posix_memalign((void**)&outBuf, 128, sizeof(UMF_CHUNK) * bufMaxChunks) != 0 ||
-		posix_memalign((void**)&inBuf, 128, sizeof(UMF_CHUNK) * bufMaxChunks) != 0 ||
-		posix_memalign((void**)&debugBuf, 128, sizeof(UMF_CHUNK) * 32) != 0)
+    initialized = false;
+
+    //
+    // Allocate some page-aligned I/O buffers.
+    //
+    int psize = getpagesize();
+    if (posix_memalign((void**)&outBuf, psize, sizeof(UMF_CHUNK) * bufMaxChunks) != 0 ||
+		posix_memalign((void**)&debugBuf, psize, sizeof(UMF_CHUNK) * 32) != 0)
     {
 		fprintf (stderr, "PCIe Device: Failed to memalign I/O buffers: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
+    //
+    // Allocate the pool of read (FPGA -> host) I/O buffers.  These buffers
+    // will be filled by the read thread and passed, full, through the
+    // readQueue.  Empty (drained) buffers are returned to the read thread
+    // through readEmptyBufQueue.
+    //
+    for (int n = 0; n < nInBufs; n++)
+    {
+        UMF_CHUNK* buf;
+        if (posix_memalign((void**)&buf, psize, sizeof(UMF_CHUNK) * bufMaxChunks) != 0)
+        {
+            fprintf (stderr, "PCIe Device: Failed to memalign I/O buffers: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        inBufPool[n] = buf;
+        if (n == 0)
+            inBuf = buf;
+        else
+            readEmptyBufQueue.push(buf);
+    }
+
     inBufCurIdx = 0;
     inBufLastIdx = 0;
 
     pthread_mutex_init(&readLock, NULL);
-    pthread_mutex_init(&writeLock, NULL);
+    tryReadHoldingLock = false;
 
     scanFile = NULL;
 
     pcieDev = new PCIE_DEVICE_CLASS(p);
+    VERIFY(pcieDev != NULL, "Failed to open BlueNoC PCIe device");
 }
 
 
@@ -52,16 +86,29 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
 PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
 {
     delete pcieDev;
+
+    if (initialized)
+    {
+        // Stop I/O threads
+        pthread_cancel(readThreadID);
+        pthread_cancel(writeThreadID);
+        pthread_join(readThreadID, NULL);
+        pthread_join(writeThreadID, NULL);
+    }
+
+    // Free I/O buffers
     free(outBuf);
-    free(inBuf);
     free(debugBuf);
+    for (int n = 0; n < nInBufs; n++)
+    {
+        free(inBufPool[n]);
+    }
 }
 
 
 void
 PHYSICAL_CHANNEL_CLASS::Init()
 {
-    static bool initialized = false;
     if (initialized) return;
     initialized = true;
 
@@ -88,25 +135,37 @@ PHYSICAL_CHANNEL_CLASS::Init()
                 BlueNoCHeader(4, 0, 4, 1);
     VERIFY(BLUENOC_TIMEOUT_CYCLES < 2048, "BLUENOC_TIMEOUT_CYCLES must be < 2048");
     pcieDev->Write(outBuf, UMF_CHUNK_BYTES);
+
+    //
+    // Start the I/O threads.
+    //
+
+    if (pthread_create(&readThreadID, NULL, BNReadThread, (void*)this) != 0)
+    {
+        perror("PCIe BlueNoC readThread pthread_create");
+        exit(1);
+    }
+
+    if (pthread_create(&writeThreadID, NULL, BNWriteThread, (void*)this) != 0)
+    {
+        perror("PCIe BlueNoC writeThread pthread_create");
+        exit(1);
+    }
 }
 
 
 //
-// Handle read
+// Handle read.
 //
+// No locks are required here because the Channel I/O layer above provides
+// locks to guarantee that only one instance of Read and TryRead is active.
+// 
 UMF_MESSAGE
 PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
 {
     UINT32 n_bn_bytes_left;
     UINT64 header;
-
     UINT32 n_beats;
-
-    // Need the read lock?  If tryRead is set it was already aquired.
-    if (! tryRead)
-    {
-        pthread_mutex_lock(&readLock);
-    }
 
     do
     {
@@ -193,112 +252,57 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
         n_bn_bytes_left -= (n_beats * UMF_CHUNK_BYTES);
     }
 
-    if (! tryRead)
-    {
-        pthread_mutex_unlock(&readLock);
-    }
-
     return msg;
 }
 
 
 //
-// Non-blocking read
+// Non-blocking read.
+//
+// No locks are required here because the Channel I/O layer above provides
+// locks to guarantee that only one instance of Read and TryRead is active.
+// 
 //
 UMF_MESSAGE
 PHYSICAL_CHANNEL_CLASS::TryRead()
 {
     UMF_MESSAGE msg = NULL;
 
-    pthread_mutex_lock(&readLock);
-
-    if ((inBufCurIdx != inBufLastIdx) || pcieDev->Probe())
+    if ((inBufCurIdx != inBufLastIdx) || ! readQueue.empty())
     {
         msg = DoRead(true);
     }
-
-    pthread_mutex_unlock(&readLock);
-
-    return msg;
-};
-
-
-void
-PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
-{
-    pthread_mutex_lock(&writeLock);
-
-    UMF_CHUNK* last_bn_header = NULL;
-
-    // Compute UMF chunks in the message (rouned up)
-    UINT32 umf_chunks = (msg->GetLength() + UMF_CHUNK_BYTES - 1) / UMF_CHUNK_BYTES;
-
-    // BlueNoC packets are limited to 255 bytes, which may be too short
-    // for the full message.
-    UINT32 bn_header_payload_bytes = UMF_CHUNK_BYTES - 4;
-    UINT32 max_bn_chunks = 256 / UMF_CHUNK_BYTES - 1;
-    UINT32 bn_chunks = min(umf_chunks, max_bn_chunks);
-
-    // The first beat is the combination of the UMF and BlueNoC headers
-    UMF_CHUNK umf_header = msg->EncodeHeader();
-    ASSERTX(umf_header >> 32 == 0);
-
-    UINT32 bn_header = BlueNoCHeader(4,
-                                     0,
-                                     bn_header_payload_bytes +
-                                     bn_chunks * sizeof(UMF_CHUNK),
-                                     0);
-    
-    UMF_CHUNK* op = outBuf;
-    UMF_CHUNK* op_end = &outBuf[bufMaxChunks];
-    
-    last_bn_header = op;
-    *op++ = (umf_header << 32) | bn_header;
-
-    // write message data to pipe
-    // NOTE: hardware demarshaller expects chunk pattern to start from most
-    //       significant chunk and end at least significant chunk, so we will
-    //       send chunks in reverse order
-    msg->StartReverseExtract();
-    while (msg->CanReverseExtract())
+    else if (tryReadHoldingLock)
     {
-        VERIFYX(op + bn_chunks < op_end);
-        msg->ReverseExtractChunks(bn_chunks, op);
-        op += bn_chunks;
-        umf_chunks -= bn_chunks;
-
-        // Need to open a new BlueNoC packet?
-        if (umf_chunks != 0)
+        // This thread is responsible for reading directly.  Is a message
+        // ready?
+        if (pcieDev->Probe())
         {
-            // Does the remainder of the message fit in this BlueNoC packet?
-            bn_chunks = min(umf_chunks, max_bn_chunks);
-
-            // Send the header beat with the remainder of the beat empty.
-            // This allows us to continue beat-aligning the UMF chunks.
-            // The high bit set in the flags indicates a continuation header.
-            VERIFYX(op < op_end);
-            last_bn_header = op;
-            *op++ = BlueNoCHeader(4,
-                                  0,
-                                  bn_header_payload_bytes +
-                                  bn_chunks * sizeof(UMF_CHUNK),
-                                  0x80);
+            msg = DoRead(true);
+        }
+    }
+    else
+    {
+        // Nothing to read.  Take control from the reader thread and do the
+        // read directly to avoid the cross-thread latency.
+        if (pthread_mutex_trylock(&readLock) == 0)
+        {
+            // Did the reader thread add a buffer between the test and the lock?
+            if (! readQueue.empty())
+            {
+                pthread_mutex_unlock(&readLock);
+                msg = DoRead(true);
+            }
+            else
+            {
+                // The consumer has taken control of the next read.
+                tryReadHoldingLock = true;
+            }
         }
     }
 
-    VERIFYX(umf_chunks == 0);
-    VERIFYX(msg->GetReadIndex() == 0);
-
-    // Set the don't wait (send immediately) flag in the last BlueNoC header
-    *last_bn_header |= 0x01000000;
-
-    // Emit the message
-    pcieDev->Write(outBuf, (op - outBuf) * sizeof(outBuf[0]));
-    pthread_mutex_unlock(&writeLock);
-
-    // Write() method is expected to delete the chunk
-    delete msg;
-}
+    return msg;
+};
 
 
 //
@@ -306,7 +310,7 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE msg)
 //   Read up to nChunks from the PCIe device.  Reads are buffered in large
 //   requests in order to optimize PCIe throughput.
 //
-UMF_CHUNK*
+inline UMF_CHUNK*
 PHYSICAL_CHANNEL_CLASS::ReadChunks(UINT32 *nChunks)
 {
     //
@@ -314,11 +318,35 @@ PHYSICAL_CHANNEL_CLASS::ReadChunks(UINT32 *nChunks)
     //
     if (inBufCurIdx == inBufLastIdx)
     {
-        UINT32 n_bytes_read = pcieDev->Read(inBuf, sizeof(UMF_CHUNK) * bufMaxChunks);
-        ASSERTX(n_bytes_read >= sizeof(UMF_CHUNK));
+        if (! tryReadHoldingLock)
+        {
+            // Return the old empty buffer to the reader thread
+            readEmptyBufQueue.push(inBuf);
+
+            // Get the next full buffer
+            PHYSICAL_CHANNEL_READ_BUF r_buf;
+            while (! readQueue.try_pop(r_buf)) CpuPause();
+
+            inBuf = r_buf.buf;
+            inBufLastIdx = r_buf.nChunks;
+        }
+        else
+        {
+            //
+            // This thread is responsible for the next read.
+            //
+            UINT32 n_bytes_read = pcieDev->Read(inBuf, sizeof(UMF_CHUNK) *
+                                                       bufMaxChunks);
+            ASSERTX(n_bytes_read >= sizeof(UMF_CHUNK));
+
+            inBufLastIdx = n_bytes_read / sizeof(UMF_CHUNK);
+
+            // Reset the reader to multi-threaded mode
+            tryReadHoldingLock = false;
+            pthread_mutex_unlock(&readLock);
+        }
 
         inBufCurIdx = 0;
-        inBufLastIdx = n_bytes_read / sizeof(UMF_CHUNK);
     }
 
     UMF_CHUNK* in_data = &inBuf[inBufCurIdx];
@@ -433,4 +461,240 @@ PHYSICAL_CHANNEL_CLASS::ScanHistory()
     pcieDev->Write(debugBuf, sizeof(debugBuf[0]));
 
     // The responses will be deliverd to DebugDump().
+}
+
+
+// ========================================================================
+//
+//   Read thread (FPGA to host).  Fill raw BlueNoC buffers and pass them
+//   to the host-side consumer.
+//
+//   Bursting the raw buffers into UMF_MESSAGEs hurts performance due
+//   to cross-processor cache latency.  Performance is better when simply
+//   passing raw buffers.
+//
+// ========================================================================
+
+//
+// BNReadThread --
+//   Pthread entry point.  The class instance is passed as the argument.
+//
+void* BNReadThread(void* argv)
+{
+    int oldstate;
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
+
+    // Rejoin the PHYSICAL_CHANNEL_CLASS instance
+    PHYSICAL_CHANNEL instance = PHYSICAL_CHANNEL(argv);
+    instance->ReadThread();
+    return NULL;
+}
+
+//
+// ReadThread --
+//   Read a BlueNoC stream pass buffers to the main reader thread(s).
+//
+void
+PHYSICAL_CHANNEL_CLASS::ReadThread()
+{
+    while (true)
+    {
+        pthread_testcancel();
+
+        if (pcieDev->Probe(true))
+        {
+            // Data available.  Get the read lock.  This read thread is
+            // competing with the main consumer of the readQueue.  When
+            // the main consumer has nothing to do it will try to read
+            // from the FPGA directly to avoid the latency of messages
+            // passing through this reader thread.
+            pthread_mutex_lock(&readLock);
+
+            // Is the message still available?
+            if (pcieDev->Probe(false))
+            {
+                // Get an empty buffer, passed back after the consumer is done.
+                UMF_CHUNK* buf;
+                while (! readEmptyBufQueue.try_pop(buf)) CpuPause();
+
+                // Fill a read buffer.
+                UINT32 n_bytes_read = pcieDev->Read(buf, sizeof(UMF_CHUNK) *
+                                                         bufMaxChunks);
+                ASSERTX(n_bytes_read >= sizeof(UMF_CHUNK));
+
+                // Pass full buffer to consumer
+                PHYSICAL_CHANNEL_READ_BUF r_buf;
+                r_buf.buf = buf;
+                r_buf.nChunks = n_bytes_read / sizeof(UMF_CHUNK);
+                readQueue.push(r_buf);
+            }
+
+            pthread_mutex_unlock(&readLock);
+        }
+    }
+}
+
+
+// ========================================================================
+//
+//   Write thread (host to FPGA).  Outbound messages are passed to this
+//   thread, which manages writes to the FPGA.
+//
+// ========================================================================
+
+//
+// BNWriteThread --
+//   Pthread entry point.  The class instance is passed as the argument.
+//
+void* BNWriteThread(void* argv)
+{
+    int oldstate;
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
+
+    // Rejoin the PHYSICAL_CHANNEL_CLASS instance
+    PHYSICAL_CHANNEL instance = PHYSICAL_CHANNEL(argv);
+    instance->WriteThread();
+    return NULL;
+}
+
+//
+// WriteThread --
+//   Main working in host -> FPGA message passing.  Take a stream of
+//   UMF_MESSAGEs and pass them to hardware.
+//
+void
+PHYSICAL_CHANNEL_CLASS::WriteThread()
+{
+    wrNext = outBuf;
+    wrLastBNHeader = outBuf;
+
+    while (true)
+    {
+        pthread_testcancel();
+
+        // Get the next message
+        UMF_MESSAGE msg;
+        if (wrNext == outBuf)
+        {
+            // Output buffer is currently empty.  Wait for the next message.
+            while (! writeQueue.try_pop(msg)) CpuPause();
+        }
+        else
+        {
+            // Output buffer is not empty.  Wait for a short time for a new
+            // message before flushing the buffer.  The overhead of the
+            // DMA transfer to the FPGA makes waiting a short time to combine
+            // writes more efficient.
+            int trips = 0;
+            bool have_msg = false;
+            do
+            {
+                have_msg = writeQueue.try_pop(msg);
+            }
+            while (! have_msg && (trips++ < 50));
+
+            if (! have_msg)
+            {
+                // No new message.  Flush the buffer and wait for a new message.
+                WriteFlush();
+                while (! writeQueue.try_pop(msg)) CpuPause();
+            }
+        }
+
+        // Compute UMF chunks in the message (rouned up)
+        UINT32 umf_chunks = (msg->GetLength() + UMF_CHUNK_BYTES - 1) / UMF_CHUNK_BYTES;
+
+        // BlueNoC packets are limited to 255 bytes, which may be too short
+        // for the full message.
+        UINT32 bn_header_payload_bytes = UMF_CHUNK_BYTES - 4;
+        UINT32 max_bn_chunks = 256 / UMF_CHUNK_BYTES - 1;
+        UINT32 bn_chunks = min(umf_chunks, max_bn_chunks);
+
+        // The first beat is the combination of the UMF and BlueNoC headers
+        UMF_CHUNK umf_header = msg->EncodeHeader();
+        ASSERTX(umf_header >> 32 == 0);
+
+        UINT32 bn_header = BlueNoCHeader(4,
+                                         0,
+                                         bn_header_payload_bytes +
+                                         bn_chunks * sizeof(UMF_CHUNK),
+                                         0);
+    
+        UMF_CHUNK* op = wrNext;
+        UMF_CHUNK* op_end = &outBuf[bufMaxChunks];
+    
+        wrLastBNHeader = op;
+        *op++ = (umf_header << 32) | bn_header;
+
+        // write message data to pipe
+        // NOTE: hardware demarshaller expects chunk pattern to start from most
+        //       significant chunk and end at least significant chunk, so we will
+        //       send chunks in reverse order
+        msg->StartReverseExtract();
+        while (msg->CanReverseExtract())
+        {
+            VERIFYX(op + bn_chunks < op_end);
+            msg->ReverseExtractChunks(bn_chunks, op);
+            op += bn_chunks;
+            umf_chunks -= bn_chunks;
+
+            // Need to open a new BlueNoC packet?
+            if (umf_chunks != 0)
+            {
+                // Does the remainder of the message fit in this BlueNoC packet?
+                bn_chunks = min(umf_chunks, max_bn_chunks);
+
+                // Send the header beat with the remainder of the beat empty.
+                // This allows us to continue beat-aligning the UMF chunks.
+                // The high bit set in the flags indicates a continuation header.
+                VERIFYX(op < op_end);
+                wrLastBNHeader = op;
+                *op++ = BlueNoCHeader(4,
+                                      0,
+                                      bn_header_payload_bytes +
+                                      bn_chunks * sizeof(UMF_CHUNK),
+                                      0x80);
+            }
+        }
+
+        VERIFYX(umf_chunks == 0);
+        VERIFYX(msg->GetReadIndex() == 0);
+
+        wrNext = op;
+
+        // Write() method is expected to delete the chunk
+        delete msg;
+
+        if ((op_end - op) < (256 / sizeof(outBuf[0])))
+        {
+            // If there isn't enough buffer space left for a full BlueNoC
+            // packet then flush the buffer.  Otherwise, wait for more
+            // messages to merge into a single write.
+            //
+            WriteFlush();
+        }
+    }
+}
+
+
+//
+// WriteFlush --
+//   Flush the collection of buffered host to FPGA BlueNoC packets.
+//
+void
+PHYSICAL_CHANNEL_CLASS::WriteFlush()
+{
+    size_t count = (wrNext - outBuf) * sizeof(outBuf[0]);
+    if (count > 0)
+    {
+        // Set the don't wait (send immediately) flag in the last BlueNoC header
+        *wrLastBNHeader |= 0x01000000;
+
+        pcieDev->Write(outBuf, count);
+    }
+
+    wrNext = outBuf;
+    wrLastBNHeader = outBuf;
 }

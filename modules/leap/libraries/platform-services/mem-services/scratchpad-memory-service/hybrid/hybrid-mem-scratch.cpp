@@ -245,14 +245,15 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreLine(
 {
     // Burst the incoming address into a region ID and a pointer to the line.
     UINT32 region = regionID(addr);
-    SCRATCHPAD_MEMORY_WORD *store_line = regionBase[region] + regionOffset(addr);
     
-    T2("\tSCRATCHPAD store line, region " << region
+    T1("\tSCRATCHPAD store line, region " << region
                                           << ": r_addr " << fmt_addr(regionOffset(addr))
                                           << ", mask " << fmt_mask(byteMask));
 
     VERIFY(regionBase[region] != NULL);
     VERIFY(regionOffset(addr) < regionWords[region]);
+
+    SCRATCHPAD_MEMORY_WORD* store_line = regionBase[region] + regionOffset(addr);
 
     //
     // The mask has been arranged so it works well with the maskmovq instruction.
