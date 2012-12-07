@@ -53,7 +53,7 @@ File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
 Packagehint=leap
 
 [Low Level Platform Interface Hybrid/Requires]
-physical_platform=ML605 Virtex-6 Platform with PCIe
+physical_platform=PCIe Board with DDR
 channelio=Basic Virtual Channel Multiplexer
 rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
@@ -107,12 +107,6 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
 
-[Differential Crystal Clocks Device/Params]
-RESET_ACTIVE_HIGH=1
-CRYSTAL_CLOCK_FREQ=200
-
-
-
 [Starter Virtual Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
 Packagehint=leap
@@ -140,14 +134,8 @@ File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid/hy
 Packagehint=leap
 
 [ML605 Virtex-6 Platform with PCIe]
-File=modules/bluespec/common/fpgaenv/physical-platform/ml605/pcie-dma/ml605-v6-pcie-dma.awb
+File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/ml605/ml605-v6-pcie-dma.awb
 Packagehint=leap-platforms
-
-[ML605 Virtex-6 Platform with PCIe/Requires]
-pcie_device=BlueNoC PCIe Bridge
-clocks_device=Differential Crystal Clocks Device
-physical_platform_utils=Common Physical Platform Utilities
-ddr_sdram_device=Xilinx DDR SDRAM Physical Device
 
 [Virtex-6 PCIE Device (BlueNoC)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex6/pcie-virtex6.awb
@@ -169,20 +157,28 @@ Packagehint=leap-platforms
 File=modules/leap/virtual-platform/physical-channel/pcie/bluenoc/pcie-bluenoc-physical-channel.awb
 Packagehint=leap
 
-[ML605 DDR3 SDRAM]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-ml605/ddr3-sdram-device.awb
-Packagehint=leap-platforms
-
-[Xilinx DDR SDRAM Physical Device]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr-sdram-xilinx.awb
-Packagehint=leap-platforms
-
-[Xilinx DDR SDRAM Physical Device/Requires]
-ddr_sdram_xilinx_driver=ML605 DDR3 SDRAM
-
 [Little-Endian Unified Message Format/Params]
 UMF_CHUNK_BYTES=16
 
 [NULL Local Memory Interface]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
+
+[PCIe Board with DDR]
+File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/pcie-generic-platform.awb
+Packagehint=leap-platforms
+
+[PCIe Board with DDR/Requires]
+pcie_device=BlueNoC PCIe Bridge
+clocks_device=Differential Crystal Clocks Device
+physical_platform_config=ML605 Virtex-6 Platform with PCIe
+physical_platform_utils=Common Physical Platform Utilities
+ddr_sdram_device=DDR SDRAM Emulator in BRAM
+
+[DDR SDRAM Emulator in BRAM]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-bram/ddr-sdram-bram.awb
+Packagehint=leap-platforms
+
+[Differential Crystal Clocks Device/Params]
+CRYSTAL_CLOCK_FREQ=200
+RESET_ACTIVE_HIGH=1

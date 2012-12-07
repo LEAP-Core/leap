@@ -161,7 +161,17 @@ class ModuleList:
 
     
   def getAWBParam(self, moduleName, param):
-    return self.awbParams[moduleName][param]
+    if (hasattr(moduleName, '__iter__') and not isinstance(moduleName, basestring)):
+      for m in moduleName:
+        print "Seeking " + param + " in " + m
+        try:
+          return self.awbParams[m][param]
+        except:
+          pass
+      raise Exception(param + " not in modules: " + str(moduleName))
+    else:
+      ## moduleName is just a string
+      return self.awbParams[moduleName][param]
 
   def getAllDependencies(self, key):
     # we must check to see if the dependencies actually exist.

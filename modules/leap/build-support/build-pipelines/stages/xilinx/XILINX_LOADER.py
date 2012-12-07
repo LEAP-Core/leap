@@ -37,7 +37,7 @@ class LOADER():
     ##
     def leap_xilinx_loader(xilinx_apm_name):
       try:
-        fpga_pos = moduleList.getAWBParam('physical_platform', 'FPGA_POSITION')
+        fpga_pos = moduleList.getAWBParam(['physical_platform_config', 'physical_platform'], 'FPGA_POSITION')
       except:
         fpga_pos = None
 

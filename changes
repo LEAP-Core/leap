@@ -14287,3 +14287,27 @@ and pipelined bidirectional I/O of 850 MB/s.
 
 The new code requires Intel's TBB (Thread Building Blocks) library.
 (http://threadingbuildingblocks.org/)
+
+----------
+mcadler     Date: Fri Dec  7 16:11:17 EST 2012  CSN: CSN-leap-374
+                  Fri Dec  7 21:11:17 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          373 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          373 
+
+Directory modules/leap/build-support/build-pipelines/stages/fpgaprog
+ FPGAProg.py               Locally Modified          373 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          373 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          373 
+
+- Build support moduleList.getAWBParam now takes a list of modules in which
+  to seek an AWB parameter.  The first module in the list to have the parameter
+  is used.
+
+- Restructured ML605 physical platform.
