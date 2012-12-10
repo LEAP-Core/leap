@@ -1,0 +1,11 @@
+%name Aurora Service
+%desc Aurora Service
+
+%provides aurora_service
+
+%attributes hybrid connected
+
+%public aurora-service.bsv
+
+
+
