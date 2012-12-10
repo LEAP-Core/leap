@@ -1,0 +1,167 @@
+
+[Global]
+SaveParameters=0
+Description=Hybrid ML605 PCIE FPGA Environment with Aurora
+File=fpgaenv-hybrid-ml605-pcie-aurora
+Version=2.2
+Type=Leap
+Name=Hybrid ML605 PCIE FPGA Environment with Aurora
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
+
+[Model]
+DefaultAttributes=bluespec
+model=FPGA Environment
+
+[FPGA Environment/Requires]
+virtual_platform=Standard Virtual Platform
+fpga_components=Hardware FPGA Components for Virtex 6 (Generic)
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx
+soft_services=Soft Services Submodel
+
+[Standard Virtual Platform]
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
+
+[Standard Virtual Platform/Requires]
+virtual_devices=Standard Virtual Devices Submodel
+low_level_platform_interface=Low Level Platform Interface Hybrid
+umf=Little-Endian Unified Message Format
+platform_services=Aurora Platform Services Submodel
+
+[FPGA Environment]
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
+
+[RRR Clients and Servers]
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer]
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer/Requires]
+physical_channel=BlueNoC PCIe Tunnel
+
+[Low Level Platform Interface Hybrid]
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
+
+[Low Level Platform Interface Hybrid/Requires]
+physical_platform=ML605 Virtex-6 Platform with PCIe and Aurora
+channelio=Basic Virtual Channel Multiplexer
+rrr=RRR Clients and Servers
+physical_platform_debugger=Null Physical Platform Debugger
+local_mem=Local Memory using DDR DRAM (burst holds at least one line)
+remote_memory=Null Remote Memory
+
+[Common Physical Platform Utilities]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
+Packagehint=leap-platforms
+
+[Null Physical Platform Debugger]
+File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
+Packagehint=leap-platforms
+
+[Little-Endian Unified Message Format]
+File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
+Packagehint=leap-platforms
+
+[RRR Common Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
+
+[RRR Clients and Servers/Requires]
+rrr_common=RRR Common Module
+
+[Null Remote Memory]
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
+Packagehint=leap
+
+[FPGA Build Pipeline Xilinx]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
+Packagehint=leap
+
+[Standard Virtual Devices Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
+File=config/pm/leap/submodels/common/librl-bsv.apm
+Packagehint=leap
+
+[Soft Services Submodel]
+File=config/pm/leap/submodels/common/soft-services.apm
+Packagehint=leap
+
+[Hardware FPGA Components for Virtex 6 (Generic)]
+File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex6-generic.awb
+Packagehint=leap-platforms
+
+[Differential Crystal Clocks Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
+Packagehint=leap-platforms
+
+[Differential Crystal Clocks Device/Params]
+CRYSTAL_CLOCK_FREQ=200
+RESET_ACTIVE_HIGH=1
+
+[Virtex-6 PCIE Device (BlueNoC)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex6/pcie-virtex6.awb
+Packagehint=leap-platforms
+
+[BlueNoC PCIe Bridge/Requires]
+pcie_bluenoc_ifc=BlueNoC PCIe Bridge Interfaces
+pcie_bluenoc_device=Virtex-6 PCIE Device (BlueNoC)
+
+[BlueNoC PCIe Tunnel]
+File=modules/leap/virtual-platform/physical-channel/pcie/bluenoc/pcie-bluenoc-physical-channel.awb
+Packagehint=leap
+
+[BlueNoC PCIe Bridge]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc/pcie-bluenoc.awb
+Packagehint=leap-platforms
+
+[BlueNoC PCIe Bridge Interfaces]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc/pcie-bluenoc-ifc.awb
+Packagehint=leap-platforms
+
+[ML605 DDR3 SDRAM]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-ml605/ddr3-sdram-device.awb
+Packagehint=leap-platforms
+
+[Xilinx DDR SDRAM Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr-sdram-xilinx.awb
+Packagehint=leap-platforms
+
+[Xilinx DDR SDRAM Physical Device/Requires]
+ddr_sdram_xilinx_driver=ML605 DDR3 SDRAM
+
+[Local Memory using DDR DRAM (burst holds at least one line)]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr-wide.awb
+Packagehint=leap
+
+[Little-Endian Unified Message Format/Params]
+UMF_CHUNK_BYTES=16
+
+[ML605 Virtex-6 Platform with PCIe and Aurora/Requires]
+ml605_aurora_device=ML605 Aurora Device, Single Lane, 3.125gbps (SMA)
+pcie_device=BlueNoC PCIe Bridge
+clocks_device=Differential Crystal Clocks Device
+physical_platform_utils=Common Physical Platform Utilities
+ddr_sdram_device=Xilinx DDR SDRAM Physical Device
+
+[ML605 Virtex-6 Platform with PCIe and Aurora]
+File=modules/bluespec/common/fpgaenv/physical-platform/ml605/aurora-pcie-dma/aurora-ml605-v6-pcie-dma.awb
+
+[ML605 Aurora Device, Single Lane, 3.125gbps (SMA)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora-sma-ml605/aurora-sma.awb
+
+[Aurora Platform Services Submodel]
+File=config/pm/leap/submodels/platform-services/aurora-platform-services.apm
+Packagehint=leap

@@ -1,0 +1,117 @@
+
+[Global]
+SaveParameters=0
+Description=Collection of Services Corresponding to Standard Virtual Devices
+File=aurora-platform-services
+Version=2.2
+Name=Aurora Platform Services Submodel
+DefaultBenchmark=
+Type=Leap
+Class=Asim::Model
+DefaultRunOpts=
+RootName=Platform Services Aurora
+RootProvides=platform_services
+
+[Model]
+DefaultAttributes=connected hybrid
+model=Platform Services Aurora
+
+[Scratchpad Memory Service]
+File=modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/scratchpad-memory-service.awb
+Packagehint=leap
+
+[Standard Mem Services]
+File=modules/leap/libraries/platform-services/mem-services/mem-services-standard.awb
+Packagehint=leap
+
+[Common Services]
+File=modules/leap/libraries/platform-services/common-services/common-services-standard.awb
+Packagehint=leap
+
+[Standard Mem Services/Requires]
+shared_memory_service=Null Shared Memory Services
+scratchpad_memory_service=Scratchpad Memory Service
+central_cache_service=Central Cache Service
+
+[Front Panel Service]
+File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
+Packagehint=leap
+
+[Central Cache Service]
+File=modules/leap/libraries/platform-services/mem-services/central-cache-service/central-cache-service.awb
+Packagehint=leap
+
+[Starter Service]
+File=modules/leap/libraries/platform-services/starter-service/starter-service.awb
+Packagehint=leap
+
+[Stats Service]
+File=modules/leap/libraries/platform-services/common-services/stats-service/stats-service.awb
+Packagehint=leap
+
+[Common Services/Requires]
+stats_service=Stats Service
+assertions_service=Assertions Service
+debug_scan_service=Debug Scan Services
+dynamic_parameters_service=Dynamic Parameter Service
+stdio_service=Standard I/O Services
+
+[Debug Scan Services]
+File=modules/leap/libraries/platform-services/common-services/debug-scan-service/debug-scan-service.awb
+Packagehint=leap
+
+[Dynamic Parameter Service]
+File=modules/leap/libraries/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service.awb
+Packagehint=leap
+
+[Assertions Service]
+File=modules/leap/libraries/platform-services/common-services/assertions-service/assertions-service.awb
+Packagehint=leap
+
+[Scratchpad Memory Common Definitions]
+File=modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common/mem-scratch-common.awb
+Packagehint=leap
+
+[Scratchpad Memory Service/Requires]
+scratchpad_memory_common=Scratchpad Memory Common Definitions
+scratchpad_memory=Hybrid Scratchpad Memory Device
+
+[Hybrid Scratchpad Memory Device]
+File=modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid/hybrid-mem-scratch.awb
+Packagehint=leap
+
+[Local Memory Central Cache]
+File=modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid/local-mem-central-cache.awb
+Packagehint=leap
+
+[Central Cache Service/Requires]
+central_cache=Local Memory Central Cache
+central_cache_common=Central Cache Common Definitions
+
+[Central Cache Common Definitions]
+File=modules/leap/libraries/platform-services/mem-services/central-cache-service/common/central-cache-common.awb
+Packagehint=leap
+
+[Null Shared Memory Services]
+File=modules/leap/libraries/platform-services/mem-services/shared-memory-service/shared-memory-service-null.awb
+Packagehint=leap
+
+[Standard I/O Services]
+File=modules/leap/libraries/platform-services/common-services/stdio-service/stdio-service.awb
+Packagehint=leap
+
+[Platform Services Aurora/Requires]
+common_services=Common Services
+mem_services=Standard Mem Services
+front_panel_service=Front Panel Service
+starter_service=Starter Service
+aurora_service=Aurora Service
+
+[Platform Services Aurora]
+File=modules/leap/libraries/platform-services/platform-services-aurora.awb
+Packagehint=leap
+
+
+[Aurora Service]
+File=modules/leap/libraries/platform-services/aurora-service/aurora-service.awb
+Packagehint=leap
