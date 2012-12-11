@@ -14311,3 +14311,21 @@ Directory modules/leap/build-support/project
   is used.
 
 - Restructured ML605 physical platform.
+
+----------
+hjyang      Date: Mon Dec 10 21:51:53 EST 2012  CSN: CSN-leap-378
+                  Tue Dec 11 02:51:53 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-prefetch-stats.bsv     Locally Modified          377 
+ rl-direct-mapped-cache.bsv Locally Modified          377 
+ rl-prefetch.bsv           Locally Modified          377 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Modified          377 
+ platform-scratchpad-memory-utils.bsv Locally Modified          377 
+ platform-scratchpad-memory.bsv Locally Modified          377 
+
+Update the private cache prefetching scheme.
+Fix performance bugs.

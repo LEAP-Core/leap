@@ -29,6 +29,9 @@ interface RL_PREFETCH_STATS;
     method Bool prefetchLate();             // Prefetch is usable but late (cache request is shunt to the side buffer due to late prefetch)
     method Bool prefetchUseless();          // The prefetch data is replaced before being accessed
     method Bool prefetchIssued();           // Prefetch request is issued from the prefetcher
+    method Bool prefetchLearn();            // Prefetcher is triggered for learning
+    method Bool prefetchLearnerConflict();  // Prefetcher's learner conflicts (learner's tag mismatch)     
+    method Bool prefetchIllegalReq();       // Prefetch request is uncacheable 
     method Maybe#(PREFETCH_LEARNER_STATS) hitLearnerInfo();
 endinterface: RL_PREFETCH_STATS
 

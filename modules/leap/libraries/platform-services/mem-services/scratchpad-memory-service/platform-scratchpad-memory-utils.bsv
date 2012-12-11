@@ -93,8 +93,8 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
     provisos( NumAlias#(TMul#(n_LEARNERS, 4), n_STATS),
               Add#(TMax#(TLog#(n_STATS),1), extraBits, TLog#(`STATS_MAX_VECTOR_LEN)));
 	
-	STAT_ID prefetchStatIDs[6];
-	STAT_ID learnerStatIDs[ valueOf(n_STATS) ];
+	STAT_ID prefetchStatIDs[9];
+  	STAT_ID learnerStatIDs[ valueOf(n_STATS) ];
 
 	prefetchStatIDs[0] = statName(tagPrefix  + "SCRATCH_PREFETCH_HIT", 
                          descPrefix + "Scratchpad prefetch hits");
@@ -105,9 +105,15 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
 	prefetchStatIDs[3] = statName(tagPrefix  + "SCRATCH_PREFETCH_LATE", 
                          descPrefix + "Scratchpad late prefetch reqs");
 	prefetchStatIDs[4] = statName(tagPrefix  + "SCRATCH_PREFETCH_USELESS", 
-                         descPrefix + "Scratchpad uesless prefetch reqs");
+                         descPrefix + "Scratchpad useless prefetch reqs");
 	prefetchStatIDs[5] = statName(tagPrefix  + "SCRATCH_PREFETCH_ISSUE", 
                          descPrefix + "Scratchpad prefetch reqs issued");
+	prefetchStatIDs[6] = statName(tagPrefix  + "SCRATCH_PREFETCH_LEARN", 
+                         descPrefix + "Scratchpad prefetcher learns");
+	prefetchStatIDs[7] = statName(tagPrefix  + "SCRATCH_PREFETCH_CONFLICT", 
+                         descPrefix + "Scratchpad prefetch learner conflicts");
+	prefetchStatIDs[8] = statName(tagPrefix  + "SCRATCH_PREFETCH_ILLEGAL", 
+                         descPrefix + "Scratchpad uncacheable prefetch reqs");
 	
 	for (Integer i = 0; i < valueOf(n_LEARNERS); i = i+1)
 	begin
@@ -121,7 +127,7 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
                                 descPrefix + "Scratchpad prefetch lookahead dist from learner "+integerToString(i));
 	end
 
-    STAT_VECTOR#(6)       prefetchSv <- mkStatCounter_Vector(prefetchStatIDs);
+    STAT_VECTOR#(9)       prefetchSv <- mkStatCounter_Vector(prefetchStatIDs);
     STAT_VECTOR#(n_STATS) learnerSv  <- mkStatCounter_Vector(learnerStatIDs);
     
     rule prefetchHit (stats.prefetchHit());
@@ -147,8 +153,20 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
     rule prefetchIssued (stats.prefetchIssued());
         prefetchSv.incr(5);
     endrule
+    
+    rule prefetchLearn (stats.prefetchLearn());
+        prefetchSv.incr(6);
+    endrule
 	
-	rule hitLearnerUpdate (stats.hitLearnerInfo() matches tagged Valid .s);
+    rule prefetchLearnerConflict (stats.prefetchLearnerConflict());
+        prefetchSv.incr(7);
+    endrule
+
+    rule prefetchIllegalReq (stats.prefetchIllegalReq());
+        prefetchSv.incr(8);
+    endrule
+    
+    rule hitLearnerUpdate (stats.hitLearnerInfo() matches tagged Valid .s);
         learnerSv.incr(0+resize(s.idx)*4); //hitLeanerIdx
         if (s.isActive)                    //the learner is issuing prefetch request
         begin

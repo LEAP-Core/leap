@@ -431,7 +431,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
            ((newReqArb > 1) && (prefetcher.peekReq().prio == PREFETCH_PRIO_HIGH))))
         begin
             req_type      = DM_CACHE_PREFETCH_REQ;
-            let pref_req <- prefetcher.getReq();
+            let pref_req  = prefetcher.peekReq();
             r.act         = DM_CACHE_READ;
             r.addr        = pref_req.addr;
             r.readMeta    = RL_DM_CACHE_READ_META { isPrefetch: True,
@@ -493,6 +493,10 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             sideReqQ.deq();
             sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) - 1);
         end
+        else
+        begin
+            let pf_req <- prefetcher.getReq();
+        end
     endrule
 
     //
@@ -531,6 +535,8 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     (* fire_when_enabled *)
     rule dropPrefetchReqByBusy ( tpl_1(curReq) == DM_CACHE_PREFETCH_REQ && 
                                  !isValid(tpl_3(curReq)) );
+        let pf_req <- prefetcher.getReq();
+        debugLog.record($format("    Prefetch req dropped by busy: addr=0x%x", tpl_2(curReq).addr));
         prefetcher.prefetchDroppedByBusy(tpl_2(curReq).addr);
     endrule
 
@@ -651,11 +657,9 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                                               tag: tag,
                                                               val: f.val });
         end
-        else if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+        else if(f.readMeta.isPrefetch)
         begin
-            // Prefetch of uncacheable address is useless.  Suggest the
-            // prefetcher cut it out.
-            prefetcher.prefetchInval(idx);
+            prefetcher.prefetchIllegalReq();
         end
 
         entryFilter.remove(idx);

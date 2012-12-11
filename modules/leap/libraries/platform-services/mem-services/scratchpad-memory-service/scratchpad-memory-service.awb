@@ -18,7 +18,7 @@
 
 %param --dynamic SCRATCHPAD_PVT_CACHE_MODE  0 "Bit 2: 0 disabled, 1 enabled prefetcher / Bits 1-0: 0 write-back, 1 write-through, 2 write-no-allocate, 3 disabled"
 
-%param --dynamic SCRATCHPAD_PREFETCHER_MECHANISM  24 "Bits 4-3: 0 basic-tagged, 1 stride-learn-on-miss, 2 stride-learn-on-both, 3 stride-hybrid / Bits 2-0: 1-7 look ahead prefetch distance, 0 learn automatically"
+%param --dynamic SCRATCHPAD_PREFETCHER_MECHANISM  51 "Bits 5-4: 0 basic-tagged, 1 stride-learn-on-miss, 2 stride-learn-on-both, 3 stride-hybrid / Bits 3: 0 look ahead prefetch distance (laDist) learn automatically / Bit 2-0: laDist upper bound in log"
 %param --dynamic SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG 5 "0-6: # prefetch learners (in log)"
 
 // 1K entries as the base size of scratchpad makes sense because of Xilinx

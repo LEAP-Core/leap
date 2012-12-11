@@ -478,7 +478,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
 
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
-                                        byteReadMask: unpack(~0),
+                                        byteReadMask: replicate(True),
                                         readUID: zeroExtendNP(pack(maf_idx)) };
 
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
@@ -608,15 +608,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     // Dynamic parameters
     PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
     Param#(3) cacheMode              <- mkDynamicParameter(fromInteger(cacheModeParam), paramNode);
-    Param#(5) prefetchMechanism      <- mkDynamicParameter(fromInteger(prefetchMechanismParam), paramNode);
-    Param#(3) prefetchLearnerSizeLog <- mkDynamicParameter(fromInteger(prefetchLearnerSizeLogParam), paramNode);
+    Param#(6) prefetchMechanism      <- mkDynamicParameter(fromInteger(prefetchMechanismParam), paramNode);
+    Param#(4) prefetchLearnerSizeLog <- mkDynamicParameter(fromInteger(prefetchLearnerSizeLogParam), paramNode);
 
     // Connection between private cache and the scratchpad virtual device
     let sourceData <- mkScratchpadCacheSourceData(scratchpadID);
                              
     // Cache Prefetcher
     let prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1) ?
-                          mkCachePrefetcher(nPrefetchLearners, False, debugLogForPrefetcher):
+                          mkCachePrefetcher(nPrefetchLearners, False, True, debugLogForPrefetcher):
                           mkNullCachePrefetcher();
     
     // Private cache
@@ -820,7 +820,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         //
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
-                                        byteReadMask: unpack(~0),
+                                        byteReadMask: replicate(True),
                                         readUID: zeroExtendNP(pack(readUID)) };
 
         // Forward the request to the scratchpad virtual device that handles
