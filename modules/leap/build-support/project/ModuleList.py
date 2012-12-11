@@ -162,8 +162,8 @@ class ModuleList:
     
   def getAWBParam(self, moduleName, param):
     if (hasattr(moduleName, '__iter__') and not isinstance(moduleName, basestring)):
+      ## moduleName is a list.  Look in each module, returning the first match.
       for m in moduleName:
-        print "Seeking " + param + " in " + m
         try:
           return self.awbParams[m][param]
         except:
