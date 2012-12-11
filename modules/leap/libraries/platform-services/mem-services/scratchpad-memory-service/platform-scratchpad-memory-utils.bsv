@@ -92,40 +92,40 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
     ()
     provisos( NumAlias#(TMul#(n_LEARNERS, 4), n_STATS),
               Add#(TMax#(TLog#(n_STATS),1), extraBits, TLog#(`STATS_MAX_VECTOR_LEN)));
-	
-	STAT_ID prefetchStatIDs[9];
-  	STAT_ID learnerStatIDs[ valueOf(n_STATS) ];
+    
+    STAT_ID prefetchStatIDs[9];
+    STAT_ID learnerStatIDs[ valueOf(n_STATS) ];
 
-	prefetchStatIDs[0] = statName(tagPrefix  + "SCRATCH_PREFETCH_HIT", 
+    prefetchStatIDs[0] = statName(tagPrefix  + "SCRATCH_PREFETCH_HIT", 
                          descPrefix + "Scratchpad prefetch hits");
-	prefetchStatIDs[1] = statName(tagPrefix  + "SCRATCH_PREFETCH_DROP_BUSY", 
+    prefetchStatIDs[1] = statName(tagPrefix  + "SCRATCH_PREFETCH_DROP_BUSY", 
                          descPrefix + "Scratchpad prefetch reqs dropped by busy");
-	prefetchStatIDs[2] = statName(tagPrefix  + "SCRATCH_PREFETCH_DROP_HIT", 
+    prefetchStatIDs[2] = statName(tagPrefix  + "SCRATCH_PREFETCH_DROP_HIT", 
                          descPrefix + "Scratchpad prefetch reqs dropped by hit");
-	prefetchStatIDs[3] = statName(tagPrefix  + "SCRATCH_PREFETCH_LATE", 
+    prefetchStatIDs[3] = statName(tagPrefix  + "SCRATCH_PREFETCH_LATE", 
                          descPrefix + "Scratchpad late prefetch reqs");
-	prefetchStatIDs[4] = statName(tagPrefix  + "SCRATCH_PREFETCH_USELESS", 
+    prefetchStatIDs[4] = statName(tagPrefix  + "SCRATCH_PREFETCH_USELESS", 
                          descPrefix + "Scratchpad useless prefetch reqs");
-	prefetchStatIDs[5] = statName(tagPrefix  + "SCRATCH_PREFETCH_ISSUE", 
+    prefetchStatIDs[5] = statName(tagPrefix  + "SCRATCH_PREFETCH_ISSUE", 
                          descPrefix + "Scratchpad prefetch reqs issued");
-	prefetchStatIDs[6] = statName(tagPrefix  + "SCRATCH_PREFETCH_LEARN", 
+    prefetchStatIDs[6] = statName(tagPrefix  + "SCRATCH_PREFETCH_LEARN", 
                          descPrefix + "Scratchpad prefetcher learns");
-	prefetchStatIDs[7] = statName(tagPrefix  + "SCRATCH_PREFETCH_CONFLICT", 
+    prefetchStatIDs[7] = statName(tagPrefix  + "SCRATCH_PREFETCH_CONFLICT", 
                          descPrefix + "Scratchpad prefetch learner conflicts");
-	prefetchStatIDs[8] = statName(tagPrefix  + "SCRATCH_PREFETCH_ILLEGAL", 
+    prefetchStatIDs[8] = statName(tagPrefix  + "SCRATCH_PREFETCH_ILLEGAL", 
                          descPrefix + "Scratchpad uncacheable prefetch reqs");
-	
-	for (Integer i = 0; i < valueOf(n_LEARNERS); i = i+1)
-	begin
-	    learnerStatIDs[0+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_HIT",
+    
+    for (Integer i = 0; i < valueOf(n_LEARNERS); i = i+1)
+    begin
+        learnerStatIDs[0+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_HIT",
                                 descPrefix + "Scratchpad prefetch learner "+integerToString(i)+" hits");
-	    learnerStatIDs[1+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_ISSUE", 
+        learnerStatIDs[1+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_ISSUE", 
                                 descPrefix + "Scratchpad prefetch reqs from learner "+integerToString(i));
-	    learnerStatIDs[2+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_STRIDE", 
+        learnerStatIDs[2+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_STRIDE", 
                                 descPrefix + "Scratchpad prefetch stride from learner "+integerToString(i));
-	    learnerStatIDs[3+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_LA_DIST", 
+        learnerStatIDs[3+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_LA_DIST", 
                                 descPrefix + "Scratchpad prefetch lookahead dist from learner "+integerToString(i));
-	end
+    end
 
     STAT_VECTOR#(9)       prefetchSv <- mkStatCounter_Vector(prefetchStatIDs);
     STAT_VECTOR#(n_STATS) learnerSv  <- mkStatCounter_Vector(learnerStatIDs);
@@ -157,7 +157,7 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
     rule prefetchLearn (stats.prefetchLearn());
         prefetchSv.incr(6);
     endrule
-	
+    
     rule prefetchLearnerConflict (stats.prefetchLearnerConflict());
         prefetchSv.incr(7);
     endrule
@@ -174,7 +174,7 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
             learnerSv.incrBy(2+resize(s.idx)*4, signExtend(s.stride)); //activeLearnerStride
             learnerSv.incrBy(3+resize(s.idx)*4, zeroExtend(s.laDist)); //activeLearnerLaDist
         end
-	endrule
+    endrule
 
 endmodule
 

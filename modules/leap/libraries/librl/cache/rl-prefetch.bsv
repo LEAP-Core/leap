@@ -55,10 +55,10 @@ PREFETCH_PRIO
 //
 typedef enum
 {
-    PREFETCH_BASIC_TAGGED = 0,          //prefetch when miss/prefetch hit, stride fixed
-    PREFETCH_STRIDE_LEARN_ON_MISS = 1,  //learn only when read miss, prefetch when miss
-    PREFETCH_STRIDE_LEARN_ON_BOTH = 2,  //learn when read miss/hit, prefetch when miss
-    PREFETCH_STRIDE_HYBRID = 3          //learn when miss/hit and prefetch when miss/prefetch hit
+    PREFETCH_BASIC_TAGGED = 0,                   //prefetch on miss/prefetch hit, stride fixed
+    PREFETCH_STRIDE_LEARN_ON_MISS = 1,           //learn only on read miss, prefetch on miss
+    PREFETCH_STRIDE_LEARN_ON_ORIGINAL_MISS = 2,  //learn on original cache read miss (it can be read miss/prefetch hit/blocked req), prefetch on miss/prefetch hit/blocked req
+    PREFETCH_STRIDE_HYBRID = 3                   //learn on read miss/hit and prefetch on miss/prefetch hit
 }
 PREFETCH_MODE
     deriving (Eq, Bits);
@@ -461,15 +461,15 @@ module mkCachePrefetchTaggedLearner#(DEBUG_FILE debugLog)
     rule checkLatePrefetch (!readHitW && !readMissW && !prefetchInvalW);
         let lateReq = blockedReqQ.first();
         blockedReqQ.deq();
-	    match {.idx, .is_prefetch_req} = lateReq;
+        match {.idx, .is_prefetch_req} = lateReq;
         if (is_prefetch_req) // prefetchDroppedByBusy
-		begin
-		    prefetchDroppedByBusyW.send();
-		end
-		else if (prefetchStatuses.sub(idx) != 0) // new cache req is blocked by a prefetch req
-		begin
+        begin
+            prefetchDroppedByBusyW.send();
+        end
+        else if (prefetchStatuses.sub(idx) != 0) // new cache req is blocked by a prefetch req
+        begin
             prefetchLateW.send();
-		end
+        end
     endrule
     
     rule updatePrefetchDist (learnDist && (prefetchLateW || prefetchDroppedByBusyW));
@@ -578,7 +578,7 @@ module mkCachePrefetchTaggedLearner#(DEBUG_FILE debugLog)
 
     method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
         blockedReqQ.enq(tuple2(?, True));
-	endmethod    
+    endmethod    
     
     // Learner's stat methods
     method Bool prefetchHit() = prefetchHitW;
@@ -737,7 +737,7 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
     endfunction    
   
     (* mutually_exclusive = "learnOnHit, learnOnMiss, basicPrefetchOnHit, basicPrefetchOnMiss" *)
-    rule learnOnHit (readHitW && (learnerMode == PREFETCH_STRIDE_LEARN_ON_BOTH || learnerMode == PREFETCH_STRIDE_HYBRID));
+    rule learnOnHit (readHitW && (learnerMode == PREFETCH_STRIDE_LEARN_ON_ORIGINAL_MISS || learnerMode == PREFETCH_STRIDE_HYBRID));
         if (prefetchHitW)
             strideLearn(addrReadHit, (learnerMode == PREFETCH_STRIDE_HYBRID), True);
         else if (learnerMode == PREFETCH_STRIDE_HYBRID)
@@ -761,33 +761,33 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
     rule checkLatePrefetch (!readHitW && !readMissW && !prefetchInvalW);
         let req = blockedReqQ.first();
         blockedReqQ.deq();
-	    match {.idx, .addr, .is_prefetch_req} = req;
+        match {.idx, .addr, .is_prefetch_req} = req;
         if (is_prefetch_req) // prefetchDroppedByBusy
-		begin
-		    prefetchDroppedByBusyW.send();
-			addrLate <= addr;
-			debugLog.record($format(" prefetchDroppedByBusy: addr=0x%x", addr));
-		end
-		else  // new cache request is blocked
-		begin
-  		    if (prefetchStatuses.sub(idx) != 0) // blocked by prefetch request
-	        begin
+        begin
+            prefetchDroppedByBusyW.send();
+            addrLate <= addr;
+            debugLog.record($format(" prefetchDroppedByBusy: addr=0x%x", addr));
+        end
+        else  // new cache request is blocked
+        begin
+            if (prefetchStatuses.sub(idx) != 0) // blocked by prefetch request
+            begin
                 prefetchLateW.send();
-			    addrLate <= addr;
-				debugLog.record($format(" newReqBlocked: addr=0x%x", addr));
-	        end
-		end
+                addrLate <= addr;
+                debugLog.record($format(" newReqBlocked: addr=0x%x", addr));
+            end
+        end
     endrule
     
     (* descending_urgency = "learnOnHit, learnOnMiss, basicPrefetchOnMiss, basicPrefetchOnHit, checkLatePrefetch, updatePrefetchDist" *)
     rule updatePrefetchDist (learnDist && (prefetchLateW || prefetchDroppedByBusyW));
         if (learnerMode == PREFETCH_BASIC_TAGGED)
-		begin
-  		    if (prefetchDistBasic != prefetchDistMax)
+        begin
+            if (prefetchDistBasic != prefetchDistMax)
                 prefetchDistBasic <= prefetchDistBasic + 1;
-		end
-		else
-		begin
+        end
+        else
+        begin
             let streamer_entry = streamerEntryFromCacheAddr(addrLate);
             match {.idx, .tag, .cur_addr} = streamer_entry;
             streamers.readReq(idx);
@@ -796,8 +796,8 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
                                                      curAddr:   cur_addr,
                                                      cacheAddr: addrLate,
                                                      act:       PREFETCH_ACT_UPDATE_DIST,
-                                                     reqGen:    (prefetchLateW && learnerMode == PREFETCH_STRIDE_LEARN_ON_BOTH) });
-		end
+                                                     reqGen:    (prefetchLateW && learnerMode == PREFETCH_STRIDE_LEARN_ON_ORIGINAL_MISS) });
+        end
     endrule
 
     rule lookupLearnerDistUpdate (learnerLookupQ.first().act == PREFETCH_ACT_UPDATE_DIST);
@@ -822,7 +822,7 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
                     new_stride = stride;
                     new_addr   = streamer_req.curAddr;
                     reqSourceGen(streamer_req.cacheAddr, stride, new_state, new_dist, streamer_req.idx);
-  		        end
+                end
                 debugLog.record($format(" Streamer update: tag=0x%x, addr=0x%x, stride=0x%x, state=%d, laDist=%d", streamer_req.tag, new_addr, new_stride, new_state, new_dist));
             end
 
@@ -1203,22 +1203,22 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, Bool hashA
     rule checkLatePrefetch (!readHitW && !readMissW && !prefetchInvalW);
         let req = blockedReqQ.first();
         blockedReqQ.deq();
-	    match {.idx, .addr, .is_prefetch_req} = req;
+        match {.idx, .addr, .is_prefetch_req} = req;
         if (is_prefetch_req) // prefetchDroppedByBusy
-		begin
-		    prefetchDroppedByBusyW.send();
-			addrLate <= addr;
-			debugLog.record($format(" prefetchDroppedByBusy: addr=0x%x", addr));
-		end
-		else  // new cache request is blocked
-		begin
-  		    if (prefetchStatuses.sub(idx) != 0) // blocked by prefetch request
-	        begin
+        begin
+            prefetchDroppedByBusyW.send();
+            addrLate <= addr;
+            debugLog.record($format(" prefetchDroppedByBusy: addr=0x%x", addr));
+        end
+        else  // new cache request is blocked
+        begin
+            if (prefetchStatuses.sub(idx) != 0) // blocked by prefetch request
+            begin
                 prefetchLateW.send();
-			    addrLate <= addr;
-				debugLog.record($format(" newReqBlocked: addr=0x%x", addr));
-	        end
-		end
+                addrLate <= addr;
+                debugLog.record($format(" newReqBlocked: addr=0x%x", addr));
+            end
+        end
     endrule
     
     (* descending_urgency = "learnOnHit, learnOnMiss, checkLatePrefetch, updatePrefetchDist" *)
@@ -1256,7 +1256,7 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, Bool hashA
                     new_stride = stride;
                     new_addr   = streamer_req.curAddr;
                     reqSourceGen(streamer_req.cacheAddr, stride, new_state, new_dist, streamer_req.idx);
-  		        end
+                end
                 debugLog.record($format(" Streamer update: tag=0x%x, addr=0x%x, stride=0x%x, state=%d, laDist=%d", streamer_req.tag, new_addr, new_stride, new_state, new_dist));
             end
 
@@ -1438,11 +1438,11 @@ module mkNullCachePrefetcher
     method Action prefetchInval(t_CACHE_IDX idx);
         noAction;
     endmethod
-	
+    
     method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr);
         noAction;
     endmethod
-	
+    
     method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
         noAction;
     endmethod

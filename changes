@@ -14346,3 +14346,19 @@ Directory modules/leap/build-support/project
 
 - Add VC707 platform configuration (no DDR support yet).
 - Virtex-7 support in bitgen.
+
+----------
+hjyang      Date: Mon Dec 10 23:10:56 EST 2012  CSN: CSN-leap-380
+                  Tue Dec 11 04:10:56 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          379 
+ rl-prefetch.bsv           Locally Modified          379 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.awb Locally Modified          379 
+ platform-scratchpad-memory-utils.bsv Locally Modified          379 
+
+Remove tabs. 
+Modify some comments.

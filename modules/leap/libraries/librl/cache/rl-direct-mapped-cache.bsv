@@ -522,11 +522,11 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         // Note line present in sideReqQ
         sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) + 1);
-		
-		if (prefetchMode == RL_DM_PREFETCH_ENABLE)
-		begin
-		    prefetcher.shuntNewCacheReq(idx, r.addr);
-		end
+        
+        if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+        begin
+            prefetcher.shuntNewCacheReq(idx, r.addr);
+        end
     endrule
     
     //
@@ -774,7 +774,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                 cache.write(idx, tagged Valid upd_entry);
             end
         end
-		
+        
         invalQ.enq(r);
     endrule
 
