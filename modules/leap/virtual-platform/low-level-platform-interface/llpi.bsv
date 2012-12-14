@@ -16,6 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import Vector::*;
+
 `include "awb/provides/rrr.bsh"
 `include "awb/provides/channelio.bsh"
 `include "awb/provides/local_mem.bsh"
@@ -47,13 +49,21 @@ endinterface
 //
 // Instantiate the subcomponents in one module.
 //
+`ifdef N_TOP_LEVEL_CLOCKS
+module mkLowLevelPlatformInterface#(Vector#(`N_TOP_LEVEL_CLOCKS, Clock) topClocks, Reset topReset)
+`else
 module mkLowLevelPlatformInterface
-    //interface:
+`endif
+    // Interface:
     (LowLevelPlatformInterface);
 
     // instantiate physical platform
     
+`ifdef N_TOP_LEVEL_CLOCKS
+    PHYSICAL_PLATFORM phys_plat <- mkPhysicalPlatform(topClocks, topReset);
+`else
     PHYSICAL_PLATFORM phys_plat <- mkPhysicalPlatform();
+`endif
     
     // LLPI is instantiated in a NULL clock domain, so first get some clocks
     // from the physical platform, which we'll pass down into the debugger

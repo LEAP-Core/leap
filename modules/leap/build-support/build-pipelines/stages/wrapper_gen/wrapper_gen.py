@@ -15,6 +15,23 @@ class WrapperGen():
     ## each time.
     synth_modules = [moduleList.topModule] + moduleList.synthBoundaries()
 
+    ## Models have the option of declaring top-level clocks that will
+    ## be exposed as arguments.  When top-level clocks exist a single
+    ## top-level reset is also defined.  To request no top-level clocks
+    ## the variable N_TOP_LEVEL_CLOCKS should be removed from a platform's
+    ## AWB configuration file, since Bluespec can't test the value of
+    ## a preprocessor variable.
+    try:
+      n_top_clocks = int(moduleList.getAWBParam('physical_platform', 'N_TOP_LEVEL_CLOCKS'))
+      if (n_top_clocks == 0):
+        sys.stderr.write("Error: N_TOP_LEVEL_CLOCKS may not be 0 due to Bluespec preprocessor\n")
+        sys.stderr.write("       limitations.  To eliminate top-level clocks, remove the AWB\n")
+        sys.stderr.write("       parameter from the platform configuration.\n")
+        sys.exit(1)
+    except:
+      n_top_clocks = 0
+
+
     for module in synth_modules:
       modPath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + module.name
       wrapperPath =  modPath + "_Wrapper.bsv"
@@ -33,8 +50,8 @@ class WrapperGen():
       # doesn't exist until after the first build.  Finding it later results in
       # build dependence changes and rebuilding.  Ignore it, since the file will
       # change only when some other file changes.
-      ignore_bsv.write(conSizePath);
-      ignore_bsv.close();
+      ignore_bsv.write(conSizePath)
+      ignore_bsv.close()
 
       # Generate a dummy connection size file to avoid errors during dependence
       # analysis.
@@ -42,7 +59,9 @@ class WrapperGen():
         os.system('leap-connect --dummy --dynsize ' + module.name + ' ' + conSizePath)
 
       wrapper_bsv.write('import HList::*;\n')
+      wrapper_bsv.write('import Vector::*;\n')
       wrapper_bsv.write('import ModuleContext::*;\n')
+
       # the top module is handled specially
       if(module.name == moduleList.topModule.name):
 
@@ -60,10 +79,38 @@ class WrapperGen():
         wrapper_bsv.write('// Get defintion of TOP_LEVEL_WIRES\n')
         wrapper_bsv.write('import physical_platform::*;\n')
         wrapper_bsv.write('(* synthesize *)\n')
-        wrapper_bsv.write('(* no_default_clock, no_default_reset *)\n')
-        wrapper_bsv.write('module [Module] mk_model_Wrapper (TOP_LEVEL_WIRES);\n')
-        wrapper_bsv.write('    // instantiate own module\n')
-        wrapper_bsv.write('     let m <- mkModel();\n')
+
+        if (n_top_clocks != 0):
+          # Expose the standard reset interface argument and some top-level
+          # clocks.  The first clock is the default clock.  Additional
+          # clocks are exposed as a vector, named externally as CLK_0, etc.
+          # All incoming clocks are combined into a single vector and
+          # passed to mkModel.  Index 0 of the generated vector is
+          # the same clock as the default clock.
+          wrapper_bsv.write('module [Module] mk_model_Wrapper(\n')
+          if (n_top_clocks > 1):
+            wrapper_bsv.write('    (* osc="CLK" *) Vector#(' + str(n_top_clocks-1) + ', Clock) topClocks,\n')
+          wrapper_bsv.write('    TOP_LEVEL_WIRES wires);\n\n')
+          wrapper_bsv.write('    Reset topReset <- exposeCurrentReset;\n');
+          wrapper_bsv.write('    Vector#(' + str(n_top_clocks) + ', Clock) allClocks = newVector();\n');
+          wrapper_bsv.write('    Vector#(1, Clock) curClk = newVector();\n');
+          wrapper_bsv.write('    curClk[0] <- exposeCurrentClock;\n');
+          if (n_top_clocks > 1):
+            wrapper_bsv.write('    allClocks = Vector::append(curClk, topClocks);\n');
+          else:
+            wrapper_bsv.write('    allClocks = curClk;\n');
+          wrapper_bsv.write('\n');
+          wrapper_bsv.write('    // Instantiate main module\n')
+          wrapper_bsv.write('    let m <- mkModel(allClocks, topReset,\n')
+          wrapper_bsv.write('                     clocked_by noClock, reset_by noReset);\n')
+        else:
+          # No exposed clocks or reset
+          wrapper_bsv.write('(* no_default_clock, no_default_reset *)\n')
+          wrapper_bsv.write('module [Module] mk_model_Wrapper\n')
+          wrapper_bsv.write('    (TOP_LEVEL_WIRES);\n\n')
+          wrapper_bsv.write('    // Instantiate main module\n')
+          wrapper_bsv.write('    let m <- mkModel();\n')
+
         wrapper_bsv.write('    return m;\n')
         wrapper_bsv.write('endmodule\n')
 

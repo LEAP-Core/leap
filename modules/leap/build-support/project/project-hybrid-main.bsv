@@ -35,14 +35,30 @@ import Clocks::*;
 `include "awb/provides/soft_connections_latency.bsh"
 `include "awb/provides/platform_services.bsh"
 
+//
+// Optionally pass in a set of top-level clocks and a reset.
+//
+// mkModel has no default clocks.  For many platforms a true clock is
+// synthesized from a differential pair of raw clocks, so there is no
+// top-level clock that would make sense as a default.
+//
+
+`ifdef N_TOP_LEVEL_CLOCKS
+module [Module] mkModel#(Vector#(`N_TOP_LEVEL_CLOCKS, Clock) topClocks, Reset topReset)
+`else
 module [Module] mkModel
+`endif
     // interface:
-        (TOP_LEVEL_WIRES);
+    (TOP_LEVEL_WIRES);
 
     // The Model is instantiated inside a NULL (noClock) clock domain,
     // so first instantiate the LLPI and get a clock and reset from it.
 
+`ifdef N_TOP_LEVEL_CLOCKS
+    let llpi <- mkLowLevelPlatformInterface(topClocks, topReset);
+`else
     let llpi <- mkLowLevelPlatformInterface();
+`endif
 
     Clock clk = llpi.physicalDrivers.clocksDriver.clock;
     Reset rst = llpi.physicalDrivers.clocksDriver.reset;
@@ -52,7 +68,6 @@ module [Module] mkModel
     
     // return top level wires interface
     return llpi.topLevelWires;
-
 endmodule
 
 

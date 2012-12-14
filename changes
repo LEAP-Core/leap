@@ -14362,3 +14362,38 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 
 Remove tabs. 
 Modify some comments.
+
+----------
+mcadler     Date: Fri Dec 14 15:50:52 EST 2012  CSN: CSN-leap-381
+                  Fri Dec 14 20:50:52 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          380 
+ fpgaenv-hybrid-vc707-pcie-no-memory.apm Locally Modified          380 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          380 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.bsv                  Locally Modified          380 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          380 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          380 
+
+Platforms may now define the AWB parameter N_TOP_LEVEL_CLOCKS.  When it exists,
+the top-level wrapper exposes the requested number of Bluespec Clock types.
+A single Reset is also exposed.  The first clock is exposed in the default
+manner.  All others are exposed as a vector.  The default clock and the
+remainder vector are then merged into a single vector and passed to the model.
+
+Since platform programmers must give serious thought to correct clocking,
+the platform continues to have no default clock.
+
+This change makes it easy to import clocks and allows us to expose interfaces
+referenced to top-level clocks.  Once connected to clocks, top-level
+interface methods may be tagged always enabled.
+
+The change will also ease support for other top-level wrappers that pass
+in clocks, such as FaBRIC's Convey system.
