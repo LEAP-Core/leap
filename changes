@@ -14397,3 +14397,13 @@ interface methods may be tagged always enabled.
 
 The change will also ease support for other top-level wrappers that pass
 in clocks, such as FaBRIC's Convey system.
+
+----------
+mcadler     Date: Tue Dec 18 09:16:55 EST 2012  CSN: CSN-leap-382
+                  Tue Dec 18 14:16:55 UTC 2012
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-vc707-pcie.apm Locally Added               0 
+
+VC707 configuration with local SDRAM.
