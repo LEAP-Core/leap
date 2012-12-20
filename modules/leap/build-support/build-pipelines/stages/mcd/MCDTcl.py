@@ -25,11 +25,14 @@ class MCD():
     # Open file, into which we will dump the magic TIG strings 
     mcdUCF = open(self.mcdUCFFile,'w')
     
-
     i = 0
     for clock in mcd_ostream.readlines():
       clock_s = string.strip(clock)
-      mcdUCF.write('NET    "' + clock_s + '" TNM_NET = ff_clk_' + str(i) +';\n') 
+      mcdUCF.write('\nNET  "' + clock_s + '" TNM_NET = ff_clk_' + str(i) +';\n') 
+      ## This is wrong.  We need to find the true frequency of each clock
+      ## domain.  For now we act as though all are at MODEL_CLOCK_FREQ.
+      mcdUCF.write('TIMESPEC TS_ff_clk_' + str(i) + ' = PERIOD ff_clk_' + str(i) + ' ' +
+                   str(self.modelClockFreq) + 'MHz HIGH 50%;\n')
       i = i + 1
       
 
@@ -65,6 +68,8 @@ class MCD():
 
     # need ifc as well
     self.bluespecBuilddirs += './iface/build/hw/.bsc/'
+
+    self.modelClockFreq = int(moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ'))
 
         
     # although we examine the log files, we depend on the 

@@ -14407,3 +14407,28 @@ Directory config/pm/leap/submodels/fpgaenv
  fpgaenv-hybrid-vc707-pcie.apm Locally Added               0 
 
 VC707 configuration with local SDRAM.
+
+----------
+mcadler     Date: Thu Dec 20 17:19:57 EST 2012  CSN: CSN-leap-383
+                  Thu Dec 20 22:19:57 UTC 2012
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          382 
+
+Directory modules/leap/build-support/build-pipelines/stages/mcd
+ MCDTcl.py                 Locally Modified          382 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          382 
+
+- Note dependence of %generated Verilog on Bluespec source.  SCons was
+  failing becuase it couldn't figure out how generated Verilog came to be.
+  (BSV.py)
+
+- Write the frequency of each clock domain to the UCF file.  This still
+  needs to be fixed.  Right now it writes MODEL_CLOCK_FREQ everywhere
+  instead of domain-specific values.  (MCDTcl.py)
+
+- Stop bothering to write the frequency of clocks coming into synthesis
+  boundaries to XCF files.  The value is ignored by Xilinx tools.

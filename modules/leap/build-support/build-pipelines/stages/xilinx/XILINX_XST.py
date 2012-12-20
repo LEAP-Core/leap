@@ -25,22 +25,11 @@ class Synthesize():
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
         xcfSrcs,
         'cat $SOURCES > $TARGET')
-
-      xilinx_child_xcf = moduleList.env.Command(
-        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf',
-        xcfSrcs,
-        ['cat $SOURCES > $TARGET',
-         'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n"  >> $TARGET'])
     else:
       xilinx_xcf = moduleList.env.Command(
         moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
         [],
         'touch $TARGET')
-
-      xilinx_child_xcf = moduleList.env.Command(
-        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
-        [],
-        'echo -e "NET CLK period =' + str(int(1000/MODEL_CLOCK_FREQ)) + 'ns;\\n" > $TARGET')
 
     ## tweak top xst file
     topXSTPath = 'config/' + moduleList.topModule.wrapperName() + '.modified.xst'
@@ -53,7 +42,7 @@ class Synthesize():
         newXSTFile.write('-iobuf yes\n');
     else:
         newXSTFile.write('-iobuf no\n');
-    newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf\n');
+    newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n');
     newXSTFile.close();
     oldXSTFile.close();
 
@@ -69,7 +58,7 @@ class Synthesize():
         if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
             newXSTFile.write('-vlgcase parallel\n');
         newXSTFile.write('-iobuf no\n');
-        newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '_child.xcf\n');
+        newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n');
         newXSTFile.close();
         oldXSTFile.close();
 
@@ -83,7 +72,7 @@ class Synthesize():
             sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
             module.moduleDependency['XST'] +
             [ newXSTPath ] +
-            xilinx_child_xcf,
+            xilinx_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
               SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',

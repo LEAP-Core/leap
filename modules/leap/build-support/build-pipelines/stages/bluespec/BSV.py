@@ -209,9 +209,9 @@ class BSV():
 
     ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
 
-    BSVS = moduleList.getSynthBoundaryDependencies(module,'GIVEN_BSVS')
+    BSVS = moduleList.getSynthBoundaryDependencies(module, 'GIVEN_BSVS')
     # each submodel will have a generated BSV
-    GEN_BSVS = moduleList.getSynthBoundaryDependencies(module,'GEN_BSVS')
+    GEN_BSVS = moduleList.getSynthBoundaryDependencies(module, 'GEN_BSVS')
     APM_FILE = env['DEFS']['APM_FILE']
     BSC =env['DEFS']['BSC']
 
@@ -292,7 +292,7 @@ class BSV():
     for bsv in BSVS + GEN_BSVS:
       bsc_builds += env.BSC(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
 
-    for bsv in  [get_wrapper(module)]:
+    for bsv in [get_wrapper(module)]:
       ##
       ## First pass just generates a log file to figure out cross synthesis
       ## boundary soft connection array sizes.
@@ -356,16 +356,25 @@ class BSV():
       ##
       ## We also generate all this synth boundary's GEN_VS
       ##
-      gen_v = moduleList.getSynthBoundaryDependencies(module, 'GEN_VS')
       ext_gen_v = []
-      for v in gen_v:
+      for v in moduleList.getSynthBoundaryDependencies(module, 'GEN_VS'):
         ext_gen_v += [MODULE_PATH + '/' + TMP_BSC_DIR + '/' + v]
 
+      ##
+      ## Generated Verilog (indicated with %generated in an AWB file) will
+      ## be created by the compilation of some Bluespec file.  We just don't
+      ## know which one.  Claim that all generated Verilog files are produced
+      ## by the module compilation, which is sufficient for SCons to compute
+      ## dependence.
+      ##
+      for v in moduleList.getSynthBoundaryDependencies(module, 'GEN_VERILOGS'):
+        ext_gen_v += [MODULE_PATH + '/' + TMP_BSC_DIR + '/' + v]
+
+      # Add the dependence for all Verilog noted above
       bld_v = env.Command([MODULE_PATH + '/' + TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.v')] + ext_gen_v,
                           MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
                           '')
       env.Precious(bld_v)
-
 
       if (moduleList.getAWBParam('bsv_tool', 'BUILD_VERILOG') == 1):
         module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
