@@ -14432,3 +14432,47 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 - Stop bothering to write the frequency of clocks coming into synthesis
   boundaries to XCF files.  The value is ignored by Xilinx tools.
+
+----------
+mcadler     Date: Fri Dec 21 18:27:54 EST 2012  CSN: CSN-leap-384
+                  Fri Dec 21 23:27:54 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          383 
+ rl-set-assoc-cache.bsv    Locally Modified          383 
+ rl-cache.bsv              Locally Modified          383 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          383 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          383 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          383 
+ platform-scratchpad-memory.bsv Locally Modified          383 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache.bsv Locally Modified          383 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ platform-central-cache.bsv Locally Modified          383 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-bypass.bsv  Locally Modified          383 
+ central-cache-interfaces.bsv Locally Modified          383 
+ central-cache-backing-store.bsv Locally Modified          383 
+
+Add a new class of metadata passed through the LEAP memory system for read
+requests:  RL_CACHE_GLOBAL_READ_META.  For now, the struct has only one
+field that indicates whether the request is a prefetch.  Unlike the other
+metadata field, which is opaque and has meaning only to the module that
+generates it, the global metdata has the same definition everywhere.
+
+The first use of this (not yet implemented) will be to permit lower levels
+of the hierarchy to treat prefetch requests differently than normal reads.
+
+The global read metadata travels with both read requests and responses.  One
+could argue it has no use with responses, but the structure is small and it
+is now easy to add other fields.

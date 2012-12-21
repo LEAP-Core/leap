@@ -27,6 +27,7 @@ import SpecialFIFOs::*;
 import Vector::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/soft_connections.bsh"
@@ -72,6 +73,7 @@ typedef struct
     SCRATCHPAD_MEM_ADDRESS addr;
     SCRATCHPAD_MEM_MASK byteMask;
     SCRATCHPAD_READ_UID readUID;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 SCRATCHPAD_HYBRID_READ_REQ
     deriving (Eq, Bits);
@@ -106,6 +108,7 @@ typedef struct
     SCRATCHPAD_WORD_IDX wordIdx;
     SCRATCHPAD_MEM_ADDRESS addr;
     SCRATCHPAD_READ_UID readUID;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 SCRATCHPAD_HYBRID_READ_INFO
     deriving (Eq, Bits);
@@ -147,9 +150,10 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     // Meta-data for outstanding reads from the host
     FIFO#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedBRAMFIFO(1024);
 
-    FIFOF#(Tuple3#(SCRATCHPAD_MEM_ADDRESS,
+    FIFOF#(Tuple4#(SCRATCHPAD_MEM_ADDRESS,
                    SCRATCHPAD_MEM_VALUE,
-                   SCRATCHPAD_READ_UID)) uncachedReadRspQ <- mkLFIFOF();
+                   SCRATCHPAD_READ_UID,
+                   RL_CACHE_GLOBAL_READ_META)) uncachedReadRspQ <- mkLFIFOF();
 
     // RRR routethrough FIFOs.  These will pass local requests to the hybrid
     // connector.
@@ -584,7 +588,10 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             begin
                 // Hit.  Return the store buffer.
                 uncachedReqQ.deq();
-                uncachedReadRspQ.enq(tuple3(r_req.addr, sb_val[w_idx], r_req.readUID));
+                uncachedReadRspQ.enq(tuple4(r_req.addr,
+                                            sb_val[w_idx],
+                                            r_req.readUID,
+                                            r_req.globalReadMeta));
                 debugLog.record($format("port %0d: uncachedReadReq: SB hit, addr=0x%x, idx=%0d, val=0x%x, mask=%b", port, l_addr, w_idx, sb_val[w_idx], pack(r_req.byteMask)));
             end
             else
@@ -614,6 +621,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             info.addr = r_req.addr;
             info.wordIdx = w_idx;
             info.readUID = r_req.readUID;
+            info.globalReadMeta = r_req.globalReadMeta;
             readReqInfoQ.enq(info);
 
             debugLog.record($format("port %0d: uncachedReadReq: Stream addr=0x%x", port, l_addr));
@@ -637,6 +645,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             info.addr = r_req.addr;
             info.wordIdx = w_idx;
             info.readUID = r_req.readUID;
+            info.globalReadMeta = r_req.globalReadMeta;
             readReqInfoQ.enq(info);
 
             uncachedLastReadAddr.upd(port, tagged Valid l_addr);
@@ -687,7 +696,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
 
         // Only one word from the line is expected.  Pick the right one.
         let v = line[info.wordIdx];
-        uncachedReadRspQ.enq(tuple3(info.addr, v, info.readUID));
+        uncachedReadRspQ.enq(tuple4(info.addr, v, info.readUID, info.globalReadMeta));
 
         debugLog.record($format("port %0d: uncachedReadResp %s: val=0x%x", port, read_source, pack(v)));
     endrule
@@ -739,7 +748,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     method Action readReq(SCRATCHPAD_MEM_ADDRESS addr,
                           SCRATCHPAD_MEM_MASK byteMask,
-                          SCRATCHPAD_READ_UID readUID) if (! initQ.notEmpty);
+                          SCRATCHPAD_READ_UID readUID,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta) if (! initQ.notEmpty);
         //
         // Take different paths depending on whether the scratchpad is permitted
         // to store data in the central cache.
@@ -751,6 +761,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             r_req.addr = addr;
             r_req.byteMask = byteMask;
             r_req.readUID = readUID;
+            r_req.globalReadMeta = globalReadMeta;
 
             uncachedReqQ.enq(tagged SCRATCHPAD_HYBRID_READ r_req);
             debugLog.record($format("port %0d: readReq uncached addr=0x%x", readUID.portNum, addr));
@@ -765,7 +776,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             // Look for the value in the central cache
             let req = CENTRAL_CACHE_READ_REQ { addr: line_addr,
                                                wordIdx: word_idx,
-                                               readMeta: zeroExtend(pack(readUID)) };
+                                               readMeta: zeroExtend(pack(readUID)),
+                                               globalReadMeta: globalReadMeta };
             centralCachePort.newReq(tagged CENTRAL_CACHE_READ req);
         end
     endmethod
@@ -789,13 +801,14 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             //
             // Uncached response directly from the host.
             //
-            match {.addr, .val, .read_uid} = uncachedReadRspQ.first();
+            match {.addr, .val, .read_uid, .global_read_meta} = uncachedReadRspQ.first();
             uncachedReadRspQ.deq();
             
             r.val = val;
             r.addr = addr;
             r.readUID = read_uid;
             r.isCacheable = True;
+            r.globalReadMeta = global_read_meta;
         end
         else
         begin
@@ -814,6 +827,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             r.addr = makeScratchpadAddr(d.addr, d.wordIdx);
             r.readUID = read_uid;
             r.isCacheable = d.isCacheable;
+            r.globalReadMeta = d.globalReadMeta;
         end
 
         debugLog.record($format("port %0d: readRsp addr=0x%x, val=0x%x", r.readUID.portNum, r.addr, r.val));

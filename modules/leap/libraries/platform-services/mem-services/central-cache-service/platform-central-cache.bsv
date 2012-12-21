@@ -62,7 +62,9 @@ typedef RL_DM_CACHE#(t_ADDR, t_DATA, t_READ_META)
 //
 interface CENTRAL_CACHE_CLIENT_BACKING#(type t_ADDR, type t_DATA, type t_READ_META);
     // Request a full line
-    method Action readLineReq(t_ADDR addr, t_READ_META readMeta);
+    method Action readLineReq(t_ADDR addr,
+                              t_READ_META readMeta,
+                              RL_CACHE_GLOBAL_READ_META globalReadMeta);
 
     // The read line response is pipelined.  For every readLineReq there must
     // be one readResp for every word in the requested line.  Cache entries
@@ -297,13 +299,9 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         let addr = centralAddrToAddr(req.addr, 0);
         debugLog.record($format("backReadLineReq: addr=0x%x, l_addr=0x%x", addr, req.addr));
         
-        //
-        //workaround solution
-        //backing storage request requires original ref info from the client
-        //will be fixed with MAF implementation
-        //
+        // Backing storage request requires original ref info from the client.
         t_READ_META cache_read_meta = unpack(truncate(req.readMeta));
-        backing.readLineReq(addr, cache_read_meta);
+        backing.readLineReq(addr, cache_read_meta, req.globalReadMeta);
     endrule
 
     rule backingReadResp (True);
@@ -354,11 +352,14 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
     // ====================================================================
 
     // Read request
-    method Action readReq(t_ADDR addr, t_READ_META readMeta);
+    method Action readReq(t_ADDR addr,
+                          t_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
         match {.l_addr, .w_idx} = addrToCentralAddr(addr);
         let r = CENTRAL_CACHE_READ_REQ { addr: l_addr,
                                          wordIdx: w_idx,
-                                         readMeta: zeroExtend(pack(readMeta))};
+                                         readMeta: zeroExtend(pack(readMeta)),
+                                         globalReadMeta: globalReadMeta };
 
         link_cache.makeReq(tagged CENTRAL_CACHE_READ r);
         debugLog.record($format("readReq: addr=0x%x, l_addr=0x%x, wIdx=%0d", addr, l_addr, w_idx));
@@ -373,7 +374,8 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
                                         isCacheable: resp.isCacheable,
-                                        readMeta: unpack(truncate(resp.readMeta)) };
+                                        readMeta: unpack(truncate(resp.readMeta)),
+                                        globalReadMeta: resp.globalReadMeta };
 
         debugLog.record($format("readResp: addr=0x%x, val=0x%x", addr, val));
 
@@ -388,7 +390,8 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         let r = RL_DM_CACHE_FILL_RESP { addr: addr,
                                         val: val,
                                         isCacheable: resp.isCacheable,
-                                        readMeta: unpack(truncate(resp.readMeta)) };
+                                        readMeta: unpack(truncate(resp.readMeta)),
+                                        globalReadMeta: resp.globalReadMeta };
 
         return r;
     endmethod

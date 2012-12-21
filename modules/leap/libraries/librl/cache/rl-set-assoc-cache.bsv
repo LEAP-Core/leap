@@ -65,6 +65,7 @@ typedef struct
     Bit#(TLog#(nWordsPerLine)) reqWordIdx;
     Bool isCacheable;
     t_CACHE_READ_META readMeta;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 RL_SA_CACHE_LOAD_RESP#(type t_CACHE_ADDR,
                        type t_CACHE_WORD,
@@ -108,7 +109,8 @@ interface RL_SA_CACHE#(type t_CACHE_ADDR,
     // be returned as well.
     method Action readReq(t_CACHE_ADDR addr,
                           Bit#(TLog#(nWordsPerLine)) wordIdx,
-                          t_CACHE_READ_META readMeta);
+                          t_CACHE_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
 
     method ActionValue#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META)) readResp();
 
@@ -175,7 +177,10 @@ interface RL_SA_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
                                    type t_CACHE_READ_UID);
 
     // Read request and response with data
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_UID readUID);
+    method Action readReq(t_CACHE_ADDR addr,
+                          t_CACHE_READ_UID readUID,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
+
     method ActionValue#(RL_SA_CACHE_FILL_RESP#(t_CACHE_LINE)) readResp();
     
     // Asynchronous write (no response)
@@ -381,6 +386,7 @@ typedef struct
     // Meta-data associated with the reference.  Meta-data has meaning only to the
     // caller.
     t_CACHE_READ_META readMeta;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 RL_SA_CACHE_REQ_BASE#(type t_CACHE_TAG,
                       type t_CACHE_SET_IDX,
@@ -1367,7 +1373,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         readMissW.send();
 
         let addr = cacheAddr(tag, set);
-        sourceData.readReq(addr, req_base.readMeta);
+        sourceData.readReq(addr, req_base.readMeta, req_base.globalReadMeta);
         fillLineQ.enq(tuple3(req_base, req, word_valid_mask));
 
         debugLog.record($format("  READ WORD MISS (FILL): addr=0x%x, set=0x%x, way=%0d", debugAddr(addr), set, req_base.way));
@@ -1434,7 +1440,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         if (! flushed_dirty)
         begin
             let addr = cacheAddr(tag, set);
-            sourceData.readReq(addr, req_base_out.readMeta);
+            sourceData.readReq(addr, req_base_out.readMeta, req_base_out.globalReadMeta);
             fillLineQ.enq(tuple3(req_base_out, req, replicate(False)));
 
             debugLog.record($format("  READ MISS (FILL): addr=0x%x, set=0x%x, way=%0d", debugAddr(addr), set, req_base_out.way));
@@ -1557,7 +1563,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let way = req_base.way;
 
         let addr = cacheAddr(tag, set);
-        sourceData.readReq(addr, req_base.readMeta);
+        sourceData.readReq(addr, req_base.readMeta, req_base.globalReadMeta);
         fillLineQ.enq(tuple3(req_base, req, replicate(False)));
     endrule
 
@@ -1729,7 +1735,8 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     function ActionValue#(t_CACHE_SET_IDX) genRequest(t_CACHE_REQ req,
                                                       t_CACHE_ADDR addr,
-                                                      t_CACHE_READ_META readMeta);
+                                                      t_CACHE_READ_META readMeta,
+                                                      RL_CACHE_GLOBAL_READ_META globalReadMeta);
     actionvalue
         match {.tag, .set} = cacheTagAndSet(addr);
 
@@ -1738,6 +1745,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         req_base.set = set;
         req_base.way = ?;  // Way won't be known until the set meta data is read
         req_base.readMeta = readMeta;
+        req_base.globalReadMeta = globalReadMeta;
         
         newReqQ.enq(tuple2(req_base, req));
 
@@ -1751,12 +1759,13 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     method Action readReq(t_CACHE_ADDR addr,
                           Bit#(TLog#(nWordsPerLine)) wordIdx,
-                          t_CACHE_READ_META readMeta);
+                          t_CACHE_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
 
         RL_SA_CACHE_READ_REQ#(nWordsPerLine) req;
         req.wordIdx = wordIdx;
     
-        let set <- genRequest(tagged HCOP_READ req, addr, readMeta);
+        let set <- genRequest(tagged HCOP_READ req, addr, readMeta, globalReadMeta);
         debugLog.record($format("  New request: READ addr=0x%x, set=0x%x, word=%0d", debugAddr(addr), set, wordIdx));
     endmethod
 
@@ -1772,6 +1781,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         rsp.reqWordIdx = r_req.wordIdx;
         rsp.isCacheable = is_cacheable;
         rsp.readMeta = req_base.readMeta;
+        rsp.globalReadMeta = req_base.globalReadMeta;
 
         return rsp;
     endmethod
@@ -1799,7 +1809,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         w_req.wordIdx = wordIdx;    
         w_req.dataIdx = h;
 
-        let set <- genRequest(tagged HCOP_WRITE w_req, addr, ?);
+        let set <- genRequest(tagged HCOP_WRITE w_req, addr, ?, ?);
 
         debugLog.record($format("  New request: WRITE addr=0x%x, set=0x%x, data=0x%x, word=%0d, wData heap=%0d", debugAddr(addr), set, val, wordIdx, h));
     endmethod
@@ -1812,13 +1822,13 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         if (sendAck)
         begin
             let idx <- invalReqDoneQ.enq();
-            let set <- genRequest(tagged HCOP_INVAL tagged Valid idx, addr, ?);
+            let set <- genRequest(tagged HCOP_INVAL tagged Valid idx, addr, ?, ?);
 
             debugLog.record($format("  New request: INVAL addr=0x%x, set=0x%x, invalIdx=%d", debugAddr(addr), set, idx));
         end
         else
         begin
-            let set <- genRequest(tagged HCOP_INVAL tagged Invalid, addr, ?);
+            let set <- genRequest(tagged HCOP_INVAL tagged Invalid, addr, ?, ?);
 
             debugLog.record($format("  New request: INVAL addr=0x%x, set=0x%x", debugAddr(addr), set));
         end
@@ -1833,13 +1843,13 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         if (sendAck)
         begin
             let idx <- invalReqDoneQ.enq();
-            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Valid idx, addr, ?);
+            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Valid idx, addr, ?, ?);
 
             debugLog.record($format("  New request: FLUSH addr=0x%x, set=0x%x, invalIdx=%d", debugAddr(addr), set, idx));
         end
         else
         begin
-            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Invalid, addr, ?);
+            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Invalid, addr, ?, ?);
 
             debugLog.record($format("  New request: FLUSH addr=0x%x, set=0x%x", debugAddr(addr), set));
         end

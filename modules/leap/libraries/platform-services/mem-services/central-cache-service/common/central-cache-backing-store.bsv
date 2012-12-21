@@ -107,7 +107,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
             let r = readReqQ.first();
             readReqQ.deq();
     
-            debugLog.record($format("port %0d: BACKING getReadReq addr=0x%x, readMeta=0x%x", port, r.addr, r.readMeta));
+            debugLog.record($format("port %0d: BACKING getReadReq addr=0x%x, readMeta=0x%x, globalReadMeta=0x%x", port, r.addr, r.readMeta, pack(r.globalReadMeta)));
 
             return r;
         endmethod
@@ -184,10 +184,13 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     //
     interface RL_SA_CACHE_SOURCE_DATA cacheSourceData;
         method Action readReq(CENTRAL_CACHE_LINE_ADDR addr,
-                              CENTRAL_CACHE_READ_META readMeta) if (! readReqCredits.isZero());
+                              CENTRAL_CACHE_READ_META readMeta,
+                              RL_CACHE_GLOBAL_READ_META globalReadMeta) if (! readReqCredits.isZero());
             readReqCredits.down();
-            readReqQ.enq(CENTRAL_CACHE_BACKING_READ_REQ { addr: addr, readMeta: readMeta });
-            debugLog.record($format("port %0d: BACKING readReq addr=0x%x, readMeta=0x%x", port, addr, readMeta));
+            readReqQ.enq(CENTRAL_CACHE_BACKING_READ_REQ { addr: addr,
+                                                          readMeta: readMeta,
+                                                          globalReadMeta: globalReadMeta });
+            debugLog.record($format("port %0d: BACKING readReq addr=0x%x, readMeta=0x%x, globalReadMeta=0x%x", port, addr, readMeta, pack(globalReadMeta)));
         endmethod
 
         method ActionValue#(RL_SA_CACHE_FILL_RESP#(CENTRAL_CACHE_LINE)) readResp();

@@ -258,8 +258,8 @@ module [CONNECTED_MODULE] mkCentralCache
 
         reqQ.deq();
 
-        debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, readMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta));
-        cache.readReq(addr, r.wordIdx, r.readMeta);
+        debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, readMeta=0x%x, globalReadMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta, pack(r.globalReadMeta)));
+        cache.readReq(addr, r.wordIdx, r.readMeta, r.globalReadMeta);
 
         dbgCacheReadsInFlight.up();
     endrule
@@ -286,11 +286,12 @@ module [CONNECTED_MODULE] mkCentralCache
         r.wordIdx = d.reqWordIdx;
         r.isCacheable = d.isCacheable;
         r.readMeta = d.readMeta;
+        r.globalReadMeta = d.globalReadMeta;
 
         // Forward data to the correct port
         readRespQ.enq(tuple2(port, r));
 
-        debugLog.record($format("port %0d: queue readResp addr=0x%x, wordIdx=0x%x, readMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta));
+        debugLog.record($format("port %0d: queue readResp addr=0x%x, wordIdx=0x%x, readMeta=0x%x, globalReadMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta, pack(r.globalReadMeta)));
     endrule
 
 
@@ -363,7 +364,7 @@ module [CONNECTED_MODULE] mkCentralCache
                     let r = tpl_2(readRespQ.first());
                     readRespQ.deq();
 
-                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x", p, r.addr, r.readMeta));
+                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x, globalReadMeta=0x%x", p, r.addr, r.readMeta, pack(r.globalReadMeta)));
                     return r;
                 endmethod
 
@@ -420,11 +421,13 @@ module mkCentralCacheBacking#(Vector#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_BAC
 
 
     interface RL_SA_CACHE_SOURCE_DATA sourceData;
-        method Action readReq(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ) addr, CENTRAL_CACHE_READ_META readMeta);
+        method Action readReq(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ) addr,
+                              CENTRAL_CACHE_READ_META readMeta,
+                              RL_CACHE_GLOBAL_READ_META globalReadMeta);
             // Figure out from which central cache port to request the data and
             // forward the request.
             match {.i_port, .i_addr} = splitInternalAddr(addr);
-            backingStore[i_port].cacheSourceData.readReq(i_addr, readMeta);
+            backingStore[i_port].cacheSourceData.readReq(i_addr, readMeta, globalReadMeta);
 
             // Note read request port ID
             readQ.enq(i_port);

@@ -16,6 +16,35 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import DefaultValue::*;
+
+// ========================================================================
+//
+// Memory subsystem global definitions.
+//
+// ========================================================================
+
+//
+// RL_CACHE_GLOBAL_READ_META --
+//   Passed down and up the memory stack with each read request.  A
+//   fixed data structures of globally meaningful values.  This is
+//   passed in addition to the opaque, level-specific, read metadata.
+//
+typedef struct
+{
+    // Request comes from a prefetch somewhere internal to the memory
+    // hierarchy.
+    Bool isPrefetch;
+}
+RL_CACHE_GLOBAL_READ_META
+    deriving (Eq, Bits);
+
+
+instance DefaultValue#(RL_CACHE_GLOBAL_READ_META);
+    defaultValue = RL_CACHE_GLOBAL_READ_META { isPrefetch: False };
+endinstance
+
+
 // ========================================================================
 //
 // Cache statistics.

@@ -24,6 +24,7 @@ import FIFO::*;
 import FIFOF::*;
 import SpecialFIFOs::*;
 import Vector::*;
+import DefaultValue::*;
 
 
 `include "awb/provides/librl_bsv_base.bsh"
@@ -86,6 +87,7 @@ typedef struct
     SCRATCHPAD_MEM_ADDRESS addr;
     SCRATCHPAD_MEM_MASK byteReadMask;
     SCRATCHPAD_CLIENT_READ_UID readUID;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 SCRATCHPAD_READ_REQ
     deriving (Eq, Bits);
@@ -134,6 +136,7 @@ typedef struct
     SCRATCHPAD_MEM_VALUE val;
     SCRATCHPAD_MEM_ADDRESS addr;
     SCRATCHPAD_CLIENT_READ_UID readUID;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
     Bool isCacheable;
 }
 SCRATCHPAD_READ_RSP
@@ -479,7 +482,8 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
                                         byteReadMask: replicate(True),
-                                        readUID: zeroExtendNP(pack(maf_idx)) };
+                                        readUID: zeroExtendNP(pack(maf_idx)),
+                                        globalReadMeta: defaultValue() };
 
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
     endrule
@@ -680,7 +684,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
             t_MAF_IDX maf_idx = tuple2(fromInteger(p), idx);
 
             // Request data from the cache
-            cache.readReq(pack(addr), maf_idx);
+            cache.readReq(pack(addr), maf_idx, defaultValue());
         endrule
 
         //
@@ -813,7 +817,9 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
     //     Read miss from the private cache.  Request a fill from the scratchpad
     //     controller's backing storage.
     //
-    method Action readReq(t_CACHE_ADDR addr, t_MAF_IDX readUID) if (initialized);
+    method Action readReq(t_CACHE_ADDR addr,
+                          t_MAF_IDX readUID,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta) if (initialized);
         //
         // Construct a generic scratchpad device request by padding the
         // requesting scratchpad's UID (port number) to the request.
@@ -821,7 +827,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
                                         byteReadMask: replicate(True),
-                                        readUID: zeroExtendNP(pack(readUID)) };
+                                        readUID: zeroExtendNP(pack(readUID)),
+                                        globalReadMeta: globalReadMeta };
 
         // Forward the request to the scratchpad virtual device that handles
         // all scratchpad backing storage I/O.
@@ -845,6 +852,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         // Restore local read metadata.  The generic response is large enough for    
         // any client's metadata and extra bits can simply be truncated.
         r.readMeta = unpack(truncateNP(s.readUID));
+        r.globalReadMeta = s.globalReadMeta;
 
         debugLog.record($format("read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
 
@@ -859,6 +867,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         r.val = s.val;
         r.isCacheable = s.isCacheable;
         r.readMeta = unpack(truncateNP(s.readUID));
+        r.globalReadMeta = s.globalReadMeta;
 
         return r;
     endmethod
@@ -1135,7 +1144,8 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
                 let req = SCRATCHPAD_READ_REQ { port: my_port,
                                                 addr: s_addr,
                                                 byteReadMask: scratchpadByteMask(addr),
-                                                readUID: zeroExtendNP(pack(maf_idx)) };
+                                                readUID: zeroExtendNP(pack(maf_idx)),
+                                                globalReadMeta: defaultValue() };
 
                 link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
 

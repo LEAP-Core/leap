@@ -46,9 +46,10 @@ module mkBypassCentralCache
     //
     // Internal communication
     //
-    Vector#(CENTRAL_CACHE_N_CLIENTS, FIFOF#(Tuple3#(CENTRAL_CACHE_LINE_ADDR,
+    Vector#(CENTRAL_CACHE_N_CLIENTS, FIFOF#(Tuple4#(CENTRAL_CACHE_LINE_ADDR,
                                                     CENTRAL_CACHE_WORD_IDX,
-                                                    CENTRAL_CACHE_READ_META))) readQ <- replicateM(mkFIFOF());
+                                                    CENTRAL_CACHE_READ_META,
+                                                    RL_CACHE_GLOBAL_READ_META))) readQ <- replicateM(mkFIFOF());
     Vector#(CENTRAL_CACHE_N_CLIENTS, FIFO#(Bool)) invalAckQ <- replicateM(mkFIFO());
 
 
@@ -85,10 +86,10 @@ module mkBypassCentralCache
                     case (req) matches
                         tagged CENTRAL_CACHE_READ .rd:
                         begin
-                            debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, readMeta=0x%x", p, rd.addr, rd.wordIdx, rd.readMeta));
+                            debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, readMeta=0x%x, globalReadMeta=0x%x", p, rd.addr, rd.wordIdx, rd.readMeta, pack(rd.globalReadMeta)));
 
-                            backing_source.readReq(rd.addr, rd.readMeta);
-                            readQ[p].enq(tuple3(rd.addr, rd.wordIdx, rd.readMeta));
+                            backing_source.readReq(rd.addr, rd.readMeta, rd.globalReadMeta);
+                            readQ[p].enq(tuple4(rd.addr, rd.wordIdx, rd.readMeta, rd.globalReadMeta));
                         end
 
                         tagged CENTRAL_CACHE_WRITE .wr:
@@ -134,10 +135,10 @@ module mkBypassCentralCache
                 method ActionValue#(CENTRAL_CACHE_READ_RESP) readResp();
                     let rsp <- backing_source.readResp();
 
-                    match {.addr, .word_idx, .read_meta} = readQ[p].first();
+                    match {.addr, .word_idx, .read_meta, .global_read_meta} = readQ[p].first();
                     readQ[p].deq();
            
-                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x, val=0x%x", p, addr, read_meta, rsp.val));
+                    debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x, globalReadMeta=0x%x, val=0x%x", p, addr, read_meta, pack(global_read_meta), rsp.val));
 
                     Vector#(CENTRAL_CACHE_WORDS_PER_LINE, CENTRAL_CACHE_WORD) v = unpack(rsp.val);
                     CENTRAL_CACHE_READ_RESP r;
@@ -146,6 +147,7 @@ module mkBypassCentralCache
                     r.wordIdx = word_idx;
                     r.isCacheable = rsp.isCacheable;
                     r.readMeta = read_meta;
+                    r.globalReadMeta = global_read_meta;
 
                     return r;
                 endmethod

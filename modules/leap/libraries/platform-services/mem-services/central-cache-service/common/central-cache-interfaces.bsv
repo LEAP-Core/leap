@@ -92,6 +92,7 @@ typedef struct
     CENTRAL_CACHE_LINE_ADDR addr;
     CENTRAL_CACHE_WORD_IDX wordIdx;
     CENTRAL_CACHE_READ_META readMeta;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 CENTRAL_CACHE_READ_REQ
     deriving (Eq, Bits);
@@ -139,6 +140,7 @@ typedef struct
     CENTRAL_CACHE_WORD_IDX wordIdx;
     Bool isCacheable;
     CENTRAL_CACHE_READ_META readMeta;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 CENTRAL_CACHE_READ_RESP
     deriving (Eq, Bits);
@@ -168,6 +170,7 @@ typedef struct
 {
     CENTRAL_CACHE_LINE_ADDR addr;
     CENTRAL_CACHE_READ_META readMeta;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 CENTRAL_CACHE_BACKING_READ_REQ
     deriving (Eq, Bits);

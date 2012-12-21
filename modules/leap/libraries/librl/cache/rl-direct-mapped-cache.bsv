@@ -46,6 +46,7 @@ typedef struct
     t_CACHE_WORD val;
     Bool isCacheable;
     t_CACHE_READ_META readMeta;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 RL_DM_CACHE_LOAD_RESP#(type t_CACHE_WORD,
                        type t_CACHE_READ_META)
@@ -101,7 +102,9 @@ interface RL_DM_CACHE#(type t_CACHE_ADDR,
 
     // Read a word.  Read from backing store if not already cached.
     // *** Read responses are NOT guaranteed to be in the order of requests. ***
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_META readMeta);
+    method Action readReq(t_CACHE_ADDR addr,
+                          t_CACHE_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
 
     method ActionValue#(RL_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_READ_META)) readResp();
     // Read the head of the response queue
@@ -145,6 +148,7 @@ typedef struct
     t_CACHE_WORD val;
     Bool isCacheable;
     t_CACHE_READ_META readMeta;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 RL_DM_CACHE_FILL_RESP#(type t_CACHE_ADDR,
                        type t_CACHE_WORD,
@@ -163,7 +167,10 @@ interface RL_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
 
     // Fill request and response with data.  Since the response is tagged with
     // the details of the request, responses may be returned in any order.
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_META readMeta);
+    method Action readReq(t_CACHE_ADDR addr,
+                          t_CACHE_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
+
     method ActionValue#(RL_DM_CACHE_FILL_RESP#(t_CACHE_ADDR,
                                                t_CACHE_WORD,
                                                t_CACHE_READ_META)) readResp();
@@ -229,6 +236,7 @@ typedef struct
    RL_DM_CACHE_ACTION act;
    t_CACHE_ADDR addr;
    RL_DM_CACHE_READ_META#(t_CACHE_READ_META) readMeta;
+   RL_CACHE_GLOBAL_READ_META globalReadMeta;
  
    // Write data index
    RL_DM_WRITE_DATA_HEAP_IDX writeDataIdx;
@@ -266,7 +274,7 @@ RL_DM_CACHE_ENTRY#(type t_CACHE_WORD, type t_CACHE_TAG)
 //
 typedef struct
 {
-    Bool isPrefetch;
+    Bool isLocalPrefetch;
     t_CACHE_READ_META clientReadMeta;
 }
 RL_DM_CACHE_READ_META#(type t_CACHE_READ_META)
@@ -434,8 +442,10 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             let pref_req  = prefetcher.peekReq();
             r.act         = DM_CACHE_READ;
             r.addr        = pref_req.addr;
-            r.readMeta    = RL_DM_CACHE_READ_META { isPrefetch: True,
+            r.readMeta    = RL_DM_CACHE_READ_META { isLocalPrefetch: True,
                                                     clientReadMeta: pref_req.readMeta };
+            r.globalReadMeta  = defaultValue();
+            r.globalReadMeta.isPrefetch = True;
             match {.tag, .idx} = cacheEntryFromAddr(pref_req.addr);
             r.tag = tag;
             r.idx = idx;
@@ -565,7 +575,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             begin
                 debugLog.record($format("    lookupRead: HIT addr=0x%x, entry=0x%x, val=0x%x", r.addr, idx, e.val));
                 // Ignore prefetch hit response and prefetch hit status
-                if (! r.readMeta.isPrefetch)
+                if (! r.readMeta.isLocalPrefetch)
                 begin
                     readHitW.send();
                     if (prefetchMode == RL_DM_PREFETCH_ENABLE)
@@ -576,6 +586,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                     resp.val = e.val;
                     resp.isCacheable = True;
                     resp.readMeta = r.readMeta.clientReadMeta;
+                    resp.globalReadMeta = r.globalReadMeta;
                     readRespQ.enq(resp);
                 end
                 else
@@ -602,7 +613,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
             if (prefetchMode == RL_DM_PREFETCH_ENABLE)
             begin
-                prefetcher.readMiss(idx, r.addr, r.readMeta.isPrefetch);
+                prefetcher.readMiss(idx, r.addr, r.readMeta.isLocalPrefetch);
             end
 
             debugLog.record($format("    lookupRead: MISS addr=0x%x, entry=0x%x", r.addr, idx));
@@ -620,12 +631,12 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         debugLog.record($format("    fillReq: addr=0x%x", r.addr));
 
-        if (! r.readMeta.isPrefetch)
+        if (! r.readMeta.isLocalPrefetch)
         begin
             readMissW.send();
         end
 
-        sourceData.readReq(r.addr, r.readMeta);
+        sourceData.readReq(r.addr, r.readMeta, r.globalReadMeta);
     endrule
     
 
@@ -641,12 +652,13 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         debugLog.record($format("    fillResp: FILL addr=0x%x, entry=0x%x, cacheable=%b, val=0x%x", f.addr, idx, f.isCacheable, f.val));
 
-        if (! f.readMeta.isPrefetch)
+        if (! f.readMeta.isLocalPrefetch)
         begin
             t_CACHE_LOAD_RESP resp;
             resp.val = f.val;
             resp.isCacheable = f.isCacheable;
             resp.readMeta = f.readMeta.clientReadMeta;
+            resp.globalReadMeta = f.globalReadMeta;
             readRespQ.enq(resp);
         end
         
@@ -657,7 +669,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                                               tag: tag,
                                                               val: f.val });
         end
-        else if(f.readMeta.isPrefetch)
+        else if(f.readMeta.isLocalPrefetch)
         begin
             prefetcher.prefetchIllegalReq();
         end
@@ -808,14 +820,17 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     //
     // ====================================================================
 
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_META readMeta);
+    method Action readReq(t_CACHE_ADDR addr,
+                          t_CACHE_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
         debugLog.record($format("  New request: READ addr=0x%x", addr));
 
         t_CACHE_REQ r = ?;
         r.act = DM_CACHE_READ;
         r.addr = addr;
-        r.readMeta = RL_DM_CACHE_READ_META { isPrefetch: False,
+        r.readMeta = RL_DM_CACHE_READ_META { isLocalPrefetch: False,
                                              clientReadMeta: readMeta };
+        r.globalReadMeta = globalReadMeta;
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
         r.tag = tag;
@@ -845,6 +860,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         r.act = DM_CACHE_WRITE;
         r.addr = addr;
         r.readMeta = ?;
+        r.globalReadMeta = ?;
         r.writeDataIdx = data_idx;
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
@@ -864,6 +880,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         r.act = DM_CACHE_INVAL;
         r.addr = addr;
         r.readMeta = ?;
+        r.globalReadMeta = ?;
         r.fullHierarchy = fullHierarchy;
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
@@ -880,6 +897,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         r.act = DM_CACHE_FLUSH;
         r.addr = addr;
         r.readMeta = ?;
+        r.globalReadMeta = ?;
         r.fullHierarchy = fullHierarchy;
 
         match {.tag, .idx} = cacheEntryFromAddr(addr);
@@ -946,12 +964,17 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
         let r <- sourceData.readResp();
         readRespQ.enq(RL_DM_CACHE_LOAD_RESP { val: r.val,
                                               isCacheable: r.isCacheable,
-                                              readMeta: r.readMeta.clientReadMeta });
+                                              readMeta: r.readMeta.clientReadMeta,
+                                              globalReadMeta: r.globalReadMeta });
     endrule
 
-    method Action readReq(t_CACHE_ADDR addr, t_CACHE_READ_META readMeta);
-        sourceData.readReq(addr, RL_DM_CACHE_READ_META { isPrefetch: False,
-                                                         clientReadMeta: readMeta });
+    method Action readReq(t_CACHE_ADDR addr,
+                          t_CACHE_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
+        sourceData.readReq(addr,
+                           RL_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                                   clientReadMeta: readMeta },
+                           globalReadMeta);
     endmethod
 
     method ActionValue#(RL_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_READ_META)) readResp();

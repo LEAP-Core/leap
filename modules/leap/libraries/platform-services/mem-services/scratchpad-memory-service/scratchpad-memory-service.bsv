@@ -87,7 +87,10 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCa
             begin
                 let read_uid = SCRATCHPAD_READ_UID { portNum: r_req.port,
                                                      clientReadUID: r_req.readUID };
-                memory.readReq(r_req.addr, r_req.byteReadMask, read_uid);
+                memory.readReq(r_req.addr,
+                               r_req.byteReadMask,
+                               read_uid,
+                               r_req.globalReadMeta);
             end
 
             tagged SCRATCHPAD_MEM_WRITE .w_req:
@@ -114,6 +117,7 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCa
         resp.val = r.val;
         resp.addr = r.addr;
         resp.readUID = r.readUID.clientReadUID;
+        resp.globalReadMeta = r.globalReadMeta;
         resp.isCacheable = r.isCacheable;
 
         link_mem_rsp.enq(r.readUID.portNum, resp);

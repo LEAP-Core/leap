@@ -96,6 +96,7 @@ typedef struct
     t_ADDR addr;
     SCRATCHPAD_READ_UID readUID;
     Bool isCacheable;
+    RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 SCRATCHPAD_READ_RESP#(type t_ADDR, type t_DATA)
     deriving (Eq, Bits);
@@ -197,7 +198,8 @@ SCRATCHPAD_RING_REQ
 interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MASK);
     method Action readReq(t_ADDR addr,
                           t_MASK byteMask,
-                          SCRATCHPAD_READ_UID readUID);
+                          SCRATCHPAD_READ_UID readUID,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
     method ActionValue#(SCRATCHPAD_READ_RESP#(t_ADDR, t_DATA)) readRsp();
  
     method Action write(t_ADDR addr,
