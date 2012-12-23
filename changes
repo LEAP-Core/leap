@@ -14476,3 +14476,33 @@ of the hierarchy to treat prefetch requests differently than normal reads.
 The global read metadata travels with both read requests and responses.  One
 could argue it has no use with responses, but the structure is small and it
 is now easy to add other fields.
+
+----------
+mcadler     Date: Sun Dec 23 11:58:17 EST 2012  CSN: CSN-leap-385
+                  Sun Dec 23 16:58:17 UTC 2012
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          384 
+ rl-prefetch.bsv           Locally Modified          384 
+
+Directory modules/leap/libraries/librl/base
+ memory-misc.bsv           Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          384 
+
+- Generalize Hsin-Jung's bypassed BRAM code since it is useful outside
+  prefetching:
+  - Moved the code to mkWriteBeforeReadMemory in libRL.  Normal BRAM returns
+    the old value when a read and write target the same memory location in a
+    single cycle.  This version takes a read-before-write BRAM and adds the
+    bypass, making it write-before-read.
+  - Added a LUTRAM wrapper to leap-platforms that makes a LUTRAM look like
+    a MEMORY_IFC.
+
+- Prefetch code now uses the code above.
+
+- Simplify the schedules around prefetching:
+  - Add conservative_implicit_conditions to a few modules.
+  - Add another rule to the direct mapped cache, breaking apart selection of
+    the next request from testing whether the target is busy.  The separated
+    rules communicate over wires, so the timing is unchanged.

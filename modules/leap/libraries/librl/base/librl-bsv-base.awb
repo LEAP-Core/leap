@@ -22,6 +22,7 @@
 %public local-arbiters.bsv
 %public memory-interface.bsv
 %public memory-mapping.bsv
+%public memory-misc.bsv
 %public memory-pack.bsv
 %public guarded-pipelines.bsv
 %public register.bsv

@@ -402,6 +402,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     LUTRAM#(Bit#(5), Bit#(2)) sideReqFilter <- mkLUTRAM(0);
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
 
+    Wire#(Tuple2#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ)) pickReq <- mkWire();
     Wire#(Tuple3#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0))))
         curReq <- mkWire();
 
@@ -411,14 +412,14 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     endrule
 
     //
-    // pickReqQ --
+    // pickReqQueue0 --
     //     Decide whether to consider the new request or side request queue
     //     this cycle.  Filtering both is too expensive.
     //
     //     If the cache prefecher is enabled, choose among new request, side 
     //     request, and prefetch request queues.
     // 
-    rule pickReqQueue (True);
+    rule pickReqQueue0 (True);
         // New requests win over side requests if there is a new request
         // and the arbiter is non-zero.  If the arbitration counter newReqArb
         // is larger than 1 bit this favors new requests over side-buffer
@@ -457,13 +458,30 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             req_type = pick_new_req ? DM_CACHE_NEW_REQ : DM_CACHE_SIDE_REQ;
         end
         
+        pickReq <= tuple2(req_type, r);
+    endrule
+
+
+    //
+    // pickReqQueue1 --
+    //     Second half of picking a request.  Apply the entry filter to the
+    //     chosen request.
+    //
+    //     Written as a separate rule connected by a wire so that only one
+    //     request is tested by the expensive entryFilter.
+    // 
+    (* fire_when_enabled *)
+    rule pickReqQueue1 (True);
+        match {.req_type, .r} = pickReq;
+        
         // In order to preserve read/write and write/write order, the
         // request must either come from the side buffer or be a new request
         // referencing a line not already in the side buffer.
         //
         // The array sideReqFilter tracks lines active in the side request
         // queue.
-        if ( req_type == DM_CACHE_SIDE_REQ || (sideReqFilter.sub(resize(cacheIdx(r))) == 0))
+        if ((req_type == DM_CACHE_SIDE_REQ) ||
+            (sideReqFilter.sub(resize(cacheIdx(r))) == 0))
         begin
             curReq <= tuple3(req_type, r, entryFilter.test(cacheIdx(r)));
         end
@@ -472,6 +490,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             curReq <= tuple3(req_type, r, tagged Invalid);
         end
     endrule
+
 
     //
     // startReq --
@@ -518,8 +537,8 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     //     This rule will not fire if startReq fires.
     //
     (* fire_when_enabled *)
-    rule shuntNewReq ( tpl_1(curReq) == DM_CACHE_NEW_REQ &&
-                      (sideReqFilter.sub(resize(tpl_2(curReq).idx)) != maxBound) &&
+    rule shuntNewReq (tpl_1(curReq) == DM_CACHE_NEW_REQ &&
+                      (sideReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) != maxBound) &&
                       ! isValid(tpl_3(curReq)) &&
                       (cacheMode != RL_DM_MODE_DISABLED));
         match {.req_type, .r, .cf_opaque} = curReq;

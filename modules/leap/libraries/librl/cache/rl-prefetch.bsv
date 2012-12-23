@@ -779,7 +779,6 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
         end
     endrule
     
-    (* descending_urgency = "learnOnHit, learnOnMiss, basicPrefetchOnMiss, basicPrefetchOnHit, checkLatePrefetch, updatePrefetchDist" *)
     rule updatePrefetchDist (learnDist && (prefetchLateW || prefetchDroppedByBusyW));
         if (learnerMode == PREFETCH_BASIC_TAGGED)
         begin
@@ -800,6 +799,7 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
         end
     endrule
 
+    (* conservative_implicit_conditions *)
     rule lookupLearnerDistUpdate (learnerLookupQ.first().act == PREFETCH_ACT_UPDATE_DIST);
         let streamer_req  = learnerLookupQ.first();
         learnerLookupQ.deq();
@@ -834,6 +834,8 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
         end            
     endrule
 
+    (* descending_urgency = "learnOnHit, learnOnMiss, basicPrefetchOnMiss, basicPrefetchOnHit, lookupLearnerDistUpdate, lookupLearnerUpdate, checkLatePrefetch, updatePrefetchDist" *)
+    (* conservative_implicit_conditions *)
     rule lookupLearnerUpdate (learnerLookupQ.first().act != PREFETCH_ACT_UPDATE_DIST);
         let streamer_req  = learnerLookupQ.first();
         learnerLookupQ.deq();
@@ -971,108 +973,34 @@ module mkCachePrefetchStrideLearnerDynamic#(NumTypeParam#(n_LEARNERS) dummy, Boo
     
 endmodule
 
-
 //
 // mkCachePrefetchLearnerMemory -- 
-//     the wrapper of memory module that stores cache of learners 
-//     implemented on BRAM or LUTRAM with the same BRAM interface
+//     Memory module with bypassing writes (a read request coming 
+//     in the same cycle as a write request can see the write data).
 //
-module mkCachePrefetchLearnerMemory#(t_LEARNER initVal, Bool usingBRAM)
+//     The memory may be allocated either as BRAM or LUTRAM.
+//
+module mkCachePrefetchLearnerMemory#(t_DATA initVal, Bool usingBRAM)
     // interface:
-    (BRAM#(t_LEARNER_IDX, t_LEARNER))
-    provisos (Bits#(t_LEARNER_IDX,  t_LEARNER_IDX_SZ),
-              Bits#(t_LEARNER, t_LEARNER_SZ),
-              Bounded#(t_LEARNER_IDX));
-    //BRAM#(t_LEARNER_IDX, t_LEARNER) learners  <- (usingBRAM)? mkBRAMInitialized(initVal) : mkCachePrefetchLearnerLUTRAM(initVal);
-    BRAM#(t_LEARNER_IDX, t_LEARNER) learners  <- (usingBRAM)? mkCachePrefetchLearnerBRAM(initVal) : mkCachePrefetchLearnerLUTRAM(initVal);
-    return learners;
-endmodule
-
-//
-// mkCachePrefetchLearnerBRAM -- 
-//     BRAM module with bypassing writes (a read request coming 
-//     in the same cycle as a write request can see the write data)
-//
-module mkCachePrefetchLearnerBRAM#(t_DATA initVal)
-    // interface:
-    (BRAM#(t_ADDR, t_DATA))
-    provisos (Bits#(t_ADDR,  t_ADDR_SZ),
-              Bits#(t_DATA,  t_DATA_SZ),
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
               Bounded#(t_ADDR));
     
-    BRAM#(t_ADDR, t_DATA)  ram  <- mkBRAMInitialized(initVal);
-    RWire#(t_ADDR) readAddr     <- mkRWire();
-    RWire#(t_ADDR) writeAddr    <- mkRWire();
-    RWire#(t_DATA) writeData    <- mkRWire();
-    
-    FIFO#(Tuple2#(Bool, t_DATA)) bypassWriteQ  <- mkFIFO();
-    
-    rule checkBypassing (readAddr.wget() matches tagged Valid .r);
-        if (writeAddr.wget() matches tagged Valid .w &&& pack(w) == pack(r))
-            bypassWriteQ.enq(tuple2(True, fromMaybe(?, writeData.wget())));
-        else
-            bypassWriteQ.enq(tuple2(False, ?));
-    endrule
+    MEMORY_IFC#(t_ADDR, t_DATA) ram;
+    if (usingBRAM)
+    begin
+        ram <- mkBRAMInitialized(initVal);
+    end
+    else
+    begin
+        LUTRAM#(t_ADDR, t_DATA) lutram <- mkLUTRAM(initVal);
+        ram <- mkLUTRAMIfcToMemIfc(lutram);
+    end
 
-    method Action readReq(t_ADDR addr);
-        ram.readReq(addr);
-        readAddr.wset(addr);
-    endmethod
-    method ActionValue#(t_DATA) readRsp();
-        let resp_ram   <- ram.readRsp();
-        let resp_bypass = bypassWriteQ.first();
-        bypassWriteQ.deq();
-        let resp = tpl_1(resp_bypass)? tpl_2(resp_bypass) : resp_ram;
-        return resp;
-    endmethod
-    method Action write(t_ADDR addr, t_DATA data);
-        ram.write(addr, data);
-        writeAddr.wset(addr);
-        writeData.wset(data);
-    endmethod
+    let wbr <- mkWriteBeforeReadMemory(ram);
+    return wbr;
 endmodule
-
-//
-// mkCachePrefetchLearnerLUTRAM -- 
-//     memory module that has BRAM interface but uses LUTRAM to store cache of learners  
-//
-module mkCachePrefetchLearnerLUTRAM#(t_DATA initVal)
-    // interface:
-    (BRAM#(t_ADDR, t_DATA))
-    provisos (Bits#(t_ADDR,  t_ADDR_SZ),
-              Bits#(t_DATA,  t_DATA_SZ),
-              Bounded#(t_ADDR));
-    
-    LUTRAM#(t_ADDR, t_DATA) ram  <- mkLUTRAM(initVal);
-    // FIFOF#(t_DATA) respBuffer    <- mkBypassFIFOF();
-    FIFO#(t_DATA) respBuffer     <- mkFIFO();
-    RWire#(t_ADDR) readAddr      <- mkRWire();
-    RWire#(t_ADDR) writeAddr     <- mkRWire();
-    RWire#(t_DATA) writeData     <- mkRWire();
-    
-    rule readRspBuffer (readAddr.wget() matches tagged Valid .r);
-        if (writeAddr.wget() matches tagged Valid .w &&& pack(w) == pack(r))
-            respBuffer.enq(fromMaybe(?, writeData.wget()));
-        else
-            respBuffer.enq(ram.sub(r));
-    endrule
-
-    method Action readReq(t_ADDR addr);
-        readAddr.wset(addr);
-    endmethod
-    method ActionValue#(t_DATA) readRsp();
-        let resp = respBuffer.first();
-        respBuffer.deq();
-        return resp;
-    endmethod
-    method Action write(t_ADDR addr, t_DATA data);
-        ram.upd(addr, data);
-        writeAddr.wset(addr);
-        writeData.wset(data);
-    endmethod
-    
-endmodule
-
 
 //
 // mkCachePrefetchStrideLearner -- 
@@ -1234,6 +1162,7 @@ module mkCachePrefetchStrideLearner#(NumTypeParam#(n_LEARNERS) dummy, Bool hashA
                                                  reqGen:    prefetchLateW });
     endrule
 
+    (* conservative_implicit_conditions *)
     rule lookupLearnerDistUpdate (learnerLookupQ.first().act == PREFETCH_ACT_UPDATE_DIST);
         let streamer_req  = learnerLookupQ.first();
         learnerLookupQ.deq();
@@ -1448,6 +1377,10 @@ module mkNullCachePrefetcher
     endmethod
 
     method Action prefetchDroppedByHit();
+        noAction;
+    endmethod
+    
+    method Action prefetchIllegalReq();
         noAction;
     endmethod
     
