@@ -14506,3 +14506,14 @@ Directory modules/leap/libraries/librl/base
   - Add another rule to the direct mapped cache, breaking apart selection of
     the next request from testing whether the target is busy.  The separated
     rules communicate over wires, so the timing is unchanged.
+
+----------
+kfleming    Date: Sun Jan  6 15:16:06 EST 2013  CSN: CSN-leap-386
+                  Sun Jan  6 20:16:06 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          385 
+
+
+Added a high-to-low demashaller to mirror the high-to-low marshaller.

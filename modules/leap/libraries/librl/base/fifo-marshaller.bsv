@@ -260,11 +260,12 @@ endmodule
 
 
 //
-// mkSimpleDemarshaller --
+// mkSimpleDemarshallerBoth --
 //     Basic demarshaller that maps a fixed size number of marshalled messages
-//     back to an original type.
+//     back to an original type. Parameterized to handle either choice of 
+//     marshaller endianess.
 //
-module mkSimpleDemarshaller
+module mkSimpleDemarshallerBoth#(Bool highToLow)
     // Interface:
         (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
@@ -344,12 +345,50 @@ module mkSimpleDemarshaller
 
         method t_DATA first() if (full);
             // Return an entire demarshalled message.
-            return unpack(truncateNP({ pack(buffer), pack(entry0Q.first) }));
+            t_DATA result = unpack(truncateNP({ pack(buffer), pack(entry0Q.first) })); 
+            if(highToLow)
+            begin
+                result = unpack(truncateNP({pack(entry0Q.first), pack(reverse(buffer))})); 
+            end
+            return result;
         endmethod
 
         method Bool notFull() = (! full || entry0Q.notFull);
         method Bool notEmpty() = full;
     end
+endmodule
+
+//
+// mkSimpleDemarshaller--
+//     Basic demarshaller that maps a fixed size number of marshalled messages
+//     back to an original type. Low-to-High endianess.
+//
+module mkSimpleDemarshaller
+    // Interface:
+        (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
+    provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              // Number of chunks to send a full message
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA, t_DATA)));
+    let m <- mkSimpleDemarshallerBoth(False);
+    return m;
+endmodule
+
+
+//
+// mkSimpleDemarshallerHighToLow--
+//     Basic demarshaller that maps a fixed size number of marshalled messages
+//     back to an original type. High-to-low endianess.
+//
+module mkSimpleDemarshallerHighToLow
+    // Interface:
+        (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
+    provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              // Number of chunks to send a full message
+              NumAlias#(n, MARSHALLER_MSG_LEN#(t_FIFO_DATA, t_DATA)));
+    let m <- mkSimpleDemarshallerBoth(True);
+    return m;
 endmodule
 
 
