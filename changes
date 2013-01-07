@@ -14517,3 +14517,21 @@ Directory modules/leap/libraries/librl/base
 
 
 Added a high-to-low demashaller to mirror the high-to-low marshaller.
+
+----------
+mcadler     Date: Mon Jan  7 14:07:33 EST 2013  CSN: CSN-leap-387
+                  Mon Jan  7 19:07:33 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ dual-write-bit1.bsv       Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          386 
+
+New code implements dual write ports for 1-bit LUTRAMs using a pair of LUTRAMs.
+Works with any type that can pack into Bit#(1).  Zero is encoded as both
+identical values and one as different values for a given index.
+
+The code works only if the same address is never passed to both write ports
+in a given cycle.  This is not checked as a check would add scheduling
+complexity and, in some cases, introduces a dependence between attempts
+to use both write ports in parallel.
