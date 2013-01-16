@@ -14535,3 +14535,16 @@ The code works only if the same address is never passed to both write ports
 in a given cycle.  This is not checked as a check would add scheduling
 complexity and, in some cases, introduces a dependence between attempts
 to use both write ports in parallel.
+
+----------
+kfleming    Date: Wed Jan 16 12:01:56 EST 2013  CSN: CSN-leap-388
+                  Wed Jan 16 17:01:56 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          387 
+
+
+EXTRA_RRS and EXTRA_DICTS were not obtained using the new-style
+getAWBParameter function, though they were guarded with this
+function. As a result, some multiple fpga builds were broken.

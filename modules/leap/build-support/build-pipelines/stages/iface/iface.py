@@ -98,6 +98,7 @@ class Iface():
     # leap-configure creates this dynamic_params.dic. Gotta handle is specially. Boo. 
     extra_dicts = []
     if(re.search('\w', moduleList.getAWBParam('iface_tool', 'EXTRA_DICTS'))):
+      EXTRA_DICTS = moduleList.getAWBParam('iface_tool', 'EXTRA_DICTS')
       extra_dicts = EXTRA_DICTS.split(':') 
     dicts = map(addPathDic,moduleList.getAllDependencies('GIVEN_DICTS')+['dynamic_params.dic'] + extra_dicts)
 
@@ -122,6 +123,7 @@ class Iface():
     # Add dependence info computed by previous RRR builds (it uses cpp).
     extra_rrrs = []
     if(re.search('\w', moduleList.getAWBParam('iface_tool', 'EXTRA_RRRS'))):
+      EXTRA_RRRS = moduleList.getAWBParam('iface_tool', 'EXTRA_RRRS')
       extra_rrrs = EXTRA_RRRS.split(':') 
     rrrs = map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS') + extra_rrrs)
    
