@@ -22,6 +22,7 @@ import FIFOF::*;
 import SpecialFIFOs::*;
 import Vector::*;
 import List::*;
+import DefaultValue::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/fpga_components.bsh"
@@ -119,7 +120,8 @@ module [CONNECTED_MODULE] mkCentralCache
                             CENTRAL_CACHE_WORD,
                             CENTRAL_CACHE_WORDS_PER_LINE,
                             TExp#(t_CENTRAL_CACHE_SET_IDX_SZ),
-                            3) cacheLocalData <- mkLocalMemCacheData(debugLogInt);
+                            3,
+                            RL_SA_CACHE_DATA_READ_PORTS) cacheLocalData <- mkLocalMemCacheData(debugLogInt);
 
     NumTypeParam#(`CENTRAL_CACHE_LINE_RESP_CACHE_IDX_BITS) nRecentReadCacheIdxBits = ?;
     NumTypeParam#(0) nTagExtraLowBits = ?;
@@ -484,136 +486,18 @@ endmodule
 //
 // ========================================================================
 
-
-//
-// mkMultiReaderLocalMem --
-//     Manage multiple, virtual, read ports from the local memory.
-//
-
-interface LOCAL_MEMORY_CACHE_IFC;
-    method Action readLineReq(LOCAL_MEM_ADDR addr);
-    method ActionValue#(LOCAL_MEM_LINE) readLineRsp();
-    method Bool notEmpty();
-endinterface: LOCAL_MEMORY_CACHE_IFC
-
-
-interface LOCAL_MEMORY_MULTI_READ_CACHE_IFC#(numeric type nReadPorts);
-    interface Vector#(nReadPorts, LOCAL_MEMORY_CACHE_IFC) readPorts;
-
-    method Action writeWord(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data);
-    method Action writeLine(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data);
-    method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
-endinterface: LOCAL_MEMORY_MULTI_READ_CACHE_IFC
-
-
-module [CONNECTED_MODULE] mkMultiReaderLocalMem#(DEBUG_FILE debugLog)
-    // interface:
-    (LOCAL_MEMORY_MULTI_READ_CACHE_IFC#(nReadPorts));
-
-    // Local memory is available as a soft connected device.  This is the command
-    // channel.
-    CONNECTION_CLIENT#(LOCAL_MEM_CMD, LOCAL_MEM_READ_DATA) lms
-        <- mkConnectionClient("local_memory_device");
-
-    // Write data channel.
-    CONNECTION_SEND#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) lmWriteData
-        <- mkConnectionSend("local_memory_device_wdata");
-
-    MERGE_FIFOF#(TAdd#(nReadPorts, 1), LOCAL_MEM_CMD) reqQ <- mkMergeBypassFIFOF();
-    FIFOF#(Bit#(TLog#(nReadPorts))) readQ <- mkSizedFIFOF(16);
-
-    //
-    // Compute the notEmpty read port state using a rule and wires so the
-    // scheduling is local to this module.
-    //
-    Vector#(nReadPorts, Wire#(Bool)) readPortNotEmpty <- replicateM(mkDWire(False));
-
-    for (Integer p = 0; p < valueOf(nReadPorts); p = p + 1)
-    begin
-        rule computeReadPortNotEmpty (readQ.first() == fromInteger(p));
-            // Read data is for this port
-            readPortNotEmpty[p] <= True;
-        endrule
-    end
-
-
-    //
-    // Forward requests to local memory.
-    //
-    rule forwardReq (True);
-        let req = reqQ.first();
-        reqQ.deq();
-        
-        lms.makeReq(req);
-    endrule
-
-    // Do reads before write
-    let wPort = valueOf(nReadPorts);
-
-    //
-    // Read port methods
-    //
-    Vector#(nReadPorts, LOCAL_MEMORY_CACHE_IFC) portsLocal = newVector;
-    for (Integer p = 0; p < valueOf(nReadPorts); p = p + 1)
-    begin
-        portsLocal[p] = (
-            interface LOCAL_MEMORY_CACHE_IFC;
-                method Action readLineReq(LOCAL_MEM_ADDR addr);
-                    reqQ.ports[p].enq(tagged LM_READ_LINE addr);
-                    readQ.enq(fromInteger(p));
-                    debugLog.record($format("      DDR readLineReq port %0d: addr=0x%x", p, addr));
-                endmethod
-
-                method ActionValue#(LOCAL_MEM_LINE) readLineRsp() if (readQ.first() == fromInteger(p) &&&
-                                                                      lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
-                    readQ.deq();
-                    lms.deq();
-
-                    debugLog.record($format("      DDR readLineRsp port %0d: val=0x%x", p, val));
-
-                    return val;
-                endmethod
-
-                method Bool notEmpty() = readPortNotEmpty[p];
-            endinterface
-            );
-    end
-
-    interface readPorts = portsLocal;
-
-    method Action writeWord(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data);
-        reqQ.ports[wPort].enq(tagged LM_WRITE_WORD addr);
-        lmWriteData.send(tuple2({?, data}, ?));
-    endmethod
-
-    method Action writeLine(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data);
-        reqQ.ports[wPort].enq(tagged LM_WRITE_LINE addr);
-        lmWriteData.send(tuple2(data, ?));
-    endmethod
-
-    method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
-        reqQ.ports[wPort].enq(tagged LM_WRITE_LINE_MASKED addr);
-        lmWriteData.send(tuple2(data, mask));
-    endmethod
-endmodule
-
-
 //
 // mkLocalMemCacheData --
-//     Set associative cache local storage.
+//     Set associative cache local storage using local memory.
 //
 module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     // interface:
-    (RL_SA_CACHE_LOCAL_DATA#(t_CACHE_ADDR_SZ, t_CACHE_WORD, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays))
+    (RL_SA_CACHE_LOCAL_DATA#(t_CACHE_ADDR_SZ, t_CACHE_WORD, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays, nReaders))
     provisos (Bits#(t_CACHE_WORD, LOCAL_MEM_WORD_SZ),
               Alias#(RL_SA_CACHE_SET_METADATA#(t_CACHE_ADDR_SZ, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays), t_SET_METADATA),
               Bits#(t_SET_METADATA, t_SET_METADATA_SZ),
               Alias#(RL_SA_CACHE_SET_IDX#(nSets), t_CACHE_SET_IDX),
               Alias#(RL_SA_CACHE_WAY_IDX#(nWays), t_CACHE_WAY_IDX),
-
-              // Need an extra read port for the metadata
-              Add#(RL_SA_CACHE_DATA_READ_PORTS, 1, t_N_READ_PORTS),
-              Add#(RL_SA_CACHE_DATA_READ_PORTS, 0, t_METADATA_READ_PORT),
 
               // Assert size relationship of number of sets & ways to address
               Bits#(t_CACHE_SET_IDX, t_CACHE_SET_IDX_SZ),
@@ -624,20 +508,23 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
               Add#(t_SET_METADATA_SZ, t_UNUSED_META_BIT_SZ, LOCAL_MEM_LINE_SZ),
               Bits#(Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD), LOCAL_MEM_LINE_SZ));
 
-    // Connection to local memory
-    LOCAL_MEMORY_MULTI_READ_CACHE_IFC#(t_N_READ_PORTS) memory <- mkMultiReaderLocalMem(debugLog);
+    // Local memory is available as a soft connected device.  This is
+    // the command channel.
+    CONNECTION_CLIENT#(LOCAL_MEM_CMD, LOCAL_MEM_READ_DATA) lms
+        <- mkConnectionClient("local_memory_device");
 
+    // Write data channel.
+    CONNECTION_SEND#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) lmWriteData
+        <- mkConnectionSend("local_memory_device_wdata");
+
+    PulseWire didWrite <- mkPulseWire();
 
     // ====================================================================
     //
-    // Data and metadata address mapping functions.  The data is limited
-    // to half of available memory since the cache algorithm depends on
-    // sets being a power of 2.  The mapping here uses the low bit of 0 to
-    // indicate data and 1 for metadata.  The metadata is not dense.
-    //
-    // Using the low bit keeps metadata on the same page as the data.
-    // Toggling the low bit instead of the high bit for the metadata
-    // read may open the DDR page for the data read.
+    // Data and metadata address mapping functions.  Each set is organized
+    // as a local memory line of metadata in slot 0 and the set's ways
+    // in the remaining slots.  Each set is assumed to have ways equal
+    // to (2^n - 1) in order to tile metadata and data efficiently.
     //
     // ====================================================================
 
@@ -646,8 +533,7 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     //     Convert set and way into a local memory address.
     //
     function LOCAL_MEM_ADDR getDataIdx(t_CACHE_SET_IDX set, t_CACHE_WAY_IDX way);
-        // Way must not be 3!  Cache only has 3 ways, so that shouldn't happen.
-        return localMemLineAddrToAddr({ pack(set), pack(way) });
+        return localMemLineAddrToAddr({ pack(set), pack(way + 1) });
     endfunction
 
 
@@ -656,8 +542,7 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     //     Convert set and way into a local memory address.
     //
     function LOCAL_MEM_ADDR getMetadataIdx(t_CACHE_SET_IDX set);
-        // Last way slot is the metadata
-        t_CACHE_WAY_IDX metaWay = maxBound;
+        t_CACHE_WAY_IDX metaWay = 0;
         return localMemLineAddrToAddr({ pack(set), pack(metaWay) });
     endfunction
 
@@ -672,9 +557,10 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     Reg#(RL_SA_CACHE_SET_IDX#(nSets)) initIdx <- mkReg(0);
     
     rule initMetaData (! initialized);
-        t_SET_METADATA mInit = RL_SA_CACHE_SET_METADATA { lru: Vector::genWith(fromInteger),
-                                                          ways: Vector::replicate(tagged Invalid) };
-        memory.writeLine(getMetadataIdx(initIdx), zeroExtend(pack(mInit)));
+        lms.makeReq(tagged LM_WRITE_LINE getMetadataIdx(initIdx));
+
+        t_SET_METADATA m_init = defaultValue;
+        lmWriteData.send(tuple2(zeroExtend(pack(m_init)), ?));
 
         if (initIdx == maxBound)
         begin
@@ -687,84 +573,179 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
 
     // ====================================================================
     //
-    // Metadata read response buffer.  Avoid deadlock between metadata and
-    // data reads by providing output buffer space for all outstanding
-    // metdata read requests.
+    // Set read logic.
     //
     // ====================================================================
 
-    FIFOF#(t_SET_METADATA) readMetadataRespQ <- mkSizedBypassFIFOF(8);
-    COUNTER#(4) readMetadataCnt <- mkLCounter(8);
+    // Limit readers to available output buffering in order to avoid
+    // deadlocks with the local memory write channel.
+    let maxRead = 8;
+    COUNTER#(4) activeReadCnt <- mkLCounter(maxRead);
 
-    rule forwardMetadataResp (True);
-        let d <- memory.readPorts[valueOf(t_METADATA_READ_PORT)].readLineRsp();
-        readMetadataRespQ.enq(unpack(truncate(pack(d))));
+    FIFO#(Tuple2#(t_CACHE_SET_IDX, Bool)) setReqQ <- mkBypassFIFO();
+    FIFOF#(Tuple2#(Bit#(TLog#(RL_SA_CACHE_DATA_READ_PORTS)),
+                   t_CACHE_WAY_IDX)) wayReqQ <- mkFIFOF();
+    Reg#(t_CACHE_WAY_IDX) setReqWayIdx <- mkReg(0);
+    FIFO#(Bool) readIsMetaQ <- mkSizedFIFO(32);
+
+    // Hold the prefetched set
+    Reg#(Vector#(nWays, CENTRAL_CACHE_LINE)) prefetchSetBuf <- mkRegU();
+    Reg#(t_CACHE_WAY_IDX) setRspWayIdx <- mkReg(0);
+    FIFO#(Vector#(nWays, CENTRAL_CACHE_LINE)) setRspQ <- mkSizedFIFO(maxRead);
+
+    // Final buffers for read data
+    FIFOF#(t_SET_METADATA) metaRspQ <- mkSizedFIFOF(maxRead);
+    FIFOF#(Tuple2#(Bit#(TLog#(RL_SA_CACHE_DATA_READ_PORTS)),
+                   CENTRAL_CACHE_LINE)) dataRspQ <- mkBypassFIFOF();
+
+    //
+    // memReadReq --
+    //   Receive a request to read a set.  Iterate multiple times over each
+    //   request in order to prefetch metadata and all ways.
+    //
+    rule memReadReq (initialized && ! didWrite && (activeReadCnt.value != 0));
+        match {.set, .prefetch_set} = setReqQ.first();
+
+        // Read a way (or metadata if setReqWayIdx is 0)
+        LOCAL_MEM_ADDR addr = localMemLineAddrToAddr({ pack(set), pack(setReqWayIdx) });
+        lms.makeReq(tagged LM_READ_LINE addr);
+        readIsMetaQ.enq(setReqWayIdx == 0);
+
+        // Prefetch the entire set
+        if (! prefetch_set || (setReqWayIdx == fromInteger(valueOf(nWays))))
+        begin
+            // Not prefetching or set is now fully prefetched
+            setReqQ.deq();
+            setReqWayIdx <= 0;
+        end
+        else
+        begin
+            setReqWayIdx <= setReqWayIdx + 1;
+        end
     endrule
+
+    //
+    // fwdMetaReadRsp --
+    //   Forward metadata read from local memory to the response queue.
+    //
+    rule fwdMetaReadRsp (readIsMetaQ.first() &&&
+                         lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
+        readIsMetaQ.deq();
+        lms.deq();
+
+        metaRspQ.enq(unpack(truncate(val)));
+    endrule
+
+    //
+    // fwdMemReadRsp --
+    //   Forward prefetched ways to an intermediate queue.
+    //
+    rule fwdMemReadRsp (! readIsMetaQ.first() &&&
+                        lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
+        readIsMetaQ.deq();
+        lms.deq();
+
+        let set_val = shiftInAtN(prefetchSetBuf, unpack(val));
+        prefetchSetBuf <= set_val;
+
+        // Have all ways for a set arrived?
+        if (setRspWayIdx == fromInteger(valueOf(TSub#(nWays, 1))))
+        begin
+            // Yes
+            setRspWayIdx <= 0;
+            setRspQ.enq(set_val);
+        end
+        else
+        begin
+            // No.  Keep collecting ways.
+            setRspWayIdx <= setRspWayIdx + 1;
+        end
+    endrule
+
+    //
+    // memGetWay --
+    //   Pick the requested way from the prefetched set data and route
+    //   to the requested response port.
+    //
+    rule memGetWay (True);
+        match {.port, .way} = wayReqQ.first();
+        wayReqQ.deq();
+
+        let val = setRspQ.first();
+        setRspQ.deq();
+
+        dataRspQ.enq(tuple2(port, val[way]));
+    endrule
+
+
+    //
+    // Data read ports.  These ports return ways prefetched as a side-effect
+    // of calling setReadReq().
+    //
+    Vector#(nReaders,
+            MEMORY_READER_IFC#(RL_SA_CACHE_WAY_IDX#(nWays),
+                               Vector#(LOCAL_MEM_WORDS_PER_LINE,
+                                       t_CACHE_WORD))) dataReadPorts = newVector();
+
+    for (Integer p = 0; p < valueOf(nReaders); p = p + 1)
+    begin
+        dataReadPorts[p] =
+           (interface MEMORY_READER_IFC#(RL_SA_CACHE_WAY_IDX#(nWays),
+                                         Vector#(LOCAL_MEM_WORDS_PER_LINE,
+                                                 t_CACHE_WORD));
+                method Action readReq(RL_SA_CACHE_WAY_IDX#(nWays) way);
+                    wayReqQ.enq(tuple2(fromInteger(p), way));
+                endmethod
+
+                method ActionValue#(Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD)) readRsp() if (tpl_1(dataRspQ.first()) == fromInteger(p));
+                    let val = tpl_2(dataRspQ.first());
+                    dataRspQ.deq();
+
+                    return unpack(val);
+                endmethod
+
+                method Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD) peek() = unpack(tpl_2(dataRspQ.first()));
+
+                method Bool notEmpty() = dataRspQ.notEmpty();
+                method Bool notFull() = wayReqQ.notFull();
+            endinterface);
+    end
+
+    interface dataRead = dataReadPorts;
 
 
     //
     // Metadata access methods
     //
-
-    interface MEMORY_IFC metaData;
-        method Action readReq(RL_SA_CACHE_SET_IDX#(nSets) set) if (readMetadataCnt.value != 0);
-            readMetadataCnt.down();
-            memory.readPorts[valueOf(t_METADATA_READ_PORT)].readLineReq(getMetadataIdx(set));
-        endmethod
-
-        method ActionValue#(t_SET_METADATA) readRsp();
-            let d = readMetadataRespQ.first();
-            readMetadataRespQ.deq();
-    
-            readMetadataCnt.up();
-
-            return d;
-        endmethod
-
-        method Action write(RL_SA_CACHE_SET_IDX#(nSets) set, t_SET_METADATA mData) if (initialized);
-            memory.writeLine(getMetadataIdx(set), zeroExtend(pack(mData)));
-        endmethod
-    
-        // Required for memory interface but doesn't make sense for local memory
-        method t_SET_METADATA peek() if (False);
-            return ?;
-        endmethod
-    
-        method Bool notEmpty();
-            return readMetadataRespQ.notEmpty();
-        endmethod
-    
-        method Bool notFull() = (readMetadataCnt.value != 0);
-        method Bool writeNotFull() = True;
-    endinterface
-
-
-    //
-    // Data access methods
-    //
-
-    // Read all words in a line
-    method Action dataReadReq(Integer readPort,
-                              RL_SA_CACHE_SET_IDX#(nSets) set,
-                              RL_SA_CACHE_WAY_IDX#(nWays) way);
-        memory.readPorts[readPort].readLineReq(getDataIdx(set, way));
+    method Action setReadReq(RL_SA_CACHE_SET_IDX#(nSets) set,
+                             Bool prefetchSet);
+        setReqQ.enq(tuple2(set, prefetchSet));
+        activeReadCnt.up();
     endmethod
 
-    method ActionValue#(Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD)) dataReadRsp(Integer readPort);
-        let d <- memory.readPorts[readPort].readLineRsp();
-        return unpack(d);
+    // Set's metadata, returned as a response to setReadReq().
+    method ActionValue#(t_SET_METADATA) metaReadRsp();
+        let meta = metaRspQ.first();
+        metaRspQ.deq();
+        activeReadCnt.down();
+
+        return meta;
     endmethod
 
-    method Bool dataReadNotEmpty(Integer readPort);
-        return memory.readPorts[readPort].notEmpty();
-    endmethod
+    method Bool metaReadNotEmpty() = metaRspQ.notEmpty();
 
+
+    method Action metaWrite(RL_SA_CACHE_SET_IDX#(nSets) set,
+                            RL_SA_CACHE_SET_METADATA#(t_CACHE_ADDR_SZ, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays) metaUpd) if (initialized);
+        lms.makeReq(tagged LM_WRITE_LINE getMetadataIdx(set));
+        lmWriteData.send(tuple2(zeroExtend(pack(metaUpd)), ?));
+        didWrite.send();
+    endmethod    
 
     method Action dataWrite(RL_SA_CACHE_SET_IDX#(nSets) set,
                             RL_SA_CACHE_WAY_IDX#(nWays) way,
                             Vector#(LOCAL_MEM_WORDS_PER_LINE, Bool) wordMask,
                             Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD) val) if (initialized);
-
         // The memory interface uses byte write masks.  Convert the word mask
         // to bytes.
         Vector#(LOCAL_MEM_WORDS_PER_LINE,
@@ -774,15 +755,19 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
             byte_mask[w] = replicate(wordMask[w]);
         end
 
-        memory.writeLineMasked(getDataIdx(set, way), pack(val), byte_mask);
+        lms.makeReq(tagged LM_WRITE_LINE_MASKED getDataIdx(set, way));
+        lmWriteData.send(tuple2(zeroExtend(pack(val)), byte_mask));
+        didWrite.send();
     endmethod
 
     method Action dataWriteWord(RL_SA_CACHE_SET_IDX#(nSets) set,
                                 RL_SA_CACHE_WAY_IDX#(nWays) way,
                                 Bit#(TLog#(LOCAL_MEM_WORDS_PER_LINE)) wordIdx,
                                 t_CACHE_WORD val) if (initialized);
-
-        memory.writeWord(getDataIdx(set, way) | zeroExtendNP(wordIdx), pack(val));
+        LOCAL_MEM_ADDR addr = getDataIdx(set, way) | zeroExtendNP(wordIdx);
+        lms.makeReq(tagged LM_WRITE_WORD addr);
+        lmWriteData.send(tuple2(zeroExtend(pack(val)), ?));
+        didWrite.send();
     endmethod
 
 endmodule

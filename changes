@@ -14548,3 +14548,36 @@ Directory modules/leap/build-support/build-pipelines/stages/iface
 EXTRA_RRS and EXTRA_DICTS were not obtained using the new-style
 getAWBParameter function, though they were guarded with this
 function. As a result, some multiple fpga builds were broken.
+
+----------
+mcadler     Date: Wed Jan 23 15:06:51 EST 2013  CSN: CSN-leap-389
+                  Wed Jan 23 20:06:51 UTC 2013
+
+
+Directory .
+ configure                 Locally Modified          388 
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          388 
+ rl-set-assoc-cache.bsv    Locally Modified          388 
+ rl-cache.bsv              Locally Modified          388 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Modified          388 
+ local-mem-central-cache.bsv Locally Modified          388 
+
+Tried the experiment of converting the central cache to direct mapped instead
+of set associative.  The theory was that direct mapped is simpler (less
+FPGA area), faster (fetch data and tag together) and that the lower latency
+will overcome a slightly higher miss rate.  At least for our 1GB central
+cache this did not work.  The latency did decrease, sometimes significantly
+(18%), but the miss rate became a problem for many workloads.  We do hash
+addresses, though with CRC because a better hash is too expensive for a cache.
+The direct mapped cache used fewer FPGA resources, but not by much.
+
+The question became: can we get the latency advantage of the direct mapped
+cache with the hit rate of the set associate cache.  Yes!  This new code
+prefetches an entire set when the tag is requested.  With three 256 bit
+ways, the full memory access is only two SDRAM reads (512 bit) that are
+returned as a total of four 256 bit beats.  Since requests are filtered
+by private L1 caches, the extra SDRAM traffic does not affect throughput.

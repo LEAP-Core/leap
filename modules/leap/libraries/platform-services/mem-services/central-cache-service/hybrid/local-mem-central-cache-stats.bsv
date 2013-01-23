@@ -40,7 +40,7 @@ module [CONNECTED_MODULE] mkCentralCacheStats#(RL_CACHE_STATS cacheStats)
     // Disambiguate central caches on multiple platforms    
     String platform <- getSynthesisBoundaryPlatform();
 
-    STAT_ID statIDs[8];
+    STAT_ID statIDs[9];
 
     statIDs[0] = statName("CENTRAL_CACHE_LOAD_HIT_" + platform,
                           "Central Cache: Load hits");
@@ -74,7 +74,11 @@ module [CONNECTED_MODULE] mkCentralCacheStats#(RL_CACHE_STATS cacheStats)
                           "Central Cache: Load recent line cache hits");
     let statLoadRecentLineHit = 7;
 
-    STAT_VECTOR#(8) stats <- mkStatCounter_Vector(statIDs);
+    statIDs[8] = statName("CENTRAL_CACHE_LOAD_NEW_MRU_" + platform,
+                          "Central Cache: Reference changed MRU way for valid entry (hit)");
+    let statNewMRU = 8;
+
+    STAT_VECTOR#(9) stats <- mkStatCounter_Vector(statIDs);
 
     rule readHit (cacheStats.readHit());
         stats.incr(statLoadHit);
@@ -106,6 +110,10 @@ module [CONNECTED_MODULE] mkCentralCacheStats#(RL_CACHE_STATS cacheStats)
 
     rule recentLineReadHit (cacheStats.readRecentLineHit());
         stats.incr(statLoadRecentLineHit);
+    endrule
+
+    rule newMRU (cacheStats.newMRU());
+        stats.incr(statNewMRU);
     endrule
 
 endmodule

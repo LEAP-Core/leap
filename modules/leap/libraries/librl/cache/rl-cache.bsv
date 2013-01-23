@@ -63,6 +63,7 @@ interface RL_CACHE_STATS;
                                          // to the same line.
     method Bool writeHit();
     method Bool writeMiss();
+    method Bool newMRU();                // MRU line changed
     method Bool invalEntry();            // Invalidate due to capacity
     method Bool dirtyEntryFlush();
     method Bool forceInvalLine();        // Invalidate forced by external request

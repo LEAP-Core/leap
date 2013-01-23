@@ -946,6 +946,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         method Bool readRecentLineHit() = False;    
         method Bool writeHit() = writeHitW;
         method Bool writeMiss() = False;
+        method Bool newMRU() = False;
         method Bool invalEntry() = False;
         method Bool dirtyEntryFlush() = dirtyEntryFlushW;
         method Bool forceInvalLine() = forceInvalLineW;
@@ -1036,6 +1037,7 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
         method Bool readRecentLineHit() = False;    
         method Bool writeHit() = False;
         method Bool writeMiss() = False;
+        method Bool newMRU() = False;
         method Bool invalEntry() = False;
         method Bool dirtyEntryFlush() = False;
         method Bool forceInvalLine() = False;
