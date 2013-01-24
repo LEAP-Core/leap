@@ -9,79 +9,86 @@ endinterface
 
 // We collect a number of samples past the trigger.
 module mkTriggeredStreamCaptureFIFOF#(Integer streamSize) (TriggeredStreamCaptureFIFOF#(data_t))
-  provisos(Bits#(data_t, data_sz));
+    provisos(Bits#(data_t, data_sz));
 
-  FIFOF#(data_t) fifoStore <- mkSizedFIFOF(streamSize + 1);
-  Reg#(State) state <- mkReg(Filling);
-  Reg#(Bit#(32)) elementCount <- mkReg(0);  
-  PulseWire deqPulse <- mkPulseWire;
-  PulseWire triggerPulse <- mkPulseWire;
+    FIFOF#(data_t) fifoStore <- mkSizedFIFOF(streamSize + 1);
+    RWire#(data_t) enqWire <- mkRWire();
+    Reg#(State) state <- mkReg(Filling);
+    Reg#(Bit#(32)) elementCount <- mkReg(0);  
+    PulseWire deqPulse <- mkPulseWire;
+    PulseWire triggerPulse <- mkPulseWire;
 
-  if(streamSize > 4000000000)
+    if(streamSize > 4000000000)
     begin
-      error("Unsupported stream size in triggered fifo");
+        error("Unsupported stream size in triggered fifo");
     end
 
-  rule cycle (deqPulse && state == Filling);
-    fifoStore.deq;
-    if(`DEBUG_STREAM_CAPTURE_FIFO == 1) 
-      begin
-        $display("TrigFIFO: Droppin Data");
-      end
-  endrule
+    rule cycle (deqPulse && state == Filling);
+        fifoStore.deq;
+        if(`DEBUG_STREAM_CAPTURE_FIFO == 1) 
+        begin
+            $display("TrigFIFO: Droppin Data");
+        end
+    endrule
 
-  rule setTrigger(triggerPulse);
-    if(`DEBUG_STREAM_CAPTURE_FIFO == 1) 
-      begin
-        $display("TrigFIFO: setting trigger");
-      end
-    state <= Draining;
-  endrule
+    rule setTrigger(triggerPulse);
+        if(`DEBUG_STREAM_CAPTURE_FIFO == 1) 
+        begin
+            $display("TrigFIFO: setting trigger");
+        end
+        state <= Draining;
+    endrule
 
-  rule setFilling (!fifoStore.notEmpty && state == Draining); 
-    state <= Filling; 
-    elementCount <= 0;
-  endrule
+    rule setFilling (!fifoStore.notEmpty && state == Draining); 
+        state <= Filling; 
+        elementCount <= 0;
+     endrule
   
-
-  interface FIFOF fifof;
-    method data_t first() if(state == Draining);
-      return fifoStore.first;
-    endmethod
-
-    method Action deq() if(state == Draining);
-      fifoStore.deq; 
-    endmethod
-
-    method Action enq(data_t data) if(state == Filling); 
-      if(elementCount <  fromInteger(streamSize)) 
+    rule handleEnq if(enqWire.wget() matches tagged Valid .data &&& state == Filling); 
+        if(elementCount <  fromInteger(streamSize)) 
         begin
-          elementCount <= elementCount + 1;
+            elementCount <= elementCount + 1;
         end
-      else // need to deq
+        else // need to deq
         begin
-          deqPulse.send;
+            deqPulse.send;
         end
-      fifoStore.enq(data);
+
+        fifoStore.enq(data);
+    endrule
+
+    interface FIFOF fifof;
+        method data_t first() if(state == Draining);
+            return fifoStore.first;
+        endmethod
+
+        method Action deq() if(state == Draining);
+            fifoStore.deq; 
+        endmethod
+
+        method Action enq(data_t data);
+            enqWire.wset(data);
+        endmethod
+
+        method notEmpty = fifoStore.notEmpty && state == Draining;
+
+        method Bool notFull();
+            return fifoStore.notFull && (elementCount < fromInteger(streamSize) && state == Filling);
+        endmethod
+
+        method Action clear; // This method needs some fixing
+            fifoStore.clear;
+            elementCount <= 0;
+            state <= Filling;
+        endmethod
+
+    endinterface
+
+    method Action trigger();
+        if(state != Draining)
+        begin
+            triggerPulse.send;
+        end
     endmethod
 
-    method notEmpty = fifoStore.notEmpty && state == Draining;
-
-    method Bool notFull();
-      return fifoStore.notFull && (elementCount < fromInteger(streamSize) && state == Filling);
-    endmethod
-
-    method Action clear; // This method needs some fixing
-      fifoStore.clear;
-      elementCount <= 0;
-      state <= Filling;
-    endmethod
-  endinterface
-
-  method Action trigger();
-   if(elementCount == fromInteger(streamSize) && state != Draining)
-     begin
-       triggerPulse.send;
-     end
-  endmethod
 endmodule

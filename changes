@@ -14581,3 +14581,15 @@ prefetches an entire set when the tag is requested.  With three 256 bit
 ways, the full memory access is only two SDRAM reads (512 bit) that are
 returned as a total of four 256 bit beats.  Since requests are filtered
 by private L1 caches, the extra SDRAM traffic does not affect throughput.
+
+----------
+kfleming    Date: Wed Jan 23 20:57:42 EST 2013  CSN: CSN-leap-390
+                  Thu Jan 24 01:57:42 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-triggered-stream-capture.bsv Locally Modified          389 
+
+
+Refactored functionality of triggered stream capture fifo - trigger
+can now be invoked even if the fifo is not filled with data.
