@@ -14593,3 +14593,16 @@ Directory modules/leap/libraries/librl/storage
 
 Refactored functionality of triggered stream capture fifo - trigger
 can now be invoked even if the fifo is not filled with data.
+
+----------
+mcadler     Date: Thu Jan 24 07:30:57 EST 2013  CSN: CSN-leap-391
+                  Thu Jan 24 12:30:57 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          390 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-backing-store.bsv Locally Modified          390 
+
+Marshal central cache backing storage I/O with shifts instead of muxes.

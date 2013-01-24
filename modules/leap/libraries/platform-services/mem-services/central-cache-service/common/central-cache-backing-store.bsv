@@ -81,8 +81,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
     // FIFO1 to save space.  Throughput isn't terribly important here
     // since the call will go through RRR.
     FIFOF#(CENTRAL_CACHE_BACKING_WRITE_REQ) writeCtrlQ <- mkFIFOF1();
-    FIFOF#(CENTRAL_CACHE_LINE) writeDataQ <- mkFIFOF1();
-    Reg#(Bit#(TLog#(CENTRAL_CACHE_WORDS_PER_LINE))) writeWordIdx <- mkReg(0);
+    MARSHALLER#(CENTRAL_CACHE_WORD, CENTRAL_CACHE_LINE) writeDataQ <- mkSimpleMarshaller();
 
     // Read response logic.  Combine pipelined read response (words) into a single
     // line-sized register.
@@ -118,7 +117,8 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
         // multiple times for each getReadReq.
         //
         method Action sendReadResp(CENTRAL_CACHE_WORD val, Bool isCacheable);
-            readData[readWordIdx] <= val;
+            let v = shiftInAtN(readData, val);
+            readData <= v;
 
             debugLog.record($format("port %0d: BACKING sendReadResp idx=%0d, val=0x%x", port, readWordIdx, val));
 
@@ -126,10 +126,7 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
             if (readWordIdx == maxBound)
             begin
                 // Yes.  Forward the response to the central cache.
-                let rd = readData;
-                rd[valueOf(CENTRAL_CACHE_WORDS_PER_LINE) - 1] = val;
-
-                let rsp = RL_SA_CACHE_FILL_RESP { val: unpack(pack(rd)),
+                let rsp = RL_SA_CACHE_FILL_RESP { val: unpack(pack(v)),
                                                   isCacheable: isCacheable };
                 readRespQ.enq(rsp);
             end
@@ -154,19 +151,10 @@ module mkCentralCacheBackingConnection#(Integer port, DEBUG_FILE debugLog)
         // Poll for write data following a getWriteReq().
         //
         method ActionValue#(CENTRAL_CACHE_WORD) getWriteData() if (! writeCtrlQ.notEmpty());
-            debugLog.record($format("port %0d: BACKING getWriteData idx=%0d", port, writeWordIdx));
+            let v = writeDataQ.first();
+            writeDataQ.deq();
 
-            Vector#(CENTRAL_CACHE_WORDS_PER_LINE, CENTRAL_CACHE_WORD) v = unpack(pack(writeDataQ.first()));
-            if (writeWordIdx == maxBound)
-            begin
-                // Sent entire line
-                writeDataQ.deq();
-            end
-
-            let r = v[writeWordIdx];
-            writeWordIdx <= writeWordIdx + 1;
-
-            return r;
+            return v;
         endmethod
 
         //

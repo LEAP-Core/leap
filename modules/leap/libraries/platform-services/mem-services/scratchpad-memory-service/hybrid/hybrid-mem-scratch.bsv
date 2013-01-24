@@ -356,29 +356,23 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     endrule
 
 
-    Reg#(Bit#(TLog#(SCRATCHPAD_WORDS_PER_LINE))) readWordIdx <- mkReg(0);
+    MARSHALLER#(SCRATCHPAD_MEM_VALUE, t_SCRATCHPAD_LINE) readRespMar <- mkSimpleMarshaller();
 
-    rule backingReadResp (readReqInfoQ.first().fromCentralCache);
-        // Pick a word from the current incoming value.  Pop the entry if on
-        // the last word.
-        SCRATCHPAD_RRR_LOAD_LINE_RESP r = rrrRespQ.first();
-        if (readWordIdx == maxBound)
-        begin
-            rrrRespQ.deq;
-            readReqInfoQ.deq();
-        end
+    rule backingReadResp0 (readReqInfoQ.first().fromCentralCache);
+        SCRATCHPAD_RRR_LOAD_LINE_RESP v = rrrRespQ.first();
+        rrrRespQ.deq();
+        readReqInfoQ.deq();
 
-        t_SCRATCHPAD_LINE line;
-        line[0] = r.data0;
-        line[1] = r.data1;
-        line[2] = r.data2;
-        line[3] = r.data3;
-
-        let v = line[readWordIdx];
-        readWordIdx <= readWordIdx + 1;
+        readRespMar.enq(unpack(pack(v)));
 
         debugLog.record($format("backingReadResp: val=0x%x", pack(v)));
-        centralCacheBackingPort.sendReadResp(pack(v), True);
+    endrule
+
+    rule backingReadResp1 (True);
+        let v = readRespMar.first();
+        readRespMar.deq();
+
+        centralCacheBackingPort.sendReadResp(v, True);
     endrule
 
     //
@@ -401,27 +395,19 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         let v <- centralCacheBackingPort.getWriteData();
         debugLog.record($format("backingWriteData: val=0x%x", v));
 
-        if (writeWordIdx != maxBound)
-        begin
-            writeData[writeWordIdx] <= v;
-        end
-        else
+        let wd = shiftInAtN(writeData, v);
+        writeData <= wd;
+
+        if (writeWordIdx == maxBound)
         begin
             let ctrl = writeCtrlQ.first();
             writeCtrlQ.deq();
 
-            let h_addr = hostAddrFromCacheAddr(ctrl.addr);
-
             // Convert word-based valid mask to byte-based
-            t_SCRATCHPAD_LINE_MASK mask = newVector();
-            for (Integer w = 0; w < valueOf(SCRATCHPAD_WORDS_PER_LINE); w = w + 1)
-            begin
-                mask[w] = ctrl.wordValidMask[w] ? replicate(True) : replicate(False);
-            end
+            t_SCRATCHPAD_LINE_MASK mask = map(replicate, ctrl.wordValidMask);
 
-            let w_data = writeData;
-            w_data[3] = v;
-            storeLine(mask, h_addr, w_data);
+            let h_addr = hostAddrFromCacheAddr(ctrl.addr);
+            storeLine(mask, h_addr, wd);
         end
 
         writeWordIdx <= writeWordIdx + 1;
