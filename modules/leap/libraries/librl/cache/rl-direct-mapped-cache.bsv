@@ -632,7 +632,9 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
             if (prefetchMode == RL_DM_PREFETCH_ENABLE)
             begin
-                prefetcher.readMiss(idx, r.addr, r.readMeta.isLocalPrefetch);
+                prefetcher.readMiss(idx, r.addr,
+                                    r.readMeta.isLocalPrefetch,
+                                    r.readMeta.clientReadMeta);
             end
 
             debugLog.record($format("    lookupRead: MISS addr=0x%x, entry=0x%x", r.addr, idx));
@@ -687,8 +689,12 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: False,
                                                               tag: tag,
                                                               val: f.val });
+
+            prefetcher.fillResp(idx, f.addr,
+                                f.readMeta.isLocalPrefetch,
+                                f.readMeta.clientReadMeta);
         end
-        else if(f.readMeta.isLocalPrefetch)
+        else if (f.readMeta.isLocalPrefetch)
         begin
             prefetcher.prefetchIllegalReq();
         end

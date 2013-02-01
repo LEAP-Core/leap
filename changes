@@ -14606,3 +14606,14 @@ Directory modules/leap/libraries/platform-services/mem-services/central-cache-se
  central-cache-backing-store.bsv Locally Modified          390 
 
 Marshal central cache backing storage I/O with shifts instead of muxes.
+
+----------
+mcadler     Date: Fri Feb  1 15:42:18 EST 2013  CSN: CSN-leap-392
+                  Fri Feb  1 20:42:18 UTC 2013
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          391 
+ rl-prefetch.bsv           Locally Modified          391 
+
+Add a hook to the prefetcher interface for notification on fills.

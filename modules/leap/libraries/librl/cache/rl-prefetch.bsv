@@ -127,11 +127,19 @@ interface CACHE_PREFETCHER#(type t_CACHE_IDX,
     //
     // Cache provides hit/miss information
     method Action readHit(t_CACHE_IDX idx, t_CACHE_ADDR addr);
-    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch);
-    // prefetch status reset by write/invalid reqeust
+    method Action readMiss(t_CACHE_IDX idx,
+                           t_CACHE_ADDR addr,
+                           Bool isPrefetch,
+                           t_CACHE_READ_META readMeta);
+    // Prefetch status reset by write/invalid reqeust
     method Action prefetchInval(t_CACHE_IDX idx);
-    //cache request is blocked by the busy cache line (may due to prefetch request)
+    // Cache request is blocked by the busy cache line (may due to prefetch request)
     method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr);
+    // Fill response received
+    method Action fillResp(t_CACHE_IDX idx,
+                           t_CACHE_ADDR addr,
+                           Bool isPrefetch,
+                           t_CACHE_READ_META readMeta);
 
     //
     // Collect prefetch stats and update prefetch tag/busy bits
@@ -351,10 +359,20 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, B
     endmethod
         
     method Action readHit(t_CACHE_IDX idx, t_CACHE_ADDR addr) = learner.readHit(idx, addr);
-    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch) = learner.readMiss(idx, addr, isPrefetch);
+    method Action readMiss(t_CACHE_IDX idx,
+                           t_CACHE_ADDR addr,
+                           Bool isPrefetch,
+                           t_CACHE_READ_META readMeta) = learner.readMiss(idx, addr, isPrefetch);
     method Action prefetchInval(t_CACHE_IDX idx) = learner.prefetchInval(idx);
     method Action shuntNewCacheReq(t_CACHE_IDX idx, t_CACHE_ADDR addr) = learner.shuntNewCacheReq(idx, addr);
     
+    method Action fillResp(t_CACHE_IDX idx,
+                           t_CACHE_ADDR addr,
+                           Bool isPrefetch,
+                           t_CACHE_READ_META readMeta);
+        noAction;
+    endmethod
+
     //stats from the cache
     method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
         prefetchDroppedByBusyW.send();
@@ -1360,7 +1378,10 @@ module mkNullCachePrefetcher
         noAction;
     endmethod
     
-    method Action readMiss(t_CACHE_IDX idx, t_CACHE_ADDR addr, Bool isPrefetch);
+    method Action readMiss(t_CACHE_IDX idx,
+                           t_CACHE_ADDR addr,
+                           Bool isPrefetch,
+                           t_CACHE_READ_META readMeta);
         noAction;
     endmethod
 
@@ -1372,6 +1393,13 @@ module mkNullCachePrefetcher
         noAction;
     endmethod
     
+    method Action fillResp(t_CACHE_IDX idx,
+                           t_CACHE_ADDR addr,
+                           Bool isPrefetch,
+                           t_CACHE_READ_META readMeta);
+        noAction;
+    endmethod
+
     method Action prefetchDroppedByBusy(t_CACHE_ADDR addr);
         noAction;
     endmethod
