@@ -620,6 +620,54 @@ instance Connectable#(Get#(data_t), CONNECTION_SEND#(data_t));
     endmodule
 endinstance
 
+
+instance ToPut#(CONNECTION_CLIENT#(t_REQ, t_RSP), t_REQ);
+    function Put#(t_REQ) toPut(CONNECTION_CLIENT#(t_REQ, t_RSP) send);
+        let put = interface Put;
+                      method Action put(t_REQ value) if (send.reqNotFull);
+                          send.makeReq(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
+endinstance
+
+instance ToPut#(CONNECTION_SERVER#(t_REQ, t_RSP), t_RSP);
+    function Put#(t_RSP) toPut(CONNECTION_SERVER#(t_REQ, t_RSP) send);
+        let put = interface Put;
+                      method Action put(t_RSP value) if (send.rspNotFull);
+                          send.makeRsp(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
+endinstance
+
+instance ToGet#(CONNECTION_CLIENT#(t_REQ, t_RSP), t_RSP);
+    function Get#(t_RSP) toGet(CONNECTION_CLIENT#(t_REQ, t_RSP) recv);
+        let get = interface Get;
+                      method ActionValue#(t_RSP) get() if (recv.rspNotEmpty());
+                          recv.deq;
+                          return recv.getRsp(); 
+                      endmethod
+                  endinterface;  
+        return get;
+    endfunction
+endinstance
+
+instance ToGet#(CONNECTION_SERVER#(t_REQ, t_RSP), t_REQ);
+    function Get#(t_REQ) toGet(CONNECTION_SERVER#(t_REQ, t_RSP) recv);
+        let get = interface Get;
+                      method ActionValue#(t_REQ) get() if (recv.reqNotEmpty());
+                          recv.deq;
+                          return recv.getReq(); 
+                      endmethod
+                  endinterface;  
+        return get;
+    endfunction
+endinstance
+
+
 instance ToPut#(CONNECTION_SEND#(data_t), data_t);
     function Put#(data_t) toPut(CONNECTION_SEND#(data_t) send);
         let put = interface Put;

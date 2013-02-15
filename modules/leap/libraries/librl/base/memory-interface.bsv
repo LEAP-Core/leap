@@ -16,8 +16,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import FIFO::*;
+import SpecialFIFOs::*;
 import Vector::*;
 import Connectable::*;
+import Arbiter::*;
 
 
 // ========================================================================
@@ -812,7 +815,7 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
               Max#(n_READERS_SZ, 1, n_READERS_SAFE_SZ));
 
     // Sort incoming requests.  One port for each read port.
-    MERGE_FIFOF#(n_READERS, t_ADDR) incomingReqQ <- mkMergeBypassFIFOF();
+    Vector#(n_READERS, FIFOF#(t_ADDR)) incomingReqQ <- replicateM(mkBypassFIFOF);
 
     // Match requests to ports.  Add 1 to the number of readers to guarantee
     // we never try to allocate a Bit#(0).
@@ -822,6 +825,8 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
     Vector#(n_READERS, COUNTER#(2)) bufferingAvailable <- replicateM(mkLCounter(2));
     Vector#(n_READERS, FIFOF#(t_DATA)) buffer <- replicateM(mkSizedBypassFIFOF(2));
         
+    // Arbiter (pick an input request to process)
+    Arbiter_IFC#(n_READERS) arbiter <- mkArbiter(False);
 
     //
     // Read rules
@@ -829,13 +834,23 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
     for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
     begin
         //
-        // processReadReq --
-        //     Forward read requests to the memory.
+        // arbForReadReq --
+        //     If read request has data and buffering is available for the
+        //     output then send a request to the arbiter.
         //
-        rule processReadReq ((incomingReqQ.firstPortID() == fromInteger(p)) &&
-                             (bufferingAvailable[p].value() > 0));
-            let addr = incomingReqQ.first();
-            incomingReqQ.deq();
+        rule arbForReadReq (incomingReqQ[p].notEmpty &&
+                            (bufferingAvailable[p].value() > 0));
+            arbiter.clients[p].request();
+        endrule
+
+        //
+        // processReadReq --
+        //     Forward read requests to the memory.  Only one reader queue
+        //     will have a chance to forward a request per cycle.
+        //
+        rule processReadReq (arbiter.clients[p].grant);
+            let addr = incomingReqQ[p].first();
+            incomingReqQ[p].deq();
 
             mem.readReq(addr);
 
@@ -867,7 +882,7 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
         portsLocal[p] =
             interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
                 method Action readReq(t_ADDR a);
-                    incomingReqQ.ports[p].enq(a);
+                    incomingReqQ[p].enq(a);
                 endmethod
 
                 method ActionValue#(t_DATA) readRsp();
@@ -881,7 +896,7 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
 
                 method t_DATA peek() = buffer[p].first();
                 method Bool notEmpty() = buffer[p].notEmpty();
-                method Bool notFull() = incomingReqQ.ports[p].notFull();
+                method Bool notFull() = incomingReqQ[p].notFull();
             endinterface;
     end
 

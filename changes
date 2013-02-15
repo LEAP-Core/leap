@@ -14617,3 +14617,25 @@ Directory modules/leap/libraries/librl/cache
  rl-prefetch.bsv           Locally Modified          391 
 
 Add a hook to the prefetcher interface for notification on fills.
+
+----------
+mcadler     Date: Thu Feb 14 22:34:41 EST 2013  CSN: CSN-leap-393
+                  Fri Feb 15 03:34:41 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ bsv.awb                   Locally Modified          392 
+
+Directory modules/leap/libraries/librl/base
+ memory-interface.bsv      Locally Modified          392 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connections.bsv           Locally Modified          392 
+
+- Turn off annoying warnings about reset mismatch.
+
+- Fix pseudo-multi-read memories.  The logic tried to monitor each read port
+  and avoid deadlocks by allowing reads only when output buffer space is
+  available.  The code deadlocked anyway, because all read ports were
+  sent through the same request queue.  Separated queues and added an
+  arbiter.
