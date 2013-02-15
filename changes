@@ -14639,3 +14639,14 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
   available.  The code deadlocked anyway, because all read ports were
   sent through the same request queue.  Separated queues and added an
   arbiter.
+
+----------
+mcadler     Date: Fri Feb 15 07:51:12 EST 2013  CSN: CSN-leap-394
+                  Fri Feb 15 12:51:12 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ bsv.awb                   Locally Modified          393 
+
+Remove -no-opt-bool command line option.  It appears to be ignored by recent
+compilers.
