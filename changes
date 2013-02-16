@@ -14650,3 +14650,18 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
 
 Remove -no-opt-bool command line option.  It appears to be ignored by recent
 compilers.
+
+----------
+kfleming    Date: Fri Feb 15 23:59:48 EST 2013  CSN: CSN-leap-395
+                  Sat Feb 16 04:59:48 UTC 2013
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          394 
+
+
+Patched annoying deficiency in the Xilinx programming cable.  When
+programming, ctrl-c will cause the cable to die and subsequent
+programing attempts fail, requiring a hard reboot of the programming
+cable.  Now we just ignore the ctrl-c while programming.  Why I took
+so long to implement this remains a mystery.

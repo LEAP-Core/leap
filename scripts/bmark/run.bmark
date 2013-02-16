@@ -282,6 +282,7 @@ if ($mType == $MODEL_FPGA) {
         }
 
         if ($needProgram) {
+	    $SIG{'INT'} = 'IGNORE'; # Ctrl-c during a program wrecks the Xilinx programming cable.
             Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --program", "Failed to enter FPGA programming mode");
             my $dir = `pwd`;
             chomp($dir);
@@ -289,6 +290,7 @@ if ($mType == $MODEL_FPGA) {
             if (exists($config{signature})) {
                 Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --setsignature=$config{signature}", "Failed to set FPGA bit image signature");
             }
+	    $SIG{'INT'} = 'DEFAULT'; # Ctrl-c during a program wrecks the Xilinx programming cable.
         }
 
         # Activate the FPGA.
