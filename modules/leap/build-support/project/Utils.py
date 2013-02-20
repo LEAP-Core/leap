@@ -84,7 +84,7 @@ def getGccVersion():
 
     # Parsing expression for version number
 
-    ver_regexp = re.compile('^gcc \(.*\) ([0-9]+)\.([0-9]+)\.([0-9]+)')
+    ver_regexp = re.compile('^gcc.* \(.*\) ([0-9]+)\.([0-9]+)\.([0-9]+)')
 
     # Read through output of 'gcc --version'
 

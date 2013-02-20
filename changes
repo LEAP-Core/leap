@@ -14665,3 +14665,13 @@ programming, ctrl-c will cause the cable to die and subsequent
 programing attempts fail, requiring a hard reboot of the programming
 cable.  Now we just ignore the ctrl-c while programming.  Why I took
 so long to implement this remains a mystery.
+
+----------
+mgambhir    Date: Wed Feb 20 18:10:18 EST 2013  CSN: CSN-leap-396
+                  Wed Feb 20 23:10:18 UTC 2013
+
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          395 
+
+- Minor update to the regular expressions checking for the gcc version
