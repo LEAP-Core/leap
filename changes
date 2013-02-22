@@ -14675,3 +14675,13 @@ Directory modules/leap/build-support/project
  Utils.py                  Locally Modified          395 
 
 - Minor update to the regular expressions checking for the gcc version
+
+----------
+mcadler     Date: Fri Feb 22 16:01:12 EST 2013  CSN: CSN-leap-397
+                  Fri Feb 22 21:01:12 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ counters.bsv              Locally Modified          396 
+
+Use ConfigReg for counters so the schedule is obvious.

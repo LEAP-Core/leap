@@ -16,6 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import ConfigReg::*;
+
 //
 // The standard Bluespec "mkCounter" does not support simultaneous up/down
 // calls.  This code, taken mostly from the Bluespec documentation does.
@@ -41,7 +43,7 @@ module mkLCounter#(Bit#(nBits) initial_value)
         (COUNTER#(nBits));
 
     // Counter value
-    Reg#(Bit#(nBits)) ctr <- mkReg(initial_value);
+    Reg#(Bit#(nBits)) ctr <- mkConfigReg(initial_value);
 
     Wire#(Bit#(nBits)) up_by   <- mkDWire(0);
     Wire#(Bit#(nBits)) down_by <- mkDWire(0);
@@ -103,10 +105,10 @@ module mkLCounter_Z#(Bit#(nBits) initial_value)
         (COUNTER_Z#(nBits));
 
     // Counter value
-    Reg#(Bit#(nBits)) ctr <- mkReg(initial_value);
+    Reg#(Bit#(nBits)) ctr <- mkConfigReg(initial_value);
 
     // Is counter 0?
-    Reg#(Bool) zero <- mkReg(initial_value == 0);
+    Reg#(Bool) zero <- mkConfigReg(initial_value == 0);
 
     PulseWire up_called   <- mkPulseWire();
     PulseWire down_called <- mkPulseWire();
