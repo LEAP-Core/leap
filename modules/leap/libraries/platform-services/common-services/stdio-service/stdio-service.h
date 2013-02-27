@@ -49,7 +49,8 @@ enum STDIO_REQ_COMMAND
     STDIO_REQ_REWIND,
     STDIO_REQ_SPRINTF,
     STDIO_REQ_STRING_DELETE,
-    STDIO_REQ_SYNC
+    STDIO_REQ_SYNC,
+    STDIO_REQ_SYNC_SYSTEM
 };
 
 enum STDIO_RSP_OP
@@ -59,6 +60,7 @@ enum STDIO_RSP_OP
     STDIO_RSP_FREAD_EOF,            // End of file (no payload in packet)
     STDIO_RSP_POPEN,
     STDIO_RSP_SYNC,
+    STDIO_RSP_SYNC_SYSTEM,
     STDIO_RSP_SPRINTF
 };
 
@@ -115,7 +117,7 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Req_fflush(const STDIO_REQ_HEADER &req);
     void Req_rewind(const STDIO_REQ_HEADER &req);
 
-    void Req_sync(const STDIO_REQ_HEADER &req);
+    void Req_sync(const STDIO_REQ_HEADER &req, bool isSystemSync);
 
     // stubs
     RRR_SERVER_STUB serverStub;

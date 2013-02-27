@@ -14719,3 +14719,16 @@ Directory modules/leap/examples/hello-world
   For rings where the only statically assigned ID is the primary node (id=0),
   the node with the maximum ID will be the one immediately preceding the
   primary node.
+
+----------
+mcadler     Date: Wed Feb 27 11:07:26 EST 2013  CSN: CSN-leap-399
+                  Wed Feb 27 16:07:26 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          398 
+ stdio-local.bsv           Locally Modified          398 
+ stdio-service.h           Locally Modified          398 
+
+Put back sync_req/sync_rsp but add change the description because it
+is now optional.

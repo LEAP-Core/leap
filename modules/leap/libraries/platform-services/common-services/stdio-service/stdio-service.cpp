@@ -229,7 +229,11 @@ STDIO_SERVER_CLASS::Req(UINT64 data, UINT8 eom)
             break;
 
           case STDIO_REQ_SYNC:
-            Req_sync(req);
+            Req_sync(req, false);
+            break;
+
+          case STDIO_REQ_SYNC_SYSTEM:
+            Req_sync(req, true);
             break;
 
           default:
@@ -514,9 +518,11 @@ STDIO_SERVER_CLASS::Req_rewind(const STDIO_REQ_HEADER &req)
 //    been received.
 //
 void
-STDIO_SERVER_CLASS::Req_sync(const STDIO_REQ_HEADER &req)
+STDIO_SERVER_CLASS::Req_sync(const STDIO_REQ_HEADER &req, bool isSystemSync)
 {
     sync();
 
-    clientStub->Rsp(req.clientID, STDIO_RSP_SYNC, 0, 0);
+    clientStub->Rsp(req.clientID,
+                    isSystemSync ? STDIO_RSP_SYNC_SYSTEM : STDIO_RSP_SYNC,
+                    0, 0);
 }

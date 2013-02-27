@@ -113,6 +113,13 @@ interface STDIO#(type t_DATA);
 
     method Action fflush(STDIO_FILE file);
     method Action rewind(STDIO_FILE file);
+
+    // sync request/response both invokes the sync() system call and guarantees
+    // all previous commands have been received.  The LEAP run-time system
+    // automatically synchronizes state at the end of run, so use of these
+    // methods is optional.
+    method Action sync_req();
+    method Action sync_rsp();
 endinterface
 
 // Pick a power of 2!
@@ -151,7 +158,8 @@ typedef enum
     STDIO_REQ_REWIND,
     STDIO_REQ_SPRINTF,
     STDIO_REQ_STRING_DELETE,
-    STDIO_REQ_SYNC
+    STDIO_REQ_SYNC,
+    STDIO_REQ_SYNC_SYSTEM
 }
 STDIO_REQ_COMMAND
     deriving (Eq, Bits);
@@ -169,6 +177,7 @@ typedef enum
     STDIO_RSP_FREAD_EOF,            // End of file (no payload in packet)
     STDIO_RSP_POPEN,
     STDIO_RSP_SYNC,
+    STDIO_RSP_SYNC_SYSTEM,
     STDIO_RSP_SPRINTF
 }
 STDIO_RSP_OP
@@ -366,7 +375,7 @@ module [CONNECTED_MODULE] mkStdIO
             begin
                 // This is the last node in the chain.  Force a round-trip
                 // message to the host and then declare all STDIO in sync.
-                let header = genHeader(STDIO_REQ_SYNC);
+                let header = genHeader(STDIO_REQ_SYNC_SYSTEM);
                 mar.enq(STDIO_REQ { data: ?, header: header });
             end
             else
@@ -446,7 +455,7 @@ module [CONNECTED_MODULE] mkStdIO
     //     Host has received sync.  Now ready to forward to the next node.
     //
     (* descending_urgency = "getSyncRsp, marshallReq" *)
-    rule getSyncRsp (rspChain.first().operation == STDIO_RSP_SYNC);
+    rule getSyncRsp (rspChain.first().operation == STDIO_RSP_SYNC_SYSTEM);
         rspChain.deq();
         doSyncRspQ.enq(?);
     endrule
@@ -660,6 +669,17 @@ module [CONNECTED_MODULE] mkStdIO
 
         newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
+
+
+    method Action sync_req();
+        let header = genHeader(STDIO_REQ_SYNC);
+
+        mar.enq(STDIO_REQ { data: ?, header: header });
+    endmethod
+
+    method Action sync_rsp() if (rspChain.first().operation == STDIO_RSP_SYNC);
+        rspChain.deq();
+    endmethod
 endmodule
 
 
@@ -771,6 +791,14 @@ module [CONNECTED_MODULE] mkStdIO_Disabled
     endmethod
 
     method Action rewind(STDIO_FILE file);
+    endmethod
+
+    method Action sync_req();
+        syncFIFO.enq(?);
+    endmethod
+
+    method Action sync_rsp();
+        syncFIFO.deq();
     endmethod
 endmodule
 
