@@ -37,7 +37,7 @@ module [CONNECTED_MODULE] mkStdIOService
     ServerStub_STDIO serverStub <- mkServerStub_STDIO();
 
     // Request ring.  All requests are handled by the service.
-    CONNECTION_CHAIN#(Tuple2#(STDIO_REQ_RING_CHUNK, Bool)) reqChain <-
+    CONNECTION_CHAIN#(STDIO_REQ_RING_MSG) reqChain <-
         mkConnectionChain("stdio_req_ring");
 
     // Response ring is addressable, since responses are to specific clients.
@@ -55,28 +55,36 @@ module [CONNECTED_MODULE] mkStdIOService
     //    Process a request from an individual scan node.
     //  
     rule processReq (True);
-        match {.chunk, .eom} <- reqChain.recvFromPrev();
+        let msg <- reqChain.recvFromPrev();
 
         //
         // To reduce trips through the software stack we combine two chunks
         // into a larger chunk.
         //
 
-        if (mergeChunk matches tagged Valid .prev)
+        if (msg.sync)
+        begin
+            // Software-initiated sync request has reached every local node
+            // and is now complete.
+            serverStub.sendResponse_Sync(0);
+        end
+        else if (mergeChunk matches tagged Valid .prev)
         begin
             // New chunk fills the buffer.  Send the group.
-            clientStub.makeRequest_Req({chunk, prev}, zeroExtend(pack(eom)));
+            clientStub.makeRequest_Req({msg.chunk, prev},
+                                       zeroExtend(pack(msg.eom)));
             mergeChunk <= tagged Invalid;
         end
-        else if (eom)
+        else if (msg.eom)
         begin
             // At EOM send whatever we have.
-            clientStub.makeRequest_Req(zeroExtend(chunk), zeroExtend(pack(eom)));
+            clientStub.makeRequest_Req(zeroExtend(msg.chunk),
+                                       zeroExtend(pack(msg.eom)));
         end
         else
         begin
             // Buffer the current chunk and send it later.
-            mergeChunk <= tagged Valid chunk;
+            mergeChunk <= tagged Valid msg.chunk;
         end
     endrule
 
@@ -128,5 +136,19 @@ module [CONNECTED_MODULE] mkStdIOService
     rule processRspBuf (rspBuf matches tagged Valid {.tgtNode, .rsp});
         rspChain.enq(tgtNode, rsp);
         rspBuf <= tagged Invalid;
+    endrule
+
+    //
+    // processSyncReq --
+    //
+    //    The run is ending.  Tell all clients to flush their requests.
+    //
+    rule processSyncReq (True);
+        let dummy <- serverStub.acceptRequest_Sync();
+
+        let msg = STDIO_REQ_RING_MSG { chunk: ?,
+                                       eom: True,
+                                       sync: True };
+        reqChain.sendToNext(msg);
     endrule
 endmodule

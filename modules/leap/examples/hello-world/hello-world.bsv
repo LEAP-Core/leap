@@ -29,62 +29,20 @@ import List::*;
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
 
-typedef enum 
-{
-    STATE_start,
-    STATE_say_hello,
-    STATE_sync,
-    STATE_exit,
-    STATE_finish
-} 
-STATE deriving (Bits, Eq);
-
-
 module [CONNECTED_MODULE] mkConnectedApplication ();
 
     Connection_Receive#(Bool) linkStarterStartRun <- mkConnectionRecv("vdev_starter_start_run");
     Connection_Send#(Bit#(8)) linkStarterFinishRun <- mkConnectionSend("vdev_starter_finish_run");
 
     STDIO#(Bit#(32)) stdio <- mkStdIO();
-
-    Reg#(STATE) state <- mkReg(STATE_start);
-
-    rule start (state == STATE_start);
-    
-        linkStarterStartRun.deq();
-        state <= STATE_say_hello;
-
-    endrule
-
     let msg <- getGlobalStringUID("Hello, World! This is hardware speaking.\n");
 
-    rule hello (state == STATE_say_hello);
-  
+    rule hello (True);
+        linkStarterStartRun.deq();
+
         stdio.printf(msg, List::nil);
-        state <= STATE_sync;
 
-    endrule
-
-
-    rule sync (state == STATE_sync);
-  
-        stdio.sync_req();
-        state <= STATE_exit;
-
-    endrule
-
-
-    rule exit (state == STATE_exit);
-    
-        stdio.sync_rsp();
         linkStarterFinishRun.send(0);
-        state <= STATE_finish;
-
-    endrule
-
-
-    rule finish (state == STATE_finish);
-        noAction;
     endrule
 
 endmodule

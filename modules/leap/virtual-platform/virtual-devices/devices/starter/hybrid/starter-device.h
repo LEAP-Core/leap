@@ -38,6 +38,8 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     // Mask of bits to monitor for triggering statistics scan out from HW
     UINT64 statsScanMask;
 
+    UINT8 exitCode;
+
   public:
     STARTER_DEVICE_SERVER_CLASS();
     ~STARTER_DEVICE_SERVER_CLASS();
@@ -58,9 +60,8 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     // client methods
     void Start();
-    void WaitForHardware();
-  
-
+    UINT8 WaitForHardware();
+    void StatusMsg();
 };
 
 

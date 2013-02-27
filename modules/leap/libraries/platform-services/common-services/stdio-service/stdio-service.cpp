@@ -85,6 +85,19 @@ STDIO_SERVER_CLASS::Cleanup()
     delete clientStub;
 }
 
+
+//
+// Sync --
+//     Called at the end of a run.  Ensure that all pending client requests
+//     have arrived at the host.
+//
+void
+STDIO_SERVER_CLASS::Sync()
+{
+    clientStub->Sync(0);
+}
+
+
 //
 // openFile --
 //     Open a file and add it to the hardware/software file mapping table.

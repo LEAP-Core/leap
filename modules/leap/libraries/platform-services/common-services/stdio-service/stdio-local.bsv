@@ -18,6 +18,7 @@
 
 import FIFO::*;
 import FIFOF::*;
+import SpecialFIFOs::*;
 import Vector::*;
 import List::*;
 import ConfigReg::*;
@@ -112,16 +113,27 @@ interface STDIO#(type t_DATA);
 
     method Action fflush(STDIO_FILE file);
     method Action rewind(STDIO_FILE file);
-
-    // sync request/response both invokes the sync() system call and guarantees
-    // all previous commands have been received.
-    method Action sync_req();
-    method Action sync_rsp();
 endinterface
 
 // Pick a power of 2!
 typedef Bit#(32) STDIO_REQ_RING_CHUNK;
 typedef Bit#(32) STDIO_RSP_RING_CHUNK;
+
+//
+// Payload on request chain
+//
+typedef struct
+{
+    STDIO_REQ_RING_CHUNK chunk;
+    Bool eom;
+
+    // Set on special messages requesting that each ring stop flush all
+    // pending requests.
+    Bool sync;
+}
+STDIO_REQ_RING_MSG
+    deriving (Eq, Bits);
+
 
 // Maximum number of data arguments for writes
 typedef 8 STDIO_WRITE_MAX;
@@ -227,6 +239,7 @@ module [CONNECTED_MODULE] mkStdIO
         error("Unsupported mkStdIO data size (" + integerToString(valueOf(t_DATA_SZ)) + ")");
     end
 
+
     // ====================================================================
     //
     //   Response ring -- host to FPGA.
@@ -312,27 +325,72 @@ module [CONNECTED_MODULE] mkStdIO
     //
     // ====================================================================
 
+    function STDIO_REQ_HEADER genHeader(STDIO_REQ_COMMAND command);
+        STDIO_REQ_HEADER header = ?;
+        header.command = zeroExtend(pack(command));
+        header.clientID = rspChain.nodeID;
+        header.dataSize = fromInteger(valueOf(TSub#(TLog#(t_DATA_SZ), 3)));
+        header.numData = 0;
+
+        return header;
+    endfunction
+
     // Request ring.  All requests are handled by the service.
-    CONNECTION_CHAIN#(Tuple2#(STDIO_REQ_RING_CHUNK, Bool)) reqChain <-
+    CONNECTION_CHAIN#(STDIO_REQ_RING_MSG) reqChain <-
         mkConnectionChain("stdio_req_ring");
 
     STDIO_MARSHALLER#(STDIO_REQ_RING_CHUNK, t_DATA) mar <- mkStdIOReqMarshaller();
+    FIFOF#(STDIO_REQ#(t_DATA)) newReqQ <- mkBypassFIFOF();
 
     Reg#(STDIO_REQ_STATE) reqState <- mkReg(STDIO_REQ_IDLE);
     Reg#(Bool) reqNotBusy <- mkReg(True);
+    FIFOF#(Bool) doSyncReqQ <- mkFIFOF();
+    FIFO#(Bool) doSyncRspQ <- mkFIFO();
+
+    //
+    // marshallReq --
+    //     Marshall this node's requests in a narrower channel.
+    //
+    rule marshallReq (True);
+        if (newReqQ.notEmpty)
+        begin
+            // Forward normal request
+            mar.enq(newReqQ.first);
+            newReqQ.deq();
+        end
+        else if (doSyncReqQ.notEmpty)
+        begin
+            doSyncReqQ.deq();
+
+            if (rspChain.nodeID == rspChain.maxID)
+            begin
+                // This is the last node in the chain.  Force a round-trip
+                // message to the host and then declare all STDIO in sync.
+                let header = genHeader(STDIO_REQ_SYNC);
+                mar.enq(STDIO_REQ { data: ?, header: header });
+            end
+            else
+            begin
+                // Not the last node in the ring.  Prepare to forward
+                // the sync token to the next node.
+                doSyncRspQ.enq(?);
+            end
+        end
+    endrule
+
 
     //
     // sendLocalReq --
     //     Send local request.
     //
     rule sendLocalReq (reqState == STDIO_REQ_SEND_REQ);
-        if (! mar.isLast())
+        let msg = STDIO_REQ_RING_MSG { chunk: mar.first,
+                                       eom: mar.isLast,
+                                       sync: False };
+        reqChain.sendToNext(msg);
+
+        if (mar.isLast())
         begin
-            reqChain.sendToNext(tuple2(mar.first(), False));
-        end
-        else
-        begin
-            reqChain.sendToNext(tuple2(mar.first(), True));
             reqState <= STDIO_REQ_IDLE;
         end
 
@@ -351,10 +409,46 @@ module [CONNECTED_MODULE] mkStdIO
         end
         else
         begin
-            match {.chunk, .eom} <- reqChain.recvFromPrev();
-            reqChain.sendToNext(tuple2(chunk, eom));
-            reqNotBusy <= eom;
+            let msg <- reqChain.recvFromPrev();
+            reqNotBusy <= msg.eom;
+
+            if (! msg.sync)
+            begin
+                // Normal message.  Forward it.
+                reqChain.sendToNext(msg);
+            end
+            else
+            begin
+                // Host asking for synchronization
+                doSyncReqQ.enq(?);
+            end
         end
+    endrule
+
+    //
+    // fwdSyncReq --
+    //     Each STDIO node holds the host's request to sync state until the
+    //     handshaking is complete.  Once the node's sync is complete, the
+    //     sync request is sent along the request ring to the next node.
+    //
+    (* descending_urgency = "forwardReq, fwdSyncReq" *)
+    rule fwdSyncReq (reqState == STDIO_REQ_IDLE);
+        doSyncRspQ.deq();
+
+        let msg = STDIO_REQ_RING_MSG { chunk: ?,
+                                       eom: True,
+                                       sync: True };
+        reqChain.sendToNext(msg);
+    endrule
+
+    //
+    // getSyncRsp --
+    //     Host has received sync.  Now ready to forward to the next node.
+    //
+    (* descending_urgency = "getSyncRsp, marshallReq" *)
+    rule getSyncRsp (rspChain.first().operation == STDIO_RSP_SYNC);
+        rspChain.deq();
+        doSyncRspQ.enq(?);
     endrule
 
 
@@ -363,16 +457,6 @@ module [CONNECTED_MODULE] mkStdIO
     //   Methods & functions to implement them
     //
     // ====================================================================
-
-    function STDIO_REQ_HEADER genHeader(STDIO_REQ_COMMAND command);
-        STDIO_REQ_HEADER header = ?;
-        header.command = zeroExtend(pack(command));
-        header.clientID = rspChain.nodeID;
-        header.dataSize = fromInteger(valueOf(TSub#(TLog#(t_DATA_SZ), 3)));
-        header.numData = 0;
-
-        return header;
-    endfunction
 
     function Action do_write(STDIO_REQ_COMMAND command,
                               STDIO_FILE file,
@@ -431,7 +515,7 @@ module [CONNECTED_MODULE] mkStdIO
             errorM("Too many arguments to STDIO fwrite/printf (" + integerToString(List::length(args)) + ")");
         end
 
-        mar.enq(STDIO_REQ { data: data, header: header });
+        newReqQ.enq(STDIO_REQ { data: data, header: header });
     endaction
     endfunction
 
@@ -445,7 +529,7 @@ module [CONNECTED_MODULE] mkStdIO
         header.numData = fromInteger(valueOf(TDiv#(SizeOf#(GLOBAL_STRING_UID),
                                                    t_DATA_SZ)));
 
-        mar.enq(STDIO_REQ { data: data, header: header });
+        newReqQ.enq(STDIO_REQ { data: data, header: header });
     endmethod
 
     method ActionValue#(STDIO_FILE) fopen_rsp() if (rspChain.first().operation == STDIO_RSP_FOPEN);
@@ -458,7 +542,7 @@ module [CONNECTED_MODULE] mkStdIO
         let header = genHeader(STDIO_REQ_FCLOSE);
         header.fileHandle = file;
 
-        mar.enq(STDIO_REQ { data: ?, header: header });
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
 
@@ -468,7 +552,7 @@ module [CONNECTED_MODULE] mkStdIO
         // Store read vs. write request in fileHandle
         header.fileHandle = zeroExtend(pack(forRead));
 
-        mar.enq(STDIO_REQ { data: ?, header: header });
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
     method ActionValue#(STDIO_FILE) popen_rsp() if (rspChain.first().operation == STDIO_RSP_POPEN);
@@ -481,7 +565,7 @@ module [CONNECTED_MODULE] mkStdIO
         let header = genHeader(STDIO_REQ_PCLOSE);
         header.fileHandle = file;
 
-        mar.enq(STDIO_REQ { data: ?, header: header });
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
 
@@ -493,7 +577,7 @@ module [CONNECTED_MODULE] mkStdIO
         header.text = zeroExtendNP(nmemb);
 
         freadsInFlight.up();
-        mar.enq(STDIO_REQ { data: ?, header: header });
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
     method Action freadMax_req(STDIO_FILE file) if (freadsInFlight.value != fromInteger(valueOf(STDIO_MAX_READS_IN_FLIGHT)));
@@ -503,7 +587,7 @@ module [CONNECTED_MODULE] mkStdIO
         header.text = fromInteger(valueOf(TSub#(STDIO_MAX_ELEM_PER_READ#(t_DATA), 1)));
 
         freadsInFlight.up();
-        mar.enq(STDIO_REQ { data: ?, header: header });
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
     //
@@ -559,7 +643,7 @@ module [CONNECTED_MODULE] mkStdIO
         let header = genHeader(STDIO_REQ_STRING_DELETE);
         header.text = strID;
 
-        mar.enq(STDIO_REQ { data: ?, header: header });
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
 
@@ -567,25 +651,14 @@ module [CONNECTED_MODULE] mkStdIO
         let header = genHeader(STDIO_REQ_FFLUSH);
         header.fileHandle = file;
 
-        mar.enq(STDIO_REQ { data: ?, header: header });
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 
     method Action rewind(STDIO_FILE file);
         let header = genHeader(STDIO_REQ_REWIND);
         header.fileHandle = file;
 
-        mar.enq(STDIO_REQ { data: ?, header: header });
-    endmethod
-
-
-    method Action sync_req();
-        let header = genHeader(STDIO_REQ_SYNC);
-
-        mar.enq(STDIO_REQ { data: ?, header: header });
-    endmethod
-
-    method Action sync_rsp() if (rspChain.first().operation == STDIO_RSP_SYNC);
-        rspChain.deq();
+        newReqQ.enq(STDIO_REQ { data: ?, header: header });
     endmethod
 endmodule
 
@@ -698,14 +771,6 @@ module [CONNECTED_MODULE] mkStdIO_Disabled
     endmethod
 
     method Action rewind(STDIO_FILE file);
-    endmethod
-
-    method Action sync_req();
-        syncFIFO.enq(?);
-    endmethod
-
-    method Action sync_rsp();
-        syncFIFO.deq();
     endmethod
 endmodule
 

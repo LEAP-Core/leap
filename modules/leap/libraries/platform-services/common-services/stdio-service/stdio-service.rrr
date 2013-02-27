@@ -16,5 +16,8 @@ service STDIO
                      in UINT8[8] command,
                      in UINT8[8] meta,
                      in UINT64[64] data);
+
+        // Tell all clients to flush all pending requests
+        method Sync(in UINT8[8] dummy, out UINT8[8] ack);
     };
 };

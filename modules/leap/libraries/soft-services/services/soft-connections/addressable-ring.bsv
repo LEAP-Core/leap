@@ -44,6 +44,7 @@ interface CONNECTION_ADDR_RING#(type t_NODE_ID, type t_MSG);
     method Bool notEmpty();
 
     method t_NODE_ID nodeID();
+    method t_NODE_ID maxID();
 endinterface
 
 
@@ -256,6 +257,7 @@ module [CONNECTED_MODULE] mkConnectionAddrRingNode_Impl#(String chainID,
 
 
     method t_NODE_ID nodeID() = init.nodeID();
+    method t_NODE_ID maxID() = init.maxID();
 endmodule
 
 
@@ -466,6 +468,7 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
 
 
     method t_NODE_ID nodeID() = init.nodeID();
+    method t_NODE_ID maxID() = init.maxID();
 endmodule
 
 
@@ -482,6 +485,7 @@ endmodule
 interface CONNECTION_ADDR_RING_INIT#(type t_NODE_ID);
     method Bool initialized();
     method t_NODE_ID nodeID;
+    method t_NODE_ID maxID;
 endinterface
 
 module mkConnectionAddrRingInitializer#(String chainID,
@@ -495,7 +499,10 @@ module mkConnectionAddrRingInitializer#(String chainID,
               Ord#(t_NODE_ID),
               Arith#(t_NODE_ID));
 
-    Reg#(Maybe#(t_NODE_ID)) myID <- mkReg(tagged Invalid);
+    Reg#(t_NODE_ID) myID <- mkRegU();
+    Reg#(t_NODE_ID) dynMaxID <- mkRegU();
+
+    Reg#(Bool) initDone <- mkReg(False);
     Reg#(Bit#(2)) initPhase <- mkReg(0);
     
     function Bool nodeIsPrimary() = (isValid(staticID) &&
@@ -505,7 +512,7 @@ module mkConnectionAddrRingInitializer#(String chainID,
     //
     // Initialization phase 0:  discover the largest static ID on the ring.
     //
-    rule initPhase0 (! isValid(myID) && (initPhase == 0));
+    rule initPhase0 (! initDone && (initPhase == 0));
         if (nodeIsPrimary)
         begin
             // Root node sends out a discovery packet.
@@ -531,7 +538,7 @@ module mkConnectionAddrRingInitializer#(String chainID,
     //
     // Initialization phase 1:  set dynamic node IDs.
     //
-    rule initPhase1 (! isValid(myID) && (initPhase == 1));
+    rule initPhase1 (! initDone && (initPhase == 1));
         // Forward the token around one more time and set a dynamic ID if
         // needed.
         let id <- recvFromPrev();
@@ -545,11 +552,11 @@ module mkConnectionAddrRingInitializer#(String chainID,
             end
 
             id = id + 1;
-            myID <= tagged Valid id;
+            myID <= id;
         end
-        else if (! nodeIsPrimary)
+        else
         begin
-            myID <= staticID;
+            myID <= validValue(staticID);
         end
 
         sendToNext(id);
@@ -558,13 +565,29 @@ module mkConnectionAddrRingInitializer#(String chainID,
     endrule
 
     //
-    // Initialization phase 2:  primary node syncs the setup token.
+    // Initialization phase 2:  Send around the maximum ID
+    //
+    rule initPhase2 (! initDone && (initPhase == 2));
+        let id <- recvFromPrev();
+        dynMaxID <= id;
+
+        if (! nodeIsPrimary)
+        begin
+            initDone <= True;
+        end
+
+        sendToNext(id);
+        initPhase <= 3;
+    endrule
+
+    //
+    // Initialization phase 3:  primary node syncs the setup token.
     //
     if (nodeIsPrimary)
     begin
-        rule initPhase2 (! isValid(myID) && (initPhase == 2));
+        rule initPhase3 (! initDone && (initPhase == 3));
             let id <- recvFromPrev();
-            myID <= tagged Valid 0;
+            initDone <= True;
         endrule
     end
 
@@ -572,9 +595,13 @@ module mkConnectionAddrRingInitializer#(String chainID,
     //
     // Methods
     //
-    method Bool initialized() = isValid(myID);
+    method Bool initialized() = initDone;
 
-    method t_NODE_ID nodeID if (myID matches tagged Valid .id);
-        return id;
+    method t_NODE_ID nodeID if (initDone);
+        return myID;
+    endmethod
+
+    method t_NODE_ID maxID if (initDone);
+        return dynMaxID;
     endmethod
 endmodule

@@ -45,7 +45,8 @@ STARTER_DEVICE_SERVER_CLASS STARTER_DEVICE_SERVER_CLASS::instance;
 
 // constructor
 STARTER_DEVICE_SERVER_CLASS::STARTER_DEVICE_SERVER_CLASS() :
-    lastStatsScanCycle(0)
+    lastStatsScanCycle(0),
+    exitCode(0)
 {
     // Initialize hardware status variables.
     pthread_mutex_init(&hardwareStatusLock, NULL);
@@ -111,14 +112,7 @@ STARTER_DEVICE_SERVER_CLASS::End(
     pthread_cond_broadcast(&hardwareFinishedSignal);
     pthread_mutex_unlock(&hardwareStatusLock);
 
-    if (exit_code == 0)
-    {
-        cout << "starter: hardware completed successfully." << endl;
-    }
-    else
-    {
-        cout << "starter: hardware finished with exit code " << exit_code << "." << endl;
-    }
+    exitCode = exit_code;
 
     pthread_mutex_unlock(&hardwareStatusLock);
     
@@ -148,18 +142,30 @@ STARTER_DEVICE_SERVER_CLASS::Start()
 }
 
 // client: WaitForHardware
-void
+UINT8
 STARTER_DEVICE_SERVER_CLASS::WaitForHardware()
 {
     if (!hardwareFinished)
     {
         // We need to wait for it and it's not finished.
         // So we'll wait to receive the signal from the VP.
-
-        //cout << "Waiting for HW..." << endl;
         pthread_mutex_lock(&hardwareStatusLock);
         pthread_cond_wait(&hardwareFinishedSignal, &hardwareStatusLock);
         pthread_mutex_unlock(&hardwareStatusLock);
     }
-    //cout << "HW is done." << endl;
+
+    return exitCode;
+}
+    
+void
+STARTER_DEVICE_SERVER_CLASS::StatusMsg()
+{
+    if (exitCode == 0)
+    {
+        cout << "starter: hardware completed successfully." << endl;
+    }
+    else
+    {
+        cout << "starter: hardware finished with exit code " << exitCode << "." << endl;
+    }
 }

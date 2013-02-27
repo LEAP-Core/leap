@@ -14685,3 +14685,37 @@ Directory modules/leap/libraries/librl/base
  counters.bsv              Locally Modified          396 
 
 Use ConfigReg for counters so the schedule is obvious.
+
+----------
+mcadler     Date: Wed Feb 27 09:24:59 EST 2013  CSN: CSN-leap-398
+                  Wed Feb 27 14:24:59 UTC 2013
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.cpp        Locally Modified          397 
+ starter-device.h          Locally Modified          397 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.cpp   Locally Modified          397 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          397 
+ stdio-local.bsv           Locally Modified          397 
+ stdio-service.rrr         Locally Modified          397 
+ stdio-service.h           Locally Modified          397 
+ stdio-service.bsv         Locally Modified          397 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ addressable-ring.bsv      Locally Modified          397 
+
+Directory modules/leap/examples/hello-world
+ hello-world.bsv           Locally Modified          397 
+
+- STDIO service now flushes all outstanding requests automatically as part of
+  the exit sequence.  Removed sync_req and sync_rsp from the interface.
+  Hello world is thus reduced to one rule instead of three.
+
+- Addressable rings now compute the maximum ring ID of all attached nodes.
+  For rings where the only statically assigned ID is the primary node (id=0),
+  the node with the maximum ID will be the one immediately preceding the
+  primary node.

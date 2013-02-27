@@ -133,6 +133,9 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Uninit();
     void Cleanup();
 
+    // Called at the end of a run to make sure all messages are flushed
+    void Sync();
+
     // FPGA to software request chunks
     void Req(UINT64 data, UINT8 eom);
 };
