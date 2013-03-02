@@ -14732,3 +14732,14 @@ Directory modules/leap/libraries/platform-services/common-services/stdio-service
 
 Put back sync_req/sync_rsp but add change the description because it
 is now optional.
+
+----------
+kfleming    Date: Sat Mar  2 13:37:10 EST 2013  CSN: CSN-leap-400
+                  Sat Mar  2 18:37:10 UTC 2013
+
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          399 
+
+
+Them that use Vector should also include Vector.
