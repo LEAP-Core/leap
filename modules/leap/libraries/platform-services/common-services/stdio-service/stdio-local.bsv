@@ -28,6 +28,9 @@ import ConfigReg::*;
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv.bsh"
+`include "awb/provides/common_services.bsh"
+
+`include "awb/dict/PARAMS_STDIO_SERVICE.bsh"
 
 //`include "awb/rrr/server_stub_STDIO.bsh"
 //`include "awb/rrr/client_stub_STDIO.bsh"
@@ -248,6 +251,14 @@ module [CONNECTED_MODULE] mkStdIO
         error("Unsupported mkStdIO data size (" + integerToString(valueOf(t_DATA_SZ)) + ")");
     end
 
+    // Only instantiate a parameter node if instructed by the user
+    `ifndef STDIO_ENABLE_DISABLE_PRINTF_Z
+         PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
+         Param#(1) disablePrintf          <- mkDynamicParameter(`PARAMS_STDIO_SERVICE_STDIO_DISABLE_PRINTF, paramNode);
+    `else
+         Bit#(1) disablePrintf = 0;
+    `endif
+    
 
     // ====================================================================
     //
@@ -631,7 +642,10 @@ module [CONNECTED_MODULE] mkStdIO
 
 
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-        do_write(STDIO_REQ_FPRINTF, 0, msgID, args);
+        if(disablePrintf != 1)
+        begin
+            do_write(STDIO_REQ_FPRINTF, 0, msgID, args);
+        end
     endmethod
 
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);

@@ -28,7 +28,7 @@
 #include "platforms-module.h"
 #include "awb/provides/rrr.h"
 #include "awb/provides/soft_services_deps.h"
-
+#include "awb/provides/stdio_service.h"
 #include "awb/rrr/client_stub_STDIO.h"
 
 typedef class STDIO_SERVER_CLASS* STDIO_SERVER;

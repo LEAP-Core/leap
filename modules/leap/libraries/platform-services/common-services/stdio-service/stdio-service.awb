@@ -14,3 +14,6 @@
 %public stdio-service.rrr 
 
 %param --global STDIO_ENABLE_DEBUG   0  "Enable debugging nodes"
+%param --global STDIO_ENABLE_DISABLE_PRINTF 0  "Enable the ability to dynamically disable printf"
+%param --dynamic STDIO_DISABLE_PRINTF 0 "Dynamically disable printf"
+

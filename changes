@@ -14754,3 +14754,25 @@ Directory modules/leap/build-support/build-pipelines/stages/bluesim
 
 The most recent Bluespec compiler allows parallel compilation of Bluesim
 C++ files.
+
+----------
+kfleming    Date: Fri Mar 29 00:56:30 EDT 2013  CSN: CSN-leap-402
+                  Fri Mar 29 04:56:30 UTC 2013
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          401 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-local.bsv           Locally Modified          401 
+ stdio-service.h           Locally Modified          401 
+ stdio-service.awb         Locally Modified          401 
+
+
+1) Bug fix to leap-configure.  Generated header did not include
+asim/syntax.h, even though they could use UINT64 and friends. One
+wonders how things ever compiled.
+
+2) Added feature to permit dynamic disabling of all printfs.  We use
+them liberally sometimes and they interfere with perf runs.
+

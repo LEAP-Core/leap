@@ -707,6 +707,7 @@ sub init_sim_config_file($)
     $sim_config->print("//\n");
     $sim_config->print("\n");
 
+
     $sim_config->print("#ifdef AWB_DEFS_ONLY\n");
     $sim_config->print("    #define AWB_DEFS_ONLY_WAS_DEFINED\n");
     $sim_config->print("#endif\n");
@@ -1066,7 +1067,7 @@ sub __make_bsvfiles {
     print HFILE "//   This file was created by " . basename($0) . "\n";
     print HFILE "//\n";
     print HFILE "\n";
-
+    print HFILE "#include \"asim/syntax.h\"\n";
     ##
     ## Add defines for parameters.  These go before the tests for AWB_DEFS_ONLY
     ## and whether the include file has already been included so that it
