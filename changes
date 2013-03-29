@@ -14743,3 +14743,14 @@ Directory modules/leap/build-support/project
 
 
 Them that use Vector should also include Vector.
+
+----------
+mcadler     Date: Thu Mar 28 21:51:38 EDT 2013  CSN: CSN-leap-401
+                  Fri Mar 29 01:51:38 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          400 
+
+The most recent Bluespec compiler allows parallel compilation of Bluesim
+C++ files.

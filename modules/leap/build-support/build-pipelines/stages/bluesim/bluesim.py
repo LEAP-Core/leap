@@ -17,11 +17,17 @@ class Bluesim():
     BSC = moduleList.env['DEFS']['BSC']
     inc_paths = moduleList.swIncDir # we need to depend on libasim
 
+    bsc_version = getBluespecVersion()
     
-    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread ' 
+    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread '
+
+    # Build in parallel.
+    n_jobs = moduleList.env.GetOption('num_jobs')
+    if (bsc_version >= 30006):
+        BSC_FLAGS_SIM += '-parallel-sim-link ' + str(n_jobs) + ' '
 
     for path in inc_paths:
-      BSC_FLAGS_SIM += " -I " + path
+        BSC_FLAGS_SIM += '-I ' + path + ' '
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
@@ -29,8 +35,12 @@ class Bluesim():
 
     bsc_sim_command = BSC + ' ' + BSC_FLAGS_SIM + ' ' + LDFLAGS + ' -o $TARGET'
 
+    # Set MAKEFLAGS because Bluespec is going to invoke make on its own and
+    # we don't want to pass on the current build's recursive flags.
+    bsc_sim_command = 'env MAKEFLAGS="-j ' + str(n_jobs) + '" ' + bsc_sim_command
 
-    if (getBluespecVersion() >= 13013):
+
+    if (bsc_version >= 13013):
         # 2008.01.A compiler allows us to pass C++ arguments.
         if (getDebug(moduleList)):
             bsc_sim_command += ' -Xc++ -O0'
