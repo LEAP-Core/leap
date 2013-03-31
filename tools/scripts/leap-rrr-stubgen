@@ -21,6 +21,7 @@ use File::Basename;
 use Data::Dumper;
 
 use Leap::RRR;
+use Leap::Build;
 
 #
 # Turn on warnings
@@ -260,7 +261,8 @@ sub parse_rrr_file
         $searchpath = '-I ' . join(' -I ', split(':', $incdirs));
     }
 
-    my $cmd = "cpp $searchpath -D AWB_DEFS_ONLY -P";
+    my $host = Leap::Build::host_defs();
+    my $cmd = "cpp $searchpath $host -D AWB_DEFS_ONLY -P";
 
     # First update dependence file
     system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-rrr-" . basename($filename) . " $filename");

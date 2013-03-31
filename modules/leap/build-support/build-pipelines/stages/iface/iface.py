@@ -13,7 +13,7 @@ class Iface():
       os.symlink('awb', 'iface/build/include/asim')
     BSC = moduleList.env['DEFS']['BSC']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
-    ROOT_DIR_SW_INC = moduleList.env['DEFS']['ROOT_DIR_SW_INC']
+    ROOT_DIR_SW_INC = ":".join(moduleList.env['DEFS']['ROOT_DIR_SW_INC'].split(" ") + moduleList.env['DEFS']['SW_INC_DIRS'].split(" "))
     BSC_FLAGS_VERILOG = moduleList.env['DEFS']['BSC_FLAGS_VERILOG']
 
     moduleList.env['ENV']['SHELL'] = '/bin/sh'
@@ -44,7 +44,7 @@ class Iface():
     tgt = []
 
 
-    inc_dirs = ROOT_DIR_SW_INC
+    inc_dirs = ROOT_DIR_SW_INC 
 
     # Compile dictionary
     #  NOTE: this must run even if there are no dictionary files.  It always

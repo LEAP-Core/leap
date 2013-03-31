@@ -14776,3 +14776,22 @@ wonders how things ever compiled.
 2) Added feature to permit dynamic disabling of all printfs.  We use
 them liberally sometimes and they interfere with perf runs.
 
+
+----------
+keflemin    Date: Sat Mar 30 20:09:02 EDT 2013  CSN: CSN-leap-403
+                  Sun Mar 31 00:09:02 UTC 2013
+
+
+Directory libperl/Leap/lib/Leap
+ Build.pm                  Locally Modified          402 
+
+Directory tools/scripts
+ leap-dict                 Locally Modified          402 
+ leap-rrr-stubgen          Locally Modified          402 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          402 
+
+
+Added more context to leap-dict and leap-rrr-stubgen.  Now, including
+syntax.h does not crash builds inside intel.

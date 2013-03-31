@@ -507,4 +507,30 @@ sub pythonize_module {
 
 }
 
+####
+#
+#  Find the kind of host that we're on
+#
+
+sub host_defs {
+
+    my $hostos = `uname -s`;
+    my $hostmachine = `uname -m`;
+    my $hflags = "";
+
+    if ($hostos eq "FreeBSD") {
+        $hflags = "-DHOST_FREEBSD";
+    }
+    else {
+        $hflags = "-DHOST_LINUX";
+	if ($hostmachine eq "ia64") {
+            $hflags .= " -DHOST_LINUX_IA64";
+	}
+	else {
+            $hflags .= " -DHOST_LINUX_X86";
+	}
+    }
+    return $hflags;
+}
+
 return 1;

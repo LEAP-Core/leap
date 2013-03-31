@@ -31,6 +31,7 @@ use File::Basename;
 use POSIX qw(ceil floor);
 
 use Leap::DictBuilder;
+use Leap::Build;
 # use Data::Dumper;
 
 #
@@ -726,8 +727,10 @@ sub ParseInputFile($) {
     {
         $searchpath = '-I ' . join(' -I ', split(':', $srcIncDirs));
     }
-    my $cmd = "cpp $searchpath -D AWB_DEFS_ONLY";
 
+    my $host = Leap::Build::host_defs();
+    my $cmd = "cpp $host $searchpath -DAWB_DEFS_ONLY";
+    print STDERR "$cmd";    
     # First update dependence file
     system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-dic-" . basename($filename) . " $filename");
 
