@@ -62,7 +62,13 @@ module [CONNECTED_MODULE] mkStdIOService
         // into a larger chunk.
         //
 
-        if (msg.sync)
+        if (msg.condMask)
+        begin
+            // Local initialization of mask for mkStdio_CondMask.  Drop the
+            // message.
+            noAction;
+        end
+        else if (msg.sync)
         begin
             // Software-initiated sync request has reached every local node
             // and is now complete.
@@ -148,7 +154,23 @@ module [CONNECTED_MODULE] mkStdIOService
 
         let msg = STDIO_REQ_RING_MSG { chunk: ?,
                                        eom: True,
-                                       sync: True };
+                                       sync: True,
+                                       condMask: False };
+        reqChain.sendToNext(msg);
+    endrule
+
+    //
+    // processCondMaskUpd --
+    //
+    //    Set the conditional mask for mkStdio_CondPrintf.
+    //
+    rule processCondMaskUpd (True);
+        let mask <- serverStub.acceptRequest_SetCondMask();
+
+        let msg = STDIO_REQ_RING_MSG { chunk: mask,
+                                       eom: True,
+                                       sync: False,
+                                       condMask: True };
         reqChain.sendToNext(msg);
     endrule
 endmodule

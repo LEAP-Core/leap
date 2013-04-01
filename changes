@@ -14795,3 +14795,36 @@ Directory modules/leap/build-support/build-pipelines/stages/iface
 
 Added more context to leap-dict and leap-rrr-stubgen.  Now, including
 syntax.h does not crash builds inside intel.
+
+----------
+mcadler     Date: Mon Apr  1 13:22:46 EDT 2013  CSN: CSN-leap-404
+                  Mon Apr  1 17:22:46 UTC 2013
+
+
+Directory libperl
+ Leap/                     Locally Modified          403 
+
+Directory tools/scripts
+ leap-dict                 Locally Modified          403 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          403 
+ stdio-local.bsv           Locally Modified          403 
+ stdio-service.rrr         Locally Modified          403 
+ stdio-service.h           Locally Modified          403 
+ stdio-service.awb         Locally Modified          403 
+ stdio-service.bsv         Locally Modified          403 
+
+- Add mkStdIO_CondPrintf, a wrapper for stdio that disables printing unless
+  enabled by a run-time switch (--stdio-cond-printf-mask).  Clients
+  of CondPrintf specify the bit in the mask that controls printing, allowing
+  for different states among multiple wrappers.
+
+  The wrapper provides its own buffering, allowing mutliple rules to
+  write separate mkstdIO_CondPrintf instances while sharing a single
+  STDIO instance.  The rules will not conflict statically, but may conflict
+  dynamically if printing is enabled.
+
+- Turn STDIO_ENABLE_DEBUG on by default now that there is a mechanism
+  to compile debug code but disable printing.  In typical designs the
+  space used for debugging is small.

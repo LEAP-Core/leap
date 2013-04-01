@@ -730,7 +730,7 @@ sub ParseInputFile($) {
 
     my $host = Leap::Build::host_defs();
     my $cmd = "cpp $host $searchpath -DAWB_DEFS_ONLY";
-    print STDERR "$cmd";    
+
     # First update dependence file
     system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-dic-" . basename($filename) . " $filename");
 

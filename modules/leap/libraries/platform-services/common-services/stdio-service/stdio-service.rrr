@@ -19,5 +19,8 @@ service STDIO
 
         // Tell all clients to flush all pending requests
         method Sync(in UINT8[8] dummy, out UINT8[8] ack);
+
+        // Set conditional mask for mkStdio_CondPrintf
+        method SetCondMask(in UINT32[32] mask);
     };
 };

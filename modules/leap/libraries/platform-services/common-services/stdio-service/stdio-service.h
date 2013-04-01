@@ -27,6 +27,7 @@
 
 #include "platforms-module.h"
 #include "awb/provides/rrr.h"
+#include "awb/provides/command_switches.h"
 #include "awb/provides/soft_services_deps.h"
 #include "awb/provides/stdio_service.h"
 #include "awb/rrr/client_stub_STDIO.h"
@@ -84,6 +85,30 @@ typedef struct
 STDIO_REQ_HEADER;
 
 
+class STDIO_COND_PRINTF_MASK_SWITCH_CLASS : public COMMAND_SWITCH_INT_CLASS
+{
+  private:
+    int mask;
+
+  public:
+    STDIO_COND_PRINTF_MASK_SWITCH_CLASS() :
+        COMMAND_SWITCH_INT_CLASS("stdio-cond-printf-mask"),
+        mask(0)
+    {};
+
+    ~STDIO_COND_PRINTF_MASK_SWITCH_CLASS() {};
+    
+    void ProcessSwitchInt(int arg) { mask = arg; };
+    void ShowSwitch(std::ostream& ostr, const string& prefix)
+    {
+        ostr << prefix << "[--stdio-cond-printf-mask=<n>]" << endl
+             << prefix << "                        Enable FPGA-side masked STDIO printf" << endl;
+    }
+    
+    int Mask() const { return mask; }
+};
+
+
 class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
                           public PLATFORMS_MODULE_CLASS
 {
@@ -91,6 +116,7 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     // self-instantiation
     static STDIO_SERVER_CLASS instance;
 
+    STDIO_COND_PRINTF_MASK_SWITCH_CLASS maskSwitch;
     UINT32 reqBuffer[32];
     int reqBufferWriteIdx;
 
@@ -140,6 +166,9 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     // FPGA to software request chunks
     void Req(UINT64 data, UINT8 eom);
+
+    // Set mask for conditional printing
+    void SetCondMask(UINT32 mask) { clientStub->SetCondMask(mask); }
 };
 
 // server stub

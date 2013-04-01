@@ -63,6 +63,8 @@ STDIO_SERVER_CLASS::Init(
 {
     // set parent pointer
     parent = p;
+
+    SetCondMask(maskSwitch.Mask());
 }
 
 

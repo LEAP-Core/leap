@@ -30,11 +30,6 @@ import ConfigReg::*;
 `include "awb/provides/librl_bsv.bsh"
 `include "awb/provides/common_services.bsh"
 
-`include "awb/dict/PARAMS_STDIO_SERVICE.bsh"
-
-//`include "awb/rrr/server_stub_STDIO.bsh"
-//`include "awb/rrr/client_stub_STDIO.bsh"
-
 // FILE handle
 typedef Bit#(8) STDIO_FILE;
 
@@ -54,6 +49,10 @@ typedef 4 STDIO_MAX_READS_IN_FLIGHT;
 typedef TDiv#(TDiv#(32768, STDIO_MAX_READS_IN_FLIGHT), SizeOf#(t_DATA))
     STDIO_MAX_ELEM_PER_READ#(type t_DATA);
 typedef Bit#(TLog#(STDIO_MAX_ELEM_PER_READ#(t_DATA))) STDIO_NUM_READ_ELEMS#(type t_DATA);
+
+// Pick a power of 2!
+typedef Bit#(32) STDIO_REQ_RING_CHUNK;
+typedef Bit#(32) STDIO_RSP_RING_CHUNK;
 
 //
 // For now, RRR does not provide virtual channels for each service.  As
@@ -104,6 +103,12 @@ interface STDIO#(type t_DATA);
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
 
+    // Similar to fprintf, but takes a vector instead of a list.  User
+    // code is unlikely to need this.  It is used internally here.
+    method Action vfprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID,
+                           Vector#(STDIO_WRITE_MAX, t_DATA) data,
+                           STDIO_NUM_DATA numData);
+
     // sprintf is a request/response interface, allocating a GLOBAL_STRING_UID
     // on the host to hold the new string.  The new string remains allocated
     // until released by a sprintf_delete call.
@@ -123,11 +128,10 @@ interface STDIO#(type t_DATA);
     // methods is optional.
     method Action sync_req();
     method Action sync_rsp();
-endinterface
 
-// Pick a power of 2!
-typedef Bit#(32) STDIO_REQ_RING_CHUNK;
-typedef Bit#(32) STDIO_RSP_RING_CHUNK;
+    // Internal method used by mkStdio_CondPrintf
+    method STDIO_REQ_RING_CHUNK cond_mask_update();
+endinterface
 
 //
 // Payload on request chain
@@ -140,6 +144,10 @@ typedef struct
     // Set on special messages requesting that each ring stop flush all
     // pending requests.
     Bool sync;
+
+    // Set on special messages to initialize conditional mask for
+    // mkStdio_CondPrintf.
+    Bool condMask;
 }
 STDIO_REQ_RING_MSG
     deriving (Eq, Bits);
@@ -186,6 +194,8 @@ typedef enum
 STDIO_RSP_OP
     deriving (Eq, Bits);
 
+typedef Bit#(4) STDIO_NUM_DATA;
+
 //
 // STDIO_REQ_HEADER is sent at the beginning of all requests sent to software.
 //
@@ -193,7 +203,7 @@ typedef struct
 {
     GLOBAL_STRING_UID text;
     Bit#(2) unused;
-    Bit#(4) numData;                // Number of elements in data vector
+    STDIO_NUM_DATA numData;         // Number of elements in data vector
     Bit#(2) dataSize;               // Size of data elements (1, 2, 4 or 8 bytes)
     STDIO_CLIENT_ID clientID;       // This nodes response ring ID
     STDIO_FILE fileHandle;          // Used only for commands refering to a file
@@ -251,14 +261,6 @@ module [CONNECTED_MODULE] mkStdIO
         error("Unsupported mkStdIO data size (" + integerToString(valueOf(t_DATA_SZ)) + ")");
     end
 
-    // Only instantiate a parameter node if instructed by the user
-    `ifndef STDIO_ENABLE_DISABLE_PRINTF_Z
-         PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
-         Param#(1) disablePrintf          <- mkDynamicParameter(`PARAMS_STDIO_SERVICE_STDIO_DISABLE_PRINTF, paramNode);
-    `else
-         Bit#(1) disablePrintf = 0;
-    `endif
-    
 
     // ====================================================================
     //
@@ -367,6 +369,9 @@ module [CONNECTED_MODULE] mkStdIO
     FIFOF#(Bool) doSyncReqQ <- mkFIFOF();
     FIFO#(Bool) doSyncRspQ <- mkFIFO();
 
+    Wire#(STDIO_REQ_RING_CHUNK) condMask <- mkWire();
+
+
     //
     // marshallReq --
     //     Marshall this node's requests in a narrower channel.
@@ -406,7 +411,8 @@ module [CONNECTED_MODULE] mkStdIO
     rule sendLocalReq (reqState == STDIO_REQ_SEND_REQ);
         let msg = STDIO_REQ_RING_MSG { chunk: mar.first,
                                        eom: mar.isLast,
-                                       sync: False };
+                                       sync: False,
+                                       condMask: False };
         reqChain.sendToNext(msg);
 
         if (mar.isLast())
@@ -432,7 +438,14 @@ module [CONNECTED_MODULE] mkStdIO
             let msg <- reqChain.recvFromPrev();
             reqNotBusy <= msg.eom;
 
-            if (! msg.sync)
+            if (msg.condMask)
+            begin
+                // Update of conditional mask for mkStdio_CondPrintf.  The
+                // conditional mask is the size of one chunk.
+                condMask <= msg.chunk;
+                reqChain.sendToNext(msg);
+            end
+            else if (! msg.sync)
             begin
                 // Normal message.  Forward it.
                 reqChain.sendToNext(msg);
@@ -457,7 +470,8 @@ module [CONNECTED_MODULE] mkStdIO
 
         let msg = STDIO_REQ_RING_MSG { chunk: ?,
                                        eom: True,
-                                       sync: True };
+                                       sync: True,
+                                       condMask: False };
         reqChain.sendToNext(msg);
     endrule
 
@@ -479,61 +493,16 @@ module [CONNECTED_MODULE] mkStdIO
     // ====================================================================
 
     function Action do_write(STDIO_REQ_COMMAND command,
-                              STDIO_FILE file,
-                              GLOBAL_STRING_UID msgID,
-                              List#(t_DATA) args);
+                             STDIO_FILE file,
+                             GLOBAL_STRING_UID msgID,
+                             List#(t_DATA) args);
     action
         let header = genHeader(command);
         header.fileHandle = file;
         header.text = msgID;
         header.numData = fromInteger(List::length(args));
 
-        Vector#(STDIO_WRITE_MAX, t_DATA) data = newVector();
-
-        if (List::length(args) == 1)
-        begin
-            Vector#(1, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) == 2)
-        begin
-            Vector#(2, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) == 3)
-        begin
-            Vector#(3, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) == 4)
-        begin
-            Vector#(4, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) == 5)
-        begin
-            Vector#(5, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) == 6)
-        begin
-            Vector#(6, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) == 7)
-        begin
-            Vector#(7, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) == 8)
-        begin
-            Vector#(8, t_DATA) v = toVector(args);
-            for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
-        end
-        else if (List::length(args) != 0)
-        begin
-            errorM("Too many arguments to STDIO fwrite/printf (" + integerToString(List::length(args)) + ")");
-        end
+        let data = stdioListToVec(args);
 
         newReqQ.enq(STDIO_REQ { data: data, header: header });
     endaction
@@ -642,14 +611,22 @@ module [CONNECTED_MODULE] mkStdIO
 
 
     method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-        if(disablePrintf != 1)
-        begin
-            do_write(STDIO_REQ_FPRINTF, 0, msgID, args);
-        end
+        do_write(STDIO_REQ_FPRINTF, 0, msgID, args);
     endmethod
 
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
         do_write(STDIO_REQ_FPRINTF, file, msgID, args);
+    endmethod
+
+    method Action vfprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID,
+                           Vector#(STDIO_WRITE_MAX, t_DATA) data,
+                           STDIO_NUM_DATA numData);
+        let header = genHeader(STDIO_REQ_FPRINTF);
+        header.fileHandle = file;
+        header.text = msgID;
+        header.numData = numData;
+
+        newReqQ.enq(STDIO_REQ { data: data, header: header });
     endmethod
 
     method Action sprintf_req(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
@@ -693,6 +670,140 @@ module [CONNECTED_MODULE] mkStdIO
 
     method Action sync_rsp() if (rspChain.first().operation == STDIO_RSP_SYNC);
         rspChain.deq();
+    endmethod
+
+    method STDIO_REQ_RING_CHUNK cond_mask_update();
+        return condMask;
+    endmethod
+endmodule
+
+
+function Vector#(STDIO_WRITE_MAX, t_DATA) stdioListToVec(List#(t_DATA) args);
+    Vector#(STDIO_WRITE_MAX, t_DATA) data = newVector();
+
+    if (List::length(args) == 1)
+    begin
+        Vector#(1, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) == 2)
+    begin
+        Vector#(2, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) == 3)
+    begin
+        Vector#(3, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) == 4)
+    begin
+        Vector#(4, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) == 5)
+    begin
+        Vector#(5, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) == 6)
+    begin
+        Vector#(6, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) == 7)
+    begin
+        Vector#(7, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) == 8)
+    begin
+        Vector#(8, t_DATA) v = toVector(args);
+        for (Integer i = 0; i < List::length(args); i = i + 1) data[i] = v[i];
+    end
+    else if (List::length(args) != 0)
+    begin
+        data = error("Too many arguments to STDIO fwrite/printf (" + integerToString(List::length(args)) + ")");
+    end
+
+    return data;
+endfunction
+
+
+// ========================================================================
+//
+//   Conditional printf wrapper, useful for debugging code.
+//
+// ========================================================================
+
+interface STDIO_COND_PRINTF#(type t_DATA);
+    method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+    method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
+endinterface
+
+//
+// mkStdIO_CondPrintf --
+//     Wrap the provided STDIO node and expose printf and fprintf.  Output
+//     is enabled conditionally, based on the requested bit of the dynamic
+//     parameter STDIO_COND_PRINTF_MASK.
+//
+//     This module provides internal buffering.  If you share a single
+//     STDIO node and instantiate a mkStdIO_CondPrintf for each of a set
+//     of parallel, independent, rules then the rules may still be
+//     scheduled independently.  When I/O is disabled, rules will always
+//     be independent.  For designs where space is more important than
+//     parallelism, allocate one mkStdIO_CondPrintf and share it among
+//     multiple rules.
+//     
+//     By convention we leave the high mask bit for use by LEAP infrastructure.
+//     
+module [CONNECTED_MODULE] mkStdIO_CondPrintf#(Integer maskBitIdx,
+                                              STDIO#(t_DATA) stdio)
+    // Interface:
+    (STDIO_COND_PRINTF#(t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ),
+              Add#(a__, 32, TMul#(STDIO_WRITE_MAX, t_DATA_SZ)));
+
+    // Only print if enabled by the user
+    Reg#(Maybe#(Bool)) enablePrintf <- mkReg(tagged Invalid);
+
+    (* fire_when_enabled *)
+    rule init (True);
+        enablePrintf <= tagged Valid unpack(stdio.cond_mask_update[maskBitIdx]);
+    endrule
+
+
+    FIFO#(Tuple4#(STDIO_FILE,
+                  GLOBAL_STRING_UID,
+                  Vector#(STDIO_WRITE_MAX, t_DATA),
+                  STDIO_NUM_DATA)) newReqQ <- mkFIFO1();
+
+    rule fwdReq (True);
+        match {.file, .msgID, .data, .numData} = newReqQ.first();
+        newReqQ.deq();
+
+        stdio.vfprintf(file, msgID, data, numData);
+    endrule
+
+
+    method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args) if (enablePrintf matches tagged Valid .en);
+        if (en)
+        begin
+            newReqQ.enq(tuple4(0, msgID,
+                               stdioListToVec(args),
+                               fromInteger(List::length(args))));
+        end
+    endmethod
+
+    method Action fprintf(STDIO_FILE file,
+                          GLOBAL_STRING_UID msgID,
+                          List#(t_DATA) args) if (enablePrintf matches tagged Valid .en);
+        if (en)
+        begin
+            newReqQ.enq(tuple4(file, msgID,
+                               stdioListToVec(args),
+                               fromInteger(List::length(args))));
+        end
     endmethod
 endmodule
 
@@ -789,6 +900,11 @@ module [CONNECTED_MODULE] mkStdIO_Disabled
     method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
     endmethod
 
+    method Action vfprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID,
+                           Vector#(STDIO_WRITE_MAX, t_DATA) data,
+                           STDIO_NUM_DATA numData);
+    endmethod
+
     method Action sprintf_req(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
         sprintfFIFO.enq(?);
     endmethod
@@ -813,6 +929,10 @@ module [CONNECTED_MODULE] mkStdIO_Disabled
 
     method Action sync_rsp();
         syncFIFO.deq();
+    endmethod
+
+    method STDIO_RSP_RING_CHUNK cond_mask_update();
+        return 0;
     endmethod
 endmodule
 
