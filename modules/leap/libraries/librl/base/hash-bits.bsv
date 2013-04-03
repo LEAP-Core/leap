@@ -68,23 +68,21 @@ function Bit#(n) hashBits(Bit#(n) x);
         //
         // Rotate the values before including them by XOR so contiguous bits
         // in the original value aren't combined.
+        Bit#(32) extra_bits = 0;
         if (n_bits > 32)
         begin
-            h[18:0]  = h[18:0] ^ h[63:45];
-            h[31:19] = h[31:19] ^ h[44:32];
+            extra_bits = reverseBits(h[63:32]);
         end
         if (n_bits > 64)
         begin
-            h[12:0]  = h[12:0] ^ h[63:51];
-            h[31:13] = h[31:13] ^ h[50:32];
+            extra_bits = extra_bits ^ { h[82:64], h[95:83] };
         end
         if (n_bits > 96)
         begin
-            h[8:0]  = h[8:0] ^ h[63:55];
-            h[31:9] = h[31:9] ^ h[54:32];
+            extra_bits = extra_bits ^ { h[118:96], h[127:119] };
         end
 
-        h[31:0] = hash32(h[31:0]);
+        h[31:0] = hash32(h[31:0] ^ extra_bits);
     end
     else if (n_bits >= 24)
     begin
@@ -140,21 +138,21 @@ function Bit#(n) hashBits_inv(Bit#(n) x);
     begin
         h[31:0] = hash32_inv(h[31:0]);
 
+        Bit#(32) extra_bits = 0;
         if (n_bits > 32)
         begin
-            h[18:0]  = h[18:0] ^ h[63:45];
-            h[31:19] = h[31:19] ^ h[44:32];
+            extra_bits = reverseBits(h[63:32]);
         end
         if (n_bits > 64)
         begin
-            h[12:0]  = h[12:0] ^ h[63:51];
-            h[31:13] = h[31:13] ^ h[50:32];
+            extra_bits = extra_bits ^ { h[82:64], h[95:83] };
         end
         if (n_bits > 96)
         begin
-            h[8:0]  = h[8:0] ^ h[63:55];
-            h[31:9] = h[31:9] ^ h[54:32];
+            extra_bits = extra_bits ^ { h[118:96], h[127:119] };
         end
+
+        h[31:0] = h[31:0] ^ extra_bits;
     end
     else if (n_bits >= 24)
     begin

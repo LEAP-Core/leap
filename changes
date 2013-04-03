@@ -14828,3 +14828,15 @@ Directory modules/leap/libraries/platform-services/common-services/stdio-service
 - Turn STDIO_ENABLE_DEBUG on by default now that there is a mechanism
   to compile debug code but disable printing.  In typical designs the
   space used for debugging is small.
+
+----------
+mcadler     Date: Tue Apr  2 20:09:00 EDT 2013  CSN: CSN-leap-405
+                  Wed Apr  3 00:09:00 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ hash-bits.bsv             Locally Modified          404 
+
+Hashes of objects larger than 64 bits failed to include the high bits in the
+hash and also XORed bits from positions 32:63 into the original value multiple
+times.
