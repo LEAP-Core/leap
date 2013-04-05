@@ -19,10 +19,10 @@
 import Vector::*;
 import GetPut::*;
 
-//
+//==========================================================================
 // Marshallers stream wide data (t_DATA) over a narrow stream (t_FIFO_DATA).
 // Demarshallers transform the narrow data stream back to the original width.
-//
+//==========================================================================
 
 
 // Length (chunks) of a marshalled message
@@ -33,8 +33,12 @@ typedef TDiv#(SizeOf#(t_DATA), SizeOf#(t_FIFO_DATA))
 typedef Bit#(TLog#(TAdd#(1, MARSHALLER_MSG_LEN#(t_FIFO_DATA, t_DATA))))
     MARSHALLER_NUM_CHUNKS#(type t_FIFO_DATA, type t_DATA);
 
-
-interface MARSHALLER#(type t_FIFO_DATA, type t_DATA);
+//
+// MARSHALLER_N interface allows per-message specification of the number of
+// chunks to send.  This may be useful when the actual amount of useful
+// information in a t_DATA varies.
+//
+interface MARSHALLER#(t_FIFO_DATA, t_DATA);
     method Action enq(t_DATA inData);
     method Action deq();
     method t_FIFO_DATA first();
@@ -48,7 +52,7 @@ endinterface
 // chunks to send.  This may be useful when the actual amount of useful
 // information in a t_DATA varies.
 //
-interface MARSHALLER_N#(type t_FIFO_DATA, type t_DATA);
+interface MARSHALLER_N#(t_FIFO_DATA, t_DATA);
     method Action enq(t_DATA inData,
                       MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, t_DATA) numChunks)
         provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),

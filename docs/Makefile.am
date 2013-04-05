@@ -22,12 +22,31 @@ EXTRA_DIST = doxygen.config
 # Generate documentation with Doxygen
 #-----------------------------------------------------------------------------
 .PHONY: dox
+ 
+all: doxygen.config dox-gen html-gen search-gen searchdata source-gen
 
-all: doxygen.config
+dox-gen:
 	doxygen doxygen.config
+
+html-gen: dox/html/index.html
 	@echo "Doxygen output is at `pwd`/dox/html/index.html"
 
+dox/html/index.html: dox/xml/index.xml
+	ls dox/xml/*.xml | xargs -I {} basename {} .xml | xargs -I {} xsltproc -o dox/html/{}.html doxyhtmlgen.xsl dox/xml/{}.xml
+	@cp title.png dox/html/
+	
+search-gen:
+	@cp search/search.html dox/html/
+	@cp --parent search/* dox/html/
+
+searchdata:
+	@xsltproc -o dox/searchdata.xml doxyhtmlgen.xsl dox/searchdata.xml
+
+source-gen:
+	@./doxysourcehtmlgen.py
+    
 clean-local:
-	@rm -rf dox
-	@echo "rm -rf dox"
+	rm -rf dox/xml
+	rm -rf dox/html
+	rm -rf dox/searchdata.xml
     

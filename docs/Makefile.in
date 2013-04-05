@@ -344,13 +344,32 @@ uninstall-am:
 #-----------------------------------------------------------------------------
 .PHONY: dox
 
-all: doxygen.config
+all: doxygen.config dox-gen html-gen search-gen searchdata source-gen
+
+dox-gen:
 	doxygen doxygen.config
+
+html-gen: dox/html/index.html
 	@echo "Doxygen output is at `pwd`/dox/html/index.html"
 
+dox/html/index.html: dox/xml/index.xml
+	ls dox/xml/*.xml | xargs -I {} basename {} .xml | xargs -I {} xsltproc -o dox/html/{}.html doxyhtmlgen.xsl dox/xml/{}.xml
+	@cp title.png dox/html/
+
+search-gen:
+	@cp search/search.html dox/html/
+	@cp --parent search/* dox/html/
+
+searchdata:
+	@xsltproc -o dox/searchdata.xml doxyhtmlgen.xsl dox/searchdata.xml
+
+source-gen:
+	@./doxysourcehtmlgen.py
+
 clean-local:
-	@rm -rf dox
-	@echo "rm -rf dox"
+	rm -rf dox/xml
+	rm -rf dox/html
+	rm -rf dox/searchdata.xml
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
