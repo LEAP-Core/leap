@@ -14874,3 +14874,13 @@ Directory modules/leap/libraries/librl/base
   - Generating html now requires xsltproc in addition to doxygen 1.8.3
 - Also added server side indexing and searching the html documentation. 
   - enabling the search on the server requires doxyindexer & doxysearch.cgi that come bundled with doxygen 1.8.3 and above. 
+
+----------
+mgambhir    Date: Mon Apr  8 11:07:31 EDT 2013  CSN: CSN-leap-407
+                  Mon Apr  8 15:07:31 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          406 
+
+Reverted some changes  that were accidentally made in the last commit

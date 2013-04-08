@@ -38,7 +38,7 @@ typedef Bit#(TLog#(TAdd#(1, MARSHALLER_MSG_LEN#(t_FIFO_DATA, t_DATA))))
 // chunks to send.  This may be useful when the actual amount of useful
 // information in a t_DATA varies.
 //
-interface MARSHALLER#(t_FIFO_DATA, t_DATA);
+interface MARSHALLER#(type t_FIFO_DATA, type t_DATA);
     method Action enq(t_DATA inData);
     method Action deq();
     method t_FIFO_DATA first();
@@ -52,7 +52,7 @@ endinterface
 // chunks to send.  This may be useful when the actual amount of useful
 // information in a t_DATA varies.
 //
-interface MARSHALLER_N#(t_FIFO_DATA, t_DATA);
+interface MARSHALLER_N#(type t_FIFO_DATA, type t_DATA);
     method Action enq(t_DATA inData,
                       MARSHALLER_NUM_CHUNKS#(t_FIFO_DATA, t_DATA) numChunks)
         provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
