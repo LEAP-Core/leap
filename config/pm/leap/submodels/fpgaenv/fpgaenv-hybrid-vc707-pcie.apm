@@ -103,8 +103,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
-
 [BlueNoC PCIe Bridge/Requires]
 pcie_bluenoc_ifc=BlueNoC PCIe Bridge Interfaces
 pcie_bluenoc_device=Virtex-7 PCIE Device (BlueNoC)
@@ -117,11 +115,9 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc/pcie-bluenoc.awb
 Packagehint=leap-platforms
 
-
 [BlueNoC PCIe Bridge Interfaces]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc/pcie-bluenoc-ifc.awb
 Packagehint=leap-platforms
-
 
 [Xilinx DDR SDRAM Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr-sdram-xilinx.awb
@@ -147,6 +143,7 @@ clocks_device=Differential Crystal Clocks Device from Clocks
 physical_platform_config=VC707 Virtex-7 Platform with PCIe
 physical_platform_utils=Common Physical Platform Utilities
 ddr_sdram_device=Xilinx DDR SDRAM Physical Device
+aurora_device=Aurora Device Wrapper Null
 
 [Differential Crystal Clocks Device from Clocks]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-from-clocks.awb
@@ -170,4 +167,8 @@ Packagehint=leap-platforms
 
 [Hardware FPGA Components for Virtex 7]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex7.awb
+Packagehint=leap-platforms
+
+[Aurora Device Wrapper Null]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora/aurora-device-null/aurora-device-null.awb
 Packagehint=leap-platforms

@@ -14884,3 +14884,22 @@ Directory modules/leap/libraries/librl/base
  fifo-marshaller.bsv       Locally Modified          406 
 
 Reverted some changes  that were accidentally made in the last commit
+
+----------
+keflemin    Date: Sun Jun  2 11:58:17 EDT 2013  CSN: CSN-leap-408
+                  Sun Jun  2 15:58:18 UTC 2013
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_vc707_synth.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-vc707-pcie-no-memory.apm Locally Modified          407 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          407 
+ fpgaenv-hybrid-vc707-pcie.apm Locally Modified          407 
+
+
+1) Added traffic light benchmark for vc707 as a smoke test.
+
+2) Updated existing apms to reflect broad-spectrum inclusion of aurora
+   modules.

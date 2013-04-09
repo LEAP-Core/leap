@@ -107,7 +107,6 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex6-generic.awb
 Packagehint=leap-platforms
 
-
 [Virtex-6 PCIE Device (BlueNoC)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex6/pcie-virtex6.awb
 Packagehint=leap-platforms
@@ -160,7 +159,7 @@ clocks_device=Differential Crystal Clocks Device from Clocks
 physical_platform_config=ML605 Virtex-6 Platform with PCIe
 physical_platform_utils=Common Physical Platform Utilities
 ddr_sdram_device=Xilinx DDR SDRAM Physical Device
-
+aurora_device=Aurora Device Wrapper Null
 
 [Differential Crystal Clocks Device from Clocks]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-from-clocks.awb
@@ -169,3 +168,7 @@ Packagehint=leap-platforms
 [Differential Crystal Clocks Device from Clocks/Params]
 CRYSTAL_CLOCK_FREQ=200
 RESET_ACTIVE_HIGH=1
+
+[Aurora Device Wrapper Null]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora/aurora-device-null/aurora-device-null.awb
+Packagehint=leap-platforms
