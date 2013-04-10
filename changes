@@ -14921,3 +14921,16 @@ Directory modules/leap/libraries/platform-services/common-services/stdio-service
 
 - Move STDIO SetCondMask() to a .cpp file so it isn't inlined and can be called
   from gdb.
+
+----------
+mgambhir    Date: Wed Apr 10 15:38:13 EDT 2013  CSN: CSN-leap-410
+                  Wed Apr 10 19:38:13 UTC 2013
+
+
+Directory docs
+ Makefile.in               Locally Modified          409 
+ doxyhtmlgen.xsl           Locally Modified          409 
+ Makefile.am               Locally Modified          409 
+
+- Updated the Makefile and added a target to generate search index using doxyindexer
+- Added some code to xslt script to trim the names of interfaces/modules while generating the index. This is done because doxyindexer ona 32 bit machine requires the name to be shorter than certain length. 

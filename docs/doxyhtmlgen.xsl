@@ -21,6 +21,7 @@
  -->
 
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+<xsl:output method="xml" indent="yes"/>
   <xsl:template name="head">
     <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=9"/>
@@ -339,10 +340,20 @@
               <xsl:attribute name="name">
                 <xsl:value-of select="@name"/>
               </xsl:attribute>
+              <xsl:variable name="text">
+                <xsl:choose>
+                  <xsl:when test="@name='name'" >
+                    <xsl:value-of select="substring(text(), 1, 200)"/>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <xsl:value-of name="text" select="." />
+                  </xsl:otherwise>
+                </xsl:choose>
+              </xsl:variable>
               <xsl:call-template name="string-replace-less-than">
                 <xsl:with-param name="text">
                   <xsl:call-template name="string-replace-greater-than">
-                    <xsl:with-param name="text" select="."/>
+                    <xsl:with-param name="text" select="$text" />
                   </xsl:call-template>
                 </xsl:with-param>
               </xsl:call-template>
