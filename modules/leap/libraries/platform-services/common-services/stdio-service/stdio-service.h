@@ -168,7 +168,7 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Req(UINT64 data, UINT8 eom);
 
     // Set mask for conditional printing
-    void SetCondMask(UINT32 mask) { clientStub->SetCondMask(mask); }
+    void SetCondMask(UINT32 mask);
 };
 
 // server stub

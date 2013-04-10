@@ -528,3 +528,9 @@ STDIO_SERVER_CLASS::Req_sync(const STDIO_REQ_HEADER &req, bool isSystemSync)
                     isSystemSync ? STDIO_RSP_SYNC_SYSTEM : STDIO_RSP_SYNC,
                     0, 0);
 }
+
+void
+STDIO_SERVER_CLASS::SetCondMask(UINT32 mask)
+{
+    clientStub->SetCondMask(mask);
+}

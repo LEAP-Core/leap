@@ -14903,3 +14903,21 @@ Directory config/pm/leap/submodels/fpgaenv
 
 2) Updated existing apms to reflect broad-spectrum inclusion of aurora
    modules.
+
+----------
+mcadler     Date: Wed Apr 10 13:15:30 EDT 2013  CSN: CSN-leap-409
+                  Wed Apr 10 17:15:30 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_BITGEN.py          Locally Modified          408 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          408 
+ stdio-service.h           Locally Modified          408 
+
+- Create a mask file (-m option) when building Xilinx bitfiles in order to
+  allow verification of loaded bitfiles.
+
+- Move STDIO SetCondMask() to a .cpp file so it isn't inlined and can be called
+  from gdb.
