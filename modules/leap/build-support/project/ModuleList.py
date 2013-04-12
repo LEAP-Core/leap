@@ -128,6 +128,7 @@ class ModuleList:
       module.moduleDependency['VERILOG_LIB'] = Utils.get_bluespec_verilog(env)
       module.moduleDependency['BA'] = []
       module.moduleDependency['BSV_LOG'] = []
+      module.moduleDependency['STR'] = []
 
     #Notice that we call get_bluespec_verilog here this will
     #eventually called by the BLUESPEC build rule

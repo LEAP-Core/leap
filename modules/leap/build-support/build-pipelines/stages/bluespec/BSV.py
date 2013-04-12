@@ -78,19 +78,20 @@ class BSV():
 
       ##
       ## Generate the global string table.  Bluespec-generated global strings
-      ## are found in the log files.
+      ## are stored in files by the compiler.
       ##
       ## The global string file will be generated in the top-level .bsc
       ## directory and a link to it will be added to the top-level directory.
       ##
-      all_logs = []
+      all_str_src = []
       for module in topo:
-        all_logs.extend(module.moduleDependency['BSV_LOG'])
-      str = moduleList.env.Command(TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
-                                   sorted(all_logs),
-                                   [ self.gen_global_string_table,
-                                     '@ln -fs $TARGET ' + moduleList.env['DEFS']['APM_NAME'] + '.str' ])
-      moduleList.topModule.moduleDependency['STR'] += [str]
+        all_str_src.extend(module.moduleDependency['STR'])
+      bsc_str = moduleList.env.Command(TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
+                                       all_str_src,
+                                       [ 'cat $SOURCES > $TARGET' ])
+      str = moduleList.env.Command(moduleList.env['DEFS']['APM_NAME'] + '.str',
+                                   bsc_str,
+                                   [ 'ln -fs ' + TMP_BSC_DIR + '/$TARGET $TARGET' ])
       moduleList.topDependency += [str]
 
       if moduleList.env.GetOption('clean'):
@@ -249,7 +250,8 @@ class BSV():
       return  BSC +" " +  self.BSC_FLAGS + ' -p +:' + \
            ROOT_DIR_HW_INC + ':' + ROOT_DIR_HW_INC + '/asim/provides:' + \
            lib_dirs + ':' + TMP_BSC_DIR + ' -bdir ' + bdir + \
-           ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir
+           ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir + \
+           ' -fdir ' + bdir
 
     def compile_bo(source, target, env, for_signature):
       cmd = compile_bo_bsc_base(target) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
@@ -333,6 +335,14 @@ class BSV():
         moduleList.topDependency += [logfile]
 
       ##
+      ## Meta-data written during compilation to separate files.
+      ##
+      glob_str = env.Command(MODULE_PATH + '/' + TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.str'),
+                             wrapper_bo,
+                             '')
+      env.Precious(glob_str)
+      module.moduleDependency['STR'] += [glob_str]
+
       ## All but the top level build need the log build pass to compute
       ## the size of the external soft connection vector.  The top level has
       ## no exposed connections and needs no log build pass.
@@ -454,46 +464,3 @@ class BSV():
       except ValueError:
         pass
     return string.join(t, sep)
-
-
-  ##
-  ## gen_global_string_table --
-  ##   Used as a build rule to parse Bluespec log files, looking for messages
-  ##   emitted by the compiler defining global strings.
-  ##
-  def gen_global_string_table(self, target, source, env):
-    str_file = open(str(target[0]), 'w')
-
-    for src in source:
-      log_file = open(str(src), 'r')
-
-      ##
-      ## Global strings begin with the tag "GlobStr:" and end with the tag
-      ## "X!gLb!X".  The end tag permits strings to have newlines.
-      ##
-      multi_line = False
-      for full_line in log_file:
-        if not multi_line:
-          # Look for the start of a new string
-          if (re.search(r'GlobStr', full_line)):
-            line = re.sub(r'.* GlobStr: ', '', full_line)
-            
-            # Single line string?
-            if (re.search(r'X!gLb!X$', line.rstrip())):
-              line = line.rstrip() + '\n'
-            else:
-              multi_line = True
-
-            str_file.write(line);
-
-        else:
-          # Continuation of a multi-line string
-          line = full_line
-          if (re.search(r'X!gLb!X$', line.rstrip())):
-            line = line.rstrip() + '\n'
-            multi_line = False
-          str_file.write(line);
-
-      log_file.close()
-
-    str_file.close()

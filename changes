@@ -14934,3 +14934,28 @@ Directory docs
 
 - Updated the Makefile and added a target to generate search index using doxyindexer
 - Added some code to xslt script to trim the names of interfaces/modules while generating the index. This is done because doxyindexer ona 32 bit machine requires the name to be shorter than certain length. 
+
+----------
+mcadler     Date: Fri Apr 12 11:22:25 EDT 2013  CSN: CSN-leap-411
+                  Fri Apr 12 15:22:25 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          410 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          410 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.bsv        Locally Modified          410 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          410 
+
+- Add a function to detect whether a global string is already in the table.  This
+  can be used to communicate state from one module to another during compilation.
+
+- Use new Bluespec compile-time file I/O to write the global string table to files
+  instead of the compiler log.
+
+  *** Requires Bluespec 2013.04.beta2 or later ***

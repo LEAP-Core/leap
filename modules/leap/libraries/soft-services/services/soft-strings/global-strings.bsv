@@ -121,6 +121,20 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
 endmodule
 
 
+//
+// isGlobalStringDefined --
+//     Return true iff string exists as a global string.
+//
+module [t_CONTEXT] isGlobalStringDefined#(String str) (Bool)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let cur_strs <- getGlobalStrings();
+    return isValid(List::lookup(str, cur_strs));
+endmodule
+
+
 // ========================================================================
 //
 // Access the string table structures stored in module context.

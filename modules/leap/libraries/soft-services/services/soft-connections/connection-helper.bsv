@@ -254,12 +254,14 @@ endmodule
 // Global string table.
 //
 
-module printGlobString#(GLOBAL_STRING_TABLE str) (Empty);
+module printGlobString#(Handle hdl, GLOBAL_STRING_TABLE str) (Empty);
   let id = tpl_2(str).uid;
   // Tag the end of the string with a marker so newlines can be detected
-  messageM("GlobStr: " + integerToString(id) + "," + tpl_1(str) + "X!gLb!X");
+  hPutStrLn(hdl, integerToString(id) + "," + tpl_1(str) + "X!gLb!X");
 endmodule
 
 module printGlobStrings#(List#(GLOBAL_STRING_TABLE) strs) (Empty);
-  List::mapM(printGlobString, List::reverse(strs));
+  Handle hdl <- openFile(genPackageName + ".str", WriteMode);
+  List::mapM(printGlobString(hdl), List::reverse(strs));
+  hClose(hdl);
 endmodule
