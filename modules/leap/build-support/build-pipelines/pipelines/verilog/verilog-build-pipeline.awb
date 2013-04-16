@@ -12,6 +12,7 @@
 %requires software_tool
 %requires verilog_tool
 %requires wrapper_gen_tool
+%requires li_module
 
 %notes README
 

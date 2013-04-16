@@ -28,8 +28,8 @@ interface WITH_CONNECTIONS#(parameter numeric type t_NUM_IN,
 
   interface Vector#(t_NUM_IN, PHYSICAL_CONNECTION_IN)  incoming;
   interface Vector#(t_NUM_OUT, PHYSICAL_CONNECTION_OUT) outgoing;
-  interface Vector#(t_NUM_IN, PHYSICAL_CONNECTION_IN_MULTI)  incomingMultis;
-  interface Vector#(t_NUM_OUT, PHYSICAL_CONNECTION_OUT_MULTI) outgoingMultis;
+  interface Vector#(t_NUM_IN_MULTI, PHYSICAL_CONNECTION_IN_MULTI)  incomingMultis;
+  interface Vector#(t_NUM_OUT_MULTI, PHYSICAL_CONNECTION_OUT_MULTI) outgoingMultis;
 
   interface Vector#(t_NUM_CHAINS, PHYSICAL_CHAIN) chains;
 

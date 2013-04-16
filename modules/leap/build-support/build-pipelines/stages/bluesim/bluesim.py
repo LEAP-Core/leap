@@ -33,6 +33,10 @@ class Bluesim():
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'
 
+    ALL_DIRS_FROM_ROOT = moduleList.env['DEFS']['ALL_HW_DIRS']
+    ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
+    ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
+    
     bsc_sim_command = BSC + ' ' + BSC_FLAGS_SIM + ' ' + LDFLAGS + ' -o $TARGET'
 
     # Set MAKEFLAGS because Bluespec is going to invoke make on its own and
@@ -56,9 +60,15 @@ class Bluesim():
     for definition in defs:
       bsc_sim_command += ' -Xc++ ' + definition + ' -Xc ' + definition
 
+    # construct full path to BAs
+    def modify_path(str):
+        array = str.split('/')
+        file = array.pop()
+        return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + '/'.join(array) + '/' + TMP_BSC_DIR + '/' + file 
+
     bsc_sim_command += \
-        ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -simdir ' + \
-        TMP_BSC_DIR + ' ' + moduleList.env['DEFS']['GEN_BAS'] + ' ' + moduleList.env['DEFS']['GIVEN_BAS'] + \
+        ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -p +:' + ALL_LIB_DIRS_FROM_ROOT +' -simdir ' + \
+        TMP_BSC_DIR + ' ' +\
         ' ' + moduleList.env['DEFS']['BDPI_CS']
 
     if (getBuildPipelineDebug(moduleList) != 0):

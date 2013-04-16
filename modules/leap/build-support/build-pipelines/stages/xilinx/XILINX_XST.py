@@ -37,7 +37,7 @@ class Synthesize():
     oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst', 'r')
     newXSTFile.write(oldXSTFile.read());
     if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
-        newXSTFile.write('-vlgcase parallel\n');
+        newXSTFile.write('\n-vlgcase parallel\n');
     if moduleList.getAWBParam('synthesis_tool', 'XST_INSERT_IOBUF'):
         newXSTFile.write('-iobuf yes\n');
     else:
@@ -48,6 +48,14 @@ class Synthesize():
 
     synth_deps = []
 
+    # spit out a new top-level prj
+    topPRJPath = 'config/' + moduleList.topModule.wrapperName() + '.prj' 
+    newPRJFile = open(topPRJPath, 'w') 
+    for vlog in moduleList.getAllDependencies('VERILOG') + moduleList.getAllDependencies('VERILOG_LIB'):
+      newPRJFile.write("verilog work " + vlog + "\n")
+
+    newPRJFile.close()
+
     for module in moduleList.synthBoundaries():    
         # we must tweak the xst files of the internal module list
         # to prevent the insertion of iobuffers
@@ -56,7 +64,7 @@ class Synthesize():
         oldXSTFile = open('config/' + module.wrapperName() + '.xst', 'r')
         newXSTFile.write(oldXSTFile.read());
         if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
-            newXSTFile.write('-vlgcase parallel\n');
+            newXSTFile.write('\n-vlgcase parallel\n');
         newXSTFile.write('-iobuf no\n');
         newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n');
         newXSTFile.close();

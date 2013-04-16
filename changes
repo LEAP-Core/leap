@@ -14959,3 +14959,94 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
   instead of the compiler log.
 
   *** Requires Bluespec 2013.04.beta2 or later ***
+
+----------
+kfleming    Date: Tue Apr 16 11:37:21 EDT 2013  CSN: CSN-leap-412
+                  Tue Apr 16 15:37:21 UTC 2013
+
+
+Directory .
+ configure                 Locally Modified          411 
+ Makefile.in               Locally Modified          411 
+
+Directory docs
+ Makefile.in               Locally Modified          411 
+
+Directory libperl
+ Makefile.in               Locally Modified          411 
+
+Directory tools/leap
+ Makefile.in               Locally Modified          411 
+
+Directory tools/leap/leap-front-panel
+ Makefile.in               Locally Modified          411 
+
+Directory tools/leap/leap-front-panel-qt3
+ Makefile.in               Locally Modified          411 
+
+Directory tools
+ Makefile.in               Locally Modified          411 
+
+Directory tools/scripts
+ Makefile.in               Locally Modified          411 
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-xilinx.apm Locally Modified          411 
+ build-pipeline-bluesim.apm Locally Modified          411 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          411 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          411 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          411 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ li_module/                Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liUtility.py              Locally Added               0 
+ li_module.awb             Locally Added               0 
+ liModule.py               Locally Added               0 
+ liChannel.py              Locally Added               0 
+ danglingConnection.py     Locally Added               0 
+ liGraph.py                Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_BITGEN.py          Locally Modified          411 
+ XILINX_XST.py             Locally Modified          411 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ sim-build-pipeline.awb    Locally Modified          411 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ verilog-build-pipeline.awb Locally Modified          411 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ fpga-build-pipeline.awb   Locally Modified          411 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          411 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ with-connections.bsv      Locally Modified          411 
+
+Directory .
+ aclocal.m4                Locally Modified          411 
+
+
+1) Added a new library for building graphs of latency-insensitive modules (LIMs)
+
+2) Using this library, during LEAP compilation we build a LIM graph
+after producing the BSV log files. We partition this graph recursively
+by making minimum cuts to form a tree of modules. This tree reduces
+the scheduling burden on the Bluespec compiler for larger LIM graphs.  
+
+3) Fixed a few minor bugs in the build pipeline due to the recent mask file generation.
+
+4) Removed build of model.bo. This bo is subsumed by the model_Wrapper.bo.
+
+Although I have not yet back-ported it, the li module library replace
+several less-well-formed classes in the multifpga compiler.

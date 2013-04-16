@@ -67,13 +67,36 @@ class WrapperGen():
 
         wrapper_bsv.write('// These are well-known/required leap modules\n')
         wrapper_bsv.write('// import non-synthesis public files\n')
-        wrapper_bsv.write('`include "' + module.name + '.bsv"\n')
-
         # Include all subordinate synthesis boundaries for use by
         # instantiateAllSynthBoundaries() below.
         for synth in synth_modules:
           if synth != module:
             wrapper_bsv.write('`include "' + synth.name + '_synth.bsv"\n')
+
+        # Provide a method that imports all subordinate synthesis boundaries.
+        # It will be invoked inside the top level model in order to build
+        # all soft connections
+        wrapper_bsv.write('\n\n`ifdef CONNECTION_SIZES_KNOWN\n');
+        wrapper_bsv.write('    `include "build_tree.bsv"\n'); # This will get generated later, during the leap-connect phase.
+        wrapper_bsv.write('    module [Connected_Module] instantiateAllSynthBoundaries ();\n')
+        wrapper_bsv.write('        let m <- instantiateBuildTree();\n')
+        wrapper_bsv.write('    endmodule\n')
+        wrapper_bsv.write('`else\n');
+
+        wrapper_bsv.write('\n    module ')
+        if len(synth_modules) != 1:
+          wrapper_bsv.write('[Connected_Module]')
+        wrapper_bsv.write(' instantiateAllSynthBoundaries ();\n')
+
+        for synth in synth_modules:
+          if synth != module:
+            wrapper_bsv.write('        ' + synth.synthBoundaryModule + '();\n')
+
+        wrapper_bsv.write('    endmodule\n')
+        wrapper_bsv.write('`endif\n'); 
+
+
+        wrapper_bsv.write('`include "' + module.name + '.bsv"\n')
 
         wrapper_bsv.write('\n// import non-synthesis private files\n')
         wrapper_bsv.write('// Get defintion of TOP_LEVEL_WIRES\n')
@@ -114,19 +137,6 @@ class WrapperGen():
         wrapper_bsv.write('    return m;\n')
         wrapper_bsv.write('endmodule\n')
 
-        # Provide a method that imports all subordinate synthesis boundaries.
-        # It will be invoked inside the top level model in order to build
-        # all soft connections.
-        wrapper_bsv.write('\n\nmodule ')
-        if len(synth_modules) != 1:
-          wrapper_bsv.write('[Connected_Module]')
-        wrapper_bsv.write(' instantiateAllSynthBoundaries ();\n')
-
-        for synth in synth_modules:
-          if synth != module:
-            wrapper_bsv.write('    ' + synth.synthBoundaryModule + '();\n')
-
-        wrapper_bsv.write('endmodule')
       else:
         log_bsv = open(logPath, 'w')
         log_bsv.write('import HList::*;\n')

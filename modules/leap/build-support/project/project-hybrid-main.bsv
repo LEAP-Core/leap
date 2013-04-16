@@ -36,6 +36,7 @@ import Clocks::*;
 `include "awb/provides/soft_connections_latency.bsh"
 `include "awb/provides/platform_services.bsh"
 
+
 //
 // Optionally pass in a set of top-level clocks and a reset.
 //
@@ -108,7 +109,7 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem#(LowLevelPlatformInterface llpi)
     // through soft connections.
     //
     let vp <- mkVirtualPlatform(llpi);
-    
+     
     //
     // Platform services are layered on the virtual platform.  These services
     // are typically device independent and must expose their interfaces as
