@@ -275,19 +275,28 @@
                     <table class="mlabels">
                       <tr>
                         <td class="mlabels-left">
-                          <xsl:call-template name="string-replace-less-than">
-                            <xsl:with-param name="text">
-                              <xsl:call-template name="string-replace-greater-than">
-                                <xsl:with-param name="text" select="type"/>
+                          <table>
+                            <tr>
+                            <td>
+                              <xsl:call-template name="string-replace-less-than">
+                                 <xsl:with-param name="text">
+                                   <xsl:call-template name="string-replace-greater-than">
+                                     <xsl:with-param name="text" select="type"/>
+                                   </xsl:call-template>
+                                 </xsl:with-param>
                               </xsl:call-template>
-                            </xsl:with-param>
-                          </xsl:call-template>
                           <xsl:text/>
+                          </td>
+                          <td class="memname">
                           <b>
                             <xsl:value-of select="name"/>
                           </b>
+                          </td>
+                          <td>
                           <xsl:text disable-output-escaping="yes"><![CDATA[(]]></xsl:text>
+                          </td>
                           <xsl:for-each select="param">
+                            <td class="paramtype">
                             <xsl:call-template name="string-replace-less-than">
                               <xsl:with-param name="text">
                                 <xsl:call-template name="string-replace-greater-than">
@@ -295,10 +304,17 @@
                                 </xsl:call-template>
                               </xsl:with-param>
                             </xsl:call-template>
+                            </td>
+                            <td class="paramname">
                             <xsl:value-of select="name"/>
-                            <xsl:if test="not(position() = last())">,</xsl:if>
+                            <xsl:if test="not(position() = last())">, </xsl:if>
+                            </td>
                           </xsl:for-each>
+                           <td>
                           <xsl:text disable-output-escaping="yes"><![CDATA[)]]></xsl:text>
+                          </td>
+                          </tr>
+                          </table>
                         </td>
                       </tr>
                     </table>

@@ -15050,3 +15050,18 @@ the scheduling burden on the Bluespec compiler for larger LIM graphs.
 
 Although I have not yet back-ported it, the li module library replace
 several less-well-formed classes in the multifpga compiler.
+
+----------
+mgambhir    Date: Tue Apr 16 18:08:13 EDT 2013  CSN: CSN-leap-413
+                  Tue Apr 16 22:08:13 UTC 2013
+
+
+Directory .
+ configure                 Locally Modified          412 
+
+Directory docs
+ doxyhtmlgen.xsl           Locally Modified          412 
+ doxygen.config            Locally Modified          412 
+
+- Added indentation to the interface member detailed description section
+- All lists are now sorted alphabetically
