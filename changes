@@ -15065,3 +15065,27 @@ Directory docs
 
 - Added indentation to the interface member detailed description section
 - All lists are now sorted alphabetically
+
+----------
+keflemin    Date: Wed Apr 17 00:21:13 EDT 2013  CSN: CSN-leap-414
+                  Wed Apr 17 04:21:13 UTC 2013
+
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx-synplify.apm Locally Modified          413 
+ build-pipeline-xilinx-synplify.apm Locally Modified          413 
+ build-pipeline-verilog.apm Locally Modified          413 
+ build-pipeline-altera.apm Locally Modified          413 
+ build-pipeline-vico-xilinx.apm Locally Modified          413 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          413 
+
+
+1) Patched some stragging apms with new li_module library
+
+2) Fixed codegen stage of LIM tree building to support multifpga
+builds.  During the second pass of multifpga builds, some modules may
+be removed.  This breaks the backend tools which expect some verilog
+for these modules.  We now synthesize dummy modules to fix the backend
+tools.

@@ -314,6 +314,19 @@ class BSV():
 
               top_module = cutRecurse(liGraph)            
 
+              # In multifpga builds, we may have some leftover modules
+              # due to the way that the LIM compiler currently
+              # operates. We emit dummy modules here to make
+              # downstream tools happy.  This can be removed once we
+              # reorganize the multifpga compiler. 
+
+              for module in moduleNames:
+                  tree_file.write("\n\n(*synthesize*)\n")
+                  tree_file.write("module mk_" + module + "_Wrapper (Reg#(Bit#(1)));\n")
+                  tree_file.write("    let m <- mkRegU();\n")
+                  tree_file.write("    return m;\n")
+                  tree_file.write("endmodule\n")
+
               # we need to create a top level wrapper module to re-monadize the soft connections so that the platform compiles correctly
               tree_file.write("\n\nmodule [Connected_Module] instantiateBuildTree();\n")
               tree_file.write("    let tree <- liftModule(mk_" + top_module.name + "_Wrapper());\n")
