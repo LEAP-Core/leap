@@ -1,6 +1,8 @@
 import sys
 import pygraph
 from liModule import *
+from liChannel import *
+from liChain import *
 try:
     from pygraph.classes.digraph import digraph
 except ImportError:
@@ -12,19 +14,24 @@ import pygraph.algorithms.sorting
 
 class LIGraph():
   
-    def __init__(self, channels):
+    # connections are a mixture of chains and channels
+    def __init__(self, connections):
         
         self.modules = {}
         
-        for channel in channels:
+        for connection in connections:
             # give channels unit weight
-            channel.activity = 1
-            if(not channel.modulename in self.modules):
+            connection.activity = 1
+            if(not connection.module_name in self.modules):
                 # for now, type and name are the same
-                self.modules[channel.modulename] = LIModule(channel.modulename, channel.modulename)
+                self.modules[connection.module_name] = LIModule(connection.module_name, connection.module_name)
        
-            self.modules[channel.modulename].addChannel(channel)
-            channel.module = self.modules[channel.modulename]
+            if(isinstance(connection,LIChannel)):
+                self.modules[connection.module_name].addChannel(connection)
+            else:
+                self.modules[connection.module_name].addChain(connection)
+ 
+            connection.module = self.modules[connection.module_name]
 
         # let's match up all those connections
         self.matchChannels()       
@@ -52,8 +59,7 @@ class LIGraph():
                 if(not channel.matched):
                     continue
                 #Only add an edge if the channel is a source.
-                #Ignore chains
-                if(channel.isSource() and not channel.isChain()):
+                if(channel.isSource()):
                     if(not self.graph.has_edge((module, channel.partnerModule))):
                         self.graph.add_edge((module, channel.partnerModule))
                         self.weights[(module, channel.partnerModule)] = channel.activity
@@ -85,6 +91,12 @@ class LIGraph():
             channels += module.channels
         return channels
 
+    def getChains(self):
+        chains = []
+        for (name,module) in self.modules.items():
+            chains += module.chains
+        return chains
+
 
     # Should this move to liUtilities?
     def matchChannels(self):
@@ -94,10 +106,9 @@ class LIGraph():
                 # if we are the same module, skip
                 if(module.name == partnerModule.name):
                     continue
-
                 for channel in module.channels:
-                    # ignore chains.  They get resolved later on physical mapping
-                    if(channel.isChain() or channel.matched):
+                    # ignore previously matched channels
+                    if(channel.matched):
                         continue
                     for partnerChannel in partnerModule.channels:
                         if(partnerChannel.matched):

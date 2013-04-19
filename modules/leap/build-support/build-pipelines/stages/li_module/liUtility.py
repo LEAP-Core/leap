@@ -2,6 +2,7 @@ import sys
 import re
 import pygraph
 from liChannel import *
+from liChain import *
 try:
     from pygraph.classes.digraph import digraph
 except ImportError:
@@ -22,42 +23,29 @@ def parseLogfiles(logfiles):
                 if(match):
                     #python groups begin at index 1  
                     if(match.group(1) == "Chain"):
-                        sc_type = "ChainSrc"
+                        connections +=  [LIChain(match.group(1), 
+                                                 match.group(2),
+                                                 match.group(3),
+                                                 match.group(4),      
+                                                 match.group(5),
+                                                 eval(match.group(6)), # optional
+                                                 match.group(7),
+                                                 match.group(8),
+                                                 match.group(9),
+                                                 type)]
                     else:
-                        sc_type = match.group(1)
-
-                
-                  
-                    parentConnection = LIChannel(sc_type, 
-                                                      match.group(2),
-                                                      match.group(3),
-                                                      match.group(4),      
-                                                      match.group(5),
-                                                      eval(match.group(6)), # optional
-                                                      match.group(7),
-                                                      match.group(8),
-                                                      match.group(9),
-                                                      type)
+                        connections +=  [LIChannel(match.group(1), 
+                                                   match.group(2),
+                                                   match.group(3),
+                                                   match.group(4),      
+                                                   match.group(5),
+                                                   eval(match.group(6)), # optional
+                                                   match.group(7),
+                                                   match.group(8),
+                                                   type)]
                            
-                  
-                    connections += [parentConnection]
-   
-                    if(match.group(1) == "Chain"):
-                        sinkConnection = LIChannel("ChainSink", 
-                                                       match.group(2),
-                                                       match.group(3),
-                                                       match.group(4),
-                                                       match.group(5),
-                                                       eval(match.group(6)), # optional
-                                                       match.group(7),
-                                                       match.group(8),
-                                                       match.group(9),
-                                                       type)
-                        parentConnection.chainPartner = sinkConnection
-                        sinkConnection.chainPartner = parentConnection
-                        connections += [sinkConnection]
-                        
-
+             
+            
                 else:
                     print "Malformed connection message: " + line
                     sys.exit(-1)

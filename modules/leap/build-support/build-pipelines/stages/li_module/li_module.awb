@@ -8,6 +8,7 @@
 %provides li_module
 
 %scons %library liChannel.py
+%scons %library liChain.py
 %scons %library liGraph.py
 %scons %library liModule.py
 %scons %library liUtility.py

@@ -2,9 +2,9 @@ import sys
 from code import *
 
 
-class LIChannel():
+class LIChain():
   
-  def __init__(self, sc_type, raw_type, module_idx, name, platform, optional, bitwidth, module_name, type_structure):
+  def __init__(self, sc_type, raw_type, module_idx, name, platform, optional, bitwidth, module_name, chainroot, type_structure):
       self.sc_type = sc_type
       self.raw_type = raw_type
       self.name = name
@@ -15,23 +15,24 @@ class LIChannel():
       self.optional = optional 
       self.bitwidth = int(bitwidth)
       self.matched = False
-      self.module_name = module_name # this is only the name of the module
+      self.module_name = module_name
+      self.chainroot = chainroot
       self.inverse_sc_type = "ERROR"
       self.via_idx = "unassigned"
       self.via_link = "unassigned"
       self.type_structure = type_structure
       self.activity = -1 # this is used in lane allocation
-      self.module = "unassigned" # the actual module object.  Assigned at graph construction time
-      self.partnerModule = "unassigned"
-      self.partnerChannel = "unassigned"
+      self.module = "unassigned"
+      self.sourcePartnerChain = "unassigned"
+      self.sinkPartnerChain = "unassigned"
 
   def __repr__(self):
       return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":" + self.module_name + ":" + self.platform + " }"
 
   def copy(self):
-      newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.platform, self.optional, self.bitwidth, self.module_name, self.type_structure)
-      return newChannel
-  # can probably extend matches to support chains
+      newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, self.platform, self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)
+      return newChain
+
   def matches(self, other):
       if(other.name == self.name):
           #do the types match?
@@ -43,21 +44,11 @@ class LIChannel():
           if(other.matched or self.matched):
             return False
 
-          if(other.sc_type == 'Recv' and self.sc_type == 'Send'):
-              return True
-          if(self.sc_type == 'Recv' and other.sc_type == 'Send'):
-              return True
+          return True
 
       return False
 
-  def isSource(self):
-      return self.sc_type == 'Send'
+  def isChain(self):
+      return True
 
-  def isSink(self):
-      return self.sc_type == 'Recv'
 
-  def linkPriority(self):
-      if((self.sc_type == 'Recv') or (self.sc_type == 'Send')):
-        return 1
-      else:
-        return 2

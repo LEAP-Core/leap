@@ -15089,3 +15089,26 @@ builds.  During the second pass of multifpga builds, some modules may
 be removed.  This breaks the backend tools which expect some verilog
 for these modules.  We now synthesize dummy modules to fix the backend
 tools.
+
+----------
+keflemin    Date: Fri Apr 19 13:33:57 EDT 2013  CSN: CSN-leap-415
+                  Fri Apr 19 17:33:57 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          414 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liUtility.py              Locally Modified          414 
+ liModule.py               Locally Modified          414 
+ li_module.awb             Locally Modified          414 
+ liChannel.py              Locally Modified          414 
+ liGraph.py                Locally Modified          414 
+ liChain.py                Locally Added               0 
+
+
+Refactored LIM library to include a first-class chain object.  The
+multifpga compiler originally handled chains and channels as a
+combined "connection" object.  However, this organization got ugly
+quickly since the algorithms for channels and chains are fundamentally
+different.

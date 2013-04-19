@@ -117,7 +117,7 @@ class BSV():
               if(getBuildPipelineDebug(moduleList) != 0):
                   print "LIGraph: " + str(liGraph)
        
-              moduleNames = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 1)]    
+              module_names = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 1)]    
      
               def cutRecurse(subgraph):
                   # doesn't make sense to cut up a size-one LIM
@@ -138,29 +138,20 @@ class BSV():
                   ## that the partitioned graphs are constructed
                   ## correctly
 
-                  graph0Channels = []
-                  graph1Channels = []
+                  graph0Connections = []
+                  graph1Connections = []
 
-                  for channel in subgraph.getChannels():
-                      channelSet = graph0Channels
-                      if(map[channel.module] == 1):
-                          channelSet = graph1Channels
-                      if(channel.isChain()):
-                          if(channel.isSource()):
-                              channelCopy = channel.copy()
-                              partnerCopy = channel.chainPartner.copy()
-                              channelCopy.chainPartner = partnerCopy
-                              partnerCopy.chainPartner = channelCopy
-                              channelSet += [channelCopy, partnerCopy]
-                      else:
-                          channelSet += [channel.copy()]
-
-                  graph0 = LIGraph(graph0Channels)        
-                  graph1 = LIGraph(graph1Channels)        
-
+                  for connection in subgraph.getChannels() + subgraph.getChains():
+                      connectionSet = graph0Connections
+                      if(map[connection.module] == 1):
+                          connectionSet = graph1Connections
+                      connectionSet += [connection.copy()]
+                    
+                  graph0 = LIGraph(graph0Connections)        
+                  graph1 = LIGraph(graph1Connections)        
 
                   #my module is the first in the list of names
-                  localModule = moduleNames.pop()
+                  localModule = module_names.pop()
                   submodule0 = graph0.modules.values()[0]
                   if(len(graph0.modules) > 1):
                       submodule0 = cutRecurse(graph0)
@@ -183,29 +174,40 @@ class BSV():
                   module_body += "    let " + submodule0.name + "_inst <- mk_" +  submodule0.name + "_Wrapper();\n"
                   module_body += "    let " + submodule1.name + "_inst <- mk_" +  submodule1.name + "_Wrapper();\n" 
 
-                  module_body += "    let connections0 = tpl_1(" + submodule0.name + "_inst.services);\n"
-                  module_body += "    let connections1 = tpl_1(" + submodule1.name + "_inst.services);\n"
+                  module_body += "    let " + submodule0.name + " = tpl_1(" + submodule0.name + "_inst.services);\n"
+                  module_body += "    let " + submodule1.name + " = tpl_1(" + submodule1.name + "_inst.services);\n"
                   # have we got some matching channels?
                   matched = {} # Use a hash to detect matching
 
-                  for channel in submodule0.channels:
-                      
+                  # handle matching channels 
+                  for channel in submodule0.channels:                     
                       for partnerChannel in submodule1.channels:
                           if(channel.matches(partnerChannel)):
                               if(getBuildPipelineDebug(moduleList) != 0):
                                   print "Found match with " + str(partnerChannel)
                               matched[channel.name] = channel
-                              if(not channel.isChain()):
-                                  if(channel.isSource()):
-                                      module_body += "    connectOutToIn(connections0.outgoing[" + str(channel.module_idx) + "], connections1.incoming[" + str(partnerChannel.module_idx) + "]);// " + channel.name + "\n"
-                                  else:                                 
-                                      module_body += "    connectOutToIn(connections1.outgoing[" + str(partnerChannel.module_idx) + "], connections0.incoming[" + str(channel.module_idx) + "]);// " + channel.name + "\n"
-                              else:
-                                  if(channel.isSource()):
-                                      module_body += "    connectOutToIn(connections0.chains[" + str(channel.module_idx) + "].outgoing, connections1.chains[" + str(partnerChannel.module_idx) + "].incoming);// " + channel.name + "\n"
+                          
+                              if(channel.isSource()):
+                                  module_body += "    connectOutToIn(" + channel.module_name + ".outgoing[" + str(channel.module_idx) + "], " +\
+                                      partnerChannel.module_name + ".incoming[" + str(partnerChannel.module_idx) + "]);// " + channel.name + "\n"
+                              else:                                 
+                                  module_body += "    connectOutToIn(" + partnerChannel.module_name + ".outgoing[" + str(partnerChannel.module_idx) + "], " +\
+                                      channel.module_name + ".incoming[" + str(channel.module_idx) + "]);// " + channel.name + "\n"                          
                                       
+                  #handle matching chains
+                  for chain in submodule0.chains:                    
+                      for partnerChain in submodule1.chains:
+                          if(chain.matches(partnerChain)):
+                              if(getBuildPipelineDebug(moduleList) != 0):
+                                  print "Found match with " + str(partnerChain)
+                              matched[chain.name] = chain
+                              chain.sinkPartnerChain = partnerChain
+                              chain.sourcePartnerChain = chain
+                              module_body += "    connectOutToIn(" + channel.module_name + ".chains[" + str(chain.module_idx) + "].outgoing, " +\
+                                  partnerChain.module_name + ".chains[" + str(partnerChain.module_idx) + "].incoming);// " + chain.name + "\n"
 
-                  # stick the remaining connections in this new module.  Include any chains.
+
+                  # stick the remaining connections in the interface of this new module.  Include any chains.
                   # we need to check chains for a match so that we get the routing right.
                   # if matched, ingress will be module0 and egress will be module1
 
@@ -221,57 +223,42 @@ class BSV():
                           print "Channel in " + submodule1.name + " " + str(channel)
 
                   for channel in submodule0.channels + submodule1.channels:
-
                       channelCopy = channel.copy()
-                      moduleName = "connections0"
-                      if(channel.modulename == submodule1.name):
-                          moduleName = "connections1"
-                      if(not channel.isChain()):
-                          if(not channel.name in matched):
-                              if(channel.isSource()):
-                                  module_body += "    outgoingVec[" + str(outgoing) +"] = " + moduleName + ".outgoing[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
-                                  channelCopy.module_idx = outgoing
-                                  outgoing = outgoing + 1
-                              else:
-                                  module_body += "    incomingVec[" + str(incoming) +"] = " + moduleName + ".incoming[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
-                                  channelCopy.module_idx =  incoming
-                                  incoming = incoming + 1
-                              channelCopy.modulename = localModule
-                              treeModule.addChannel(channelCopy) 
-                      else: 
-                          # We only emit code for source chains, since chains appear in the channel list twice.
-                          # However, we must also add the corresponding chain sink                          
-                          if(not (channel.name in matched)):
-                              if(channel.isSource()):
-                                  # need to add both incoming and outgoing
-                                  module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " + moduleName + ".chains[" + str(channel.module_idx) + "].incoming, outgoing: " + moduleName + ".chains[" + str(channel.module_idx) + "].outgoing};// " + channel.name + "\n"     
-                                  channelCopy.module_idx =  chains
-                                  channelCopy.modulename = localModule
-                                  partnerCopy = channel.chainPartner.copy()
-                                  partnerCopy.module_idx = chains
-                                  partnerCopy.modulename = localModule
-                                  partnerCopy.chainPartner = channelCopy
-                                  channelCopy.chainPartner = partnerCopy
-                                  treeModule.addChannel(partnerCopy)
-                                  treeModule.addChannel(channelCopy)
-                                  chains = chains + 1
+                     
+                      if(not channel.name in matched):
+                          if(channel.isSource()):
+                              module_body += "    outgoingVec[" + str(outgoing) +"] = " + channel.module_name + ".outgoing[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
+                              channelCopy.module_idx = outgoing
+                              outgoing = outgoing + 1
+                          else:
+                              module_body += "    incomingVec[" + str(incoming) +"] = " + channel.module_name + ".incoming[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
+                              channelCopy.module_idx =  incoming
+                              incoming = incoming + 1
+                          channelCopy.module_name = localModule # override the module_name with the local module
+                          treeModule.addChannel(channelCopy) 
+
+                  # Chains are always propagated up, but they can also be matched. In this case, we must use a portion 
+                  # of each module's chain.
+                  for chain in submodule0.chains + submodule1.chains:                      
+                      chainCopy = chain.copy()                        
+                      if(not (chain.name in matched)):
+                          # need to add both incoming and outgoing
+                          module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " + chain.module_name + ".chains[" + str(chain.module_idx) + "].incoming, outgoing: " + chain.module_name + ".chains[" + str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                          chainCopy.module_idx =  chains
+                          chainCopy.module_name = localModule
+                          treeModule.addChain(chainCopy)
+                          chains = chains + 1
                                   
-                          else:   
-                              if((channel.modulename == submodule1.name) and channel.isSource()):
-                                  # need to get form a chain based on the combination of the two modules
-                                  channel0 = matched[channel.name]
-                                  channelCopy = channel.copy()
-                                  module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: connections0.chains[" + str(channel0.module_idx) + "].incoming, outgoing: connections1.chains[" + str(channel.module_idx) + "].outgoing};// " + channel.name + "\n"     
-                                  channelCopy.module_idx =  chains
-                                  channelCopy.modulename = localModule
-                                  partnerCopy = channel.chainPartner.copy()
-                                  partnerCopy.module_idx = chains
-                                  partnerCopy.modulename = localModule
-                                  partnerCopy.chainPartner = channelCopy
-                                  channelCopy.chainPartner = partnerCopy
-                                  treeModule.addChannel(partnerCopy)
-                                  treeModule.addChannel(channelCopy) 
-                                  chains = chains + 1        
+                      else:   
+                          # we see matched chains twice, but we should only emit code once.
+                          if((chain.module_name == submodule1.name)):
+                              # need to get form a chain based on the combination of the two modules
+                              chain0 = matched[chain.name]
+                              module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " + chain0.module_name + ".chains[" + str(chain0.module_idx) + "].incoming, outgoing: " + chain.module_name+ ".chains[" + str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                              chainCopy.module_idx =  chains
+                              chainCopy.module_name = localModule                              
+                              treeModule.addChain(chainCopy) 
+                              chains = chains + 1        
 
       
                   # now that we have processed the module body, let's lay down some code.
@@ -320,7 +307,7 @@ class BSV():
               # downstream tools happy.  This can be removed once we
               # reorganize the multifpga compiler. 
 
-              for module in moduleNames:
+              for module in module_names:
                   tree_file.write("\n\n(*synthesize*)\n")
                   tree_file.write("module mk_" + module + "_Wrapper (Reg#(Bit#(1)));\n")
                   tree_file.write("    let m <- mkRegU();\n")
@@ -332,15 +319,16 @@ class BSV():
               tree_file.write("    let tree <- liftModule(mk_" + top_module.name + "_Wrapper());\n")
               tree_file.write("    let connections = tpl_1(tree.services);\n")
               # these strings should probably made functions in the liChannel code
+
               for channel in top_module.channels:
                   if(channel.isSource()):
-                      if(not channel.isChain()):
-                          tree_file.write('    registerSend(LOGICAL_SEND_INFO { logicalName: "' + channel.name + '", logicalType: "' + channel.raw_type + '", computePlatform: "' + channel.platform + '", optional: ' + str(channel.optional) + ', outgoing: connections.outgoing[' + str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) + ', moduleName: "' + channel.modulename + '"});\n')
-                      else:
-                          tree_file.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' + channel.name + '", logicalType: "' + channel.raw_type + '", computePlatform: "' + channel.platform + '", incoming: connections.chains[' + str(channel.module_idx) + '].incoming, outgoing: connections.chains[' + str(channel.module_idx) + '].outgoing, bitWidth:' + str(channel.bitwidth) + ', moduleNameIncoming: "' + channel.modulename + '",  moduleNameOutgoing: "' + channel.modulename + '"});\n')   
-                  else:
-                      if(not channel.isChain()):
-                          tree_file.write('    registerRecv(LOGICAL_RECV_INFO { logicalName: "' + channel.name + '", logicalType: "' + channel.raw_type + '", computePlatform: "' + channel.platform + '", optional: ' + str(channel.optional) + ', incoming: connections.incoming[' + str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) + ', moduleName: "' + channel.modulename + '"});\n')
+                      tree_file.write('    registerSend(LOGICAL_SEND_INFO { logicalName: "' + channel.name + '", logicalType: "' + channel.raw_type + '", computePlatform: "' + channel.platform + '", optional: ' + str(channel.optional) + ', outgoing: connections.outgoing[' + str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) + ', moduleName: "' + channel.module_name + '"});\n')   
+                  else:                     
+                      tree_file.write('    registerRecv(LOGICAL_RECV_INFO { logicalName: "' + channel.name + '", logicalType: "' + channel.raw_type + '", computePlatform: "' + channel.platform + '", optional: ' + str(channel.optional) + ', incoming: connections.incoming[' + str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) + ', moduleName: "' + channel.module_name + '"});\n')
+
+              for chain in top_module.chains:
+                  tree_file.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' + chain.name + '", logicalType: "' + chain.raw_type + '", computePlatform: "' + channel.platform + '", incoming: connections.chains[' + str(chain.module_idx) + '].incoming, outgoing: connections.chains[' + str(chain.module_idx) + '].outgoing, bitWidth:' + str(chain.bitwidth) + ', moduleNameIncoming: "' + chain.module_name + '",  moduleNameOutgoing: "' + chain.module_name + '"});\n')   
+
               tree_file.write("endmodule\n")
               tree_file.write("`endif\n")
               tree_file.close()
