@@ -544,8 +544,6 @@ class BSV():
     def compile_bo(source, target, env, for_signature):
       cmd = ''
       if (str(source[0]) != get_buildpath(moduleList, moduleList.topModule) + '/' + moduleList.topModule.name + '.bsv'): 
-        print get_buildpath(moduleList, moduleList.topModule) + '/' + moduleList.topModule.name + '.bsv\n' 
-        print str(source[0]) + '\n' 
         cmd = compile_bo_bsc_base(target) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
       return cmd
 
