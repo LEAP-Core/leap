@@ -15122,3 +15122,33 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
  BSV.py                    Locally Modified          415 
 
 Eliminate build-time debugging print message added in the previous check-in.
+
+----------
+kfleming    Date: Mon Apr 22 11:52:18 EDT 2013  CSN: CSN-leap-417
+                  Mon Apr 22 15:52:18 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          416 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          416 
+ synthesis_boundary_wrapper_gen.awb Locally Modified          416 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liUtility.py              Locally Modified          416 
+ liChannel.py              Locally Modified          416 
+ liGraph.py                Locally Modified          416 
+ liChain.py                Locally Modified          416 
+
+
+1) Added the capability to choose between a flat or tree-like module
+infrastructure. Although final implementation results are consistent
+between tree and flat builds, XST does not do a good job of optimizing
+the tree build.  Also, the tree build currently lacks synthesis
+parallelism making it somewhat slower than the flat build.
+
+2) Added more commentary for recursive tree build functions.
+
+3) Fixed small code style errors.
+

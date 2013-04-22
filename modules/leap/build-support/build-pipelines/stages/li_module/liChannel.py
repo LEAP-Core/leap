@@ -33,19 +33,19 @@ class LIChannel():
       return newChannel
   # can probably extend matches to support chains
   def matches(self, other):
-      if(other.name == self.name):
+      if (other.name == self.name):
           #do the types match?
-          if(other.raw_type != self.raw_type):
+          if (other.raw_type != self.raw_type):
               print "SoftConnection type mismatch for " + self.name + ": " + other.raw_type + " and " + self.raw_type
               sys.exit(-1)
    
           #Can't match if one is already matched
-          if(other.matched or self.matched):
+          if (other.matched or self.matched):
             return False
 
-          if(other.sc_type == 'Recv' and self.sc_type == 'Send'):
+          if (other.sc_type == 'Recv' and self.sc_type == 'Send'):
               return True
-          if(self.sc_type == 'Recv' and other.sc_type == 'Send'):
+          if (self.sc_type == 'Recv' and other.sc_type == 'Send'):
               return True
 
       return False
@@ -57,7 +57,7 @@ class LIChannel():
       return self.sc_type == 'Recv'
 
   def linkPriority(self):
-      if((self.sc_type == 'Recv') or (self.sc_type == 'Send')):
+      if ((self.sc_type == 'Recv') or (self.sc_type == 'Send')):
         return 1
       else:
         return 2

@@ -34,14 +34,14 @@ class LIChain():
       return newChain
 
   def matches(self, other):
-      if(other.name == self.name):
+      if (other.name == self.name):
           #do the types match?
-          if(other.raw_type != self.raw_type):
+          if (other.raw_type != self.raw_type):
               print "SoftConnection type mismatch for " + self.name + ": " + other.raw_type + " and " + self.raw_type
               sys.exit(-1)
    
           #Can't match if one is already matched
-          if(other.matched or self.matched):
+          if (other.matched or self.matched):
             return False
 
           return True

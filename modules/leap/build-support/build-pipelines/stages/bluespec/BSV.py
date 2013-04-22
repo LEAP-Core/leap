@@ -114,23 +114,38 @@ class BSV():
               tree_file.write('import Vector::*;\n')
 
               tree_file.write('module mkEmpty (Empty); endmodule\n')
-              if(getBuildPipelineDebug(moduleList) != 0):
+              if (getBuildPipelineDebug(moduleList) != 0):
                   print "LIGraph: " + str(liGraph)
        
               module_names = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 1)]    
      
+              # A recursive function for partitioning a latency
+              # insensitive graph into a a tree of modules so as to
+              # minimize the number of rules in the modules of the
+              # tree.  This construction reduces the complexity of the
+              # design as seen by the bluespec compiler.  The code
+              # could be reorganized as two passes: the construction
+              # of the tree representation and the generation of the
+              # tree code.  
+              #
+              # Input: LIGraph representing the user program 
+              # 
+              # Output: LIModule repesenting the tree produced
+              # by the function.  This tree may have unmatched
+              # channels.
               def cutRecurse(subgraph):
                   # doesn't make sense to cut up a size-one LIM
-                  # trivially return the base module
-                  if(len(subgraph.graph.nodes()) == 1):
+                  # trivially return the base LI module to the caller
+                  if (len(subgraph.graph.nodes()) == 1):
                       return subgraph.graph.nodes()[0]
 
+                  # do a min cut on the graph
                   map = min_cut(subgraph.graph)
-                  # need to generate code for this matching.
-                  if(getBuildPipelineDebug(moduleList) != 0):
+
+                  if (getBuildPipelineDebug(moduleList) != 0):
                       print "Cut map: " + str(map)
                   
-                  ## Build new li graphs from the sub components of
+                  ## Now that we've got a cut, Build new li graphs from the sub components of
                   ## original graph However, we must be careful
                   ## because some modules may not have internal
                   ## channels, only external channels.  Thus for each
@@ -143,51 +158,64 @@ class BSV():
 
                   for connection in subgraph.getChannels() + subgraph.getChains():
                       connectionSet = graph0Connections
-                      if(map[connection.module] == 1):
+                      if (map[connection.module] == 1):
                           connectionSet = graph1Connections
                       connectionSet += [connection.copy()]
                     
                   graph0 = LIGraph(graph0Connections)        
                   graph1 = LIGraph(graph1Connections)        
 
-                  #my module is the first in the list of names
+                  #Pick a name for the local module
                   localModule = module_names.pop()
+
+                  # in order to build an LI module for this node in the tree,
+                  # we need to have the code for the subtrees 
+                  # below the current node.  And so we recurse.  If only one 
+                  # module remains in the cut graph, there is no need to recurse
+                  # and we just use that module. 
                   submodule0 = graph0.modules.values()[0]
-                  if(len(graph0.modules) > 1):
+                  if (len(graph0.modules) > 1):
                       submodule0 = cutRecurse(graph0)
 
                   submodule1 = graph1.modules.values()[0] 
-                  if(len(graph1.modules) > 1):
+                  if (len(graph1.modules) > 1):
                       submodule1 = cutRecurse(graph1)
 
-                  # we need to build a representation of the new liModule we are about to build.
+                  # we need to build a representation of the new liModule we are about to construct.
                   treeModule = LIModule("FixMe",localModule)
                   
                   # now we can write out our modules.
                   tree_file.write("\n\n(*synthesize*)\n") 
-                  # In order to generate the module, we need a type, but we can only get it after analyzing the module pair
-                  
+
+                  # In order to generate the module, we need a type, 
+                  # but we can only get it after analyzing the module pair
+                  # Thus we store the module body code for later consumption                  
                   module_body = ""
 
 
-                  # need to instantiate the submodules.
-                  module_body += "    let " + submodule0.name + "_inst <- mk_" +  submodule0.name + "_Wrapper();\n"
-                  module_body += "    let " + submodule1.name + "_inst <- mk_" +  submodule1.name + "_Wrapper();\n" 
+                  # Instantiate the submodules.
+                  for name in [submodule0.name, submodule1.name]:
+                      module_body += "    let " + name + "_inst <- mk_" +\
+                                     name + "_Wrapper();\n"                
+                      module_body += "    let " + name + " = tpl_1(" +\
+                                     name + "_inst.services);\n"
 
-                  module_body += "    let " + submodule0.name + " = tpl_1(" + submodule0.name + "_inst.services);\n"
-                  module_body += "    let " + submodule1.name + " = tpl_1(" + submodule1.name + "_inst.services);\n"
-                  # have we got some matching channels?
+
+                  # At this node in the tree, we can match channels from our two children.  
+                  # This matching is what reduces the bluespec compiler complexity, since matched
+                  # channels do not need to be propagated upward.
+
                   matched = {} # Use a hash to detect matching
 
                   # handle matching channels 
                   for channel in submodule0.channels:                     
                       for partnerChannel in submodule1.channels:
-                          if(channel.matches(partnerChannel)):
-                              if(getBuildPipelineDebug(moduleList) != 0):
+                          if (channel.matches(partnerChannel)):
+                              if (getBuildPipelineDebug(moduleList) != 0):
                                   print "Found match with " + str(partnerChannel)
                               matched[channel.name] = channel
                           
-                              if(channel.isSource()):
+                              if (channel.isSource()):
                                   module_body += "    connectOutToIn(" + channel.module_name + ".outgoing[" + str(channel.module_idx) + "], " +\
                                       partnerChannel.module_name + ".incoming[" + str(partnerChannel.module_idx) + "]);// " + channel.name + "\n"
                               else:                                 
@@ -197,8 +225,8 @@ class BSV():
                   #handle matching chains
                   for chain in submodule0.chains:                    
                       for partnerChain in submodule1.chains:
-                          if(chain.matches(partnerChain)):
-                              if(getBuildPipelineDebug(moduleList) != 0):
+                          if (chain.matches(partnerChain)):
+                              if (getBuildPipelineDebug(moduleList) != 0):
                                   print "Found match with " + str(partnerChain)
                               matched[chain.name] = chain
                               chain.sinkPartnerChain = partnerChain
@@ -207,16 +235,20 @@ class BSV():
                                   partnerChain.module_name + ".chains[" + str(partnerChain.module_idx) + "].incoming);// " + chain.name + "\n"
 
 
-                  # stick the remaining connections in the interface of this new module.  Include any chains.
-                  # we need to check chains for a match so that we get the routing right.
-                  # if matched, ingress will be module0 and egress will be module1
+                  # Stick the remaining connections of child modules
+                  # into the interface of this new module.  Include
+                  # any chains.  we need to check chains for a match
+                  # so that we get the routing right.  if matched,
+                  # ingress will be module0 and egress will be module1
 
                   incoming = 0
                   outgoing = 0
                   chains = 0
  
-                  # Propagate unmatched channels and chains up the tree, synthesizing new interface code.
-                  if(getBuildPipelineDebug(moduleList) != 0):
+                  # We need to propagate any remaining unmatched channels and chains up the tree,
+                  # To do this we populate the LI module representing this node with the unmatched 
+                  # channels of the child node. 
+                  if (getBuildPipelineDebug(moduleList) != 0):
                       for channel in submodule0.channels:
                           print "Channel in " + submodule0.name + " " + str(channel)
                       for channel in submodule1.channels:
@@ -225,55 +257,77 @@ class BSV():
                   for channel in submodule0.channels + submodule1.channels:
                       channelCopy = channel.copy()
                      
-                      if(not channel.name in matched):
-                          if(channel.isSource()):
-                              module_body += "    outgoingVec[" + str(outgoing) +"] = " + channel.module_name + ".outgoing[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
+                      if (not channel.name in matched):
+                          if (channel.isSource()):
+                              module_body += "    outgoingVec[" + str(outgoing) +"] = " + channel.module_name +\
+                                             ".outgoing[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
                               channelCopy.module_idx = outgoing
                               outgoing = outgoing + 1
                           else:
-                              module_body += "    incomingVec[" + str(incoming) +"] = " + channel.module_name + ".incoming[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
+                              module_body += "    incomingVec[" + str(incoming) +"] = " + channel.module_name +\
+                                             ".incoming[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
                               channelCopy.module_idx =  incoming
                               incoming = incoming + 1
-                          channelCopy.module_name = localModule # override the module_name with the local module
+
+                          # override the module_name with the local
+                          # module so that our parent will refer to us
+                          # correctly
+                          channelCopy.module_name = localModule
                           treeModule.addChannel(channelCopy) 
 
-                  # Chains are always propagated up, but they can also be matched. In this case, we must use a portion 
-                  # of each module's chain.
+                  # Chains are always propagated up, but they can also
+                  # be matched. In this case, we must use a portion of
+                  # each child module's chain.
+
                   for chain in submodule0.chains + submodule1.chains:                      
                       chainCopy = chain.copy()                        
-                      if(not (chain.name in matched)):
+                      if (not (chain.name in matched)):
                           # need to add both incoming and outgoing
-                          module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " + chain.module_name + ".chains[" + str(chain.module_idx) + "].incoming, outgoing: " + chain.module_name + ".chains[" + str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                          module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " +\
+                                         chain.module_name + ".chains[" + str(chain.module_idx) +\
+                                         "].incoming, outgoing: " + chain.module_name + ".chains[" +\
+                                         str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
                           chainCopy.module_idx =  chains
                           chainCopy.module_name = localModule
                           treeModule.addChain(chainCopy)
                           chains = chains + 1
                                   
                       else:   
-                          # we see matched chains twice, but we should only emit code once.
-                          if((chain.module_name == submodule1.name)):
-                              # need to get form a chain based on the combination of the two modules
+                          # we see matched chains twice, but we should
+                          # only emit code once.
+                          if ((chain.module_name == submodule1.name)):
+                              # need to get form a chain based on the
+                              # combination of the two modules
                               chain0 = matched[chain.name]
-                              module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " + chain0.module_name + ".chains[" + str(chain0.module_idx) + "].incoming, outgoing: " + chain.module_name+ ".chains[" + str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                              module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " +\
+                                             chain0.module_name + ".chains[" + str(chain0.module_idx) +\
+                                             "].incoming, outgoing: " + chain.module_name+ ".chains[" +\
+                                             str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
                               chainCopy.module_idx =  chains
                               chainCopy.module_name = localModule                              
                               treeModule.addChain(chainCopy) 
                               chains = chains + 1        
 
       
-                  # now that we have processed the module body, let's lay down some code.
+                  # now that we have processed the module body, let's
+                  # lay down wrapping code.
                   tree_file.write("module mk_" + localModule + "_Wrapper")
-                  moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) + ", " + str(outgoing) + ", 0, 0, " + str(chains) + ")"
-                  subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " + str(outgoing) + ", 0, 0, " + str(chains) + ")"
+                  moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
+                               ", " + str(outgoing) + ", 0, 0, " + str(chains) + ")"
+
+                  subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
+                                     str(outgoing) + ", 0, 0, " + str(chains) + ")"
                   tree_file.write(" (" + moduleType +");\n")
                    
                   #declare interface vectors
                   tree_file.write("    Vector#(" + str(incoming) + ", PHYSICAL_CONNECTION_IN)  incomingVec = newVector();\n")
                   tree_file.write("    Vector#(" + str(outgoing) + ", PHYSICAL_CONNECTION_OUT) outgoingVec = newVector();\n")
                   tree_file.write("    Vector#(" + str(chains) + ", PHYSICAL_CHAIN) chainsVec = newVector();\n")
-
+        
+                  # lay down module body
                   tree_file.write(module_body)
-                                   
+                                  
+                  # fill in external interface 
                   tree_file.write("   let e0 <- mkEmpty();\n");
                   tree_file.write("   let e1 <- mkEmpty();\n");
                   tree_file.write("   let e2 <- mkEmpty();\n");
@@ -292,20 +346,21 @@ class BSV():
                   tree_file.write("    interface device = e2;\n")
                   tree_file.write("endmodule\n")
 
-                  if(getBuildPipelineDebug(moduleList) != 0):
+                  if (getBuildPipelineDebug(moduleList) != 0):
                       for channel in treeModule.channels:
                           print "Channel in " + treeModule.name + " " + str(channel)
 
                   return treeModule
 
-
+              # partition the top level LIM graph to produce a tree of latency 
+              # insensitive modules
               top_module = cutRecurse(liGraph)            
 
               # In multifpga builds, we may have some leftover modules
               # due to the way that the LIM compiler currently
               # operates. We emit dummy modules here to make
               # downstream tools happy.  This can be removed once we
-              # reorganize the multifpga compiler. 
+              # reorganize the multifpga compiler.
 
               for module in module_names:
                   tree_file.write("\n\n(*synthesize*)\n")
@@ -314,28 +369,49 @@ class BSV():
                   tree_file.write("    return m;\n")
                   tree_file.write("endmodule\n")
 
-              # we need to create a top level wrapper module to re-monadize the soft connections so that the platform compiles correctly
+              # we need to create a top level wrapper module to
+              # re-monadize the soft connections so that the platform
+              # compiles correctly
               tree_file.write("\n\nmodule [Connected_Module] instantiateBuildTree();\n")
               tree_file.write("    let tree <- liftModule(mk_" + top_module.name + "_Wrapper());\n")
               tree_file.write("    let connections = tpl_1(tree.services);\n")
-              # these strings should probably made functions in the liChannel code
 
+              # these strings should probably made functions in the
+              # liChannel code
               for channel in top_module.channels:
-                  if(channel.isSource()):
-                      tree_file.write('    registerSend(LOGICAL_SEND_INFO { logicalName: "' + channel.name + '", logicalType: "' + channel.raw_type + '", computePlatform: "' + channel.platform + '", optional: ' + str(channel.optional) + ', outgoing: connections.outgoing[' + str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) + ', moduleName: "' + channel.module_name + '"});\n')   
-                  else:                     
-                      tree_file.write('    registerRecv(LOGICAL_RECV_INFO { logicalName: "' + channel.name + '", logicalType: "' + channel.raw_type + '", computePlatform: "' + channel.platform + '", optional: ' + str(channel.optional) + ', incoming: connections.incoming[' + str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) + ', moduleName: "' + channel.module_name + '"});\n')
+                  ch_reg_stmt = 'registerRecv'
+                  ch_type = 'LOGICAL_RECV_INFO'
+                  ch_src = 'incoming'
+                  if (channel.isSource()):
+                      ch_reg_stmt = 'registerSend'
+                      ch_type = 'LOGICAL_SEND_INFO'
+                      ch_src = 'outgoing'
+
+                  tree_file.write('    ' + ch_reg_stmt + '(' + ch_type + ' { logicalName: "' +\
+                                  channel.name + '", logicalType: "' + channel.raw_type +\
+                                  '", computePlatform: "' + channel.platform + '", optional: ' +\
+                                  str(channel.optional) + ', ' + ch_src + ': connections.' + ch_src +'[' +\
+                                  str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) +\
+                                  ', moduleName: "' + channel.module_name + '"});\n')   
 
               for chain in top_module.chains:
-                  tree_file.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' + chain.name + '", logicalType: "' + chain.raw_type + '", computePlatform: "' + channel.platform + '", incoming: connections.chains[' + str(chain.module_idx) + '].incoming, outgoing: connections.chains[' + str(chain.module_idx) + '].outgoing, bitWidth:' + str(chain.bitwidth) + ', moduleNameIncoming: "' + chain.module_name + '",  moduleNameOutgoing: "' + chain.module_name + '"});\n')   
+                  tree_file.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' +\
+                                  chain.name + '", logicalType: "' + chain.raw_type +\
+                                  '", computePlatform: "' + channel.platform +\
+                                  '", incoming: connections.chains[' + str(chain.module_idx) +\
+                                  '].incoming, outgoing: connections.chains[' + str(chain.module_idx) +\
+                                  '].outgoing, bitWidth:' + str(chain.bitwidth) +\
+                                  ', moduleNameIncoming: "' + chain.module_name +\
+                                  '",  moduleNameOutgoing: "' + chain.module_name + '"});\n')   
 
               tree_file.write("endmodule\n")
               tree_file.write("`endif\n")
               tree_file.close()
               return None
         
-      # we are going to have a whole bunch of BA and V files coming.  We don't yet know what they contain, 
-      # but we do know that there will be |synth_modules| - 2 of them 
+      # we are going to have a whole bunch of BA and V files coming.
+      # We don't yet know what they contain, but we do know that there
+      # will be |synth_modules| - 2 of them
       temp_path = get_temppath(moduleList, moduleList.topModule)
       build_path = get_buildpath(moduleList, moduleList.topModule)
       treeNodeV = []
@@ -343,32 +419,40 @@ class BSV():
       treeNodeBSV = [ build_path + 'build_tree.bsv']
       for id in range(len(moduleList.synthBoundaries()) - 1):
           name = "mk___TREE_MODULE__" + str(id) + "_Wrapper"
-          if(not 'GEN_VERILOGS' in moduleList.topModule.moduleDependency):
+          if (not 'GEN_VERILOGS' in moduleList.topModule.moduleDependency):
               moduleList.topModule.moduleDependency['GEN_VERILOGS'] = []
-          if(not 'GEN_BAS' in moduleList.topModule.moduleDependency):
+          if (not 'GEN_BAS' in moduleList.topModule.moduleDependency):
               moduleList.topModule.moduleDependency['GEN_BAS'] = []
           moduleList.topModule.moduleDependency['GEN_VERILOGS'] += [name + ".v"]  
           moduleList.topModule.moduleDependency['GEN_BAS'] += [name + ".ba"] 
           treeNodeV += [temp_path + name + ".v"]
           treeNodeBA += [temp_path + name + ".ba"]
 
-      ## having described the new build tree dependencies we can build the top module
+      ## having described the new build tree dependencies we can build
+      ## the top module
       self.build_synth_boundary(moduleList, moduleList.topModule)
 
-      # This produces the treeNode BSV. It must wait for the compilation of the log files, which it will read 
-      # to form the LIM graph
+      # This produces the treeNode BSV. It must wait for the
+      # compilation of the log files, which it will read to form the
+      # LIM graph
       tree_components = moduleList.env.Command(treeNodeBSV, boundary_logs, cut_tree_build)
 
-      # the top level model wrapper build needs the generated BSV's to exist or it will not compile
-      moduleList.env.Depends(moduleList.topModule.moduleDependency['BSV_BO'], tree_components)
-      moduleList.env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'], tree_components)
+      # the top level model wrapper build needs the generated BSV's to
+      # exist or it will not compile Only add these dependencies if we
+      # are actually using the build tree
+      if (moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')):
+          moduleList.env.Depends(moduleList.topModule.moduleDependency['BSV_BO'],\
+                                 tree_components)
+          moduleList.env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'],\
+                                 tree_components)
 
       ##
-      ## Generate the global string table.  Bluespec-generated global strings
-      ## are stored in files by the compiler.
+      ## Generate the global string table.  Bluespec-generated global
+      ## strings are stored in files by the compiler.
       ##
-      ## The global string file will be generated in the top-level .bsc
-      ## directory and a link to it will be added to the top-level directory.
+      ## The global string file will be generated in the top-level
+      ## .bsc directory and a link to it will be added to the
+      ## top-level directory.
       ##
       all_str_src = []
       for module in topo + [moduleList.topModule]:
@@ -425,7 +509,7 @@ class BSV():
     SURROGATE_BSVS = ''
     for child in surrogate_children:
       # Make sure module doesn't self-depend
-      if(child.name != module.name):
+      if (child.name != module.name):
         SURROGATE_BSVS += moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + child.buildPath +'/' + child.name + '.bsv '
 
     if (SURROGATE_BSVS != ''):
@@ -485,7 +569,7 @@ class BSV():
   ##   a separate instance of SCons first that uses compute_dependence() above.
   ##
   def build_synth_boundary(self, moduleList, module):
-    if(getBuildPipelineDebug(moduleList) != 0):
+    if (getBuildPipelineDebug(moduleList) != 0):
       print "Working on " + module.name
 
     env = moduleList.env
@@ -684,7 +768,7 @@ class BSV():
       if (moduleList.getAWBParam('bsv_tool', 'BUILD_VERILOG') == 1):
         module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
-      if(getBuildPipelineDebug(moduleList) != 0):
+      if (getBuildPipelineDebug(moduleList) != 0):
         print "Name: " + module.name
 
       # each synth boundary will produce a ba
@@ -699,7 +783,7 @@ class BSV():
       ##
       descendents = moduleList.getSynthBoundaryDescendents(module)
       for descendent in descendents:
-        if(getBuildPipelineDebug(moduleList) != 0):
+        if (getBuildPipelineDebug(moduleList) != 0):
           print "BA: working on " + descendent.name
 
         gen_ba = moduleList.getDependencies(descendent, 'GEN_BAS')
@@ -708,7 +792,7 @@ class BSV():
         # their specific bo.
         ext_gen_ba = []
         for ba in gen_ba:
-          if(getBuildPipelineDebug(moduleList) != 0):
+          if (getBuildPipelineDebug(moduleList) != 0):
             print "BA: " + descendent.name + " generates " + MODULE_PATH + '/' + TMP_BSC_DIR + '/' + ba
           ext_gen_ba += [MODULE_PATH + '/' + TMP_BSC_DIR + '/' + ba]    
           

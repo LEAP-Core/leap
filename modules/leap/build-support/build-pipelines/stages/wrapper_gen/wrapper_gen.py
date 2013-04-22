@@ -1,7 +1,7 @@
 import os
 from model import  *
+from config import  *
  
-
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
 # This is going to recursively build all the bsvs
@@ -73,27 +73,33 @@ class WrapperGen():
           if synth != module:
             wrapper_bsv.write('`include "' + synth.name + '_synth.bsv"\n')
 
-        # Provide a method that imports all subordinate synthesis boundaries.
-        # It will be invoked inside the top level model in order to build
-        # all soft connections
-        wrapper_bsv.write('\n\n`ifdef CONNECTION_SIZES_KNOWN\n');
-        wrapper_bsv.write('    `include "build_tree.bsv"\n'); # This will get generated later, during the leap-connect phase.
-        wrapper_bsv.write('    module [Connected_Module] instantiateAllSynthBoundaries ();\n')
-        wrapper_bsv.write('        let m <- instantiateBuildTree();\n')
-        wrapper_bsv.write('    endmodule\n')
-        wrapper_bsv.write('`else\n');
-
+        # Provide a method that imports all subordinate synthesis
+        # boundaries.  It will be invoked inside the top level model
+        # in order to build all soft connections
+        use_build_tree = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
+    
+        if(use_build_tree == 1):
+            wrapper_bsv.write('\n\n`ifdef  CONNECTION_SIZES_KNOWN\n');
+            # build_tree.bsv will get generated later, during the
+            # leap-connect phase.
+            wrapper_bsv.write('    `include "build_tree.bsv"\n'); 
+            wrapper_bsv.write('    module [Connected_Module] instantiateAllSynthBoundaries ();\n')
+            wrapper_bsv.write('        let m <- instantiateBuildTree();\n')
+            wrapper_bsv.write('    endmodule\n')
+            wrapper_bsv.write('`else\n');
+      
         wrapper_bsv.write('\n    module ')
         if len(synth_modules) != 1:
-          wrapper_bsv.write('[Connected_Module]')
+            wrapper_bsv.write('[Connected_Module]')
         wrapper_bsv.write(' instantiateAllSynthBoundaries ();\n')
 
         for synth in synth_modules:
           if synth != module:
-            wrapper_bsv.write('        ' + synth.synthBoundaryModule + '();\n')
+              wrapper_bsv.write('        ' + synth.synthBoundaryModule + '();\n')
 
         wrapper_bsv.write('    endmodule\n')
-        wrapper_bsv.write('`endif\n'); 
+        if(use_build_tree == 1):
+            wrapper_bsv.write('`endif\n'); 
 
 
         wrapper_bsv.write('`include "' + module.name + '.bsv"\n')

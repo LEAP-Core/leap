@@ -22,11 +22,12 @@ class LIGraph():
         for connection in connections:
             # give channels unit weight
             connection.activity = 1
-            if(not connection.module_name in self.modules):
+            if (not connection.module_name in self.modules):
                 # for now, type and name are the same
-                self.modules[connection.module_name] = LIModule(connection.module_name, connection.module_name)
+                self.modules[connection.module_name] = LIModule(connection.module_name,\
+                                                                connection.module_name)
        
-            if(isinstance(connection,LIChannel)):
+            if (isinstance(connection,LIChannel)):
                 self.modules[connection.module_name].addChannel(connection)
             else:
                 self.modules[connection.module_name].addChain(connection)
@@ -48,19 +49,19 @@ class LIGraph():
         # add edges - for now all edges have unit weight
         for module in self.modules.values():
             for channel in module.channels:
-                # depending on what we are doing with the graph, unmatched channels 
-                # may not be an error.  We will instead mark the object in case 
-                # the caller cares 
-                if(not (channel.matched or channel.optional)):
+                # depending on what we are doing with the graph,
+                # unmatched channels may not be an error.  We will
+                # instead mark the object in case the caller cares
+                if (not (channel.matched or channel.optional)):
                     print "Warning: Unmatched channel " + str(channel)
                     self.unmatchedChannels = True                    
                     continue
                 # It is possible that optional channels do not have a match
-                if(not channel.matched):
+                if (not channel.matched):
                     continue
                 #Only add an edge if the channel is a source.
-                if(channel.isSource()):
-                    if(not self.graph.has_edge((module, channel.partnerModule))):
+                if (channel.isSource()):
+                    if (not self.graph.has_edge((module, channel.partnerModule))):
                         self.graph.add_edge((module, channel.partnerModule))
                         self.weights[(module, channel.partnerModule)] = channel.activity
                     else:
@@ -72,7 +73,7 @@ class LIGraph():
             rep += name + ":\n"
             for channel in module.channels:
                 partnerName = 'unassigned'
-                if(channel.matched):
+                if (channel.matched):
                     partnerName = channel.partnerModule.name
                 rep += channel.name + " <-> " + partnerName + "\n"
         return rep + '}'
@@ -104,16 +105,16 @@ class LIGraph():
         for module in self.modules.values():
             for partnerModule in self.modules.values():
                 # if we are the same module, skip
-                if(module.name == partnerModule.name):
+                if (module.name == partnerModule.name):
                     continue
                 for channel in module.channels:
                     # ignore previously matched channels
-                    if(channel.matched):
+                    if (channel.matched):
                         continue
                     for partnerChannel in partnerModule.channels:
-                        if(partnerChannel.matched):
+                        if (partnerChannel.matched):
                             continue
-                        if(channel.matches(partnerChannel)): # a potential match
+                        if (channel.matches(partnerChannel)): # a potential match
                             channel.partnerChannel = partnerChannel
                             channel.partnerModule = partnerModule                       
                             partnerChannel.partnerChannel = channel

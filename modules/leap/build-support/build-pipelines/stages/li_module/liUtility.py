@@ -17,12 +17,11 @@ def parseLogfiles(logfiles):
         log = open(logfile,'r')
              
         for line in log:
-            if(re.match("Compilation message: .*: Dangling",line)):                
-                #Dangling Send {front_panel::FRONTP_MASKED_LEDS} [0]:fpga_leds:Unknown:False:8:traffic_light_function:None            
+            if (re.match("Compilation message: .*: Dangling",line)):                
                 match = re.search(r'.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\w+):(\d+):(\w+):(\w+)', line)
-                if(match):
+                if (match):
                     #python groups begin at index 1  
-                    if(match.group(1) == "Chain"):
+                    if (match.group(1) == "Chain"):
                         connections +=  [LIChain(match.group(1), 
                                                  match.group(2),
                                                  match.group(3),
@@ -60,10 +59,10 @@ def min_cut(graph):
    # for all pairs s-t 
    for source in graph.nodes():
       for sink in graph.nodes():
-          if(source != sink):
+          if (source != sink):
               (flow, cut) =  pygraph.algorithms.minmax.maximum_flow(graph, source, sink)
               value = pygraph.algorithms.minmax.cut_value(graph, flow, cut)
-              if(value < minimum_cut):
+              if (value < minimum_cut):
                   minimum_cut = value
                   minimum_mapping = cut
 

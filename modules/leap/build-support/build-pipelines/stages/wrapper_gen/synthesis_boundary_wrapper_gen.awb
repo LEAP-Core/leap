@@ -6,3 +6,5 @@
 %provides wrapper_gen_tool
 
 %scons %library wrapper_gen.py
+
+%param USE_BUILD_TREE  1             "Should we use a flat or hierarchical representation of the program latency-insensitive module graph"
