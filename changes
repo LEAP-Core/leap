@@ -15181,3 +15181,28 @@ Directory modules/leap/build-support/project
   - Pass command line options to depends-init sub-build so that run-time
     modifications to AWB parameters are consistent.
   - Add tree component Verilog files only when building trees.
+
+----------
+kfleming    Date: Tue Apr 23 16:10:02 EDT 2013  CSN: CSN-leap-419
+                  Tue Apr 23 20:10:02 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          418 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          418 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          418 
+
+
+1) Removed wrapper verilogs from generated top-level synthesis files
+and replaced them with stub verilog files.
+
+2) Refactored some path generation functions for global use in build
+pipeline.
+
+
+I did not reduce XST stack size.  More experimentation is required
+before adjusting this.

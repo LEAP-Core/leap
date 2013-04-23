@@ -48,11 +48,22 @@ class Synthesize():
 
     synth_deps = []
 
+
     # spit out a new top-level prj
     topPRJPath = 'config/' + moduleList.topModule.wrapperName() + '.prj' 
     newPRJFile = open(topPRJPath, 'w') 
-    for vlog in moduleList.getAllDependencies('VERILOG') + moduleList.getAllDependencies('VERILOG_LIB'):
-      newPRJFile.write("verilog work " + vlog + "\n")
+    # We need to filter out synthesis boundary verilog. We could
+    # regenerate all the verilogs produced up stream, but this is
+    # against the spirit of build pipeline
+    synthBoundaries = {}
+    for module in moduleList.synthBoundaries():
+        wrapperName = get_temp_path(moduleList,module) + module.wrapperName() + '.v'
+        synthBoundaries[wrapperName] = wrapperName
+ 
+    for vlog in sorted(moduleList.getAllDependencies('VERILOG') + moduleList.getAllDependencies('VERILOG_STUB') + moduleList.getAllDependencies('VERILOG_LIB')):
+        # need to filter out synthesis boundaries.
+        if (not vlog in synthBoundaries):  
+            newPRJFile.write("verilog work " + vlog + "\n")
 
     newPRJFile.close()
 

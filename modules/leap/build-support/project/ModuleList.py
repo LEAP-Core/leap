@@ -25,6 +25,20 @@ except ImportError:
   multiFPGAAvail = False
 
 
+# Some helper functions for navigating the build tree
+
+def get_build_path(moduleList, module):
+  return moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath
+
+def get_temp_path(moduleList, module):
+  env = moduleList.env
+  MODULE_PATH = get_build_path(moduleList, module)
+  TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
+  return MODULE_PATH + '/' + TMP_BSC_DIR + '/'
+
+# The module list class.  This class exists as an interface between
+# AWB and the build pipeline. 
+
 class ModuleList:
   
   def dump(self):
