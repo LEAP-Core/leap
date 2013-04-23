@@ -15206,3 +15206,18 @@ pipeline.
 
 I did not reduce XST stack size.  More experimentation is required
 before adjusting this.
+
+----------
+keflemin    Date: Tue Apr 23 18:43:13 EDT 2013  CSN: CSN-leap-420
+                  Tue Apr 23 22:43:13 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          419 
+
+
+FPGA programming scripts now check the return value of impact rather
+than grepping through its output for known error cases.  This
+prevents new error cases (like corrupt bitfiles) from being activated
+and potentially wiping out the system on which they are run.
+

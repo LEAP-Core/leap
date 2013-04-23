@@ -46,6 +46,7 @@ class LOADER():
 
         lf.write('#!/usr/bin/perl\n')
         lf.write('\n')
+        lf.write('my $retval = 0;\n')
         if fpga_pos != None:
           lf.write('use Getopt::Long;\n')
           lf.write('my $dev_id = undef;\n')
@@ -69,12 +70,12 @@ class LOADER():
           lf.write('EOF\n')
           lf.write('";\n')
           lf.write('close(BATCH);\n')
-          lf.write('open (PIPE, "impact -batch batch.opt 2>&1 | tee $ARGV[0] |");\n')
-          lf.write('while(<PIPE>) {\n')
-          lf.write('  if ($_ =~ /ERROR:iMPACT/) {exit(257);}\n')
-          lf.write('  if ($_ =~ /autodetection failed/) {exit(257);}\n')
-          lf.write('}\n')
-        lf.write('exit(0);\n')
+          lf.write('open (STDOUT, ">$ARGV[0]");\n')
+          lf.write('open (STDERR, ">$ARGV[0]");\n')
+          lf.write('$retval = system("impact -batch batch.opt");\n')
+        lf.write('if($retval != 0) {\n')
+        lf.write('    exit(257);\n') # some perl installs only return an 8 bit value
+        lf.write('}\n')
 
         lf.close()
         os.chmod(str(target[0]), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
