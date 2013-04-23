@@ -31,7 +31,6 @@ class WrapperGen():
     except:
       n_top_clocks = 0
 
-
     for module in synth_modules:
       modPath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + module.name
       wrapperPath =  modPath + "_Wrapper.bsv"
@@ -39,7 +38,7 @@ class WrapperGen():
       conSizePath =  modPath + "_Wrapper_con_size.bsh"
       ignorePath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/.ignore'
 
-      if(getBuildPipelineDebug(moduleList) != 0):
+      if (getBuildPipelineDebug(moduleList) != 0):
         print "Wrapper path is " + wrapperPath
       wrapper_bsv = open(wrapperPath, 'w')
 
@@ -63,7 +62,7 @@ class WrapperGen():
       wrapper_bsv.write('import ModuleContext::*;\n')
 
       # the top module is handled specially
-      if(module.name == moduleList.topModule.name):
+      if (module.name == moduleList.topModule.name):
 
         wrapper_bsv.write('// These are well-known/required leap modules\n')
         wrapper_bsv.write('// import non-synthesis public files\n')
@@ -78,7 +77,7 @@ class WrapperGen():
         # in order to build all soft connections
         use_build_tree = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
     
-        if(use_build_tree == 1):
+        if (use_build_tree == 1):
             wrapper_bsv.write('\n\n`ifdef  CONNECTION_SIZES_KNOWN\n');
             # build_tree.bsv will get generated later, during the
             # leap-connect phase.
@@ -98,7 +97,7 @@ class WrapperGen():
               wrapper_bsv.write('        ' + synth.synthBoundaryModule + '();\n')
 
         wrapper_bsv.write('    endmodule\n')
-        if(use_build_tree == 1):
+        if (use_build_tree == 1):
             wrapper_bsv.write('`endif\n'); 
 
 

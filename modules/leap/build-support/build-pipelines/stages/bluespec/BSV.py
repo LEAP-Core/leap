@@ -62,7 +62,7 @@ class BSV():
     ## is computed?
     ##
 
-    if getCommandLineTargets(moduleList) != [ 'depends-init' ]:
+    if not moduleList.isDependsBuild:
       ##
       ## Normal build.
       ##
@@ -80,7 +80,9 @@ class BSV():
 
       if not moduleList.env.GetOption('clean'):
         print 'Building depends-init...'
-        s = os.system('scons depends-init')
+        # Convert command line ARGUMENTS dictionary to a string
+        args = ' '.join(['%s=%s' % (k, v) for (k, v) in moduleList.arguments.items()])
+        s = os.system('scons depends-init ' + args)
         if (s & 0xffff) != 0:
           print 'Aborting due to dependence errors'
           sys.exit(1)
@@ -117,7 +119,7 @@ class BSV():
               if (getBuildPipelineDebug(moduleList) != 0):
                   print "LIGraph: " + str(liGraph)
        
-              module_names = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 1)]    
+              module_names = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 1)]
      
               # A recursive function for partitioning a latency
               # insensitive graph into a a tree of modules so as to
@@ -409,38 +411,47 @@ class BSV():
               tree_file.close()
               return None
         
-      # we are going to have a whole bunch of BA and V files coming.
-      # We don't yet know what they contain, but we do know that there
-      # will be |synth_modules| - 2 of them
-      temp_path = get_temppath(moduleList, moduleList.topModule)
-      build_path = get_buildpath(moduleList, moduleList.topModule)
-      treeNodeV = []
-      treeNodeBA = []
-      treeNodeBSV = [ build_path + 'build_tree.bsv']
-      for id in range(len(moduleList.synthBoundaries()) - 1):
-          name = "mk___TREE_MODULE__" + str(id) + "_Wrapper"
-          if (not 'GEN_VERILOGS' in moduleList.topModule.moduleDependency):
-              moduleList.topModule.moduleDependency['GEN_VERILOGS'] = []
-          if (not 'GEN_BAS' in moduleList.topModule.moduleDependency):
-              moduleList.topModule.moduleDependency['GEN_BAS'] = []
-          moduleList.topModule.moduleDependency['GEN_VERILOGS'] += [name + ".v"]  
-          moduleList.topModule.moduleDependency['GEN_BAS'] += [name + ".ba"] 
-          treeNodeV += [temp_path + name + ".v"]
-          treeNodeBA += [temp_path + name + ".ba"]
+      ## We are going to have a whole bunch of BA and V files coming.
+      ## We don't yet know what they contain, but we do know that there
+      ## will be |synth_modules| - 2 of them
+
+      if (not 'GEN_VERILOGS' in moduleList.topModule.moduleDependency):
+          moduleList.topModule.moduleDependency['GEN_VERILOGS'] = []
+      if (not 'GEN_BAS' in moduleList.topModule.moduleDependency):
+          moduleList.topModule.moduleDependency['GEN_BAS'] = []
+
+      use_tree_build = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
+
+      if use_tree_build:
+          build_path = get_buildpath(moduleList, moduleList.topModule)
+          temp_path = get_temppath(moduleList, moduleList.topModule)
+
+          treeNodeV = []
+          treeNodeBA = []
+          treeNodeBSV = [ build_path + 'build_tree.bsv']
+
+          for id in range(len(moduleList.synthBoundaries()) - 1):
+              name = "mk___TREE_MODULE__" + str(id) + "_Wrapper"
+              moduleList.topModule.moduleDependency['GEN_VERILOGS'] += [name + ".v"]  
+              moduleList.topModule.moduleDependency['GEN_BAS'] += [name + ".ba"] 
+              treeNodeV += [temp_path + name + ".v"]
+              treeNodeBA += [temp_path + name + ".ba"]
 
       ## having described the new build tree dependencies we can build
       ## the top module
       self.build_synth_boundary(moduleList, moduleList.topModule)
 
-      # This produces the treeNode BSV. It must wait for the
-      # compilation of the log files, which it will read to form the
-      # LIM graph
-      tree_components = moduleList.env.Command(treeNodeBSV, boundary_logs, cut_tree_build)
-
       # the top level model wrapper build needs the generated BSV's to
       # exist or it will not compile Only add these dependencies if we
       # are actually using the build tree
-      if (moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')):
+      if use_tree_build:
+          # This produces the treeNode BSV. It must wait for the
+          # compilation of the log files, which it will read to form the
+          # LIM graph
+          tree_components = moduleList.env.Command(treeNodeBSV,
+                                                   boundary_logs,
+                                                   cut_tree_build)
+
           moduleList.env.Depends(moduleList.topModule.moduleDependency['BSV_BO'],\
                                  tree_components)
           moduleList.env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'],\

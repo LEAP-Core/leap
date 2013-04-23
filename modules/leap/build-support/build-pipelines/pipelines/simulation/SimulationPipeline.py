@@ -15,7 +15,9 @@ from model import  *
 
 class Build(ProjectDependency):
   def __init__(self, moduleList):
-    WrapperGen(moduleList)
+    if not moduleList.isDependsBuild:
+      WrapperGen(moduleList)
+
     # Build interface first 
     Iface(moduleList)
     bsv = BSV(moduleList)

@@ -15152,3 +15152,32 @@ parallelism making it somewhat slower than the flat build.
 
 3) Fixed small code style errors.
 
+
+----------
+mcadler     Date: Mon Apr 22 23:32:54 EDT 2013  CSN: CSN-leap-418
+                  Tue Apr 23 03:32:54 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          417 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          417 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          417 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ SimulationPipeline.py     Locally Modified          417 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          417 
+
+- Top-level build has grown large enough in some cases that the stack is too small
+  in Xst.  We should make the top-level build smaller.  In the mean time, grow
+  the stack.
+
+- Tweaks to build rules to fix non-tree builds:
+  - Pass command line options to depends-init sub-build so that run-time
+    modifications to AWB parameters are consistent.
+  - Add tree component Verilog files only when building trees.

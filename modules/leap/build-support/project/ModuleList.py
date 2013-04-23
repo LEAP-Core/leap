@@ -52,6 +52,7 @@ class ModuleList:
     self.apmFile = env['DEFS']['APM_FILE']
     self.moduleList = []
     self.awbParams = {}
+    self.isDependsBuild = (getCommandLineTargets(self) == [ 'depends-init' ])
     
     #We should be invoking this elsewhere?
     #self.wrapper_v = env.SConscript([env['DEFS']['ROOT_DIR_HW_MODEL'] + '/SConscript'])
@@ -99,7 +100,7 @@ class ModuleList:
       self.smartguide = ''
 
     # deal with other modules
-    emit_override_params = (getCommandLineTargets(self) != [ 'depends-init' ])
+    emit_override_params = not self.isDependsBuild
     Module.initAWBParamParser(arguments, emit_override_params)
 
     for module in sorted(modulePickle):
