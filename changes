@@ -15221,3 +15221,26 @@ than grepping through its output for known error cases.  This
 prevents new error cases (like corrupt bitfiles) from being activated
 and potentially wiping out the system on which they are run.
 
+
+----------
+mcadler     Date: Mon Apr 29 15:25:00 EDT 2013  CSN: CSN-leap-421
+                  Mon Apr 29 19:25:00 UTC 2013
+
+
+Directory modules/leap/build-support/project
+ project-vico-pipeline.awb Locally Modified          420 
+ project-pipeline.awb      Locally Modified          420 
+ project-hybrid-main.cpp   Locally Modified          420 
+ project-pipeline-bare-hw.awb Locally Modified          420 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          420 
+ debug-scan-service.h      Locally Modified          420 
+
+- Top level model now defines AWB parameters naming the leap_debug directory.
+
+- Add a new "live" directory containing entries that affect the run or provide
+  run-time status.  By default it is leap_debug/live.
+
+- Debug scan code makes a "debug-scan" live file (a named pipe) that, when
+  read, triggers a scan to the pipe.

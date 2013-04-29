@@ -23,22 +23,26 @@
 #include <pthread.h>
 #include <errno.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 #include <string>
 #include <iostream>
 #include <cmath>
 #include <list>
 
 #include "asim/syntax.h"
+#include "awb/provides/model.h"
 #include "awb/rrr/service_ids.h"
 #include "awb/provides/debug_scan_service.h"
 
 using namespace std;
 
 void *DeadRRRTimer(void *arg);
+void *DebugScanThread(void *arg);
 
 
 // ===== service instantiation =====
@@ -49,6 +53,7 @@ DEBUG_SCAN_SERVER_CLASS DEBUG_SCAN_SERVER_CLASS::instance;
 // constructor
 DEBUG_SCAN_SERVER_CLASS::DEBUG_SCAN_SERVER_CLASS() :
     of(stdout),
+    scanLock(PTHREAD_MUTEX_INITIALIZER),
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
     serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this))
@@ -70,6 +75,8 @@ DEBUG_SCAN_SERVER_CLASS::Init(
 {
     // set parent pointer
     parent = p;
+
+    VERIFYX(! pthread_create(&liveDbgThread, NULL, &DebugScanThread, NULL));
 }
 
 
@@ -87,6 +94,11 @@ DEBUG_SCAN_SERVER_CLASS::Uninit()
 void
 DEBUG_SCAN_SERVER_CLASS::Cleanup()
 {
+    // Kill the thread monitoring the live file
+    pthread_cancel(liveDbgThread);
+    pthread_join(liveDbgThread, NULL);
+    unlink(LEAP_LIVE_DEBUG_PATH "/debug-scan");
+
     // kill stubs
     delete serverStub;
     delete clientStub;
@@ -103,19 +115,19 @@ DEBUG_SCAN_SERVER_CLASS::Cleanup()
 //     return control and proceed.
 //
 void
-DEBUG_SCAN_SERVER_CLASS::Scan()
+DEBUG_SCAN_SERVER_CLASS::Scan(FILE *outFile)
 {
-    // Avoid multiple paths to scan.  Could probably spin, but for now just
-    // ignore multiple simultaneous requests.
-    static ATOMIC32_CLASS isActive(0);
-    if (isActive++ != 0)
-    {
-        isActive--;
-        return;
-    }
+    pthread_mutex_lock(&scanLock);
     
-    fprintf(of, "\nDEBUG SCAN:\n");
+    of = outFile;
+    fprintf(of, "DEBUG SCAN:");
     fflush(of);
+
+    time_t secs = time(0);
+    tm *t = localtime(&secs);
+    fprintf(of, "  (%04d-%02d-%02d %02d:%02d:%02d)\n",
+            t->tm_year+1900, t->tm_mon+1, t->tm_mday,
+            t->tm_hour, t->tm_min, t->tm_sec);
 
     // Start a dead RRR timer so the program doesn't hang if RRR has failed
     pthread_t test_thread;
@@ -141,7 +153,8 @@ DEBUG_SCAN_SERVER_CLASS::Scan()
         fflush(of);
     }
 
-    isActive--;
+    of = stdout;
+    pthread_mutex_unlock(&scanLock);
 }
 
 
@@ -440,4 +453,36 @@ void *DeadRRRTimer(void *arg)
     
     ASIMERROR("RRR communication lost.  Exiting...");
     return (void*) 0;
+}
+
+
+// ========================================================================
+//
+//   Live system debugging.
+//
+// ========================================================================
+
+//
+// DebugScanThread --
+//   Run as a permanent thread providing a live file (a named pipe) that,
+//   when read, initiates a debug scan and dumps it to the pipe.
+//
+void *DebugScanThread(void *arg)
+{
+    mkfifo(LEAP_LIVE_DEBUG_PATH "/debug-scan", 0755);
+
+    while (true)
+    {
+        // The open() blocks until a reader also opens the pipe.
+        FILE* f = fopen(LEAP_LIVE_DEBUG_PATH "/debug-scan", "w");
+
+        DEBUG_SCAN_SERVER_CLASS::GetInstance()->Scan(f);
+        fclose(f);
+
+        // The fclose() causes readers to terminate, however the fopen()
+        // on the next iteration would cause a slow reader to miss the
+        // EOF and trigger another dump.  Is there a way to wait for
+        // the reader to exit?  Until we find one, sleep for a while.
+        sleep(10);
+    }
 }

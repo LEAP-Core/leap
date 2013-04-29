@@ -20,5 +20,8 @@
 %scons %sw      SCons.sw.pipeline.template
 %scons %iface   SCons.iface.template
 
+%param LEAP_DEBUG_PATH      "leap_debug"       "Debugging output directory"
+%param LEAP_LIVE_DEBUG_PATH "leap_debug/live"  "Live files (e.g. FIFOs) debugging output directory"
+
 %param SMART_SYNTH_BOUNDARY 0        "use smart synthesis boundaries"
 %param SYNTH_BOUNDARY       mkModel  "name of synthesis boundary"

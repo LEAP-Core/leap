@@ -20,6 +20,8 @@
 #define _DEBUG_SCAN_SERVICE_
 
 #include <bitset>
+#include <pthread.h>
+#include <stdio.h>
 
 #include "asim/syntax.h"
 #include "platforms-module.h"
@@ -91,6 +93,9 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     DEBUG_SCAN_DATA_CLASS msg;
     FILE *of;
 
+    pthread_mutex_t scanLock;
+    pthread_t liveDbgThread;
+
   public:
     DEBUG_SCAN_SERVER_CLASS();
     ~DEBUG_SCAN_SERVER_CLASS();
@@ -104,7 +109,7 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Cleanup();
 
     // Method to tell the hardware to dump state.
-    void Scan();
+    void Scan(FILE *outFile = stdout);
 
     // RRR service methods
     void  Send(UINT8 value, UINT8 eom);

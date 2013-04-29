@@ -22,9 +22,11 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 
 #include "asim/syntax.h"
 
@@ -51,6 +53,8 @@
 // main
 int main(int argc, char *argv[])
 {
+    int st;
+
     // Set line buffering to avoid fflush() everywhere.  stderr was probably
     // unbuffered already, but be sure.
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -61,6 +65,38 @@ int main(int argc, char *argv[])
 
     VIRTUAL_PLATFORM vp         = new VIRTUAL_PLATFORM_CLASS();
     APPLICATION_ENV  appEnv     = new APPLICATION_ENV_CLASS(vp);
+
+    //
+    // Create standard debugging directory.
+    //
+    struct stat sbuf;
+    // Only create it if not already present.
+    st = stat(LEAP_DEBUG_PATH, &sbuf);
+    if (st != 0)
+    {
+        if (errno != ENOENT)
+        {
+            fprintf(stderr, "Error accessing directory \"" LEAP_DEBUG_PATH "\".\n");
+            exit(1);
+        }
+        st = mkdir("leap_debug", 0755);
+        if (st != 0)
+        {
+            fprintf(stderr, "Error creating directory \"" LEAP_DEBUG_PATH "\".\n");
+            exit(1);
+        }
+    }
+
+    //
+    // Live debugging directory will be filled with live filesystem entries
+    // (mostly named FIFOs) that can be used for debugging during a run.
+    //
+    st = system("/bin/rm -rf " LEAP_LIVE_DEBUG_PATH "; mkdir -p " LEAP_LIVE_DEBUG_PATH);
+    if ((st == -1) || (WEXITSTATUS(st) != 0))
+    {
+        fprintf(stderr, "Error creating directory " LEAP_LIVE_DEBUG_PATH "\".\n");
+        exit(1);
+    }
 
     // Set up default switches
     globalArgs = new GLOBAL_ARGS_CLASS();
