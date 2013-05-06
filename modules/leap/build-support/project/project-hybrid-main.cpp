@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Error accessing directory \"" LEAP_DEBUG_PATH "\".\n");
             exit(1);
         }
-        st = mkdir("leap_debug", 0755);
+        st = mkdir(LEAP_DEBUG_PATH, 0755);
         if (st != 0)
         {
             fprintf(stderr, "Error creating directory \"" LEAP_DEBUG_PATH "\".\n");

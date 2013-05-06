@@ -15263,3 +15263,20 @@ software side program is executed.
 The new functionality supports only FPGAs attached to the same system.
 Remote FPGA support is coming soon, as is support for multiple
 software instances.
+
+----------
+mcadler     Date: Mon May  6 15:00:03 EDT 2013  CSN: CSN-leap-423
+                  Mon May  6 19:00:03 UTC 2013
+
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.cpp   Locally Modified          422 
+
+Directory modules/leap/libraries/librl/base
+ debug-file.bsv            Locally Modified          422 
+ librl-bsv-base.awb        Locally Modified          422 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.cpp    Locally Modified          422 
+
+Standardize on LEAP_DEBUG_PATH.

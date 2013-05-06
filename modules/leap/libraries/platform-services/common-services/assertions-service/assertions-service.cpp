@@ -26,6 +26,7 @@
 #include <string.h>
 #include <iostream>
 
+#include "awb/provides/model.h"
 #include "awb/provides/assertions_service.h"
 #include "awb/provides/librl_bsv_base.h"
 #include "awb/rrr/service_ids.h"
@@ -70,7 +71,7 @@ ASSERTIONS_SERVER_CLASS::Init(
     parent = p;
     
     // Open the output file
-    assertionsFile = fopen(DEBUG_LOG_DIR "/assertions.out", "w+");
+    assertionsFile = fopen(LEAP_DEBUG_PATH "/assertions.out", "w+");
 }
 
 // uninit: we have to write this explicitly

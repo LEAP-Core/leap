@@ -16,8 +16,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+`include "awb/provides/model_params.bsh"
+
+
 // All debug output files go in a subdirectory
-function String debugPath(String fname) = `DEBUG_LOG_DIR + "/" + fname;
+function String debugPath(String fname) = `LEAP_DEBUG_PATH + "/" + fname;
 
 
 // ========================================================================
