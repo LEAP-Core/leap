@@ -15244,3 +15244,22 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
 
 - Debug scan code makes a "debug-scan" live file (a named pipe) that, when
   read, triggers a scan to the pipe.
+
+----------
+keflemin    Date: Mon May  6 10:49:16 EDT 2013  CSN: CSN-leap-422
+                  Mon May  6 14:49:16 UTC 2013
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          421 
+
+
+1) Refactored run.bmark to support multiFPGA builds.  run.bmark now
+interoggates FPGA sub-builds to find out which FPGAs are needed.  It
+then programs all FPGAs in the system.  When the program step is done,
+all FPGAs are activated, ensuring distributed reset. Finally, the
+software side program is executed.
+
+The new functionality supports only FPGAs attached to the same system.
+Remote FPGA support is coming soon, as is support for multiple
+software instances.
