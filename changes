@@ -15280,3 +15280,18 @@ Directory modules/leap/libraries/platform-services/common-services/assertions-se
  assertions-service.cpp    Locally Modified          422 
 
 Standardize on LEAP_DEBUG_PATH.
+
+----------
+keflemin    Date: Tue May  7 15:14:57 EDT 2013  CSN: CSN-leap-424
+                  Tue May  7 19:14:57 UTC 2013
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_ml605_synth.apm Locally Added               0 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          423 
+
+
+1) Added traffic light for ML605 for completeness
+2) Fixed broken ML605 physical platform. 
