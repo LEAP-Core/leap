@@ -250,8 +250,8 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::StoreLine(
                                           << ": r_addr " << fmt_addr(regionOffset(addr))
                                           << ", mask " << fmt_mask(byteMask));
 
-    VERIFY(regionBase[region] != NULL);
-    VERIFY(regionOffset(addr) < regionWords[region]);
+    VERIFYX(regionBase[region] != NULL);
+    VERIFYX(regionOffset(addr) < regionWords[region]);
 
     SCRATCHPAD_MEMORY_WORD* store_line = regionBase[region] + regionOffset(addr);
 

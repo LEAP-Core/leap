@@ -15295,3 +15295,14 @@ Directory config/pm/leap/submodels/fpgaenv
 
 1) Added traffic light for ML605 for completeness
 2) Fixed broken ML605 physical platform. 
+
+----------
+kfleming    Date: Wed May  8 13:53:25 EDT 2013  CSN: CSN-leap-425
+                  Wed May  8 17:53:25 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.cpp    Locally Modified          424 
+
+
+Variadic implemention of VERIFY fails to compile with some compilers. Better to use VERIFYX.
