@@ -1,0 +1,16 @@
+#/********************************************************************
+#* Generic FPGA build pipeline
+#********************************************************************/
+
+%name AWB Parameter Substitution Parser
+%desc Allows parsing of AWB-style subsitution files by build pipeline
+%attributes 
+
+%provides parameter_substitution
+
+%scons %library parameter.py
+%scons %library parameter_parser.py
+%scons %private parameterlex.py
+%scons %private parameterparse.py
+
+

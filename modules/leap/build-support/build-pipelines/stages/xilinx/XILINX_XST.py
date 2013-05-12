@@ -1,6 +1,7 @@
 import os
 import sys
 import SCons.Script
+from parameter_substitution import *
 from model import  *
 # need to pick up clock frequencies for xcf
 from clocks_device import *
@@ -31,55 +32,100 @@ class Synthesize():
         [],
         'touch $TARGET')
 
-    ## tweak top xst file
-    topXSTPath = 'config/' + moduleList.topModule.wrapperName() + '.modified.xst'
-    newXSTFile = open(topXSTPath, 'w')
-    oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst', 'r')
-    newXSTFile.write(oldXSTFile.read());
-    if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
-        newXSTFile.write('\n-vlgcase parallel\n');
-    if moduleList.getAWBParam('synthesis_tool', 'XST_INSERT_IOBUF'):
-        newXSTFile.write('-iobuf yes\n');
-    else:
-        newXSTFile.write('-iobuf no\n');
-    newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n');
-    newXSTFile.close();
-    oldXSTFile.close();
+    # We need to generate a prj for each synthesis boundary.  For efficiency we handle 
+    # these specially by generating stub modules. This adds a little complexity to the 
+    # synthesis case. 
+   
+    # construct a list of all generated and given verilogs.  These can
+    # appear anywhere in the code. The generated verilog live in the .bsc
+    # directory. 
+    globalVerilogs = moduleList.getAllDependencies('VERILOG_LIB')
+    for module in moduleList.moduleList + [moduleList.topModule]:
+        MODULE_PATH =  get_build_path(moduleList, module) 
+        for v in moduleList.getDependencies(module, 'GEN_VERILOGS'): 
+            globalVerilogs += [MODULE_PATH + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '/' + v]
+        for v in moduleList.getDependencies(module, 'GIVEN_VERILOGS'): 
+            globalVerilogs += [MODULE_PATH + '/' + v]
+
+
+    def generatePrj(module):
+        # spit out a new top-level prj
+        prjPath = 'config/' + module.wrapperName() + '.prj' 
+        newPRJFile = open(prjPath, 'w') 
+ 
+        verilogs = globalVerilogs + [get_temp_path(moduleList,module) + module.wrapperName() + '.v']
+        ## Only the top module will have stubs. 
+        #if (module.name == moduleList.topModule.name):
+        verilogs +=  moduleList.getDependencies(module,'VERILOG_STUB')
+        # dump the file
+        for vlog in sorted(verilogs):
+            # need to filter out synthesis boundaries
+            newPRJFile.write("verilog work " + vlog + "\n")
+
+        newPRJFile.close()
+        return prjPath
+
+    #Only parse the xst file once.  
+    templateFile = moduleList.getAllDependenciesWithPaths('GIVEN_XSTS')
+    if(len(templateFile) != 1):
+        print "Found more than one XST template file: " + str(templateFile) + ", exiting\n" 
+    xstTemplate = parseAWBFile(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + templateFile[0])
+                
+
+    # produce an XST-consumable prj file from a global template. 
+    # not that the top level file is somehow different.  Each module has
+    # some local context that gets bound in the xst file.  We will query this 
+    # context before examining.  After that we will query the shell environment.
+    # Next up, we query the scons environment.
+    # Finally, we will query the parameter space. If all of these fail, we will give up.
+  
+    #may need to do something about TMP_XILINX_DIR
+    def generateXST(module):
+        localContext = {'APM_NAME': module.wrapperName(),\
+                        'HW_BUILD_DIR': module.buildPath}
+
+        XSTPath = 'config/' + module.wrapperName() + '.modified.xst'
+        XSTFile = open(XSTPath, 'w')
+
+        # dump the template file, substituting symbols as we find them
+        for token in xstTemplate:
+            if (isinstance(token, Parameter)):
+                # 1. local context 
+                if (token.name in localContext):    
+                    XSTFile.write(localContext[token.name])
+                # 2. search the local environment
+                elif (token.name in os.environ):
+                    XSTFile.write(os.environ[token.name])
+                # 3. Search module list environment.
+                elif (token.name in moduleList.env['DEFS']):
+                    XSTFile.write(moduleList.env['DEFS'][token.name])
+                # 3. Search the AWB parameters or DIE.
+                else:  
+                    XSTFile.write(moduleList.getAWBParam(moduleList.moduleList,token.name))
+            else:
+                #we got a string
+                XSTFile.write(token)
+
+        # we have some XST switches that are handled by parameter
+        if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
+            XSTFile.write('\n-vlgcase parallel\n')
+        if moduleList.getAWBParam('synthesis_tool', 'XST_INSERT_IOBUF') and (module.name == moduleList.topModule.name):
+            XSTFile.write('-iobuf yes\n')
+        else:
+            XSTFile.write('-iobuf no\n')
+        XSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n')
+        return XSTPath
+
+    generatePrj(moduleList.topModule)
+    topXSTPath = generateXST(moduleList.topModule)
 
     synth_deps = []
 
-
-    # spit out a new top-level prj
-    topPRJPath = 'config/' + moduleList.topModule.wrapperName() + '.prj' 
-    newPRJFile = open(topPRJPath, 'w') 
-    # We need to filter out synthesis boundary verilog. We could
-    # regenerate all the verilogs produced up stream, but this is
-    # against the spirit of build pipeline
-    synthBoundaries = {}
     for module in moduleList.synthBoundaries():
-        wrapperName = get_temp_path(moduleList,module) + module.wrapperName() + '.v'
-        synthBoundaries[wrapperName] = wrapperName
- 
-    for vlog in sorted(moduleList.getAllDependencies('VERILOG') + moduleList.getAllDependencies('VERILOG_STUB') + moduleList.getAllDependencies('VERILOG_LIB')):
-        # need to filter out synthesis boundaries.
-        if (not vlog in synthBoundaries):  
-            newPRJFile.write("verilog work " + vlog + "\n")
-
-    newPRJFile.close()
-
-    for module in moduleList.synthBoundaries():    
-        # we must tweak the xst files of the internal module list
-        # to prevent the insertion of iobuffers
-        newXSTPath = 'config/' + module.wrapperName() + '.modified.xst'
-        newXSTFile = open(newXSTPath, 'w')
-        oldXSTFile = open('config/' + module.wrapperName() + '.xst', 'r')
-        newXSTFile.write(oldXSTFile.read());
-        if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
-            newXSTFile.write('\n-vlgcase parallel\n');
-        newXSTFile.write('-iobuf no\n');
-        newXSTFile.write('-uc  ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n');
-        newXSTFile.close();
-        oldXSTFile.close();
+        #Let's synthesize a xilinx .prj file for this synth boundary.
+        # spit out a new prj
+        generatePrj(module)
+        newXSTPath = generateXST(module)
 
         if (getBuildPipelineDebug(moduleList) != 0):
             print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
@@ -89,7 +135,6 @@ class Synthesize():
             moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
             sorted(module.moduleDependency['VERILOG']) +
             sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-            module.moduleDependency['XST'] +
             [ newXSTPath ] +
             xilinx_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
@@ -115,7 +160,6 @@ class Synthesize():
         sorted(moduleList.topModule.moduleDependency['VERILOG']) +
         sorted(moduleList.getAllDependencies('VERILOG_STUB')) +
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-        moduleList.topModule.moduleDependency['XST'] +
         [ topXSTPath ] +
         xilinx_xcf,
         [ SCons.Script.Delete(topSRP),

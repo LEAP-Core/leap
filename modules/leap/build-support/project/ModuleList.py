@@ -138,7 +138,6 @@ class ModuleList:
 
     for module in self.synthBoundaries():
       # each module has a generated bsv
-      module.moduleDependency['XST'] = ['config/' + module.wrapperName() + '.xst']
       module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/mk_' + module.name + '_Wrapper.v'] + givenVerilogs
       module.moduleDependency['VERILOG_LIB'] = Utils.get_bluespec_verilog(env)
       module.moduleDependency['BA'] = []
@@ -147,7 +146,6 @@ class ModuleList:
 
     #Notice that we call get_bluespec_verilog here this will
     #eventually called by the BLUESPEC build rule
-    self.topModule.moduleDependency['XST'] = ['config/' + self.topModule.wrapperName() + '.xst']
     self.topModule.moduleDependency['VERILOG'] = ['hw/' + self.topModule.buildPath + '/.bsc/mk_' + self.topModule.name + '_Wrapper.v'] + givenVerilogs
     self.topModule.moduleDependency['VERILOG_STUB'] = []
     self.topModule.moduleDependency['VERILOG_LIB'] =  Utils.get_bluespec_verilog(env)
@@ -174,7 +172,6 @@ class ModuleList:
     self.graphizeSynth()
 
     self.loadFPGAMapping()
-
     
   def getAWBParam(self, moduleName, param):
     if (hasattr(moduleName, '__iter__') and not isinstance(moduleName, basestring)):

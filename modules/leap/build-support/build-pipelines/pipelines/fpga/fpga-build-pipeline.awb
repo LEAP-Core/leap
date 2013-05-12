@@ -16,6 +16,7 @@
 %requires fpga_program_tool
 %requires wrapper_gen_tool
 %requires li_module
+%requires parameter_substitution
 
 %notes README
 

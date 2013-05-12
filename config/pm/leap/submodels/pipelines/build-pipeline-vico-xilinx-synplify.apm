@@ -42,6 +42,7 @@ bsv_tool=BSV Build Tool (First Phase)
 fpga_program_tool=FPGA Programming Tool
 wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
 li_module=LEAP LI Module Handler
+parameter_substitution=AWB Parameter Substitution Parser
 
 [Xilinx Post-synthesis Toolchain]
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-post-synth.awb
@@ -95,4 +96,8 @@ Packagehint=leap
 
 [LEAP LI Module Handler]
 File=modules/leap/build-support/build-pipelines/stages/li_module/li_module.awb
+Packagehint=leap
+
+[AWB Parameter Substitution Parser]
+File=modules/leap/build-support/build-pipelines/stages/parameter_substitution/parameter_substitution.awb
 Packagehint=leap

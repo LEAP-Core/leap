@@ -81,9 +81,9 @@ class WrapperGen():
             wrapper_bsv.write('\n\n`ifdef  CONNECTION_SIZES_KNOWN\n');
             # build_tree.bsv will get generated later, during the
             # leap-connect phase.
-            wrapper_bsv.write('    `include "build_tree.bsv"\n'); 
+            wrapper_bsv.write('    import build_tree_synth::*;\n'); 
             wrapper_bsv.write('    module [Connected_Module] instantiateAllSynthBoundaries ();\n')
-            wrapper_bsv.write('        let m <- instantiateBuildTree();\n')
+            wrapper_bsv.write('        let m <- mkBuildTree();\n')
             wrapper_bsv.write('    endmodule\n')
             wrapper_bsv.write('`else\n');
       

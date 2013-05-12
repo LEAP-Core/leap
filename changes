@@ -15306,3 +15306,47 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 
 
 Variadic implemention of VERIFY fails to compile with some compilers. Better to use VERIFYX.
+
+----------
+kfleming    Date: Sun May 12 17:02:07 EDT 2013  CSN: CSN-leap-426
+                  Sun May 12 21:02:07 UTC 2013
+
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx-synplify.apm Locally Modified          425 
+ build-pipeline-xilinx-synplify.apm Locally Modified          425 
+ build-pipeline-altera.apm Locally Modified          425 
+ build-pipeline-vico-xilinx.apm Locally Modified          425 
+ build-pipeline-xilinx.apm Locally Modified          425 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          425 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          425 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          425 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ parameter_substitution/   Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/parameter_substitution
+ parameterlex.py           Locally Added               0 
+ parameterparse.py         Locally Added               0 
+ parameter_parser.py       Locally Added               0 
+ parameter_substitution.awb Locally Added               0 
+ parameter.py              Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ fpga-build-pipeline.awb   Locally Modified          425 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          425 
+
+
+1) Changed tree build to support wrapper modules in the style of the other synthesis boundaries. Top level build now gets re-synthesized _only_ if top level connections change, as opposed to when the interface of some module changes. 
+
+2) To support this we needed a means of introducing LI modules into the compilation flow at compile time.  This is now supported.  Refactoring was required in both the synthesis and bluespec build tools.
+
+Both of these changes are steps on the road to a more general latency insensitive compiler. 
