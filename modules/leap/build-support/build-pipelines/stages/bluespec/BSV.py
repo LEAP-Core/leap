@@ -43,6 +43,8 @@ class BSV():
     self.ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
     self.TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
 
+    self.pipeline_debug = getBuildPipelineDebug(moduleList)
+
     # Should we be building in events? 
     if (getEvents(moduleList) == 0):
        bsc_events_flag = ' -D HASIM_EVENTS_ENABLED=False '
@@ -105,6 +107,8 @@ class BSV():
       tree_file_wrapper = get_build_path(moduleList, moduleList.topModule) + "/build_tree_Wrapper.bsv"
       tree_file_wrapper_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree_Wrapper"
 
+      pipeline_debug = self.pipeline_debug
+
       def cut_tree_build(target, source, env):
               
               liGraph = LIGraph(parseLogfiles(boundary_logs))     
@@ -125,7 +129,7 @@ class BSV():
                   wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')        
  
               wrapper_handle.write('module mkEmpty (Empty); endmodule\n')
-              if (getBuildPipelineDebug(moduleList) != 0):
+              if (pipeline_debug != 0):
                   print "LIGraph: " + str(liGraph)
 
               # Top module has a special, well-known name for stub gen.
@@ -186,7 +190,7 @@ class BSV():
                   # do a min cut on the graph
                   map = min_cut(subgraph.graph)
 
-                  if (getBuildPipelineDebug(moduleList) != 0):
+                  if (pipeline_debug != 0):
                       print "Cut map: " + str(map)
                   
                   ## Now that we've got a cut, Build new li graphs from the sub components of
@@ -255,7 +259,7 @@ class BSV():
                   for channel in submodule0.channels:                     
                       for partnerChannel in submodule1.channels:
                           if (channel.matches(partnerChannel)):
-                              if (getBuildPipelineDebug(moduleList) != 0):
+                              if (pipeline_debug != 0):
                                   print "Found match with " + str(partnerChannel)
                               matched[channel.name] = channel
                           
@@ -270,7 +274,7 @@ class BSV():
                   for chain in submodule0.chains:                    
                       for partnerChain in submodule1.chains:
                           if (chain.matches(partnerChain)):
-                              if (getBuildPipelineDebug(moduleList) != 0):
+                              if (pipeline_debug != 0):
                                   print "Found match with " + str(partnerChain)
                               matched[chain.name] = chain
                               chain.sinkPartnerChain = partnerChain
@@ -292,7 +296,7 @@ class BSV():
                   # We need to propagate any remaining unmatched channels and chains up the tree,
                   # To do this we populate the LI module representing this node with the unmatched 
                   # channels of the child node. 
-                  if (getBuildPipelineDebug(moduleList) != 0):
+                  if (pipeline_debug != 0):
                       for channel in submodule0.channels:
                           print "Channel in " + submodule0.name + " " + str(channel)
                       for channel in submodule1.channels:
@@ -390,7 +394,7 @@ class BSV():
                   wrapper_handle.write("    interface device = e2;\n")
                   wrapper_handle.write("endmodule\n")
 
-                  if (getBuildPipelineDebug(moduleList) != 0):
+                  if (pipeline_debug != 0):
                       for channel in treeModule.channels:
                           print "Channel in " + treeModule.name + " " + str(channel)
 
@@ -654,7 +658,7 @@ class BSV():
   ##   a separate instance of SCons first that uses compute_dependence() above.
   ##
   def build_synth_boundary(self, moduleList, module):
-    if (getBuildPipelineDebug(moduleList) != 0):
+    if (self.pipeline_debug != 0):
       print "Working on " + module.name
     MODULE_PATH =  get_build_path(moduleList, module) 
     env = moduleList.env
@@ -750,7 +754,7 @@ class BSV():
       ## no exposed connections and needs no log build pass.
       ##
       if (module.name != moduleList.topModule.name):
-        if (getBuildPipelineDebug(moduleList) != 0):
+        if (self.pipeline_debug != 0):
           print 'wrapper_bo: ' + str(wrapper_bo)
           print 'stub: ' + str(stub)
 
@@ -791,7 +795,7 @@ class BSV():
       if (moduleList.getAWBParam('bsv_tool', 'BUILD_VERILOG') == 1):
         module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
-      if (getBuildPipelineDebug(moduleList) != 0):
+      if (self.pipeline_debug != 0):
         print "Name: " + module.name
 
       # each synth boundary will produce a ba
@@ -806,7 +810,7 @@ class BSV():
       ##
       descendents = moduleList.getSynthBoundaryDescendents(module)
       for descendent in descendents:
-        if (getBuildPipelineDebug(moduleList) != 0):
+        if (self.pipeline_debug != 0):
           print "BA: working on " + descendent.name
 
         gen_ba = moduleList.getDependencies(descendent, 'GEN_BAS')
@@ -815,7 +819,7 @@ class BSV():
         # their specific bo.
         ext_gen_ba = []
         for ba in gen_ba:
-          if (getBuildPipelineDebug(moduleList) != 0):
+          if (self.pipeline_debug != 0):
             print "BA: " + descendent.name + " generates " + MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + ba
           ext_gen_ba += [MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + ba]    
           

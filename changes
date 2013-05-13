@@ -15364,3 +15364,16 @@ getBluespecVersion() was invoking Bluespec on every call instead of caching
 the answer.  We call this a lot.  Doh!
 
 Add a few SCons options to speed up dependence analysis.
+
+----------
+mcadler     Date: Mon May 13 18:56:43 EDT 2013  CSN: CSN-leap-428
+                  Mon May 13 22:56:43 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          427 
+
+Calling getBuildPipelineDebug inside a Python build action function causes
+SCons to believe the action changes each compilation.  I'm not sure why.
+Replaced the calls with a variable set outside the build action, which is
+faster anyway.
