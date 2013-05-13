@@ -153,23 +153,25 @@ def get_bluespec_xcf(env):
         return [];
 
 
+##
+## What is the Bluespec compiler version?
+##
 def getBluespecVersion():
-    # What is the Bluespec compiler version?
-    bsc_version = 0
+    if not hasattr(getBluespecVersion, 'version'):
+        bsc_ostream = os.popen('bsc -verbose')
+        ver_regexp = re.compile('^Bluespec Compiler, version.*\(build ([0-9]+),')
+        for ln in bsc_ostream.readlines():
+            m = ver_regexp.match(ln)
+            if (m):
+                getBluespecVersion.version = int(m.group(1))
+        bsc_ostream.close()
 
-    bsc_ostream = os.popen('bsc -verbose')
-    ver_regexp = re.compile('^Bluespec Compiler, version.*\(build ([0-9]+),')
-    for ln in bsc_ostream.readlines():
-        m = ver_regexp.match(ln)
-        if (m):
-            bsc_version = int(m.group(1))
-    bsc_ostream.close()
+        if getBluespecVersion.version == 0:
+            print "Failed to get Bluespec compiler version"
+            sys.exit(1)
 
-    if bsc_version == 0:
-        print "Failed to get Bluespec compiler version"
-        sys.exit(1)
+    return getBluespecVersion.version
 
-    return bsc_version
 
 # useful for reconstructing synthesis boundary dependencies
 # returns a list of elements with exactly the argument filepath 

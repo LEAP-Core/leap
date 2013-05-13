@@ -8,6 +8,7 @@ import atexit
 from @ROOT_DIR_MODEL@ import  *
 from build_pipeline import  *
 
+SetOption('max_drift', 2)
 SetOption('implicit_cache', 1)
 
 defs = {
@@ -68,6 +69,8 @@ env['DEFS']['ROOT_DIR_HW_MODEL'] = env['DEFS']['ROOT_DIR_HW'] + '/' + \
                                    env['DEFS']['ROOT_DIR_MODEL'];
 env['DEFS']['ROOT_DIR_SW_MODEL'] = env['DEFS']['ROOT_DIR_SW'] + '/' + \
                                    env['DEFS']['ROOT_DIR_MODEL'];
+
+env.Decider('MD5-timestamp')
 
 # Set up build cache if enabled
 if('LEAP_BUILD_CACHE_DIR' in env['ENV']): 

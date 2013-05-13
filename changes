@@ -15350,3 +15350,17 @@ Directory modules/leap/build-support/project
 2) To support this we needed a means of introducing LI modules into the compilation flow at compile time.  This is now supported.  Refactoring was required in both the synthesis and bluespec build tools.
 
 Both of these changes are steps on the road to a more general latency insensitive compiler. 
+
+----------
+mcadler     Date: Mon May 13 16:57:16 EDT 2013  CSN: CSN-leap-427
+                  Mon May 13 20:57:16 UTC 2013
+
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          426 
+ SCons.top.pipeline.template Locally Modified          426 
+
+getBluespecVersion() was invoking Bluespec on every call instead of caching
+the answer.  We call this a lot.  Doh!
+
+Add a few SCons options to speed up dependence analysis.
