@@ -15377,3 +15377,13 @@ Calling getBuildPipelineDebug inside a Python build action function causes
 SCons to believe the action changes each compilation.  I'm not sure why.
 Replaced the calls with a variable set outside the build action, which is
 faster anyway.
+
+----------
+mcadler     Date: Tue May 14 18:02:49 EDT 2013  CSN: CSN-leap-429
+                  Tue May 14 22:02:49 UTC 2013
+
+
+Directory modules/leap/build-support/project
+ Module.py                 Locally Modified          428 
+
+Stop deleting and recreating all the AWB parameter override include files.
