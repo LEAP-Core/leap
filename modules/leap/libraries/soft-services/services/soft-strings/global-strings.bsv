@@ -19,6 +19,7 @@
 import ModuleContext::*;
 import List::*;
 
+`include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_connections.bsh"
@@ -63,6 +64,14 @@ endfunction
 
 
 //
+// String hash function.
+//
+function Integer hashGlobalString(String str);
+    return hashStringToInteger(str) % valueOf(NUM_GLOBAL_STRING_TABLE_BUCKETS);
+endfunction
+
+
+//
 // getGlobalStringUID --
 //     Get a UID for a string.  If the string is already present in the global
 //     table then return the old UID.
@@ -72,18 +81,21 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    GLOBAL_STRING_TABLE_ENTRY entry = ?;
+    GLOBAL_STRING_UID str_uid;
 
-    let cur_strs <- getGlobalStrings();
-    if (List::lookup(str, cur_strs) matches tagged Valid .info)
+    let str_table <- getGlobalStrings();
+
+    let idx = hashGlobalString(str);
+    let bucket = str_table.buckets[idx];
+
+    if (List::lookup(str, bucket) matches tagged Valid .entry)
     begin
-        // Already present
-        entry = info;
+        str_uid = fromInteger(entry.uid);
     end
     else
     begin
         // String not yet in the table.  Add it.
-        Integer local_uid = length(cur_strs);
+        Integer local_uid = str_table.nEntries;
 
         //
         // The UID must fit in 32 bits.  We allocate some to the platform ID,
@@ -102,6 +114,7 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
         Integer shift_over_synth_uid = 2 ** `GLOBAL_STRING_SYNTH_UID_SZ;
         Integer shift_over_plat_uid =  2 ** `GLOBAL_STRING_PLATFORM_UID_SZ;
 
+        GLOBAL_STRING_META entry = ?;
         entry.uid = (synth_plat_uid * shift_over_local_uid * shift_over_synth_uid) +
                     (synth_local_uid * shift_over_local_uid) +
                     local_uid;
@@ -113,25 +126,40 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
         if (local_uid >= shift_over_local_uid)
             error("Too many global strings");
 
-        putGlobalStrings(List::cons(tuple2(str, entry), cur_strs));
+        str_table.nEntries = str_table.nEntries + 1;
+        str_table.buckets[idx] = List::cons(tuple2(str, entry),
+                                            str_table.buckets[idx]);
+
+        putGlobalStrings(str_table);
+        str_uid = fromInteger(entry.uid);
     end
 
-    return fromInteger(entry.uid);
+    return str_uid;
 
 endmodule
 
 
 //
-// isGlobalStringDefined --
-//     Return true iff string exists as a global string.
+// lookupGlobalString --
+//     Return an existing instance of string as a global string (if present).
 //
-module [t_CONTEXT] isGlobalStringDefined#(String str) (Bool)
+module [t_CONTEXT] lookupGlobalString#(String str)
+    (Maybe#(GLOBAL_STRING_UID))
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let cur_strs <- getGlobalStrings();
-    return isValid(List::lookup(str, cur_strs));
+    Maybe#(GLOBAL_STRING_UID) str_uid = tagged Invalid;
+
+    let str_table <- getGlobalStrings();
+    let bucket = str_table.buckets[hashGlobalString(str)];
+
+    if (List::lookup(str, bucket) matches tagged Valid .entry)
+    begin
+        str_uid = tagged Valid fromInteger(entry.uid);
+    end
+
+    return str_uid;
 endmodule
 
 
@@ -141,7 +169,7 @@ endmodule
 //
 // ========================================================================
 
-module [t_CONTEXT] getGlobalStrings (List#(GLOBAL_STRING_TABLE))
+module [t_CONTEXT] getGlobalStrings (GLOBAL_STRING_TABLE)
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
@@ -163,7 +191,7 @@ module [t_CONTEXT] printGlobalStrings (Empty)
 endmodule
 
 
-module [t_CONTEXT] putGlobalStrings#(List#(GLOBAL_STRING_TABLE) new_strs) ()
+module [t_CONTEXT] putGlobalStrings#(GLOBAL_STRING_TABLE new_strs) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));

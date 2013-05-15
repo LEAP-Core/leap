@@ -716,8 +716,9 @@ sub ParseLine($) {
 ## ParseInputFile --
 ##   Read text from the input file and pass it to the parser.
 ##
-sub ParseInputFile($) {
+sub ParseInputFile($$) {
     my $filename = shift;
+    my $updateDeps = shift;
     $fName = $filename;
     $line = 0;
 
@@ -732,7 +733,11 @@ sub ParseInputFile($) {
     my $cmd = "cpp $host $searchpath -DAWB_DEFS_ONLY";
 
     # First update dependence file
-    system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-dic-" . basename($filename) . " $filename");
+    if ($updateDeps)
+    {
+        print "$filename\n";
+        system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-dic-" . basename($filename) . " $filename");
+    }
 
     ## Pass the input file through cpp
     open(IF, "$cmd $filename |") || die "Failed to open $filename";
@@ -805,7 +810,10 @@ if ($tgtIncDir ne '') {
 $root = Leap::DictBuilder::new('root');
 
 foreach my $f (@ARGV) {
-    ParseInputFile($f);
+    ## Parse inputs.  Only update dependence when we actually build.  (It would
+    ## be fine to pick either when actually building or when querying modules.
+    ## Building is less frequent, so we do it then.)
+    ParseInputFile($f, ! $queryModules);
 }
 
 InitUIDs();

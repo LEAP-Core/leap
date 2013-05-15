@@ -17,6 +17,7 @@
 %public fifo-marshaller.bsv
 %public fifo-merge.bsv
 %public hash-bits.bsv
+%public hash-string.bsv
 %public lfsr.bsv
 %public lists.bsv
 %public local-arbiters.bsv

@@ -15387,3 +15387,42 @@ Directory modules/leap/build-support/project
  Module.py                 Locally Modified          428 
 
 Stop deleting and recreating all the AWB parameter override include files.
+
+----------
+mcadler     Date: Wed May 15 18:49:31 EDT 2013  CSN: CSN-leap-430
+                  Wed May 15 22:49:31 UTC 2013
+
+
+Directory tools/scripts
+ leap-dict                 Locally Modified          429 
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          429 
+
+Directory modules/leap/libraries/librl/base
+ hash-string.bsv           Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          429 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.bsv        Locally Modified          429 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          429 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          429 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          429 
+
+- Generate hw/include/awb/provides/bsv_version_capabilities.bsh include file
+  at build time with a set of preprocessor variables describing capabilities
+  of the current Bluespec compiler.  Currently it indicates whether the Char
+  type is implemented.
+
+- Build a hash table for global strings.  The global strings code guarantees
+  that both strings and UIDs are unique within a synthesis boundary.  The
+  old code built a single list and searched it for each new string.
+  This requires the new Char type in order to hash a string.  When Char is
+  not implemented the hashed value is always 0, reducing the implementation
+  to the previous single list.

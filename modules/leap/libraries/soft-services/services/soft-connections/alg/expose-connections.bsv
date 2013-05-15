@@ -16,6 +16,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import DefaultValue::*;
 import Vector::*;
 import ModuleContext::*;
 import List::*;
@@ -62,7 +63,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
         let sReset <- exposeCurrentReset();
         return LOGICAL_CONNECTION_INFO 
              {
-                 globalStrings: tagged Nil,
+                 globalStrings: defaultValue,
                  unmatchedSends: tagged Nil,
                  unmatchedRecvs: tagged Nil,
                  unmatchedSendMultis: tagged Nil,

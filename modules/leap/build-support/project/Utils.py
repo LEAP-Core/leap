@@ -170,6 +170,27 @@ def getBluespecVersion():
             print "Failed to get Bluespec compiler version"
             sys.exit(1)
 
+        ## Generate an include file as a side-effect of calling this function
+        ## that describes the compiler's capabilities.
+        bsv_cap = open('hw/include/awb/provides/bsv_version_capabilities.bsh', 'w')
+        bsv_cap.write('//\n')
+        bsv_cap.write('// Bluespec compiler version\'s capabilities.\n')
+        bsv_cap.write('// Generated at build time by Utils.py.\n\n')
+        bsv_cap.write('//\n')
+        bsv_cap.write('// Compiler version: ' + str(getBluespecVersion.version) + '\n')
+        bsv_cap.write('//\n\n')
+
+        bsv_cap.write('`ifndef INCLUDED_bsv_version_capabilities\n');
+        bsv_cap.write('`define INCLUDED_bsv_version_capabilities\n\n');
+
+        bsv_cap.write('// Char type implemented?\n')
+        if (getBluespecVersion.version < 31201):
+            bsv_cap.write('// ')
+        bsv_cap.write('`define BSV_VER_CAP_CHAR 1\n')
+
+        bsv_cap.write('\n`endif // INCLUDED_bsv_version_capabilities\n');
+        bsv_cap.close()
+
     return getBluespecVersion.version
 
 

@@ -16,8 +16,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import DefaultValue::*;
 import Connectable::*;
 import Vector::*;
+import List::*;
 import Clocks::*;
 import FIFO::*;
 
@@ -166,10 +168,28 @@ typedef struct
 {
     Integer uid;
 }
-    GLOBAL_STRING_TABLE_ENTRY;
+GLOBAL_STRING_META;
 
-// The global string table is an association list of strings and entries.
-typedef Tuple2#(String, GLOBAL_STRING_TABLE_ENTRY) GLOBAL_STRING_TABLE;
+typedef Tuple2#(String, GLOBAL_STRING_META) GLOBAL_STRING_TABLE_ENTRY;
+
+typedef 4096 NUM_GLOBAL_STRING_TABLE_BUCKETS;
+
+// The global string table is hash table of strings and entry UIDs.  Each
+// hash table bucket is an association list of entries matching the hash.
+typedef struct
+{
+    Integer nEntries;
+    Vector#(NUM_GLOBAL_STRING_TABLE_BUCKETS,
+            List#(GLOBAL_STRING_TABLE_ENTRY)) buckets;
+}
+GLOBAL_STRING_TABLE;
+
+instance DefaultValue#(GLOBAL_STRING_TABLE);
+    defaultValue = GLOBAL_STRING_TABLE {
+                       nEntries: 0,
+                       buckets: replicate(Nil)
+                   };
+endinstance
 
 // Data about unmatched logical send connections
 typedef struct 
@@ -182,7 +202,7 @@ typedef struct
     Integer bitWidth;
     PHYSICAL_CONNECTION_OUT outgoing;
 } 
-    LOGICAL_SEND_INFO;
+LOGICAL_SEND_INFO;
 
 // Data about unmatched logical receive connections
 typedef struct 
@@ -195,7 +215,7 @@ typedef struct
     Integer bitWidth;
     PHYSICAL_CONNECTION_IN incoming;
 } 
-    LOGICAL_RECV_INFO;
+LOGICAL_RECV_INFO;
 
 // Data about unmatched logical send multicast connections
 typedef struct 
@@ -206,7 +226,7 @@ typedef struct
     Integer bitWidth;
     PHYSICAL_CONNECTION_OUT_MULTI outgoing;
 } 
-    LOGICAL_SEND_MULTI_INFO;
+LOGICAL_SEND_MULTI_INFO;
 
 // Data about unmatched logical receive multicast connections
 typedef struct 
@@ -217,7 +237,7 @@ typedef struct
     Integer bitWidth;
     PHYSICAL_CONNECTION_IN_MULTI incoming;
 } 
-    LOGICAL_RECV_MULTI_INFO;
+LOGICAL_RECV_MULTI_INFO;
 
 // Data about stations.
 typedef struct
@@ -231,7 +251,7 @@ typedef struct
     List#(LOGICAL_SEND_MULTI_INFO) registeredSendMultis;
     List#(LOGICAL_RECV_MULTI_INFO) registeredRecvMultis;
 }
-    STATION_INFO;
+STATION_INFO;
     
 
 // ========================================================================
@@ -254,7 +274,7 @@ typedef struct
     String sendName;
     PHYSICAL_CONNECTION_DEBUG_STATE state;
 }
-    CONNECTION_DEBUG_INFO;
+CONNECTION_DEBUG_INFO;
 
 
 // ========================================================================
@@ -285,7 +305,7 @@ typedef struct
     String sendName;
     CONNECTION_LATENCY_CONTROL control;
 }
-    CONNECTION_LATENCY_INFO;
+CONNECTION_LATENCY_INFO;
 
 // ========================================================================
 //
@@ -313,7 +333,7 @@ typedef struct
     PHYSICAL_CHAIN_IN  incoming;
     PHYSICAL_CHAIN_OUT outgoing;
 } 
-    LOGICAL_CHAIN_INFO;
+LOGICAL_CHAIN_INFO;
 
 
 // ========================================================================
@@ -324,7 +344,7 @@ typedef struct
 
 typedef struct
 {
-    List#(GLOBAL_STRING_TABLE) globalStrings;
+    GLOBAL_STRING_TABLE globalStrings;
     List#(LOGICAL_SEND_INFO) unmatchedSends;
     List#(LOGICAL_RECV_INFO) unmatchedRecvs;
     List#(LOGICAL_SEND_MULTI_INFO) unmatchedSendMultis;
@@ -341,4 +361,4 @@ typedef struct
     String rootStationName;
     Reset softReset;
 }
-    LOGICAL_CONNECTION_INFO;
+LOGICAL_CONNECTION_INFO;
