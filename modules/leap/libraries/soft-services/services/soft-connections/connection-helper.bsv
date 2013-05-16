@@ -261,11 +261,6 @@ endmodule
 
 module printGlobStrings#(GLOBAL_STRING_TABLE tbl) (Empty);
     Handle hdl <- openFile(genPackageName + ".str", WriteMode);
-
-    for (Integer b = 0; b < valueOf(NUM_GLOBAL_STRING_TABLE_BUCKETS); b = b + 1)
-    begin
-        List::mapM(printGlobString(hdl), tbl.buckets[b]);
-    end
-
+    List::mapM(printGlobString(hdl), List::concat(toList(tbl.buckets)));
     hClose(hdl);
 endmodule

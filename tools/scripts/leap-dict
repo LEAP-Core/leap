@@ -735,7 +735,6 @@ sub ParseInputFile($$) {
     # First update dependence file
     if ($updateDeps)
     {
-        print "$filename\n";
         system("$cmd -M -MT build/include/awb/rrr/service_ids.h -MF .depends-dic-" . basename($filename) . " $filename");
     }
 

@@ -15426,3 +15426,17 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
   This requires the new Char type in order to hash a string.  When Char is
   not implemented the hashed value is always 0, reducing the implementation
   to the previous single list.
+
+----------
+mcadler     Date: Wed May 15 23:30:36 EDT 2013  CSN: CSN-leap-431
+                  Thu May 16 03:30:36 UTC 2013
+
+
+Directory tools/scripts
+ leap-dict                 Locally Modified          430 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          430 
+
+- More "functional" implementation of print all global strings.
+- Remove errant debugging message.
