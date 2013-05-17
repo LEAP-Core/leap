@@ -80,31 +80,31 @@ typeclass Matchable#(type t);
   function String  getComputePlatform(t val);
 endtypeclass
 
-instance Matchable#(LOGICAL_RECV_INFO);
-  function String getLogicalName(LOGICAL_RECV_INFO rinfo);
-    return rinfo.logicalName;
+instance Matchable#(LOGICAL_RECV_ENTRY);
+  function String getLogicalName(LOGICAL_RECV_ENTRY r_entry);
+    return ctHashKey(r_entry);
   endfunction
 
-  function Integer getLogicalWidth(LOGICAL_RECV_INFO rinfo);
-    return rinfo.bitWidth;
+  function Integer getLogicalWidth(LOGICAL_RECV_ENTRY r_entry);
+    return ctHashValue(r_entry).bitWidth;
   endfunction
 
-  function String getComputePlatform(LOGICAL_RECV_INFO rinfo);
-    return rinfo.computePlatform;
+  function String getComputePlatform(LOGICAL_RECV_ENTRY r_entry);
+    return ctHashValue(r_entry).computePlatform;
   endfunction
 endinstance
 
-instance Matchable#(LOGICAL_SEND_INFO);
-  function String getLogicalName(LOGICAL_SEND_INFO sinfo);
-    return sinfo.logicalName;
+instance Matchable#(LOGICAL_SEND_ENTRY);
+  function String getLogicalName(LOGICAL_SEND_ENTRY s_entry);
+    return ctHashKey(s_entry);
   endfunction
 
-  function Integer getLogicalWidth(LOGICAL_SEND_INFO sinfo);
-    return sinfo.bitWidth;
+  function Integer getLogicalWidth(LOGICAL_SEND_ENTRY s_entry);
+    return ctHashValue(s_entry).bitWidth;
   endfunction
 
-  function String getComputePlatform(LOGICAL_SEND_INFO sinfo);
-    return sinfo.computePlatform;
+  function String getComputePlatform(LOGICAL_SEND_ENTRY s_entry);
+    return ctHashValue(s_entry).computePlatform;
   endfunction
 endinstance
 
@@ -229,24 +229,26 @@ module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SI
 endmodule
 
 
-module printSend#(LOGICAL_SEND_INFO send) (String);
-  String printStr = "Send: " + send.logicalName + " " + send.computePlatform + "\n";
+module printSend#(LOGICAL_SEND_ENTRY entry) (String);
+  match {.name, .send} = entry;
+  String printStr = "Send: " + name + " " + send.computePlatform + "\n";
   messageM(printStr);
   return printStr;
 endmodule
 
-module printSends#(List#(LOGICAL_SEND_INFO) sends) (Empty);
-  List::mapM(printSend, sends);
+module printSends#(LOGICAL_SEND_INFO_TABLE sends) (Empty);
+  List::mapM(printSend, ctHashTableToList(sends));
 endmodule
 
-module printRecv#(LOGICAL_RECV_INFO recv) (String);
-  String printStr = "Recv: " + recv.logicalName + " " + recv.computePlatform + "\n";
+module printRecv#(LOGICAL_RECV_ENTRY entry) (String);
+  match {.name, .recv} = entry;
+  String printStr = "Recv: " + name + " " + recv.computePlatform + "\n";
   messageM(printStr);
   return printStr;
 endmodule
 
-module printRecvs#(List#(LOGICAL_RECV_INFO) recvs) (Empty);
-  List::mapM(printRecv, recvs);
+module printRecvs#(LOGICAL_RECV_INFO_TABLE recvs) (Empty);
+  List::mapM(printRecv, ctHashTableToList(recvs));
 endmodule
 
 
@@ -261,6 +263,6 @@ endmodule
 
 module printGlobStrings#(GLOBAL_STRING_TABLE tbl) (Empty);
     Handle hdl <- openFile(genPackageName + ".str", WriteMode);
-    List::mapM(printGlobString(hdl), List::concat(toList(tbl.buckets)));
+    List::mapM(printGlobString(hdl), ctHashTableToList(tbl.buckets));
     hClose(hdl);
 endmodule

@@ -24,6 +24,7 @@ import HList::*;
 import FIFOF::*;
 
 
+`include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_interconnect.bsh"
@@ -64,8 +65,8 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
         return LOGICAL_CONNECTION_INFO 
              {
                  globalStrings: defaultValue,
-                 unmatchedSends: tagged Nil,
-                 unmatchedRecvs: tagged Nil,
+                 unmatchedSends: defaultValue,
+                 unmatchedRecvs: defaultValue,
                  unmatchedSendMultis: tagged Nil,
                  unmatchedRecvMultis: tagged Nil,
                  chains: tagged Nil,
@@ -121,16 +122,18 @@ instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(
 endinstance
 
 // We should refactor this code
-module printDanglingSend#(Integer cur_out, LOGICAL_SEND_INFO cur) (Empty);
-    let opt = (cur.optional) ? "True" : "False";
-    messageM("Dangling Send {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth) + ":" + cur.moduleName + ":None" );
+module printDanglingSend#(Integer cur_out, LOGICAL_SEND_ENTRY cur) (Empty);
+    let name = ctHashKey(cur);
+    let cur_val = ctHashValue(cur);
+    let opt = (cur_val.optional) ? "True" : "False";
+    messageM("Dangling Send {" + cur_val.logicalType + "} [" + integerToString(cur_out) +  "]:" + name + ":" + cur_val.computePlatform + ":" + opt + ":" + integerToString(cur_val.bitWidth) + ":" + cur_val.moduleName + ":None" );
 endmodule
 
-module printDanglingRecv#(Integer cur_out, LOGICAL_RECV_INFO cur) (Empty);
-
-    let opt = (cur.optional) ? "True" : "False";
-    messageM("Dangling Recv {" + cur.logicalType + "} [" + integerToString(cur_out) + "]:" + cur.logicalName+ ":" + cur.computePlatform + ":" + opt + ":" + integerToString(cur.bitWidth) + ":" + cur.moduleName+ ":None" );
-
+module printDanglingRecv#(Integer cur_out, LOGICAL_RECV_ENTRY cur) (Empty);
+    let name = ctHashKey(cur);
+    let cur_val = ctHashValue(cur);
+    let opt = (cur_val.optional) ? "True" : "False";
+    messageM("Dangling Recv {" + cur_val.logicalType + "} [" + integerToString(cur_out) + "]:" + name + ":" + cur_val.computePlatform + ":" + opt + ":" + integerToString(cur_val.bitWidth) + ":" + cur_val.moduleName+ ":None" );
 endmodule
 
 
@@ -142,23 +145,25 @@ module exposeDanglingSends#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
 
     Vector#(n, PHYSICAL_CONNECTION_OUT) res = newVector();
     Integer cur_out = 0;
-    List#(LOGICAL_SEND_INFO) dsends = ctx.unmatchedSends;
+    List#(LOGICAL_SEND_ENTRY) dsends = ctHashTableToList(ctx.unmatchedSends);
 
     // Output a compilation message and tie it to the next free outport
-    while (!List::isNull(dsends))
+    while (! List::isNull(dsends))
     begin
         let cur = List::head(dsends);
+        let name = ctHashKey(cur);
+        let cur_val = ctHashValue(cur);
         dsends = List::tail(dsends);
-        // Squash connections not from this FPGA Platform
-        if(cur.computePlatform == fpgaPlatformName)
+        // Only interested in connections on this FPGA Platform
+        if(cur_val.computePlatform == fpgaPlatformName)
         begin
             printDanglingSend(cur_out,cur);
-            res[cur_out] = cur.outgoing;
+            res[cur_out] = cur_val.outgoing;
             cur_out = cur_out + 1;
         end
         else
         begin
-            messageM("Dropping Send" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + fpgaPlatformName);
+            messageM("Dropping Send" + name + " should be on " + cur_val.computePlatform + " and we are compiling " + fpgaPlatformName);
         end
     end
 
@@ -193,26 +198,26 @@ module exposeDanglingRecvs#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
 
     Vector#(n, PHYSICAL_CONNECTION_IN) res = newVector();
     Integer cur_in = 0;
-    List#(LOGICAL_RECV_INFO) drecvs = ctx.unmatchedRecvs;
+    List#(LOGICAL_RECV_ENTRY) drecvs = ctHashTableToList(ctx.unmatchedRecvs);
 
-    //Output a compilation message and tie it to the next free inport
-    while (!List::isNull(drecvs))
+    // Output a compilation message and tie it to the next free inport
+    while (! List::isNull(drecvs))
     begin
-
         let cur = List::head(drecvs);
+        let name = ctHashKey(cur);
+        let cur_val = ctHashValue(cur);
         drecvs = List::tail(drecvs);
-        // Squash non-local connections
-        if (cur.computePlatform == fpgaPlatformName)
+        // Only interested in connections on this FPGA Platform
+        if (cur_val.computePlatform == fpgaPlatformName)
         begin
             printDanglingRecv(cur_in,cur);
-            res[cur_in] = cur.incoming;
+            res[cur_in] = cur_val.incoming;
             cur_in = cur_in + 1;
         end
         else
         begin
-            messageM("Dropping Recv" + cur.logicalName + " should be on " + cur.computePlatform + " and we are compiling " + fpgaPlatformName);
+            messageM("Dropping Recv" + name + " should be on " + cur_val.computePlatform + " and we are compiling " + fpgaPlatformName);
         end
-
     end
 
     // We can now squash connections

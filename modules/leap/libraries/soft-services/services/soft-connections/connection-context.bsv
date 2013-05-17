@@ -79,7 +79,7 @@ module [t_CONTEXT] getSynthesisBoundaryName (String)
 
 endmodule
 
-module [t_CONTEXT] getUnmatchedSends (List#(LOGICAL_SEND_INFO))
+module [t_CONTEXT] getUnmatchedSends (LOGICAL_SEND_INFO_TABLE)
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
@@ -100,7 +100,7 @@ module [t_CONTEXT] printUnmatchedSends (Empty)
 
 endmodule
 
-module [t_CONTEXT] getUnmatchedRecvs (List#(LOGICAL_RECV_INFO))
+module [t_CONTEXT] getUnmatchedRecvs (LOGICAL_RECV_INFO_TABLE)
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
@@ -246,7 +246,7 @@ endmodule
 
 // putUnmatchedSends
 
-module [t_CONTEXT] putUnmatchedSends#(List#(LOGICAL_SEND_INFO) new_sends) ()
+module [t_CONTEXT] putUnmatchedSends#(LOGICAL_SEND_INFO_TABLE new_sends) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
@@ -260,7 +260,7 @@ endmodule
 
 // putUnmatchedRecvs
 
-module [t_CONTEXT] putUnmatchedRecvs#(List#(LOGICAL_RECV_INFO) new_recvs) ()
+module [t_CONTEXT] putUnmatchedRecvs#(LOGICAL_RECV_INFO_TABLE new_recvs) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
@@ -369,23 +369,23 @@ endmodule
 
 // Add a new send/recv to the list.
 
-module [t_CONTEXT] addUnmatchedSend#(LOGICAL_SEND_INFO new_send) ()
+module [t_CONTEXT] addUnmatchedSend#(String logicalName, LOGICAL_SEND_INFO new_send) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-   let sends <- getUnmatchedSends();
-   putUnmatchedSends(List::cons(new_send, sends));
+    let sends <- getUnmatchedSends();
+    putUnmatchedSends(ctHashTableInsert(sends, logicalName, new_send));
 
 endmodule
 
-module [t_CONTEXT] addUnmatchedRecv#(LOGICAL_RECV_INFO new_recv) ()
+module [t_CONTEXT] addUnmatchedRecv#(String logicalName, LOGICAL_RECV_INFO new_recv) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
    let recvs <- getUnmatchedRecvs();
-   putUnmatchedRecvs(List::cons(new_recv, recvs));
+   putUnmatchedRecvs(ctHashTableInsert(recvs, logicalName, new_recv));
 
 endmodule
 
@@ -415,27 +415,33 @@ endmodule
 
 // Use strong == here.  
 
-module [t_CONTEXT] removeUnmatchedSend#(LOGICAL_SEND_INFO send) ()
+module [t_CONTEXT] removeUnmatchedSend#(LOGICAL_SEND_ENTRY send) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-  messageM("Try to remove send" + send.logicalName);
   let sends <- getUnmatchedSends();
-  let new_sends = List::filter(nameDoesNotMatch(send), sends);
-  putUnmatchedSends(new_sends);
+
+  // Remove entry from the hash table
+  LOGICAL_SEND_INFO_TABLE_IDX idx = ctHash(ctHashKey(send));
+  sends.tbl[idx] = List::filter(nameDoesNotMatch(send), sends.tbl[idx]);
+
+  putUnmatchedSends(sends);
 
 endmodule
 
-module [t_CONTEXT] removeUnmatchedRecv#(LOGICAL_RECV_INFO recv) ()
+module [t_CONTEXT] removeUnmatchedRecv#(LOGICAL_RECV_ENTRY recv) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-  messageM("Try to remove recv " + recv.logicalName);
   let recvs <- getUnmatchedRecvs();
-  let new_recvs = List::filter(nameDoesNotMatch(recv), recvs);
-  putUnmatchedRecvs(new_recvs);
+
+  // Remove entry from the hash table
+  LOGICAL_RECV_INFO_TABLE_IDX idx = ctHash(ctHashKey(recv));
+  recvs.tbl[idx] = List::filter(nameDoesNotMatch(recv), recvs.tbl[idx]);
+
+  putUnmatchedRecvs(recvs);
 
 endmodule
 

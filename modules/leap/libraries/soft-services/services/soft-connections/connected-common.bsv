@@ -168,33 +168,40 @@ typedef struct
 {
     Integer uid;
 }
-GLOBAL_STRING_META;
+GLOBAL_STRING_INFO;
 
-typedef Tuple2#(String, GLOBAL_STRING_META) GLOBAL_STRING_TABLE_ENTRY;
+typedef COMPILE_TIME_HASH_ENTRY#(String, GLOBAL_STRING_INFO)
+    GLOBAL_STRING_TABLE_ENTRY;
 
-typedef 4096 NUM_GLOBAL_STRING_TABLE_BUCKETS;
+typedef 512 NUM_GLOBAL_STRING_TABLE_BUCKETS;
 
 // The global string table is hash table of strings and entry UIDs.  Each
 // hash table bucket is an association list of entries matching the hash.
 typedef struct
 {
     Integer nEntries;
-    Vector#(NUM_GLOBAL_STRING_TABLE_BUCKETS,
-            List#(GLOBAL_STRING_TABLE_ENTRY)) buckets;
+    COMPILE_TIME_HASH_TABLE#(NUM_GLOBAL_STRING_TABLE_BUCKETS,
+                             String,
+                             GLOBAL_STRING_INFO) buckets;
 }
 GLOBAL_STRING_TABLE;
+
+typedef COMPILE_TIME_HASH_IDX#(NUM_GLOBAL_STRING_TABLE_BUCKETS)
+    GLOBAL_STRING_TABLE_IDX;
 
 instance DefaultValue#(GLOBAL_STRING_TABLE);
     defaultValue = GLOBAL_STRING_TABLE {
                        nEntries: 0,
-                       buckets: replicate(Nil)
+                       buckets: defaultValue
                    };
 endinstance
+
+
+typedef 512 NUM_CONNECTION_MATCHING_HASH_BUCKETS;
 
 // Data about unmatched logical send connections
 typedef struct 
 {
-    String logicalName;
     String logicalType;
     String computePlatform;
     String moduleName;
@@ -204,10 +211,20 @@ typedef struct
 } 
 LOGICAL_SEND_INFO;
 
+typedef COMPILE_TIME_HASH_ENTRY#(String, LOGICAL_SEND_INFO) LOGICAL_SEND_ENTRY;
+
+typedef COMPILE_TIME_HASH_TABLE#(NUM_CONNECTION_MATCHING_HASH_BUCKETS,
+                                 String,
+                                 LOGICAL_SEND_INFO)
+    LOGICAL_SEND_INFO_TABLE;
+
+typedef COMPILE_TIME_HASH_IDX#(NUM_CONNECTION_MATCHING_HASH_BUCKETS)
+    LOGICAL_SEND_INFO_TABLE_IDX;
+
+
 // Data about unmatched logical receive connections
 typedef struct 
 {
-    String logicalName;
     String logicalType;
     String computePlatform;
     String moduleName;
@@ -216,6 +233,17 @@ typedef struct
     PHYSICAL_CONNECTION_IN incoming;
 } 
 LOGICAL_RECV_INFO;
+
+typedef COMPILE_TIME_HASH_ENTRY#(String, LOGICAL_RECV_INFO) LOGICAL_RECV_ENTRY;
+
+typedef COMPILE_TIME_HASH_TABLE#(NUM_CONNECTION_MATCHING_HASH_BUCKETS,
+                                 String,
+                                 LOGICAL_RECV_INFO)
+    LOGICAL_RECV_INFO_TABLE;
+
+typedef COMPILE_TIME_HASH_IDX#(NUM_CONNECTION_MATCHING_HASH_BUCKETS)
+    LOGICAL_RECV_INFO_TABLE_IDX;
+
 
 // Data about unmatched logical send multicast connections
 typedef struct 
@@ -345,8 +373,8 @@ LOGICAL_CHAIN_INFO;
 typedef struct
 {
     GLOBAL_STRING_TABLE globalStrings;
-    List#(LOGICAL_SEND_INFO) unmatchedSends;
-    List#(LOGICAL_RECV_INFO) unmatchedRecvs;
+    LOGICAL_SEND_INFO_TABLE unmatchedSends;
+    LOGICAL_RECV_INFO_TABLE unmatchedRecvs;
     List#(LOGICAL_SEND_MULTI_INFO) unmatchedSendMultis;
     List#(LOGICAL_RECV_MULTI_INFO) unmatchedRecvMultis;
     List#(LOGICAL_CHAIN_INFO) chains;     // BACKWARDS COMPATABILITY: connection chains

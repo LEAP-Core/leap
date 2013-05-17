@@ -56,9 +56,11 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   for (Integer x = 0; x < List::length(unmatched_sends); x = x + 1)
   begin
     let cur = unmatched_sends[x];
-    if (!cur.optional)
+    let cur_name = ctHashKey(cur);
+    let cur_entry = ctHashValue(cur);
+    if (!cur_entry.optional)
       begin
-        messageM("ERROR: Unmatched logical send: " +  cur.logicalName);
+        messageM("ERROR: Unmatched logical send: " +  cur_name);
 	let newStr <- printSend(cur);
         errorStr = "Unmatched Send: " + newStr + errorStr;	
         error_occurred = True;
@@ -69,9 +71,11 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   for (Integer x = 0; x < List::length(unmatched_recvs); x = x + 1)
   begin
     let cur = unmatched_recvs[x];
-    if (!cur.optional)
+    let cur_name = ctHashKey(cur);
+    let cur_entry = ctHashValue(cur);
+    if (!cur_entry.optional)
       begin
-        messageM("ERROR: Unmatched logical receive: " + cur.logicalName);
+        messageM("ERROR: Unmatched logical receive: " + cur_name);
 	let newStr <- printRecv(cur);		 
         errorStr = "ERROR: Unmatched logical receive " + integerToString(x) + ": " + newStr + errorStr; 
         error_occurred = True;

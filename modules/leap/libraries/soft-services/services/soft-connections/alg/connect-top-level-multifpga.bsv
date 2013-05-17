@@ -61,21 +61,22 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   for (Integer x = 0; x < List::length(unmatched_sends); x = x + 1)
   begin
     let cur = unmatched_sends[x];
+    let cur_entry = ctHashValue(cur);
   
     // clear out leftovers from model top level 
-    if(cur.computePlatform != fpgaPlatformName)
+    if(cur_entry.computePlatform != fpgaPlatformName)
       begin
 	let newStr <- printSend(cur);
         errorStr = "Dropping: " + newStr + errorStr;	
       end
-    else if(cur.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
+    else if(cur_entry.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingSend(x,cur);
 	let newStr <- printSend(cur);
         errorStr = "Matched Send: " + newStr + errorStr;	
       end
-    else if (!cur.optional)
+    else if (!cur_entry.optional)
       begin
         messageM("ERROR: Unmatched logical send: ");
 	let newStr <- printSend(cur);
@@ -88,22 +89,24 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   for (Integer x = 0; x < List::length(unmatched_recvs); x = x + 1)
   begin
     let cur = unmatched_recvs[x];
+    let cur_entry = ctHashValue(cur);
+
     messageM("Working on: " + fpgaPlatformName);
     // clear out leftovers from model top level 
-    if(cur.computePlatform != fpgaPlatformName)
+    if(cur_entry.computePlatform != fpgaPlatformName)
       begin
         messageM("Top Level Dropping Recv: ");
 	let newStr <- printRecv(cur);		 
         errorStr = "Dropping Top Level: " + newStr + errorStr; 
       end
-    else if(cur.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
+    else if(cur_entry.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
       begin
         // In this case we should display the unmatched connection
         printDanglingRecv(x,cur);
 	let newStr <- printRecv(cur);		 
         errorStr = "Matched Recv: " + newStr + errorStr; 
       end
-    else if (!cur.optional)
+    else if (!cur_entry.optional)
       begin
         messageM("ERROR: Unmatched logical receive: ");
 	let newStr <- printRecv(cur);		 

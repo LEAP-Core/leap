@@ -87,7 +87,6 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
     let info = 
         LOGICAL_SEND_INFO 
         {
-            logicalName: send_name, 
             logicalType: original_type, 
             computePlatform: platformName,
             moduleName: moduleName,
@@ -108,7 +107,7 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
     begin
 
         // Nope, so just register and try to find a match.
-        registerSend(info);
+        registerSend(send_name, info);
 
     end
 
@@ -205,7 +204,6 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
     let info = 
         LOGICAL_RECV_INFO 
         {
-            logicalName: recv_name, 
             logicalType: original_type, 
             computePlatform: platformName,
             moduleName: moduleName,
@@ -228,7 +226,7 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
     begin
 
         // Nope, so just register and try to find a match.
-        registerRecv(info);
+        registerRecv(recv_name, info);
 
     end
 

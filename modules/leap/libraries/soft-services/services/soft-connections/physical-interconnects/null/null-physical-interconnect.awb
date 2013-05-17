@@ -1,0 +1,7 @@
+%name NULL Physical Interconnect
+%desc NULL Physical Interconnect
+%provides physical_interconnect
+
+%attributes leap
+
+%public null-physical-interconnect.bsv

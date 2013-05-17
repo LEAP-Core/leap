@@ -445,8 +445,8 @@ class BSV():
                       ch_type = 'LOGICAL_SEND_INFO'
                       ch_src = 'outgoing'
 
-                  synth_handle.write('    ' + ch_reg_stmt + '(' + ch_type + ' { logicalName: "' +\
-                                  channel.name + '", logicalType: "' + channel.raw_type +\
+                  synth_handle.write('    ' + ch_reg_stmt + '("' + channel.name + '", ' + ch_type +\
+                                  ' { logicalType: "' + channel.raw_type +\
                                   '", computePlatform: "' + channel.platform + '", optional: ' +\
                                   str(channel.optional) + ', ' + ch_src + ': connections.' + ch_src +'[' +\
                                   str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) +\

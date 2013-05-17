@@ -16,6 +16,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+`include "awb/provides/librl_bsv_base.bsh"
+
 
 // tree-helper.bsv
 
@@ -40,11 +42,15 @@ endmodule
 
 // When connecting two logical connections, test if they were originally the same type.
 
-module checkConnectionTypes#(LOGICAL_SEND_INFO send_info, LOGICAL_RECV_INFO recv_info) ();
+module checkConnectionTypes#(LOGICAL_SEND_ENTRY sEntry, LOGICAL_RECV_ENTRY rEntry) ();
+
+    let name = ctHashKey(sEntry);
+    let send_info = ctHashValue(sEntry);
+    let recv_info = ctHashValue(rEntry);
 
     if (send_info.logicalType != recv_info.logicalType)
     begin
-        messageM("Mismatched types for connection " + send_info.logicalName); 
+        messageM("Mismatched types for connection " + name); 
         messageM("        Send type: " + send_info.logicalType);
         messageM("     Receive type: " + recv_info.logicalType);
         return error("Connection type error.");
@@ -57,11 +63,15 @@ endmodule
 
 // When we find two listeners to the same multicast, make sure they are the same type.
 
-module checkMultiConnectionTypes#(LOGICAL_RECV_INFO recv_info1, LOGICAL_RECV_INFO recv_info2) ();
+module checkMultiConnectionTypes#(LOGICAL_RECV_ENTRY rEntry1, LOGICAL_RECV_ENTRY rEntry2) ();
+
+    let name = ctHashKey(rEntry1);
+    let recv_info1 = ctHashValue(rEntry1);
+    let recv_info2 = ctHashValue(rEntry2);
 
     if (recv_info1.logicalType != recv_info2.logicalType)
     begin
-        messageM("Inconsistent types for one-to-many connection " + recv_info1.logicalName);
+        messageM("Inconsistent types for one-to-many connection " + name);
         messageM("       First type: " + recv_info1.logicalType);
         messageM("      Second type: " + recv_info2.logicalType);
         return error("Connection type error.");
@@ -81,7 +91,7 @@ module printStationInfo#(PHYSICAL_STATION_INFO info) ();
     for (Integer x = 0; x < length(info.outgoingInfo); x = x + 1)
     begin
         let sendInfo = info.outgoingInfo[x];
-        messageM(sendInfo.logicalName);
+        // messageM(sendInfo.logicalName);
     
     end
 
@@ -90,7 +100,7 @@ module printStationInfo#(PHYSICAL_STATION_INFO info) ();
     for (Integer x = 0; x < length(info.incomingInfo); x = x + 1)
     begin
         let recvInfo = info.incomingInfo[x];
-        messageM(recvInfo.logicalName);
+        // messageM(recvInfo.logicalName);
     
     end
 

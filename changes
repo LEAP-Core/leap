@@ -15440,3 +15440,61 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 - More "functional" implementation of print all global strings.
 - Remove errant debugging message.
+
+----------
+mcadler     Date: Fri May 17 18:07:31 EDT 2013  CSN: CSN-leap-432
+                  Fri May 17 22:07:31 UTC 2013
+
+
+Directory tools/scripts
+ leap-connect              Locally Modified          431 
+
+Directory config/pm/leap/submodels/common
+ soft-services.apm         Locally Modified          431 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          431 
+
+Directory modules/leap/libraries/librl/base
+ hash-string.bsv           Locally Removed           431 
+ hash-compile-time.bsv     Locally Added               - 
+ librl-bsv-base.awb        Locally Modified          431 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.bsv        Locally Modified          431 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          431 
+ connected-common.bsv      Locally Modified          431 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree
+ tree-helper.bsv           Locally Modified          431 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects
+ null/                     Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/null
+ null-physical-interconnect.awb Locally Added               0 
+ null-physical-interconnect.bsv Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-stations-tree.bsv Locally Modified          431 
+ connect-top-level.bsv     Locally Modified          431 
+ connect-multicasts.bsv    Locally Modified          431 
+ expose-connections.bsv    Locally Modified          431 
+ connect-top-level-multifpga.bsv Locally Modified          431 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          431 
+ connection-context.bsv    Locally Modified          431 
+ connection-implementation.bsv Locally Modified          431 
+
+- Provide a compile-time hash data type and functions (libRL).  Hash tables
+  are associative lists of keys and values.
+
+- Use hash tables for soft connections.  Extract the name of the connection
+  from the old data type and use it as the key.
+
+- Deprecate a number of modules used for the old many-to-one and one-to-many
+  connections.  These have been broken for quite a while because they don't
+  offer either performance gains or area improvements.

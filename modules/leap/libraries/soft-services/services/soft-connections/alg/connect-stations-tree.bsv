@@ -81,11 +81,11 @@ module mkStationTree#(STATION_INFO st_info, LOGICAL_CONNECTION_INFO info) (Tuple
         messageM("Creating Physical Station: " + st_info.stationName + "(Leaf).");
         for (Integer x = 0; x < List::length(st_info.registeredRecvs); x = x + 1)
         begin
-            messageM("    Registering Recv: " + st_info.registeredRecvs[x].logicalName);
+            // messageM("    Registering Recv: " + st_info.registeredRecvs[x].logicalName);
         end
         for (Integer x = 0; x < List::length(st_info.registeredSends); x = x + 1)
         begin
-            messageM("    Registering Send: " + st_info.registeredSends[x].logicalName);
+            // messageM("    Registering Send: " + st_info.registeredSends[x].logicalName);
         end
         for (Integer x = 0; x < List::length(st_info.registeredRecvMultis); x = x + 1)
         begin
@@ -132,7 +132,7 @@ module mkStationTree#(STATION_INFO st_info, LOGICAL_CONNECTION_INFO info) (Tuple
 
         for (Integer x = 0; x < List::length(st_info.registeredRecvs); x = x + 1)
         begin
-            messageM("    Registering Recv: " + st_info.registeredRecvs[x].logicalName);
+            // messageM("    Registering Recv: " + st_info.registeredRecvs[x].logicalName);
             let recv_info = 
                 PHYSICAL_STATION_INFO
                 {
@@ -149,7 +149,7 @@ module mkStationTree#(STATION_INFO st_info, LOGICAL_CONNECTION_INFO info) (Tuple
 
         for (Integer x = 0; x < List::length(st_info.registeredSends); x = x + 1)
         begin
-            messageM("    Registering Send: " + st_info.registeredSends[x].logicalName);
+            // messageM("    Registering Send: " + st_info.registeredSends[x].logicalName);
             let send_info = 
                 PHYSICAL_STATION_INFO
                 {

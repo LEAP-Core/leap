@@ -38,9 +38,6 @@ smart_synth_boundaries=Soft Services Library Dependencies
 File=modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks/soft-services.awb
 Packagehint=leap
 
-[Shared Tree Physical Interconnect]
-File=modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree/shared-tree.awb
-Packagehint=leap
 
 [Soft Services Dependencies]
 File=modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks/soft-services-deps-small.awb
@@ -53,7 +50,7 @@ Packagehint=leap
 [SoftService Soft Connections/Requires]
 soft_connections_alg=Soft Service Soft Connections Algorithm
 soft_connections_common=Soft Service Soft Connections Common
-physical_interconnect=Shared Tree Physical Interconnect
+physical_interconnect=NULL Physical Interconnect
 soft_connections_debug=Soft Connections Debugging
 soft_connections_latency=Soft Connections Latency Test Fixture
 
@@ -86,4 +83,8 @@ Packagehint=leap
 
 [Soft Connections Latency Test Fixture]
 File=modules/leap/libraries/soft-services/services/soft-connections/latency/connections-latency.awb
+Packagehint=leap
+
+[NULL Physical Interconnect]
+File=modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/null/null-physical-interconnect.awb
 Packagehint=leap

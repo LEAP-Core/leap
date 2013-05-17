@@ -21,126 +21,136 @@ import FIFOF::*;
 
 //
 // connectMulticasts. 
-// One-to-many and Many-to-ones are deffered to the top-level. This actually connects them.
-// Return a list of dangling 1-to-1 connections that were not connected to multicasts.
+// One-to-many and Many-to-ones are deffered to the top-level. This actually
+// connects them.  Return a list of dangling 1-to-1 connections that were not
+// connected to multicasts.
 //
-module connectMulticasts#(Clock clk, LOGICAL_CONNECTION_INFO info) (Tuple2#(List#(LOGICAL_SEND_INFO), List#(LOGICAL_RECV_INFO)));
+module connectMulticasts#(Clock clk, LOGICAL_CONNECTION_INFO info)
+    (Tuple2#(List#(LOGICAL_SEND_ENTRY), List#(LOGICAL_RECV_ENTRY)));
 
     let soft_reset = info.softReset;
     
     // Make some mutable copies of the input.
     List#(LOGICAL_SEND_MULTI_INFO) send_multis = info.unmatchedSendMultis;
     List#(LOGICAL_RECV_MULTI_INFO) recv_multis = info.unmatchedRecvMultis;
-    List#(LOGICAL_SEND_INFO) unmatched_sends = info.unmatchedSends;
-    List#(LOGICAL_RECV_INFO) unmatched_recvs = info.unmatchedRecvs;
+    List#(LOGICAL_SEND_ENTRY) unmatched_sends = ctHashTableToList(info.unmatchedSends);
+    List#(LOGICAL_RECV_ENTRY) unmatched_recvs = ctHashTableToList(info.unmatchedRecvs);
     
-    // It's easier to do this by unique names then by handling sends and recvs separately.
-    let send_names = List::map(getLogicalName, send_multis);
-    let recv_names = List::map(getLogicalName, recv_multis);
-    List#(String) multi_names = uniquify(List::append(send_names, recv_names));
-    
-    // Iterate over the names.
-    while (!List::isNull(multi_names))
-    begin
+//
+//  This code was part of Michael Pellauer's thesis work, investigating the value
+//  of many-to-one and one-to-many connections.  He discovered that on FPGAs
+//  there are so many wires that point-to-point connections are easier to manage
+//  and there is no performance or area gain from sharing them.  The code
+//  below has been allowed to rot and is, thus, commented out.
+//
 
-        let cur_name = List::head(multi_names);
-        multi_names = List::tail(multi_names);
-
-        // Find the matches to the current name. Could be 1-to-Many, Many-to-1, or Many-to-Many
-        let matching_sends = findAllMatching(cur_name, unmatched_sends);
-        let matching_recvs = findAllMatching(cur_name, unmatched_recvs);
-        let matching_send_multis = findAllMatching(cur_name, send_multis);
-        let matching_recv_multis = findAllMatching(cur_name, recv_multis);
-        
-        // Remove matches from the lists.
-        unmatched_sends = findAllNotMatching(cur_name, unmatched_sends);
-        unmatched_recvs = findAllNotMatching(cur_name, unmatched_recvs);
-        send_multis = findAllNotMatching(cur_name, send_multis);
-        recv_multis = findAllNotMatching(cur_name, recv_multis);
-
-        // The semantics asserts that if there is more than one 1-to-many "foo" 
-        // then there should be no 1-to-1s named "foo" in the system, as it would
-        // be non-deterministic which send the recv would be connected to. And similarly if
-        // there are 2+ many-to-1s named "foo" then there should be no 1-to-1s named
-        // foo in the system.
-
-        case (List::length(matching_recv_multis))
-            0:
-            begin
-                case (List::length(matching_send_multis))
-                    0:
-                    begin
-                        // We should never get here unless we messed up our list book-keeping.
-                        error("Multicast connection algorithm got into inconsistent state.");
-                    end
-                    1:
-                    begin
-                        // The channel is a normal 1-to-many. Connect all recvs (may be zero).
-                        connectOneToMany(List::head(matching_send_multis), matching_recvs, clocked_by clk, reset_by soft_reset);
-                    end
-                    default:
-                    begin
-                        // Check for the inconsistency described above.
-                        if (List::length(matching_recvs) != 0)
-                        begin
-                            messageM("When connecting Multicast " + cur_name + ":");
-                            messageM("    Found " + integerToString(List::length(matching_send_multis)) + "One-to-Many Sends");
-                            messageM("    Found " + integerToString(List::length(matching_recvs)) + "One-to-One Recvs");
-                            error("Inconsistent logical topology. It is ambiguous which One-to-Many the One-to-Ones should be connected to. Perhaps they should be Many-to-One?");
-                        end
-                        else
-                        begin
-                            // We got here because many people are talking but no one is listening
-                            // Let's count that as a degenerate case of many-to-many.
-                            connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
-                        end
-                    end
-                endcase
-            end
-            1:
-            begin
-                case (List::length(matching_send_multis))
-                    0:
-                    begin
-                        // This channel is a normal many-to-one. Connect all sends (may be zero)
-                        connectManyToOne(List::head(matching_recv_multis), matching_sends, clocked_by clk, reset_by soft_reset);
-                    end
-                    default:
-                    begin
-                       // This channel is many-to-many with only 1 recv.
-                       connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
-                    end
-                endcase
-            end
-            default:
-            begin
-                case (List::length(matching_send_multis))
-                    0:
-                    begin
-                        // Check for the dual inconsistency described above.
-                        if (List::length(matching_sends) != 0)
-                        begin
-                            messageM("When connecting Multicast " + cur_name + ":");
-                            messageM("    Found " + integerToString(List::length(matching_sends)) + "One-to-One Sends");
-                            messageM("    Found " + integerToString(List::length(matching_recv_multis)) + "Many-to-One Recvs");
-                            error("Inconsistent logical topology. It is ambiguous which Many-to-One the One-to-Ones should be connected to. Perhaps they should be One-to-Many?");
-                        end
-                        else
-                        begin
-                            // We got here because many people are listening but no one is talking.
-                            // Let's count that as a degenerate case of many-to-many.
-                            connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
-                        end
-                    end
-                    default:
-                    begin
-                        // This is the normal many-to-many case with many receivers and 1+ sender.
-                        connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
-                    end
-                endcase
-            end
-        endcase
-    end
+//    // It's easier to do this by unique names then by handling sends and recvs separately.
+//    let send_names = List::map(getLogicalName, send_multis);
+//    let recv_names = List::map(getLogicalName, recv_multis);
+//    List#(String) multi_names = uniquify(List::append(send_names, recv_names));
+//    
+//    // Iterate over the names.
+//    while (!List::isNull(multi_names))
+//    begin
+//
+//        let cur_name = List::head(multi_names);
+//        multi_names = List::tail(multi_names);
+//
+//        // Find the matches to the current name. Could be 1-to-Many, Many-to-1, or Many-to-Many
+//        let matching_sends = findAllMatching(cur_name, unmatched_sends);
+//        let matching_recvs = findAllMatching(cur_name, unmatched_recvs);
+//        let matching_send_multis = findAllMatching(cur_name, send_multis);
+//        let matching_recv_multis = findAllMatching(cur_name, recv_multis);
+//        
+//        // Remove matches from the lists.
+//        unmatched_sends = findAllNotMatching(cur_name, unmatched_sends);
+//        unmatched_recvs = findAllNotMatching(cur_name, unmatched_recvs);
+//        send_multis = findAllNotMatching(cur_name, send_multis);
+//        recv_multis = findAllNotMatching(cur_name, recv_multis);
+//
+//        // The semantics asserts that if there is more than one 1-to-many "foo" 
+//        // then there should be no 1-to-1s named "foo" in the system, as it would
+//        // be non-deterministic which send the recv would be connected to. And similarly if
+//        // there are 2+ many-to-1s named "foo" then there should be no 1-to-1s named
+//        // foo in the system.
+//
+//        case (List::length(matching_recv_multis))
+//            0:
+//            begin
+//                case (List::length(matching_send_multis))
+//                    0:
+//                    begin
+//                        // We should never get here unless we messed up our list book-keeping.
+//                        error("Multicast connection algorithm got into inconsistent state.");
+//                    end
+//                    1:
+//                    begin
+//                        // The channel is a normal 1-to-many. Connect all recvs (may be zero).
+//                        connectOneToMany(List::head(matching_send_multis), matching_recvs, clocked_by clk, reset_by soft_reset);
+//                    end
+//                    default:
+//                    begin
+//                        // Check for the inconsistency described above.
+//                        if (List::length(matching_recvs) != 0)
+//                        begin
+//                            messageM("When connecting Multicast " + cur_name + ":");
+//                            messageM("    Found " + integerToString(List::length(matching_send_multis)) + "One-to-Many Sends");
+//                            messageM("    Found " + integerToString(List::length(matching_recvs)) + "One-to-One Recvs");
+//                            error("Inconsistent logical topology. It is ambiguous which One-to-Many the One-to-Ones should be connected to. Perhaps they should be Many-to-One?");
+//                        end
+//                        else
+//                        begin
+//                            // We got here because many people are talking but no one is listening
+//                            // Let's count that as a degenerate case of many-to-many.
+//                            connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
+//                        end
+//                    end
+//                endcase
+//            end
+//            1:
+//            begin
+//                case (List::length(matching_send_multis))
+//                    0:
+//                    begin
+//                        // This channel is a normal many-to-one. Connect all sends (may be zero)
+//                        connectManyToOne(List::head(matching_recv_multis), matching_sends, clocked_by clk, reset_by soft_reset);
+//                    end
+//                    default:
+//                    begin
+//                       // This channel is many-to-many with only 1 recv.
+//                       connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
+//                    end
+//                endcase
+//            end
+//            default:
+//            begin
+//                case (List::length(matching_send_multis))
+//                    0:
+//                    begin
+//                        // Check for the dual inconsistency described above.
+//                        if (List::length(matching_sends) != 0)
+//                        begin
+//                            messageM("When connecting Multicast " + cur_name + ":");
+//                            messageM("    Found " + integerToString(List::length(matching_sends)) + "One-to-One Sends");
+//                            messageM("    Found " + integerToString(List::length(matching_recv_multis)) + "Many-to-One Recvs");
+//                            error("Inconsistent logical topology. It is ambiguous which Many-to-One the One-to-Ones should be connected to. Perhaps they should be One-to-Many?");
+//                        end
+//                        else
+//                        begin
+//                            // We got here because many people are listening but no one is talking.
+//                            // Let's count that as a degenerate case of many-to-many.
+//                            connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
+//                        end
+//                    end
+//                    default:
+//                    begin
+//                        // This is the normal many-to-many case with many receivers and 1+ sender.
+//                        connectManyToMany(cur_name, matching_send_multis, matching_recv_multis, clocked_by clk, reset_by soft_reset);
+//                    end
+//                endcase
+//            end
+//        endcase
+//    end
     
     return tuple2(unmatched_sends, unmatched_recvs);
 
@@ -262,12 +272,13 @@ endmodule
 // connectManyToOne.
 // Connect many sends to a many-to-1 receive.
 //
-module connectManyToOne#(LOGICAL_RECV_MULTI_INFO crecv, List#(LOGICAL_SEND_INFO) csends) ();
+module connectManyToOne#(LOGICAL_RECV_MULTI_INFO crecv, List#(LOGICAL_SEND_ENTRY) csends) ();
 
     for (Integer x = 0; x < List::length(csends); x = x + 1)
     begin
 
-        let cur_send = csends[x];
+        let name = ctHashKey(csends[x]);
+        let cur_send = ctHashValue(csends[x]);
 
         // Make sure connection types match or consumer is receiving it as void.
         if (crecv.logicalType != cur_send.logicalType && crecv.logicalType != "")
@@ -275,7 +286,7 @@ module connectManyToOne#(LOGICAL_RECV_MULTI_INFO crecv, List#(LOGICAL_SEND_INFO)
 
             messageM("Detected send type: " + cur_send.logicalType);
             messageM("Detected receive type: " + crecv.logicalType);
-            error("ERROR: data types for Many-to-1 Connection " + cur_send.logicalName + " do not match.");
+            error("ERROR: data types for Many-to-1 Connection " + name + " do not match.");
 
         end
 

@@ -64,14 +64,6 @@ endfunction
 
 
 //
-// String hash function.
-//
-function Integer hashGlobalString(String str);
-    return hashStringToInteger(str) % valueOf(NUM_GLOBAL_STRING_TABLE_BUCKETS);
-endfunction
-
-
-//
 // getGlobalStringUID --
 //     Get a UID for a string.  If the string is already present in the global
 //     table then return the old UID.
@@ -85,8 +77,8 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
 
     let str_table <- getGlobalStrings();
 
-    let idx = hashGlobalString(str);
-    let bucket = str_table.buckets[idx];
+    GLOBAL_STRING_TABLE_IDX idx = ctHash(str);
+    let bucket = str_table.buckets.tbl[idx];
 
     if (List::lookup(str, bucket) matches tagged Valid .entry)
     begin
@@ -114,7 +106,7 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
         Integer shift_over_synth_uid = 2 ** `GLOBAL_STRING_SYNTH_UID_SZ;
         Integer shift_over_plat_uid =  2 ** `GLOBAL_STRING_PLATFORM_UID_SZ;
 
-        GLOBAL_STRING_META entry = ?;
+        GLOBAL_STRING_INFO entry = ?;
         entry.uid = (synth_plat_uid * shift_over_local_uid * shift_over_synth_uid) +
                     (synth_local_uid * shift_over_local_uid) +
                     local_uid;
@@ -127,8 +119,8 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
             error("Too many global strings");
 
         str_table.nEntries = str_table.nEntries + 1;
-        str_table.buckets[idx] = List::cons(tuple2(str, entry),
-                                            str_table.buckets[idx]);
+        str_table.buckets.tbl[idx] = List::cons(ctHashEntry(str, entry),
+                                                str_table.buckets.tbl[idx]);
 
         putGlobalStrings(str_table);
         str_uid = fromInteger(entry.uid);
@@ -152,9 +144,7 @@ module [t_CONTEXT] lookupGlobalString#(String str)
     Maybe#(GLOBAL_STRING_UID) str_uid = tagged Invalid;
 
     let str_table <- getGlobalStrings();
-    let bucket = str_table.buckets[hashGlobalString(str)];
-
-    if (List::lookup(str, bucket) matches tagged Valid .entry)
+    if (ctHashTableLookup(str_table.buckets, str) matches tagged Valid .entry)
     begin
         str_uid = tagged Valid fromInteger(entry.uid);
     end
