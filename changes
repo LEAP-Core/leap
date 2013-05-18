@@ -15498,3 +15498,19 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 - Deprecate a number of modules used for the old many-to-one and one-to-many
   connections.  These have been broken for quite a while because they don't
   offer either performance gains or area improvements.
+
+----------
+mcadler     Date: Sat May 18 09:11:38 EDT 2013  CSN: CSN-leap-433
+                  Sat May 18 13:11:38 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_BITGEN.py          Locally Modified          432 
+ XILINX_XST.py             Locally Modified          432 
+
+Fix multiple bugs in writing .xst files:
+ - VHDL sources weren't included
+ - Newline before -vlgcase argument caused Xst to abort.
+
+Virtex-5 builds didn't like the "-w" argument to bitgen.  Replaced with explicit
+SCons delete of the offending file.

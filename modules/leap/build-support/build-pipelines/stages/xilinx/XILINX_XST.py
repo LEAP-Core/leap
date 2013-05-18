@@ -36,31 +36,33 @@ class Synthesize():
     # these specially by generating stub modules. This adds a little complexity to the 
     # synthesis case. 
    
-    # construct a list of all generated and given verilogs.  These can
-    # appear anywhere in the code. The generated verilog live in the .bsc
+    # Construct a list of all generated and given Verilog and VHDL.  These can
+    # appear anywhere in the code. The generated Verilog live in the .bsc
     # directory. 
     globalVerilogs = moduleList.getAllDependencies('VERILOG_LIB')
+    globalVHDs = []
     for module in moduleList.moduleList + [moduleList.topModule]:
         MODULE_PATH =  get_build_path(moduleList, module) 
         for v in moduleList.getDependencies(module, 'GEN_VERILOGS'): 
             globalVerilogs += [MODULE_PATH + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '/' + v]
         for v in moduleList.getDependencies(module, 'GIVEN_VERILOGS'): 
             globalVerilogs += [MODULE_PATH + '/' + v]
-
+        for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
+            globalVHDs += [MODULE_PATH + '/' + v]
 
     def generatePrj(module):
         # spit out a new top-level prj
         prjPath = 'config/' + module.wrapperName() + '.prj' 
         newPRJFile = open(prjPath, 'w') 
  
+        # Emit verilog source and stub references
         verilogs = globalVerilogs + [get_temp_path(moduleList,module) + module.wrapperName() + '.v']
-        ## Only the top module will have stubs. 
-        #if (module.name == moduleList.topModule.name):
-        verilogs +=  moduleList.getDependencies(module,'VERILOG_STUB')
-        # dump the file
+        verilogs +=  moduleList.getDependencies(module, 'VERILOG_STUB')
         for vlog in sorted(verilogs):
-            # need to filter out synthesis boundaries
             newPRJFile.write("verilog work " + vlog + "\n")
+
+        for vhd in sorted(globalVHDs):
+            newPRJFile.write("vhdl work " + vhd + "\n")
 
         newPRJFile.close()
         return prjPath
@@ -108,7 +110,7 @@ class Synthesize():
 
         # we have some XST switches that are handled by parameter
         if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
-            XSTFile.write('\n-vlgcase parallel\n')
+            XSTFile.write('-vlgcase parallel\n')
         if moduleList.getAWBParam('synthesis_tool', 'XST_INSERT_IOBUF') and (module.name == moduleList.topModule.name):
             XSTFile.write('-iobuf yes\n')
         else:

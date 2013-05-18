@@ -27,7 +27,8 @@ class BITGEN():
       [ 'config/' + moduleList.apmName + '.ut' ] + moduleList.getAllDependencies('PAR'),
       [ SCons.Script.Delete('config/signature.sh'),
         SCons.Script.Delete(xilinx_apm_name + '_par.drc'),
-        'bitgen -w ' + unconstrained_arg + moduleList.elf + ' -m -f $SOURCES $TARGET ' + xilinx_apm_name + '.pcf' ])
+        SCons.Script.Delete(xilinx_apm_name + '_par.msk'),
+        'bitgen ' + unconstrained_arg + moduleList.elf + ' -m -f $SOURCES $TARGET ' + xilinx_apm_name + '.pcf' ])
     
     SCons.Script.Depends(xilinx_bit, Utils.clean_split(moduleList.env['DEFS']['GIVEN_ELFS'], sep = ' '));
 
