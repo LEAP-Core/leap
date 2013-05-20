@@ -15514,3 +15514,18 @@ Fix multiple bugs in writing .xst files:
 
 Virtex-5 builds didn't like the "-w" argument to bitgen.  Replaced with explicit
 SCons delete of the offending file.
+
+----------
+mcadler     Date: Mon May 20 19:02:51 EDT 2013  CSN: CSN-leap-434
+                  Mon May 20 23:02:51 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          433 
+
+Refactor BSV.py:
+ - Move tree build to a function of its own.  Still pretty huge, but at least
+   it is on its own.
+ - Reformat to our standard 4 column tabs.  This is where Python gets
+   annoying.
+
