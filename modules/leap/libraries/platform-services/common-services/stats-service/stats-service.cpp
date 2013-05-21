@@ -17,6 +17,8 @@
 //
 
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <string>
 #include <iostream>
 
@@ -30,9 +32,12 @@
 
 using namespace std;
 
+void *StatsThread(void *arg);
+
 
 // ===== service instantiation =====
 STATS_SERVER_CLASS STATS_SERVER_CLASS::instance;
+pthread_mutex_t STATS_SERVER_CLASS::scanLock = PTHREAD_MUTEX_INITIALIZER;
 
 // ===== registered stats emitters =====
 static list<STATS_EMITTER> statsEmitters;
@@ -63,6 +68,8 @@ STATS_SERVER_CLASS::Init(
 {
     // set parent pointer
     parent = p;
+
+    VERIFYX(! pthread_create(&liveStatsThread, NULL, &StatsThread, NULL));
 }
 
 
@@ -178,6 +185,11 @@ STATS_SERVER_CLASS::Uninit()
 void
 STATS_SERVER_CLASS::Cleanup()
 {
+    // Kill the thread monitoring the live file
+    pthread_cancel(liveStatsThread);
+    pthread_join(liveStatsThread, NULL);
+    unlink(LEAP_LIVE_DEBUG_PATH "/stats");
+
     // kill stubs
     delete serverStub;
     delete clientStub;
@@ -354,6 +366,15 @@ STATS_SERVER_CLASS::EmitFile(string statsFileName)
         ASIMERROR("Can't dump statistics");
     }
 
+    EmitFile(statsFile);
+    statsFile.close();
+}
+
+void
+STATS_SERVER_CLASS::EmitFile(ofstream& statsFile)
+{
+    pthread_mutex_lock(&scanLock);
+
     statsFile.precision(10);
 
     for (list<STAT_VECTOR>::const_iterator li = statVectors.begin();
@@ -384,7 +405,7 @@ STATS_SERVER_CLASS::EmitFile(string statsFileName)
         (*i)->EmitStats(statsFile);
     }
 
-    statsFile.close();
+    pthread_mutex_unlock(&scanLock);
 }
 
 //
@@ -473,5 +494,38 @@ STATS_EMITTER_CLASS::~STATS_EMITTER_CLASS()
             statsEmitters.erase(i);
             break;
         }
+    }
+}
+
+
+// ========================================================================
+//
+//   Live system statistics.
+//
+// ========================================================================
+
+//
+// StatsThread --
+//   Run as a permanent thread providing a live file (a named pipe) that,
+//   when read, initiates a dump of statistics to the pipe.
+//
+void *StatsThread(void *arg)
+{
+    mkfifo(LEAP_LIVE_DEBUG_PATH "/stats", 0755);
+
+    while (true)
+    {
+        // The open blocks until a reader also opens the pipe.
+        ofstream f(LEAP_LIVE_DEBUG_PATH "/stats");
+
+        STATS_SERVER_CLASS::GetInstance()->DumpStats();
+        STATS_SERVER_CLASS::GetInstance()->EmitFile(f);
+        f.close();
+
+        // The close causes readers to terminate, however the open
+        // on the next iteration would cause a slow reader to miss the
+        // EOF and trigger another dump.  Is there a way to wait for
+        // the reader to exit?  Until we find one, sleep for a while.
+        sleep(10);
     }
 }

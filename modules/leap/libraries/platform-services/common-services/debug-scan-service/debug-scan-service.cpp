@@ -47,13 +47,14 @@ void *DebugScanThread(void *arg);
 
 // ===== service instantiation =====
 DEBUG_SCAN_SERVER_CLASS DEBUG_SCAN_SERVER_CLASS::instance;
+pthread_mutex_t DEBUG_SCAN_SERVER_CLASS::scanLock = PTHREAD_MUTEX_INITIALIZER;
+
 
 // ===== methods =====
 
 // constructor
 DEBUG_SCAN_SERVER_CLASS::DEBUG_SCAN_SERVER_CLASS() :
     of(stdout),
-    scanLock(PTHREAD_MUTEX_INITIALIZER),
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
     serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this))

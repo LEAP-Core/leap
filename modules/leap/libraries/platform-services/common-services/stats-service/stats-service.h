@@ -19,7 +19,9 @@
 #ifndef __STATS_SERVICE_H__
 #define __STATS_SERVICE_H__
 
+#include <pthread.h>
 #include <unordered_map>
+#include <iostream>
 
 #include "asim/syntax.h"
 
@@ -198,6 +200,9 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     // that each name is used only once.
     unordered_map<string, STAT_INIT_BUCKET> initAllBuckets;
 
+    static pthread_mutex_t scanLock;
+    pthread_t liveStatsThread;
+
   public:
     STATS_SERVER_CLASS();
     ~STATS_SERVER_CLASS();
@@ -209,6 +214,7 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     void DumpStats();
     void EmitFile();
     void EmitFile(string statsFileName);
+    void EmitFile(ofstream& statsFile);
 
     // static methods
     static STATS_SERVER GetInstance() { return &instance; }

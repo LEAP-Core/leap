@@ -93,7 +93,7 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     DEBUG_SCAN_DATA_CLASS msg;
     FILE *of;
 
-    pthread_mutex_t scanLock;
+    static pthread_mutex_t scanLock;
     pthread_t liveDbgThread;
 
   public:

@@ -15529,3 +15529,18 @@ Refactor BSV.py:
  - Reformat to our standard 4 column tabs.  This is where Python gets
    annoying.
 
+
+----------
+mcadler     Date: Tue May 21 12:55:56 EDT 2013  CSN: CSN-leap-435
+                  Tue May 21 16:55:56 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          434 
+ debug-scan-service.h      Locally Modified          434 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          434 
+ stats-service.cpp         Locally Modified          434 
+
+Add another live file for displaying statistics counters during a run.
