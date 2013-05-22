@@ -232,7 +232,6 @@
                 <tr class="heading">
                   <td colspan="1">
                     <h2 class="groupheader">
-                      <a name="pri-methods"/>
                       Methods
                     </h2>
                   </td>
@@ -241,41 +240,39 @@
                   <tr class="memitem:">
                     <td class="memItemRight" valign="bottom">
                       <xsl:variable name="memberName" select="name"/>
-                      <xsl:choose>
-                        <xsl:when test="normalize-space(../../sectiondef/memberdef[name=$memberName]/detaileddescription) != ''">
+                      <!-- <xsl:choose>
+                        <xsl:when test="normalize-space(../../sectiondef/memberdef[name=$memberName]/detaileddescription) != ''"> -->
                           <xsl:element name="a">
                             <xsl:attribute name="href">
                               <xsl:value-of select="concat('#', $memberName)"/>
                             </xsl:attribute>
                             <xsl:value-of select="name"/>
                           </xsl:element>
-                        </xsl:when>
+                        <!--</xsl:when>
                         <xsl:otherwise>
                           <xsl:value-of select="name"/>
                         </xsl:otherwise>
-                      </xsl:choose>
+                      </xsl:choose> -->
                     </td>
                   </tr>
                   <!-- </xsl:if> -->
                 </xsl:for-each>
               </table>
             </xsl:if>
-            <xsl:if test="count(sectiondef/memberdef[normalize-space(detaileddescription) != '']) &gt; 0">
               <h2 class="groupheader">Detailed Method Description</h2>
-            </xsl:if>
             <xsl:for-each select="sectiondef/memberdef">
-              <xsl:if test="normalize-space(detaileddescription) != ''">
-                <xsl:element name="a">
-                  <xsl:attribute name="id">
-                    <xsl:value-of select="name"/>
-                  </xsl:attribute>
-                </xsl:element>
-                <div class="memitem">
+                <xsl:variable name="memlno" select="location/@line"/>
+                 <div class="memitem">
                   <div class="memproto">
-                    <table class="mlabels">
-                      <tr>
+                   <table class="mlabels">
+                     <tr>
                         <td class="mlabels-left">
                           <table>
+                            <xsl:element name="a">
+                              <xsl:attribute name="id">
+                                <xsl:value-of select="name"/>
+                              </xsl:attribute>
+                            </xsl:element>
                             <tr>
                             <td>
                               <xsl:call-template name="string-replace-less-than">
@@ -289,7 +286,12 @@
                           </td>
                           <td class="memname">
                           <b>
-                            <xsl:value-of select="name"/>
+                            <a class="el">
+                              <xsl:attribute name="href">
+                                <xsl:value-of select="concat($htmlsourcefile, '#l', format-number($memlno, '00000'))"/>
+                              </xsl:attribute>
+                              <xsl:value-of select="name"/>
+                            </a>
                           </b>
                           </td>
                           <td>
@@ -306,8 +308,8 @@
                             </xsl:call-template>
                             </td>
                             <td class="paramname">
-                            <xsl:value-of select="name"/>
-                            <xsl:if test="not(position() = last())">, </xsl:if>
+                            <xsl:value-of select="declname"/>
+                            <xsl:if test="not(position() = last())">,</xsl:if>
                             </td>
                           </xsl:for-each>
                            <td>
@@ -321,11 +323,29 @@
                   </div>
                   <div class="memdoc">
                     <p>
-                      <xsl:value-of select="detaileddescription"/>
+                      <xsl:choose>
+                        <xsl:when test="normalize-space(detaileddescription) != ''">
+                          <xsl:value-of select="detaileddescription"/>
+                          <br/> <br/>
+                     </xsl:when>
+                    </xsl:choose>
+                        Definition at line 
+                        <xsl:element name ="a">
+                          <xsl:attribute name="href">
+                          <xsl:value-of select="concat($htmlsourcefile, '#l', format-number($memlno, '00000'))"/>
+                          </xsl:attribute>
+                        <xsl:value-of select="$memlno"/>
+                        </xsl:element>
+                        of file 
+                        <a class="el">
+                        <xsl:attribute name="href">
+                        <xsl:value-of select="$htmlsourcefile"/>
+                        </xsl:attribute>
+                        <xsl:value-of select="$sourcefile"/>
+                        </a>
                     </p>
                   </div>
                 </div>
-              </xsl:if>
             </xsl:for-each>
             <hr/>
             The documentation for this class was generated from the following file:

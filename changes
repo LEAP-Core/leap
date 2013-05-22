@@ -15572,3 +15572,20 @@ is a synthesis boundary exports no rules.  To simplify SCons rule writing,
 nodes that are not synthesis boundaries use the new Bluespec file writing
 capability to generate a dummy Verilog file to replace the Verilog file
 not generated for the possible synthesis boundary.
+
+----------
+mgambhir    Date: Wed May 22 17:21:33 EDT 2013  CSN: CSN-leap-437
+                  Wed May 22 21:21:33 UTC 2013
+
+
+Directory docs
+ doxygen.config            Locally Modified          436 
+ title.png                 Locally Modified          436 
+ doxyhtmlgen.xsl           Locally Modified          436 
+
+- parameter name wasnt getting printed in the detailed member description section
+- Member name is now a link to the member definition in the source
+- Added an additional line at the end of detailed member definition providing a link to the member definition in the source html file
+- Changed the title to "Leap-based Projects Source Documentation"
+- Added detailed member definition sections for undocumented members
+
