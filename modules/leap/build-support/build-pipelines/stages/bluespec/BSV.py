@@ -568,7 +568,7 @@ class BSV():
 
             # Top module has a special, well-known name for stub gen.
             # unless there is only one module in the graph. 
-            module_names = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 1)] + ["build_tree"]
+            module_names = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 2)] + ["build_tree"]
      
             # A recursive function for partitioning a latency
             # insensitive graph into a a tree of modules so as to
@@ -589,7 +589,7 @@ class BSV():
                 # trivially return the base LI module to the caller
                 single_module = subgraph.graph.nodes()[0]
                 if (len(subgraph.graph.nodes()) == 1):
-                    if(not topModule):
+                    if (not topModule):
                         return single_module
                     else:                        
                         # If there is only one module in the
@@ -650,6 +650,8 @@ class BSV():
                 #Pick a name for the local module
                 localModule = module_names.pop()
 
+                num_child_exported_rules = 0
+
                 # in order to build an LI module for this node in the tree,
                 # we need to have the code for the subtrees 
                 # below the current node.  And so we recurse.  If only one 
@@ -658,22 +660,20 @@ class BSV():
                 submodule0 = graph0.modules.values()[0]
                 if (len(graph0.modules) > 1):
                     submodule0 = cutRecurse(graph0, 0)
+                    num_child_exported_rules += submodule0.numExportedRules
 
                 submodule1 = graph1.modules.values()[0] 
                 if (len(graph1.modules) > 1):
                     submodule1 = cutRecurse(graph1, 0)
+                    num_child_exported_rules += submodule1.numExportedRules
 
                 # we need to build a representation of the new liModule we are about to construct.
-                treeModule = LIModule("FixMe",localModule)
+                treeModule = LIModule("FixMe", localModule)
                 
-                # now we can write out our modules.
-                wrapper_handle.write("\n\n(*synthesize*)\n") 
-
                 # In order to generate the module, we need a type, 
                 # but we can only get it after analyzing the module pair
                 # Thus we store the module body code for later consumption                  
                 module_body = ""
-
 
                 # Instantiate the submodules.
                 for name in [submodule0.name, submodule1.name]:
@@ -790,17 +790,61 @@ class BSV():
                             treeModule.addChain(chainCopy) 
                             chains = chains + 1        
 
-      
-                # now that we have processed the module body, let's
-                # lay down wrapping code.
-                wrapper_handle.write("module mk_" + localModule + "_Wrapper")
+                ##
+                ## Should this module be a synthesis boundary?  We could just
+                ## make all the modules boundaries, but the Bluespec compiler
+                ## is quite slow for boundaries.  Only generate a true
+                ## synthesis boundary when the number of rules grows large
+                ## enough to slow down the Bluespec scheduler.
+                ##
+
+                # Always generate a boundary for top level
+                gen_synth_boundary = topModule
+
+                # Threshold for Bluespec scheduler
+                total_rules = len(treeModule.channels) + num_child_exported_rules
+                if (total_rules > 250):
+                    gen_synth_boundary = True
+                    treeModule.setNumExportedRules(0)
+                else:
+                    treeModule.setNumExportedRules(total_rules)
+
+                ##
+                ## Now we can write out our modules.
+                ##
+                if (gen_synth_boundary):
+                    wrapper_handle.write("\n\n(*synthesize*)") 
+
+                wrapper_handle.write("\nmodule ")
+                if (not gen_synth_boundary):
+                    wrapper_handle.write("[Module] ")
+                wrapper_handle.write("mk_" + localModule + "_Wrapper")
                 moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
                              ", " + str(outgoing) + ", 0, 0, " + str(chains) + ")"
 
                 subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
                                    str(outgoing) + ", 0, 0, " + str(chains) + ")"
-                wrapper_handle.write(" (" + moduleType +");\n")
+                wrapper_handle.write(" (" + moduleType +")")
+                if (gen_synth_boundary):
+                    wrapper_handle.write(";\n")
+                else:
+                    wrapper_handle.write("\n")
+                    wrapper_handle.write("    provisos (IsModule#(Module, Id__));\n\n")
                  
+                    ##
+                    ## Here is a hack:  we didn't know on the SCons first pass
+                    ## whether a synthesis boundary would be generated for this
+                    ## module.  Hence we had to assume that one might be and
+                    ## dependence was added on the generated Verilog.  Now
+                    ## that we know there is none, generate a dummy Verilog
+                    ## file.
+                    ##
+                    v_path = "mk_" + localModule + "_Wrapper.v"
+                    wrapper_handle.write("    // Hack to generate Verilog file to simulate the possible synthesis boundary\n")
+                    wrapper_handle.write("    Handle hdl <- openFile(\"" + v_path + "\", WriteMode);\n")
+                    wrapper_handle.write("    hPutStrLn(hdl, \"// Dummy\");\n")
+                    wrapper_handle.write("    hClose(hdl);\n")
+
                 #declare interface vectors
                 wrapper_handle.write("    Vector#(" + str(incoming) + ", PHYSICAL_CONNECTION_IN)  incomingVec = newVector();\n")
                 wrapper_handle.write("    Vector#(" + str(outgoing) + ", PHYSICAL_CONNECTION_OUT) outgoingVec = newVector();\n")
@@ -810,18 +854,18 @@ class BSV():
                 wrapper_handle.write(module_body)
                                 
                 # fill in external interface 
-                wrapper_handle.write("   let e0 <- mkEmpty();\n");
-                wrapper_handle.write("   let e1 <- mkEmpty();\n");
-                wrapper_handle.write("   let e2 <- mkEmpty();\n");
-                wrapper_handle.write("   let clk <- exposeCurrentClock();\n");
-                wrapper_handle.write("   let rst <- exposeCurrentReset();\n");
+                wrapper_handle.write("    let e0 <- mkEmpty();\n")
+                wrapper_handle.write("    let e1 <- mkEmpty();\n")
+                wrapper_handle.write("    let e2 <- mkEmpty();\n")
+                wrapper_handle.write("    let clk <- exposeCurrentClock();\n")
+                wrapper_handle.write("    let rst <- exposeCurrentReset();\n")
 
                 wrapper_handle.write("    " + subinterfaceType + " moduleIfc = interface WITH_CONNECTIONS;\n")
                 wrapper_handle.write("        interface incoming = incomingVec;\n")
                 wrapper_handle.write("        interface outgoing = outgoingVec;\n")
                 wrapper_handle.write("        interface chains = chainsVec;\n")                                   
-                wrapper_handle.write("        interface incomingMultis = replicate(PHYSICAL_CONNECTION_IN_MULTI{clock: clk, reset: rst});\n")
-                wrapper_handle.write("        interface outgoingMultis = replicate(PHYSICAL_CONNECTION_OUT_MULTI{clock: clk, reset: rst});\n")
+                wrapper_handle.write("        interface incomingMultis = replicate(PHYSICAL_CONNECTION_IN_MULTI{try: ?, success: ?, clock: clk, reset: rst});\n")
+                wrapper_handle.write("        interface outgoingMultis = replicate(PHYSICAL_CONNECTION_OUT_MULTI{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst});\n")
                 wrapper_handle.write("    endinterface;\n")
                                              
                 wrapper_handle.write("    interface services = tuple3(moduleIfc,e0,e1);\n")
@@ -922,7 +966,7 @@ class BSV():
         ## tree whether or not we should just invoke build synth boundary on it.  
         ## The difficulty is that the dependency checker won't work because the code 
         ## doesn't actually exist. 
-        tree_file_wrapper_bo = env.BSC(tree_file_wrapper_bo_path, tree_file_wrapper)
+        tree_file_wrapper_bo = env.BSC(tree_file_wrapper_bo_path, tree_components[0])
         
         # the tree_file_wrapper build needs all the wrapper bo from the user program,
         # but not the top level build.  
@@ -931,7 +975,7 @@ class BSV():
         
         env.Depends(tree_file_wrapper_bo, all_bo)
 
-        tree_file_synth_bo = env.BSC(tree_file_synth_bo_path, tree_file_synth)
+        tree_file_synth_bo = env.BSC(tree_file_synth_bo_path, tree_components[1])
         env.Depends(tree_file_synth_bo, tree_file_wrapper_bo)
 
         env.Depends(top_bo, tree_file_synth_bo)
@@ -946,20 +990,20 @@ class BSV():
         
         top_module_path = get_build_path(moduleList, moduleList.topModule)
         bb = self.stubGenCommand(top_module_path, "build_tree_Wrapper.bsv", top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")
-        env.Depends( top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v", tree_file_wrapper_bo)
+        env.Depends(top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v", tree_file_wrapper_bo)
         oldStubs =  moduleList.topModule.moduleDependency['VERILOG_STUB']
         moduleList.topModule.moduleDependency['VERILOG_STUB'] = [bb] # top level only depends on the build tree
         
         ## We have now generated a completely new module. Let's throw it
         ## into the list.  Although we are building it seperately, this
         ## module is an extension to the build tree.
-        verilog_deps = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 1)] 
+        verilog_deps = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 2)] 
         tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
                              moduleList.topModule.computePlatform, moduleList.topModule.name,\
                              [], moduleList.topModule.name, [], \
                              {'GEN_VERILOGS': [ "mk_" + vlog + "_Wrapper.v"  for vlog in verilog_deps],\
-                             'GEN_BAS': [  "mk_" + vlog + "_Wrapper.ba" for vlog in verilog_deps],
-                             'VERILOG': [],
-                             'VERILOG_STUB': oldStubs})
+                              'GEN_BAS': [  "mk_" + vlog + "_Wrapper.ba" for vlog in verilog_deps],
+                              'VERILOG': [],
+                              'VERILOG_STUB': oldStubs})
 
         return [tree_module]

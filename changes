@@ -15544,3 +15544,31 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
  stats-service.cpp         Locally Modified          434 
 
 Add another live file for displaying statistics counters during a run.
+
+----------
+mcadler     Date: Wed May 22 15:04:21 EDT 2013  CSN: CSN-leap-436
+                  Wed May 22 19:04:21 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          435 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          435 
+
+For some designs, the new build tree was slower to compile than the old version.
+This is because each node in the tree was a synthesis boundary and the
+Bluespec compiler's tax for generating a synthesis boundary is high compared
+to just compiling a module.
+
+The only reason we built synthesis boundaries was because nodes with a large
+number of connections generate a large number of rules and the Bluespec
+scheduler chokes.
+
+The solution:  request a synthesis boundary only when the number of rules
+approaches a threshold that matters.  Nodes now record their own number of
+connections plus the number of connections of their children.  A child that
+is a synthesis boundary exports no rules.  To simplify SCons rule writing,
+nodes that are not synthesis boundaries use the new Bluespec file writing
+capability to generate a dummy Verilog file to replace the Verilog file
+not generated for the possible synthesis boundary.
