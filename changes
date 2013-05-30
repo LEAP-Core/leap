@@ -15589,3 +15589,17 @@ Directory docs
 - Changed the title to "Leap-based Projects Source Documentation"
 - Added detailed member definition sections for undocumented members
 
+
+----------
+keflemin    Date: Wed May 29 21:01:07 EDT 2013  CSN: CSN-leap-438
+                  Thu May 30 01:01:07 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          437 
+
+
+Fixed corner case in build pipeline - in some multifpga builds a
+platform may have no latency insensitive modules assigned to it.
+Build tree now generates an empty wrapper in this case.
+

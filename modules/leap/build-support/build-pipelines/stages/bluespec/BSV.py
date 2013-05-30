@@ -562,7 +562,7 @@ class BSV():
             for module in liGraph.graph.nodes():
                 wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')        
  
-            wrapper_handle.write('module mkEmpty (Empty); endmodule\n')
+            wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0)); return ?; endmodule\n')
             if (pipeline_debug != 0):
                 print "LIGraph: " + str(liGraph)
 
@@ -585,21 +585,25 @@ class BSV():
             # by the function.  This tree may have unmatched
             # channels.
             def cutRecurse(subgraph, topModule):
-                # doesn't make sense to cut up a size-one LIM
+                # doesn't make sense to cut up a null or size-one LIM
                 # trivially return the base LI module to the caller
-                single_module = subgraph.graph.nodes()[0]
-                if (len(subgraph.graph.nodes()) == 1):
+                if (len(subgraph.graph.nodes()) < 2):
                     if (not topModule):
-                        return single_module
+                        return subgraph.graph.nodes()[0]
                     else:                        
-                        # If there is only one module in the
-                        # program, we need to dump out a wrapper
-                        # module so that the information we told
-                        # SCons and downstream tools during the
-                        # graph assembly phase will be true. To
-                        # create a wrapper, we need to figure out
-                        # the type of the singleton by examining its
-                        # channels.
+                        # If there is are fewer than two modules in
+                        # the program, we need to dump out a wrapper
+                        # module so that the information we told SCons
+                        # and downstream tools during the graph
+                        # assembly phase will be true. To create a
+                        # wrapper, we need to figure out the type of
+                        # the singleton by examining its channels.
+
+                        # if we have no modules, we still need something.
+                        single_module = LIModule("Empty", "Empty") 
+                        if(len(subgraph.graph.nodes()) > 0):
+                            single_module = subgraph.graph.nodes()[0]
+
                         wrapper_handle.write("\n\n(*synthesize*)\n") 
                         localModule = module_names.pop()
 
@@ -854,9 +858,9 @@ class BSV():
                 wrapper_handle.write(module_body)
                                 
                 # fill in external interface 
-                wrapper_handle.write("    let e0 <- mkEmpty();\n")
-                wrapper_handle.write("    let e1 <- mkEmpty();\n")
-                wrapper_handle.write("    let e2 <- mkEmpty();\n")
+                #wrapper_handle.write("    let e0 <- mk_Empty_Wrapper();\n")
+                #wrapper_handle.write("    let e1 <- mk_Empty_Wrapper();\n")
+                #wrapper_handle.write("    let e2 <- mk_Empty_Wrapper();\n")
                 wrapper_handle.write("    let clk <- exposeCurrentClock();\n")
                 wrapper_handle.write("    let rst <- exposeCurrentReset();\n")
 
@@ -868,8 +872,8 @@ class BSV():
                 wrapper_handle.write("        interface outgoingMultis = replicate(PHYSICAL_CONNECTION_OUT_MULTI{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst});\n")
                 wrapper_handle.write("    endinterface;\n")
                                              
-                wrapper_handle.write("    interface services = tuple3(moduleIfc,e0,e1);\n")
-                wrapper_handle.write("    interface device = e2;\n")
+                wrapper_handle.write("    interface services = tuple3(moduleIfc,?,?);\n")
+                wrapper_handle.write("    interface device = ?;//e2;\n")
                 wrapper_handle.write("endmodule\n")
 
                 if (pipeline_debug != 0):
