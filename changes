@@ -15619,3 +15619,13 @@ Directory docs
 - Cleaned up module description page
 - Interface description page shows a list of modules that implement that interface with each module name being a link to that module's page
 - Module page shows a link to the interface that it implements
+
+----------
+mgambhir    Date: Mon Jun  3 15:50:59 EDT 2013  CSN: CSN-leap-440
+                  Mon Jun  3 19:50:59 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-local.bsv           Locally Modified          439 
+
+- Reverted some changes that were accidentally made to stdio-local.bsv in the previous commit
