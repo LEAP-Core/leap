@@ -15629,3 +15629,17 @@ Directory modules/leap/libraries/platform-services/common-services/stdio-service
  stdio-local.bsv           Locally Modified          439 
 
 - Reverted some changes that were accidentally made to stdio-local.bsv in the previous commit
+
+----------
+mcadler     Date: Mon Jun  3 16:11:55 EDT 2013  CSN: CSN-leap-441
+                  Mon Jun  3 20:11:55 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-local.bsv           Locally Modified          440 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          440 
+
+- Tweak hash bucket sizes to what appears to be optimal for compile-time.
+- Fix capitalization.

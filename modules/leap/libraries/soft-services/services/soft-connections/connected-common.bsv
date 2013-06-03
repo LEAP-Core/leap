@@ -173,7 +173,7 @@ GLOBAL_STRING_INFO;
 typedef COMPILE_TIME_HASH_ENTRY#(String, GLOBAL_STRING_INFO)
     GLOBAL_STRING_TABLE_ENTRY;
 
-typedef 512 NUM_GLOBAL_STRING_TABLE_BUCKETS;
+typedef 1024 NUM_GLOBAL_STRING_TABLE_BUCKETS;
 
 // The global string table is hash table of strings and entry UIDs.  Each
 // hash table bucket is an association list of entries matching the hash.
@@ -197,7 +197,7 @@ instance DefaultValue#(GLOBAL_STRING_TABLE);
 endinstance
 
 
-typedef 512 NUM_CONNECTION_MATCHING_HASH_BUCKETS;
+typedef 1024 NUM_CONNECTION_MATCHING_HASH_BUCKETS;
 
 // Data about unmatched logical send connections
 typedef struct 

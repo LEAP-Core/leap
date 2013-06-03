@@ -742,7 +742,7 @@ interface STDIO_COND_PRINTF#(type t_DATA);
 endinterface
 
 //
-// mkStdio_CondPrintf --
+// mkStdIO_CondPrintf --
 //     Wrap the provided STDIO node and expose printf and fprintf.  Output
 //     is enabled conditionally, based on the requested bit of the dynamic
 //     parameter STDIO_COND_PRINTF_MASK.
