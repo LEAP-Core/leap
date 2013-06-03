@@ -227,6 +227,61 @@
                 </a>
               </p>
             </div>
+            <xsl:if test="count(derivedcompoundref) &gt; 0">
+            <table class="memberdecls">
+                <tr class="heading">
+                  <td colspan="1">
+                    <h2 class="groupheader">
+                      Modules implementing the Interface
+                    </h2>
+                  </td>
+                </tr>
+                <xsl:for-each select = "derivedcompoundref">
+                  <tr class="memitem:">
+                    <td class="memItemRight" valign="bottom">
+                    <xsl:element name="a">
+                      <xsl:attribute name="href">
+                        <xsl:variable name="constructName" select="@refid"/>
+                        <xsl:value-of select="concat($constructName,'.html')"/>
+                      </xsl:attribute>
+                      <xsl:call-template name="string-replace-less-than">
+                        <xsl:with-param name="text">
+                          <xsl:call-template name="string-replace-greater-than">
+                            <xsl:with-param name="text" select="."/>
+                           </xsl:call-template>
+                         </xsl:with-param>
+                       </xsl:call-template>
+                    </xsl:element>
+                    </td>
+                  </tr>
+                </xsl:for-each>
+              </table>
+              <br/>
+            </xsl:if>
+            <xsl:if test="count(basecompoundref) &gt; 0">
+            <table class="memberdecls">
+                <tr class="heading">
+                  <td colspan="1">
+                      <xsl:text>This module implements </xsl:text>
+                <xsl:element name="a">
+                  <xsl:attribute name="href">
+                    <xsl:variable name="constructName" select="basecompoundref/@refid"/>
+                    <xsl:value-of select="concat($constructName,'.html')"/>
+                  </xsl:attribute>
+                      <xsl:call-template name="string-replace-less-than">
+                        <xsl:with-param name="text">
+                          <xsl:call-template name="string-replace-greater-than">
+                            <xsl:with-param name="text" select="basecompoundref"/>
+                           </xsl:call-template>
+                         </xsl:with-param>
+                       </xsl:call-template>
+                       </xsl:element>
+                      <xsl:text> interface. </xsl:text>
+                  </td>
+                </tr>
+              </table>
+              <br/>
+            </xsl:if>
             <xsl:if test="count(listofallmembers/member[normalize-space(name) != '']) &gt; 0">
               <table class="memberdecls">
                 <tr class="heading">
@@ -258,7 +313,6 @@
                   <!-- </xsl:if> -->
                 </xsl:for-each>
               </table>
-            </xsl:if>
               <h2 class="groupheader">Detailed Method Description</h2>
             <xsl:for-each select="sectiondef/memberdef">
                 <xsl:variable name="memlno" select="location/@line"/>
@@ -282,7 +336,6 @@
                                    </xsl:call-template>
                                  </xsl:with-param>
                               </xsl:call-template>
-                          <xsl:text/>
                           </td>
                           <td class="memname">
                           <b>
@@ -347,6 +400,7 @@
                   </div>
                 </div>
             </xsl:for-each>
+            </xsl:if>
             <hr/>
             The documentation for this class was generated from the following file:
             <ul>

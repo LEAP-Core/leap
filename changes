@@ -15603,3 +15603,19 @@ Fixed corner case in build pipeline - in some multifpga builds a
 platform may have no latency insensitive modules assigned to it.
 Build tree now generates an empty wrapper in this case.
 
+
+----------
+mgambhir    Date: Mon Jun  3 15:35:50 EDT 2013  CSN: CSN-leap-439
+                  Mon Jun  3 19:35:50 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-local.bsv           Locally Modified          438 
+
+Directory docs
+ doxygen.config            Locally Modified          438 
+ doxyhtmlgen.xsl           Locally Modified          438 
+
+- Cleaned up module description page
+- Interface description page shows a list of modules that implement that interface with each module name being a link to that module's page
+- Module page shows a link to the interface that it implements

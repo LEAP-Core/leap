@@ -63,7 +63,7 @@ typedef Bit#(32) STDIO_RSP_RING_CHUNK;
 // replace RRR with virtual channels and change only the code here to
 // eliminate the buffering.
 //
-interface STDIO#(type t_DATA);
+interface STDIO#(t_DATA);
     // fopen is a request/response interface, returning the file handle
     method Action fopen_req(GLOBAL_STRING_UID nameID, GLOBAL_STRING_UID modeID);
     method ActionValue#(STDIO_FILE) fopen_rsp();
@@ -742,7 +742,6 @@ interface STDIO_COND_PRINTF#(type t_DATA);
 endinterface
 
 //
-// mkStdIO_CondPrintf --
 //     Wrap the provided STDIO node and expose printf and fprintf.  Output
 //     is enabled conditionally, based on the requested bit of the dynamic
 //     parameter STDIO_COND_PRINTF_MASK.
@@ -754,9 +753,7 @@ endinterface
 //     be independent.  For designs where space is more important than
 //     parallelism, allocate one mkStdIO_CondPrintf and share it among
 //     multiple rules.
-//     
 //     By convention we leave the high mask bit for use by LEAP infrastructure.
-//     
 module [CONNECTED_MODULE] mkStdIO_CondPrintf#(Integer maskBitIdx,
                                               STDIO#(t_DATA) stdio)
     // Interface:
