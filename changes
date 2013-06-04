@@ -15643,3 +15643,23 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 - Tweak hash bucket sizes to what appears to be optimal for compile-time.
 - Fix capitalization.
+
+----------
+keflemin    Date: Tue Jun  4 16:07:32 EDT 2013  CSN: CSN-leap-442
+                  Tue Jun  4 20:07:32 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          441 
+
+
+Bluesim now supports user specified link flags using the
+BLUESIM_LDFLAGS file type.  A possible extension to this support is to
+allow strings to be interpreted as virtual files by the awb parser:
+
+source -t FOO "some virtual file contents"
+
+which would be translated to 
+
+GIVEN_FOOS: [virtual_file1]
+

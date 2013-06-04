@@ -18,8 +18,13 @@ class Bluesim():
     inc_paths = moduleList.swIncDir # we need to depend on libasim
 
     bsc_version = getBluespecVersion()
-    
-    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread '
+
+    ldflags = ''
+    for ld_file in moduleList.getAllDependenciesWithPaths('GIVEN_BLUESIM_LDFLAGSS'):
+      ldHandle = open(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + ld_file, 'r')
+      ldflags += ldHandle.read() + ' '    
+        
+    BSC_FLAGS_SIM = '-steps 10000000 +RTS -K1000M -RTS -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -no-opt-bool -licenseWarning 7 -elab -show-schedule -l pthread ' + ldflags + ' '
 
     # Build in parallel.
     n_jobs = moduleList.env.GetOption('num_jobs')
@@ -30,6 +35,7 @@ class Bluesim():
         BSC_FLAGS_SIM += '-I ' + path + ' '
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
+
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'
 
@@ -37,7 +43,7 @@ class Bluesim():
     ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
     ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
     
-    bsc_sim_command = BSC + ' ' + BSC_FLAGS_SIM + ' ' + LDFLAGS + ' -o $TARGET'
+    bsc_sim_command = BSC + ' ' + BSC_FLAGS_SIM + ' ' + LDFLAGS + ' ' + ldflags + ' -o $TARGET'
 
     # Set MAKEFLAGS because Bluespec is going to invoke make on its own and
     # we don't want to pass on the current build's recursive flags.
@@ -74,7 +80,7 @@ class Bluesim():
     if (getBuildPipelineDebug(moduleList) != 0):
         for ba in moduleList.getAllDependencies('BA'):
             print 'BA dep: ' + str(ba) + '\n'
-
+    print "foo " + bsc_sim_command + "\n"
     sbin = moduleList.env.Command(
         TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
         moduleList.getAllDependencies('BA') + 
