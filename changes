@@ -15663,3 +15663,15 @@ which would be translated to
 
 GIVEN_FOOS: [virtual_file1]
 
+
+----------
+mgambhir    Date: Wed Jun  5 18:42:21 EDT 2013  CSN: CSN-leap-443
+                  Wed Jun  5 22:42:21 UTC 2013
+
+
+Directory docs
+ doxyhtmlgen.xsl           Locally Modified          442 
+ Makefile.am               Locally Modified          442 
+
+- Passed project (repository) name as a parameter to the XSLT script that parses doxygen XML output. 
+This  will enable using the same script to generate html documentation for multiple repositories containing bluespec sources. 

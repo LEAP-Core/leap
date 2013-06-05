@@ -22,6 +22,7 @@
 
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output method="xml" indent="yes"/>
+<xsl:param name="project" select="'leap'"/>
   <xsl:template name="head">
     <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=9"/>
@@ -70,7 +71,7 @@
   <xsl:template match="/doxygenindex">
     <html>
       <head>
-        <title>Leap: Main Page</title>
+        <title><xsl:value-of select="$project"/>: Main Page</title>
         <xsl:call-template name="head"/>
       </head>
       <body>
@@ -83,7 +84,7 @@
           </div>
           <!--header-->
           <div class="contents">
-            <div class="textblock">List of Bluespec Constructs used in LEAP</div>
+            <div class="textblock">List of Bluespec Constructs used in <xsl:value-of select="$project"/></div>
             <div class="directory">
               <table class="directory">
                 <xsl:for-each select="compound[@kind='group']">
@@ -114,7 +115,7 @@
     <html>
       <head>
         <title>
-          LEAP:
+          <xsl:value-of select="$project"/>:
           <xsl:value-of select="//title"/>
         </title>
         <xsl:call-template name="head"/>
@@ -170,7 +171,7 @@
     <html>
       <head>
         <title>
-          Leap:
+          <xsl:value-of select="$project"/>:
           <xsl:call-template name="string-replace-less-than">
             <xsl:with-param name="text">
               <xsl:call-template name="string-replace-greater-than">

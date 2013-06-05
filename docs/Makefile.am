@@ -24,12 +24,12 @@ EXTRA_DIST = doxygen.config
 .PHONY: dox
  
 all: doxygen.config dox-gen html-gen search-gen source-gen index-gen
+	@echo "Doxygen output is at `pwd`/dox/html/index.html"
 
 dox-gen:
 	doxygen doxygen.config
 
 html-gen: dox/html/index.html
-	@echo "Doxygen output is at `pwd`/dox/html/index.html"
 
 dox/html/index.html: dox/xml/index.xml
 	ls dox/xml/*.xml | xargs -I {} basename {} .xml | xargs -I {} xsltproc -o dox/html/{}.html doxyhtmlgen.xsl dox/xml/{}.xml
@@ -38,7 +38,7 @@ dox/html/index.html: dox/xml/index.xml
 	@cp --parent search/* dox/html/
 	
 search-gen:
-	@xsltproc -o dox/searchdata.xml doxyhtmlgen.xsl dox/searchdata.xml
+	@xsltproc --stringparam project leap -o dox/searchdata.xml doxyhtmlgen.xsl dox/searchdata.xml
 
 source-gen:
 	@./doxysourcehtmlgen.py
