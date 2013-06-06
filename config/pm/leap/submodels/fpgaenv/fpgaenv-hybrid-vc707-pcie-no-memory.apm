@@ -83,10 +83,6 @@ rrr_common=RRR Common Module
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
 Packagehint=leap
 
-[FPGA Build Pipeline Xilinx]
-File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
-Packagehint=leap
-
 [RL Bluespec Library Submodel]
 File=config/pm/leap/submodels/common/librl-bsv.apm
 Packagehint=leap
@@ -197,3 +193,7 @@ Packagehint=leap-platforms
 
 [Xilinx DDR SDRAM Physical Device/Params]
 DRAM_DEBUG=1
+
+[FPGA Build Pipeline Xilinx]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
+Packagehint=leap

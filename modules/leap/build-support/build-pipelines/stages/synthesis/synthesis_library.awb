@@ -1,0 +1,10 @@
+%name Synthesis library 
+%desc some functions for manipulating .prj files
+%attributes tool
+
+%provides synthesis_library
+
+%notes README
+
+%scons %library synthesis_functions.py
+

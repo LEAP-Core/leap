@@ -83,10 +83,6 @@ rrr_common=RRR Common Module
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
 Packagehint=leap
 
-[FPGA Build Pipeline Xilinx]
-File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
-Packagehint=leap
-
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
@@ -172,3 +168,7 @@ Packagehint=leap-platforms
 [Aurora Device Wrapper Null]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora/aurora-device-null/aurora-device-null.awb
 Packagehint=leap-platforms
+
+[FPGA Build Pipeline Xilinx]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
+Packagehint=leap

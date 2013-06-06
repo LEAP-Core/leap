@@ -101,3 +101,10 @@ Packagehint=leap
 [AWB Parameter Substitution Parser]
 File=modules/leap/build-support/build-pipelines/stages/parameter_substitution/parameter_substitution.awb
 Packagehint=leap
+
+[Synthesis library]
+File=modules/leap/build-support/build-pipelines/stages/synthesis/synthesis_library.awb
+Packagehint=leap
+
+[Synplify/XST Synthesis Tool/Requires]
+synthesis_library=Synthesis library

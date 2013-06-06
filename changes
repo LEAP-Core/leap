@@ -15675,3 +15675,50 @@ Directory docs
 
 - Passed project (repository) name as a parameter to the XSLT script that parses doxygen XML output. 
 This  will enable using the same script to generate html documentation for multiple repositories containing bluespec sources. 
+
+----------
+keflemin    Date: Thu Jun  6 15:58:12 EDT 2013  CSN: CSN-leap-444
+                  Thu Jun  6 19:58:12 UTC 2013
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-vc707-pcie-no-memory.apm Locally Modified          443 
+ fpgaenv-hybrid-vc707-pcie.apm Locally Modified          443 
+
+Directory config/pm/leap/submodels/pipelines
+ build-pipeline-vico-xilinx-synplify.apm Locally Modified          443 
+ build-pipeline-xilinx-synplify.apm Locally Modified          443 
+ build-pipeline-altera.apm Locally Modified          443 
+ build-pipeline-vico-xilinx.apm Locally Modified          443 
+ build-pipeline-xilinx.apm Locally Modified          443 
+
+Directory modules/leap/build-support/build-pipelines/stages
+ synthesis/                Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/synthesis
+ synthesis-library.py      Locally Added               0 
+ synthesis-library.awb     Locally Added               0 
+ synthesis_library.awb     Locally Added               0 
+ synthesis_functions.py    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-xst.awb            Locally Modified          443 
+ XILINX_XST.py             Locally Modified          443 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ synplify.awb              Locally Modified          443 
+ synplify-sub.awb          Locally Modified          443 
+ SynplifySub.py            Locally Modified          443 
+
+
+Resurrected support for the sub-build version of synplify.  This
+version uses synplify for the user portion of the program and xst for
+the physical platform interface. 
+
+I also factored out some common functions used in both the synplify
+and xst builds into a common library.
+
+A warning - although the synplify build produces bitfiles, these
+bitfiles appear to have some unresolved timing issues. As such, the
+synplify build is somewhat unreliable at this time.
+

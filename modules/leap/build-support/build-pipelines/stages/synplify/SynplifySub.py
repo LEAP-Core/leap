@@ -5,6 +5,7 @@ import SCons.Script
 from model import  *
 # need to get the model clock frequency
 from clocks_device import  *
+from synthesis_library import  *
 
 
 #
@@ -54,20 +55,19 @@ def _xst_top_level(moduleList):
       [],
       'touch $TARGET')
 
-  ## tweak top xst file                                                                                                                                    
-  topXSTPath = 'config/' + moduleList.topModule.wrapperName() + '.modified.xst'
-  newXSTFile = open(topXSTPath, 'w')
-  oldXSTFile = open('config/' + moduleList.topModule.wrapperName() + '.xst','r')
-  newXSTFile.write(oldXSTFile.read());
-  if moduleList.getAWBParam('synthesis_tool', 'XST_PARALLEL_CASE'):
-    newXSTFile.write('-vlgcase parallel\n');
-  if moduleList.getAWBParam('synthesis_tool', 'XST_INSERT_IOBUF'):
-    newXSTFile.write('-iobuf yes\n');
-  else:
-    newXSTFile.write('-iobuf no\n');
-  newXSTFile.write('-uc ' + moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.xcf\n');
-  newXSTFile.close();
-  oldXSTFile.close();
+  ## tweak top xst file                                                        
+  #Only parse the xst file once.  
+  templates = moduleList.getAllDependenciesWithPaths('GIVEN_XSTS')
+  if(len(templates) != 1):
+      print "Found more than one XST template file: " + str(templates) + ", exiting\n" 
+  templateFile = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + templates[0]
+  xstTemplate = parseAWBFile(templateFile)
+                
+
+  [globalVerilogs, globalVHDs] = globalRTLs(moduleList)
+
+  generatePrj(moduleList, moduleList.topModule, globalVerilogs, globalVHDs)
+  topXSTPath = generateXST(moduleList, moduleList.topModule, xstTemplate)       
 
   # Use xst to tie the world together.
   topSRP = moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.srp'
@@ -77,9 +77,8 @@ def _xst_top_level(moduleList):
     moduleList.topModule.moduleDependency['VERILOG'] +
     moduleList.getAllDependencies('VERILOG_STUB') +
     moduleList.getAllDependencies('VERILOG_LIB') +
-    moduleList.topModule.moduleDependency['XST'] +
-    [ topXSTPath ] +
-    xilinx_xcf,
+    [ templateFile ] +
+    [ topXSTPath ] + xilinx_xcf,
     [ SCons.Script.Delete(topSRP),
       SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
       'xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
@@ -94,12 +93,15 @@ def _xst_top_level(moduleList):
 class Synthesize(ProjectDependency):
   def __init__(self, moduleList):
 
+    MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+
     # We first do things related to the Xilinx build
 
     if (getBuildPipelineDebug(moduleList) != 0):
         print "Env BUILD_DIR = " + moduleList.env['ENV']['BUILD_DIR']
 
     synth_deps = []
+    [globalVerilogs, globalVHDs] = globalRTLs(moduleList)
 
     for module in moduleList.synthBoundaries():
       # need to eventually break this out into a seperate function
@@ -110,13 +112,21 @@ class Synthesize(ProjectDependency):
 
       newPrjFile.write('add_file -verilog \"../hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
 
+#      fileArray = moduleList.getAllDependencies('VERILOG') + \
+#                  moduleList.getAllDependencies('VERILOG_LIB') + \
+#                  moduleList.getDependencies(module, 'VERILOG_STUB') + \
+#                  moduleList.getAllDependencies('VHD') + \
+#                  moduleList.getAllDependencies('NGC') + \
+#                  moduleList.getAllDependencies('SDC') + \
+#                  [moduleList.compileDirectory + '/' + moduleList.apmName + '.ucf']
+
       # now dump all the 'VERILOG' 
-      fileArray = moduleList.getAllDependencies('VERILOG') + \
-                  moduleList.getAllDependencies('VERILOG_LIB') + \
-                  moduleList.getAllDependencies('VHD') + \
+      fileArray = globalVerilogs + globalVHDs + \
+                  moduleList.getDependencies(module, 'VERILOG_STUB') + \
                   moduleList.getAllDependencies('NGC') + \
                   moduleList.getAllDependencies('SDC') + \
                   [moduleList.compileDirectory + '/' + moduleList.apmName + '.ucf']
+
       for file in fileArray:
         if(type(file) is str):
           newPrjFile.write(_generate_synplify_include(file))        

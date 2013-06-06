@@ -35,7 +35,7 @@ Packagehint=leap
 [FPGA Build Pipeline/Requires]
 post_synthesis_tool=Xilinx Post-synthesis Toolchain
 synthesis_tool=Synplify/XST Synthesis Tool
-mcd_tool=Simple MCD Tool
+mcd_tool=MCD Tool for Xilinx
 software_tool=Software build tool
 iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
@@ -61,10 +61,6 @@ xilinx_loader=Xilinx LOADER
 
 [Xilinx MAP]
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-map.awb
-Packagehint=leap
-
-[Simple MCD Tool]
-File=modules/leap/build-support/build-pipelines/stages/mcd/mcd.awb
 Packagehint=leap
 
 [Interface builder]
@@ -97,4 +93,15 @@ Packagehint=leap
 
 [AWB Parameter Substitution Parser]
 File=modules/leap/build-support/build-pipelines/stages/parameter_substitution/parameter_substitution.awb
+Packagehint=leap
+
+[Synthesis library]
+File=modules/leap/build-support/build-pipelines/stages/synthesis/synthesis_library.awb
+Packagehint=leap
+
+[Synplify/XST Synthesis Tool/Requires]
+synthesis_library=Synthesis library
+
+[MCD Tool for Xilinx]
+File=modules/leap/build-support/build-pipelines/stages/mcd/mcd-tcl.awb
 Packagehint=leap
