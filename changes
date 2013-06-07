@@ -15722,3 +15722,17 @@ A warning - although the synplify build produces bitfiles, these
 bitfiles appear to have some unresolved timing issues. As such, the
 synplify build is somewhat unreliable at this time.
 
+
+----------
+keflemin    Date: Thu Jun  6 22:14:51 EDT 2013  CSN: CSN-leap-445
+                  Fri Jun  7 02:14:51 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsv Locally Modified          444 
+
+
+Removed false dependency on virtual devices.  I'm not sure how this
+ever compiled.
+
+Some multiple-software code was tripping a circular dependency.
