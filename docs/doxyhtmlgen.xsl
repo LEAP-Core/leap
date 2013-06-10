@@ -22,7 +22,7 @@
 
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output method="xml" indent="yes"/>
-<xsl:param name="project" select="'leap'"/>
+<xsl:param name="project" select="'leap-docs'"/>
   <xsl:template name="head">
     <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=9"/>
@@ -79,16 +79,16 @@
         <div class="doc-content">
           <div class="header">
             <div class="headertitle">
-              <div class="title">Bluespec Constructs</div>
+              <div class="title">Leap Repositrories</div>
             </div>
           </div>
           <!--header-->
           <div class="contents">
-            <div class="textblock">List of Bluespec Constructs used in <xsl:value-of select="$project"/></div>
             <div class="directory">
               <table class="directory">
                 <xsl:for-each select="compound[@kind='group']">
                   <xsl:variable name="group" select="name"/>
+                  <xsl:if test="count(document(concat('dox/xml/group__',normalize-space($group),'.xml'))//innergroup) &gt; 0">
                   <tr>
                     <td>
                       <xsl:element name="a">
@@ -99,6 +99,7 @@
                       </xsl:element>
                     </td>
                   </tr>
+                </xsl:if>
                 </xsl:for-each>
               </table>
             </div>
@@ -110,7 +111,7 @@
       </body>
     </html>
   </xsl:template>
-  <!-- To extract list of Interfaces/Modules/Functions -->
+  <!-- To extract list of Subgroups or Interfaces/Modules/Functions -->
   <xsl:template match="/doxygen/compounddef[@kind='group']">
     <html>
       <head>
@@ -132,11 +133,14 @@
           </div>
           <!--header-->
           <div class="contents">
+            <xsl:choose>
+            <xsl:when test="count(innergroup) = 0">
             <div class="textblock">
               List of
               <xsl:value-of select="//title"/>
               . Click on any to view details
             </div>
+
             <table class="memberdecls">
               <xsl:for-each select="innerclass">
                 <tr class="memitem:">
@@ -159,6 +163,37 @@
                 </tr>
               </xsl:for-each>
             </table>
+            </xsl:when>
+            <xsl:otherwise>
+            <div class="textblock">
+              List of Bluespec Constructs in 
+              <xsl:value-of select="//title"/>
+              . Click on any to view details
+            </div>
+            <table class="memberdecls">
+              <xsl:for-each select="innergroup">
+                <tr class="memitem:">
+                  <td class="memItemRight" valign="bottom">
+                    <!--#Create an html reference from the construct name  -->
+                    <xsl:element name="a">
+                      <xsl:attribute name="href">
+                        <xsl:variable name="constructName" select="@refid"/>
+                        <xsl:value-of select="concat($constructName,'.html')"/>
+                      </xsl:attribute>
+                      <xsl:call-template name="string-replace-less-than">
+                        <xsl:with-param name="text">
+                          <xsl:call-template name="string-replace-greater-than">
+                            <xsl:with-param name="text" select="."/>
+                          </xsl:call-template>
+                        </xsl:with-param>
+                      </xsl:call-template>
+                    </xsl:element>
+                  </td>
+                </tr>
+              </xsl:for-each>
+              </table>
+            </xsl:otherwise>
+            </xsl:choose>
           </div>
           <!-- contents -->
         </div>

@@ -38,7 +38,7 @@ dox/html/index.html: dox/xml/index.xml
 	@cp --parent search/* dox/html/
 	
 search-gen:
-	@xsltproc --stringparam project leap -o dox/searchdata.xml doxyhtmlgen.xsl dox/searchdata.xml
+	@xsltproc -o dox/searchdata.xml doxyhtmlgen.xsl dox/searchdata.xml
 
 source-gen:
 	@./doxysourcehtmlgen.py
