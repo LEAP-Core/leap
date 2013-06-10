@@ -15,7 +15,7 @@ class NGD():
     #for ucf in  moduleList.topModule.moduleDependency['UCF']:
     #  print 'ngd found ucf: ' + ucf + '\n'
     if(len(moduleList.topModule.moduleDependency['UCF']) > 0):
-      xilinx_ucf = moduleList.env.Command(
+        xilinx_ucf = moduleList.env.Command(
         xilinx_apm_name + '.ucf',
         moduleList.topModule.moduleDependency['UCF'],
         'cat $SOURCES > $TARGET')
@@ -36,11 +36,14 @@ class NGD():
     sd_list = [moduleList.env['DEFS']['ROOT_DIR_HW_MODEL'], moduleList.compileDirectory]
     for module in moduleList.synthBoundaries():
       w = moduleList.compileDirectory + '/' + module.wrapperName()
-      sd_list += [w]
+      sd_list += [w,moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/']
+
+    given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
+    module_ngcs = moduleList.getAllDependencies('SYNTHESIS')
 
     xilinx_ngd = moduleList.env.Command(
       xilinx_apm_name + '.ngd',
-      moduleList.topModule.moduleDependency['SYNTHESIS'],
+      moduleList.topModule.moduleDependency['SYNTHESIS'] + given_netlists,
       [ SCons.Script.Delete(xilinx_apm_name + '.bld'),
         SCons.Script.Delete(xilinx_apm_name + '_ngdbuild.xrpt'),
         # Xilinx project files are created automatically by Xilinx tools, but not
@@ -55,7 +58,8 @@ class NGD():
         SCons.Script.Move(moduleList.compileDirectory + '/netlist.lst', 'netlist.lst') ])
 
     moduleList.env.Depends(xilinx_ngd,
-                           moduleList.getAllDependencies('SYNTHESIS') +
+                           given_netlists +
+                           module_ngcs + 
                            xilinx_ucf +
                            xilinx_bmm)
 

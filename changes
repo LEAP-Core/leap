@@ -15736,3 +15736,15 @@ Removed false dependency on virtual devices.  I'm not sure how this
 ever compiled.
 
 Some multiple-software code was tripping a circular dependency.
+
+----------
+keflemin    Date: Mon Jun 10 13:51:25 EDT 2013  CSN: CSN-leap-446
+                  Mon Jun 10 17:51:25 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_NGD.py             Locally Modified          445 
+
+
+Added support for including externally generated edif netlists to
+Xilinx builds.
