@@ -15793,3 +15793,16 @@ Directory admin/packages
  leap                      Locally Modified          448 
 
 - Creating a 13.06 pre-release for leap
+
+----------
+mgambhir    Date: Fri Jun 14 17:54:18 EDT 2013  CSN: CSN-leap-451
+                  Fri Jun 14 21:54:18 UTC 2013
+
+
+Directory debian
+ changelog                 Locally Modified          450 
+
+Directory admin/packages
+ leap                      Locally Modified          450 
+
+- v13.06 release of leap
