@@ -15760,3 +15760,21 @@ Directory docs
  doxygen.config            Locally Modified          446 
 
 - Added another top level hierarchy page showing a list of repositories
+
+----------
+keflemin    Date: Fri Jun 14 15:10:17 EDT 2013  CSN: CSN-leap-448
+                  Fri Jun 14 19:10:17 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ bluespec.xcf              Locally Added               - 
+ bsv.awb                   Locally Modified          447 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ bluespec.xcf              Locally Removed           447 
+ xilinx-xst.awb            Locally Modified          447 
+
+
+Fixed synthesis bug being tripped in Synplify builds.  The xcf file
+fixing BRAM/LUTRAM synthesis was not included in the Synplify build
+pipeline.

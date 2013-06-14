@@ -12,7 +12,6 @@
 %notes README
 
 %scons %library XILINX_XST.py
-%sources -t XCF -v PRIVATE bluespec.xcf
 
 %param --global XST_BLUESPEC_BASICINOUT  0   "Enable running Bluespec basicinout on top level Verilog"
 %param --global XST_PARALLEL_CASE        1   "Enable Xilinx XST global parallel case directive"
