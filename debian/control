@@ -7,13 +7,13 @@ Standards-Version: 3.7.2
 
 Package: leap
 Architecture: all
-Depends: leap-12.04
+Depends: leap-13.06
 Recommends: leap-12.01
 Description: Dependency package for Leap FPGA environment
  Dependency package for the Leap FPGA environment
 Section: devel
 
-Package: leap-12.04
+Package: leap-13.06
 Architecture: any
 Depends: leap-bin, ${misc:Depends}
 Description: Sharable package for the LEAP

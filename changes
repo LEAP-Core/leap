@@ -15778,3 +15778,18 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 Fixed synthesis bug being tripped in Synplify builds.  The xcf file
 fixing BRAM/LUTRAM synthesis was not included in the Synplify build
 pipeline.
+
+----------
+mgambhir    Date: Fri Jun 14 17:47:58 EDT 2013  CSN: CSN-leap-449
+                  Fri Jun 14 21:47:58 UTC 2013
+
+
+Directory debian
+ rules                     Locally Modified          448 
+ control                   Locally Modified          448 
+ changelog                 Locally Modified          448 
+
+Directory admin/packages
+ leap                      Locally Modified          448 
+
+- Creating a 13.06 pre-release for leap
