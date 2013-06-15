@@ -15806,3 +15806,14 @@ Directory admin/packages
  leap                      Locally Modified          450 
 
 - v13.06 release of leap
+
+----------
+emer        Date: Sat Jun 15 14:25:53 EDT 2013  CSN: CSN-leap-452
+                  Sat Jun 15 18:25:53 UTC 2013
+
+
+Directory debian
+ control                   Locally Modified          451 
+
+Have apt recommend the .deb file leap-12.04, which has been 
+manually built and installed for the new LTS release - precise.
