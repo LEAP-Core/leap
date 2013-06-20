@@ -15793,3 +15793,19 @@ Directory admin/packages
  leap                      Locally Modified          448 
 
 - Creating a 13.06 pre-release for leap
+
+----------
+mgambhir    Date: Thu Jun 20 15:05:58 EDT 2013  CSN: CSN-leap-453
+                  Thu Jun 20 19:05:58 UTC 2013
+
+
+Directory docs
+ doxygen.config            Locally Modified          452 
+ doxyhtmlgen.xsl           Locally Modified          452 
+ Makefile.am               Locally Modified          452 
+ doxysourcehtmlgen.py      Locally Removed           452 
+
+Directory admin/packages
+ leap                      Locally Modified          452 
+
+- Source links in doxygen documentation now point to live documentation in the repository specified by the Sourceurl in admin/packages/package file

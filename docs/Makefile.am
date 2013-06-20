@@ -23,7 +23,7 @@ EXTRA_DIST = doxygen.config
 #-----------------------------------------------------------------------------
 .PHONY: dox
  
-all: doxygen.config dox-gen html-gen search-gen source-gen index-gen
+all: doxygen.config dox-gen html-gen search-gen index-gen
 	@echo "Doxygen output is at `pwd`/dox/html/index.html"
 
 dox-gen:
@@ -39,9 +39,6 @@ dox/html/index.html: dox/xml/index.xml
 	
 search-gen:
 	@xsltproc -o dox/searchdata.xml doxyhtmlgen.xsl dox/searchdata.xml
-
-source-gen:
-	@./doxysourcehtmlgen.py
 
 index-gen:
 	@doxyindexer -o dox/ dox/searchdata.xml

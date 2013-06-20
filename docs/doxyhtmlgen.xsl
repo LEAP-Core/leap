@@ -240,7 +240,8 @@
                 <xsl:with-param name="path" select="location/@file"/>
               </xsl:call-template>
             </xsl:variable>
-            <xsl:variable name="htmlsourcefile" select="concat(document('dox/xml/index.xml')/doxygenindex/compound[name=$sourcefile]/@refid,'_source.html')"/>
+            <xsl:variable name="xmlsourcefile" select="concat(document('dox/xml/index.xml')/doxygenindex/compound[name=$sourcefile]/@refid,'.xml')"/>
+            <xsl:variable name="htmlsourcefile" select="document(concat('dox/xml/',$xmlsourcefile))/doxygen/compounddef/detaileddescription/para/ulink"/>
             <xsl:variable name="lno" select="location/@line"/>
             <div class="textblock">
               <p>
@@ -250,7 +251,7 @@
                 Definition at line
                 <a class="el">
                   <xsl:attribute name="href">
-                    <xsl:value-of select="concat($htmlsourcefile, '#l', format-number($lno, '00000'))"/>
+                    <xsl:value-of select="concat($htmlsourcefile, '#L', $lno)"/>
                   </xsl:attribute>
                   <xsl:value-of select="$lno"/>
                 </a>
