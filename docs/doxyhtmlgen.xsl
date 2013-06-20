@@ -378,7 +378,7 @@
                           <b>
                             <a class="el">
                               <xsl:attribute name="href">
-                                <xsl:value-of select="concat($htmlsourcefile, '#l', format-number($memlno, '00000'))"/>
+                                <xsl:value-of select="concat($htmlsourcefile, '#L', $memlno)"/>
                               </xsl:attribute>
                               <xsl:value-of select="name"/>
                             </a>
@@ -422,7 +422,7 @@
                         Definition at line 
                         <xsl:element name ="a">
                           <xsl:attribute name="href">
-                          <xsl:value-of select="concat($htmlsourcefile, '#l', format-number($memlno, '00000'))"/>
+                          <xsl:value-of select="concat($htmlsourcefile, '#L', $memlno)"/>
                           </xsl:attribute>
                         <xsl:value-of select="$memlno"/>
                         </xsl:element>
