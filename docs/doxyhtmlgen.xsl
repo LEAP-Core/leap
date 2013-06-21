@@ -79,7 +79,7 @@
         <div class="doc-content">
           <div class="header">
             <div class="headertitle">
-              <div class="title">Leap Repositrories</div>
+              <div class="title">Leap Repositories</div>
             </div>
           </div>
           <!--header-->
