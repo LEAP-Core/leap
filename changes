@@ -15830,3 +15830,22 @@ Directory docs
  doxyhtmlgen.xsl           Locally Modified          454 
 
 Minor typing error fix in the documentation script
+
+----------
+keflemin    Date: Mon Jul  8 03:54:56 EDT 2013  CSN: CSN-leap-456
+                  Mon Jul  8 07:54:56 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          455 
+
+Directory modules/leap/build-support/build-pipelines/stages/synplify
+ SynplifySub.py            Locally Modified          455 
+
+
+Added support for system verilog and more advanced styles of verilog
+description.  Since only synplify can compile these features, support
+has only been added in the synplfy build process.
+
+It may be time to consider whether verilog needs an analog of
+leap-style include statements. 

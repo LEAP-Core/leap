@@ -12,19 +12,33 @@ from synthesis_library import  *
 # Generate path string to add source file into the Synplify project
 #
 def _generate_synplify_include(file):
-  # Check for relative/absolute path
-  directoryFix = ''
-  if (not re.search('^\s*/',file)):  directoryFix = '../'
+    # Check for relative/absolute path
+    directoryFix = ''
+    if (not re.search('^\s*/',file)):  directoryFix = '../'
 
-  type = 'unknown'
-  if (re.search('\.ngc\s*$',file)):  type = 'ngc'
-  if (re.search('\.v\s*$',file)):    type = 'verilog'
-  if (re.search('\.vhdl\*$',file)):  type = 'vhdl'
-  if (re.search('\.vhd\s*$',file)):  type = 'vhdl'
-  if (re.search('\.ucf\s*$',file)):  type = 'ucf'
-  if (re.search('\.sdc\s*$',file)):  type = 'constraint'
+    type = 'unknown'
+    prefix = ''
+    if (re.search('\.ngc\s*$',file)):  
+        type = 'ngc'
+    if (re.search('\.v\s*$',file)):    
+        type = 'verilog'
+    if (re.search('\.sv\s*$',file)):    
+        type = 'verilog'
+        prefix = ' -vlog_std sysv '
+    if (re.search('\.vhdl\s*$',file)):  
+        type = 'vhdl'
+    if (re.search('\.vhd\s*$',file)):  
+        type = 'vhdl'
+    if (re.search('\.ucf\s*$',file)):  
+        type = 'ucf'
+    if (re.search('\.sdc\s*$',file)):  
+        type = 'constraint'
 
-  return 'add_file -'+ type +' \"'+ directoryFix + file + '\"\n'
+    # don't include unidentified files
+    if(type == 'unknown'):
+        return ''
+
+    return 'add_file -' + type + prefix + ' \"'+ directoryFix + file + '\"\n'
 
 
 def _filter_file_add(file, moduleList):
@@ -112,17 +126,10 @@ class Synthesize(ProjectDependency):
 
       newPrjFile.write('add_file -verilog \"../hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
 
-#      fileArray = moduleList.getAllDependencies('VERILOG') + \
-#                  moduleList.getAllDependencies('VERILOG_LIB') + \
-#                  moduleList.getDependencies(module, 'VERILOG_STUB') + \
-#                  moduleList.getAllDependencies('VHD') + \
-#                  moduleList.getAllDependencies('NGC') + \
-#                  moduleList.getAllDependencies('SDC') + \
-#                  [moduleList.compileDirectory + '/' + moduleList.apmName + '.ucf']
-
       # now dump all the 'VERILOG' 
       fileArray = globalVerilogs + globalVHDs + \
                   moduleList.getDependencies(module, 'VERILOG_STUB') + \
+                  map(lambda x: moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + x, moduleList.getAllDependenciesWithPaths('GIVEN_SYNPLIFY_VERILOGS')) + \
                   moduleList.getAllDependencies('NGC') + \
                   moduleList.getAllDependencies('SDC') + \
                   [moduleList.compileDirectory + '/' + moduleList.apmName + '.ucf']
@@ -142,6 +149,13 @@ class Synthesize(ProjectDependency):
       except OSError, err:
         if err.errno != errno.EEXIST: raise 
   
+
+      # establish an include path for synplify.  This is necessary for true text inclusion in verilog,
+      # as raw text files don't always compile standalone. Ugly yes, but it is verilog....
+      newPrjFile.write('set_option -include_path {')
+      newPrjFile.write(";".join(["../" + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()]))
+      newPrjFile.write('}\n')
+
       # once we get synth boundaries up, this will be needed only for top level
       newPrjFile.write('set_option -disable_io_insertion 1\n')
       newPrjFile.write('set_option -frequency ' + str(MODEL_CLOCK_FREQ) + '\n')

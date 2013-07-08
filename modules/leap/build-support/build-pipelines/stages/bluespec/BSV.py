@@ -591,7 +591,7 @@ class BSV():
                     if (not topModule):
                         return subgraph.graph.nodes()[0]
                     else:                        
-                        # If there is are fewer than two modules in
+                        # If there are fewer than two modules in
                         # the program, we need to dump out a wrapper
                         # module so that the information we told SCons
                         # and downstream tools during the graph
