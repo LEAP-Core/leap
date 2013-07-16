@@ -15849,3 +15849,18 @@ has only been added in the synplfy build process.
 
 It may be time to consider whether verilog needs an analog of
 leap-style include statements. 
+
+----------
+keflemin    Date: Tue Jul 16 10:41:23 EDT 2013  CSN: CSN-leap-457
+                  Tue Jul 16 14:41:23 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-rewind.bsv           Locally Added               0 
+ librl-bsv-storage.awb     Locally Modified          456 
+
+Directory modules/leap/libraries/librl/base
+ fifo-delay.bsv            Locally Modified          456 
+
+
+Ported rewind fifo from the old bsv-libraries. 

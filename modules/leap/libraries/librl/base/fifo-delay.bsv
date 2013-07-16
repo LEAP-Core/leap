@@ -22,6 +22,10 @@
 // FIFO.  This may be useful for emulating hardware with latency (e.g. SDRAM).
 //
 
+// Note that the delay fifo is used only in software.  If it is ever
+// used in hardware, if should be implemented using the SRL-based shift 
+// register.
+
 module [m] mkDelayFIFOF#(NumTypeParam#(n_DELAY_CYCLES) _p)
     // Interface:
     (FIFOF#(t_DATA))

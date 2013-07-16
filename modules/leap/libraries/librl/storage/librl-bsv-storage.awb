@@ -10,6 +10,7 @@
 %public counting-filter.bsv
 %public dual-write-bit1.bsv
 %public fifo-commit.bsv
+%public fifo-rewind.bsv
 %public fifo-mem.bsv
 %public fifo-scoreboard.bsv
 %public fifo-stream-capture.bsv
@@ -21,4 +22,5 @@
 
 %param DEBUG_STREAM_CAPTURE_FIFO 0 "Turn on debugging for stream capture fifos"
 %param DEBUG_REVBUF 0 "Turn on debugging for reversal buffer"
+%param DEBUG_REWIND_FIFO 0 "Turn on debugging for rewind fifo"
 
