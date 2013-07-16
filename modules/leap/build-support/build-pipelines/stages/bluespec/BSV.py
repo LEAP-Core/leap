@@ -717,7 +717,7 @@ class BSV():
                             matched[chain.name] = chain
                             chain.sinkPartnerChain = partnerChain
                             chain.sourcePartnerChain = chain
-                            module_body += "    connectOutToIn(" + channel.module_name + ".chains[" + str(chain.module_idx) + "].outgoing, " +\
+                            module_body += "    connectOutToIn(" + chain.module_name + ".chains[" + str(chain.module_idx) + "].outgoing, " +\
                                 partnerChain.module_name + ".chains[" + str(partnerChain.module_idx) + "].incoming);// " + chain.name + "\n"
 
 

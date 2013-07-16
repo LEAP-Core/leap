@@ -15864,3 +15864,17 @@ Directory modules/leap/libraries/librl/base
 
 
 Ported rewind fifo from the old bsv-libraries. 
+
+----------
+keflemin    Date: Tue Jul 16 17:37:22 EDT 2013  CSN: CSN-leap-458
+                  Tue Jul 16 21:37:22 UTC 2013
+
+
+Directory .
+ configure                 Locally Modified          457 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          457 
+
+
+Fixed typo.  One wonders how things ever compiled. 
