@@ -71,6 +71,7 @@ interface DEMARSHALLER#(type t_FIFO_DATA, type t_DATA);
     method t_DATA first();
     method Bool notFull();
     method Bool notEmpty();
+    method Action clear();
 endinterface
 
 
@@ -284,13 +285,14 @@ module mkSimpleDemarshallerBoth#(Bool highToLow)
         // as the data.
         //
 
-        FIFOF#(t_DATA) msgQ <- mkFIFOF();
+        FIFOF#(t_DATA) msgQ <- mkLFIFOF();
 
         method Action enq(t_FIFO_DATA dat) = msgQ.enq(unpack(truncateNP(pack(dat))));
         method Action deq() = msgQ.deq;
         method t_DATA first() = msgQ.first;
         method Bool notFull() = msgQ.notFull;
         method Bool notEmpty() = msgQ.notEmpty;
+        method Action clear() = msgQ.clear();
     end
     else
     begin
@@ -359,6 +361,10 @@ module mkSimpleDemarshallerBoth#(Bool highToLow)
 
         method Bool notFull() = (! full || entry0Q.notFull);
         method Bool notEmpty() = full;
+        method Action clear(); 
+            full <= False; 
+            entry0Q.clear();
+        endmethod
     end
 endmodule
 
@@ -427,13 +433,14 @@ module mkSimpleDemarshallerN#(function Bit#(t_FIFO_DATA_SZ) msgChunks(t_FIFO_DAT
         // as the data.
         //
 
-        FIFOF#(t_DATA) msgQ <- mkFIFOF();
+        FIFOF#(t_DATA) msgQ <- mkLFIFOF();
 
         method Action enq(t_FIFO_DATA dat) = msgQ.enq(unpack(truncateNP(pack(dat))));
         method Action deq() = msgQ.deq;
         method t_DATA first() = msgQ.first;
         method Bool notFull() = msgQ.notFull;
         method Bool notEmpty() = msgQ.notEmpty;
+        method Action clear() = msgQ.clear;
     end
     else if (valueOf(t_NUM_CHUNKS_SZ) > valueOf(t_FIFO_DATA_SZ))
     begin
@@ -562,5 +569,10 @@ module mkSimpleDemarshallerN#(function Bit#(t_FIFO_DATA_SZ) msgChunks(t_FIFO_DAT
 
         method Bool notFull() = (! full || entry0Q.notFull);
         method Bool notEmpty() = full;
+
+        method Action clear(); 
+            full <= False; 
+            entry0Q.clear();
+        endmethod
     end
 endmodule

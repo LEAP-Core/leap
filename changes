@@ -15878,3 +15878,17 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
 
 
 Fixed typo.  One wonders how things ever compiled. 
+
+----------
+keflemin    Date: Fri Jul 19 15:45:28 EDT 2013  CSN: CSN-leap-459
+                  Fri Jul 19 19:45:28 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          458 
+
+
+Added a clear method to the FIFO marshaller.  This is used by the
+reliable interfpga transport layer to shoot down damaged words before
+they are exposed to upper layers, improving the CRC protection on each
+word.
