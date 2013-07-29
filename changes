@@ -15905,3 +15905,27 @@ Directory modules/leap/libraries/command-switches
  command-switches.h        Locally Modified          459 
 
 Add a 64 bit integer parameter class.
+
+----------
+mcadler     Date: Mon Jul 29 18:51:13 EDT 2013  CSN: CSN-leap-461
+                  Mon Jul 29 22:51:13 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          460 
+ debug-scan-service.cpp    Locally Modified          460 
+ debug-scan-service.rrr    Locally Modified          460 
+ debug-scan-service.h      Locally Modified          460 
+
+Fix debug-scan live file implementation.  The debug scan is triggered in a separate
+thread.  RRR is not set up to deal with a request from software to a hardware
+service that returns an "out" parameter when the request comes from a user-created
+thread.  The internal wait queue expects the caller to be one of two threads:
+the system monitor or the "main" thread.  Adding another thread to the mix is a
+recipe for misrouted messages.
+
+The temporary solution (implemented here) is to use only RRR interfaces that
+take "in" parameters and return no response.
+
+The long-term solution is to switch to a soft-connection interface between
+hardware and software.

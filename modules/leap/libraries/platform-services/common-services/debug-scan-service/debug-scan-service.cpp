@@ -131,30 +131,16 @@ DEBUG_SCAN_SERVER_CLASS::Scan(FILE *outFile)
             t->tm_hour, t->tm_min, t->tm_sec);
 
     // Start a dead RRR timer so the program doesn't hang if RRR has failed
-    pthread_t test_thread;
-    VERIFYX(! pthread_create(&test_thread, NULL, &DeadRRRTimer, NULL));
+    VERIFYX(! pthread_create(&testRRRThread, NULL, &DeadRRRTimer, NULL));
     
-    // Test RRR
-    bool rrr_ok = (clientStub->CheckRRR(27) == 27);
+    // Test RRR.  Response from the test will trigger a scan.
+    clientStub->CheckChannelReq(27);
 
-    // RRR responded.  Kill the dead
-    VERIFYX(pthread_cancel(test_thread) == 0);
-
-    if (rrr_ok)
-    {
-        fprintf(of, "    OK\n");
-        fflush(of);
-
-        // Dump the debug scan chain
-        clientStub->Scan(0);
-    }
-    else
-    {
-        fprintf(of, "    FAILED!\n");
-        fflush(of);
-    }
-
-    of = stdout;
+    //
+    // Block until scanLock can be acquired again.  This will happen only when
+    // Done() is invoked below.
+    //
+    pthread_mutex_lock(&scanLock);
     pthread_mutex_unlock(&scanLock);
 }
 
@@ -173,6 +159,45 @@ DEBUG_SCAN_SERVER_CLASS::Send(UINT8 value, UINT8 eom)
     {
         DisplayMsg();
         msg.Reset();
+    }
+}
+
+
+//
+// Done --
+//     All packets received.
+//
+void
+DEBUG_SCAN_SERVER_CLASS::Done(UINT8 dummy)
+{
+    of = stdout;
+    pthread_mutex_unlock(&scanLock);
+}
+
+
+//
+// CheckChannelRsp --
+//     Response from RRR channel integrity test.
+//
+void
+DEBUG_SCAN_SERVER_CLASS::CheckChannelRsp(UINT8 value)
+{
+    // RRR responded.  Kill the dead
+    VERIFYX(pthread_cancel(testRRRThread) == 0);
+
+    if (value == 27)
+    {
+        fprintf(of, "    OK\n");
+        fflush(of);
+
+        // Dump the debug scan chain
+        clientStub->Scan(0);
+    }
+    else
+    {
+        fprintf(of, "    FAILED!  (%d)\n", value);
+        fflush(of);
+        Done(0);
     }
 }
 

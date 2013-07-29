@@ -95,6 +95,7 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     static pthread_mutex_t scanLock;
     pthread_t liveDbgThread;
+    pthread_t testRRRThread;
 
   public:
     DEBUG_SCAN_SERVER_CLASS();
@@ -112,10 +113,13 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Scan(FILE *outFile = stdout);
 
     // RRR service methods
-    void  Send(UINT8 value, UINT8 eom);
-    // Done exists solely to signal receipt of all Send() calls before returning
-    // control to Scan().  It has lower priority than Send().
-    UINT8 Done(UINT8 dummy) { return dummy; }
+    void Send(UINT8 value, UINT8 eom);
+
+    // All Send() calls complete.
+    void Done(UINT8 dummy);
+
+    // Response from CheckChannelReq()
+    void CheckChannelRsp(UINT8 value);
 };
 
 // server stub

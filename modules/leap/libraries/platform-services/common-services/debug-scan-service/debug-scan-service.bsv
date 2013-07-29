@@ -63,8 +63,8 @@ module [CONNECTED_MODULE] mkDebugScanService
     //     rule out RRR problems.
     //
     rule processRRRCheck (True);
-        let v <- serverStub.acceptRequest_CheckRRR();
-        serverStub.sendResponse_CheckRRR(v);
+        let v <- serverStub.acceptRequest_CheckChannelReq();
+        clientStub.makeRequest_CheckChannelRsp(v);
     endrule
 
     //
@@ -77,16 +77,6 @@ module [CONNECTED_MODULE] mkDebugScanService
         // There is only one command:  start a scan
         chain0.sendToNext(tagged DS_DUMP);
         swRequestedScan.enq(True);
-    endrule
-
-    //
-    // Done fires when software confirms all dump data has been received.
-    // At that point it is safe to return from the Scan() request.
-    //
-    (* descending_urgency = "done, processRRRCheck" *)
-    rule done (True);
-        let dummy <- clientStub.getResponse_Done();
-        serverStub.sendResponse_Scan(0);
     endrule
 
     //

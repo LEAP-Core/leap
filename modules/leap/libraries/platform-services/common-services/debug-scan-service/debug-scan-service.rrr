@@ -2,15 +2,26 @@ service DEBUG_SCAN
 {
     server hw (bsv, connection) <- sw (cpp, method)
     {
-        method Scan(in UINT8[8] dummy, out UINT8[8] ack);
-        method CheckRRR(in UINT8[8] dummy, out UINT8[8] ack);
+        // Request scan
+        method Scan(in UINT8[8] dummy);
+
+        //
+        // Ping the RRR channel to make sure it is working.  The simplest
+        // implementation of this would have an "out" parameter.  Unformately,
+        // the current RRR threading model doesn't work with requests having
+        // "out" parameters when the request comes from a user-created thread.
+        // Debugs scan's live file system trigger uses threads.
+        //
+        method CheckChannelReq(in UINT8[8] val);
     };
 
     server sw (cpp, method) <- hw (bsv, connection)
     {
+        method CheckChannelRsp(in UINT8[8] val);
+
         method Send(in UINT8[8] value, in UINT8[8] eom);
 
         // Lower priority than Send() method, forces all sends to complete
-        method Done(in UINT8[8] dummy, out UINT8[8] dummy);
+        method Done(in UINT8[8] dummy);
     };
 };
