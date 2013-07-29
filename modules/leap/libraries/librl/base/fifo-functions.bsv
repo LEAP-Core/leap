@@ -317,7 +317,9 @@ endfunction
 
 
 //
-// funcFIFO_IDX_UGenq
+// funcFIFO_IDX_UGenq --
+//   Returns a tuple.  The first entry is the updated FIFO state.  The second is
+//   the index to which the value should be written (by the caller).
 //
 function Tuple2#(FUNC_FIFO_IDX#(n_ENTRIES),
                  Bit#(TLog#(n_ENTRIES))) funcFIFO_IDX_UGenq(FUNC_FIFO_IDX#(n_ENTRIES) fifo);

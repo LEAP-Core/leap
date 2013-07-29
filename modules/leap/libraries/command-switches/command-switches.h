@@ -65,7 +65,21 @@ class COMMAND_SWITCH_INT_CLASS : public COMMAND_SWITCH_CLASS
         ~COMMAND_SWITCH_INT_CLASS() {}
 
         void ProcessSwitch(const char *arg) { ProcessSwitchInt(atoi_general_unsigned(arg)); }
-        virtual void ProcessSwitchInt(int arg_val) {}
+        virtual void ProcessSwitchInt(int arg_val) = 0;
+};
+
+// COMMAND_SWITCH_UINT64
+
+// A command switch which must be accompanied by an integer number.
+
+class COMMAND_SWITCH_UINT64_CLASS : public COMMAND_SWITCH_CLASS
+{
+    public:
+        COMMAND_SWITCH_UINT64_CLASS(const char* switch_name) : COMMAND_SWITCH_CLASS(switch_name, required_argument) {}
+        ~COMMAND_SWITCH_UINT64_CLASS() {}
+
+        void ProcessSwitch(const char *arg) { ProcessSwitchInt(atoi_general_unsigned(arg)); }
+        virtual void ProcessSwitchInt(UINT64 arg_val) = 0;
 };
 
 // COMMAND_SWITCH_FP

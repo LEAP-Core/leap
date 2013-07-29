@@ -15892,3 +15892,16 @@ Added a clear method to the FIFO marshaller.  This is used by the
 reliable interfpga transport layer to shoot down damaged words before
 they are exposed to upper layers, improving the CRC protection on each
 word.
+
+----------
+mcadler     Date: Mon Jul 29 07:58:15 EDT 2013  CSN: CSN-leap-460
+                  Mon Jul 29 11:58:15 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ fifo-functions.bsv        Locally Modified          459 
+
+Directory modules/leap/libraries/command-switches
+ command-switches.h        Locally Modified          459 
+
+Add a 64 bit integer parameter class.
