@@ -15929,3 +15929,21 @@ take "in" parameters and return no response.
 
 The long-term solution is to switch to a soft-connection interface between
 hardware and software.
+
+----------
+keflemin    Date: Wed Jul 31 15:08:08 EDT 2013  CSN: CSN-leap-462
+                  Wed Jul 31 19:08:08 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_LOADER.py          Locally Modified          461 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          461 
+
+
+Added detection of timing errors to the scons build.  The build will
+now fail and build.status will now reflect timing errors in PAR.
+However, in recognition that bitfiles with failed timing can sometimes
+be useful for debugging, the build will fail due to timing only at the
+very end of the build, after the download script has been generated.

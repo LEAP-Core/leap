@@ -1,6 +1,7 @@
 import os
 import stat
 import SCons.Script
+from SCons.Errors import BuildError
 from model import  *
 
 #this might be better implemented as a 'Node' in scons, but 
@@ -159,6 +160,13 @@ class LOADER():
         print 'Timing Score: ' + str(timing_score)
 
         errinfo_file.close()
+
+
+        # bail out here so that the top
+        if (clk_err or timing_score > 0):
+            raise BuildError(errstr = "Timing error", 
+                             node = target,
+                             filename = str(target[0])) 
 
       return leap_xilinx_summary_closure
  

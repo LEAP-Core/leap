@@ -134,17 +134,18 @@ if env.GetOption('clean'):
 def print_build_failures():
     from SCons.Script import GetBuildFailures
 
-    error_list = { ".o"   : "1 - Software failed",
-                    ".so"  : "1 - Software failed",
-                    ".exe" : "1 - Software failed",
-                    ".bo"  : "2 - BSC failed",
-                    ".ngc" : "3 - XST failed",
-                    ".edf" : "3 - Synplify failed",
-                    ".ngd" : "4 - NGD failed",
-                    ".ncd" : "5 - MAP failed",
-                    ".bit" : "6 - Bitgen failed",
-                   ".errinfo" : "7 - FPGA Loader failed"
-                    }
+    error_list = { ".o"         : "1 - Software failed",
+                    ".so"       : "1 - Software failed",
+                    ".exe"      : "1 - Software failed",
+                    ".bo"       : "2 - BSC failed",
+                    ".ngc"      : "3 - XST failed",
+                    ".edf"      : "3 - Synplify failed",
+                    ".ngd"      : "4 - NGD failed",
+                    ".ncd"      : "5 - MAP failed",
+                    ".errinfo"  : "6 - PAR timing failed",
+                    ".bit"      : "7 - Bitgen failed",
+                    ".download" : "8 - FPGA Loader failed"
+                  }
 
     # default status file
     try:
