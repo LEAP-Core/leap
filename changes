@@ -15947,3 +15947,15 @@ now fail and build.status will now reflect timing errors in PAR.
 However, in recognition that bitfiles with failed timing can sometimes
 be useful for debugging, the build will fail due to timing only at the
 very end of the build, after the download script has been generated.
+
+----------
+keflemin    Date: Fri Aug  2 13:58:28 EDT 2013  CSN: CSN-leap-463
+                  Fri Aug  2 17:58:28 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-rewind.bsv           Locally Modified          462 
+
+
+Simplified rewind-fifo logic and added more commentary.  Rewind-fifo now
+enforces that commit and rewind cannot happen simultaneously.

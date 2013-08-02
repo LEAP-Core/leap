@@ -86,6 +86,8 @@ interface RewindFIFOVariableCommitLevel#(type data, numeric type size);
     method Bit#(TAdd#(1,TLog#(size))) count();
 endinterface
 
+
+/* Note deq/enq happens logically before commit... */
 module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size))
     provisos(
         Bits#(data, dataSz)
@@ -107,35 +109,39 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
     let commitDistance = fromMaybe(rewindCounter, commitCommand);
 
     rule toggle;
-      
-        if(countUp && !commitPulse) // don't care about count up, unless we also commit.
+       
+        // Data counter retains the true count of data in the fifo.
+        // It can only be modified by enq and commit.  
+          
+        if(countUp && !commitPulse) // enq
         begin
             dataCounter <= dataCounter + 1;
         end  
-        else if(!countDown && commitPulse && !countUp)
+        else if(commitPulse && !countUp) //  commit.
         begin
             dataCounter <= dataCounter - commitDistance;
         end 
-        else if(!countDown && commitPulse && countUp)
+        else if(commitPulse && countUp) // enq +  commit.
         begin
            dataCounter <= dataCounter - commitDistance + 1;
         end 
-        else if(countDown && commitPulse && !countUp)
-        begin
-           dataCounter <= dataCounter - commitDistance - 1;
-        end 
-        else if(countDown && commitPulse && countUp)
-        begin
-           dataCounter <= dataCounter - commitDistance;
-        end 
 
-        if(commitPulse)
-        begin
-            rewindCounter <= rewindCounter - commitDistance; // might need to do something with count down here.
-        end
-        else if(rewindPulse)
+
+        // Rewind counter retains the count of data speculatively
+        // dequeued from the fifo. It can only be modified by deq, 
+        // commit, and rewind.
+
+        if(rewindPulse) // set to zero.
         begin
             rewindCounter <= 0;
+        end
+        else if(commitPulse && !countDown)
+        begin
+            rewindCounter <= rewindCounter - commitDistance; 
+        end
+        else if(commitPulse && countDown)
+        begin
+            rewindCounter <= rewindCounter - commitDistance + 1; 
         end
         else if(countDown)
         begin
@@ -145,36 +151,28 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
         // Enq Ptr just counts up
         if(countUp)
         begin
-            enqPtr <= enqPtr+1;  
+            enqPtr <= enqPtr + 1;  
         end
 
 
-        // Rewind Pointer    
-        if(commitPulse && countDown)
-        begin
-            rewindPtr <= rewindPtr + commitDistance + 1; 
-        end
-        else if(commitPulse && !countDown)
-        begin
-            rewindPtr <= rewindPtr + commitDistance;
-        end
-    
+        // Rewind Pointer points to the last committed location.  It can 
+        // only change on a commit.     
 
-        // Handle first pointer, which may be rewound 
         if(commitPulse)
         begin
-            if(countDown)
-            begin
-                firstPtr <= firstPtr+1;
-            end
+            rewindPtr <= rewindPtr + commitDistance;  
         end
-        else if(rewindPulse)
+
+        // First pointer points to the next value to be deqeued.  
+        // It can change on an update and on a rewind. 
+ 
+        if(rewindPulse)
         begin
             firstPtr <= rewindPtr;
         end
         else if(countDown)
         begin
-            firstPtr <= firstPtr+1;
+            firstPtr <= firstPtr + 1;
         end
 
         if(`DEBUG_REWIND_FIFO == 1)
@@ -230,6 +228,18 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
             $finish;           
        end
 
+       if(rewindCounter > fromInteger(valueof(size)))
+       begin
+            $display("Too much data to be rewound!");
+            $finish;           
+       end
+
+       if(rewindCounter > dataCounter)
+       begin
+            $display("rewind counter larger than data counter!");
+            $finish;           
+       end
+
        // An illegal commit distance?
        if(commitDistance > rewindCounter)
        begin
@@ -237,18 +247,19 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
            $finish;
        end
 
+
     endrule
 
     method data first() if(dataCounter > rewindCounter);
         return memory.sub(firstPtr);
     endmethod
 
-    method Action commit(Maybe#(Bit#(TAdd#(1,TLog#(size)))) commitAmount);  
+    method Action commit(Maybe#(Bit#(TAdd#(1,TLog#(size)))) commitAmount); // no simultaneous rewind and commit  
         commitPulse.send;
         commitCommand <= commitAmount;
     endmethod
 
-    method Action rewind();  
+    method Action rewind() if(!commitPulse);  
         rewindPulse.send;
     endmethod
 
@@ -259,11 +270,11 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
     // issue here is what happens when we also commit... 
     // commit should probably happen last.  if only we could specifiy...
     method Action enq(data inData) if(dataCounter < fromInteger(valueof(size)));
-        if(enqPtr == rewindPtr && dataCounter != 0)
-        begin
-            $display("Overwriting data");
-            $finish;
-        end
+     //   if(enqPtr == rewindPtr && dataCounter != 0)
+     //   begin
+     //       $display("Overwriting data");
+     //       $finish;
+     //   end
 
         countUp.send;
         memory.upd(enqPtr,inData);  
