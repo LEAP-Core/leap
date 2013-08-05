@@ -314,6 +314,7 @@ module mkSimpleDemarshallerBoth#(Bool highToLow)
         Reg#(Bool) full <- mkReg(False);
         PulseWire enqComplete <- mkPulseWire();
         PulseWire deqComplete <- mkPulseWire();
+        PulseWire doClear <- mkPulseWire();
 
         (* fire_when_enabled, no_implicit_conditions *)
         rule updateFull (True);
@@ -321,7 +322,7 @@ module mkSimpleDemarshallerBoth#(Bool highToLow)
             // - Clear full when deq happens
             // - Preserve full otherwise
             // deqComplete and enqComplete will never both be set.
-            full <= unpack(pack(full) ^ pack(deqComplete)) || enqComplete;
+            full <= (unpack(pack(full) ^ pack(deqComplete)) || enqComplete) && !doClear;
         endrule
 
 
@@ -360,10 +361,13 @@ module mkSimpleDemarshallerBoth#(Bool highToLow)
         endmethod
 
         method Bool notFull() = (! full || entry0Q.notFull);
+
         method Bool notEmpty() = full;
+
         method Action clear(); 
-            full <= False; 
+            doClear.send;
             entry0Q.clear();
+            count <= 0;
         endmethod
     end
 endmodule
@@ -469,6 +473,9 @@ module mkSimpleDemarshallerN#(function Bit#(t_FIFO_DATA_SZ) msgChunks(t_FIFO_DAT
         // with this hack.
         PulseWire schedCtrl <- mkPulseWire();
 
+
+        PulseWire doClear <- mkPulseWire();
+
         //
         // Full logic implemented as a rule to keep the scheduler happy
         //
@@ -482,7 +489,7 @@ module mkSimpleDemarshallerN#(function Bit#(t_FIFO_DATA_SZ) msgChunks(t_FIFO_DAT
             // - Clear full when deq happens
             // - Preserve full otherwise
             // deqComplete and enqComplete will never both be set.
-            full <= unpack(pack(full) ^ pack(deqComplete)) || enqComplete;
+            full <= (unpack(pack(full) ^ pack(deqComplete)) || enqComplete) && !doClear;
         endrule
 
 
@@ -571,8 +578,9 @@ module mkSimpleDemarshallerN#(function Bit#(t_FIFO_DATA_SZ) msgChunks(t_FIFO_DAT
         method Bool notEmpty() = full;
 
         method Action clear(); 
-            full <= False; 
+            doClear.send();
             entry0Q.clear();
+            n_chunks_remaining <= 0;
         endmethod
     end
 endmodule

@@ -15959,3 +15959,23 @@ Directory modules/leap/libraries/librl/storage
 
 Simplified rewind-fifo logic and added more commentary.  Rewind-fifo now
 enforces that commit and rewind cannot happen simultaneously.
+
+----------
+keflemin    Date: Mon Aug  5 12:00:42 EDT 2013  CSN: CSN-leap-464
+                  Mon Aug  5 16:00:42 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-rewind.bsv           Locally Modified          463 
+
+Directory modules/leap/libraries/librl/base
+ fifo-marshaller.bsv       Locally Modified          463 
+
+
+Two bug fixes
+
+1) Rewind fifo runtime assertions now handle arbitrarily sized rewind
+fifos, rather than only power-of-two fifos.
+
+2) Clear operation for marshaller and demarshaller was not resetting
+the count register on clear, leading to erroneous operation. 

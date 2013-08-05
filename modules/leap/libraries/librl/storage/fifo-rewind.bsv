@@ -195,7 +195,7 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
         end
 
         // data at head of queue + (data at tail of queue) 
-        if(enqPtr < rewindPtr && !({1'b0,dataCounter} == {0,enqPtr} + (fromInteger(2*valueof(size)) - {0,rewindPtr})))
+        if(enqPtr < rewindPtr && !({1'b0,dataCounter} == {0,enqPtr} + (fromInteger(valueof(TExp#(TAdd#(1,TLog#(size))))) - {0,rewindPtr})))
         begin
             $display("Data being dropped<, enqPtr - rewindPtr (%d) != dataCounter (%d)", enqPtr + fromInteger(valueof(size)) - rewindPtr, dataCounter);
             $finish;
@@ -216,7 +216,7 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
         end
 
         // data at head of queue + (data at tail of queue)    
-        if(firstPtr < rewindPtr && !({1'b0,rewindCounter} == {0,firstPtr} + (fromInteger(2*valueof(size)) - {0,rewindPtr})))
+        if(firstPtr < rewindPtr && !({1'b0,rewindCounter} == {0,firstPtr} + (fromInteger(valueof(TExp#(TAdd#(1,TLog#(size))))) - {0,rewindPtr})))
         begin
             $display("Data being dropped<, firstPtr - rewindPtr != rewindCounter");
             $finish;
@@ -246,7 +246,6 @@ module mkRewindFIFOVariableCommitLevel (RewindFIFOVariableCommitLevel#(data,size
            $display("Illegal commit distance %d.  Maximum was %d", commitDistance, rewindCounter);
            $finish;
        end
-
 
     endrule
 
