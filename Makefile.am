@@ -20,6 +20,9 @@ install-arch: install
 doc:
 	cd docs; make
 
+install-docs:
+	cd docs; make install
+
 install-exec-hook: install-bin install-release
 	@echo "Done."
 

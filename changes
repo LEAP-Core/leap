@@ -15979,3 +15979,21 @@ fifos, rather than only power-of-two fifos.
 
 2) Clear operation for marshaller and demarshaller was not resetting
 the count register on clear, leading to erroneous operation. 
+
+----------
+mgambhir    Date: Wed Aug  7 18:17:20 EDT 2013  CSN: CSN-leap-465
+                  Wed Aug  7 22:17:20 UTC 2013
+
+
+Directory .
+ Makefile.in               Locally Modified          464 
+
+Directory docs
+ README                    Locally Added               0 
+ Makefile.in               Locally Modified          464 
+ Makefile.am               Locally Modified          464 
+
+Directory .
+ Makefile.am               Locally Modified          464 
+
+- Added install target for docs

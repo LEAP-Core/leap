@@ -1,0 +1,6 @@
+To install documentation run the following command from this directory
+$make install exec_prefix=<installation/path>
+
+Or from the parent of this directory run
+$make install_docs exec_prefix=<installation/path>
+
