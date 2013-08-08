@@ -23,8 +23,6 @@ EXTRA_DIST = doxygen.config
 #-----------------------------------------------------------------------------
 .PHONY: dox
 
-prefix := $(exec_prefix)
-
 all: doxygen.config dox-gen html-gen search-gen index-gen
 	@echo "Doxygen output is at `pwd`/dox/html/index.html"
 
@@ -46,8 +44,8 @@ index-gen:
 	@doxyindexer -o dox/ dox/searchdata.xml
 
 install:
-	rm -rf $(prefix)/html
-	cp -r dox/html $(prefix)/html
+	rm -rf $(htmldir)
+	test -d "$(htmldir)" || mkdir -p "$(htmldir)" && cp -r dox/html/* $(htmldir)
 
 clean-local:
 	rm -rf dox/xml

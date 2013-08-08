@@ -51,7 +51,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = docs
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -142,7 +142,7 @@ oldincludedir = @oldincludedir@
 package = @package@
 packagedir = @packagedir@
 pdfdir = @pdfdir@
-prefix := $(exec_prefix)
+prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
 release = @release@
@@ -364,8 +364,8 @@ index-gen:
 	@doxyindexer -o dox/ dox/searchdata.xml
 
 install:
-	rm -rf $(prefix)/html
-	cp -r dox/html $(prefix)/html
+	rm -rf $(htmldir)
+	test -d "$(htmldir)" || mkdir -p "$(htmldir)" && cp -r dox/html/* $(htmldir)
 
 clean-local:
 	rm -rf dox/xml

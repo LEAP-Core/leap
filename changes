@@ -15997,3 +15997,41 @@ Directory .
  Makefile.am               Locally Modified          464 
 
 - Added install target for docs
+
+----------
+mgambhir    Date: Thu Aug  8 17:56:16 EDT 2013  CSN: CSN-leap-466
+                  Thu Aug  8 21:56:16 UTC 2013
+
+
+Directory tools/scripts
+ Makefile.in               Locally Modified          465 
+
+Directory tools/leap
+ Makefile.in               Locally Modified          465 
+
+Directory tools/leap/leap-front-panel
+ Makefile.in               Locally Modified          465 
+
+Directory tools/leap/leap-front-panel-qt3
+ Makefile.in               Locally Modified          465 
+
+Directory tools
+ Makefile.in               Locally Modified          465 
+
+Directory .
+ Makefile.am               Locally Modified          465 
+ aclocal.m4                Locally Modified          465 
+ configure                 Locally Modified          465 
+ Makefile.in               Locally Modified          465 
+ configure.in              Locally Modified          465 
+
+Directory docs
+ Makefile.in               Locally Modified          465 
+ Makefile.am               Locally Modified          465 
+
+Directory libperl
+ Makefile.in               Locally Modified          465 
+
+- changed intall-docs target to install-doc
+- install-doc now installs at $htmldir
+- $htmldir is set to $docdir/html by automake
