@@ -171,8 +171,18 @@ class STAT_NODE_DESC_CLASS
 };
 
 
-// this module handles gathering statistics. 
-// Eventually this will interact with standard tools.
+//
+// Commands that may be passed to the Command port in hardware.  This
+// enumeration must match the Bluespec equivalent.
+//
+enum STATS_SERVER_COMMAND
+{
+    STATS_SERVER_CMD_INIT,
+    STATS_SERVER_CMD_DUMP,
+    STATS_SERVER_CMD_ENABLE,
+    STATS_SERVER_CMD_DISABLE
+};
+
 
 typedef class STATS_SERVER_CLASS* STATS_SERVER;
 
@@ -200,8 +210,11 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     // that each name is used only once.
     unordered_map<string, STAT_INIT_BUCKET> initAllBuckets;
 
+    static pthread_mutex_t commandLock;
     static pthread_mutex_t scanLock;
     pthread_t liveStatsThread;
+
+    void SendCommand(STATS_SERVER_COMMAND cmd);
 
   public:
     STATS_SERVER_CLASS();
@@ -227,6 +240,7 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     // RRR server methods
     void ReportStat(GLOBAL_STRING_UID desc, UINT32 pos, UINT32 value);
     void NodeInfo(GLOBAL_STRING_UID desc);
+    void Ack(UINT8 cmd);
 };
 
 // server stub

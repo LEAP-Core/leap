@@ -22,6 +22,20 @@ import Connectable::*;
 `include "awb/rrr/client_stub_STATS.bsh"
 `include "awb/rrr/server_stub_STATS.bsh"
 
+//
+// Commands that may be passed to the Command port in hardware.  This
+// enumeration must match the C++ equivalent.
+//
+typedef enum
+{
+    STATS_SERVER_CMD_INIT,
+    STATS_SERVER_CMD_DUMP,
+    STATS_SERVER_CMD_ENABLE,
+    STATS_SERVER_CMD_DISABLE
+}
+STATS_SERVER_COMMAND
+    deriving (Bits, Eq);
+
 
 module [CONNECTED_MODULE] mkStatsService
     // interface:
@@ -44,24 +58,15 @@ module [CONNECTED_MODULE] mkStatsService
     //
     // Rules receiving incoming commands
     //
-    rule beginInit (True);
-        let dummy <- serverStub.acceptRequest_DoInit();
-        chainPut(ST_INIT);
-    endrule
+    rule acceptCommand (True);
+        let cmd <- serverStub.acceptRequest_Command();
 
-    rule beginDump (True);
-        let dummy <- serverStub.acceptRequest_DumpStats();
-        chainPut(ST_DUMP);
-    endrule
-
-    rule beginEnable (True);
-        let dummy <- serverStub.acceptRequest_Enable();
-        chainPut(ST_ENABLE);
-    endrule
-
-    rule beginDisable (True);
-        let dummy <- serverStub.acceptRequest_Disable();
-        chainPut(ST_DISABLE);
+        case (unpack(truncate(cmd)))
+            STATS_SERVER_CMD_INIT:    chainPut(ST_INIT);
+            STATS_SERVER_CMD_DUMP:    chainPut(ST_DUMP);
+            STATS_SERVER_CMD_ENABLE:  chainPut(ST_ENABLE);
+            STATS_SERVER_CMD_DISABLE: chainPut(ST_DISABLE);
+        endcase
     endrule
 
 
@@ -76,29 +81,41 @@ module [CONNECTED_MODULE] mkStatsService
         case (st) matches
             tagged ST_VAL .stinfo:
                 // A stat to dump
+            begin
                 clientStub.makeRequest_ReportStat(zeroExtend(stinfo.desc),
                                                   zeroExtend(stinfo.index),
                                                   zeroExtend(stinfo.value));
+            end
 
             tagged ST_INIT_RSP .node_desc:
+            begin
                 // Describe a node
                 clientStub.makeRequest_NodeInfo(zeroExtend(node_desc));
+            end
 
             //
             // Signal completion of requests to software...
             //
 
             tagged ST_INIT:
-                serverStub.sendResponse_DoInit(0);
+            begin
+                clientStub.makeRequest_Ack(zeroExtend(pack(STATS_SERVER_CMD_INIT)));
+            end
 
             tagged ST_DUMP:
-                serverStub.sendResponse_DumpStats(0);
+            begin
+                clientStub.makeRequest_Ack(zeroExtend(pack(STATS_SERVER_CMD_DUMP)));
+            end
 
             tagged ST_ENABLE:
-                serverStub.sendResponse_Enable(0);
+            begin
+                clientStub.makeRequest_Ack(zeroExtend(pack(STATS_SERVER_CMD_ENABLE)));
+            end
 
             tagged ST_DISABLE:
-                serverStub.sendResponse_Disable(0);
+            begin
+                clientStub.makeRequest_Ack(zeroExtend(pack(STATS_SERVER_CMD_DISABLE)));
+            end
         endcase
     endrule
 endmodule

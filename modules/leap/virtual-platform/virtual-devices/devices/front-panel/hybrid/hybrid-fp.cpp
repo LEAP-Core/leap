@@ -45,10 +45,12 @@ FRONT_PANEL_SERVER_CLASS::Init(
     inputDirty = false;
     outputCache = 0;
     outputDirty = false;
+    dialogpid = 0;
 
     // see if we should pop up the dialog box
     if (fpSwitch.ShowFrontPanel() == false)
     {
+        active = fpSwitch.ShowLEDsOnStdOut();
         return;
     }
 
@@ -82,7 +84,7 @@ FRONT_PANEL_SERVER_CLASS::Init(
         close(parent_to_child[0]);
 
         // initial state
-        childAlive = true;
+        active = true;
     }
 
     // chain
@@ -104,11 +106,14 @@ FRONT_PANEL_SERVER_CLASS::Uninit()
 void
 FRONT_PANEL_SERVER_CLASS::Cleanup()
 {
-    if (childAlive)
+    if (active)
     {
-        // kill dialog box
-        kill(dialogpid, SIGTERM);
-        childAlive = false;
+        if (dialogpid != 0)
+        {
+            // kill dialog box
+            kill(dialogpid, SIGTERM);
+        }
+        active = false;
     }
 
     // destroy stubs
@@ -133,6 +138,8 @@ FRONT_PANEL_SERVER_CLASS::UpdateLEDs(
 bool
 FRONT_PANEL_SERVER_CLASS::Poll()
 {
+    if (! active) return false;
+
     // Is dialog disabled?
     if (fpSwitch.ShowFrontPanel() == false)
     {

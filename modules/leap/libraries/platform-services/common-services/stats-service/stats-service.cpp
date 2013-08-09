@@ -37,6 +37,7 @@ void *StatsThread(void *arg);
 
 // ===== service instantiation =====
 STATS_SERVER_CLASS STATS_SERVER_CLASS::instance;
+pthread_mutex_t STATS_SERVER_CLASS::commandLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t STATS_SERVER_CLASS::scanLock = PTHREAD_MUTEX_INITIALIZER;
 
 // ===== registered stats emitters =====
@@ -78,7 +79,7 @@ void
 STATS_SERVER_CLASS::SetupStats()
 {
     // This call will cause the hardware to invoke ReportStat for every node.
-    clientStub->DoInit(0);
+    SendCommand(STATS_SERVER_CMD_INIT);
 
     // At this point the hardware has informed the software about all statistics
     // nodes by calling NodeInfo() below.  Generate collection buckets from
@@ -163,7 +164,7 @@ STATS_SERVER_CLASS::SetupStats()
     static bool once = false;
     if (! once)
     {
-        clientStub->Enable(0);
+        SendCommand(STATS_SERVER_CMD_ENABLE);
         once = true;
     }
 
@@ -335,7 +336,7 @@ STATS_SERVER_CLASS::NodeInfo(GLOBAL_STRING_UID desc)
 // zero.  This effectively clears all the statistics values.
 void STATS_SERVER_CLASS::ResetStatValues()
 {
-    clientStub->DumpStats(0);
+    SendCommand(STATS_SERVER_CMD_DUMP);
 
     // Zero all stats vectors
     for (list<STAT_VECTOR>::iterator li = statVectors.begin();
@@ -348,11 +349,45 @@ void STATS_SERVER_CLASS::ResetStatValues()
 
 }
 
+//
+// SendCommand --
+//     Send a command to the HW service and wait for the ack.
+//
+void
+STATS_SERVER_CLASS::SendCommand(STATS_SERVER_COMMAND cmd)
+{
+    // Only one command is allowed to execute at a time.  Get the command lock.
+    pthread_mutex_lock(&commandLock);
+
+    // Send the request to HW.
+    clientStub->Command(cmd);
+
+    // Try to get the lock again.  This will block until Ack() fires.  The
+    // Ack() will be received by a different software thread.
+    pthread_mutex_lock(&commandLock);
+
+    // Release the lock.
+    pthread_mutex_unlock(&commandLock);
+}
+
+
+//
+// Ack --
+//     Each HW command request gets an ack to indicate the operation is
+//     complete.
+//
+void
+STATS_SERVER_CLASS::Ack(UINT8 cmd)
+{
+    pthread_mutex_unlock(&commandLock);
+}
+
+
 // DumpStats
 void
 STATS_SERVER_CLASS::DumpStats()
 {
-    clientStub->DumpStats(0);
+    SendCommand(STATS_SERVER_CMD_DUMP);
 }
 
 void

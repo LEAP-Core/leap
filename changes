@@ -16035,3 +16035,24 @@ Directory libperl
 - changed intall-docs target to install-doc
 - install-doc now installs at $htmldir
 - $htmldir is set to $docdir/html by automake
+
+----------
+mcadler     Date: Fri Aug  9 13:36:49 EDT 2013  CSN: CSN-leap-467
+                  Fri Aug  9 17:36:49 UTC 2013
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.cpp             Locally Modified          466 
+ hybrid-fp.h               Locally Modified          466 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.rrr         Locally Modified          466 
+ stats-service.h           Locally Modified          466 
+ stats-service.bsv         Locally Modified          466 
+ stats-service.cpp         Locally Modified          466 
+
+- Changes similar to the last set of changes for debug scan.  Statistics now
+  use only services with "in" methods and no "out" methods, thus using only
+  LI channels.
+
+- Front panel deals with shutdown more gracefully.

@@ -3,10 +3,7 @@ service STATS
 
     server hw (bsv, connection) <- sw (cpp, method)
     {
-        method DoInit(in UINT8[8] syn, out UINT8[8] ack);
-        method DumpStats(in UINT8[8] syn, out UINT8[8] ack);
-        method Enable(in UINT8[8] syn, out UINT8[8] ack);
-        method Disable(in UINT8[8] syn, out UINT8[8] ack);
+        method Command(in UINT8[8] cmd);
     };
 
     server sw (cpp, method) <- hw (bsv, connection)
@@ -16,5 +13,9 @@ service STATS
         method ReportStat(in UINT32[32] desc,
                           in UINT32[32] pos,
                           in UINT32[32] value);
+
+        // Response from HW command service.  "cmd" is the value passed to
+        // the command service.
+        method Ack(in UINT8[8] cmd);
     };
 };

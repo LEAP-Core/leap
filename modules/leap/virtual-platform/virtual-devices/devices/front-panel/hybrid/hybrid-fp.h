@@ -57,7 +57,7 @@ class FRONT_PANEL_SERVER_CLASS: public RRR_SERVER_CLASS,
     UINT32  outputCache;
     bool    outputDirty;
     
-    bool    childAlive;
+    volatile bool active;
     
     // internal methods
     void    syncInputs();
