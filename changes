@@ -16056,3 +16056,19 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
   LI channels.
 
 - Front panel deals with shutdown more gracefully.
+
+----------
+mcadler     Date: Sat Aug 31 13:57:05 EDT 2013  CSN: CSN-leap-468
+                  Sat Aug 31 17:57:05 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ counters.bsv              Locally Modified          467 
+
+Add a method to counters that returns the value of the counter at the end of
+the cycle, after updates have been applied.  This is in addition to the
+current value() method that returns the counter value at the beginning of
+the FPGA cycle.
+
+Merge COUNTER and COUNTER_Z into the same interface and use a single
+implementation.

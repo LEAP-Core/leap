@@ -22,10 +22,15 @@ import ConfigReg::*;
 // The standard Bluespec "mkCounter" does not support simultaneous up/down
 // calls.  This code, taken mostly from the Bluespec documentation does.
 //
-
+// The interface is extended with a few methods:
+//   - updatedValue returns the value after up/down/etc. have been applied.
+//   - isZero is True iff the counter's value was 0 at the start of a cycle.
+//
 interface COUNTER#(numeric type nBits);
-
+    // The value at the beginning of the FPGA cycle.
     method Bit#(nBits) value();
+    // The value at the end of the FPGA cycle, updated by calls to up/down/set.
+    method Bit#(nBits) updatedValue();
 
     method Action up();
     method Action upBy(Bit#(nBits) c);
@@ -35,30 +40,48 @@ interface COUNTER#(numeric type nBits);
 
     method Action setC(Bit#(nBits) newVal);
 
+    // Is value() zero?
+    method Bool isZero();
 endinterface: COUNTER
 
 
-module mkLCounter#(Bit#(nBits) initial_value)
+module mkLCounter#(Bit#(nBits) initialValue)
     // interface:
         (COUNTER#(nBits));
 
     // Counter value
-    Reg#(Bit#(nBits)) ctr <- mkConfigReg(initial_value);
+    Reg#(Bit#(nBits)) ctr <- mkConfigReg(initialValue);
+    // Is counter 0?
+    Reg#(Bool) zero <- mkConfigReg(initialValue == 0);
 
-    Wire#(Bit#(nBits)) up_by   <- mkDWire(0);
-    Wire#(Bit#(nBits)) down_by <- mkDWire(0);
-    RWire#(Bit#(nBits)) setc_called <- mkRWire();
+    Wire#(Bit#(nBits)) up_by   <- mkUnsafeDWire(0);
+    Wire#(Bit#(nBits)) down_by <- mkUnsafeDWire(0);
+    RWire#(Bit#(nBits)) setc_called <- mkUnsafeRWire();
+
+    function newValue();
+        Bit#(nBits) new_value;
+
+        if (setc_called.wget() matches tagged Valid .v)
+            new_value = v + up_by - down_by;
+        else
+            new_value = ctr + up_by - down_by;
+
+        return new_value;
+    endfunction
 
     (* fire_when_enabled, no_implicit_conditions *)
-    rule update_counter;
-        if (setc_called.wget() matches tagged Valid .v)
-            ctr <= v + up_by - down_by;
-        else
-            ctr <= ctr + up_by - down_by;
+    rule updateCounter;
+        let new_value = newValue();
+        ctr <= new_value;
+        zero <= (new_value == 0);
     endrule
 
     method Bit#(nBits) value();
         return ctr;
+    endmethod
+
+    method Bit#(nBits) updatedValue();
+        return newValue();
     endmethod
 
     method Action up();
@@ -81,75 +104,24 @@ module mkLCounter#(Bit#(nBits) initial_value)
         setc_called.wset(newVal);
     endmethod
 
+    method Bool isZero();
+        return zero;
+    endmethod
 endmodule: mkLCounter
 
 
 //
-// COUNTER_Z interface is the same as a standard Counter but has a testable
-// zero bit in order to avoid having to read the whole counter to check for 0.
+// COUNTER_Z used to be a separate interface and implementation.  It is now
+// common with the standard counter.  This code is left for compatibility.
 //
-interface COUNTER_Z#(numeric type nBits);
-
-    method Bool isZero();
-    method Bit#(nBits) value();
-
-    method Action up();
-    method Action down();
-    method Action setC(Bit#(nBits) newVal);
-
-endinterface: COUNTER_Z
+typedef COUNTER#(nBits) COUNTER_Z#(numeric type nBits);
 
 
-module mkLCounter_Z#(Bit#(nBits) initial_value)
+module mkLCounter_Z#(Bit#(nBits) initialValue)
     // interface:
         (COUNTER_Z#(nBits));
 
-    // Counter value
-    Reg#(Bit#(nBits)) ctr <- mkConfigReg(initial_value);
-
-    // Is counter 0?
-    Reg#(Bool) zero <- mkConfigReg(initial_value == 0);
-
-    PulseWire up_called   <- mkPulseWire();
-    PulseWire down_called <- mkPulseWire();
-    RWire#(Bit#(nBits)) setc_called <- mkRWire();
-
-    (* fire_when_enabled, no_implicit_conditions *)
-    rule update_counter;
-        let new_value = ctr;
-
-        if (setc_called.wget() matches tagged Valid .v)
-            new_value = v;
-
-        if (up_called == down_called)
-            noAction;
-        else if (up_called)
-            new_value = new_value + 1;
-        else
-            new_value = new_value - 1;
-
-        zero <= (new_value == 0);
-        ctr <= new_value;
-    endrule
-
-    method Bool isZero();
-        return zero;
-    endmethod
-
-    method Bit#(nBits) value();
-        return ctr;
-    endmethod
-
-    method Action up();
-        up_called.send();
-    endmethod
-
-    method Action down();
-        down_called.send();
-    endmethod
-
-    method Action setC(Bit#(nBits) newVal);
-        setc_called.wset(newVal);
-    endmethod
+    let c <- mkLCounter(initialValue);
+    return c;
 
 endmodule: mkLCounter_Z
