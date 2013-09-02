@@ -16072,3 +16072,15 @@ the FPGA cycle.
 
 Merge COUNTER and COUNTER_Z into the same interface and use a single
 implementation.
+
+----------
+mcadler     Date: Mon Sep  2 07:45:04 EDT 2013  CSN: CSN-leap-469
+                  Mon Sep  2 11:45:04 UTC 2013
+
+
+Directory modules/leap/build-support/project
+ Utils.py                  Locally Modified          468 
+
+Bluespec 2013.05.beta2 adds some Verilog library modules for Vivado compilation
+that duplicate other Verilog modules.  For now, we will ignore the Vivado
+variants.

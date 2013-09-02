@@ -123,7 +123,9 @@ def get_bluespec_verilog(env):
     for file in fileArray:
         if ((file[-2:] == '.v') and
             (file != 'main.v') and
-            (file != 'ConstrainedRandom.v')):
+            (file != 'ConstrainedRandom.v') and
+            # For now we exclud the Vivado versions.  Need to fix this.
+            (file[-9:] != '.vivado.v')):
             resultArray.append(bluespecdir + '/Verilog/' + file)
 
     fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Libraries/'], stdout = subprocess.PIPE)
@@ -131,7 +133,9 @@ def get_bluespec_verilog(env):
     fileArray = clean_split(fileList, sep = '\n')
     for file in fileArray:
         if ((file[-2:] == '.v') and
-            (file[:6] != 'xilinx')):
+            (file[:6] != 'xilinx') and
+            # For now we exclud the Vivado versions.  Need to fix this.
+            (file[-9:] != '.vivado.v')):
             resultArray.append(bluespecdir + '/Libraries/' + file)
 
     return resultArray
