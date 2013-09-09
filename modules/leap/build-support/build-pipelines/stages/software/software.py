@@ -104,7 +104,7 @@ class Software():
         
         moduleList.env.Depends(sw_objects,moduleList.topModule.moduleDependency['IFACE_HEADERS'])
         sw_libpath = [ '.' ]
-        sw_link_libs = [ 'pthread', 'rt', 'dl' ]
+        sw_link_libs = moduleList.swLinkLibs + [ 'pthread', 'rt', 'dl' ]
     
         sw_link_tgt = moduleList.swExe
     

@@ -83,6 +83,7 @@ class ModuleList:
 
     self.swIncDir = Utils.clean_split(env['DEFS']['SW_INC_DIRS'], sep = ' ')
     self.swLibs = Utils.clean_split(env['DEFS']['SW_LIBS'], sep = ' ')
+    self.swLinkLibs = Utils.clean_split(env['DEFS']['SW_LINK_LIBS'], sep = ' ')
     self.m5BuildDir = env['DEFS']['M5_BUILD_DIR'] 
     self.rootDirSw = env['DEFS']['ROOT_DIR_SW_MODEL']
     self.rootDirInc = env['DEFS']['ROOT_DIR_SW_INC']

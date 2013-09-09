@@ -1660,6 +1660,12 @@ sub __generate_makefile_hw_top {
         }
     }
 
+    ## @SW_SYS_LIBS
+    foreach my $sysl ($module->syslibrary()) {
+        # These are taken on faith from the user and given to the linker.
+        Leap::Util::hash_append($replacements_r," ",'@SW_LINK_LIBS@',$sysl);
+    }
+
     ## @SW_INC_DIRS@
     foreach my $inc ($module->include()) {
         my $f = Asim::resolve($inc);

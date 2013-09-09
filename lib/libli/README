@@ -1,0 +1,6 @@
+
+Latency-Insensitive Parallel Library
+
+Requires Intel Thread Building Blocks.
+
+This library is experimental and is not built by default as part of leap.

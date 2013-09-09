@@ -53,6 +53,7 @@ defs = {
     'SIMULATED_ISA'      : '@SIMULATED_ISA@',
     'SW_INC_DIRS'        : '@SW_INC_DIRS@',
     'SW_LIBS'            : '@SW_LIBS@',
+    'SW_LINK_LIBS'       : '@SW_LINK_LIBS@',
     'SYNTH_TOP'          : '@SYNTH_TOP@',
     'SYNTH_WRAPPERS'     : '@SYNTH_WRAPPERS@',
     'SYNTHESIS_TOOL'     : '@SYNTHESIS_TOOL@',

@@ -16084,3 +16084,44 @@ Directory modules/leap/build-support/project
 Bluespec 2013.05.beta2 adds some Verilog library modules for Vivado compilation
 that duplicate other Verilog modules.  For now, we will ignore the Vivado
 variants.
+
+----------
+mpellaue    Date: Mon Sep  9 15:58:01 EDT 2013  CSN: CSN-leap-470
+                  Mon Sep  9 19:58:01 UTC 2013
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          469 
+
+Directory lib
+ libli/                    Locally Added               0 
+
+Directory lib/libli
+ SConstruct                Locally Added               0 
+ li.hpp                    Locally Added               0 
+ libli.cpp                 Locally Added               0 
+ README                    Locally Added               0 
+
+Directory lib
+ README                    Locally Added               0 
+
+Directory .
+ lib/                      Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          469 
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          469 
+ ModuleList.py             Locally Modified          469 
+
+
+* leap-configure now supports the AWB %syslibrary directive. This causes a
+  library to be linked in at software link time, with no headers included
+  (for example, libraries that other libraries depend on, etc.).
+
+* Add Thread-Building-Block based Latency-Insensitive Library (libli). This
+  library is experimental and so is not built by default on package checkout.
+  It can be included via the %library directive. Examples will be added to
+  leap-examples.
+

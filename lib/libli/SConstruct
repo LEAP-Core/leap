@@ -1,0 +1,8 @@
+import os
+env = Environment(ENV = os.environ)
+
+libli = env.SharedLibrary("libli", ["libli.cpp"],
+        CPPPATH=[os.environ["CPATH"], "."],
+        LIBS=["tbb"],
+        LIBPATH=os.environ["LIBRARY_PATH"],
+        CCFLAGS=["-g", "-O0", "-Wall", "-Werror"])
