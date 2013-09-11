@@ -16125,3 +16125,21 @@ Directory modules/leap/build-support/project
   It can be included via the %library directive. Examples will be added to
   leap-examples.
 
+
+----------
+mcadler     Date: Wed Sep 11 15:49:23 EDT 2013  CSN: CSN-leap-471
+                  Wed Sep 11 19:49:23 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          470 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          470 
+
+First step of making it possible to pass more configuration to a scratchpad
+constructor.  A new SCRATCHPAD_CONFIG type is passed in to the constructor.
+The type has a default value, so new parameters can be added.
+
+In the next step I'll add the ability to initialize the scratchpad at run
+time from a file.

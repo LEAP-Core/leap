@@ -16,8 +16,15 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import DefaultValue::*;
+
+
 `include "awb/provides/physical_platform_utils.bsh"
 
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/local_mem.bsh"
@@ -65,6 +72,54 @@ typedef Bit#(TLog#(TAdd#(1, SCRATCHPAD_N_CLIENTS))) SCRATCHPAD_PORT_NUM;
 typedef `SCRATCHPAD_CLIENT_READ_UID_BITS SCRATCHPAD_CLIENT_READ_UID_SZ;
 typedef Bit#(SCRATCHPAD_CLIENT_READ_UID_SZ) SCRATCHPAD_CLIENT_READ_UID;
 
+
+//
+// Caching options for scratchpads.  The caching option also affects the way
+// data structures are marshalled to scratchpad containers.
+//
+typedef enum
+{
+    // Fully cached.  Elements are packed tightly in scratchpad containers.
+    SCRATCHPAD_CACHED,
+
+    // No private L1 cache, but data may be stored in a shared, central cache.
+    SCRATCHPAD_NO_PVT_CACHE,
+
+    // Raw, right to memory.  Elements are aligned to natural sizes within
+    // a scratchpad container.  (E.g. 1, 2, 4 or 8 bytes.)  Byte masks are
+    // used on writes to avoid requiring read/modify/write.  The current
+    // implementation supports object sizes up to the size of a
+    // SCRATCHPAD_MEM_VALUE.
+    SCRATCHPAD_UNCACHED
+}
+SCRATCHPAD_CACHE_MODE
+    deriving (Eq, Bits);
+
+
+//
+// Scratchpad configuration (passed to scratchpad constructors.)
+//
+typedef struct
+{
+    // Construct/participate in cache hierarchy?
+    SCRATCHPAD_CACHE_MODE cacheMode;
+
+    // Initialize the scratchpad from a file?  If yes, the global string is
+    // the path of the initialization file, which is a raw memory image.
+    // If not, the scratchpad is initialized to zeros.
+    Maybe#(GLOBAL_STRING_UID) initFilePath;
+}
+SCRATCHPAD_CONFIG
+    deriving (Eq, Bits);
+
+instance DefaultValue#(SCRATCHPAD_CONFIG);
+    defaultValue = SCRATCHPAD_CONFIG {
+        cacheMode: SCRATCHPAD_CACHED,
+        initFilePath: tagged Invalid
+    };
+endinstance
+
+
 //
 // Scratchpad read UID.  Used for directing read responses to the right
 // ports and sorting read responses.  The read UID associates a read
@@ -78,6 +133,7 @@ typedef struct
 }
 SCRATCHPAD_READ_UID
     deriving (Eq, Bits);
+
 
 //
 // Scratchpad read response returns metadata along with the value.  The

@@ -45,29 +45,6 @@ import DefaultValue::*;
 
 
 //
-// Caching options for scratchpads.  The caching option also affects the way
-// data structures are marshalled to scratchpad containers.
-//
-typedef enum
-{
-    // Fully cached.  Elements are packed tightly in scratchpad containers.
-    SCRATCHPAD_CACHED,
-
-    // No private L1 cache, but data may be stored in a shared, central cache.
-    SCRATCHPAD_NO_PVT_CACHE,
-
-    // Raw, right to memory.  Elements are aligned to natural sizes within
-    // a scratchpad container.  (E.g. 1, 2, 4 or 8 bytes.)  Byte masks are
-    // used on writes to avoid requiring read/modify/write.  The current
-    // implementation supports object sizes up to the size of a
-    // SCRATCHPAD_MEM_VALUE.
-    SCRATCHPAD_UNCACHED
-}
-SCRATCHPAD_CACHE_MODE
-    deriving (Eq, Bits);
-
-
-//
 // Data structures flowing through soft connections between scratchpad clients
 // and the platform interface.
 //
@@ -77,6 +54,7 @@ typedef struct
     SCRATCHPAD_PORT_NUM port;
     SCRATCHPAD_MEM_ADDRESS allocLastWordIdx;
     Bool cached;
+//    SCRATCHPAD_CONFIG config;
 }
 SCRATCHPAD_INIT_REQ
     deriving (Eq, Bits);
@@ -174,7 +152,7 @@ endfunction
 //     global scratchpad base memory size.
 //
 module [CONNECTED_MODULE] mkScratchpad#(Integer scratchpadID,
-                                        SCRATCHPAD_CACHE_MODE cached)
+                                        SCRATCHPAD_CONFIG conf)
     // interface:
     (MEMORY_IFC#(t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
@@ -185,8 +163,8 @@ module [CONNECTED_MODULE] mkScratchpad#(Integer scratchpadID,
     // Allocate a multi-reader scratchpad with a single reader and convert
     // it to MEMORY_IFC.
     //
-
-    MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) m_scratch <- mkMultiReadScratchpad(scratchpadID, cached);
+    MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) m_scratch <-
+        mkMultiReadScratchpad(scratchpadID, conf);
     MEMORY_IFC#(t_ADDR, t_DATA) scratch <- mkMultiMemIfcToMemIfc(m_scratch);
     return scratch;
 endmodule
@@ -196,7 +174,7 @@ endmodule
 //     The same as mkMultiReadStatScratchpad but we have null stats in this case
 //
 module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
-                                                 SCRATCHPAD_CACHE_MODE cached)
+                                                 SCRATCHPAD_CONFIG conf)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
@@ -206,7 +184,6 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
     let prefetchStatsConstructor = mkNullScratchpadPrefetchStats;
 
     NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
-
     if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE != 0)
     begin
         statsConstructor = mkBasicScratchpadCacheStats("Scratchpad_" + integerToString(scratchpadID) + "_", "");
@@ -216,7 +193,9 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
         end
     end
 
-    let m <- mkMultiReadStatsScratchpad(scratchpadID, cached, statsConstructor, prefetchStatsConstructor);
+    let m <- mkMultiReadStatsScratchpad(scratchpadID, conf,
+                                        statsConstructor,
+                                        prefetchStatsConstructor);
     return m;
 endmodule
 
@@ -226,11 +205,12 @@ endmodule
 //     Requests are processed in order, with reads being scheduled before
 //     a write requested in the same cycle.
 //
-module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
-                                                      SCRATCHPAD_CACHE_MODE cached,
-                                                      SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
-                                                      SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor)
-    // interface:
+module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
+    Integer scratchpadID,
+    SCRATCHPAD_CONFIG conf,
+    SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
+    SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor)
+    // Interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ),
@@ -244,14 +224,14 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
     MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory;
 
 
-    if (cached == SCRATCHPAD_UNCACHED)
+    if (conf.cacheMode == SCRATCHPAD_UNCACHED)
     begin
         // No caches at any level.  This access pattern uses masked writes to
         // avoid read-modify-write loops when accessing objects smaller than
         // a scratchpad base data size.
         memory <- mkUncachedScratchpad(scratchpadID);
     end
-    else if ((cached == SCRATCHPAD_CACHED) &&
+    else if ((conf.cacheMode == SCRATCHPAD_CACHED) &&
              (valueOf(TExp#(t_CONTAINER_ADDR_SZ)) <= `SCRATCHPAD_STD_PVT_CACHE_ENTRIES))
     begin
         // A special case:  cached scratchpad requested but the container
@@ -266,7 +246,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
         NumTypeParam#(t_SCRATCHPAD_MEM_VALUE_SZ) scratchpad_data_sz = ?;
         NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_cache_prefetch_learners = ?;
 
-        if (cached == SCRATCHPAD_CACHED)
+        if (conf.cacheMode == SCRATCHPAD_CACHED)
         begin
             memory <- mkMemPackMultiRead(scratchpad_data_sz,
                                          mkUnmarshalledCachedScratchpad(scratchpadID,
@@ -301,13 +281,14 @@ endmodule
 //     Data and free list share same storage in a scratchpad memory.
 //
 module [CONNECTED_MODULE] mkMemoryHeapUnionScratchpad#(Integer scratchpadID,
-                                                       SCRATCHPAD_CACHE_MODE cached)
+                                                       SCRATCHPAD_CONFIG conf)
     // interface:
     (MEMORY_HEAP#(t_INDEX, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_INDEX, t_INDEX_SZ));
 
-    MEMORY_HEAP_DATA#(t_INDEX, t_DATA) pool <- mkMemoryHeapUnionScratchpadStorage(scratchpadID, cached);
+    MEMORY_HEAP_DATA#(t_INDEX, t_DATA) pool <-
+        mkMemoryHeapUnionScratchpadStorage(scratchpadID, conf);
     MEMORY_HEAP#(t_INDEX, t_DATA) heap <- mkMemoryHeap(pool);
 
     return heap;
@@ -320,14 +301,15 @@ endmodule
 //     stored in the same, unioned, scratchpad memory.
 //
 module [CONNECTED_MODULE] mkMemoryHeapUnionScratchpadStorage#(Integer scratchpadID,
-                                                              SCRATCHPAD_CACHE_MODE cached)
+                                                              SCRATCHPAD_CONFIG conf)
     // interface:
     (MEMORY_HEAP_DATA#(t_INDEX, t_DATA))
     provisos (Bits#(t_INDEX, t_INDEX_SZ),
               Bits#(t_DATA, t_DATA_SZ),
               Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
 
-    MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <- mkMultiReadScratchpad(scratchpadID, cached);
+    MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <-
+        mkMultiReadScratchpad(scratchpadID, conf);
 
     //
     // To avoid deadlocks, free list traffic is given priority over normal
