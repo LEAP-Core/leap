@@ -16143,3 +16143,38 @@ The type has a default value, so new parameters can be added.
 
 In the next step I'll add the ability to initialize the scratchpad at run
 time from a file.
+
+----------
+mcadler     Date: Tue Sep 17 11:51:15 EDT 2013  CSN: CSN-leap-472
+                  Tue Sep 17 15:51:15 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          471 
+ hybrid-mem-scratch.cpp    Locally Modified          471 
+ hybrid-mem-scratch.rrr    Locally Modified          471 
+ hybrid-mem-scratch.h      Locally Modified          471 
+ hybrid-mem-scratch.bsv    Locally Modified          471 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          471 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          471 
+ platform-scratchpad-memory.bsv Locally Modified          471 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.bsv        Locally Modified          471 
+
+- Global string numbering now guarantees that 0 is never assigned.
+
+- Hybrid scratchpads may be initialized:
+  - Object sizes must be a power of 2.  With this requirement there are never
+    any pad bits in files, making them portable across memory system word sizes.
+  - Initialization files may be smaller than scratchpads.  In this case,
+    scratchpads are padded with zeroes.
+  - Initialization files are mapped into the address space.  This permits
+    very large regions to be initialized with minimal startup cost.
+
+- Configurations without central caches using FPGA DRAM to host scratchpads
+  do not currently support initialization.  That will be fixed later.

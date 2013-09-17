@@ -27,6 +27,10 @@ import Vector::*;
 import DefaultValue::*;
 
 
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
@@ -54,7 +58,7 @@ typedef struct
     SCRATCHPAD_PORT_NUM port;
     SCRATCHPAD_MEM_ADDRESS allocLastWordIdx;
     Bool cached;
-//    SCRATCHPAD_CONFIG config;
+    Maybe#(GLOBAL_STRING_UID) initFilePath;
 }
 SCRATCHPAD_INIT_REQ
     deriving (Eq, Bits);
@@ -224,18 +228,42 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
     MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory;
 
 
+    //
+    // Initialized scratchpads must have object sizes that are a power of 2.
+    // We require this so that initialization files can simply be read right
+    // into memory, without regard to the local memory word size.
+    //
+    if (isValid(conf.initFilePath) &&
+        (valueOf(TExp#(TLog#(t_DATA_SZ))) != valueOf(t_DATA_SZ)))
+    begin
+        error("Scratchpad ID " + integerToString(scratchpadID) + ": Initialized scratchpads must have power of 2 data sizes.");
+    end
+
+
     if (conf.cacheMode == SCRATCHPAD_UNCACHED)
     begin
         // No caches at any level.  This access pattern uses masked writes to
         // avoid read-modify-write loops when accessing objects smaller than
         // a scratchpad base data size.
-        memory <- mkUncachedScratchpad(scratchpadID);
+        memory <- mkUncachedScratchpad(scratchpadID, conf);
     end
     else if ((conf.cacheMode == SCRATCHPAD_CACHED) &&
              (valueOf(TExp#(t_CONTAINER_ADDR_SZ)) <= `SCRATCHPAD_STD_PVT_CACHE_ENTRIES))
     begin
         // A special case:  cached scratchpad requested but the container
         // is smaller than the cache would have been.  Just allocate a BRAM.
+
+        if (isValid(conf.initFilePath))
+        begin
+            // If you get this error it is because you attempted to allocate a
+            // cached, initialized, scratchpad with a small address space.
+            // The space is so small that it makes more sense to allocate a
+            // direct BRAM.  We currently don't have a version of BRAM initialized
+            // by memory, so we fail.  Once we add a BRAM initialized by a file
+            // we could use that here.
+            error("Scratchpad ID " + integerToString(scratchpadID) + ": Small scratchpads cannot be initialized.");
+        end
+
         memory <- mkBRAMBufferedPseudoMultiReadInitialized(True, unpack(0));
     end
     else
@@ -250,6 +278,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
         begin
             memory <- mkMemPackMultiRead(scratchpad_data_sz,
                                          mkUnmarshalledCachedScratchpad(scratchpadID,
+                                                                        conf,
                                                                         `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE,
                                                                         `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_MECHANISM,
                                                                         `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG,
@@ -261,7 +290,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
         else
         begin
             memory <- mkMemPackMultiRead(scratchpad_data_sz,
-                                         mkUnmarshalledScratchpad(scratchpadID));
+                                         mkUnmarshalledScratchpad(scratchpadID, conf));
         end
     end
 
@@ -307,6 +336,11 @@ module [CONNECTED_MODULE] mkMemoryHeapUnionScratchpadStorage#(Integer scratchpad
     provisos (Bits#(t_INDEX, t_INDEX_SZ),
               Bits#(t_DATA, t_DATA_SZ),
               Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
+
+    if (isValid(conf.initFilePath))
+    begin
+        error("Scratchpad ID " + integerToString(scratchpadID) + ": Heap scratchpads may not be initialized");
+    end
 
     MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <-
         mkMultiReadScratchpad(scratchpadID, conf);
@@ -386,7 +420,8 @@ endmodule
 //     data sizes or caching.  BEWARE: the word size of the virtual
 //     platform's scratchpad is platform dependent.
 //
-module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
+module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
+                                                    SCRATCHPAD_CONFIG conf)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE))
     provisos (Bits#(t_MEM_ADDRESS, t_MEM_ADDRESS_SZ),
@@ -442,8 +477,9 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID)
         Bit#(t_MEM_ADDRESS_SZ) alloc = maxBound;
         SCRATCHPAD_INIT_REQ r;
         r.allocLastWordIdx = zeroExtendNP(alloc);
-        r.cached = True;
         r.port = my_port;
+        r.cached = True;
+        r.initFilePath = conf.initFilePath;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
     endrule
 
@@ -561,6 +597,7 @@ endmodule
 //     data sizes.
 //
 module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID, 
+                                                          SCRATCHPAD_CONFIG conf,
                                                           Integer cacheModeParam,
                                                           Integer prefetchMechanismParam,
                                                           Integer prefetchLearnerSizeLogParam,
@@ -598,7 +635,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     Param#(4) prefetchLearnerSizeLog <- mkDynamicParameter(fromInteger(prefetchLearnerSizeLogParam), paramNode);
 
     // Connection between private cache and the scratchpad virtual device
-    let sourceData <- mkScratchpadCacheSourceData(scratchpadID);
+    let sourceData <- mkScratchpadCacheSourceData(scratchpadID, conf);
                              
     // Cache Prefetcher
     let prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1) ?
@@ -744,7 +781,8 @@ endmodule
 //     misses or needs to flush dirty data.  Requests will be forwarded to
 //     the main scratchpad controller.
 //
-module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
+module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
+                                                       SCRATCHPAD_CONFIG conf)
     // interface:
     (RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, SCRATCHPAD_MEM_VALUE, t_MAF_IDX))
     provisos (Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
@@ -789,6 +827,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID)
         r.port = my_port;
         r.allocLastWordIdx = zeroExtendNP(alloc);
         r.cached = True;
+        r.initFilePath = conf.initFilePath;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
 
         debugLog.record($format("init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
@@ -892,7 +931,8 @@ endmodule
 //     a power of 2.  A byte write mask is passed to the memory along with
 //     write data, thus eliminating the need to read partial values.
 //
-module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
+module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID,
+                                                SCRATCHPAD_CONFIG conf)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_IN_ADDR, t_DATA))
     provisos (Bits#(t_IN_ADDR, t_ADDR_SZ),
@@ -1068,6 +1108,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID)
         r.port = my_port;
         r.allocLastWordIdx = scratchpadAddr(alloc);
         r.cached = False;
+        r.initFilePath = conf.initFilePath;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
     endrule
 

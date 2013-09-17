@@ -23,6 +23,7 @@
 #include "asim/mesg.h"
 #include "asim/trace.h"
 
+#include "awb/provides/soft_services_deps.h"
 #include "awb/provides/physical_channel.h"
 #include "awb/provides/rrr.h"
 #include "awb/dict/VDEV.h"
@@ -97,7 +98,9 @@ class SCRATCHPAD_MEMORY_SERVER_CLASS: public RRR_SERVER_CLASS,
     bool   IsTracing(int level);
 
     // RRR request methods
-    void InitRegion(UINT32 regionID, UINT64 regionEndIdx);
+    void InitRegion(UINT32 regionID,
+                    UINT64 regionEndIdx,
+                    GLOBAL_STRING_UID initFilePath);
 
     void *GetMemPtr(SCRATCHPAD_MEMORY_ADDR addr);
 

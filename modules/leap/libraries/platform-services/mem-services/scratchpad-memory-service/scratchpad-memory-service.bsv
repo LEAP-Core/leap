@@ -79,7 +79,8 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCa
             begin
                 let s <- memory.init(init.allocLastWordIdx,
                                      init.port,
-                                     init.cached);
+                                     init.cached,
+                                     init.initFilePath);
                 assertScratchpadSpace(s);
             end
 

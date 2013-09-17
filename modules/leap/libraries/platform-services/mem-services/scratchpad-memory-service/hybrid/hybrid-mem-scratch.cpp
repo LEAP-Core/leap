@@ -32,6 +32,10 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <error.h>
 
 #include "awb/provides/model.h"
 #include "awb/provides/scratchpad_memory.h"
@@ -141,11 +145,26 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::IsTracing(int level)
 //
 void SCRATCHPAD_MEMORY_SERVER_CLASS::InitRegion(
     UINT32 regionID,
-    UINT64 regionEndIdx)
+    UINT64 regionEndIdx,
+    GLOBAL_STRING_UID initFilePath)
 {
     UINT64 nWords = regionEndIdx + 1;
 
-    T1("\tSCRATCHPAD init region " << regionID << ": " << nWords << " words");
+    const string* init_path =
+        (initFilePath != 0) ? GLOBAL_STRINGS::Lookup(initFilePath) : NULL;
+
+    if (init_path == NULL)
+    {
+        T1("\tSCRATCHPAD init region " << regionID << ": "
+           << nWords << " words");
+    }
+    else
+    {
+        T1("\tSCRATCHPAD init region " << regionID << ": "
+           << nWords << " words"
+           << ", init file: '" << *init_path << "'");
+    }
+
     VERIFY(regionBase[regionID] == NULL, "Scratchpad region " << regionID << " already initialized");
     VERIFY(nWords <= (regionOffset(~0) + 1),
            "Scratchpad region " << regionID << " too large for " << SCRATCHPAD_MEMORY_ADDR_BITS <<
@@ -156,12 +175,74 @@ void SCRATCHPAD_MEMORY_SERVER_CLASS::InitRegion(
     regionSize[regionID] = (nWords * sizeof(SCRATCHPAD_MEMORY_WORD) + getpagesize() - 1) &
                            ~(getpagesize() - 1);
     
-    regionBase[regionID] = (SCRATCHPAD_MEMORY_WORD*) mmap(NULL,
-                                                          regionSize[regionID],
-                                                          PROT_WRITE | PROT_READ,
-                                                          MAP_ANONYMOUS | MAP_PRIVATE,
-                                                          -1, 0);
-    VERIFY(regionBase[regionID] != MAP_FAILED, "Scratchpad mmap failed: region " << regionID << " nWords " << nWords << " (errno " << errno << ")");
+    if (init_path == NULL)
+    {
+        // Scratchpad initialized with zeroes.
+        regionBase[regionID] = (SCRATCHPAD_MEMORY_WORD*)
+                               mmap(NULL,
+                                    regionSize[regionID],
+                                    PROT_WRITE | PROT_READ,
+                                    MAP_PRIVATE | MAP_ANONYMOUS,
+                                    -1, 0);
+        VERIFY(regionBase[regionID] != MAP_FAILED, "Scratchpad mmap failed: region " << regionID << " nWords " << nWords << " (errno " << errno << ")");
+    }
+    else
+    {
+        // Scratchpad initialized from a file. 
+        int fd = open(init_path->c_str(), O_RDONLY);
+        if (fd == -1)
+        {
+            error(1, errno, "Scratchpad initialization file '%s'", init_path->c_str());
+        }
+
+        // How big is the file?
+        ssize_t count = regionSize[regionID];
+        struct stat stat_buf;
+        if (fstat(fd, &stat_buf) == -1)
+        {
+            error(1, errno, "Scratchpad initialization file '%s'", init_path->c_str());
+        }
+        if (stat_buf.st_size < count)
+        {
+            // File is smaller than region
+            count = stat_buf.st_size;
+        }
+
+        // Round count up to a page size.  mmap() extends files to the next page
+        // boundary by padding with 0.
+        long page_size = sysconf(_SC_PAGESIZE);
+        count = ((count + page_size - 1) / page_size) * page_size;
+
+        // It appears that asking for regionSize[regionID] bytes guarantees
+        // a contiguous region of memory this large even if the file is smaller.
+        // The large region will be completed by an anonymous mmap() later.
+        regionBase[regionID] = (SCRATCHPAD_MEMORY_WORD*)
+                               mmap(NULL,
+                                    regionSize[regionID],
+                                    PROT_WRITE | PROT_READ,
+                                    MAP_PRIVATE,
+                                    fd, 0);
+        VERIFY(regionBase[regionID] != MAP_FAILED, "Scratchpad mmap failed: region " << regionID << " nWords " << nWords << " (errno " << errno << ")");
+
+        // Is the file smaller than the scratchpad?  If yes, extend the mapping.
+        if (count < regionSize[regionID])
+        {
+            // Size of missing region
+            ssize_t extra = regionSize[regionID] - count;
+            // count is already page aligned
+            void *start_addr = regionBase[regionID] + count;
+
+            T1("\t\tSCRATCHPAD init region " << regionID << ": Extending file by " << extra << " bytes");
+
+            void *actual_addr = mmap(start_addr,
+                                     extra,
+                                     PROT_WRITE | PROT_READ,
+                                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+                                     -1, 0);
+            VERIFY(start_addr == actual_addr, "Scratchpad mmap extend failed: region " << regionID << " nWords " << nWords << " (errno " << errno << ")");
+        }
+    }
+
 }
 
 

@@ -103,7 +103,8 @@ action
       tagged InitRegionReq .initRegionReq:
         begin
         scratchpad_rrr.makeRequest_InitRegion(initRegionReq.regionID,
-                                              initRegionReq.regionEndIdx);
+                                              initRegionReq.regionEndIdx,
+                                              initRegionReq.initFilePath);
         end
     endcase
 endaction

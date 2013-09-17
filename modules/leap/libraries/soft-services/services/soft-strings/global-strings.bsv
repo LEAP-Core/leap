@@ -86,8 +86,9 @@ module [t_CONTEXT] getGlobalStringUID#(String str) (GLOBAL_STRING_UID)
     end
     else
     begin
-        // String not yet in the table.  Add it.
-        Integer local_uid = str_table.nEntries;
+        // String not yet in the table.  Add it.  Note that entry 0 is never
+        // allocated and can be used as a NULL pointer.
+        Integer local_uid = str_table.nEntries + 1;
 
         //
         // The UID must fit in 32 bits.  We allocate some to the platform ID,

@@ -168,6 +168,7 @@ typedef struct
 {
     Bit#(32) regionID;
     Bit#(64) regionEndIdx;
+    Bit#(64) initFilePath;
 }
 SCRATCHPAD_RRR_INIT_REGION_REQ
     deriving (Bits,Eq);
@@ -270,6 +271,7 @@ interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MAS
     // SCRATCHPAD_MEM_VALUE sized words.
     method ActionValue#(Bool) init(t_ADDR allocLastWordIdx,
                                    SCRATCHPAD_PORT_NUM portNum,
-                                   Bool useCentralCache);
+                                   Bool useCentralCache,
+                                   Maybe#(GLOBAL_STRING_UID) initFilePath);
 endinterface: SCRATCHPAD_MEMORY_VIRTUAL_DEVICE
 

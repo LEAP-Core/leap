@@ -22,7 +22,11 @@ service SCRATCHPAD_MEMORY
     server sw (cpp, method) <- hw (bsv, connection)
     {
         // Request regionWords scratchpad words for scratchpad region regionID.
-        method InitRegion (in UINT32[32] regionID, in UINT64[64] regionEndIdx);
+        method InitRegion (in UINT32[32] regionID,
+                           in UINT64[64] regionEndIdx,
+                           // If non-zero, the global string UID of the file
+                           // with which the scratchpad should be initialized.
+                           in UINT64[64] initFilePath);
 
         //
         // Store Line --

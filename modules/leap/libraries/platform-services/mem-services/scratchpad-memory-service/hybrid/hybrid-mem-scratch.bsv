@@ -26,11 +26,14 @@ import FIFOF::*;
 import SpecialFIFOs::*;
 import Vector::*;
 
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/local_mem.bsh"
-`include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/central_cache_service.bsh"
 `include "awb/provides/fpga_components.bsh"
@@ -320,16 +323,30 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     // ====================================================================
     
     // FIFO1 because it isn't worth the space to pipeline initialization.
-    FIFOF#(Tuple3#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_ADDRESS, Bool)) initQ <- mkFIFOF1();
+    FIFOF#(Tuple4#(SCRATCHPAD_PORT_NUM,
+                   SCRATCHPAD_MEM_ADDRESS,
+                   Bool,
+                   Maybe#(GLOBAL_STRING_UID))) initQ <- mkFIFOF1();
 
     rule initRegion (True);
-        match {.port, .alloc_last_word_idx, .use_central_cache} = initQ.first();
+        match {.port,
+               .alloc_last_word_idx,
+               .use_central_cache,
+               .m_init_from_file} = initQ.first();
         initQ.deq();
 
         portUsesCentralCache[port] <= use_central_cache;
+
+        GLOBAL_STRING_UID init_file_path = 0;
+        if (m_init_from_file matches tagged Valid .path)
+        begin
+            init_file_path = path;
+        end
+
         rrrReqQ.enq(tagged InitRegionReq
                         SCRATCHPAD_RRR_INIT_REGION_REQ { regionID: zeroExtend(port),
-                                                         regionEndIdx: zeroExtend(alloc_last_word_idx) });
+                                                         regionEndIdx: zeroExtend(alloc_last_word_idx),
+                                                         initFilePath: zeroExtend(init_file_path) });
     endrule
 
 
@@ -864,10 +881,11 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     method ActionValue#(Bool) init(SCRATCHPAD_MEM_ADDRESS allocLastWordIdx,
                                    SCRATCHPAD_PORT_NUM portNum,
-                                   Bool useCentralCache);
+                                   Bool useCentralCache,
+                                   Maybe#(GLOBAL_STRING_UID) initFilePath);
         debugLog.record($format("port %0d: init lastWordIdx=0x%x, cached %0d", portNum, allocLastWordIdx, useCentralCache));
 
-        initQ.enq(tuple3(portNum, allocLastWordIdx, useCentralCache));
+        initQ.enq(tuple4(portNum, allocLastWordIdx, useCentralCache, initFilePath));
         return True;
     endmethod
 
