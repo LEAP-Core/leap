@@ -65,6 +65,7 @@ STDIO_SERVER_CLASS::Init(
     parent = p;
 
     SetCondMask(maskSwitch.Mask());
+    clientStub->Ready(0);
 }
 
 

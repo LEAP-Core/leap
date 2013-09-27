@@ -90,7 +90,7 @@ COMMAND_SWITCH_PROCESSOR_CLASS::ProcessArgs(int argc, char *argv[])
     struct option end_opt = {0, 0, 0, 0};
     long_options[cur_idx] = end_opt;
     
-    while (c != -1)
+    do  
     {
         int option_index = 0;
         cur_switch = first_switch;
@@ -109,6 +109,7 @@ COMMAND_SWITCH_PROCESSOR_CLASS::ProcessArgs(int argc, char *argv[])
             cur_switch->ProcessSwitch(optarg);
         }
     }
+    while (c != -1);
     
     if (optind < argc)
     {

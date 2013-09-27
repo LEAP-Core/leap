@@ -33,11 +33,12 @@
 using namespace std;
 
 // Global lock variables
-pthread_mutex_t hardwareStatusLock;
-int             hardwareStarted;
-int             hardwareFinished;
-int             hardwareExitCode;
-pthread_cond_t  hardwareFinishedSignal;
+std::mutex hardwareStatusMutex;
+std::condition_variable hardwareFinishedSignal;
+
+int hardwareStarted;
+int hardwareFinished;
+int hardwareExitCode;
 
 
 // ===== service instantiation =====
@@ -49,8 +50,6 @@ STARTER_DEVICE_SERVER_CLASS::STARTER_DEVICE_SERVER_CLASS() :
     exitCode(0)
 {
     // Initialize hardware status variables.
-    pthread_mutex_init(&hardwareStatusLock, NULL);
-    pthread_cond_init(&hardwareFinishedSignal, NULL);
     hardwareStarted = 0;
     hardwareFinished = 0;
     hardwareExitCode = 0;
@@ -102,20 +101,16 @@ void
 STARTER_DEVICE_SERVER_CLASS::End(
     UINT8 exit_code)
 {
-
     // Set that the hardware is finished.
     // Signal any listening thread that might be listening.
 
-    pthread_mutex_lock(&hardwareStatusLock);
+    std::unique_lock<std::mutex> lk(hardwareStatusMutex);
+
     hardwareFinished = 1;
     hardwareExitCode = exit_code;
-    pthread_cond_broadcast(&hardwareFinishedSignal);
-    pthread_mutex_unlock(&hardwareStatusLock);
-
     exitCode = exit_code;
 
-    pthread_mutex_unlock(&hardwareStatusLock);
-    
+    hardwareFinishedSignal.notify_all();
 }
 
 // Heartbeat
@@ -133,9 +128,9 @@ void
 STARTER_DEVICE_SERVER_CLASS::Start()
 {
     // Record that the hardware has started.
-    pthread_mutex_lock(&hardwareStatusLock);
+    std::unique_lock<std::mutex> lk(hardwareStatusMutex);
     hardwareStarted = 1;
-    pthread_mutex_unlock(&hardwareStatusLock);
+    lk.unlock();
 
     // call client stub
     clientStub->Start(0);
@@ -145,14 +140,8 @@ STARTER_DEVICE_SERVER_CLASS::Start()
 UINT8
 STARTER_DEVICE_SERVER_CLASS::WaitForHardware()
 {
-    if (!hardwareFinished)
-    {
-        // We need to wait for it and it's not finished.
-        // So we'll wait to receive the signal from the VP.
-        pthread_mutex_lock(&hardwareStatusLock);
-        pthread_cond_wait(&hardwareFinishedSignal, &hardwareStatusLock);
-        pthread_mutex_unlock(&hardwareStatusLock);
-    }
+    std::unique_lock<std::mutex> lk(hardwareStatusMutex);
+    hardwareFinishedSignal.wait(lk, []{ return hardwareFinished; });
 
     return exitCode;
 }

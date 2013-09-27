@@ -226,7 +226,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ));
 
     MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory;
-
+    Bool need_init_wrapper = False;
 
     //
     // Initialized scratchpads must have object sizes that are a power of 2.
@@ -252,19 +252,8 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
     begin
         // A special case:  cached scratchpad requested but the container
         // is smaller than the cache would have been.  Just allocate a BRAM.
-
-        if (isValid(conf.initFilePath))
-        begin
-            // If you get this error it is because you attempted to allocate a
-            // cached, initialized, scratchpad with a small address space.
-            // The space is so small that it makes more sense to allocate a
-            // direct BRAM.  We currently don't have a version of BRAM initialized
-            // by memory, so we fail.  Once we add a BRAM initialized by a file
-            // we could use that here.
-            error("Scratchpad ID " + integerToString(scratchpadID) + ": Small scratchpads cannot be initialized.");
-        end
-
         memory <- mkBRAMBufferedPseudoMultiReadInitialized(True, unpack(0));
+        need_init_wrapper = True;
     end
     else
     begin
@@ -292,6 +281,24 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
             memory <- mkMemPackMultiRead(scratchpad_data_sz,
                                          mkUnmarshalledScratchpad(scratchpadID, conf));
         end
+    end
+
+    //
+    // Is this scratchpad initialized with a file?  If so, it might need to
+    // have the initialization streamed in.  The hybrid scratchpad code
+    // handles initialization with mmap on the host, allowing us to initialize
+    // very large spaces efficiently.  Local memory scratchpads without host-side
+    // homes require initialization wrappers.
+    //
+    if (((`SCRATCHPAD_SUPPORTS_INIT == 0) || need_init_wrapper) &&&
+        conf.initFilePath matches tagged Valid .init_path)
+    begin
+        // Get-based stream from the initialization file
+        let init_stream <- mkStdIO_GetFile(True, init_path);
+        // Put-based memory initialization wrapper
+        let init_memory <- mkMultiMemInitializedWithGet(memory, init_stream);
+
+        memory = init_memory;
     end
 
     return memory;

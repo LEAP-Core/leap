@@ -37,8 +37,10 @@ void *StatsThread(void *arg);
 
 // ===== service instantiation =====
 STATS_SERVER_CLASS STATS_SERVER_CLASS::instance;
-pthread_mutex_t STATS_SERVER_CLASS::commandLock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t STATS_SERVER_CLASS::scanLock = PTHREAD_MUTEX_INITIALIZER;
+
+std::mutex STATS_SERVER_CLASS::ackMutex;
+std::condition_variable STATS_SERVER_CLASS::ackCond;
+bool STATS_SERVER_CLASS::ackReceived;
 
 // ===== registered stats emitters =====
 static list<STATS_EMITTER> statsEmitters;
@@ -357,17 +359,19 @@ void
 STATS_SERVER_CLASS::SendCommand(STATS_SERVER_COMMAND cmd)
 {
     // Only one command is allowed to execute at a time.  Get the command lock.
-    pthread_mutex_lock(&commandLock);
+    static std::mutex commandMutex;
+    // Hold the mutex within the SendCommand scope.  It will be unlocked when
+    // destroyed at the end of the function.
+    std::unique_lock<std::mutex> commandLock(commandMutex);
+
+    ackReceived = false;
 
     // Send the request to HW.
     clientStub->Command(cmd);
 
-    // Try to get the lock again.  This will block until Ack() fires.  The
-    // Ack() will be received by a different software thread.
-    pthread_mutex_lock(&commandLock);
-
-    // Release the lock.
-    pthread_mutex_unlock(&commandLock);
+    // Wait for the command to complete (indicated by commandActive clear)
+    std::unique_lock<std::mutex> ackLock(ackMutex);
+    ackCond.wait(ackLock, []{ return ackReceived; });
 }
 
 
@@ -379,7 +383,9 @@ STATS_SERVER_CLASS::SendCommand(STATS_SERVER_COMMAND cmd)
 void
 STATS_SERVER_CLASS::Ack(UINT8 cmd)
 {
-    pthread_mutex_unlock(&commandLock);
+    std::unique_lock<std::mutex> ackLock(ackMutex);
+    ackReceived = true;
+    ackCond.notify_one();
 }
 
 
@@ -408,7 +414,10 @@ STATS_SERVER_CLASS::EmitFile(string statsFileName)
 void
 STATS_SERVER_CLASS::EmitFile(ofstream& statsFile)
 {
-    pthread_mutex_lock(&scanLock);
+    static std::mutex scanMutex;
+    // Hold the mutex within the EmitFile scope.  It will be unlocked when
+    // destroyed at the end of the function.
+    std::unique_lock<std::mutex> scanLock(scanMutex);
 
     statsFile.precision(10);
 
@@ -439,8 +448,6 @@ STATS_SERVER_CLASS::EmitFile(ofstream& statsFile)
     {
         (*i)->EmitStats(statsFile);
     }
-
-    pthread_mutex_unlock(&scanLock);
 }
 
 //

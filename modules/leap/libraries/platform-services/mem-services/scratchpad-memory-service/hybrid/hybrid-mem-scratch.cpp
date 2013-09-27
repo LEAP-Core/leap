@@ -230,15 +230,17 @@ void SCRATCHPAD_MEMORY_SERVER_CLASS::InitRegion(
             // Size of missing region
             ssize_t extra = regionSize[regionID] - count;
             // count is already page aligned
-            void *start_addr = regionBase[regionID] + count;
+            void *start_addr = (UINT8*)regionBase[regionID] + count;
 
             T1("\t\tSCRATCHPAD init region " << regionID << ": Extending file by " << extra << " bytes");
 
-            void *actual_addr = mmap(start_addr,
-                                     extra,
-                                     PROT_WRITE | PROT_READ,
-                                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-                                     -1, 0);
+            // Map anonymous (zero initialized) memory in the extended area.
+            void *actual_addr;
+            actual_addr = mmap(start_addr,
+                               extra,
+                               PROT_WRITE | PROT_READ,
+                               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+                               -1, 0);
             VERIFY(start_addr == actual_addr, "Scratchpad mmap extend failed: region " << regionID << " nWords " << nWords << " (errno " << errno << ")");
         }
     }

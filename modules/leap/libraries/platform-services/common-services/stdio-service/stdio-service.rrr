@@ -22,5 +22,8 @@ service STDIO
 
         // Set conditional mask for mkStdio_CondPrintf
         method SetCondMask(in UINT32[32] mask);
+
+        // Software tells hardware it is ready
+        method Ready(in UINT8[8] dummy);
     };
 };

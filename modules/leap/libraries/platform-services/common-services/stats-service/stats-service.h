@@ -22,6 +22,8 @@
 #include <pthread.h>
 #include <unordered_map>
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
 
 #include "asim/syntax.h"
 
@@ -210,8 +212,10 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     // that each name is used only once.
     unordered_map<string, STAT_INIT_BUCKET> initAllBuckets;
 
-    static pthread_mutex_t commandLock;
-    static pthread_mutex_t scanLock;
+    static std::mutex ackMutex;
+    static std::condition_variable ackCond;
+    static bool ackReceived;
+
     pthread_t liveStatsThread;
 
     void SendCommand(STATS_SERVER_COMMAND cmd);

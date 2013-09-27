@@ -21,6 +21,7 @@
 %public lfsr.bsv
 %public lists.bsv
 %public local-arbiters.bsv
+%public memory-init.bsv
 %public memory-interface.bsv
 %public memory-mapping.bsv
 %public memory-misc.bsv

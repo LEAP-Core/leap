@@ -293,7 +293,7 @@ module [CONNECTED_MODULE] mkStdIO
         let rsp = rspChain.first();
         rspChain.deq();
 
-        dem.enq(rsp.data, rsp.nValid);
+        dem.enq(rsp.data, resize(rsp.nValid) + 1);
 
         if (valueOf(t_DATA_SZ) <= 32)
         begin
@@ -730,109 +730,6 @@ function Vector#(STDIO_WRITE_MAX, t_DATA) stdioListToVec(List#(t_DATA) args);
 endfunction
 
 
-// ========================================================================
-//
-//   Conditional printf wrapper, useful for debugging code.
-//
-// ========================================================================
-
-interface STDIO_COND_PRINTF#(type t_DATA);
-    method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-    method Action fprintf(STDIO_FILE file, GLOBAL_STRING_UID msgID, List#(t_DATA) args);
-endinterface
-
-//
-// mkStdIO_CondPrintf --
-//     Wrap the provided STDIO node and expose printf and fprintf.  Output
-//     is enabled conditionally, based on the requested bit of the dynamic
-//     parameter STDIO_COND_PRINTF_MASK.
-//
-//     This module provides internal buffering.  If you share a single
-//     STDIO node and instantiate a mkStdIO_CondPrintf for each of a set
-//     of parallel, independent, rules then the rules may still be
-//     scheduled independently.  When I/O is disabled, rules will always
-//     be independent.  For designs where space is more important than
-//     parallelism, allocate one mkStdIO_CondPrintf and share it among
-//     multiple rules.
-//
-//     By convention we leave the high mask bit for use by LEAP infrastructure.
-//
-module [CONNECTED_MODULE] mkStdIO_CondPrintf#(Integer maskBitIdx,
-                                              STDIO#(t_DATA) stdio)
-    // Interface:
-    (STDIO_COND_PRINTF#(t_DATA))
-    provisos (Bits#(t_DATA, t_DATA_SZ),
-              Add#(a__, 32, TMul#(STDIO_WRITE_MAX, t_DATA_SZ)));
-
-    // Only print if enabled by the user
-    Reg#(Maybe#(Bool)) enablePrintf <- mkReg(tagged Invalid);
-
-    (* fire_when_enabled *)
-    rule init (True);
-        enablePrintf <= tagged Valid unpack(stdio.cond_mask_update[maskBitIdx]);
-    endrule
-
-
-    FIFO#(Tuple4#(STDIO_FILE,
-                  GLOBAL_STRING_UID,
-                  Vector#(STDIO_WRITE_MAX, t_DATA),
-                  STDIO_NUM_DATA)) newReqQ <- mkFIFO1();
-
-    rule fwdReq (True);
-        match {.file, .msgID, .data, .numData} = newReqQ.first();
-        newReqQ.deq();
-
-        stdio.vfprintf(file, msgID, data, numData);
-    endrule
-
-
-    method Action printf(GLOBAL_STRING_UID msgID, List#(t_DATA) args) if (enablePrintf matches tagged Valid .en);
-        if (en)
-        begin
-            newReqQ.enq(tuple4(0, msgID,
-                               stdioListToVec(args),
-                               fromInteger(List::length(args))));
-        end
-    endmethod
-
-    method Action fprintf(STDIO_FILE file,
-                          GLOBAL_STRING_UID msgID,
-                          List#(t_DATA) args) if (enablePrintf matches tagged Valid .en);
-        if (en)
-        begin
-            newReqQ.enq(tuple4(file, msgID,
-                               stdioListToVec(args),
-                               fromInteger(List::length(args))));
-        end
-    endmethod
-endmodule
-
-
-// ========================================================================
-//
-//   NULL and debugging versions of StdIO nodes.  The debugging version
-//   enables the node if STDIO_ENABLE_DEBUG is is non-zero.  If zero,
-//   a NULL node is allocated.
-//
-// ========================================================================
-
-//
-// mkStdIO_Debug --
-//     Conditionally make either a StdIO client or a NULL client, depending
-//     on the state of the STDIO_ENABLE_DEBUG awb parameter.
-//
-module [CONNECTED_MODULE] mkStdIO_Debug
-    // interface:
-    (STDIO#(t_DATA))
-    provisos (Bits#(t_DATA, t_DATA_SZ),
-              Add#(a__, 32, TMul#(STDIO_WRITE_MAX, t_DATA_SZ)));
-
-    let io <- (`STDIO_ENABLE_DEBUG != 0 ? mkStdIO() :
-                                          mkStdIO_Disabled());
-    return io;
-endmodule
-
-
 //
 // mkStdIO_Disabled --
 //     NULL version of STDIO.
@@ -1054,7 +951,11 @@ endmodule
 // ========================================================================
 
 interface STDIO_DEMARSHALLER#(type t_FIFO_DATA, type t_DATA);
-    method Action enq(t_FIFO_DATA chunk, Bit#(2) nValid);
+    method Action enq(t_FIFO_DATA chunk,
+                      MARSHALLER_NUM_CHUNKS#(t_DATA, t_FIFO_DATA) nValid)
+        provisos (Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
+                  Bits#(t_DATA, t_DATA_SZ));
+
     method Action deq();
     method t_DATA first();
     method Bool notFull();
@@ -1079,7 +980,8 @@ module mkStdIORspDemarshaller
 
         DEMARSHALLER#(t_FIFO_DATA, t_DATA) dem <- mkSimpleDemarshaller();
 
-        method Action enq(t_FIFO_DATA chunk, Bit#(2) nValid) = dem.enq(chunk);
+        method Action enq(t_FIFO_DATA chunk,
+                          MARSHALLER_NUM_CHUNKS#(t_DATA, t_FIFO_DATA) nValid) = dem.enq(chunk);
         method Action deq() = dem.deq;
         method t_DATA first() = dem.first;
         method Bool notFull() = dem.notFull;
@@ -1095,8 +997,9 @@ module mkStdIORspDemarshaller
         //
         MARSHALLER_N#(t_DATA, t_FIFO_DATA) mar <- mkSimpleMarshallerN(True);
 
-        method Action enq(t_FIFO_DATA chunk, Bit#(2) nValid);
-            mar.enq(chunk, resize(nValid) + 1);
+        method Action enq(t_FIFO_DATA chunk,
+                          MARSHALLER_NUM_CHUNKS#(t_DATA, t_FIFO_DATA) nValid);
+            mar.enq(chunk, nValid);
         endmethod
 
         method Action deq() = mar.deq;

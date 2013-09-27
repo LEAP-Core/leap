@@ -47,7 +47,10 @@ void *DebugScanThread(void *arg);
 
 // ===== service instantiation =====
 DEBUG_SCAN_SERVER_CLASS DEBUG_SCAN_SERVER_CLASS::instance;
-pthread_mutex_t DEBUG_SCAN_SERVER_CLASS::scanLock = PTHREAD_MUTEX_INITIALIZER;
+
+std::mutex DEBUG_SCAN_SERVER_CLASS::doneMutex;
+std::condition_variable DEBUG_SCAN_SERVER_CLASS::doneCond;
+bool DEBUG_SCAN_SERVER_CLASS::doneReceived;
 
 
 // ===== methods =====
@@ -118,7 +121,13 @@ DEBUG_SCAN_SERVER_CLASS::Cleanup()
 void
 DEBUG_SCAN_SERVER_CLASS::Scan(FILE *outFile)
 {
-    pthread_mutex_lock(&scanLock);
+    // Only one scan is allowed to execute at a time.  Get the lock.
+    static std::mutex scanMutex;
+    // Hold the mutex within the Scan scope.  It will be unlocked when
+    // destroyed at the end of the function.
+    std::unique_lock<std::mutex> scanLock(scanMutex);
+
+    doneReceived = false;
     
     of = outFile;
     fprintf(of, "DEBUG SCAN:");
@@ -136,12 +145,11 @@ DEBUG_SCAN_SERVER_CLASS::Scan(FILE *outFile)
     // Test RRR.  Response from the test will trigger a scan.
     clientStub->CheckChannelReq(27);
 
-    //
-    // Block until scanLock can be acquired again.  This will happen only when
-    // Done() is invoked below.
-    //
-    pthread_mutex_lock(&scanLock);
-    pthread_mutex_unlock(&scanLock);
+    // Block until scan is done.
+    std::unique_lock<std::mutex> doneLock(doneMutex);
+    doneCond.wait(doneLock, []{ return doneReceived; });
+
+    of = stdout;
 }
 
 
@@ -170,8 +178,9 @@ DEBUG_SCAN_SERVER_CLASS::Send(UINT8 value, UINT8 eom)
 void
 DEBUG_SCAN_SERVER_CLASS::Done(UINT8 dummy)
 {
-    of = stdout;
-    pthread_mutex_unlock(&scanLock);
+    std::unique_lock<std::mutex> doneLock(doneMutex);
+    doneReceived = true;
+    doneCond.notify_one();
 }
 
 

@@ -16178,3 +16178,67 @@ Directory modules/leap/libraries/soft-services/services/soft-strings
 
 - Configurations without central caches using FPGA DRAM to host scratchpads
   do not currently support initialization.  That will be fixed later.
+
+----------
+mcadler     Date: Fri Sep 27 16:00:14 EDT 2013  CSN: CSN-leap-473
+                  Fri Sep 27 20:00:14 UTC 2013
+
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.cpp        Locally Modified          472 
+
+Directory modules/leap/build-support/project
+ project-vico-hybrid-main.cpp Locally Modified          472 
+ hardware-done.h           Locally Modified          472 
+
+Directory modules/leap/libraries/librl/base
+ memory-interface.bsv      Locally Modified          472 
+ memory-init.bsv           Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          472 
+
+Directory modules/leap/libraries/command-switches
+ command-switch-processor.cpp Locally Modified          472 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.cpp    Locally Modified          472 
+ hybrid-mem-scratch.awb    Locally Modified          472 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local
+ local-mem-scratch.awb     Locally Modified          472 
+ local-mem-scratch.bsv     Locally Modified          472 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          472 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          472 
+ stdio-local.bsv           Locally Modified          472 
+ stdio-service.rrr         Locally Modified          472 
+ stdio-service.awb         Locally Modified          472 
+ stdio-service.bsv         Locally Modified          472 
+ stdio-utils.bsv           Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          472 
+ debug-scan-service.h      Locally Modified          472 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          472 
+ stats-service.cpp         Locally Modified          472 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.bsv        Locally Modified          472 
+
+- Break libRL memory initialization into a separate file and add new modules
+  that initialize memories (BRAM and scratchpads) from a Put source.
+
+- Scratchpads now initialize local memory scratchpads when requested.
+
+- Correct thread locking and switch to C++ library.
+
+- Fix initialization bug found by valgrind (command-switch-processor).
+
+- Fix a memory mapping address calculation bug in scratchads.
+
+- Fix race in StdIO that allowed requests to flow to the host before the
+  host was ready.

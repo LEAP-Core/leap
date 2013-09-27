@@ -29,15 +29,21 @@ import FIFO::*;
 import FIFOF::*;
 import Vector::*;
 
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/local_mem.bsh"
-`include "awb/provides/local_memory_device.bsh"
-`include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/central_cache_service.bsh"
 `include "awb/provides/fpga_components.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
+`include "awb/provides/local_memory_device.bsh"
+
 
 //
 // Scratchpad memory address and value.  awb parameter controls whether accesses
@@ -95,7 +101,9 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     LUTRAM#(SCRATCHPAD_PORT_NUM, Maybe#(SCRATCHPAD_MEM_ADDRESS)) portSegmentBase <- mkLUTRAM(tagged Invalid);
 
     // Direct read responses to the correct port
-    FIFOF#(Tuple2#(SCRATCHPAD_MEM_ADDRESS, SCRATCHPAD_READ_UID)) readQ <- mkSizedFIFOF(8);
+    FIFOF#(Tuple3#(SCRATCHPAD_MEM_ADDRESS,
+                   SCRATCHPAD_READ_UID,
+                   RL_CACHE_GLOBAL_READ_META)) readQ <- mkSizedFIFOF(8);
 
 
     // ====================================================================
@@ -164,13 +172,14 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
 
     method Action readReq(SCRATCHPAD_MEM_ADDRESS addr,
                           SCRATCHPAD_MEM_MASK byteMask,
-                          SCRATCHPAD_READ_UID readUID) if (initDone());
+                          SCRATCHPAD_READ_UID readUID,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta) if (initDone());
         if (portSegmentBase.sub(readUID.portNum) matches tagged Valid .segment_base)
         begin
             let p_addr = addr + segment_base;
             debugLog.record($format("readReq port %0d: addr 0x%x, p_addr 0x%x", readUID.portNum, addr, p_addr));
 
-            readQ.enq(tuple2(addr, readUID));
+            readQ.enq(tuple3(addr, readUID, globalReadMeta));
 
 `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
             lms.makeReq(tagged LM_READ_WORD p_addr);
@@ -192,7 +201,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
                              if (lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
 `endif
 
-        match {.addr, .read_uid} = readQ.first();
+        match {.addr, .read_uid, .global_read_meta} = readQ.first();
         readQ.deq();
         lms.deq();
 
@@ -203,6 +212,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         r.addr = addr;
         r.readUID = read_uid;
         r.isCacheable = True;
+        r.globalReadMeta = global_read_meta;
 
         return r;
     endmethod
@@ -266,7 +276,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     method ActionValue#(Bool) init(SCRATCHPAD_MEM_ADDRESS allocLastWordIdx,
                                    SCRATCHPAD_PORT_NUM portNum,
-                                   Bool useCentralCache);
+                                   Bool useCentralCache,
+                                   Maybe#(GLOBAL_STRING_UID) initFilePath);
         SCRATCHPAD_MEM_ADDRESS last_word = totalAlloc + allocLastWordIdx;
 
         // Arithmetic for debug (includes overflow bit)

@@ -22,6 +22,8 @@
 #include <bitset>
 #include <pthread.h>
 #include <stdio.h>
+#include <mutex>
+#include <condition_variable>
 
 #include "asim/syntax.h"
 #include "platforms-module.h"
@@ -93,7 +95,10 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     DEBUG_SCAN_DATA_CLASS msg;
     FILE *of;
 
-    static pthread_mutex_t scanLock;
+    static std::mutex doneMutex;
+    static std::condition_variable doneCond;
+    static bool doneReceived;
+
     pthread_t liveDbgThread;
     pthread_t testRRRThread;
 

@@ -62,15 +62,14 @@ static void run_hasim()
     // The user can use a parameter to indicate the hardware never 
     // terminates (IE because it's a pure server).
     
-    if (WAIT_FOR_HARDWARE && !hardwareFinished)
+    if (WAIT_FOR_HARDWARE && ! hardwareFinished)
     {
         // We need to wait for it and it's not finished.
         // So we'll wait to receive the signal from the VP.
 
         // cout << "Waiting for HW..." << endl;
-        pthread_mutex_lock(&hardwareStatusLock);
-        pthread_cond_wait(&hardwareFinishedSignal, &hardwareStatusLock);
-        pthread_mutex_unlock(&hardwareStatusLock);
+        std::unique_lock<std::mutex> lk(hardwareStatusMutex);
+        hardwareFinishedSignal.wait(lk, []{ return hardwareFinished; });
     }
 
     // cout << "HW is done." << endl;

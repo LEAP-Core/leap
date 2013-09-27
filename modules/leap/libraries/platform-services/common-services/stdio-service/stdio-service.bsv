@@ -44,17 +44,24 @@ module [CONNECTED_MODULE] mkStdIOService
     CONNECTION_ADDR_RING#(STDIO_CLIENT_ID, STDIO_RSP) rspChain <-
         mkConnectionAddrRingNode("stdio_rsp_ring", 0);
     
+    Reg#(Bool) swReady <- mkReg(False);
     Reg#(Maybe#(STDIO_REQ_RING_CHUNK)) mergeChunk <- mkReg(tagged Invalid);
     Reg#(Maybe#(Tuple2#(STDIO_CLIENT_ID, STDIO_RSP))) rspBuf <- mkReg(tagged Invalid);
 
     // ****** Rules ******
+
+    rule init (True);
+        let dummy <- serverStub.acceptRequest_Ready();
+        swReady <= True;
+    endrule
+
 
     //
     // processReq --
     //
     //    Process a request from an individual scan node.
     //  
-    rule processReq (True);
+    rule processReq (swReady);
         let msg <- reqChain.recvFromPrev();
 
         //
