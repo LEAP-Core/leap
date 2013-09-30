@@ -52,7 +52,8 @@ STATS_SERVER_CLASS::STATS_SERVER_CLASS() :
     statsInited(false),
     // instantiate stubs
     clientStub(new STATS_CLIENT_STUB_CLASS(this)),
-    serverStub(new STATS_SERVER_STUB_CLASS(this))
+    serverStub(new STATS_SERVER_STUB_CLASS(this)),
+    didInit(false)
 {
 }
 
@@ -73,6 +74,7 @@ STATS_SERVER_CLASS::Init(
     parent = p;
 
     VERIFYX(! pthread_create(&liveStatsThread, NULL, &StatsThread, NULL));
+    didInit = true;
 }
 
 
@@ -189,8 +191,11 @@ void
 STATS_SERVER_CLASS::Cleanup()
 {
     // Kill the thread monitoring the live file
-    pthread_cancel(liveStatsThread);
-    pthread_join(liveStatsThread, NULL);
+    if (didInit)
+    {
+        pthread_cancel(liveStatsThread);
+        pthread_join(liveStatsThread, NULL);
+    }
     unlink(LEAP_LIVE_DEBUG_PATH "/stats");
 
     // kill stubs

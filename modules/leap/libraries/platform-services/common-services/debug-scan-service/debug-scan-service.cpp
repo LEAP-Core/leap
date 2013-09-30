@@ -60,7 +60,8 @@ DEBUG_SCAN_SERVER_CLASS::DEBUG_SCAN_SERVER_CLASS() :
     of(stdout),
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
-    serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this))
+    serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this)),
+    didInit(false)
 {
 }
 
@@ -81,6 +82,7 @@ DEBUG_SCAN_SERVER_CLASS::Init(
     parent = p;
 
     VERIFYX(! pthread_create(&liveDbgThread, NULL, &DebugScanThread, NULL));
+    didInit = true;
 }
 
 
@@ -99,8 +101,11 @@ void
 DEBUG_SCAN_SERVER_CLASS::Cleanup()
 {
     // Kill the thread monitoring the live file
-    pthread_cancel(liveDbgThread);
-    pthread_join(liveDbgThread, NULL);
+    if (didInit)
+    {
+        pthread_cancel(liveDbgThread);
+        pthread_join(liveDbgThread, NULL);
+    }
     unlink(LEAP_LIVE_DEBUG_PATH "/debug-scan");
 
     // kill stubs

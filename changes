@@ -16242,3 +16242,24 @@ Directory modules/leap/libraries/soft-services/services/soft-strings
 
 - Fix race in StdIO that allowed requests to flow to the host before the
   host was ready.
+
+----------
+mcadler     Date: Mon Sep 30 15:00:30 EDT 2013  CSN: CSN-leap-474
+                  Mon Sep 30 19:00:30 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          473 
+ debug-scan-service.h      Locally Modified          473 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          473 
+ stats-service.cpp         Locally Modified          473 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function-smart-synth-boundary.awb Locally Modified          473 
+
+- Stats and debug scan cleanup code wasn't checking to see whether the live-
+  file threads had been created.
+
+- Make traffic light delay parameter a valid C number.

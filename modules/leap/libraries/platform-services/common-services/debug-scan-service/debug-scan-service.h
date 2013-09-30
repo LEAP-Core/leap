@@ -101,6 +101,7 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     pthread_t liveDbgThread;
     pthread_t testRRRThread;
+    bool didInit;
 
   public:
     DEBUG_SCAN_SERVER_CLASS();

@@ -217,6 +217,7 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     static bool ackReceived;
 
     pthread_t liveStatsThread;
+    bool didInit;
 
     void SendCommand(STATS_SERVER_COMMAND cmd);
 
