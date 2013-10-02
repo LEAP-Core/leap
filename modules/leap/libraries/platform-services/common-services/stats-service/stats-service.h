@@ -24,6 +24,7 @@
 #include <iostream>
 #include <mutex>
 #include <condition_variable>
+#include <list>
 
 #include "asim/syntax.h"
 
@@ -272,9 +273,22 @@ typedef class STATS_EMITTER_CLASS *STATS_EMITTER;
 
 class STATS_EMITTER_CLASS
 {
+  private:
+    static std::list<STATS_EMITTER>* statsEmitters;
+
   public:
     STATS_EMITTER_CLASS();
     ~STATS_EMITTER_CLASS();
+
+    static std::list<STATS_EMITTER> GetStatsEmitters(void)
+    {
+        if (statsEmitters == NULL)
+        {
+            statsEmitters = new list<STATS_EMITTER>;
+        }
+
+        return *statsEmitters;
+    };
 
     virtual void EmitStats(ofstream &statsFile) = 0;
 };

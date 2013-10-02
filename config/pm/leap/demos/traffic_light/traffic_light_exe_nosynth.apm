@@ -51,8 +51,7 @@ fpgaenv=Hybrid Simulation FPGA Environment
 application_env=Soft Services Hybrid Application Environment
 
 [Traffic light function w.o synthesis boundary/Params]
-SIGNAL_CHANGE_DELAY='d10000
-
+SIGNAL_CHANGE_DELAY=10000
 
 [Hybrid Simulation FPGA Environment]
 File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-exe.apm

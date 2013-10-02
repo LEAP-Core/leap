@@ -17,6 +17,6 @@
 
 %public traffic-light-function.bsv
 
-%param SIGNAL_CHANGE_DELAY 'd100000000 "Delay between signal changes"
+%param SIGNAL_CHANGE_DELAY 100000000 "Delay between signal changes"
 
 %AWB_END

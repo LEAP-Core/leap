@@ -16263,3 +16263,25 @@ Directory modules/leap/examples/traffic-light/traffic-light-function
   file threads had been created.
 
 - Make traffic light delay parameter a valid C number.
+
+----------
+mcadler     Date: Wed Oct  2 08:56:37 EDT 2013  CSN: CSN-leap-475
+                  Wed Oct  2 12:56:37 UTC 2013
+
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_exe_nosynth.apm Locally Modified          474 
+ traffic_light_exe_synth.apm Locally Modified          474 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          474 
+ stats-service.cpp         Locally Modified          474 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function.awb Locally Modified          474 
+
+Compatible with gcc 4.8.
+
+There appears to have been a race between constructing the statsEmitters
+static object and the statistics class that uses it.  Replaced statsEmitters
+with a pointer to an object construct internally.

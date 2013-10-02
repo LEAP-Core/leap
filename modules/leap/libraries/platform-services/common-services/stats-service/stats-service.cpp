@@ -43,7 +43,7 @@ std::condition_variable STATS_SERVER_CLASS::ackCond;
 bool STATS_SERVER_CLASS::ackReceived;
 
 // ===== registered stats emitters =====
-static list<STATS_EMITTER> statsEmitters;
+list<STATS_EMITTER>* STATS_EMITTER_CLASS::statsEmitters = NULL;
 
 // ===== methods =====
 
@@ -447,8 +447,9 @@ STATS_SERVER_CLASS::EmitFile(ofstream& statsFile)
 
     // Call other emitters.  Clearly this needs to be improved with some
     // structured data.
-    for (list<STATS_EMITTER>::iterator i = statsEmitters.begin();
-         i != statsEmitters.end();
+    list<STATS_EMITTER> emitters = STATS_EMITTER_CLASS::GetStatsEmitters();
+    for (list<STATS_EMITTER>::iterator i = emitters.begin();
+         i != emitters.end();
          i++)
     {
         (*i)->EmitStats(statsFile);
@@ -524,7 +525,12 @@ STAT_NODE_DESC_CLASS::~STAT_NODE_DESC_CLASS()
 
 STATS_EMITTER_CLASS::STATS_EMITTER_CLASS()
 {
-    statsEmitters.push_front(this);
+    if (statsEmitters == NULL)
+    {
+        statsEmitters = new list<STATS_EMITTER>;
+    }
+
+    statsEmitters->push_front(this);
 }
 
 STATS_EMITTER_CLASS::~STATS_EMITTER_CLASS()
@@ -532,15 +538,20 @@ STATS_EMITTER_CLASS::~STATS_EMITTER_CLASS()
     //
     // Drop me from the global list of emitters.
     //
-    for (list<STATS_EMITTER>::iterator i = statsEmitters.begin();
-         i != statsEmitters.end();
-         i++)
+    if (statsEmitters != NULL)
     {
-        if (*i == this)
+        for (list<STATS_EMITTER>::iterator i = statsEmitters->begin();
+             i != statsEmitters->end();
+             i++)
         {
-            statsEmitters.erase(i);
-            break;
+            if (*i == this)
+            {
+                statsEmitters->erase(i);
+                break;
+            }
         }
+
+        delete statsEmitters;
     }
 }
 
