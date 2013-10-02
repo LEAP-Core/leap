@@ -16,6 +16,7 @@
 %public fifo-functions.bsv
 %public fifo-marshaller.bsv
 %public fifo-merge.bsv
+%public fifo-peekable.bsv
 %public hash-bits.bsv
 %public hash-compile-time.bsv
 %public lfsr.bsv

@@ -130,43 +130,67 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
     STAT_VECTOR#(9)       prefetchSv <- mkStatCounter_Vector(prefetchStatIDs);
     STAT_VECTOR#(n_STATS) learnerSv  <- mkStatCounter_Vector(learnerStatIDs);
     
-    rule prefetchHit (stats.prefetchHit());
+    Reg#(Bool) prefetchHitR              <- mkReg(False);
+    Reg#(Bool) prefetchDroppedByBusyR    <- mkReg(False);
+    Reg#(Bool) prefetchDroppedByHitR     <- mkReg(False);
+    Reg#(Bool) prefetchLateR             <- mkReg(False);
+    Reg#(Bool) prefetchUselessR          <- mkReg(False);
+    Reg#(Bool) prefetchIssuedR           <- mkReg(False);
+    Reg#(Bool) prefetchLearnR            <- mkReg(False);
+    Reg#(Bool) prefetchLearnerConflictR  <- mkReg(False);
+    Reg#(Bool) prefetchIllegalReqR       <- mkReg(False);
+    Reg#(Maybe#(PREFETCH_LEARNER_STATS)) hitLearnerInfoR <- mkReg(tagged Invalid);
+    
+    rule addPipeline (True);
+        prefetchHitR              <= stats.prefetchHit();
+        prefetchDroppedByHitR     <= stats.prefetchDroppedByHit();
+        prefetchDroppedByBusyR    <= stats.prefetchDroppedByBusy();
+        prefetchLateR             <= stats.prefetchLate();
+        prefetchUselessR          <= stats.prefetchUseless();
+        prefetchIssuedR           <= stats.prefetchIssued();
+        prefetchLearnR            <= stats.prefetchLearn();
+        prefetchLearnerConflictR  <= stats.prefetchLearnerConflict();
+        prefetchIllegalReqR       <= stats.prefetchIllegalReq();
+        hitLearnerInfoR           <= stats.hitLearnerInfo();
+    endrule
+   
+    rule prefetchHit (prefetchHitR);
         prefetchSv.incr(0);
     endrule
 
-    rule prefetchDroppedByBusy (stats.prefetchDroppedByBusy());
+    rule prefetchDroppedByBusy (prefetchDroppedByBusyR);
         prefetchSv.incr(1);
     endrule
 
-    rule prefetchDroppedByHit (stats.prefetchDroppedByHit());
+    rule prefetchDroppedByHit (prefetchDroppedByHitR);
         prefetchSv.incr(2);
     endrule
 
-    rule prefetchLate (stats.prefetchLate());
+    rule prefetchLate (prefetchLateR);
         prefetchSv.incr(3);
     endrule
 
-    rule prefetchUseless (stats.prefetchUseless());
+    rule prefetchUseless (prefetchUselessR);
         prefetchSv.incr(4);
     endrule
     
-    rule prefetchIssued (stats.prefetchIssued());
+    rule prefetchIssued (prefetchIssuedR);
         prefetchSv.incr(5);
     endrule
     
-    rule prefetchLearn (stats.prefetchLearn());
+    rule prefetchLearn (prefetchLearnR);
         prefetchSv.incr(6);
     endrule
     
-    rule prefetchLearnerConflict (stats.prefetchLearnerConflict());
+    rule prefetchLearnerConflict (prefetchLearnerConflictR);
         prefetchSv.incr(7);
     endrule
 
-    rule prefetchIllegalReq (stats.prefetchIllegalReq());
+    rule prefetchIllegalReq (prefetchIllegalReqR);
         prefetchSv.incr(8);
     endrule
-    
-    rule hitLearnerUpdate (stats.hitLearnerInfo() matches tagged Valid .s);
+
+    rule hitLearnerUpdate (hitLearnerInfoR matches tagged Valid .s);
         learnerSv.incr(0+resize(s.idx)*4); //hitLeanerIdx
         if (s.isActive)                    //the learner is issuing prefetch request
         begin

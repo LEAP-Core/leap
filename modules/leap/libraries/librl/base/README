@@ -14,9 +14,11 @@ debug-file.bsv          A better debug alternative to $fdisplay.
 extends.bsv             Useful bit extension/truncation without provisos.
 fifo-functions.bsv      Represent logical FIFOs in RAM.
 fifo-merge.bsv          Efficient implementation of FIFOs with multiple ports.
+fifo-peekable.bsv       A FIFO that enables peeking an arbitrary object in the FIFO.  
 guarded-pipelines.bsv   Take a synchronous pipeline and wrap it with FIFOS.
 hash-bits.bsv           Useful and efficient hashing functions.
 lfsr.bsv                LFSR support functions for pseudo-randomness.
+local-arbiters.bsv      Arbiters that are suitable for inclusion within a single rule. 
 memory-interface.bsv    General interface to bursty multi-cycle memoy.
 memory-pack.bsv         Memories of different sizes on fixed physical storage.
 register.bsv            Useful functions for transforming registers

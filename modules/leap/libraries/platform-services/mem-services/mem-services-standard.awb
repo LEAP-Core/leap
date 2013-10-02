@@ -4,6 +4,7 @@
 %provides mem_services
 %requires central_cache_service
 %requires scratchpad_memory_service
+%requires coherent_scratchpad_memory_service
 %requires shared_memory_service
 
 %attributes hybrid connected

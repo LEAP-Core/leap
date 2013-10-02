@@ -1,0 +1,23 @@
+Coherent Scratchpad Memory Service
+
+This module provides the coherent scratchpad memory service. 
+
+To use the coherent scratchpad service, first, the coherence
+scratchpad memory data and its owner bit storage are registered 
+as Scratchpad entries in LEAP Dictionaries. 
+
+def VDEV.SCRATCH.COH_DATA_A "Scratchpad for data in coherent region A";
+def VDEV.SCRATCH.COH_BITS_A "Scratchpad for owner bits of coherent region A";
+
+Then, the coherent scratchpad controller is constructed. 
+
+mkCoherentScratchpadController(`VDEV_SCRATCH_COH_DATA_A,
+                               `VDEV_SCRATCH_COH_BITS_A,
+                               addrSz,
+                               dataSz);
+
+Finally, the coherent scratchpad clients are constructed. 
+
+let client1 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA_A);
+let client2 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA_A);
+

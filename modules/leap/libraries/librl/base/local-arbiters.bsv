@@ -28,6 +28,20 @@ interface LOCAL_ARBITER#(numeric type nCLIENTS);
     // updated again until "fixed" goes False.
     method ActionValue#(Maybe#(UInt#(TLog#(nCLIENTS)))) arbitrate(Vector#(nCLIENTS, Bool) req,
                                                                   Bool fixed);
+    //
+    // Separate the arbitrate method into two methods: arbitrateNoUpd and update.
+    // These two methods are for clients who want to control when to update the 
+    // arbitration state.
+    //
+    // arbitrateNoUpd: return the winner and the new arbitration state without updating it
+    method ActionValue#(Tuple2#(Maybe#(LOCAL_ARBITER_CLIENT_IDX#(nCLIENTS)), LOCAL_ARBITER_OPAQUE#(nCLIENTS)))
+        arbitrateNoUpd(LOCAL_ARBITER_CLIENT_MASK#(nCLIENTS) req, Bool fixed);
+    //
+    // update: update the arbitration state with the new state returned by the 
+    // arbitrateNoUpd() call
+    //
+    method Action update(LOCAL_ARBITER_OPAQUE#(nCLIENTS) stateUpdate);
+
 endinterface
 
 // Index of a single arbiter client
@@ -127,6 +141,15 @@ module mkLocalArbiter
 
         return winner;
     endmethod
+
+    method ActionValue#(Tuple2#(Maybe#(t_CLIENT_IDX), LOCAL_ARBITER_OPAQUE#(nCLIENTS))) arbitrateNoUpd(t_CLIENT_MASK req, Bool fixed);
+        return localArbiterFunc(req, fixed, state);
+    endmethod
+
+    method Action update(LOCAL_ARBITER_OPAQUE#(nCLIENTS) stateUpdate);
+        state <= stateUpdate;
+    endmethod
+
 endmodule
 
 
@@ -171,4 +194,34 @@ module mkLocalRandomArbiter
 
         return winner;
     endmethod
+
+    method ActionValue#(Tuple2#(Maybe#(t_CLIENT_IDX), LOCAL_ARBITER_OPAQUE#(nCLIENTS))) arbitrateNoUpd(t_CLIENT_MASK req, Bool fixed);
+        let winner = localArbiterPickWinner(req, state);
+        let state_update = state;
+
+        if (! fixed)
+        begin
+            t_CLIENT_IDX next_idx = truncate(unpack(lfsr.value()));
+
+            // Is the truncated LFSR value larger than nCLIENTS?  (Only happens
+            // when the number of clients isn't a power of 2.
+            if (next_idx > fromInteger(valueOf(TSub#(nCLIENTS, 1))))
+            begin
+                // This is unfair if the number of clients isn't a power of 2.
+                next_idx = ~next_idx;
+            end
+
+            state_update.priorityIdx = next_idx;
+        end
+
+        // Always run the LFSR to avoid timing dependence on the search result
+        lfsr.next();
+   
+        return tuple2(winner, state_update);
+    endmethod
+
+    method Action update(LOCAL_ARBITER_OPAQUE#(nCLIENTS) stateUpdate);
+        state <= stateUpdate;
+    endmethod
+
 endmodule

@@ -304,8 +304,8 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
     FIFOF#(t_MSG) recvQ <- mkFIFOF();
     FIFOF#(Tuple2#(t_NODE_ID, t_MSG)) sendQ <- mkFIFOF();
 
-    COUNTER#(1) sawToken <- mkLCounter(nodeIsPrimary ? 1 : 0);
-    COUNTER#(1) haveToken <- mkLCounter(nodeIsPrimary ? 1 : 0);
+    COUNTER#(1) sawToken <- mkLCounter(0);
+    COUNTER#(1) haveToken <- mkLCounter(0);
 
     PulseWire localSentMsg <- mkPulseWire();
     PulseWire forwardMsg <- mkPulseWire();
@@ -337,6 +337,16 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
                                         initRecvFromPrev);
 
     //
+    // Initialization of the token counters. 
+    //
+    Reg#(Bool) tokenInitialized <- mkReg(False);
+    rule tokenCounterInit (!tokenInitialized);
+        sawToken.setC(nodeIsPrimary ? 1 : 0);
+        haveToken.setC(nodeIsPrimary ? 1 : 0);
+        tokenInitialized <= True;
+    endrule
+
+    //
     // newMsgIsForMe --
     //     Does incoming message on the ring have data for this node?
     //
@@ -352,7 +362,7 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
     // recvFromRing --
     //     Receive a new message from the ring destined for this node.
     //
-    rule recvFromRing (newMsgIsForMe());
+    rule recvFromRing (newMsgIsForMe() && tokenInitialized);
         let r <- chain.recvFromPrev();
         
         // Does the message have the token?
@@ -372,7 +382,7 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
     //     either because it has seen the token since last sending or there is
     //     no message to forward.
     //
-    rule sendToRing (init.initialized && ((sawToken.value() != 0) ||
+    rule sendToRing (init.initialized && tokenInitialized && ((sawToken.value() != 0) ||
                                           ! chain.recvNotEmpty() ||
                                           newMsgIsForMe()));
         t_RING_MSG r;
@@ -403,7 +413,7 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
     //     Local node did not send a message this cycle and message coming
     //     from ring is not for this node.  Is there a message to forward?
     //
-    rule forwardOnRing (init.initialized && ! localSentMsg && ! newMsgIsForMe());
+    rule forwardOnRing (init.initialized && tokenInitialized && ! localSentMsg && ! newMsgIsForMe());
         let r <- chain.recvFromPrev();
 
         if (r.token)
@@ -429,6 +439,7 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
     //     so, send the token on to the next hop.
     //
     rule forwardTokenOnRing (init.initialized &&
+                             tokenInitialized &&
                              ! localSentMsg &&
                              ! forwardMsg &&
                              (haveToken.value() != 0));
@@ -583,13 +594,10 @@ module mkConnectionAddrRingInitializer#(String chainID,
     //
     // Initialization phase 3:  primary node syncs the setup token.
     //
-    if (nodeIsPrimary)
-    begin
-        rule initPhase3 (! initDone && (initPhase == 3));
-            let id <- recvFromPrev();
-            initDone <= True;
-        endrule
-    end
+    rule initPhase3 (! initDone && (initPhase == 3) && nodeIsPrimary);
+        let id <- recvFromPrev();
+        initDone <= True;
+    endrule
 
 
     //

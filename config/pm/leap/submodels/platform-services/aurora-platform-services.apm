@@ -32,6 +32,7 @@ Packagehint=leap
 shared_memory_service=Null Shared Memory Services
 scratchpad_memory_service=Scratchpad Memory Service
 central_cache_service=Central Cache Service
+coherent_scratchpad_memory_service=Coherent Scratchpad Memory Service
 
 [Front Panel Service]
 File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
@@ -109,9 +110,12 @@ aurora_service=Aurora Service
 
 [Platform Services Aurora]
 File=modules/leap/libraries/platform-services/platform-services-aurora.awb
-Packagehint=leap
-
+Packagehint=multifpga
 
 [Aurora Service]
 File=modules/leap/libraries/platform-services/aurora-service/aurora-service.awb
+Packagehint=multifpga
+
+[Coherent Scratchpad Memory Service]
+File=modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service/coherent-scratchpad-memory-service.awb
 Packagehint=leap

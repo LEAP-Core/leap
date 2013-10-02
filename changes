@@ -16285,3 +16285,51 @@ Compatible with gcc 4.8.
 There appears to have been a race between constructing the statsEmitters
 static object and the statistics class that uses it.  Replaced statsEmitters
 with a pointer to an object construct internally.
+
+----------
+hjyang      Date: Wed Oct  2 14:06:48 EDT 2013  CSN: CSN-leap-476
+                  Wed Oct  2 18:06:48 UTC 2013
+
+
+Directory config/pm/leap/submodels/platform-services
+ aurora-platform-services.apm Locally Modified          475 
+ standard-platform-services.apm Locally Modified          475 
+ standard-platform-local-mem.apm Locally Modified          475 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.awb Locally Modified          475 
+ coherent-scratchpad-memory-service/ Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-utils.bsv Locally Added               0 
+ coherent-scratchpad-memory-controller.bsv Locally Added               0 
+ coherent-scratchpad-interfaces.bsv Locally Added               0 
+ coherent-scratchpad-memory-client.bsv Locally Added               0 
+ README                    Locally Added               0 
+ coherent-scratchpad-memory-service.awb Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory-utils.bsv Locally Modified          475 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ addressable-ring.bsv      Locally Modified          475 
+
+Directory modules/leap/libraries/librl/cache
+ rl-cache.bsv              Locally Modified          475 
+ rl-coherent-direct-mapped-cache.bsv Locally Added               0 
+ README                    Locally Modified          475 
+ librl-cache.awb           Locally Modified          475 
+ rl-cache-mshr.bsv         Locally Added               0 
+
+Directory modules/leap/libraries/librl/base
+ librl-bsv-base.awb        Locally Modified          475 
+ fifo-peekable.bsv         Locally Added               0 
+ local-arbiters.bsv        Locally Modified          475 
+ README                    Locally Modified          475 
+ memory-interface.bsv      Locally Modified          475 
+
+(1) Add coherent scratchpad memory service
+(2) Add one memory interface that has multiple readers and one writer with write mask
+(3) Add a FIFO implementation that enables peeking an arbitrary object in the FIFO
+(4) Add separated arbitrate methods in local-arbiters.bsv to allow clients to control when to update the arbitration state (can be in different rules)
+(5) Modify addressable-ring.bsv so that the static ring stop ID can be assigned at runtime through a guarded register

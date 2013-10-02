@@ -88,7 +88,16 @@ interface MEMORY_MULTI_READ_IFC#(numeric type n_READERS, type t_ADDR, type t_DAT
     method Bool writeNotFull();
 endinterface
 
+//
+// MEMORY_MULTI_READ_MASKED_WRITE_IFC
+// Memory with multiple readers and one writer with write mask.
+//
+interface MEMORY_MULTI_READ_MASKED_WRITE_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA, type t_MASK);
+    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
 
+    method Action write(t_ADDR addr, t_DATA val, t_MASK mask);
+    method Bool writeNotFull();
+endinterface
 
 // ========================================================================
 //

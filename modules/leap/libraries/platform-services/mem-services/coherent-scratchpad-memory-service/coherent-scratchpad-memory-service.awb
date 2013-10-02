@@ -1,0 +1,24 @@
+%name Coherent Scratchpad Memory Service
+%desc Coherent Scratchpad Memory Service
+
+%provides coherent_scratchpad_memory_service
+
+%notes README
+
+%public  coherent-scratchpad-interfaces.bsv
+%public  coherent-scratchpad-memory-controller.bsv
+%public  coherent-scratchpad-memory-client.bsv
+%public  coherent-scratchpad-memory-utils.bsv
+
+%param --dynamic COHERENT_SCRATCHPAD_PVT_CACHE_MODE                    1 "Bit 1: 0 disabled, 1 enabled prefetcher / Bit 0: 0 disabled, 1 enabled cache clean write-back"
+
+%param --global COHERENT_SCRATCHPAD_DEBUG_ENABLE                       1  "Enables the coherent scratchpad debug"
+
+%param --global COHERENT_SCRATCHPAD_PVT_CACHE_ENTRIES               1024  "Coherent scratchpad client private cache entries (must be a power of 2)"
+%param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM    32  "Number of prefetch learners in scratchpad private cache (must be a power of 2)"
+%param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE          0  "Enable scratchpad private cache prefetcher"
+
+%param --global COHERENT_SCRATCHPAD_CLIENT_META_BITS                   6  "Bits available to coherent scratchpad clients to tag out-of-order responses"
+%param --global COHERENT_SCRATCHPAD_CONTROLLER_META_BITS               8  "Bits available to coherent scratchpad controller to tag write back data"
+
+
