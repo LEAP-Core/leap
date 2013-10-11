@@ -472,6 +472,22 @@
                   <xsl:when test="@name='name'" >
                     <xsl:value-of select="substring(text(), 1, 200)"/>
                   </xsl:when>
+                  <!-- In case of a source/file type field, search for its name in index.xml and -->
+                  <!-- replace url filed with url found in the corresponding XML -->
+                  <xsl:when test="@name='url' and (../field[@name='type']='source' or ../field[@name='type']='file')">
+                    <xsl:variable name="sourcefile" select="../field[@name='name']" />
+                    <xsl:variable name="xmlsourcefile" select="concat(document('dox/xml/index.xml')/doxygenindex/compound[name=$sourcefile]/@refid,'.xml')" />
+                    <xsl:variable name="htmlsource" select="document(concat('dox/xml/',$xmlsourcefile))/doxygen/compounddef/detaileddescription/para/ulink" />
+                    <xsl:variable name="lno"> 
+                      <xsl:value-of select="number(substring-after(text(),'#l'))" />
+                    </xsl:variable>
+                    <xsl:value-of name="text" select="concat($htmlsource, '#L',$lno)" />
+                  </xsl:when>
+                  <!-- In case of class type field, strip the class ID from the URL field and use -->
+                  <!-- it as the url-->
+                  <xsl:when test="@name='url' and ../field[@name]='class'">
+                    <xsl:value-of select="concat(substring-after(text(), '#'), '.html')" />
+                  </xsl:when>
                   <xsl:otherwise>
                     <xsl:value-of name="text" select="." />
                   </xsl:otherwise>
@@ -548,5 +564,6 @@
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
+ 
 </xsl:stylesheet>
 
