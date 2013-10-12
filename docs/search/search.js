@@ -1,5 +1,6 @@
 var searchResultsText=["Sorry, no documents matching your query.","Found <b>1</b> document matching your query.","Found <b>$num</b> documents matching your query. Showing best matches first."];
-var serverUrl="http://localhost/cgi-bin/doxysearch.cgi";
+var domain=document.location.hostname;
+var serverUrl="http://"+domain+"/cgi-bin/doxysearch.cgi";
 var tagMap = {
 };
 
