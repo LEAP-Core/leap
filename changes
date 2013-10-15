@@ -16372,3 +16372,21 @@ Directory docs
 - Fixed some paths to stylesheets and javascript files to get things to work in redmine. 
 Redmine seems to have a bug where it can not find the javascript file if a relative path is given from the embedded page. 
 The paths are changed to apsolute "webserver" path now
+
+----------
+mgambhir    Date: Tue Oct 15 17:28:43 EDT 2013  CSN: CSN-leap-480
+                  Tue Oct 15 21:28:43 UTC 2013
+
+
+Directory docs
+ stylesheet.css            Locally Modified          479 
+
+Directory docs/search
+ search.html               Locally Modified          479 
+ search.css                Locally Modified          479 
+
+Directory docs
+ doxyhtmlgen.xsl           Locally Modified          479 
+
+- Cleaned up searchbox styling in both standalone and redmine doxygen documentation
+- Removed top level title picture in the documentation

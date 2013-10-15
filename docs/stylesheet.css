@@ -957,3 +957,16 @@ dl.citelist dd {
   }
 }
 
+#MSearchBox {
+    white-space : nowrap;
+    position: absolute;
+    float: none;
+    display: inline;
+    margin-top: 8px;
+    right: 50px;
+    width: 170px;
+    z-index: 102;
+    background-color: white;
+}
+
+

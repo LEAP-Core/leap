@@ -29,7 +29,6 @@
     <script type="text/javascript" src="/dox/leap/html/search/jquery.js"/>
     <script type="text/javascript">$(document).ready(initResizable);
     $(window).load(resizeHeight);</script>
-    <link href="/dox/leap/html/search/search.css" rel="stylesheet" type="text/css"/>
     <script type="text/javascript" src="/dox/leap/html/search/search.js"/>
     <script type="text/javascript">$(document).ready(function() {
                 if ($('.searchresults').length &gt; 0) { searchBox.DOMSearchField().focus(); }
@@ -37,32 +36,11 @@
     <link rel="search" href="search-opensearch.php?v=opensearch.xml" type="application/opensearchdescription+xml" title="LEAP"/>
     <link href="stylesheet.css" rel="stylesheet" type="text/css"/>
     <div id="top">
-      <div id="titlearea">
-        <table cellspacing="0" cellpadding="0">
-          <tbody>
-            <tr style="height: 56px;">
-              <td style="padding-left: 0.5em;">
-                <div id="projectname">
-                  <a href="index.html">
-                    <img id="title" src="title.png"/>
-                  </a>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!-- end header part -->
       <script type="text/javascript">var searchBox = new SearchBox("searchBox", "search",false,'Search');</script>
-      <div id="MSearchBox" class="MSearchBoxInactive">
-        <div class="left">
-          <form id="FSeaerchBox" action="search.html" method="get">
-            <img id="MSearchSelect" src="search/mag.png" alt=""/>
-            <input type="text" id="MSearchField" name="query" value="Search" size="20" accesskey="S" onfocus="searchBox.OnSearchFieldFocus(true)" onblur="searchBox.OnSearchFieldFocus(false)"/>
-          </form>
-        </div>
-        <div class="right"/>
-      </div>
+      <form id="MSearchBox" action="search.html" method="get">
+        <img src="search/mag.png" alt=""/>
+        <input type="text" id="MSearchField" name="query" value="Search" size="20" accesskey="S" onfocus="searchBox.OnSearchFieldFocus(true)" onblur="searchBox.OnSearchFieldFocus(false)"/>
+      </form>
     </div>
     <!-- top -->
   </xsl:template>
@@ -76,7 +54,8 @@
         <div class="doc-content">
           <div class="header">
             <div class="headertitle">
-              <div class="title">Leap Repositories</div>
+              <a href="index.html" />
+                <div class="title">Leap Repositories</div>
             </div>
           </div>
           <!--header-->
@@ -134,7 +113,7 @@
             <div class="textblock">
               List of
               <xsl:value-of select="//title"/>
-              . Click on any to view details
+              - cick on any to view details
             </div>
 
             <table class="memberdecls">
@@ -164,7 +143,7 @@
             <div class="textblock">
               List of Bluespec Constructs in 
               <xsl:value-of select="//title"/>
-              . Click on any to view details
+              - click on any to view details
             </div>
             <table class="memberdecls">
               <xsl:for-each select="innergroup">

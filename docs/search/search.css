@@ -10,7 +10,7 @@
     float: none;
     display: inline;
     margin-top: 8px;
-    right: 0px;
+    right: 50px;
     width: 170px;
     z-index: 102;
     background-color: white;
@@ -22,7 +22,7 @@
     position:absolute;
     left:10px;
     width:20px;
-    height:19px;
+    height:20px;
     background:url('search_l.png') no-repeat;
     background-position:right;
 }
@@ -31,7 +31,7 @@
     display:block;
     position:absolute;
     width:20px;
-    height:19px;
+    height:20px;
 }
 
 .left #MSearchSelect {
@@ -45,7 +45,7 @@
 #MSearchField {
     display:block;
     position:absolute;
-    height:19px;
+    height:20px;
     background:url('search_m.png') repeat-x;
     border:none;
     width:116px;
@@ -66,7 +66,7 @@
     right:10px;
     top:0px;
     width:20px;
-    height:19px;
+    height:20px;
     background:url('search_r.png') no-repeat;
     background-position:left;
 }
