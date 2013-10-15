@@ -16357,3 +16357,18 @@ Directory docs/search
 
 - server URL for the cgi script that searches the index of doxygen  API documentation is now dynamically determined instead of being hardcoded. 
   
+
+----------
+mgambhir    Date: Mon Oct 14 22:57:12 EDT 2013  CSN: CSN-leap-479
+                  Tue Oct 15 02:57:12 UTC 2013
+
+
+Directory docs/search
+ search.html               Locally Modified          478 
+
+Directory docs
+ doxyhtmlgen.xsl           Locally Modified          478 
+
+- Fixed some paths to stylesheets and javascript files to get things to work in redmine. 
+Redmine seems to have a bug where it can not find the javascript file if a relative path is given from the embedded page. 
+The paths are changed to apsolute "webserver" path now

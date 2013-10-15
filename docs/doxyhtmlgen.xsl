@@ -23,21 +23,19 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output method="xml" indent="yes"/>
 <xsl:param name="project" select="'leap-docs'"/>
-  <xsl:template name="head">
+  <xsl:template name="body-header">
     <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=9"/>
-    <script type="text/javascript" src="jquery.js"/>
+    <script type="text/javascript" src="/dox/leap/html/search/jquery.js"/>
     <script type="text/javascript">$(document).ready(initResizable);
     $(window).load(resizeHeight);</script>
-    <link href="search/search.css" rel="stylesheet" type="text/css"/>
-    <script type="text/javascript" src="search/search.js"/>
+    <link href="/dox/leap/html/search/search.css" rel="stylesheet" type="text/css"/>
+    <script type="text/javascript" src="/dox/leap/html/search/search.js"/>
     <script type="text/javascript">$(document).ready(function() {
                 if ($('.searchresults').length &gt; 0) { searchBox.DOMSearchField().focus(); }
                         });</script>
     <link rel="search" href="search-opensearch.php?v=opensearch.xml" type="application/opensearchdescription+xml" title="LEAP"/>
     <link href="stylesheet.css" rel="stylesheet" type="text/css"/>
-  </xsl:template>
-  <xsl:template name="body-header">
     <div id="top">
       <div id="titlearea">
         <table cellspacing="0" cellpadding="0">
@@ -72,7 +70,6 @@
     <html>
       <head>
         <title><xsl:value-of select="$project"/>: Main Page</title>
-        <xsl:call-template name="head"/>
       </head>
       <body>
         <xsl:call-template name="body-header"/>
@@ -119,7 +116,6 @@
           <xsl:value-of select="$project"/>:
           <xsl:value-of select="//title"/>
         </title>
-        <xsl:call-template name="head"/>
       </head>
       <body>
         <xsl:call-template name="body-header"/>
@@ -215,7 +211,6 @@
             </xsl:with-param>
           </xsl:call-template>
         </title>
-        <xsl:call-template name="head"/>
       </head>
       <body>
         <xsl:call-template name="body-header"/>
