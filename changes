@@ -16390,3 +16390,24 @@ Directory docs
 
 - Cleaned up searchbox styling in both standalone and redmine doxygen documentation
 - Removed top level title picture in the documentation
+
+----------
+mcadler     Date: Fri Oct 18 17:20:00 EDT 2013  CSN: CSN-leap-481
+                  Fri Oct 18 21:20:00 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ memory-heap.bsv           Locally Modified          480 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          480 
+
+- Add a heap manager constructor that takes a MEMORY_MULTI_READ_IFC constructor
+  function as its argument, allowing a single implementation to wrap either
+  BRAM or scratchpads.
+
+- Replace the old scratchpad-specific heap manager with the generic code.
+  I believe the scratchpad-specific version existed because older multi-read-
+  port scratchpads didn't protect against one port starving another.
+  This shouldn't happen anymore, so the scratchpad version is no longer
+  necessary.

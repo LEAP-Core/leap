@@ -323,94 +323,9 @@ module [CONNECTED_MODULE] mkMemoryHeapUnionScratchpad#(Integer scratchpadID,
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_INDEX, t_INDEX_SZ));
 
-    MEMORY_HEAP_DATA#(t_INDEX, t_DATA) pool <-
-        mkMemoryHeapUnionScratchpadStorage(scratchpadID, conf);
-    MEMORY_HEAP#(t_INDEX, t_DATA) heap <- mkMemoryHeap(pool);
-
+    let heap <- mkMemoryHeapUnionMem(mkMultiReadScratchpad(scratchpadID, conf));
     return heap;
 endmodule
-
-
-//
-// mkMemoryHeapUnionScratchpadStorage --
-//     Backing storage for a memory heap where the data and free list are
-//     stored in the same, unioned, scratchpad memory.
-//
-module [CONNECTED_MODULE] mkMemoryHeapUnionScratchpadStorage#(Integer scratchpadID,
-                                                              SCRATCHPAD_CONFIG conf)
-    // interface:
-    (MEMORY_HEAP_DATA#(t_INDEX, t_DATA))
-    provisos (Bits#(t_INDEX, t_INDEX_SZ),
-              Bits#(t_DATA, t_DATA_SZ),
-              Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
-
-    if (isValid(conf.initFilePath))
-    begin
-        error("Scratchpad ID " + integerToString(scratchpadID) + ": Heap scratchpads may not be initialized");
-    end
-
-    MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <-
-        mkMultiReadScratchpad(scratchpadID, conf);
-
-    //
-    // To avoid deadlocks, free list traffic is given priority over normal
-    // data requests.  The internal heap management code manages its request
-    // buffering to avoid deadlocks.  If the heap operations were given
-    // priority over the free list, it would be up to the client to avoid
-    // deadlocking the free list.  Since the heap code has no control over
-    // the client the only safe solution is to give the free list priority.
-    //
-    // These wires are used to block backing store I/O when there is free list
-    // traffic.
-    //
-
-    Wire#(Bool) freeListReadReqFired <- mkDWire(False);
-    Wire#(Bool) freeListWriteFired <- mkDWire(False);
-
-    interface MEMORY_HEAP_BACKING_STORE data;
-        //
-        // Free list traffic gets priority over backing store I/O.  See
-        // the description of the control wires above.
-        //
-        method Action readReq(t_INDEX addr) if (! freeListReadReqFired &&
-                                                ! freeListWriteFired);
-            pool.readPorts[1].readReq(addr);
-        endmethod
-
-        method ActionValue#(t_DATA) readRsp();
-            let r <- pool.readPorts[1].readRsp();
-            return unpack(truncateNP(r));
-        endmethod
-
-        method Action write(t_INDEX addr, t_DATA value) if (! freeListReadReqFired &&
-                                                            ! freeListWriteFired);
-            pool.write(addr, zeroExtendNP(pack(value)));
-        endmethod
-    endinterface
-
-    //
-    // The free list uses port 0.  The free list client guarantees not to
-    // request a read without being able to consume it and, consequently,
-    // avoids deadlocks.
-    //
-    interface MEMORY_HEAP_BACKING_STORE freeList;
-        method Action readReq(t_INDEX addr);
-            freeListReadReqFired <= True;
-            pool.readPorts[0].readReq(addr);
-        endmethod
-
-        method ActionValue#(t_INDEX) readRsp();
-            let r <- pool.readPorts[0].readRsp();
-            return unpack(truncateNP(r));
-        endmethod
-
-        method Action write(t_INDEX addr, t_INDEX value);
-            freeListWriteFired <= True;
-            pool.write(addr, zeroExtendNP(pack(value)));
-        endmethod
-    endinterface
-endmodule
-    
     
     
 // ========================================================================

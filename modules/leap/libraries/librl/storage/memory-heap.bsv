@@ -148,7 +148,9 @@ module mkMemoryHeap#(MEMORY_HEAP_DATA#(t_INDEX, t_DATA) heap)
     //
     (* descending_urgency = "manageFreeListPop, manageFreeListPush" *)
     (* mutually_exclusive = "manageFreeListPop, manageFreeListPush" *)
-    rule manageFreeListPush (initialized && freeQ.notEmpty());
+    rule manageFreeListPush (initialized &&
+                             freeQ.notEmpty &&
+                             ! mallocReqQ.notEmpty);
         let addr = freeQ.first();
         freeQ.deq();
 
@@ -187,6 +189,27 @@ endmodule
 //
 // Convenience modules for allocating storage and a memory heap.
 //
+
+//
+// mkMemoryHeapUnionMem --
+//     Data and free list share same storage.
+//
+module [m] mkMemoryHeapUnionMem#(
+    function m#(MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ))) memConstructor)
+    // interface:
+    (MEMORY_HEAP#(t_INDEX, t_DATA))
+    provisos (IsModule#(m, m__),
+              Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_INDEX, t_INDEX_SZ),
+              Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
+
+    MEMORY_HEAP_DATA#(t_INDEX, t_DATA) pool <-
+        mkMemoryHeapUnionStorage(memConstructor);
+
+    MEMORY_HEAP#(t_INDEX, t_DATA) heap <- mkMemoryHeap(pool);
+
+    return heap;
+endmodule
 
 //
 // mkMemoryHeapUnionBRAM --
@@ -397,19 +420,21 @@ endinterface
 
 
 //
-// mkMemoryHeapUnionBRAMStorage --
+// mkMemoryHeapUnionStorage --
 //     Backing storage for a memory heap where the data and free list are
-//     stored in the same, unioned, BRAM.
+//     stored in the same, unioned, multi-cycle memory.
 //
-module mkMemoryHeapUnionBRAMStorage
+module [m] mkMemoryHeapUnionStorage#(
+    function m#(MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ))) memConstructor)
     // interface:
     (MEMORY_HEAP_DATA#(t_INDEX, t_DATA))
-    provisos (Bits#(t_INDEX, t_INDEX_SZ),
+    provisos (IsModule#(m, m__),
+              Bits#(t_INDEX, t_INDEX_SZ),
               Bits#(t_DATA, t_DATA_SZ),
               Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
 
     // Union storage
-    BRAM_MULTI_READ#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <- mkBRAMPseudoMultiRead();
+    MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <- memConstructor();
 
     interface MEMORY_HEAP_BACKING_STORE data;
         method Action readReq(t_INDEX addr) = pool.readPorts[0].readReq(addr);
@@ -436,6 +461,23 @@ module mkMemoryHeapUnionBRAMStorage
             pool.write(addr, zeroExtendNP(pack(value)));
         endmethod
     endinterface
+endmodule
+
+
+//
+// mkMemoryHeapUnionBRAMStorage --
+//     Backing storage for a memory heap where the data and free list are
+//     stored in the same, unioned, BRAM.
+//
+module mkMemoryHeapUnionBRAMStorage
+    // interface:
+    (MEMORY_HEAP_DATA#(t_INDEX, t_DATA))
+    provisos (Bits#(t_INDEX, t_INDEX_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
+
+    let h <- mkMemoryHeapUnionStorage(mkBRAMMultiRead);
+    return h;
 endmodule
 
 
