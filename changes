@@ -16411,3 +16411,13 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
   port scratchpads didn't protect against one port starving another.
   This shouldn't happen anymore, so the scratchpad version is no longer
   necessary.
+
+----------
+mcadler     Date: Tue Oct 22 17:00:13 EDT 2013  CSN: CSN-leap-482
+                  Tue Oct 22 21:00:13 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ memory-heap.bsv           Locally Modified          481 
+
+Support BRAM/Scratchpad-based heaps with multiple read ports.

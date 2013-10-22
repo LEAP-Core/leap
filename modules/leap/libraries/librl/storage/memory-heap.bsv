@@ -34,7 +34,24 @@ interface MEMORY_HEAP#(type t_INDEX, type t_DATA);
     // Data reference
     method Action readReq(t_INDEX addr);
     method ActionValue#(t_DATA) readRsp();
+    method t_DATA peek();
+    method Bool notEmpty();
+    method Bool notFull();
+
     method Action write(t_INDEX addr, t_DATA value);
+    method Bool writeNotFull();
+endinterface
+
+
+interface MEMORY_HEAP_MULTI_READ#(numeric type n_READERS, type t_INDEX, type t_DATA);
+    // Allocation
+    method ActionValue#(t_INDEX) malloc();
+    method Action free(t_INDEX addr);
+    
+    // Data reference
+    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_INDEX, t_DATA)) readPorts;
+    method Action write(t_INDEX addr, t_DATA value);
+    method Bool writeNotFull();
 endinterface
 
 
@@ -56,7 +73,7 @@ endinterface
 // ========================================================================
 
 //
-// mkMemoryHeap --
+// mkMultiReadMemoryHeap --
 //     Storage agnostic implementation of a managed pool of data.  The module
 //     takes the memory pool as an argument and thus can manage data stored
 //     anywhere.
@@ -64,9 +81,9 @@ endinterface
 //     This heap manager requires backing storage than is accessed in
 //     multiple cycles such as BRAM.
 //
-module mkMemoryHeap#(MEMORY_HEAP_DATA#(t_INDEX, t_DATA) heap)
+module mkMultiReadMemoryHeap#(MEMORY_HEAP_DATA#(n_READERS, t_INDEX, t_DATA) heap)
     // interface:
-    (MEMORY_HEAP#(t_INDEX, t_DATA))
+    (MEMORY_HEAP_MULTI_READ#(n_READERS, t_INDEX, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_INDEX, t_INDEX_SZ));
     
@@ -180,9 +197,36 @@ module mkMemoryHeap#(MEMORY_HEAP_DATA#(t_INDEX, t_DATA) heap)
     // Data references
     //
 
-    method Action readReq(t_INDEX addr) = heap.data.readReq(addr);
-    method ActionValue#(t_DATA) readRsp() = heap.data.readRsp();
-    method Action write(t_INDEX addr, t_DATA value) = heap.data.write(addr, value);
+    interface readPorts = heap.data.readPorts;
+    method write = heap.data.write;
+    method writeNotFull = heap.data.writeNotFull;
+endmodule
+
+
+//
+// mkMemoryHeap --
+//    Same as mkMultiReadMemoryHeap but with a single read port.
+//
+module mkMemoryHeap#(MEMORY_HEAP_DATA#(1, t_INDEX, t_DATA) heap)
+    // interface:
+    (MEMORY_HEAP#(t_INDEX, t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_INDEX, t_INDEX_SZ));
+    
+    let h <- mkMultiReadMemoryHeap(heap);
+
+    method malloc = h.malloc;
+    method free = h.free;
+    
+    // Data reference
+    method readReq = h.readPorts[0].readReq;
+    method readRsp = h.readPorts[0].readRsp;
+    method peek = h.readPorts[0].peek;
+    method notEmpty = h.readPorts[0].notEmpty;
+    method notFull = h.readPorts[0].notFull;
+
+    method write = h.write;
+    method writeNotFull = h.writeNotFull;
 endmodule
 
 
@@ -203,10 +247,35 @@ module [m] mkMemoryHeapUnionMem#(
               Bits#(t_INDEX, t_INDEX_SZ),
               Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
 
-    MEMORY_HEAP_DATA#(t_INDEX, t_DATA) pool <-
+    MEMORY_HEAP_DATA#(1, t_INDEX, t_DATA) pool <-
         mkMemoryHeapUnionStorage(memConstructor);
 
     MEMORY_HEAP#(t_INDEX, t_DATA) heap <- mkMemoryHeap(pool);
+
+    return heap;
+endmodule
+
+//
+// mkMultiReadMemoryHeapUnionMem --
+//     Data and free list share same storage.
+//
+module [m] mkMultiReadMemoryHeapUnionMem#(
+    function m#(MEMORY_MULTI_READ_IFC#(n_BASE_READ_PORTS,
+                                       t_INDEX,
+                                       Bit#(t_UNION_SZ))) memConstructor)
+    // interface:
+    (MEMORY_HEAP_MULTI_READ#(n_READERS, t_INDEX, t_DATA))
+    provisos (IsModule#(m, m__),
+              Add#(n_READERS, 1, n_BASE_READ_PORTS),
+              Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_INDEX, t_INDEX_SZ),
+              Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
+
+    MEMORY_HEAP_DATA#(n_READERS, t_INDEX, t_DATA) pool <-
+        mkMemoryHeapUnionStorage(memConstructor);
+
+    MEMORY_HEAP_MULTI_READ#(n_READERS, t_INDEX, t_DATA) heap <-
+        mkMultiReadMemoryHeap(pool);
 
     return heap;
 endmodule
@@ -221,8 +290,27 @@ module mkMemoryHeapUnionBRAM
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_INDEX, t_INDEX_SZ));
 
-    MEMORY_HEAP_DATA#(t_INDEX, t_DATA) pool <- mkMemoryHeapUnionBRAMStorage();
+    MEMORY_HEAP_DATA#(1, t_INDEX, t_DATA) pool <- mkMemoryHeapUnionBRAMStorage();
     MEMORY_HEAP#(t_INDEX, t_DATA) heap <- mkMemoryHeap(pool);
+
+    return heap;
+endmodule
+
+//
+// mkMultiReadMemoryHeapUnionBRAM --
+//     Data and free list share same storage.
+//
+module mkMultiReadMemoryHeapUnionBRAM
+    // interface:
+    (MEMORY_HEAP_MULTI_READ#(n_READERS, t_INDEX, t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_INDEX, t_INDEX_SZ));
+
+    MEMORY_HEAP_DATA#(n_READERS, t_INDEX, t_DATA) pool <-
+        mkMemoryHeapUnionBRAMStorage();
+
+    MEMORY_HEAP_MULTI_READ#(n_READERS, t_INDEX, t_DATA) heap <-
+        mkMultiReadMemoryHeap(pool);
 
     return heap;
 endmodule
@@ -400,22 +488,12 @@ endmodule
 // heap manager's access pattern guarantees that overlaying data and free
 // list storage is safe.
 //
-interface MEMORY_HEAP_DATA#(type t_INDEX, type t_DATA);
+interface MEMORY_HEAP_DATA#(numeric type n_READERS, type t_INDEX, type t_DATA);
     // Data
-    interface MEMORY_HEAP_BACKING_STORE#(t_INDEX, t_DATA) data;
+    interface MEMORY_MULTI_READ_IFC#(n_READERS, t_INDEX, t_DATA) data;
 
     // Free list
-    interface MEMORY_HEAP_BACKING_STORE#(t_INDEX, t_INDEX) freeList;
-endinterface
-
-//
-// Finally -- actual storage.
-//
-interface MEMORY_HEAP_BACKING_STORE#(type t_INDEX, type t_DATA);
-    method Action readReq(t_INDEX addr);
-    method ActionValue#(t_DATA) readRsp();
-
-    method Action write(t_INDEX addr, t_DATA value);
+    interface MEMORY_IFC#(t_INDEX, t_INDEX) freeList;
 endinterface
 
 
@@ -425,41 +503,63 @@ endinterface
 //     stored in the same, unioned, multi-cycle memory.
 //
 module [m] mkMemoryHeapUnionStorage#(
-    function m#(MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ))) memConstructor)
+    function m#(MEMORY_MULTI_READ_IFC#(n_BASE_READ_PORTS,
+                                       t_INDEX,
+                                       Bit#(t_UNION_SZ))) memConstructor)
     // interface:
-    (MEMORY_HEAP_DATA#(t_INDEX, t_DATA))
+    (MEMORY_HEAP_DATA#(n_READERS, t_INDEX, t_DATA))
     provisos (IsModule#(m, m__),
+              Add#(n_READERS, 1, n_BASE_READ_PORTS),
               Bits#(t_INDEX, t_INDEX_SZ),
               Bits#(t_DATA, t_DATA_SZ),
               Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
 
     // Union storage
-    MEMORY_MULTI_READ_IFC#(2, t_INDEX, Bit#(t_UNION_SZ)) pool <- memConstructor();
+    MEMORY_MULTI_READ_IFC#(n_BASE_READ_PORTS, t_INDEX, Bit#(t_UNION_SZ)) pool <-
+        memConstructor();
 
-    interface MEMORY_HEAP_BACKING_STORE data;
-        method Action readReq(t_INDEX addr) = pool.readPorts[0].readReq(addr);
+    // Map backing store read ports to ports 1..n
+    Vector#(n_READERS, MEMORY_READER_IFC#(t_INDEX, t_DATA)) readPortsLocal = newVector();
+    for (Integer i = 0; i < valueof(n_READERS); i = i + 1) 
+    begin
+        MEMORY_READER_IFC#(t_INDEX, t_DATA) reader = interface MEMORY_READER_IFC
+            method readReq = pool.readPorts[i+1].readReq;
+            method ActionValue#(t_DATA) readRsp();
+                let r <- pool.readPorts[i+1].readRsp();
+                return unpack(truncateNP(r));
+            endmethod
+            method peek    = unpack(truncateNP(pool.readPorts[i+1].peek));
+            method notEmpty= pool.readPorts[i+1].notEmpty;
+            method notFull = pool.readPorts[i+1].notFull;
+        endinterface;
+        readPortsLocal[i] = reader;
+    end
 
-        method ActionValue#(t_DATA) readRsp();
+    interface MEMORY_MULTI_READ_IFC data;
+        interface readPorts = readPortsLocal;
+
+        method Action write(t_INDEX addr, t_DATA value) =
+            pool.write(addr, zeroExtendNP(pack(value)));
+
+        method Bool writeNotFull() = pool.writeNotFull();
+    endinterface
+
+    interface MEMORY_IFC freeList;
+        method readReq = pool.readPorts[0].readReq;
+        method ActionValue#(t_INDEX) readRsp();
             let r <- pool.readPorts[0].readRsp();
             return unpack(truncateNP(r));
         endmethod
 
-        method Action write(t_INDEX addr, t_DATA value);
-            pool.write(addr, zeroExtendNP(pack(value)));
-        endmethod
-    endinterface
-
-    interface MEMORY_HEAP_BACKING_STORE freeList;
-        method Action readReq(t_INDEX addr) = pool.readPorts[1].readReq(addr);
-
-        method ActionValue#(t_INDEX) readRsp();
-            let r <- pool.readPorts[1].readRsp();
-            return unpack(truncateNP(r));
-        endmethod
+        method peek = unpack(truncateNP(pool.readPorts[0].peek));
+        method notEmpty= pool.readPorts[0].notEmpty;
+        method notFull = pool.readPorts[0].notFull;
 
         method Action write(t_INDEX addr, t_INDEX value);
             pool.write(addr, zeroExtendNP(pack(value)));
         endmethod
+
+        method Bool writeNotFull() = pool.writeNotFull();
     endinterface
 endmodule
 
@@ -471,7 +571,7 @@ endmodule
 //
 module mkMemoryHeapUnionBRAMStorage
     // interface:
-    (MEMORY_HEAP_DATA#(t_INDEX, t_DATA))
+    (MEMORY_HEAP_DATA#(n_READERS, t_INDEX, t_DATA))
     provisos (Bits#(t_INDEX, t_INDEX_SZ),
               Bits#(t_DATA, t_DATA_SZ),
               Max#(t_INDEX_SZ, t_DATA_SZ, t_UNION_SZ));
