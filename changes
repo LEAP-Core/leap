@@ -16421,3 +16421,25 @@ Directory modules/leap/libraries/librl/storage
  memory-heap.bsv           Locally Modified          481 
 
 Support BRAM/Scratchpad-based heaps with multiple read ports.
+
+----------
+mcadler     Date: Mon Oct 28 15:38:06 EDT 2013  CSN: CSN-leap-483
+                  Mon Oct 28 19:38:06 UTC 2013
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-set-assoc-cache.bsv    Locally Modified          482 
+
+Directory modules/leap/libraries/librl/storage
+ counting-filter.bsv       Locally Modified          482 
+
+Improve two timing paths.  In both cases, breaking a single cycle memory
+read to memory write.  Our central cache mem_perf benchmark now synthesizes
+at 130MHz on a VC707 (if you run about 10 cost tables).  120MHz is met easily.
+
+- Counting Bloom filter keeps update requests in a register for a cycle
+  and updates memory from the register on the next cycle.  Bypasses
+  enable testing the filter and inserting every cycle.
+
+- Slight restructuring of the recent line cache pipeline in set associate
+  caches (used by the central cache).

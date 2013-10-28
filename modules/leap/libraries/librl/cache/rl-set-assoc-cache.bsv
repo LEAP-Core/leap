@@ -527,7 +527,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
     // First stage coming out of handleIncomingReq
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) processReqQ0 <- mkFIFOF();
-    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) processReqQ1 <- mkSizedFIFOF(8);
+    FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, Bool)) processReqQ1 <- mkSizedFIFOF(8);
 
     // Hit path for operations that read the cache (read and flush)
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK)) readHitQ <- mkSizedFIFOF(8);
@@ -964,36 +964,22 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         Bool recent_matches = recent_is_valid &&
                               (recent_tag == recentLineTag(tag, set));
 
-        Bool early_exit = False;
-
-        if (req matches tagged HCOP_READ .rReq)
+        if (req matches tagged HCOP_READ .rReq &&&
+            recent_matches && recent_word_valid_mask[rReq.wordIdx])
         begin
-            if (recent_matches && recent_word_valid_mask[rReq.wordIdx])
-            begin
-                // Recent line read hit!
-                debugLog.record($format("  Read RECENT HIT: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", debugAddrFromTag(tag, set), set, recent_word_valid_mask, recent_line));
-                readRecentLineHitW.send();
+            // Recent line read hit!
+            debugLog.record($format("  Read RECENT HIT: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", debugAddrFromTag(tag, set), set, recent_word_valid_mask, recent_line));
+            readRecentLineHitW.send();
 
-                readRespToClientQ_OOO.enq(tuple5(req_base,
-                                                 rReq,
-                                                 recent_line,
-                                                 recent_word_valid_mask,
-                                                 True));
+            readRespToClientQ_OOO.enq(tuple5(req_base,
+                                             rReq,
+                                             recent_line,
+                                             recent_word_valid_mask,
+                                             True));
 
-                doneQ.enq(set);
-                early_exit = True;
-            end
+            doneQ.enq(set);
         end
-        else if (recent_matches)
-        begin
-            // Write to an entry stored in the recent line cache.  Simply invalidate
-            // it instead of being clever.  Even if we were trying to be clever,
-            // all we have is one word.
-            debugLog.record($format("  RECENT Inval: addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
-            updateRecentReadLine(tag, set, tagged Invalid);
-        end
-
-        if (! early_exit)
+        else
         begin
             //
             // Normal path -- no recent read line hit.
@@ -1003,7 +989,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             localData.setReadReq(req_base.set, True);
             metaClientQ.enq(RL_SA_CACHE_META_CLIENT_STD);
 
-            processReqQ1.enq(tuple2(req_base, req));
+            processReqQ1.enq(tuple3(req_base, req, recent_matches));
         end
     endrule
 
@@ -1036,7 +1022,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     rule handleInvalOrFlush (reqIsInvalOrFlush(tpl_2(processReqQ1.first())) &&
                              (metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD));
 
-        match {.req_base_in, .req} = processReqQ1.first();
+        match {.req_base_in, .req, .recent_matches} = processReqQ1.first();
         processReqQ1.deq();
 
         let meta <- localData.metaReadRsp();
@@ -1047,6 +1033,13 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
         Maybe#(RL_SA_CACHE_INVAL_IDX) need_ack = ?;
         Bool is_inval = ?;
+
+        if (recent_matches)
+        begin
+            // Invalidate an entry currently stored in the recent line cache.
+            debugLog.record($format("  RECENT Inval: addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
+            updateRecentReadLine(tag, set, tagged Invalid);
+        end
 
         case (req) matches
         tagged HCOP_INVAL .needACK:
@@ -1194,7 +1187,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     rule handleRead (tpl_2(processReqQ1.first()) matches tagged HCOP_READ .rReq &&&
                      metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD);
 
-        match {.req_base_in, .req} = processReqQ1.first();
+        match {.req_base_in, .req, .recent_matches} = processReqQ1.first();
         processReqQ1.deq();
 
         let meta <- localData.metaReadRsp();
@@ -1276,7 +1269,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     rule handleWrite (tpl_2(processReqQ1.first()) matches tagged HCOP_WRITE .wReq &&&
                       metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD);
 
-        match {.req_base_in, .req} = processReqQ1.first();
+        match {.req_base_in, .req, .recent_matches} = processReqQ1.first();
         processReqQ1.deq();
 
         let meta <- localData.metaReadRsp();
@@ -1286,6 +1279,15 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let set = req_base_in.set;
 
         debugLog.record($format("  Process request: WRITE addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
+
+        if (recent_matches)
+        begin
+            // Write to an entry stored in the recent line cache.  Simply invalidate
+            // it instead of being clever.  Even if we were trying to be clever,
+            // all we have is one word.
+            debugLog.record($format("  RECENT Inval: addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
+            updateRecentReadLine(tag, set, tagged Invalid);
+        end
 
         cacheIsEmpty <= False;
         let req_base_out = req_base_in;

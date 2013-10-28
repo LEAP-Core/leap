@@ -295,6 +295,10 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
     Vector#(4, LUTRAM#(t_FILTER_IDX, Bit#(nCounterBits))) bfIn <- replicateM(mkLUTRAMU);
     Vector#(4, LUTRAM#(t_FILTER_IDX, Bit#(nCounterBits))) bfOut <- replicateM(mkLUTRAMU);
 
+    // bfUpd is used to delay updates to bfIn by a cycle in order to reduce
+    // timing pressure.
+    Reg#(Maybe#(t_FILTER_HASHES)) bfUpd <- mkRegU();
+
     // Insert and remove requests are passed on wires to internal rules
     // to control the use of LUTRAM ports.
     RWire#(t_FILTER_HASHES) insertEntryW <- mkRWire();
@@ -324,13 +328,25 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
         return hash;
     endfunction
 
+    // bfInVal is the sum of bfIn and any updates pending in bfUpd.
+    function bfInVal(Integer position, t_FILTER_IDX hash);
+        Bit#(1) bf_upd = 0;
+        if (bfUpd matches tagged Valid .u &&&
+            u[position] == hash)
+        begin
+            bf_upd = 1;
+        end
+
+        return bfIn[position].sub(hash) + zeroExtendNP(bf_upd);
+    endfunction
+
     function counterIsZero(Integer position, t_FILTER_IDX hash);
-        return bfIn[position].sub(hash) == bfOut[position].sub(hash);
+        return (bfInVal(position, hash) == bfOut[position].sub(hash));
     endfunction
 
     // Would a counter overflow if incremented?
     function counterWouldOverflow(Integer position, t_FILTER_IDX hash);
-        return (bfIn[position].sub(hash) + 1) == bfOut[position].sub(hash);
+        return (bfInVal(position, hash) + 1 == bfOut[position].sub(hash));
     endfunction
 
     function Bool isTrue(Bool b) = b;
@@ -359,6 +375,7 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
             bfOut[i].upd(initIdx, 0);
         end
 
+        bfUpd <= tagged Invalid;
         ready <= (initIdx == maxBound);
         initIdx <= initIdx + 1;
     endrule
@@ -367,11 +384,16 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
     // Add an entry to the filter.
     //
     (* fire_when_enabled, no_implicit_conditions *)
-    rule insertEntry (ready &&& insertEntryW.wget() matches tagged Valid .hashes);
+    rule insertEntry (ready &&& bfUpd matches tagged Valid .hashes);
         for (Integer i = 0; i < 4; i = i + 1)
         begin
             bfIn[i].upd(hashes[i], 1 + bfIn[i].sub(hashes[i]));
         end
+    endrule
+
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule recordInsertEntry (ready);
+        bfUpd <= insertEntryW.wget();
     endrule
 
     //
