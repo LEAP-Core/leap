@@ -136,7 +136,7 @@ sub print_stub
 
     # start creating the client class
     print $file "typedef class " . $self->name() . "_CLIENT_STUB_CLASS* " . $self->name() . "_CLIENT_STUB;\n";
-    print $file "class " . $self->name() . "_CLIENT_STUB_CLASS: public PLATFORMS_MODULE_CLASS\n";
+    print $file "class " . $self->name() . "_CLIENT_STUB_CLASS: public RRR_CLIENT_STUB_CLASS, public PLATFORMS_MODULE_CLASS\n";
     print $file "{\n";
     print $file "\n";
 
@@ -144,12 +144,15 @@ sub print_stub
     print $file "\n";
 
     print $file "  public:\n";
+
     print $file "\n";
 
     # constructor
     print $file "    " . $self->name() . "_CLIENT_STUB_CLASS(PLATFORMS_MODULE p) :\n";
-    print $file "            PLATFORMS_MODULE_CLASS(p)\n";
+    print $file "            PLATFORMS_MODULE_CLASS(p),\n";
+    print $file "            RRR_CLIENT_STUB_CLASS(\"" . $self->name() . "\", " . $self->name() . "_SERVICE_ID)\n\n";
     print $file "    {\n";
+    print $file "        RRRClient->RegisterClient(" . $self->name() . "_SERVICE_ID, this);\n";
     print $file "    }\n";
     print $file "\n";
 

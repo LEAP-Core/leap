@@ -10,7 +10,6 @@
 %sources -t BSV -v PUBLIC  basic-rrr-client.bsv
 %sources -t BSV -v PUBLIC  basic-rrr-server.bsv
 %sources -t BSH -v PUBLIC  basic-rrr-common.bsh
-%sources -t BSV -v PUBLIC  arbiters.bsv
 
 %sources -t H   -v PUBLIC  rrr-dummy.h
 

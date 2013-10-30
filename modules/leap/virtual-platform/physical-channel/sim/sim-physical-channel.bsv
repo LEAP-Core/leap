@@ -29,6 +29,11 @@ interface PHYSICAL_CHANNEL;
     method ActionValue#(UMF_CHUNK) read();
     method Action                  write(UMF_CHUNK chunk);
 
+    // this interface needed for LIM compiler.
+    method UMF_CHUNK first();
+    method Action    deq();
+    method Bool      write_ready();
+
 endinterface
 
 // physical channel module
@@ -36,19 +41,18 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     // interface
                   (PHYSICAL_CHANNEL);
     
-    // read
     method ActionValue#(UMF_CHUNK) read();
         
-        UMF_CHUNK chunk <- drivers.unixPipeDriver.read();
-        return chunk;
+        drivers.unixPipeLIDriver.deq();
+        UMF_PACKET_HEADER umf_header = unpack(drivers.unixPipeLIDriver.first);
+        return drivers.unixPipeLIDriver.first;
         
     endmethod
 
-    // write
-    method Action write(UMF_CHUNK chunk);
-        
-        drivers.unixPipeDriver.write(chunk);
-        
-    endmethod
+
+    method deq = drivers.unixPipeLIDriver.deq;
+    method first = drivers.unixPipeLIDriver.first;
+    method write = drivers.unixPipeLIDriver.write;
+    method write_ready = drivers.unixPipeLIDriver.write_ready;
 
 endmodule

@@ -8,6 +8,18 @@
 
 using namespace std;
 
+// ============== RRR client stub base class =================
+
+typedef class RRR_CLIENT_STUB_CLASS* RRR_CLIENT_STUB;
+class RRR_CLIENT_STUB_CLASS
+{
+  public:
+    RRR_CLIENT_STUB_CLASS(const char *serviceName, const UINT64 serviceID): ServiceName(serviceName), ServiceID(serviceID) {};
+    const std::string ServiceName;
+    const UINT64 ServiceID;
+};
+
+
 typedef class RRR_CLIENT_CLASS* RRR_CLIENT;
 class RRR_CLIENT_CLASS: public PLATFORMS_MODULE_CLASS
 {
@@ -29,6 +41,8 @@ class RRR_CLIENT_CLASS: public PLATFORMS_MODULE_CLASS
 
     RRR_CLIENT_CLASS(PLATFORMS_MODULE, CHANNELIO);
     ~RRR_CLIENT_CLASS();
+
+    static void RegisterClient(int serviceid, RRR_CLIENT_STUB client_stub);
     
     UMF_MESSAGE MakeRequest(UMF_MESSAGE);
     void MakeRequestNoResponse(UMF_MESSAGE);

@@ -29,6 +29,9 @@ typedef class RRR_SERVER_STUB_CLASS* RRR_SERVER_STUB;
 class RRR_SERVER_STUB_CLASS
 {
   public:
+    RRR_SERVER_STUB_CLASS(const char *serviceName, const UINT64 serviceID): ServiceName(serviceName), ServiceID(serviceID) {};
+    const std::string ServiceName;
+    const UINT64 ServiceID;
     virtual UMF_MESSAGE Request(UMF_MESSAGE)   = 0;
     virtual void        Init(PLATFORMS_MODULE) = 0;
     virtual bool        Poll(void)             = 0;

@@ -17,7 +17,6 @@
 //
 
 `include "awb/provides/low_level_platform_interface.bsh"
-`include "awb/provides/rrr.bsh"
 `include "awb/provides/physical_platform.bsh"
 
 `include "awb/rrr/service_ids.bsh"
@@ -66,15 +65,15 @@ endinterface
 
 typedef FrontPanel FRONT_PANEL;
 
-module mkFrontPanel#(LowLevelPlatformInterface llpi) (FrontPanel);
+module [CONNECTED_MODULE] mkFrontPanel#(LowLevelPlatformInterface llpi) (FrontPanel);
 
     // state
     Reg#(FRONTP_INPUT_STATE)    inputCache  <- mkReg(0);
     Reg#(FRONTP_LEDS)           ledState    <- mkReg(0);
 
     // stubs
-    ServerStub_FRONT_PANEL server_stub <- mkServerStub_FRONT_PANEL(llpi.rrrServer);
-    ClientStub_FRONT_PANEL client_stub <- mkClientStub_FRONT_PANEL(llpi.rrrClient);
+    ServerStub_FRONT_PANEL server_stub <- mkServerStub_FRONT_PANEL();
+    ClientStub_FRONT_PANEL client_stub <- mkClientStub_FRONT_PANEL();
 
     // read incoming updates for switch/button state
     rule probeUpdates (True);

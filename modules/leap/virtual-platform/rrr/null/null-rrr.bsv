@@ -76,7 +76,7 @@ interface RRR_SERVER;
     interface Vector#(`NUM_SERVICES, SERVER_RESPONSE_PORT) responsePorts;
 endinterface
 
-module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
+module mkRRRClient#(CHANNEL_IO#(umf) channel) (RRR_CLIENT);
 
     Vector#(`NUM_SERVICES, CLIENT_REQUEST_PORT)  reqPorts = newVector();
     Vector#(`NUM_SERVICES, CLIENT_RESPONSE_PORT) rspPorts = newVector();    
@@ -88,7 +88,7 @@ module mkRRRClient#(CHANNEL_IO channel) (RRR_CLIENT);
 endmodule
 
 
-module mkRRRServer#(CHANNEL_IO channel) (RRR_SERVER);
+module mkRRRServer#(CHANNEL_IO#(umf) channel) (RRR_SERVER);
 
     Vector#(`NUM_SERVICES, SERVER_REQUEST_PORT)  reqPorts = newVector();
     Vector#(`NUM_SERVICES, SERVER_RESPONSE_PORT) rspPorts = newVector();

@@ -23,6 +23,7 @@ import FIFOF::*;
 
 `include "awb/provides/channelio.bsh"
 `include "awb/provides/rrr.bsh"
+`include "awb/provides/rrr_common.bsh"
 `include "awb/provides/umf.bsh"
 
 `include "awb/rrr/service_ids.bsh"

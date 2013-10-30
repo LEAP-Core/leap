@@ -37,6 +37,12 @@ import MsgFormat::*;
 interface PHYSICAL_CHANNEL;
     method ActionValue#(UMF_CHUNK) read();
     method Action                  write(UMF_CHUNK chunk);
+
+    // this interface needed for LIM compiler.
+    method UMF_CHUNK first();
+    method Action    deq();
+    method Bool      write_ready();
+   
 endinterface
 
 
@@ -301,7 +307,7 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
                 data_ready = (toHostCountedQ.count >= resize(bn_payload_chunks));
             end
 
-            state.bnChunks = unpack(truncate(bn_payload_chunks));
+            state.bnChunks = unpack(resize(bn_payload_chunks));
 
             // May begin sending if the waitForFullPacket policy is not set
             // or if a full packet is buffered.
@@ -500,11 +506,36 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
 
         inDebugPacket <= False;
     endrule
+   
+    // Some debugging logic
 
+    let ila <- mkILA;
+    let icon <- mkICON;
+    Reg#(Bit#(2)) switch <- mkReg(0);
 
+    rule incrReg;
+        switch <= switch + 1;
+    endrule 
+
+    mkConnection(ila.control, icon.control);
+
+    rule driveILA;
+        ila.trig0(zeroExtend({switch,
+                              pack(initDone_Model), 
+                              pack(toHostSyncQ.notFull()), 
+                              //pack(toHostSyncQ.notEmpty()), 
+                              pack(fromHostSyncQ.notEmpty())}));
+    endrule
+
+    rule driveILA2;
+        ila.trig3(truncateLSB(fromHostSyncQ.first));
+        ila.trig4(truncate(fromHostSyncQ.first));
+    endrule
 
     method Action write(UMF_CHUNK data) if (initDone_Model);
         toHostSyncQ.enq(data);
+        ila.trig1(truncateLSB(data));
+        ila.trig2(truncate(data));
     endmethod
    
     method ActionValue#(UMF_CHUNK) read();
@@ -513,5 +544,11 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
 
         return c;
     endmethod
+
+    method first = fromHostSyncQ.first;
+    
+    method deq = fromHostSyncQ.deq;
+
+    method write_ready = initDone_Model && toHostSyncQ.notFull();
 
 endmodule

@@ -48,6 +48,15 @@ RRR_CLIENT_CLASS::~RRR_CLIENT_CLASS()
 {
 }
 
+// register a service
+void
+RRR_CLIENT_CLASS::RegisterClient(
+    int             serviceID,
+    RRR_CLIENT_STUB client)
+{
+
+}
+
 // The monitor thread ID must be set before we start polling.
 void
 RRR_CLIENT_CLASS::SetMonitorThreadID(pthread_t mon)

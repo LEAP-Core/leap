@@ -4,8 +4,6 @@
 
 %provides channelio
 
-%requires physical_channel
-
 %sources -t BSV -v PUBLIC NullChannelIO.bsv
 %sources -t BSV -v PUBLIC channelio-common.bsv
 %sources -t CPP -v PUBLIC null-channelio.cpp

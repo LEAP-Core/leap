@@ -1,0 +1,9 @@
+Latency-insensitive ChannelIO
+
+ChannelIO performs the job of multiplexing a single "physical channel"
+into multiple virtual channels. Latency-insensitive ChannelIO provides
+direct exposure of latency-insensitive channels so that programmers
+may use them directly.
+
+
+

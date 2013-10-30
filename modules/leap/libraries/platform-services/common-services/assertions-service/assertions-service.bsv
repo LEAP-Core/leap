@@ -19,8 +19,6 @@
 import FIFO::*;
 import Vector::*;
 
-`include "awb/provides/rrr.bsh"
-
 `include "awb/rrr/client_stub_ASSERTIONS.bsh"
 `include "awb/rrr/service_ids.bsh"
 `include "awb/dict/ASSERTIONS.bsh"

@@ -1,0 +1,17 @@
+
+%name LI Channel Multiplexer
+%desc LI Channel Multiplexer
+
+%provides channelio
+
+%requires li_base_types
+
+%notes README
+
+%param DEBUG_CHANNELIO   0    "Enable Channelio Debug"
+
+%sources -t H   -v PUBLIC   li-channelio.h
+%sources -t CPP -v PRIVATE  li-channelio.cpp
+%library libtbb.so
+
+

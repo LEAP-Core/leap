@@ -45,7 +45,7 @@ CHANNELIO_CLASS::CHANNELIO_CLASS(
     PHYSICAL_DEVICES d) :
         readReq(false),
         PLATFORMS_MODULE_CLASS(p),
-        physicalChannel(this, d)
+        physicalChannel(new UMF_FACTORY_CLASS(), this, d)
 {
     // set up stations
     for (int i = 0; i < CIO_NUM_CHANNELS; i++)

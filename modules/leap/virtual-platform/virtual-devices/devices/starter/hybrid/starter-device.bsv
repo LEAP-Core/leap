@@ -17,7 +17,6 @@
 //
 
 `include "awb/provides/low_level_platform_interface.bsh"
-`include "awb/provides/rrr.bsh"
 
 `include "awb/rrr/client_stub_STARTER_DEVICE.bsh"
 `include "awb/rrr/server_stub_STARTER_DEVICE.bsh"
@@ -41,13 +40,13 @@ interface STARTER;
 endinterface
 
 // mkStarter
-module mkStarter#(LowLevelPlatformInterface llpi)
+module [CONNECTED_MODULE] mkStarter#(LowLevelPlatformInterface llpi)
     // interface:
         (STARTER);
 
     // ----------- stubs -----------
-    ClientStub_STARTER_DEVICE client_stub <- mkClientStub_STARTER_DEVICE(llpi.rrrClient);
-    ServerStub_STARTER_DEVICE server_stub <- mkServerStub_STARTER_DEVICE(llpi.rrrServer);
+    ClientStub_STARTER_DEVICE client_stub <- mkClientStub_STARTER_DEVICE;
+    ServerStub_STARTER_DEVICE server_stub <- mkServerStub_STARTER_DEVICE;
     
     // ----------- server methods ------------
 

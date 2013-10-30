@@ -199,7 +199,8 @@ sub print_stub
     print $file "\n";
 
     # constructor
-    print $file "    " . $self->name() . "_SERVER_STUB_CLASS(" . $self->name() . "_SERVER s)\n";
+    print $file "    " . $self->name() . "_SERVER_STUB_CLASS(" . $self->name() . "_SERVER s):\n";
+    print $file "        RRR_SERVER_STUB_CLASS(\"" . $self->name() . "\", " . $self->name() . "_SERVICE_ID)\n\n";
     print $file "    {\n";
     print $file "        parent = PLATFORMS_MODULE(s);\n";
     print $file "        server = s;\n";

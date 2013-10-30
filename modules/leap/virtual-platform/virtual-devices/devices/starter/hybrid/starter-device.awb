@@ -11,3 +11,5 @@
 %sources -t H   -v PUBLIC     starter-device.h
 %sources -t CPP -v PRIVATE    starter-device.cpp
 %sources -t RRR -v PUBLIC     starter-device.rrr
+%sources -t LOG -v PUBLIC     starter-device.log
+

@@ -141,8 +141,10 @@ UINT8
 STARTER_DEVICE_SERVER_CLASS::WaitForHardware()
 {
     std::unique_lock<std::mutex> lk(hardwareStatusMutex);
-    hardwareFinishedSignal.wait(lk, []{ return hardwareFinished; });
-
+    if(!hardwareFinished)
+    {
+        hardwareFinishedSignal.wait(lk, []{ return hardwareFinished; });
+    }
     return exitCode;
 }
     

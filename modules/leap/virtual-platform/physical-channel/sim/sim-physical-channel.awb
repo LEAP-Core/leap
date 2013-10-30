@@ -9,4 +9,6 @@
 %sources -t BSV     -v PUBLIC   sim-physical-channel.bsv
 %sources -t H       -v PUBLIC   sim-physical-channel.h
 %sources -t CPP     -v PRIVATE  sim-physical-channel.cpp
+%sources -t LOG     -v PUBLIC   sim-physical-channel.log
+%library libtbb.so
 

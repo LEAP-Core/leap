@@ -23,8 +23,11 @@
 #include "asim/mesg.h"
 #include "asim/trace.h"
 
+#ifdef PSEUDO_DMA_ENABLED
+    #include "awb/provides/physical_channel.h"
+#endif
+
 #include "awb/provides/soft_services_deps.h"
-#include "awb/provides/physical_channel.h"
 #include "awb/provides/rrr.h"
 #include "awb/dict/VDEV.h"
 

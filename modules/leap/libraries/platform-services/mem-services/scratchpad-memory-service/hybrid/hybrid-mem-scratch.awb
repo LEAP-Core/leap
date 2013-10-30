@@ -12,5 +12,7 @@
 %private  hybrid-mem-scratch.rrr
 %public   hybrid-mem-scratch.dic
 
+%sources -t LOG -v PUBLIC hybrid-mem-scratch.log
+
 %param SCRATCHPAD_SUPPORTS_INIT     1  "0 or 1: Does scratchpad memory directly supports initialization from a file?"
 %param SCRATCHPAD_MEMORY_ADDR_BITS 36  "Word-level address bits per private scratchpad region"

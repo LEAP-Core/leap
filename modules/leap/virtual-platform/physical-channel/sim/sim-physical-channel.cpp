@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <string.h>
 #include <iostream>
+#include "tbb/concurrent_queue.h"
 
 #include "awb/provides/physical_channel.h"
 
@@ -38,12 +39,29 @@ using namespace std;
 
 // constructor
 PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
+    UMF_FACTORY umf_factory,
     PLATFORMS_MODULE     p,
     PHYSICAL_DEVICES d) :
-        PLATFORMS_MODULE_CLASS(p)
+    PLATFORMS_MODULE_CLASS(p),
+    writeQ()
 {
     unixPipeDevice  = d->GetUNIXPipeDevice();
     incomingMessage = NULL;
+    umfFactory = umf_factory;
+
+    // Start up write thread
+    void ** writerArgs = NULL;
+    writerArgs = (void**) malloc(2*sizeof(void*));
+    writerArgs[0] = unixPipeDevice;
+    writerArgs[1] = &writeQ;
+    if (pthread_create(&writerThread,
+		       NULL,
+		       WriterThread,
+		       writerArgs))
+    {
+        perror("pthread_create, outToFPGA0Thread:");
+        exit(1);
+    }
 }
 
 // destructor
@@ -79,6 +97,7 @@ PHYSICAL_CHANNEL_CLASS::Read()
 UMF_MESSAGE
 PHYSICAL_CHANNEL_CLASS::TryRead()
 {
+
     // if there's fresh data on the pipe, update
     if (unixPipeDevice->Probe())
     {
@@ -102,26 +121,7 @@ void
 PHYSICAL_CHANNEL_CLASS::Write(
     UMF_MESSAGE message)
 {
-    // construct header
-    unsigned char header[UMF_CHUNK_BYTES];
-    message->EncodeHeader(header);
-
-    // write header to pipe
-    unixPipeDevice->Write(header, UMF_CHUNK_BYTES);
-
-    // write message data to pipe
-    // NOTE: hardware demarshaller expects chunk pattern to start from most
-    //       significant chunk and end at least significant chunk, so we will
-    //       send chunks in reverse order
-    message->StartReverseExtract();
-    while (message->CanReverseExtract())
-    {
-        UMF_CHUNK chunk = message->ReverseExtractChunk();
-        unixPipeDevice->Write((unsigned char*)&chunk, sizeof(UMF_CHUNK));
-    }
-
-    // de-allocate message
-    delete message;
+    writeQ.push(message);
 }
 
 // read un-processed data on the pipe
@@ -137,7 +137,7 @@ PHYSICAL_CHANNEL_CLASS::readPipe()
         unixPipeDevice->Read(header, UMF_CHUNK_BYTES);
 
         // create a new message
-        incomingMessage = new UMF_MESSAGE_CLASS;
+        incomingMessage = umfFactory->createUMFMessage();
         incomingMessage->DecodeHeader(header);
     }
     else if (!incomingMessage->CanAppend())

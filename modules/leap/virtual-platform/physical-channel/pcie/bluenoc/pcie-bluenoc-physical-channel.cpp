@@ -30,11 +30,14 @@ void* BNWriteThread(void *argv);
 
 
 PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
+    UMF_FACTORY umf_factory,
     PLATFORMS_MODULE p,
     PHYSICAL_DEVICES d) :
     PLATFORMS_MODULE_CLASS(p)
 {
     initialized = false;
+
+    umfFactory = umf_factory;
 
     //
     // Allocate some page-aligned I/O buffers.
@@ -183,6 +186,7 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
         {
             // Get the BlueNoC packet length from the BlueNoC header (bits 16-23)
             n_bn_bytes_left = (header >> 16) & 0xff;
+      
         }
 
         // If the BlueNoC packet has no payload then it is a "flush" packet.
@@ -199,11 +203,11 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
     while (n_bn_bytes_left == 0);
 
     // Start parsing the UMF message
-    UMF_MESSAGE msg = new UMF_MESSAGE_CLASS();
+    UMF_MESSAGE msg = umfFactory->createUMFMessage();
     msg->DecodeHeader(header >> 32);
     // Subtract the payload bytes in the initial beat (header + padding)
     n_bn_bytes_left -= (UMF_CHUNK_BYTES - 4);
-
+    
     // Collect the remainder of the UMF message
     while (msg->CanAppend())
     {
@@ -214,6 +218,8 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
         {
             // Get the length of the new BlueNoC packet
             n_beats = 1;
+            
+
             header = *ReadChunks(&n_beats);
             if ((header >> 8) & 0xff == 0xff)
             {
@@ -250,6 +256,7 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
         // Use whatever was returned
         msg->AppendChunks(n_beats, beats_in);
         n_bn_bytes_left -= (n_beats * UMF_CHUNK_BYTES);
+
     }
 
     return msg;
@@ -351,10 +358,10 @@ PHYSICAL_CHANNEL_CLASS::ReadChunks(UINT32 *nChunks)
 
     UMF_CHUNK* in_data = &inBuf[inBufCurIdx];
     UINT32 n_read = min(inBufLastIdx - inBufCurIdx, *nChunks);
-
+    
     inBufCurIdx += n_read;
     *nChunks = n_read;
-
+    
     return in_data;
 }
 
@@ -510,7 +517,7 @@ PHYSICAL_CHANNEL_CLASS::ReadThread()
             // from the FPGA directly to avoid the latency of messages
             // passing through this reader thread.
             pthread_mutex_lock(&readLock);
-
+            
             // Is the message still available?
             if (pcieDev->Probe(false))
             {
@@ -580,6 +587,7 @@ PHYSICAL_CHANNEL_CLASS::WriteThread()
         {
             // Output buffer is currently empty.  Wait for the next message.
             while (! writeQueue.try_pop(msg)) CpuPause();
+  
         }
         else
         {
@@ -614,6 +622,7 @@ PHYSICAL_CHANNEL_CLASS::WriteThread()
 
         // The first beat is the combination of the UMF and BlueNoC headers
         UMF_CHUNK umf_header = msg->EncodeHeader();
+
         ASSERTX(umf_header >> 32 == 0);
 
         UINT32 bn_header = BlueNoCHeader(4,

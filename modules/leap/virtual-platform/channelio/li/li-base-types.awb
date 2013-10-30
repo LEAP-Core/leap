@@ -1,0 +1,15 @@
+
+%name LI Channel Base Types
+%desc LI Channel Base Types
+
+%provides li_base_types
+
+%notes README
+
+%sources -t H   -v PUBLIC   li-base.h
+
+
+
+
+
+

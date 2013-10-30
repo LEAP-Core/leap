@@ -50,6 +50,8 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
     pthread_mutex_t readLock;
     bool tryReadHoldingLock;
 
+    UMF_FACTORY umfFactory;
+
     UMF_CHUNK* outBuf;
 
     UMF_CHUNK* inBuf;
@@ -93,7 +95,7 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
     void WriteThread();
     void WriteFlush();
     pthread_t writeThreadID;
-    class tbb::concurrent_queue<UMF_MESSAGE> writeQueue;
+    class tbb::concurrent_bounded_queue<UMF_MESSAGE> writeQueue;
     UMF_CHUNK* wrNext;
     UMF_CHUNK* wrLastBNHeader;
 
@@ -105,17 +107,43 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
   public:
 
-    PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE, PHYSICAL_DEVICES);
+    PHYSICAL_CHANNEL_CLASS(UMF_FACTORY, PLATFORMS_MODULE, PHYSICAL_DEVICES);
     ~PHYSICAL_CHANNEL_CLASS();
 
     void Init();
 
     // blocking read
-    UMF_MESSAGE Read() { return DoRead(false); }
+    UMF_MESSAGE Read() 
+    { 
+        UMF_MESSAGE msg = NULL; 
+	msg = TryRead();                       
+        while (msg == NULL) 
+	{
+            msg = TryRead();                       
+	}
+
+        return msg;
+    }
+
+    /*
+bool
+PCIE_DEVICE_CLASS::Probe(bool block)
+{
+    struct pollfd pcie_poll;
+    pcie_poll.fd = pcieDev;
+    pcie_poll.events = POLLIN | POLLPRI;
+
+    int result = poll(&pcie_poll, 1, block ? -1 : 0);
+    return (result > 0);
+}
+
+     */
+
     // non-blocking read
     UMF_MESSAGE TryRead();
 
-    void Write(UMF_MESSAGE msg) { writeQueue.push(msg); }
+    void Write(UMF_MESSAGE msg) {writeQueue.push(msg); }
+    class tbb::concurrent_bounded_queue<UMF_MESSAGE> *GetWriteQ() { return &writeQueue; }
 };
 
 #endif

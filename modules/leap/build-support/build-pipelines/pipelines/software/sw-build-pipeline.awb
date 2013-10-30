@@ -1,0 +1,18 @@
+#/********************************************************************
+#* Generic FPGA build pipeline
+#********************************************************************/
+
+%name LEAP Software Build Pipeline
+%desc LEAP Software Build Pipeline
+%attributes tool
+
+%provides build_pipeline
+%requires iface_tool
+%requires software_tool
+%requires li_module
+
+%notes README
+
+%scons %library SoftwarePipeline.py
+
+%param BUILD_PIPELINE_DEBUG 0 "Enable build pipeline debug"

@@ -131,6 +131,5 @@ int main(int argc, char *argv[])
     delete appEnv;
     delete vp;
 
-    //cout << "SW: Goodbye" << endl;
     return ret_val;
 }

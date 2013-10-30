@@ -10,6 +10,8 @@
 %public pcie-bluenoc-physical-channel.cpp
 %public pcie-bluenoc-physical-channel.h
 
+%sources -t LOG     -v PUBLIC   pcie-bluenoc-physical-channel.log
+
 %library libtbb.so
 
 %param SOFT_RESET 1 "Does this channel support soft reset?"

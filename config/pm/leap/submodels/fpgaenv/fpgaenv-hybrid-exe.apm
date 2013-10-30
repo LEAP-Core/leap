@@ -52,18 +52,6 @@ Packagehint=leap
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=Simulation Physical Channel
 
-[Low Level Platform Interface Hybrid]
-File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
-Packagehint=leap
-
-[Low Level Platform Interface Hybrid/Requires]
-physical_platform=Simulation Physical Platform
-channelio=Basic Virtual Channel Multiplexer
-rrr=RRR Clients and Servers
-physical_platform_debugger=Null Physical Platform Debugger
-local_mem=Local Memory using DDR DRAM (burst holds at least one line)
-remote_memory=Null Remote Memory
-
 [UNIX Pipe Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/unix-pipe/unix-pipe-device.awb
 Packagehint=leap-platforms
@@ -139,3 +127,16 @@ DRAM_READ_LATENCY=10
 [Local Memory using DDR DRAM (burst holds at least one line)]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr-wide.awb
 Packagehint=leap
+
+[Low Level Platform Interface Hybrid]
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
+
+[Low Level Platform Interface Hybrid/Requires]
+physical_platform=Simulation Physical Platform
+remote_memory=Null Remote Memory
+channelio=Basic Virtual Channel Multiplexer
+rrr=RRR Clients and Servers
+physical_platform_debugger=Null Physical Platform Debugger
+local_mem=Local Memory using DDR DRAM (burst holds at least one line)
+

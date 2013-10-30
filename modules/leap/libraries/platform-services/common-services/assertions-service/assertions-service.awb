@@ -14,5 +14,6 @@
 %private assertions-service.cpp
 %private assertions-service.rrr
 %private assertions-service.dic
+%sources -t LOG -v PUBLIC assertions-service.log 
 
 %param --global ASSERTIONS_PER_NODE 16 "Max number of assertions connected to an assertion node (ring stop)."

@@ -19,6 +19,8 @@
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/front_panel.bsh"
 `include "awb/provides/starter_device.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 interface VIRTUAL_DEVICES;
 
@@ -27,7 +29,7 @@ interface VIRTUAL_DEVICES;
 
 endinterface
 
-module mkVirtualDevices#(LowLevelPlatformInterface llpint)
+module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     // interface:
         (VIRTUAL_DEVICES);
 

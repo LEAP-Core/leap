@@ -12,6 +12,7 @@
 %public  stats-service.h
 %private stats-service.cpp
 %private stats-service.rrr
+%sources -t LOG -v PUBLIC stats-service.log 
 
 %param --global STATS_ENABLED         True  "Enable Stat dumping?"
 %param --global STATS_SIZE            28    "Number of bits per Stat counter."

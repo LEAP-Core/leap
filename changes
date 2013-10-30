@@ -16443,3 +16443,176 @@ at 130MHz on a VC707 (if you run about 10 cost tables).  120MHz is met easily.
 
 - Slight restructuring of the recent line cache pipeline in set associate
   caches (used by the central cache).
+
+----------
+keflemin    Date: Wed Oct 30 19:41:36 EDT 2013  CSN: CSN-leap-484
+                  Wed Oct 30 23:41:36 UTC 2013
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          483 
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ CPP.pm                    Locally Modified          483 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ CPP.pm                    Locally Modified          483 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-exe.apm    Locally Modified          483 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ basic-channelio.cpp       Locally Modified          483 
+
+Directory modules/leap/virtual-platform/channelio
+ li/                       Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-base.h                 Locally Added               0 
+ li-channelio.cpp          Locally Added               0 
+ li-base-types.awb         Locally Added               0 
+ li-channelio.h            Locally Added               0 
+ li-channelio.awb          Locally Added               0 
+ README                    Locally Added               0 
+
+Directory modules/leap/virtual-platform/channelio/null
+ null-channelio.awb        Locally Modified          483 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.log Locally Added               0 
+ pcie-bluenoc-physical-channel.cpp Locally Modified          483 
+ pcie-bluenoc-physical-channel.h Locally Modified          483 
+ pcie-bluenoc-physical-channel.awb Locally Modified          483 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          483 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.awb  Locally Modified          483 
+ sim-physical-channel.bsv  Locally Modified          483 
+ sim-physical-channel.log  Locally Added               0 
+ sim-physical-channel.cpp  Locally Modified          483 
+ sim-physical-channel.h    Locally Modified          483 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-client.cpp      Locally Modified          483 
+ basic-rrr-server.bsv      Locally Modified          483 
+ arbiters.bsv              Locally Removed           483 
+ basic-rrr-client.h        Locally Modified          483 
+ hw-only-rrr.awb           Locally Modified          483 
+ basic-rrr-client.bsv      Locally Modified          483 
+ basic-rrr.awb             Locally Modified          483 
+ basic-rrr-server.h        Locally Modified          483 
+
+Directory modules/leap/virtual-platform/rrr/null
+ null-rrr.bsv              Locally Modified          483 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ rrr-common.awb            Locally Modified          483 
+ arbiters.bsv              Locally Added               - 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices-null-mem.bsv Locally Modified          483 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.log        Locally Added               0 
+ starter-device.cpp        Locally Modified          483 
+ starter-device.rrr        Locally Modified          483 
+ starter-device.awb        Locally Modified          483 
+ starter-device.bsv        Locally Modified          483 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.log             Locally Added               0 
+ hybrid-fp.rrr             Locally Modified          483 
+ hybrid-fp.awb             Locally Modified          483 
+ hybrid-fp.bsv             Locally Modified          483 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ SimulationPipeline.py     Locally Modified          483 
+
+Directory modules/leap/build-support/build-pipelines/pipelines
+ software/                 Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/software
+ sw-build-pipeline.awb     Locally Added               0 
+ SoftwarePipeline.py       Locally Added               0 
+ README                    Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ FPGAPipeline.py           Locally Modified          483 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.cpp   Locally Modified          483 
+
+Directory modules/leap/build-support/project/application-env/soft-services/default-sw
+ connected-application-default-sw.h Locally Modified          483 
+
+Directory modules/leap/libraries/command-switches
+ command-switch-processor.cpp Locally Modified          483 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.log    Locally Added               0 
+ hybrid-mem-scratch.h      Locally Modified          483 
+ hybrid-mem-scratch.awb    Locally Modified          483 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.log         Locally Added               0 
+ stdio-service.awb         Locally Modified          483 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.log Locally Added               0 
+ dynamic-parameters-service.awb Locally Modified          483 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.log    Locally Added               0 
+ debug-scan-service.awb    Locally Modified          483 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.awb    Locally Modified          483 
+ assertions-service.bsv    Locally Modified          483 
+ assertions-service.log    Locally Added               0 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.awb         Locally Modified          483 
+ stats-service.log         Locally Added               0 
+
+
+A simply massive check-in in support of latency-insensitive module
+compilation.  The full compiler has been operational for some time,
+but performance issues remain to be addressed. 
+
+1) Added support for the better declaration of the target execution
+platform as specified by the LIM compiler platform file.  Legacy
+builds generate a simple CPU/[FPGA, BLUESIM] file.  This file is read
+by new-style run scripts, enabling the loading of richer platform
+environments.
+
+2) Added .log files to existing RRR services.  These files are
+examined by the LIM compiler to discover LI channels in legacy
+compilation flows.
+
+3) Added a new latency-insensitive channelio class.  This class
+implements the C++ support libraries required to support named
+latency-insensitive connections in software. 
+
+4) Changed simulation physical channel to use filesystem fifos, rather
+than fork+pipes.  The previous style did not admit of multiple
+simulators simultaneously communicating with software. The run script
+controls the world, not arbirary C code.  More rearchitecting of the
+software side will follow.
+
+5) Added a new implementation of RRR which uses per-service threads.
+This implementation solves several classes of deadlocks which were
+present in the original implementation.
+
+6) Fixed various initialization bugs found by valgrind. None of these
+appeared to manifest actual bugs.
+
+7) Converted all existing RRR to use soft connections.  Method based
+RRR are no longer supported.  Only a few little-used services retained
+the old interface.  These services should probably be deprecated. 
+
+8) Updated driver interfaces to use support functions necessary for
+LIM Compiler.
+
+9) Added copious control-switched debug statements, although I may
+remove them in a subsequent check in if they prove too unsightly. 
+

@@ -13,3 +13,5 @@
 %private dynamic-parameters-service.cpp
 %public  dynamic-parameters-service.rrr
 %public  dynamic-parameters-service.dic
+
+%sources -t LOG -v PUBLIC dynamic-parameters-service.log 

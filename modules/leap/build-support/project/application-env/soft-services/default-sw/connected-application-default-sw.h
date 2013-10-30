@@ -12,7 +12,13 @@ class CONNECTED_APPLICATION_CLASS
   public:
     CONNECTED_APPLICATION_CLASS(VIRTUAL_PLATFORM vp) {}
     void Init() {}
-    int Main() { return 0; }
+    int Main() 
+    { 
+        while(1)
+        {
+            sleep(1);
+        } 
+    } // Hack
 };
 
 
