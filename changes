@@ -16616,3 +16616,28 @@ LIM Compiler.
 9) Added copious control-switched debug statements, although I may
 remove them in a subsequent check in if they prove too unsightly. 
 
+
+----------
+keflemin    Date: Fri Nov  1 17:17:53 EDT 2013  CSN: CSN-leap-485
+                  Fri Nov  1 21:17:53 UTC 2013
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          484 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          484 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified          484 
+ project-hybrid-main.cpp   Locally Modified          484 
+ project-hybrid-init.cpp   Locally Added               0 
+ project-hybrid-init.h     Locally Added               0 
+
+
+1) Added infrastructure to build a shared library for a leap
+application.  Currently this exports only a single function Init(argc,
+argv), which runs the whole application.  Next will come an ability to
+get handles to arbitrary latency insensitive channels.
+
+2) Run script now needs to set LD_LIBRARY_PATH to point to shared library.

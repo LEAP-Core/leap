@@ -302,6 +302,9 @@ if (defined($cpuPlatform)) {
     my $platformName = $cpuPlatform->{"name"};
     my $directory = $cpuPlatform->{"directory"};
 
+    # Set library path to ensure that we pick up our shared library.
+    $ENV{LD_LIBRARY_PATH} = "$ENV{LD_LIBRARY_PATH}:$config{modelDir}/${directory}/sw/obj/"; 
+
     # build up a commandline for the main model executable.
     my $cmd;
 
