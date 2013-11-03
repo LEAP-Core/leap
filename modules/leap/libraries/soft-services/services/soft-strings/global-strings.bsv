@@ -42,11 +42,39 @@ typedef TAdd#(`GLOBAL_STRING_PLATFORM_UID_SZ,
 typedef `GLOBAL_STRING_LOCAL_UID_SZ GLOBAL_STRING_LOCAL_UID_SZ;
 
 // The full UID
-typedef Bit#(TAdd#(GLOBAL_STRING_SYNTH_UID_SZ,
-                    GLOBAL_STRING_LOCAL_UID_SZ)) GLOBAL_STRING_UID;
+typedef TAdd#(GLOBAL_STRING_SYNTH_UID_SZ,
+              GLOBAL_STRING_LOCAL_UID_SZ) GLOBAL_STRING_UID_SZ;
+
+typedef Bit#(GLOBAL_STRING_UID_SZ) GLOBAL_STRING_UID;
 
 typedef Bit#(GLOBAL_STRING_SYNTH_UID_SZ) GLOBAL_STRING_SYNTH_UID;
 typedef Bit#(GLOBAL_STRING_LOCAL_UID_SZ) GLOBAL_STRING_LOCAL_UID;
+
+
+//
+// A global string handle is the UID plus metadata that is not transmitted
+// but is useful for compile-time and Bluesim debugging.
+//
+typedef struct
+{
+    GLOBAL_STRING_UID uid;
+    String str;
+}
+GLOBAL_STRING_HANDLE
+    deriving (Eq);
+
+//
+// Define mapping of GLOBAL_STRING_HANDLE to storage/wires.
+//
+instance Bits#(GLOBAL_STRING_HANDLE, GLOBAL_STRING_UID_SZ);
+    function GLOBAL_STRING_UID pack(GLOBAL_STRING_HANDLE str) = str.uid;
+
+    function GLOBAL_STRING_HANDLE unpack(GLOBAL_STRING_UID uid);
+        // Return handle holding the correct UID but without the text string.
+        // This affects only compile-time printing and Bluesim debugging.
+        return GLOBAL_STRING_HANDLE { uid: uid, str: "" };
+    endfunction
+endinstance
 
 //
 // Extract synth and local portions of UID from full UID
@@ -61,6 +89,23 @@ function GLOBAL_STRING_LOCAL_UID getGlobalStringLocalUID(GLOBAL_STRING_UID uid);
     Tuple2#(GLOBAL_STRING_SYNTH_UID, GLOBAL_STRING_LOCAL_UID) t = unpack(pack(uid));
     return tpl_2(t);
 endfunction
+
+
+//
+// getGlobalStringHandle --
+//     Get a UID for a string and return a handle.  The handle contains the
+//     UID, which can be transmitted on wires.  It also contains the original
+//     string, which can not.  The original string is mostly useful for
+//     printing messages at compile time and in Bluesim.
+//
+module [t_CONTEXT] getGlobalStringHandle#(String str) (GLOBAL_STRING_HANDLE)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let uid <- getGlobalStringUID(str);
+    return GLOBAL_STRING_HANDLE { uid: uid, str: str };
+endmodule
 
 
 //

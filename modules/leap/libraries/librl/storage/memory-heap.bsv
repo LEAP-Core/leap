@@ -30,6 +30,8 @@ interface MEMORY_HEAP#(type t_INDEX, type t_DATA);
     // Allocation
     method ActionValue#(t_INDEX) malloc();
     method Action free(t_INDEX addr);
+    // Free list is not empty.  Useful for assertions.
+    method Bool heapNotEmpty();
     
     // Data reference
     method Action readReq(t_INDEX addr);
@@ -47,6 +49,8 @@ interface MEMORY_HEAP_MULTI_READ#(numeric type n_READERS, type t_INDEX, type t_D
     // Allocation
     method ActionValue#(t_INDEX) malloc();
     method Action free(t_INDEX addr);
+    // Free list is not empty.  Useful for assertions.
+    method Bool heapNotEmpty();
     
     // Data reference
     interface Vector#(n_READERS, MEMORY_READER_IFC#(t_INDEX, t_DATA)) readPorts;
@@ -59,6 +63,8 @@ interface MEMORY_HEAP_IMM#(type t_INDEX, type t_DATA);
     // Allocation
     method ActionValue#(t_INDEX) malloc();
     method Action free(t_INDEX addr);
+    // Free list is not empty.  Useful for assertions.
+    method Bool heapNotEmpty();
     
     // Data reference
     method t_DATA sub(t_INDEX addr);
@@ -119,7 +125,7 @@ module mkMultiReadMemoryHeap#(MEMORY_HEAP_DATA#(n_READERS, t_INDEX, t_DATA) heap
 
     FIFOF#(t_INDEX) freeQ <- mkFIFOF();
     FIFOF#(Bool) mallocReqQ <- mkFIFOF1();
-    FIFO#(t_INDEX) mallocQ <- mkSizedFIFO(4);
+    FIFOF#(t_INDEX) mallocQ <- mkSizedFIFOF(4);
     COUNTER#(2) mallocQEntries <- mkLCounter(0);
 
     //
@@ -186,6 +192,10 @@ module mkMultiReadMemoryHeap#(MEMORY_HEAP_DATA#(n_READERS, t_INDEX, t_DATA) heap
         mallocQ.deq();
         mallocQEntries.down();
         return f;
+    endmethod
+
+    method Bool heapNotEmpty();
+        return mallocQ.notEmpty || isValid(freeListHead);
     endmethod
 
     method Action free(t_INDEX addr);
@@ -375,7 +385,7 @@ module mkMemoryHeapImm#(MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) heap)
     // malloc and free logic is in rules to manage concurrency.  The rules may
     // not fire in the same cycle.
     //
-    FIFO#(t_INDEX) mallocQ <- mkFIFO();
+    FIFOF#(t_INDEX) mallocQ <- mkFIFOF();
     FIFOF#(t_INDEX) freeQ <- mkFIFOF();
 
     //
@@ -413,6 +423,10 @@ module mkMemoryHeapImm#(MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) heap)
         let f = mallocQ.first();
         mallocQ.deq();
         return f;
+    endmethod
+
+    method Bool heapNotEmpty();
+        return mallocQ.notEmpty || isValid(freeListHead);
     endmethod
 
     method Action free(t_INDEX addr);

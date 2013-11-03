@@ -18,6 +18,9 @@
 
 import FIFO::*;
 import Vector::*;
+import GetPut::*;
+import Connectable::*;
+
 
 `include "awb/rrr/client_stub_ASSERTIONS.bsh"
 `include "awb/rrr/service_ids.bsh"
@@ -28,37 +31,64 @@ module [CONNECTED_MODULE] mkAssertionsService
     // interface:
         ();
 
-
-    //***** State Elements *****
-  
-    // Communication link to the rest of the Assertion checkers
-    Connection_Chain#(ASSERTION_DATA) chain <- mkConnection_Chain(`RINGID_ASSERTS);
-  
     // Communication to our RRR server
     ClientStub_ASSERTIONS clientStub <- mkClientStub_ASSERTIONS();
   
-    Reg#(Bit#(32)) fpgaCC <- mkReg(0);
+    //
+    // Cycle counter.
+    //
+    Reg#(Bit#(64)) fpgaCC <- mkReg(0);
 
-
-    // ***** Rules *****
-  
+    (* fire_when_enabled, no_implicit_conditions *)
     rule countCC (True);
         fpgaCC <= fpgaCC + 1;
     endrule
 
 
-    // processResp
+    // ========================================================================
+    //
+    //   String-based assertions.
+    //
+    // ========================================================================
 
-    // Process the next response from an individual assertion checker.
-    // Pass assertions on to software.  Here we let the software deal with
-    // the relatively complicated base ID and assertions vector.
+    // Communication link to the rest of the Assertion checkers
+    CONNECTION_CHAIN#(ASSERTION_STR_RING_DATA) chainStr <-
+        mkConnectionChain("AssertStrRing");
+  
+    DEMARSHALLER#(ASSERTION_STR_RING_DATA, ASSERTION_STR_DATA) assertQ <-
+        mkSimpleDemarshaller();
 
-    rule processResp (True);
-        let ast <- chain.recvFromPrev();
-        clientStub.makeRequest_Assert(zeroExtend(pack(ast.baseID)),
-                                      fpgaCC,
-                                      zeroExtend(pack(ast.assertions)));
+    // Demarshall the incoming data stream, making it available as assertQ.
+    mkConnection(toGet(chainStr), toPut(assertQ));
+
+    //
+    // processStrResp --
+    //   Process the next response from an individual assertion checker.
+    //   Pass assertions on to software.
+    //
+    rule processStrResp (True);
+        let ast = assertQ.first();
+        assertQ.deq();
+
+        clientStub.makeRequest_AssertStr(fpgaCC,
+                                         zeroExtend(pack(ast.suid)),
+                                         zeroExtend(pack(ast.severity)));
     endrule
 
+    // ========================================================================
+    //
+    //   Dictionary-based assertions.
+    //
+    // ========================================================================
+
+    // Communication link to the rest of the Assertion checkers
+    Connection_Chain#(ASSERTION_DATA) chainDict <- mkConnection_Chain(`RINGID_ASSERTS);
+  
+    rule processDictResp (True);
+        let ast <- chainDict.recvFromPrev();
+        clientStub.makeRequest_AssertDict(fpgaCC,
+                                          zeroExtend(pack(ast.baseID)),
+                                          zeroExtend(pack(ast.assertions)));
+    endrule
 
 endmodule

@@ -16641,3 +16641,36 @@ argv), which runs the whole application.  Next will come an ability to
 get handles to arbitrary latency insensitive channels.
 
 2) Run script now needs to set LD_LIBRARY_PATH to point to shared library.
+
+----------
+mcadler     Date: Sat Nov  2 23:08:39 EDT 2013  CSN: CSN-leap-486
+                  Sun Nov  3 03:08:39 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ memory-heap.bsv           Locally Modified          485 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.bsv    Locally Modified          485 
+ assertions-service.cpp    Locally Modified          485 
+ assertions-local.bsv      Locally Modified          485 
+ assertions-service.rrr    Locally Modified          485 
+ assertions-service.h      Locally Modified          485 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.bsv        Locally Modified          485 
+
+- Add a new GLOBAL_STRING_HANDLE, constructed with getGlobalStringHandle() that
+  both builds a global string UID and retains the original string as part of
+  the data structure.  This is useful for passing around global strings and
+  being able to use the string at compile time.  pack() is implemented for
+  GLOBAL_STRING_HANDLE, returning just the numeric UID.
+
+- Memory heap now exports whether the free list is empty.
+
+- Add support for assertions that use global strings instead of dictionaries.
+  The implementation is intentionally light weight.  Buffering is provided
+  to raise an assertion.  Once raised, later assertions will be dropped until
+  the buffer has drained.  We assume that the first assertion will bring
+  down the system, so adding logic to record more both increases hardware
+  use and adds rule scheduling hazards.

@@ -29,6 +29,7 @@
 #include "awb/provides/model.h"
 #include "awb/provides/assertions_service.h"
 #include "awb/provides/librl_bsv_base.h"
+#include "awb/provides/soft_services_deps.h"
 #include "awb/rrr/service_ids.h"
 
 #include "awb/dict/ASSERTIONS.h"
@@ -98,23 +99,52 @@ ASSERTIONS_SERVER_CLASS::Cleanup()
 // RRR request methods
 //
 
-// Assert
+// AssertStr
 void
-ASSERTIONS_SERVER_CLASS::Assert(
-    UINT32 assert_base,
-    UINT32 fpga_cc,
+ASSERTIONS_SERVER_CLASS::AssertStr(
+    UINT64 fpgaCC,
+    UINT32 strUID,
+    UINT8 severity)
+{
+    ASSERTION_SEVERITY a_severity = ASSERTION_SEVERITY(severity);
+    
+    if (a_severity != ASSERT_NONE)
+    {
+        // lookup event name from dictionary
+        const string *assert_msg = GLOBAL_STRINGS::Lookup(strUID);
+
+        // write to file
+        fprintf(assertionsFile, "[%016llu]: %s\n", fpgaCC, assert_msg->c_str());
+        fflush(assertionsFile);
+
+        // if severity is great, end the simulation.
+        if (a_severity > ASSERT_WARNING)
+        {
+            cerr << "ERROR: Fatal FPGA assertion failure.\n";
+            cerr << "MESSAGE: " << *assert_msg << "\n";
+            CallbackExit(1);
+        }
+    }
+}
+
+
+// AssertDict
+void
+ASSERTIONS_SERVER_CLASS::AssertDict(
+    UINT64 fpgaCC,
+    UINT32 assertBase,
     UINT32 assertions)
 {
     //
     // Assertions come from hardware in groups as a bit vector.  Each element
     // of the vector is a 2-bit value, equivalent to an ASSERTION_SEVERITY.
-    // The dictionary ID is assert_base + the index of the vector.
+    // The dictionary ID is assertBase + the index of the vector.
     //
 
     // Check each vector entry and generate messages
     for (int i = 0; i < ASSERTIONS_PER_NODE; i++)
     {
-        UINT32 assert_id = assert_base + i;
+        UINT32 assert_id = assertBase + i;
         ASSERTION_SEVERITY severity = ASSERTION_SEVERITY((assertions >> i*2) & 3);
 
         if (severity != ASSERT_NONE)
@@ -129,7 +159,7 @@ ASSERTIONS_SERVER_CLASS::Assert(
             }
 
             // write to file
-            fprintf(assertionsFile, "[%010u]: %s\n", fpga_cc, assert_msg);
+            fprintf(assertionsFile, "[%016llu]: %s\n", fpgaCC, assert_msg);
             fflush(assertionsFile);
     
             // if severity is great, end the simulation.

@@ -50,7 +50,8 @@ class ASSERTIONS_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Cleanup();
 
     // RRR service methods
-    void Assert(UINT32 assert_base, UINT32 fpga_cc, UINT32 assertions);
+    void AssertStr(UINT64 fpgaCC, UINT32 strUID, UINT8 severity);
+    void AssertDict(UINT64 fpgaCC, UINT32 assertBase, UINT32 assertions);
 };
 
 // server stub
