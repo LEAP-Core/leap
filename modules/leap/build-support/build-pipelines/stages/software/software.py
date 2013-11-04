@@ -130,6 +130,15 @@ class Software():
             sw_exe_libpath += [ os.path.join(sys.exec_prefix, 'lib') ]
             sw_exe_link_libs += [ 'python' + sys.version[:3] ] + [ 'util' ]    
     
+
+        ## 
+        ## Sometimes a module hierarchy can include the same library
+        ## multiple times. Scrub them here. 
+        ##
+ 
+        sw_link_libs = list(set(sw_link_libs))
+        libs = list(set(libs))
+
         ##
         ## m5 appends its libraries to the executable.  To do this, we need to 
         ## do something special in the final m5-enabled executable environment.

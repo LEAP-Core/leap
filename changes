@@ -16674,3 +16674,15 @@ Directory modules/leap/libraries/soft-services/services/soft-strings
   the buffer has drained.  We assume that the first assertion will bring
   down the system, so adding logic to record more both increases hardware
   use and adds rule scheduling hazards.
+
+----------
+keflemin    Date: Mon Nov  4 13:37:16 EST 2013  CSN: CSN-leap-487
+                  Mon Nov  4 18:37:16 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          486 
+
+
+Added code to check for duplicate libraries.  This may help speed the
+link step.
