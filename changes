@@ -16686,3 +16686,35 @@ Directory modules/leap/build-support/build-pipelines/stages/software
 
 Added code to check for duplicate libraries.  This may help speed the
 link step.
+
+----------
+keflemin    Date: Mon Nov  4 14:05:41 EST 2013  CSN: CSN-leap-488
+                  Mon Nov  4 19:05:41 UTC 2013
+
+
+Directory modules/leap/virtual-platform/channelio/basic
+ basic-channelio.cpp       Locally Modified          487 
+ basic-channelio.h         Locally Modified          487 
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio.cpp          Locally Modified          487 
+ li-channelio.h            Locally Modified          487 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          487 
+ pcie-bluenoc-physical-channel.h Locally Modified          487 
+ pcie-bluenoc-physical-channel.awb Locally Modified          487 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          487 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.log  Locally Modified          487 
+ sim-physical-channel.cpp  Locally Modified          487 
+ sim-physical-channel.h    Locally Modified          487 
+
+
+1) Refactoring software side-physical devices to self-instantiate.
+Previously, the channelio instantiated the singleton physical channel.
+However, general programs may have many physical channels to many
+other platforms.
+
+2) Made the chipscope in the pcie optional (and off by default.)

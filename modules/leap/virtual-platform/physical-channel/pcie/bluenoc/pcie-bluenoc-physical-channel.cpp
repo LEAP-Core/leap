@@ -30,14 +30,12 @@ void* BNWriteThread(void *argv);
 
 
 PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
-    UMF_FACTORY umf_factory,
-    PLATFORMS_MODULE p,
-    PHYSICAL_DEVICES d) :
+    PLATFORMS_MODULE p) :
     PLATFORMS_MODULE_CLASS(p)
 {
     initialized = false;
 
-    umfFactory = umf_factory;
+    umfFactory = new UMF_FACTORY_CLASS();
 
     //
     // Allocate some page-aligned I/O buffers.

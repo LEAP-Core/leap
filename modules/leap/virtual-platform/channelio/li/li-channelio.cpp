@@ -45,14 +45,11 @@ using namespace std;
 
 // constructor -- maybe it should be virtual?
 CHANNELIO_BASE_CLASS::CHANNELIO_BASE_CLASS(
-    PLATFORMS_MODULE p,
-    PHYSICAL_DEVICES d) :
-    PLATFORMS_MODULE_CLASS(p)   
+    PLATFORMS_MODULE parent,
+    PHYSICAL_DEVICES devices) :
+    PLATFORMS_MODULE_CLASS(parent)   
 {
-    if(DEBUG_CHANNELIO)
-    {
-        cout << "Constructing channelio base" << endl;
-    }
+    physicalDevices = devices;
 }
 
 // destructor 

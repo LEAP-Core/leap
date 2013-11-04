@@ -44,9 +44,10 @@ CHANNELIO_CLASS::CHANNELIO_CLASS(
     PLATFORMS_MODULE p,
     PHYSICAL_DEVICES d) :
         readReq(false),
-        PLATFORMS_MODULE_CLASS(p),
-        physicalChannel(new UMF_FACTORY_CLASS(), this, d)
+        PLATFORMS_MODULE_CLASS(p)
 {
+    physicalChannel = d->GetLegacyPhysicalChannel();
+
     // set up stations
     for (int i = 0; i < CIO_NUM_CHANNELS; i++)
     {
@@ -143,7 +144,7 @@ CHANNELIO_CLASS::Read(
         readReq = true;
         pthread_mutex_lock(&channelLock);
         readReq = false;
-        msg = physicalChannel.Read();
+        msg = physicalChannel->Read();
         pthread_mutex_unlock(&channelLock);
 
         // get virtual channel ID of incoming message
@@ -192,7 +193,7 @@ CHANNELIO_CLASS::Write(
     message->SetChannelID(channel);
 
     // send to physical channel
-    physicalChannel.Write(message);
+    physicalChannel->Write(message);
 }
 
 // poll
@@ -206,7 +207,7 @@ CHANNELIO_CLASS::Poll()
 
     // check if physical channel has a new message
     pthread_mutex_lock(&channelLock);
-    UMF_MESSAGE msg = physicalChannel.TryRead();
+    UMF_MESSAGE msg = physicalChannel->TryRead();
     pthread_mutex_unlock(&channelLock);
 
     if (msg != NULL)

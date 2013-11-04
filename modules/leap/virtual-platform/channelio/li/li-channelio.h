@@ -10,7 +10,7 @@
 
 #include "platforms-module.h"
 #include "awb/provides/umf.h"
-#include "awb/provides/physical_channel.h"
+#include "awb/provides/physical_platform.h"
 #include "awb/provides/multifpga_switch.h"
 #include "awb/provides/li_base_types.h"
 #include "awb/provides/multifpga_switch.h"
@@ -76,10 +76,11 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
         
     vector<vector<LI_CHANNEL_IN>*>  incomingChannels;
     vector<vector<LI_CHANNEL_OUT>*> outgoingChannels;
-    
+    PHYSICAL_DEVICES physicalDevices;    
+
   public:
 
-    CHANNELIO_BASE_CLASS(PLATFORMS_MODULE, PHYSICAL_DEVICES);
+    CHANNELIO_BASE_CLASS(PLATFORMS_MODULE parent, PHYSICAL_DEVICES physicalDevicesInit);
     ~CHANNELIO_BASE_CLASS();
 
     template<typename T>    

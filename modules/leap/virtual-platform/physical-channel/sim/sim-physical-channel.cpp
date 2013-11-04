@@ -39,20 +39,20 @@ using namespace std;
 
 // constructor
 PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
-    UMF_FACTORY umf_factory,
-    PLATFORMS_MODULE     p,
-    PHYSICAL_DEVICES d) :
+    PLATFORMS_MODULE     p
+    ) :
     PLATFORMS_MODULE_CLASS(p),
-    writeQ()
+    writeQ(),
+    unixPipeDevice(this)
+    
 {
-    unixPipeDevice  = d->GetUNIXPipeDevice();
     incomingMessage = NULL;
-    umfFactory = umf_factory;
+    umfFactory = new UMF_FACTORY_CLASS(); //Use a default umf factory, but allow an external device to set it later...
 
     // Start up write thread
     void ** writerArgs = NULL;
     writerArgs = (void**) malloc(2*sizeof(void*));
-    writerArgs[0] = unixPipeDevice;
+    writerArgs[0] = &unixPipeDevice;
     writerArgs[1] = &writeQ;
     if (pthread_create(&writerThread,
 		       NULL,
@@ -99,7 +99,7 @@ PHYSICAL_CHANNEL_CLASS::TryRead()
 {
 
     // if there's fresh data on the pipe, update
-    if (unixPipeDevice->Probe())
+    if (unixPipeDevice.Probe())
     {
         readPipe();
     }
@@ -134,7 +134,7 @@ PHYSICAL_CHANNEL_CLASS::readPipe()
         // new message: read header
         unsigned char header[UMF_CHUNK_BYTES];
 
-        unixPipeDevice->Read(header, UMF_CHUNK_BYTES);
+        unixPipeDevice.Read(header, UMF_CHUNK_BYTES);
 
         // create a new message
         incomingMessage = umfFactory->createUMFMessage();
@@ -157,7 +157,7 @@ PHYSICAL_CHANNEL_CLASS::readPipe()
             bytes_requested = incomingMessage->BytesUnwritten();
         }
 
-        unixPipeDevice->Read(buf, bytes_requested);
+        unixPipeDevice.Read(buf, bytes_requested);
 
         // append read bytes into message
         incomingMessage->AppendBytes(bytes_requested, buf);

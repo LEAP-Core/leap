@@ -507,35 +507,44 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
         inDebugPacket <= False;
     endrule
    
+    Wire#(Maybe#(UMF_CHUNK)) writeData <- mkDWire(tagged Invalid);
+
     // Some debugging logic
+    if(`BLUENOC_CHIPSCOPE_DEBUG != 0)
+    begin
+        let ila <- mkILA;
+        let icon <- mkICON;
+        Reg#(Bit#(2)) switch <- mkReg(0);
 
-    let ila <- mkILA;
-    let icon <- mkICON;
-    Reg#(Bit#(2)) switch <- mkReg(0);
+        rule incrReg;
+            switch <= switch + 1;
+        endrule 
 
-    rule incrReg;
-        switch <= switch + 1;
-    endrule 
+        mkConnection(ila.control, icon.control);
 
-    mkConnection(ila.control, icon.control);
+        rule driveILA;
+            ila.trig0(zeroExtend({switch,
+                                  pack(isValid(writeData)),
+                                  pack(initDone_Model), 
+                                  pack(toHostSyncQ.notFull()), 
+                                  pack(fromHostSyncQ.notEmpty())}));
+        endrule
 
-    rule driveILA;
-        ila.trig0(zeroExtend({switch,
-                              pack(initDone_Model), 
-                              pack(toHostSyncQ.notFull()), 
-                              //pack(toHostSyncQ.notEmpty()), 
-                              pack(fromHostSyncQ.notEmpty())}));
-    endrule
+        rule driveILA2;
+            ila.trig3(truncateLSB(fromHostSyncQ.first));
+            ila.trig4(truncate(fromHostSyncQ.first));
+        endrule
 
-    rule driveILA2;
-        ila.trig3(truncateLSB(fromHostSyncQ.first));
-        ila.trig4(truncate(fromHostSyncQ.first));
-    endrule
+        rule driverILA3(writeData matches tagged Valid .data);
+            ila.trig1(truncateLSB(data));
+            ila.trig2(truncate(data));
+        endrule
+
+    end
 
     method Action write(UMF_CHUNK data) if (initDone_Model);
         toHostSyncQ.enq(data);
-        ila.trig1(truncateLSB(data));
-        ila.trig2(truncate(data));
+        writeData <= tagged Valid data;
     endmethod
    
     method ActionValue#(UMF_CHUNK) read();

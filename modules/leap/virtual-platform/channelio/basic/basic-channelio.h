@@ -7,6 +7,7 @@
 #include "platforms-module.h"
 #include "awb/provides/umf.h"
 #include "awb/provides/physical_channel.h"
+#include "awb/provides/physical_platform.h"
 
 using namespace std;
 
@@ -54,7 +55,7 @@ class CHANNELIO_CLASS:  public PLATFORMS_MODULE_CLASS
   private:
 
     // physical channel instance
-    PHYSICAL_CHANNEL_CLASS  physicalChannel;
+    PHYSICAL_CHANNEL  physicalChannel;
     
     // stations attached to virtual channels
     CIO_STATION_INFO    stations[CIO_NUM_CHANNELS];
@@ -68,7 +69,7 @@ class CHANNELIO_CLASS:  public PLATFORMS_MODULE_CLASS
 
   public:
 
-    CHANNELIO_CLASS(PLATFORMS_MODULE, PHYSICAL_DEVICES);
+    CHANNELIO_CLASS(PLATFORMS_MODULE parent, PHYSICAL_DEVICES devices);
     ~CHANNELIO_CLASS();
     
     void        RegisterForDelivery(int, CIO_DELIVERY_STATION);

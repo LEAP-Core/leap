@@ -20,20 +20,20 @@
 #define __PHYSICAL_CHANNEL__
 
 #include "awb/provides/umf.h"
-#include "awb/provides/physical_platform.h"
+#include "awb/provides/unix_pipe_device.h"
 #include "tbb/concurrent_queue.h"
 #include <pthread.h>
 
 // ============================================
 //               Physical Channel              
 // ============================================
-
+typedef class PHYSICAL_CHANNEL_CLASS* PHYSICAL_CHANNEL;
 class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 {
     private:
-        // cached links to useful physical devices
-        UNIX_PIPE_DEVICE unixPipeDevice;
-
+        // our lower-level physical device.
+        UNIX_PIPE_DEVICE_CLASS unixPipeDevice;
+        
         // queue for storing messages 
 	class tbb::concurrent_bounded_queue<UMF_MESSAGE> writeQ;
 
@@ -48,7 +48,7 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
         pthread_t   writerThread;
 
     public:
-        PHYSICAL_CHANNEL_CLASS(UMF_FACTORY, PLATFORMS_MODULE, PHYSICAL_DEVICES);
+        PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE);
         ~PHYSICAL_CHANNEL_CLASS();
 
         static void * WriterThread(void *argv) {

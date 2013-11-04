@@ -26,7 +26,6 @@
 
 #include "awb/provides/umf.h"
 #include "awb/provides/pcie_device.h"
-#include "awb/provides/physical_platform.h"
 
 // ============================================
 //               Physical Channel              
@@ -37,6 +36,8 @@ typedef class PHYSICAL_CHANNEL_CLASS* PHYSICAL_CHANNEL;
 class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 {
   private:
+
+
     // Size of an I/O buffer (in UMF_CHUNKS)
     static const int bufMaxChunks = 65536 / sizeof(UMF_CHUNK);
     // Number of buffers in the read buffer pool
@@ -44,7 +45,6 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
     bool initialized;
 
-    // links to useful physical devices
     PCIE_DEVICE pcieDev;
 
     pthread_mutex_t readLock;
@@ -107,7 +107,7 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
   public:
 
-    PHYSICAL_CHANNEL_CLASS(UMF_FACTORY, PLATFORMS_MODULE, PHYSICAL_DEVICES);
+    PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE);
     ~PHYSICAL_CHANNEL_CLASS();
 
     void Init();
