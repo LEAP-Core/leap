@@ -16776,3 +16776,13 @@ thread. Dangling sends and receives can be resolved at link time for
 those users of the LEAP shared library. 
 
 4) Added new methods to physical channels to support LIM compiler. 
+
+----------
+mcadler     Date: Mon Nov 11 18:18:01 EST 2013  CSN: CSN-leap-490
+                  Mon Nov 11 23:18:01 UTC 2013
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          489 
+
+Write Bluesim simulator output both to stdout and to a log file.
