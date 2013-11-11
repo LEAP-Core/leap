@@ -16718,3 +16718,61 @@ However, general programs may have many physical channels to many
 other platforms.
 
 2) Made the chipscope in the pcie optional (and off by default.)
+
+----------
+keflemin    Date: Mon Nov 11 11:11:28 EST 2013  CSN: CSN-leap-489
+                  Mon Nov 11 16:11:28 UTC 2013
+
+
+Directory libperl/Leap/lib/Leap/RRR/Method
+ CPP.pm                    Locally Modified          488 
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-base.h                 Locally Modified          488 
+ li-channelio.cpp          Locally Modified          488 
+ li-base-types.awb         Locally Modified          488 
+ li-channelio.h            Locally Modified          488 
+ li-base.cpp               Locally Added               0 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.log Locally Modified          488 
+ pcie-bluenoc-physical-channel.h Locally Modified          488 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.h    Locally Modified          488 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-client.cpp      Locally Modified          488 
+ basic-rrr-client.h        Locally Modified          488 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ rrr-common.awb            Locally Modified          488 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          488 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified          488 
+ project-utils.cpp         Locally Added               0 
+ project-utils.h           Locally Added               0 
+
+
+Another large update to leap in support of migration to the LIM compiler. 
+
+1) Refactored RRR code generation to avoid referencing magic global
+objects.  These references, if necessary, are hidden in the
+implementation of the RRR client.  In the new code, this allows us to
+avoid a call-through.
+
+2) Added a signal handler for segfaults to generated top-level
+header. This helps debug those code races which are perturbed by
+valgrind.
+
+3) Large update to li-channels library.  The code now automatically
+matches sends and receives.  Sends are assumed to have context and
+invoke methods on the received side.  This enables physical receives
+to push data through I/O without relying on a seperate
+thread. Dangling sends and receives can be resolved at link time for
+those users of the LEAP shared library. 
+
+4) Added new methods to physical channels to support LIM compiler. 

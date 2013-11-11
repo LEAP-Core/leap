@@ -28,6 +28,18 @@ using namespace std;
 // global link
 RRR_CLIENT RRRClient;
 
+// Hooks for the local client to re-direct to the global handler. 
+
+UMF_MESSAGE RRR_CLIENT_STUB_CLASS::MakeRequest(UMF_MESSAGE msg)
+{
+    return RRRClient->MakeRequest(msg);
+}
+
+void RRR_CLIENT_STUB_CLASS::MakeRequestNoResponse(UMF_MESSAGE msg)
+{
+    RRRClient->MakeRequestNoResponse(msg);
+}
+
 // constructor
 RRR_CLIENT_CLASS::RRR_CLIENT_CLASS(
     PLATFORMS_MODULE p,

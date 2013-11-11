@@ -144,6 +144,7 @@ PCIE_DEVICE_CLASS::Probe(bool block)
 
     void Write(UMF_MESSAGE msg) {writeQueue.push(msg); }
     class tbb::concurrent_bounded_queue<UMF_MESSAGE> *GetWriteQ() { return &writeQueue; }
+    void SetUMFFactory(UMF_FACTORY factoryInit) { umfFactory = factoryInit; };
 };
 
 #endif

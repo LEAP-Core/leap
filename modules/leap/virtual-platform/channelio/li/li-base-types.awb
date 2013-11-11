@@ -7,6 +7,7 @@
 %notes README
 
 %sources -t H   -v PUBLIC   li-base.h
+%sources -t CPP   -v PRIVATE   li-base.cpp
 
 
 

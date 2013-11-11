@@ -29,6 +29,7 @@
 #include <time.h>
 #include <iostream>
 #include "awb/provides/channelio.h"
+#include "awb/provides/li_base_types.h"
 #include "awb/provides/multifpga_switch.h"
 
 using namespace std;
@@ -60,65 +61,24 @@ CHANNELIO_BASE_CLASS::~CHANNELIO_BASE_CLASS()
 
 // Specialized marshalling logic for handling the UMF_MESSAGE type.
 
-template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UMF_MESSAGE>::pop(UMF_MESSAGE &element) 
+template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UMF_MESSAGE>::pushUMF(UMF_MESSAGE &incoming) 
 {
     // Although the input queue has type UMF message, 
     // We can't directly do this write.  We need to translate the base message type
     // into the RRR style umf message.
     // first decode header
-    UMF_MESSAGE incoming;
-    UINT8 appends = 0, rotation;
-    UMF_CHUNK rotatedChunk, chunk1, chunk2;
+    UMF_MESSAGE element = new UMF_MESSAGE_CLASS();
+    // This is so dirty, I can't believe that I'm writing it. 
+    *((UMF_CHUNK*) element) = incoming->ExtractChunk();
 
-    inputQ.pop(incoming); 
-
-    if(DEBUG_CHANNELIO)
-    {
-        cout << "***Channel "<< this->name << " pops message " << endl << flush; 
-        cout << endl << "Header Message length "<< dec << (UINT32) (incoming->GetLength()) << endl;  
-        cout << endl << "Chunk Size "<< dec << (UINT32) sizeof(UMF_CHUNK) << endl;  
-        cout << "Channel ID "<< dec << incoming->GetChannelID() << endl;              
-        assert(incoming->GetLength() == 2 * sizeof(UMF_CHUNK));
-        cout << "Message class request is " << hex << element << endl;
-    }
-
-    chunk1 = incoming->ExtractChunk();
-    //chunk2 = incoming->ExtractChunk();
-
-    element->DecodeHeader(chunk1);
-    
-    // Reassemble other message components.
-    element->StartAppend();
-    while(element->CanAppend())
-    {
-        appends++;
-        inputQ.pop(incoming); 
-
-        if(DEBUG_CHANNELIO) 
-        {
-            cout << endl << "Body Message length "<< dec << (UINT32) (incoming->GetLength()) << endl;  
-            cout << "Channel ID "<< dec << incoming->GetChannelID() << endl;              	    
-	}
-
-        //assert(incoming->GetLength() == 2 * sizeof(UMF_CHUNK));
-	chunk1 = incoming->ExtractChunk();
-	//chunk2 = incoming->ExtractChunk();
-
-        element->AppendChunk(chunk1);
-    } 
-
-    if(DEBUG_CHANNELIO) 
-    {
-        cout << "Channel "<< this->name << " decodes message " << endl << flush; 
-        element->Print(cout);
-    }
+    channelPartner->push(element); // Stuff this in our input Q.
 
     // Handle flow control.  
     // this code is common to all channels and should be moved up in the class
     // hierarchy.
     // Our flowcontrol variable appears not to need to be atomic.
     // UINT64 tempCredits = flowcontrolCredits + ((1+appends) * 3);
-    acquireCredits((1+appends) * 3);
+    acquireCredits(3);
 
     if(DEBUG_CHANNELIO) 
     {
@@ -135,7 +95,6 @@ template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UMF_MESSAGE>::pop(UMF_MESSAGE &el
     delete incoming; // We've translated the message, so get rid of it...
 
 }
-
 
 
 template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &element) 
@@ -212,16 +171,16 @@ template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &
 
 // Specialized marshalling logic for handling the UINT64 type.
 
-template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UINT128>::pop(UINT128 &element) 
+template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UINT128>::pushUMF(UMF_MESSAGE &incoming) 
 {
     // Although the input queue has type UMF message, 
-    UMF_MESSAGE incoming;
+    UINT128 element;
     UINT8 appends = 0, rotation;
     UMF_CHUNK rotatedChunk, chunk1, chunk2;
 
-    inputQ.pop(incoming); 
-
     element = incoming->ExtractChunk();
+
+    channelPartner->push(element);
     
     // Handle flow control.  
     // this code is common to all channels and should be moved up in the class
@@ -232,7 +191,7 @@ template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UINT128>::pop(UINT128 &element)
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "Channel is  " << this << endl;
+        cout << "(UINT128) Channel is  " << this << endl;
         
     }
 
@@ -244,7 +203,7 @@ template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UINT128>::pop(UINT128 &element)
     }
 
     delete incoming; // We've translated the message, so get rid of it...
-
+    
 }
 
 
@@ -253,8 +212,7 @@ template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UINT128>::push(UINT128 &element)
 {
     // Check for space in flow control 
     // RRR allows small size/packed bytes.  We account for that here...
-  
-
+   
     acquireCredits(2);
 
     {

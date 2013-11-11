@@ -25,44 +25,47 @@ using namespace std;
 // Is using pointers in the queue structure creating subtle bugs?  Should I pass by reference?
 
 // The marshalled LI classes represent the client-side interface. 
-template <typename T> class MARSHALLED_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS
+template <typename T> class MARSHALLED_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS, public LI_CHANNEL_SEND_CLASS<T>
 {
   public:
     MARSHALLED_LI_CHANNEL_IN_CLASS(tbb::concurrent_bounded_queue<UMF_MESSAGE> *flowcontrolQInitializer,
-                                   const char * nameInitializer,
+                                   std::string nameInitializer,
 				   UMF_FACTORY factoryInitializer,  
                                    UINT64 flowcontrolChannelIDInitializer):
-    FLOWCONTROL_LI_CHANNEL_IN_CLASS(flowcontrolQInitializer, nameInitializer, 
-                                    factoryInitializer, flowcontrolChannelIDInitializer)
+      FLOWCONTROL_LI_CHANNEL_IN_CLASS(flowcontrolQInitializer, factoryInitializer, flowcontrolChannelIDInitializer),
+      LI_CHANNEL_SEND_CLASS<T>(nameInitializer)
     {
     };
 
-    void pop(T &element);  
-    bool empty() {return inputQ.empty();};
+    virtual void pushUMF(UMF_MESSAGE &message);
+
 };
 
 
-template <typename T> class MARSHALLED_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_LI_CHANNEL_OUT_CLASS
+template <typename T> class MARSHALLED_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_LI_CHANNEL_OUT_CLASS, public LI_HALF_CHANNEL_RECV_CLASS<T>
 {
 
   private:
     UMF_FACTORY factory; // we need to take T and pack it in to a UMF_MESSAGE
     UINT64 channelID;
 
+  protected:
+    void push(T &element); // Our send friednds can touch this interface
+
   public:
     MARSHALLED_LI_CHANNEL_OUT_CLASS(class tbb::concurrent_bounded_queue<UMF_MESSAGE> *outputQInitializer,
                                     UMF_FACTORY factoryInitializer, 
-                                    const char * nameInitializer, 
+                                    std::string nameInitializer, 
                                     UINT64 channelIDInitializer):
 
-    FLOWCONTROL_LI_CHANNEL_OUT_CLASS(nameInitializer, outputQInitializer)
+      FLOWCONTROL_LI_CHANNEL_OUT_CLASS(outputQInitializer),
+      LI_HALF_CHANNEL_RECV_CLASS<T>(nameInitializer)
     { 
         factory = factoryInitializer;
         channelID = channelIDInitializer;
     };
 
-    void pop(T &element);
-    void push(T &element); 
+
     bool full() {flowcontrolCredits == 0;}; // not really accurate...
     
 };
@@ -83,6 +86,7 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
     CHANNELIO_BASE_CLASS(PLATFORMS_MODULE parent, PHYSICAL_DEVICES physicalDevicesInit);
     ~CHANNELIO_BASE_CLASS();
 
+    /*
     template<typename T>    
       MARSHALLED_LI_CHANNEL_IN_CLASS<T> *getChannelInByName(std::string &name)
     {
@@ -128,7 +132,7 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
         // What happens if there is no match
         std::cerr << "Warning, unmatched named channel.  We'll probably die now. String name is: " << name;
     };
-
+    */
 };
 
 // Unfortunately we need all of these definitions in the router code. 

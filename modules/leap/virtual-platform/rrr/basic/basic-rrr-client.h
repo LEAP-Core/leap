@@ -13,6 +13,10 @@ using namespace std;
 typedef class RRR_CLIENT_STUB_CLASS* RRR_CLIENT_STUB;
 class RRR_CLIENT_STUB_CLASS
 {
+  protected:
+    UMF_MESSAGE MakeRequest(UMF_MESSAGE);
+    void MakeRequestNoResponse(UMF_MESSAGE);
+
   public:
     RRR_CLIENT_STUB_CLASS(const char *serviceName, const UINT64 serviceID): ServiceName(serviceName), ServiceID(serviceID) {};
     const std::string ServiceName;

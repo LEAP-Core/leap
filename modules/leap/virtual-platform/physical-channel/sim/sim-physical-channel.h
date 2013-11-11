@@ -85,6 +85,8 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
         UMF_MESSAGE TryRead();          // non-blocking read
         void        Write(UMF_MESSAGE); // write
         class tbb::concurrent_bounded_queue<UMF_MESSAGE> *GetWriteQ() { return &writeQ; }
+        void SetUMFFactory(UMF_FACTORY factoryInit) { umfFactory = factoryInit; };
+      
 };
 
 #endif

@@ -20,6 +20,8 @@
 %public  project-hybrid-init.h
 %private project-hybrid-init.cpp
 %public  hardware-done.h
+%public  project-utils.h
+%private project-utils.cpp
 
 %library lib/libasim/libasim.a
 %library /usr/lib64/libpthread.so

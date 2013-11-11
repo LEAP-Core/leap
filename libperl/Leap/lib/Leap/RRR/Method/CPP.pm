@@ -193,12 +193,12 @@ sub print_client_definition
     if ($self->outargs()->num() == 0)
     {
         # no response
-        print $file $indent . "    RRRClient->MakeRequestNoResponse(msg);\n";
+        print $file $indent . "    MakeRequestNoResponse(msg);\n";
     }
     else
     {
         # need response
-        print $file $indent . "    UMF_MESSAGE resp = RRRClient->MakeRequest(msg);\n";
+        print $file $indent . "    UMF_MESSAGE resp = MakeRequest(msg);\n";
         print $file $indent . "    \n";
 
         # demarshall return value(s)
