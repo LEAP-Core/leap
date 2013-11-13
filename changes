@@ -16786,3 +16786,14 @@ Directory scripts/bmark
  run.bmark                 Locally Modified          489 
 
 Write Bluesim simulator output both to stdout and to a log file.
+
+----------
+keflemin    Date: Wed Nov 13 18:55:26 EST 2013  CSN: CSN-leap-491
+                  Wed Nov 13 23:55:26 UTC 2013
+
+
+Directory modules/leap/build-support/project/application-env/soft-services/default-sw
+ connected-application-default-sw.h Locally Modified          490 
+
+
+1) Fixed non-termination bug in default sw.

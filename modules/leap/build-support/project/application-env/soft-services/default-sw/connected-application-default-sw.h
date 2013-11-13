@@ -14,11 +14,8 @@ class CONNECTED_APPLICATION_CLASS
     void Init() {}
     int Main() 
     { 
-        while(1)
-        {
-            sleep(1);
-        } 
-    } // Hack
+        STARTER_DEVICE_CLASS::GetInstance()->WaitForHardware();
+    } 
 };
 
 
