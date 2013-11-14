@@ -84,7 +84,20 @@ typedef enum
 }
 RL_COH_DM_CACHE_PREFETCH_MODE
     deriving (Eq, Bits);
-   
+
+//
+// Cache fence type
+//
+typedef enum
+{
+    RL_COH_DM_ALL_FENCE = 0,
+    RL_COH_DM_WRITE_FENCE = 1,
+    RL_COH_DM_READ_FENCE = 2
+}
+RL_COH_DM_CACHE_FENCE_TYPE
+    deriving (Eq, Bits);
+
+
 //
 // Coherent direct mapped cache interface.
 //
@@ -132,6 +145,13 @@ interface RL_COH_DM_CACHE#(type t_CACHE_ADDR,
     method Action flushReq(t_CACHE_ADDR addr);
     method Action invalOrFlushWait();
     
+    // Insert a memory fence.
+    method Action fence(RL_COH_DM_CACHE_FENCE_TYPE fenceType);
+    // Return the number of read requests being processed now (0, 1, or 2)
+    method Bit#(2) numReadProcessed();
+    // Return the number of write requests being processed now (0, 1, or 2)
+    method Bit#(2) numWriteProcessed();
+   
     //
     // Set cache and prefetch mode.  Mostly useful for debugging.  This may not be changed
     // in the middle of a run!
@@ -272,7 +292,8 @@ typedef enum
     COH_DM_CACHE_READ,
     COH_DM_CACHE_WRITE,
     COH_DM_CACHE_FLUSH,
-    COH_DM_CACHE_INVAL
+    COH_DM_CACHE_INVAL,
+    COH_DM_CACHE_FENCE
 }
 RL_COH_DM_CACHE_ACTION
     deriving (Eq, Bits);
@@ -489,6 +510,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     FIFOF#(t_CACHE_REQ) localReqQ <- mkFIFOF();
     // Incoming activated requests from the network.
     FIFOF#(t_CACHE_REQ) remoteReqQ <- mkFIFOF();
+    // Incoming fence request info
+    FIFOF#(Tuple2#(Bool, Bool)) localFenceInfoQ <- mkFIFOF();
 
     // Pipelines
     FIFO#(Tuple2#(t_CACHE_REQ, Bool)) fillReqQ <- mkFIFO();
@@ -687,10 +710,50 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     FIFOF#(t_CACHE_REQ) localRetryQ <- mkSizedFIFOF(8);
     LUTRAM#(Bit#(5), Bit#(2)) localRetryReqFilter <- mkLUTRAM(0);
 
-    Wire#(Tuple2#(RL_COH_DM_CACHE_REQ_TYPE, t_CACHE_REQ)) pickReq <- mkWire();
-    Wire#(Tuple3#(RL_COH_DM_CACHE_REQ_TYPE, 
+    Wire#(Tuple3#(RL_COH_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Bool)) pickReq <- mkWire();
+    Wire#(Tuple4#(RL_COH_DM_CACHE_REQ_TYPE, 
                   t_CACHE_REQ, 
-                  Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0)))) curReq <- mkWire();
+                  Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0)),
+                  Bool)) curReq <- mkWire();
+
+    PulseWire readPendingW <- mkPulseWire();
+    PulseWire writePendingW <- mkPulseWire();
+
+    // 
+    // Check local pending requests
+    //
+    rule checkPendingReq (True);
+        // Check if there is a pending local write request
+        let has_local_write = mshr.getExclusivePending();
+        if (cacheLookupQ.peekElem(0) matches tagged Valid .req0 &&& req0.reqInfo matches tagged LocalReqInfo .f0 &&& f0.act == COH_DM_CACHE_WRITE)
+        begin
+            has_local_write = True;
+        end
+        if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.reqInfo matches tagged LocalReqInfo .f1 &&& f1.act == COH_DM_CACHE_WRITE)
+        begin
+            has_local_write = True;
+        end
+        // Check if there is a pending local read request
+        let has_local_read = mshr.getSharePending();
+        if (cacheLookupQ.peekElem(0) matches tagged Valid .req0 &&& req0.reqInfo matches tagged LocalReqInfo .f0 &&& f0.act == COH_DM_CACHE_READ)
+        begin
+            has_local_read = True;
+        end
+        if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.reqInfo matches tagged LocalReqInfo .f1 &&& f1.act == COH_DM_CACHE_READ)
+        begin
+            has_local_read = True;
+        end
+        // Raise signals to inform rule pickReqQueue0
+        if (has_local_write)
+        begin
+            writePendingW.send();
+        end
+        if (has_local_read)
+        begin
+            readPendingW.send();
+        end
+    endrule
+
 
     //
     // updateReqArb --
@@ -723,7 +786,28 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         
         let req_buf_free = (numFreeReqBufSlots.value() > 2);
         
-        reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty   && !mshrRetryQ.notEmpty && req_buf_free;
+        //
+        // Fence request process condition:
+        // All retry queues are empty and cache lookup pipeline (cacheLookupQ) 
+        // does not have local requests
+        //
+        // Check if the first local request is a fence request
+        let is_fence_req = False;
+        let has_local = False;
+        if (localReqQ.notEmpty)
+        begin
+            let first_local_req = localReqQ.first();
+            if (first_local_req.reqInfo matches tagged LocalReqInfo .f &&& f.act == COH_DM_CACHE_FENCE)
+            begin
+                is_fence_req = True;
+                match {.check_read, .check_write} = localFenceInfoQ.first();
+                has_local = (check_read && readPendingW) || (check_write && writePendingW);
+            end
+        end
+
+        reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty && !mshrRetryQ.notEmpty &&
+                                                   ((is_fence_req && !localRetryQ.notEmpty && !has_local) || 
+                                                   (!is_fence_req && req_buf_free));
         reqs[pack(COH_DM_CACHE_LOCAL_RETRY_REQ)] = localRetryQ.notEmpty && !mshrRetryQ.notEmpty && req_buf_free;
         reqs[pack(COH_DM_CACHE_PREFETCH_REQ)]    = prefetchMode == RL_COH_DM_PREFETCH_ENABLE && 
                                                    prefetcher.hasReq() && !mshrRetryQ.notEmpty && req_buf_free;
@@ -760,7 +844,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             match {.tag, .idx} = cacheEntryFromAddr(r.addr);
             r.tag = tag;
             r.idx = idx;
-            pickReq <= tuple2(req_type, r);
+            pickReq <= tuple3(req_type, r, (req_type == COH_DM_CACHE_LOCAL_REQ && is_fence_req));
             arbNewState <= state_upd;
         end
     endrule
@@ -775,7 +859,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     // 
     (* fire_when_enabled *)
     rule pickReqQueue1 (True);
-        match {.req_type, .r} = pickReq;
+        match {.req_type, .r, .is_local_fence} = pickReq;
         //
         // In order to preserve read/write and write/write order of local 
         // requests, a local request must either come from the local retry 
@@ -792,11 +876,11 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             (req_type == COH_DM_CACHE_MSHR_RETRY_REQ) ||
             (localRetryReqFilter.sub(resize(cacheIdx(r))) == 0))
         begin
-            curReq <= tuple3(req_type, r, entryFilter.test(cacheIdx(r))); 
+            curReq <= tuple4(req_type, r, entryFilter.test(cacheIdx(r)), is_local_fence); 
         end
         else
         begin
-            curReq <= tuple3(req_type, r, tagged Invalid);
+            curReq <= tuple4(req_type, r, tagged Invalid, is_local_fence);
         end
     endrule
 
@@ -809,13 +893,10 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         match {.req_type, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
         debugLog.record($format("    Cache: startRemoteReq: addr=0x%x, entry=0x%x", r.addr, idx));
-        
         cache.readReq(idx);
         cacheLookupQ.enq(r);
         cacheLookupReq.wset(r);
-
         remoteReqQ.deq();
-        
         // update arbiter processReqArb
         updateReqArbW.send();
     endrule
@@ -829,7 +910,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     (* fire_when_enabled *)
     rule startMSHRRetryReq (tpl_2(curReq).reqInfo matches tagged LocalReqInfo .f &&& 
                             tpl_1(curReq) == COH_DM_CACHE_MSHR_RETRY_REQ);
-        match {.req_type, .r, .cf_opaque} = curReq;
+        match {.req_type, .r, .cf_opaque, .is_fence} = curReq;
         let idx = cacheIdx(r);
         debugLog.record($format("    Cache: startMSHRRetryReq: addr=0x%x, entry=0x%x", r.addr, idx));
         cache.readReq(idx);
@@ -840,6 +921,20 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         updateReqArbW.send();
     endrule
 
+    //
+    // startFenceReq --
+    //     All local writes are cleared. Dequeue the fence request from local 
+    // request queue.
+    //
+    (* mutually_exclusive = "startFenceReq, startRemoteReq, startMSHRRetryReq" *)
+    (* fire_when_enabled *)
+    rule startFenceReq (tpl_4(curReq));
+        debugLog.record($format("    Cache: done with fence request..."));
+        localReqQ.deq();
+        localFenceInfoQ.deq();
+        // update arbiter processReqArb
+        updateReqArbW.send();
+    endrule
 
     //
     // startLocalReq --
@@ -848,9 +943,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     (* fire_when_enabled *)
     rule startLocalReq (tpl_2(curReq).reqInfo matches tagged LocalReqInfo .f  &&& 
                         (tpl_1(curReq) != COH_DM_CACHE_MSHR_RETRY_REQ) &&& 
-                        tpl_3(curReq) matches tagged Valid .filter_state);
+                        tpl_3(curReq) matches tagged Valid .filter_state &&& !tpl_4(curReq));
         
-        match {.req_type, .r, .cf_opaque} = curReq;
+        match {.req_type, .r, .cf_opaque, .is_fence} = curReq;
 
         entryFilter.set(filter_state);
         let idx = cacheIdx(r);
@@ -894,7 +989,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     (* fire_when_enabled *)
     rule blockedLocalReq (tpl_2(curReq).reqInfo matches tagged LocalReqInfo .f &&& 
                           (tpl_1(curReq) != COH_DM_CACHE_MSHR_RETRY_REQ) &&& 
-                          ! isValid(tpl_3(curReq)));
+                          ! isValid(tpl_3(curReq)) &&& !tpl_4(curReq));
         updateReqArbW.send();
     endrule
     
@@ -909,8 +1004,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     (* fire_when_enabled *)
     rule shuntNewReq (tpl_1(curReq) == COH_DM_CACHE_LOCAL_REQ &&
                       (localRetryReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) != maxBound) &&
-                      ! isValid(tpl_3(curReq)));
-        match {.req_type, .r, .cf_opaque} = curReq;
+                      ! isValid(tpl_3(curReq)) && !tpl_4(curReq));
+        match {.req_type, .r, .cf_opaque, .is_fence} = curReq;
         let idx = cacheIdx(r);
 
         debugLog.record($format("    Cache: shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
@@ -1557,7 +1652,55 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     method Action invalOrFlushWait();
         noAction;
     endmethod
-    
+
+    method Action fence(RL_COH_DM_CACHE_FENCE_TYPE fenceType);
+        Bool check_read  = False;
+        Bool check_write = False;
+        case (fenceType)
+            RL_COH_DM_ALL_FENCE:
+            begin
+                check_read  = True;
+                check_write = True;
+                debugLog.record($format("    Cache: New request: ALL FENCE request"));
+            end
+            RL_COH_DM_WRITE_FENCE:
+            begin
+                check_write = True;
+                debugLog.record($format("    Cache: New request: WRITE FENCE request"));
+            end
+            RL_COH_DM_READ_FENCE:
+            begin
+                check_read  = True;
+                debugLog.record($format("    Cache: New request: READ FENCE request"));
+            end
+        endcase
+
+        t_CACHE_REQ r = ?;
+        t_LOCAL_REQ_INFO f = ?;
+        f.act = COH_DM_CACHE_FENCE;
+        r.reqInfo = tagged LocalReqInfo f;
+        localReqQ.enq(r);
+        localFenceInfoQ.enq(tuple2(check_read, check_write));
+    endmethod
+
+    method Bit#(2) numReadProcessed();
+         let n = (readHitW) ? 1 : 0;
+         if (mshr.getShareProcessed())
+         begin
+             n = n + 1;
+         end
+         return n;
+    endmethod
+
+    method Bit#(2) numWriteProcessed();
+         let n = (writeHitW) ? 1 : 0;
+         if (mshr.getExclusiveProcessed())
+         begin
+             n = n + 1;
+         end
+         return n;
+    endmethod
+
     method Action setCacheMode(RL_COH_DM_CACHE_MODE mode, RL_COH_DM_CACHE_PREFETCH_MODE en);
         cacheMode    <= mode;
         prefetchMode <= en;

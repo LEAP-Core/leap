@@ -55,6 +55,43 @@ interface MEMORY_IFC#(type t_ADDR, type t_DATA);
     method Bool writeNotFull();
 endinterface
 
+//
+// Memory interface with memory fence supported. 
+//
+interface MEMORY_WITH_FENCE_IFC#(type t_ADDR, type t_DATA);
+    method Action readReq(t_ADDR addr);
+    method ActionValue#(t_DATA) readRsp();
+
+    // Look at the read response value without popping it
+    method t_DATA peek();
+
+    // Read response ready
+    method Bool notEmpty();
+
+    // Read request possible?
+    method Bool notFull();
+
+
+    method Action write(t_ADDR addr, t_DATA val);
+    
+    // Write request possible?
+    method Bool writeNotFull();
+
+    // Insert a memory fence. All requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action fence();
+    // Insert a memory wrtie fence. Write requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action writeFence();
+    // Insert a memory wrtie fence. Read requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action readFence();
+
+    // Return true if there is at least one pending write request
+    method Bool writePending();
+    // Return true if there is at least one pending read request
+    method Bool readPending();
+endinterface
 
 //
 // Single reader interface
@@ -89,6 +126,30 @@ interface MEMORY_MULTI_READ_IFC#(numeric type n_READERS, type t_ADDR, type t_DAT
 endinterface
 
 //
+// Memory with one writer and multiple readers.
+// Memory fence is supported. 
+//
+interface MEMORY_MULTI_READ_WITH_FENCE_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA);
+    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
+
+    method Action write(t_ADDR addr, t_DATA val);
+    method Bool writeNotFull();
+    // Insert a memory fence. All requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action fence();
+    // Insert a memory wrtie fence. Write requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action writeFence();
+    // Insert a memory wrtie fence. Read requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action readFence();
+    // Return true if there is at least one pending write request
+    method Bool writePending();
+    // Return true if there is at least one pending read request
+    method Bool readPending();
+endinterface
+
+//
 // MEMORY_MULTI_READ_MASKED_WRITE_IFC
 // Memory with multiple readers and one writer with write mask.
 //
@@ -97,6 +158,31 @@ interface MEMORY_MULTI_READ_MASKED_WRITE_IFC#(numeric type n_READERS, type t_ADD
 
     method Action write(t_ADDR addr, t_DATA val, t_MASK mask);
     method Bool writeNotFull();
+endinterface
+
+//
+// MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC
+// Memory with multiple readers and one writer with write mask.
+// Memory fence is supported. 
+//
+interface MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA, type t_MASK);
+    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
+
+    method Action write(t_ADDR addr, t_DATA val, t_MASK mask);
+    method Bool writeNotFull();
+    // Insert a memory fence. All requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action fence();
+    // Insert a memory wrtie fence. Write requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action writeFence();
+    // Insert a memory wrtie fence. Read requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action readFence();
+    // Return true if there is at least one pending write request
+    method Bool writePending();
+    // Return true if there is at least one pending read request
+    method Bool readPending();
 endinterface
 
 // ========================================================================
@@ -274,6 +360,40 @@ module mkMultiMemIfcToMemIfc#(MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) multiMem
 
     method Action write(t_ADDR addr, t_DATA val) = multiMem.write(addr, val);
     method Bool writeNotFull() = multiMem.writeNotFull();
+endmodule
+
+//
+// mkMultiMemFenceIfcToMemFenceIfc --
+//     Interface conversion from a MEMORY_MULTI_READ_WITH_FENCE_IFC with one port 
+//     to a MEMORY_WITH_FENCE_IFC.  Useful for implementing a memory that supports 
+//     an arbitrary number of ports without having to special case the code for 
+//     a single port.
+//
+module mkMultiMemFenceIfcToMemFenceIfc#(MEMORY_MULTI_READ_WITH_FENCE_IFC#(1, t_ADDR, t_DATA) multiMem)
+    // interface:
+    (MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    method Action readReq(t_ADDR addr) = multiMem.readPorts[0].readReq(addr);
+
+    method ActionValue#(t_DATA) readRsp();
+        let v <- multiMem.readPorts[0].readRsp();
+        return v;
+    endmethod
+
+    method t_DATA peek() = multiMem.readPorts[0].peek();
+    method Bool notEmpty() = multiMem.readPorts[0].notEmpty();
+    method Bool notFull() = multiMem.readPorts[0].notFull();
+
+    method Action write(t_ADDR addr, t_DATA val) = multiMem.write(addr, val);
+    method Bool writeNotFull() = multiMem.writeNotFull();
+
+    method Action fence() = multiMem.fence();
+    method Action writeFence() = multiMem.writeFence();
+    method Action readFence() = multiMem.readFence();
+    method Bool writePending() = multiMem.writePending();
+    method Bool readPending() = multiMem.readPending();
 endmodule
 
 //

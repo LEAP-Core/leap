@@ -16797,3 +16797,20 @@ Directory modules/leap/build-support/project/application-env/soft-services/defau
 
 
 1) Fixed non-termination bug in default sw.
+
+----------
+hjyang      Date: Wed Nov 13 19:31:48 EST 2013  CSN: CSN-leap-492
+                  Thu Nov 14 00:31:48 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ memory-interface.bsv      Locally Modified          491 
+
+Directory modules/leap/libraries/librl/cache
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          491 
+ rl-cache-mshr.bsv         Locally Modified          491 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-client.bsv Locally Modified          491 
+
+Add the memory fence support for coherent scratchpads. 

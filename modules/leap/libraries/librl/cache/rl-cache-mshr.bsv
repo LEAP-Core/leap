@@ -141,6 +141,15 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
     // Retry request to network
     method ActionValue#(Tuple2#(t_CACHE_ADDR, t_MSHR_IDX)) retryReq();
     
+    // Return true if a read request has been processed (received activated GETS req)
+    method Bool getShareProcessed();
+    // Return true if a write request has been processed (received response for GETX)
+    method Bool getExclusiveProcessed();
+    // Return true if there is at least one pending read request
+    method Bool getSharePending();
+    // Return true if there is at least one pending write request
+    method Bool getExclusivePending();
+    
 endinterface: RL_COH_DM_CACHE_MSHR
 
 
@@ -313,6 +322,12 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     PulseWire mshrGetAllocateW   <- mkPulseWire();
     PulseWire resendGetxW        <- mkPulseWire();
 
+    //track inflight GETX/GETS requests
+    PulseWire getsProcessedW                          <- mkPulseWire();
+    PulseWire getxProcessedW                          <- mkPulseWire();
+    COUNTER#((TAdd#(t_MSHR_IDX_SZ,1))) numPendingGetX <- mkLCounter(0);
+    COUNTER#((TAdd#(t_MSHR_IDX_SZ,1))) numPendingGetS <- mkLCounter(0);
+
     //
     // Because forwarding data to multiple caches take multiple cycles,
     // mark mshr to be busy and block requests from the cache when processing multi-forwarding operations
@@ -403,6 +418,13 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                                               clientMeta: e.meta,
                                                               globalReadMeta: e.globalReadMeta };
 
+        if (e.isRead)
+        begin
+            getsProcessedW.send();
+            numPendingGetS.down();
+            debugLog.record($format("        MSHR: receive activated GETS, numPendingGetS=%x", numPendingGetS.value()));
+        end
+        
         case (e.state)
             COH_CACHE_STATE_IM_AD:
             begin
@@ -442,6 +464,13 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         end
         else // release mshrGet entry
         begin
+            if (e.state == COH_CACHE_STATE_OM_A)
+            begin
+                getxProcessedW.send();
+                numPendingGetX.down();
+                debugLog.record($format("        MSHR: GETX entry release, numPendingGetX=%x", numPendingGetX.value()));
+            end
+
             debugLog.record($format("        MSHR: mshrGet entry (0x%x) release", mshr_idx));
             mshrGetValidBits.upd(mshr_idx, False);
             if (!curPutBusy)
@@ -612,7 +641,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         else // normal data responses
         begin
             debugLog.record($format("        MSHR: response on entry=0x%x, addr=0x%x, val=0x%x, state=%d, meta=0x%x", r.meta, e.addr, e.val, e.state, e.meta));
-    
+            
+            if (!e.isRead)
+            begin
+                getxProcessedW.send();
+                numPendingGetX.down();
+                debugLog.record($format("        MSHR: GETX entry release, numPendingGetX=%x", numPendingGetX.value()));
+            end
+
             let mshr_release        = False;
             let mshr_delay          = False;
             let send_remote_resp    = False;
@@ -767,9 +803,11 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                            t_CACHE_ADDR addr,
                            t_CACHE_CLIENT_META meta) if (!mshrBusy);
 
-        debugLog.record($format("        MSHR: receive GETS request from cache to allocate a new entry (idx=0x%x, addr=0x%x)", idx, addr));
+        debugLog.record($format("        MSHR: receive GETS request from cache to allocate a new entry (idx=0x%x, addr=0x%x), numPendingGetS=%x", 
+                         idx, addr, numPendingGetS.value()));
         mshrGetValidBits.upd(idx, True);
         cacheGetReqEnW.send();
+        numPendingGetS.up();
         getReqQ.enq( RL_COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
                                                    addr: addr,
                                                    val: ?,
@@ -788,12 +826,13 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                t_CACHE_MASK byteWriteMask,
                                RL_COH_DM_CACHE_COH_STATE oldState) if (!mshrBusy);
 
-        debugLog.record($format("        MSHR: receive GETX request from cache to allocate a new entry (idx=0x%x, addr=0x%x)", idx, addr));
+        debugLog.record($format("        MSHR: receive GETX request from cache to allocate a new entry (idx=0x%x, addr=0x%x), numPendingGetX=%x", 
+                        idx, addr, numPendingGetX.value()));
         
         mshrGetValidBits.upd(idx, True);
         cacheGetReqEnW.send();
         let new_state = (oldState == COH_DM_CACHE_STATE_O)? COH_CACHE_STATE_OM_A : COH_CACHE_STATE_IM_AD;
-        
+        numPendingGetX.up();
         getReqQ.enq( RL_COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
                                                    addr: addr,
                                                    val: val,
@@ -894,5 +933,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         return r;
     endmethod
     
+    // Return true if a read request has been processed (received activated GETS req)
+    method Bool getShareProcessed() = getsProcessedW;
+    // Return true if a write request has been processed (received response for GETX)
+    method Bool getExclusiveProcessed() = getxProcessedW;
+    // Return true if there is at least one pending read request
+    method Bool getSharePending() = (numPendingGetS.value() != 0);
+    // Return true if there is at least one pending write request
+    method Bool getExclusivePending() = (numPendingGetX.value() != 0);
+
 endmodule
 
