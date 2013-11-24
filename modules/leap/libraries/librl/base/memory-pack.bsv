@@ -425,6 +425,9 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
 
     for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
     begin
+        // Starting port in underlying memory.
+        Integer p_base = p * chunks_per_obj;
+
         portsLocal[p] =
             interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
                 //
@@ -436,7 +439,7 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
                     // a read request.  Start all reads together.
                     for (Integer cp = 0; cp < chunks_per_obj; cp = cp + 1)
                     begin
-                        mem.readPorts[p + cp].readReq(addrContainer(addr, fromInteger(cp)));
+                        mem.readPorts[p_base + cp].readReq(addrContainer(addr, fromInteger(cp)));
                     end
                 endmethod
 
@@ -444,7 +447,7 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
                     t_PACKED_CONTAINER v = newVector();
                     for (Integer cp = 0; cp < chunks_per_obj; cp = cp + 1)
                     begin
-                        v[cp] <- mem.readPorts[p + cp].readRsp();
+                        v[cp] <- mem.readPorts[p_base + cp].readRsp();
                     end
 
                     return unpack(truncateNP(pack(v)));
@@ -454,7 +457,7 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
                     t_PACKED_CONTAINER v = newVector();
                     for (Integer cp = 0; cp < chunks_per_obj; cp = cp + 1)
                     begin
-                        v[cp] = mem.readPorts[p + cp].peek();
+                        v[cp] = mem.readPorts[p_base + cp].peek();
                     end
 
                     return unpack(truncateNP(pack(v)));
@@ -464,7 +467,7 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
                     Bool not_empty = True;
                     for (Integer cp = 0; cp < chunks_per_obj; cp = cp + 1)
                     begin
-                        not_empty = not_empty && mem.readPorts[p + cp].notEmpty();
+                        not_empty = not_empty && mem.readPorts[p_base + cp].notEmpty();
                     end
 
                     return not_empty;
@@ -474,7 +477,7 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
                     Bool not_full = ! writeQ.notEmpty();
                     for (Integer cp = 0; cp < chunks_per_obj; cp = cp + 1)
                     begin
-                        not_full = not_full && mem.readPorts[p + cp].notFull();
+                        not_full = not_full && mem.readPorts[p_base + cp].notFull();
                     end
 
                     return not_full;

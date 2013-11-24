@@ -924,6 +924,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
     (* fire_when_enabled *)
     rule shuntNewReq (tpl_1(curReq) &&
+                      ! tpl_1(tpl_2(curReq)).globalReadMeta.orderedSourceDataReqs &&
                       (sideReqFilter.sub(resize(curReq_req_base.set)) != maxBound) &&
                       ! isValid(tpl_3(curReq)) &&
                       cacheEnabled);

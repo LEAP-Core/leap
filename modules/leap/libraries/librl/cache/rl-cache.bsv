@@ -35,13 +35,21 @@ typedef struct
     // Request comes from a prefetch somewhere internal to the memory
     // hierarchy.
     Bool isPrefetch;
+
+    // Enforce order of independent fill/spill requests to different
+    // addresses? When set, fill and spill requests will be generated
+    // in the same order as their corresponding client read/write requests.
+    // This is useful when fill requests have side effects or when 
+    // synchronizing with host memory.
+    Bool orderedSourceDataReqs;
 }
 RL_CACHE_GLOBAL_READ_META
     deriving (Eq, Bits);
 
 
 instance DefaultValue#(RL_CACHE_GLOBAL_READ_META);
-    defaultValue = RL_CACHE_GLOBAL_READ_META { isPrefetch: False };
+    defaultValue = RL_CACHE_GLOBAL_READ_META { isPrefetch: False,
+                                               orderedSourceDataReqs: False };
 endinstance
 
 

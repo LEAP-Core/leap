@@ -16825,3 +16825,26 @@ Directory scripts/bmark
 
 - Restore use of bitfile signatures to avoid reprogramming.
 - Clean up some formatting.
+
+----------
+mcadler     Date: Sun Nov 24 09:28:24 EST 2013  CSN: CSN-leap-494
+                  Sun Nov 24 14:28:24 UTC 2013
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-direct-mapped-cache.bsv Locally Modified          493 
+ rl-set-assoc-cache.bsv    Locally Modified          493 
+ rl-cache.bsv              Locally Modified          493 
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          493 
+
+- A bug in memory pack 1:many mapping incorrectly mapped separate client read
+  ports to the same memory read ports, making it possible to return the
+  wrong result.  In our case this led to misses in set-associative timing
+  models that should have been hits, depending on FPGA timing.
+
+- Add a flag to memory requests forcing them to have side effects visible
+  in order.  This is used by HAsim's functional TLB service to guarantee
+  that misses in the FPGA-side TLB caches always arrive at the software
+  handler in the same order.

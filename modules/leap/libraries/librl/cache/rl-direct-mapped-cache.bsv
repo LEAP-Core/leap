@@ -538,6 +538,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     //
     (* fire_when_enabled *)
     rule shuntNewReq (tpl_1(curReq) == DM_CACHE_NEW_REQ &&
+                      ! tpl_2(curReq).globalReadMeta.orderedSourceDataReqs &&
                       (sideReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) != maxBound) &&
                       ! isValid(tpl_3(curReq)) &&
                       (cacheMode != RL_DM_MODE_DISABLED));
