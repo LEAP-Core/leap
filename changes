@@ -16848,3 +16848,13 @@ Directory modules/leap/libraries/librl/base
   in order.  This is used by HAsim's functional TLB service to guarantee
   that misses in the FPGA-side TLB caches always arrive at the software
   handler in the same order.
+
+----------
+mcadler     Date: Wed Nov 27 15:18:01 EST 2013  CSN: CSN-leap-495
+                  Wed Nov 27 20:18:01 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          494 
+
+Fix comment.

@@ -81,7 +81,7 @@ typedef function Action checkAssert(Bool b) ASSERTION;
 //    mkAssertionStrChecker() below instead.
 //
 //    Usage:
-//        let checker <- mkAssertionStrChecker("error string", ASSERT_ERROR);
+//        let checker <- mkAssertionStrPvtChecker("error string", ASSERT_ERROR);
 //
 //        rule r;
 //           ...
