@@ -26,6 +26,7 @@ soft_services_deps=Soft Services Dependencies
 soft_clocks=Basic Soft Clock Algorithm
 soft_connections=SoftService Soft Connections
 soft_strings=Global Strings
+lock_sync_service=Lock Synchronization Service
 
 [Soft Services Library]
 File=modules/leap/libraries/soft-services/util/soft-services-lib.awb
@@ -37,7 +38,6 @@ smart_synth_boundaries=Soft Services Library Dependencies
 [Soft Services]
 File=modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks/soft-services.awb
 Packagehint=leap
-
 
 [Soft Services Dependencies]
 File=modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks/soft-services-deps-small.awb
@@ -87,4 +87,8 @@ Packagehint=leap
 
 [NULL Physical Interconnect]
 File=modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/null/null-physical-interconnect.awb
+Packagehint=leap
+
+[Lock Synchronization Service]
+File=modules/leap/libraries/soft-services/services/lock-sync-service/lock-sync-service.awb
 Packagehint=leap

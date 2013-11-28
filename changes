@@ -16858,3 +16858,28 @@ Directory modules/leap/libraries/platform-services/common-services/assertions-se
  assertions-local.bsv      Locally Modified          494 
 
 Fix comment.
+
+----------
+hjyang      Date: Thu Nov 28 17:10:29 EST 2013  CSN: CSN-leap-496
+                  Thu Nov 28 22:10:29 UTC 2013
+
+
+Directory config/pm/leap/submodels/common
+ soft-services.apm         Locally Modified          495 
+
+Directory modules/leap/libraries/soft-services/services
+ lock-sync-service/        Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/lock-sync-service
+ lock.bsv                  Locally Added               0 
+ lock-sync-service.awb     Locally Added               0 
+ synchronization.bsv       Locally Added               0 
+ README                    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services.awb         Locally Modified          495 
+
+Directory modules/leap/libraries/librl/cache
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          495 
+
+Add lock and synchronization services. 

@@ -820,7 +820,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         if (winner_idx matches tagged Valid .req_idx)
         begin        
             RL_COH_DM_CACHE_REQ_TYPE req_type = unpack(pack(req_idx)); 
-            debugLog.record($format("    Cache: pick req: type=%d", req_idx));
+            // debugLog.record($format("    Cache: pick req: type=%d", req_idx));
             
             t_CACHE_REQ r = ?;
             case (req_type)

@@ -1,0 +1,65 @@
+Lock and Synchronization Service
+
+These modules provide the lock and synchronization services for shared resources. 
+
+Lock service:
+
+A set of engines share a set of lock variables. Each set of engines is called a 
+lock group. To use the lock service, first, the lock group is registered in 
+LEAP Dictionaries to obtain a unique group ID. 
+
+For example:
+def VDEV.LOCKGROUP.PRODUCER "lock group for producers";
+
+Then, the lock group needs to decide the number of shared lock variables. 
+
+For example: 
+
+typedef enum
+{
+    LOCK_FOR_READ    = 0,
+    LOCK_FOR_WRITE   = 1
+}
+LOCK_TYPE
+    deriving (Eq, Bits);
+
+Finally, each engine can instantiate a lock node withing the lock group. 
+There must be one master node in the lock group. 
+
+LOCK_IFC#(LOCK_TYPE) lockNode0 <- mkLockNode(`VDEV_LOCKGROUP_PRODUCER, True);  // master node
+LOCK_IFC#(LOCK_TYPE) lockNode1 <- mkLockNode(`VDEV_LOCKGROUP_PRODUCER, False); 
+LOCK_IFC#(LOCK_TYPE) lockNode2 <- mkLockNode(`VDEV_LOCKGROUP_PRODUCER, False);
+
+
+//////////////////////////////////////////////////////////////////////////////////
+
+Synchronization service:
+
+A set of engines form a synchronization group. To use the synchronization
+service, first, the synchronization group is registered in LEAP Dictionaries. 
+Then, the synchronization group decides the number of required synchronization
+barriers. Finally, each engine can instantiate a synchronization node, and 
+there must be one master node in one synchronization group. 
+
+For example, 
+
+def VDEV.SYNCGROUP.A "synchronization group A";
+def VDEV.SYNCGROUP.B "synchronization group B";
+
+// one synchronization barrier
+SYNC_SERVICE_IFC syncNodeA0 <- mkSyncNode(`VDEV_SYNCGROUP_A, True);  // master node
+SYNC_SERVICE_IFC syncNodeA1 <- mkSyncNode(`VDEV_SYNCGROUP_B, False);
+
+// two synchronization barriers
+SYNC_SERVICE_MULTI_SYNC_IFC#(2) syncNodeB0 <- mkMultiSyncNode(`VDEV_SYNCGROUP_B, True);  // master node
+SYNC_SERVICE_MULTI_SYNC_IFC#(2) syncNodeB1 <- mkMultiSyncNode(`VDEV_SYNCGROUP_B, False);
+
+The initialize the service, the master node needs to set the barriers' initial values. 
+
+For example, 
+
+Vector#(N_SYNC_NODES, Bool) barrier = replicate(False);
+barrier[0] = True;
+barrier[1] = True;
+syncNodeA0.setSyncBarrier(pack(barrier));
+

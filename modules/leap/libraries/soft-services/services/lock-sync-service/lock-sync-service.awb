@@ -1,0 +1,10 @@
+%name Lock Synchronization Service
+%desc Lock Synchronization Service
+
+%provides lock_sync_service
+
+%notes README
+
+%public lock.bsv
+%public synchronization.bsv
+
