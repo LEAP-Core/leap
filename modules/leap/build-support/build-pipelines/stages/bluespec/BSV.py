@@ -937,7 +937,7 @@ class BSV():
             for chain in top_module.chains:
                 synth_handle.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' +\
                                 chain.name + '", logicalType: "' + chain.raw_type +\
-                                '", computePlatform: "' + channel.platform +\
+                                '", computePlatform: "' + chain.platform +\
                                 '", incoming: connections.chains[' + str(chain.module_idx) +\
                                 '].incoming, outgoing: connections.chains[' + str(chain.module_idx) +\
                                 '].outgoing, bitWidth:' + str(chain.bitwidth) +\

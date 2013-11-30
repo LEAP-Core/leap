@@ -16883,3 +16883,14 @@ Directory modules/leap/libraries/librl/cache
  rl-coherent-direct-mapped-cache.bsv Locally Modified          495 
 
 Add lock and synchronization services. 
+
+----------
+keflemin    Date: Sat Nov 30 14:58:53 EST 2013  CSN: CSN-leap-497
+                  Sat Nov 30 19:58:53 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          496 
+
+
+Fixed typo in BSV.py. One wonders how things ever compiled. 
