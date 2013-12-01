@@ -16894,3 +16894,25 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
 
 
 Fixed typo in BSV.py. One wonders how things ever compiled. 
+
+----------
+mcadler     Date: Sat Nov 30 23:27:57 EST 2013  CSN: CSN-leap-498
+                  Sun Dec  1 04:27:57 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          497 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory-utils.bsv Locally Modified          497 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-utils.bsv Locally Modified          497 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Modified          497 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/latency
+ connections-latency.bsv   Locally Modified          497 
+
+LEAP_ prefix on all LEAP statistics.

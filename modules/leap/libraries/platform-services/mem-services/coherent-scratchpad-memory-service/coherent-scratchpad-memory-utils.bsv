@@ -41,24 +41,26 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
     // interface:
     ();
 
+    String tag_prefix = "LEAP_" + tagPrefix;
+
     STAT_ID statIDs[9] = {
-        statName(tagPrefix + "COH_SCRATCH_LOAD_HIT",
+        statName(tag_prefix + "COH_SCRATCH_LOAD_HIT",
                  descPrefix + "Coherent scratchpad load hits"),
-        statName(tagPrefix + "COH_SCRATCH_LOAD_MISS",
+        statName(tag_prefix + "COH_SCRATCH_LOAD_MISS",
                  descPrefix + "Coherent scratchpad load misses"),
-        statName(tagPrefix + "COH_SCRATCH_STORE_HIT",
+        statName(tag_prefix + "COH_SCRATCH_STORE_HIT",
                  descPrefix + "Coherent scratchpad store hits"),
-        statName(tagPrefix + "COH_SCRATCH_STORE_CACHELINE_MISS",
+        statName(tag_prefix + "COH_SCRATCH_STORE_CACHELINE_MISS",
                  descPrefix + "Coherent scratchpad store cache-line misses"),
-        statName(tagPrefix + "COH_SCRATCH_STORE_PERMISSION_MISS",
+        statName(tag_prefix + "COH_SCRATCH_STORE_PERMISSION_MISS",
                  descPrefix + "Coherent scratchpad store permission misses"),
-        statName(tagPrefix + "COH_SCRATCH_SELF_INVAL",
+        statName(tag_prefix + "COH_SCRATCH_SELF_INVAL",
                  descPrefix + "Coherent scratchpad self invalidate"),
-        statName(tagPrefix + "COH_SCRATCH_SELF_FLUSH",
+        statName(tag_prefix + "COH_SCRATCH_SELF_FLUSH",
                  descPrefix + "Coherent scratchpad self flush"),
-        statName(tagPrefix + "COH_SCRATCH_COH_INVAL",
+        statName(tag_prefix + "COH_SCRATCH_COH_INVAL",
                  descPrefix + "Coherent scratchpad invalidate due to coherence"),
-        statName(tagPrefix + "COH_SCRATCH_COH_FLUSH",
+        statName(tag_prefix + "COH_SCRATCH_COH_FLUSH",
                  descPrefix + "Coherent scratchpad flush due to coherence")
 
     };

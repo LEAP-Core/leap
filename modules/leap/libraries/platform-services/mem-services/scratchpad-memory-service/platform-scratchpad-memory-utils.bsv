@@ -42,14 +42,16 @@ module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(String tagPrefix,
     // interface:
     ();
 
+    String tag_prefix = "LEAP_" + tagPrefix;
+
     STAT_ID statIDs[4] = {
-        statName(tagPrefix + "SCRATCH_LOAD_HIT",
+        statName(tag_prefix + "SCRATCH_LOAD_HIT",
                  descPrefix + "Scratchpad load hits"),
-        statName(tagPrefix + "SCRATCH_LOAD_MISS",
+        statName(tag_prefix + "SCRATCH_LOAD_MISS",
                  descPrefix + "Scratchpad load misses"),
-        statName(tagPrefix + "SCRATCH_STORE_HIT",
+        statName(tag_prefix + "SCRATCH_STORE_HIT",
                  descPrefix + "Scratchpad store hits"),
-        statName(tagPrefix + "SCRATCH_STORE_MISS",
+        statName(tag_prefix + "SCRATCH_STORE_MISS",
                  descPrefix + "Scratchpad store misses")
     };
     STAT_VECTOR#(4) sv <- mkStatCounter_Vector(statIDs);
@@ -96,34 +98,36 @@ module [CONNECTED_MODULE] mkBasicScratchpadPrefetchStats#(String tagPrefix,
     STAT_ID prefetchStatIDs[9];
     STAT_ID learnerStatIDs[ valueOf(n_STATS) ];
 
-    prefetchStatIDs[0] = statName(tagPrefix  + "SCRATCH_PREFETCH_HIT", 
+    String tag_prefix = "LEAP_" + tagPrefix;
+
+    prefetchStatIDs[0] = statName(tag_prefix  + "SCRATCH_PREFETCH_HIT", 
                          descPrefix + "Scratchpad prefetch hits");
-    prefetchStatIDs[1] = statName(tagPrefix  + "SCRATCH_PREFETCH_DROP_BUSY", 
+    prefetchStatIDs[1] = statName(tag_prefix  + "SCRATCH_PREFETCH_DROP_BUSY", 
                          descPrefix + "Scratchpad prefetch reqs dropped by busy");
-    prefetchStatIDs[2] = statName(tagPrefix  + "SCRATCH_PREFETCH_DROP_HIT", 
+    prefetchStatIDs[2] = statName(tag_prefix  + "SCRATCH_PREFETCH_DROP_HIT", 
                          descPrefix + "Scratchpad prefetch reqs dropped by hit");
-    prefetchStatIDs[3] = statName(tagPrefix  + "SCRATCH_PREFETCH_LATE", 
+    prefetchStatIDs[3] = statName(tag_prefix  + "SCRATCH_PREFETCH_LATE", 
                          descPrefix + "Scratchpad late prefetch reqs");
-    prefetchStatIDs[4] = statName(tagPrefix  + "SCRATCH_PREFETCH_USELESS", 
+    prefetchStatIDs[4] = statName(tag_prefix  + "SCRATCH_PREFETCH_USELESS", 
                          descPrefix + "Scratchpad useless prefetch reqs");
-    prefetchStatIDs[5] = statName(tagPrefix  + "SCRATCH_PREFETCH_ISSUE", 
+    prefetchStatIDs[5] = statName(tag_prefix  + "SCRATCH_PREFETCH_ISSUE", 
                          descPrefix + "Scratchpad prefetch reqs issued");
-    prefetchStatIDs[6] = statName(tagPrefix  + "SCRATCH_PREFETCH_LEARN", 
+    prefetchStatIDs[6] = statName(tag_prefix  + "SCRATCH_PREFETCH_LEARN", 
                          descPrefix + "Scratchpad prefetcher learns");
-    prefetchStatIDs[7] = statName(tagPrefix  + "SCRATCH_PREFETCH_CONFLICT", 
+    prefetchStatIDs[7] = statName(tag_prefix  + "SCRATCH_PREFETCH_CONFLICT", 
                          descPrefix + "Scratchpad prefetch learner conflicts");
-    prefetchStatIDs[8] = statName(tagPrefix  + "SCRATCH_PREFETCH_ILLEGAL", 
+    prefetchStatIDs[8] = statName(tag_prefix  + "SCRATCH_PREFETCH_ILLEGAL", 
                          descPrefix + "Scratchpad uncacheable prefetch reqs");
     
     for (Integer i = 0; i < valueOf(n_LEARNERS); i = i+1)
     begin
-        learnerStatIDs[0+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_HIT",
+        learnerStatIDs[0+4*i] = statName(tag_prefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_HIT",
                                 descPrefix + "Scratchpad prefetch learner "+integerToString(i)+" hits");
-        learnerStatIDs[1+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_ISSUE", 
+        learnerStatIDs[1+4*i] = statName(tag_prefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_ISSUE", 
                                 descPrefix + "Scratchpad prefetch reqs from learner "+integerToString(i));
-        learnerStatIDs[2+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_STRIDE", 
+        learnerStatIDs[2+4*i] = statName(tag_prefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_STRIDE", 
                                 descPrefix + "Scratchpad prefetch stride from learner "+integerToString(i));
-        learnerStatIDs[3+4*i] = statName(tagPrefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_LA_DIST", 
+        learnerStatIDs[3+4*i] = statName(tag_prefix  + "SCRATCH_PREFETCH_L"+integerToString(i)+"_LA_DIST", 
                                 descPrefix + "Scratchpad prefetch lookahead dist from learner "+integerToString(i));
     end
 

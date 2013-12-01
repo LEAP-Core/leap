@@ -53,8 +53,8 @@ module [CONNECTED_MODULE] mkSoftConnectionLatencyInfo (Empty);
     //  be a good use of time. Instead, I will fill in the last vector with 
     //  some garbage names... 
     function genNames(Integer i);
-        String s = "XXX Garbage Stat " + integerToString(i) + integerToString(synth_plat_uid)+ integerToString(synth_local_uid);
-        return statName(s,s);
+        String s = "LEAP_Garbage_Stat_" + integerToString(i) + integerToString(synth_plat_uid) + integerToString(synth_local_uid);
+        return statName(s, s);
     endfunction
 
     Vector#(16,STAT_ID) baseID = genWith(genNames);
@@ -70,11 +70,11 @@ module [CONNECTED_MODULE] mkSoftConnectionLatencyInfo (Empty);
             let elem = List::head(info);
             messageM("LATENCY: " + elem.sendName);
 
-            let id = statName(elem.sendName + "_SENT_"+ integerToString(synth_plat_uid)+ integerToString(synth_local_uid), elem.sendName + "_SENT_" + integerToString(synth_plat_uid)+ integerToString(synth_local_uid));
+            let id = statName("LEAP_" + elem.sendName + "_SENT_"+ integerToString(synth_plat_uid)+ integerToString(synth_local_uid), elem.sendName + "_SENT_" + integerToString(synth_plat_uid)+ integerToString(synth_local_uid));
 
             tempID[index] = id;
             incrs[index] = elem.control.incrStat;
-            if(index + 1 == 16)
+            if (index + 1 == 16)
             begin
                 index = 0;
                 STAT_ID ids[16] = vectorToArray(tempID);

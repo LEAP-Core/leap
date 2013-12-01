@@ -124,11 +124,11 @@ module [CONNECTED_MODULE] mkScratchpadConnectorSingle#(FIFO#(SCRATCHPAD_RRR_REQ)
 
     STAT_ID statIDs[2];
 
-    statIDs[0] = statName("SCRATCHPAD_LOCAL_REQUESTS",
+    statIDs[0] = statName("LEAP_SCRATCHPAD_LOCAL_REQUESTS",
                           "Requests from the local scratchpads");
     let statLocalReq = 0;
 
-    statIDs[1] = statName("SCRATCHPAD_LOCAL_RESPONSES",
+    statIDs[1] = statName("LEAP_SCRATCHPAD_LOCAL_RESPONSES",
                           "Responses from the local scratchpads");
     let statLocalResp = 1;
 
@@ -185,19 +185,19 @@ module [CONNECTED_MODULE] mkScratchpadConnectorMultiMaster#(FIFO#(SCRATCHPAD_RRR
 
     STAT_ID statIDs[4];
 
-    statIDs[0] = statName("SCRATCHPAD_LOCAL_REQUESTS",
+    statIDs[0] = statName("LEAP_SCRATCHPAD_LOCAL_REQUESTS",
                           "Requests from the local scratchpads");
     let statLocalReq = 0;
 
-    statIDs[1] = statName("SCRATCHPAD_LOCAL_RESPONSES",
+    statIDs[1] = statName("LEAP_SCRATCHPAD_LOCAL_RESPONSES",
                           "Responses from the local scratchpads");
     let statLocalResp = 1;
 
-    statIDs[2] = statName("SCRATCHPAD_REMOTE_REQUESTS",
+    statIDs[2] = statName("LEAP_SCRATCHPAD_REMOTE_REQUESTS",
                           "Requests from the remote scratchpads");
     let statRemoteReq = 2;
 
-    statIDs[3] = statName("SCRATCHPAD_REMOTE_RESPONSES",
+    statIDs[3] = statName("LEAP_SCRATCHPAD_REMOTE_RESPONSES",
                           "Responses from the remote scratchpads");
     let statRemoteResp = 3;
 
