@@ -10,9 +10,11 @@
 %public  coherent-scratchpad-memory-client.bsv
 %public  coherent-scratchpad-memory-utils.bsv
 
-%param --dynamic COHERENT_SCRATCHPAD_PVT_CACHE_MODE                    1 "Bit 1: 0 disabled, 1 enabled prefetcher / Bit 0: 0 disabled, 1 enabled cache clean write-back"
+%param --dynamic COHERENT_SCRATCHPAD_PVT_CACHE_MODE                    1  "Bit 1: 0 disabled, 1 enabled prefetcher / Bit 0: 0 disabled, 1 enabled cache clean write-back"
 
 %param --global COHERENT_SCRATCHPAD_DEBUG_ENABLE                       1  "Enables the coherent scratchpad debug"
+
+%param --global COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE                 0  "0 Use non-token ring, 1 use token ring"
 
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_ENTRIES               1024  "Coherent scratchpad client private cache entries (must be a power of 2)"
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM    32  "Number of prefetch learners in scratchpad private cache (must be a power of 2)"

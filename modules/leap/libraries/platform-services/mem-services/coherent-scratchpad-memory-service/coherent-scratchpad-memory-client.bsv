@@ -697,10 +697,14 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
 
     // Addressable ring (self-enumeration)
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_UNACTIVATED_REQ) link_mem_req <-
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingDynNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Req"):
         mkConnectionTokenRingDynNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Req");
 
     // Addressable ring
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read()):
         mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read());
 
     // Broadcast ring

@@ -181,11 +181,16 @@ module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpad
     // =======================================================================
 
     // Addressable ring
-    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <-
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0):
         mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0);
+
 
     // Addressable ring
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0):
         mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0);
 
     // Broadcast ring
@@ -588,10 +593,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpad
     endrule
 
     //
-    // rshrCleanPutLookup --
-    //     Allocate an entry for a PUTX request (that is not clean write-back) in rshr. 
-    // If the entry is already taken, store PUTX request into putReqRetryQ and wait 
-    // until the entry is available for use.
+    // rshrCleanPutLookup
     //
     rule rshrCleanPutLookup (rshrLookupQ.first().reqType == COH_MSG_PUTX && rshrLookupQ.first().isCleanWB);
         let r = rshrLookupQ.first();

@@ -16916,3 +16916,16 @@ Directory modules/leap/libraries/soft-services/services/soft-connections/latency
  connections-latency.bsv   Locally Modified          497 
 
 LEAP_ prefix on all LEAP statistics.
+
+----------
+hjyang      Date: Fri Dec  6 16:19:51 EST 2013  CSN: CSN-leap-499
+                  Fri Dec  6 21:19:51 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-client.bsv Locally Modified          498 
+ coherent-scratchpad-memory-service.awb Locally Modified          498 
+ coherent-scratchpad-memory-controller.bsv Locally Modified          498 
+
+Change coherent scratchpad req/resp rings to non-token rings. 
+The ring connection type can be changed using the COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE parameter.
