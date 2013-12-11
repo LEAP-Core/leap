@@ -449,7 +449,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
               Div#(t_CACHE_WORD_SZ, 8, t_CACHE_MASK_SZ),
 
               // Entry index.  Round n_ENTRIES request up to a power of 2.
-              Log#(n_ENTRIES, t_CACHE_IDX_SZ),
+              Log#(n_ENTRIES, t_ENTRY_IDX_SZ),
+              // Cache index size needs to be no larger than the memory address
+              NumAlias#(TMin#(t_ENTRY_IDX_SZ, t_CACHE_ADDR_SZ), t_CACHE_IDX_SZ),
               Alias#(RL_COH_DM_CACHE_IDX#(t_CACHE_IDX_SZ), t_CACHE_IDX),
 
               // Tag is the address bits other than the entry index
@@ -1175,7 +1177,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             // if the cache state is in transient state or mshr is still waiting 
             // for the PUTX completion, it is MSHR's responsibility to send responses
             debugLog.record($format("    Cache: remoteLookup: TRANS state: addr=0x%x, entry=0x%x", r.addr, idx));
-            mshr.activatedReq(truncate(idx), r.addr, f.ownReq, f.reqIdx, f.reqType);
+            mshr.activatedReq(truncateNP(idx), r.addr, f.ownReq, f.reqIdx, f.reqType);
             resp_sent = True;
         end
             
@@ -1210,7 +1212,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         Bool need_fill       = True;
         Bool need_bypass     = False;
         Bool need_writeback  = False;
-        t_MSHR_IDX mshr_idx  = truncate(idx);
+        t_MSHR_IDX mshr_idx  = truncateNP(idx);
 
         if (cur_entry.state != COH_DM_CACHE_STATE_I)
         begin
@@ -1325,7 +1327,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         Bool need_retry      = False;
         Bool need_bypass     = False;
         Bool need_writeback  = False;
-        t_MSHR_IDX mshr_idx  = truncate(idx);
+        t_MSHR_IDX mshr_idx  = truncateNP(idx);
 
         // New data to write
         match {.w_data, .w_mask} = reqInfo_writeData.sub(f.writeDataIdx);
@@ -1432,7 +1434,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     rule fillReq (True);
         match {.r, .is_read} = fillReqQ.first();
         fillReqQ.deq();
-        t_MSHR_IDX mshr_idx = truncate(cacheIdx(r));
+        t_MSHR_IDX mshr_idx = truncateNP(cacheIdx(r));
         let req_info = r.reqInfo.LocalReqInfo;
         if (is_read) // read miss fill
         begin

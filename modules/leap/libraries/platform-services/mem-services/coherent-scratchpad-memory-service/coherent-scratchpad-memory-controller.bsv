@@ -114,16 +114,45 @@ typedef 16 COH_SCRATCH_CONTROLLER_GET_REQ_TABLE_ENTRIES;
 // mkCoherentScratchpadController --
 //     Initialize a controller for a new coherent scratchpad memory region.
 //
-//     This module handles coherence requests/responses within a particular 
-//     coherence region and forward requests/responses to/from the next 
-//     level memory (central cache) through a private scratchpad interface. 
-//     Under the snoopy-based protocol, this module serves as an ordering 
-//     point and stores cache owner bits in a private scratchpad. 
-//
 module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpadID, 
                                                           Integer ownerbitScratchpadID,
                                                           NumTypeParam#(t_IN_ADDR_SZ) inAddrSz,
-                                                          NumTypeParam#(t_IN_DATA_SZ) inDataSz)
+                                                          NumTypeParam#(t_IN_DATA_SZ) inDataSz,
+                                                          COH_SCRATCH_CONFIG conf)
+    // interface:
+    ();
+    
+    if (conf.cacheMode == COH_SCRATCH_CACHED)
+    begin
+        // Each coherent scratchpad client has a private cache.
+        mkCachedCoherentScratchpadController(dataScratchpadID, ownerbitScratchpadID, inAddrSz, inDataSz);
+    end
+    else
+    begin
+        // There are no private caches in this coherence domain. 
+        // Coherent scratchpad clients just send remote reads/writes to the centralized 
+        // private scratchpad inside the conherent scratchpad controller
+        mkUncachedCoherentScratchpadController(dataScratchpadID, inAddrSz, inDataSz);
+    end
+
+endmodule
+
+//
+// mkCachedCoherentScratchpadController --
+//     This module handles the situation when each coherent scratchpad client 
+//     has a private cache. 
+//
+//     The controller handles coherence requests/responses within a particular 
+//     coherence region and forward requests/responses to/from the next 
+//     level memory (central cache) through a private scratchpad interface. 
+//
+//     Under the snoopy-based protocol, this module serves as an ordering point 
+//     and stores cache owner bits in a private scratchpad. 
+//
+module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScratchpadID, 
+                                                                Integer ownerbitScratchpadID,
+                                                                NumTypeParam#(t_IN_ADDR_SZ) inAddrSz,
+                                                                NumTypeParam#(t_IN_DATA_SZ) inDataSz)
     // interface:
     ()
     provisos (
@@ -839,6 +868,195 @@ module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpad
             end
         endcase
 
+    endrule
+
+endmodule
+
+typedef Bit#(2) COH_SCRATCH_CTRLR_WRITE_DATA_IDX;
+
+typedef struct
+{
+    COH_SCRATCH_PORT_NUM            requester;
+    COH_SCRATCH_REMOTE_CLIENT_META  clientMeta;
+    RL_CACHE_GLOBAL_READ_META       globalReadMeta;
+}
+COH_SCRATCH_CTRLR_REMOTE_READ_REQ_INFO
+    deriving (Eq, Bits);
+
+typedef struct
+{
+    COH_SCRATCH_PORT_NUM              requester;
+    t_ADDR                            addr;
+    COH_SCRATCH_CTRLR_WRITE_DATA_IDX  writeDataIdx;
+    COH_SCRATCH_REMOTE_CLIENT_META    clientMeta;
+    RL_CACHE_GLOBAL_READ_META         globalReadMeta;
+    Bool                              isRead;
+}
+COH_SCRATCH_CTRLR_REMOTE_REQ#(type t_ADDR)
+    deriving (Eq, Bits);
+
+//
+// mkUncachedCoherentScratchpadController --
+//     This module handles the situation where there are no private caches
+//     in this coherence domain. 
+//
+//     The controller collects the remote read/write requests from coherent 
+///    scratchpad clients and forwards them to the next level memory (central 
+//     cache) through a private scratchpad interface. It also sends the private
+//     scratchpad responses back to the coherent scratchpad clients. 
+//
+module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataScratchpadID, 
+                                                                  NumTypeParam#(t_IN_ADDR_SZ) inAddrSz,
+                                                                  NumTypeParam#(t_IN_DATA_SZ) inDataSz)
+    // interface:
+    ()
+    provisos (Alias#(Bit#(t_IN_ADDR_SZ), t_ADDR),
+              Alias#(Bit#(t_IN_DATA_SZ), t_DATA),
+              // Coherence messages
+              Alias#(COH_SCRATCH_REMOTE_REQ#(t_ADDR, t_DATA), t_COH_SCRATCH_REQ),
+              Alias#(COH_SCRATCH_REMOTE_READ_RESP#(t_DATA), t_COH_SCRATCH_READ_RESP),
+              Alias#(COH_SCRATCH_REMOTE_RESP#(t_DATA), t_COH_SCRATCH_RESP),
+              Alias#(COH_SCRATCH_CTRLR_REMOTE_REQ#(t_ADDR), t_MEM_REQ),
+              Bits#(COH_SCRATCH_CTRLR_WRITE_DATA_IDX, t_WRITE_DATA_IDX_SZ),
+              NumAlias#(TExp#(t_WRITE_DATA_IDX_SZ), n_WRITES));
+
+    String debugLogFilename = "coherent_scratchpad_" + integerToString(dataScratchpadID) + ".out";
+    DEBUG_FILE debugLog <- (`COHERENT_SCRATCHPAD_DEBUG_ENABLE == 1)?
+                           mkDebugFile(debugLogFilename):
+                           mkDebugFileNull(debugLogFilename); 
+
+    // ===============================================================================
+    //
+    // Coherent scratchpad clients and this controller are connected via rings.
+    //
+    // Two rings are required to avoid deadlocks: one for requests, one for responses.
+    //
+    // ===============================================================================
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0):
+        mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0);
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_RESP) link_mem_resp <-
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0):
+        mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0);
+
+    //
+    // Instantiate a private scratchpad that serves as the interface to read/write data from/to local memory
+    //
+    SCRATCHPAD_CONFIG dataMemConfig = defaultValue;
+    dataMemConfig.cacheMode = SCRATCHPAD_CACHED;
+    MEMORY_IFC#(t_ADDR, t_DATA) dataMem  <- mkScratchpad(dataScratchpadID, dataMemConfig);
+
+    MEMORY_HEAP_IMM#(COH_SCRATCH_CTRLR_WRITE_DATA_IDX, t_DATA) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
+    
+    FIFOF#(t_MEM_REQ) incomingReqQ                                            <- mkSizedFIFOF(2*valueOf(n_WRITES));
+    FIFOF#(COH_SCRATCH_CTRLR_REMOTE_READ_REQ_INFO) dataMemReqQ                <- mkSizedFIFOF(32);
+    FIFOF#(COH_SCRATCH_PORT_NUM) ackRespQ                                     <- mkBypassFIFOF();
+    FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_READ_RESP)) memRespQ   <- mkBypassFIFOF();
+    FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_RESP)) outputRespQ     <- mkSizedFIFOF(8);
+
+    //
+    // collectClientReq --
+    //     Collect scratchpad client requests from the request ring.
+    // For write and fence requests, send ack back to the clients. 
+    //
+    rule colletClientReq (True);
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        t_MEM_REQ lookup_req = ?;
+        if (req matches tagged COH_SCRATCH_REMOTE_READ .read_req)
+        begin
+            lookup_req.requester      = read_req.requester;
+            lookup_req.addr           = read_req.addr;
+            lookup_req.clientMeta     = read_req.clientMeta;
+            lookup_req.globalReadMeta = read_req.globalReadMeta;
+            lookup_req.isRead         = True;
+            incomingReqQ.enq(lookup_req);
+            debugLog.record($format("  collect READ request: sender=%d, addr=0x%x, meta=0x%x",  
+                            lookup_req.requester, lookup_req.addr, lookup_req.clientMeta));
+        end
+        else if (req matches tagged COH_SCRATCH_REMOTE_WRITE .write_req)
+        begin
+            let data_idx <- reqInfo_writeData.malloc();
+            reqInfo_writeData.upd(data_idx, write_req.data);
+            
+            lookup_req.requester      = write_req.requester;
+            lookup_req.addr           = write_req.addr;
+            lookup_req.writeDataIdx   = data_idx;
+            lookup_req.isRead         = False;
+            incomingReqQ.enq(lookup_req);
+            ackRespQ.enq(write_req.requester);
+            debugLog.record($format("  collect WRITE request: sender=%d, addr=0x%x, data=0x%x", 
+                            lookup_req.requester, lookup_req.addr, write_req.data));
+        end
+    endrule
+
+    rule accessDataMem (True);
+        let req = incomingReqQ.first();
+        incomingReqQ.deq();
+
+        if (req.isRead) // read request
+        begin
+            dataMemReqQ.enq(COH_SCRATCH_CTRLR_REMOTE_READ_REQ_INFO { requester: req.requester,
+                                                                     clientMeta: req.clientMeta,
+                                                                     globalReadMeta: req.globalReadMeta });
+            dataMem.readReq(req.addr);
+            debugLog.record($format("  accessDataMem: READ sender=%d, addr=0x%x, meta=0x%x",  
+                             req.requester, req.addr, req.clientMeta));
+        end
+        else // write request
+        begin
+            let w_data = reqInfo_writeData.sub(req.writeDataIdx);
+            reqInfo_writeData.free(req.writeDataIdx);
+            dataMem.write(req.addr, w_data); 
+            debugLog.record($format("  accessDataMem: WRTIE sender=%d, addr=0x%x, data=0x%x",  
+                             req.requester, req.addr, w_data));
+        end
+
+    endrule
+
+    rule recvDataResp (True);
+        let data <- dataMem.readRsp();
+        let r = dataMemReqQ.first();
+        dataMemReqQ.deq();
+        memRespQ.enq(tuple2(r.requester, COH_SCRATCH_REMOTE_READ_RESP { val: data,
+                                                                        clientMeta: r.clientMeta, 
+                                                                        globalReadMeta: r.globalReadMeta }));
+        debugLog.record($format("    recvDataResp: send data response: dest=%d, val=0x%x, meta=0x%x", r.requester, data, r.clientMeta));
+    endrule
+
+    Reg#(Bit#(2)) ackRespArb <- mkReg(0);
+
+    (* fire_when_enabled *)
+    rule sendToOutputRespQ (True);
+        if (ackRespQ.notEmpty() && ((ackRespArb != 0) || !memRespQ.notEmpty()))
+        begin
+            let ack = ackRespQ.first();
+            ackRespQ.deq();
+            outputRespQ.enq(tuple2(ack, tagged COH_SCRATCH_REMOTE_WRITE));    
+            debugLog.record($format("    sendToOutputRespQ: WRITE ACK response: dest=%d", ack)); 
+        end
+        else
+        begin
+            let mem_resp = memRespQ.first();
+            memRespQ.deq();
+            outputRespQ.enq(tuple2(tpl_1(mem_resp), tagged COH_SCRATCH_REMOTE_READ tpl_2(mem_resp)));
+            debugLog.record($format("    sendToOutputRespQ: READ DATA response: dest=%d, val=0x%x, meta=0x%x", 
+                            tpl_1(mem_resp), tpl_2(mem_resp).val, tpl_2(mem_resp).clientMeta));
+        end
+        ackRespArb <= ackRespArb + 1;
+    endrule
+
+    (* fire_when_enabled *)
+    rule sendCoherentScratchpadResp (True);
+        let resp = outputRespQ.first();
+        outputRespQ.deq();
+        link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
     endrule
 
 endmodule

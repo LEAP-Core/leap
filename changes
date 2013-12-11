@@ -16929,3 +16929,22 @@ Directory modules/leap/libraries/platform-services/mem-services/coherent-scratch
 
 Change coherent scratchpad req/resp rings to non-token rings. 
 The ring connection type can be changed using the COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE parameter.
+
+----------
+hjyang      Date: Wed Dec 11 14:38:17 EST 2013  CSN: CSN-leap-500
+                  Wed Dec 11 19:38:17 UTC 2013
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          499 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-interfaces.bsv Locally Modified          499 
+ coherent-scratchpad-memory-client.bsv Locally Modified          499 
+ coherent-scratchpad-memory-controller.bsv Locally Modified          499 
+
+Add the remote access (no private cache) supoort for coherent scratchpads. 
+
+In remote access mode, reads/writes are sent to the centralized scratchpad. 
+User can choose whether to use coherent caches or remote access using a 
+config ogject that is passed into coherent scratchpads as an argument. 

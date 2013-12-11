@@ -56,6 +56,10 @@ typedef SCRATCHPAD_MEM_VALUE COH_SCRATCH_MEM_VALUE;
 typedef `COHERENT_SCRATCHPAD_CLIENT_META_BITS COH_SCRATCH_CLIENT_META_SZ;
 typedef Bit#(COH_SCRATCH_CLIENT_META_SZ) COH_SCRATCH_CLIENT_META;
 
+// If coherent scratchpad clients do not have private caches, the client's 
+// request information is sent along with the remote coherent scratchpad request
+typedef SCRATCHPAD_CLIENT_READ_UID COH_SCRATCH_REMOTE_CLIENT_META;
+
 //
 // COH_SCRATCH_CTRL_META is the index of the entry that stores the associated 
 // PUTX request in the coherent scratchpad controller's request status 
@@ -69,10 +73,42 @@ typedef Bit#(COH_SCRATCH_CONTROLLER_META_SZ) COH_SCRATCH_CTRL_META;
 typedef TMax#(COH_SCRATCH_CLIENT_META_SZ, COH_SCRATCH_CONTROLLER_META_SZ) COH_SCRATCH_META_SZ;
 typedef Bit#(COH_SCRATCH_META_SZ) COH_SCRATCH_META;
 
+//
+// Caching options for coherent scratchpads.
+//
+typedef enum
+{
+    // Each coherent scratchpad has a private coherent cache
+    COH_SCRATCH_CACHED,
+    // Each coherent scratchpad does not have a private cache
+    // All reads/writes need to be sent to the centralized private scratchpad
+    COH_SCRATCH_UNCACHED
+}
+COH_SCRATCH_CACHE_MODE
+    deriving (Eq, Bits);
+
+//
+// Coherent scratchpad configuration (passed to the constructors of coherent 
+// scratchpad controller and client)
+//
+typedef struct
+{
+    COH_SCRATCH_CACHE_MODE cacheMode;
+}
+COH_SCRATCH_CONFIG
+    deriving (Eq, Bits);
+
+instance DefaultValue#(COH_SCRATCH_CONFIG);
+    defaultValue = COH_SCRATCH_CONFIG {
+        cacheMode: COH_SCRATCH_CACHED
+    };
+endinstance
+
 // ========================================================================
 //
 // Data structures flowing through soft connections between coherent 
-// scratchpad clients and the coherent scratchpad controller. 
+// scratchpad clients (with private caches) and the coherent scratchpad 
+// controller.
 //
 // ========================================================================
 
@@ -166,5 +202,60 @@ typedef struct
     Bool                       retry;
 }
 COH_SCRATCH_RESP
+    deriving (Eq, Bits);
+
+
+// ========================================================================
+//
+// Data structures flowing through soft connections between coherent 
+// scratchpad clients (without private caches) and the coherent scratchpad 
+// controller.
+//
+// ========================================================================
+
+typedef struct
+{
+    COH_SCRATCH_PORT_NUM            requester;
+    t_ADDR                          addr;
+    COH_SCRATCH_REMOTE_CLIENT_META  clientMeta;
+    RL_CACHE_GLOBAL_READ_META       globalReadMeta;
+}
+COH_SCRATCH_REMOTE_READ_REQ#(type t_ADDR)
+    deriving (Eq, Bits);
+
+typedef struct
+{
+    COH_SCRATCH_PORT_NUM            requester;
+    t_ADDR                          addr;
+    t_DATA                          data;
+}
+COH_SCRATCH_REMOTE_WRITE_REQ#(type t_ADDR,
+                              type t_DATA)
+    deriving (Eq, Bits);
+
+typedef union tagged 
+{
+    COH_SCRATCH_REMOTE_READ_REQ#(t_ADDR)           COH_SCRATCH_REMOTE_READ;
+    COH_SCRATCH_REMOTE_WRITE_REQ#(t_ADDR, t_DATA)  COH_SCRATCH_REMOTE_WRITE;
+}
+COH_SCRATCH_REMOTE_REQ#(type t_ADDR,
+                        type t_DATA)
+    deriving (Eq, Bits);
+
+typedef struct
+{
+    t_DATA                          val;
+    COH_SCRATCH_REMOTE_CLIENT_META  clientMeta;
+    RL_CACHE_GLOBAL_READ_META       globalReadMeta;
+}
+COH_SCRATCH_REMOTE_READ_RESP#(type t_DATA)
+    deriving (Eq, Bits);
+
+typedef union tagged 
+{
+    COH_SCRATCH_REMOTE_READ_RESP#(t_DATA)  COH_SCRATCH_REMOTE_READ;
+    void                                   COH_SCRATCH_REMOTE_WRITE;
+}
+COH_SCRATCH_REMOTE_RESP#(type t_DATA)
     deriving (Eq, Bits);
 
