@@ -22,12 +22,13 @@
 `include "awb/provides/soft_connections.bsh"
 
 
-// COH_SCRATCH_STATS_CONSTRUCTOR
+// coherent scratchpad stats constructor
 
 // A function to instantiate a stat tracker. Passed to the multi-cached-memory
 // modules below.
 
-typedef function CONNECTED_MODULE#(Empty) f(RL_COH_CACHE_STATS stats) COH_SCRATCH_STATS_CONSTRUCTOR;
+typedef function CONNECTED_MODULE#(Empty) f(RL_COH_CACHE_STATS stats) COH_SCRATCH_CACHE_STATS_CONSTRUCTOR;
+typedef function CONNECTED_MODULE#(Empty) f(COH_SCRATCH_CONTROLLER_STATS stats) COH_SCRATCH_CONTROLLER_STATS_CONSTRUCTOR;
 
 //
 // mkBasicCoherentScratchpadCacheStats --
@@ -43,7 +44,7 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
 
     String tag_prefix = "LEAP_" + tagPrefix;
 
-    STAT_ID statIDs[9] = {
+    STAT_ID statIDs[11] = {
         statName(tag_prefix + "COH_SCRATCH_LOAD_HIT",
                  descPrefix + "Coherent scratchpad load hits"),
         statName(tag_prefix + "COH_SCRATCH_LOAD_MISS",
@@ -56,15 +57,19 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
                  descPrefix + "Coherent scratchpad store permission misses"),
         statName(tag_prefix + "COH_SCRATCH_SELF_INVAL",
                  descPrefix + "Coherent scratchpad self invalidate"),
-        statName(tag_prefix + "COH_SCRATCH_SELF_FLUSH",
-                 descPrefix + "Coherent scratchpad self flush"),
+        statName(tag_prefix + "COH_SCRATCH_SELF_DIRTY_FLUSH",
+                 descPrefix + "Coherent scratchpad self dirty flush due to capacity"),
+        statName(tag_prefix + "COH_SCRATCH_SELF_CLEAN_FLUSH",
+                 descPrefix + "Coherent scratchpad self clean flush due to capacity"),
         statName(tag_prefix + "COH_SCRATCH_COH_INVAL",
                  descPrefix + "Coherent scratchpad invalidate due to coherence"),
         statName(tag_prefix + "COH_SCRATCH_COH_FLUSH",
-                 descPrefix + "Coherent scratchpad flush due to coherence")
+                 descPrefix + "Coherent scratchpad flush due to coherence"),
+        statName(tag_prefix + "COH_SCRATCH_MSHR_RETRY",
+                 descPrefix + "Coherent scratchpad cache retry due to unavailable mshr entry")
 
     };
-    STAT_VECTOR#(9) sv <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(11) sv <- mkStatCounter_Vector(statIDs);
     
     rule readHit (stats.readHit());
         sv.incr(0);
@@ -93,19 +98,111 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
     rule dirtyEntryFlush (stats.dirtyEntryFlush());
         sv.incr(6);
     endrule
-
-    rule coherenceInval (stats.coherenceInval());
+    
+    rule cleanEntryFlush (stats.cleanEntryFlush());
         sv.incr(7);
     endrule
 
-    rule coherenceFlush (stats.coherenceFlush());
+    rule coherenceInval (stats.coherenceInval());
         sv.incr(8);
+    endrule
+
+    rule coherenceFlush (stats.coherenceFlush());
+        sv.incr(9);
+    endrule
+    
+    rule mshrRetry (stats.mshrRetry());
+        sv.incr(10);
     endrule
 
 endmodule
 
-
 module [CONNECTED_MODULE] mkNullCoherentScratchpadCacheStats#(RL_COH_CACHE_STATS stats)
+    // interface:
+    ();
+endmodule
+
+//
+// mkBasicCoherentScratchpadControllerStats --
+//     Shim between an COH_SCRATCH_CONTROLLER_STATS interface and statistics counters.
+//     Tag and description prefixes allow the caller to define the prefixes
+//     of the statistic.
+//
+module [CONNECTED_MODULE] mkBasicCoherentScratchpadControllerStats#(String tagPrefix,
+                                                                    String descPrefix,
+                                                                    COH_SCRATCH_CONTROLLER_STATS stats)
+    // interface:
+    ();
+
+    String tag_prefix = "LEAP_" + tagPrefix;
+
+    STAT_ID statIDs[10] = {
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_CLEAN_PUTX",
+                 descPrefix + "Coherence controller clean putX received"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_DIRTY_PUTX",
+                 descPrefix + "Coherence controller dirty putX received"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_GETS",
+                 descPrefix + "Coherence controller getS received"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_GETX",
+                 descPrefix + "Coherence controller getX received"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_WRITEBACK",
+                 descPrefix + "Coherence controller write-back data received"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_OWNERBIT",
+                 descPrefix + "Coherence controller ownerbit checkout"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_MEM_DATA",
+                 descPrefix + "Coherence controller data received from memory"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_RESP_SENT",
+                 descPrefix + "Coherence controller response sent"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_RETRY_PUT",
+                 descPrefix + "Coherence controller retry put request"),
+        statName(tag_prefix + "COH_SCRATCH_CTRLR_RETRY_GET",
+                 descPrefix + "Coherence controller retry get request")
+    };
+    STAT_VECTOR#(10) sv <- mkStatCounter_Vector(statIDs);
+    
+    rule cleanPutxReceived (stats.cleanPutxReceived());
+        sv.incr(0);
+    endrule
+
+    rule dirtyPutxReceived (stats.dirtyPutxReceived());
+        sv.incr(1);
+    endrule
+
+    rule getsReceived (stats.getsReceived());
+        sv.incr(2);
+    endrule
+
+    rule getxReceived (stats.getxReceived());
+        sv.incr(3);
+    endrule
+
+    rule writebackReceived (stats.writebackReceived());
+        sv.incr(4);
+    endrule
+
+    rule ownerbitCheckout (stats.ownerbitCheckout());
+        sv.incr(5);
+    endrule
+
+    rule dataReceived (stats.dataReceived());
+        sv.incr(6);
+    endrule
+    
+    rule respSent (stats.respSent());
+        sv.incr(7);
+    endrule
+
+    rule putRetry (stats.putRetry());
+        sv.incr(8);
+    endrule
+
+    rule getRetry (stats.getRetry());
+        sv.incr(9);
+    endrule
+    
+endmodule
+
+module [CONNECTED_MODULE] mkNullCoherentScratchpadControllerStats#(COH_SCRATCH_CONTROLLER_STATS stats)
     // interface:
     ();
 endmodule

@@ -154,7 +154,7 @@ endmodule
 //
 module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
                                                                     COH_SCRATCH_CONFIG conf,
-                                                                    COH_SCRATCH_STATS_CONSTRUCTOR statsConstructor,
+                                                                    COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                     SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                     DEBUG_FILE debugLog)
     // interface:
@@ -211,7 +211,7 @@ endmodule
 // byteMask to perform partial writes. 
 //
 module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
-                                                                         COH_SCRATCH_STATS_CONSTRUCTOR statsConstructor,
+                                                                         COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                          DEBUG_FILE debugLog)
     // interface:
@@ -338,7 +338,7 @@ endmodule
 //     Only one data object is stored in one coherent scratchpad container. 
 //
 module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
-                                                                          COH_SCRATCH_STATS_CONSTRUCTOR statsConstructor,
+                                                                          COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                           SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                           DEBUG_FILE debugLog)
     // interface:
@@ -416,7 +416,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                                                                         Integer cacheModeParam,
                                                                         NumTypeParam#(n_CACHE_ENTRIES) nCacheEntries,
                                                                         NumTypeParam#(n_PREFETCH_LEARNER_SIZE) nPrefetchLearners,
-                                                                        COH_SCRATCH_STATS_CONSTRUCTOR statsConstructor,
+                                                                        COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                         SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                         DEBUG_FILE debugLog)
     // interface:

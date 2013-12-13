@@ -111,6 +111,23 @@ COH_SCRATCH_CONTROLLER_DATA_REQ
 typedef 16 COH_SCRATCH_CONTROLLER_GET_REQ_TABLE_ENTRIES;
 
 //
+// Statistics wires for coherent scratchpad controller.
+// When a line becomes true the coresponding statistic should be incremented.
+//
+interface COH_SCRATCH_CONTROLLER_STATS;
+    method Bool cleanPutxReceived();  // receive client's clean putX request
+    method Bool dirtyPutxReceived();  // receive client's dirty putX request
+    method Bool getsReceived();       // receive client's getS request
+    method Bool getxReceived();       // receive client's getX request
+    method Bool writebackReceived();  // receive client's write back response
+    method Bool ownerbitCheckout();   // checkout ownerbit from lower level memory
+    method Bool dataReceived();       // receive data from lower level memory
+    method Bool respSent();           // send out data response to clients
+    method Bool putRetry();          // retry putX because table entry is not available
+    method Bool getRetry();          // retry getX because table entry is not available
+endinterface: COH_SCRATCH_CONTROLLER_STATS
+
+//
 // mkCoherentScratchpadController --
 //     Initialize a controller for a new coherent scratchpad memory region.
 //
@@ -124,8 +141,9 @@ module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpad
     
     if (conf.cacheMode == COH_SCRATCH_CACHED)
     begin
+        let statsConstructor = mkBasicCoherentScratchpadControllerStats("Coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller_", "");
         // Each coherent scratchpad client has a private cache.
-        mkCachedCoherentScratchpadController(dataScratchpadID, ownerbitScratchpadID, inAddrSz, inDataSz);
+        mkCachedCoherentScratchpadController(dataScratchpadID, ownerbitScratchpadID, inAddrSz, inDataSz, statsConstructor);
     end
     else
     begin
@@ -152,7 +170,8 @@ endmodule
 module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScratchpadID, 
                                                                 Integer ownerbitScratchpadID,
                                                                 NumTypeParam#(t_IN_ADDR_SZ) inAddrSz,
-                                                                NumTypeParam#(t_IN_DATA_SZ) inDataSz)
+                                                                NumTypeParam#(t_IN_DATA_SZ) inDataSz,
+                                                                COH_SCRATCH_CONTROLLER_STATS_CONSTRUCTOR statsConstructor)
     // interface:
     ()
     provisos (
@@ -281,6 +300,18 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     Wire#(t_RSHR_IDX) rshrReleaseIdx                          <- mkWire();
     Wire#(t_GET_REQ_TABLE_IDX) ownerbitReqTableReleaseIdx     <- mkWire();
     PulseWire updFowardEntry                                  <- mkPulseWire();
+
+    // Controller stats wires
+    PulseWire cleanPutxReceivedW   <- mkPulseWire(); 
+    PulseWire dirtyPutxReceivedW   <- mkPulseWire();
+    PulseWire getsReceivedW        <- mkPulseWire();
+    PulseWire getxReceivedW        <- mkPulseWire(); 
+    PulseWire writebackReceivedW   <- mkPulseWire(); 
+    PulseWire ownerbitCheckoutW    <- mkPulseWire();
+    PulseWire dataReceivedW        <- mkPulseWire();
+    PulseWire respSentW            <- mkPulseWire();
+    PulseWire putRetryW            <- mkPulseWire(); 
+    PulseWire getRetryW            <- mkPulseWire();
 
     //
     // Convert address to rshr index and tag
@@ -555,6 +586,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 processGetRetry <= False;
             end
             debugLog.record($format("      rshrGetLookup: idx=0x%x, retry!", r.idx));
+            getRetryW.send();
         end
         else
         begin
@@ -569,10 +601,12 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             if (r.reqType == COH_MSG_GETS)
             begin
                 activated_req = tagged COH_SCRATCH_ACTIVATED_GETS get_req;
+                getsReceivedW.send();
             end
             else
             begin
                 activated_req = tagged COH_SCRATCH_ACTIVATED_GETX get_req;
+                getxReceivedW.send();
             end
 
             link_mem_activatedReq.sendToNext(activated_req);
@@ -600,6 +634,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 processPutRetry <= False;
             end
             debugLog.record($format("      rshrPutLookup: idx=0x%x, addr=0x%x, retry!", r.idx, r.addr));
+            putRetryW.send();
         end
         else // entry available
         begin
@@ -618,6 +653,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                           isCleanWB: False };
 
             link_mem_activatedReq.sendToNext(tagged COH_SCRATCH_ACTIVATED_PUTX put_req);
+            dirtyPutxReceivedW.send();
         end
     endrule
 
@@ -638,6 +674,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                       isCleanWB: True };
 
         link_mem_activatedReq.sendToNext(tagged COH_SCRATCH_ACTIVATED_PUTX put_req);
+        cleanPutxReceivedW.send();
     endrule
 
     //
@@ -699,6 +736,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 updFowardEntry.send();
                 debugLog.record($format("      rshrRespLookup: idx=0x%x, wait for future forwarding", r.idx));
             end
+            writebackReceivedW.send();
         end
     endrule
     
@@ -790,6 +828,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         begin
             ownerbitMem.write(r.addr, False);
             debugLog.record($format("      ownerbitMemCheckout: checkout ownerbitMem: addr=0x%x", r.addr));
+            ownerbitCheckoutW.send();
         end
         // release ownerbitReqTable entry
         ownerbitReqTable.upd(r.idx, tagged Invalid);
@@ -809,6 +848,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                             isCacheable: True,
                                                             retry: False }));
         debugLog.record($format("      dataMemLookup: send data response: dest=%d, val=0x%x, meta=0x%x", r.requester, data, r.clientMeta));
+        dataReceivedW.send();
     endrule
 
     // =======================================================================
@@ -838,6 +878,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     rule sendCoherentScratchpadResp (True);
         let resp = outputRespQ.first();
         outputRespQ.deq();
+        respSentW.send();
         link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
     endrule
 
@@ -869,6 +910,27 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         endcase
 
     endrule
+    
+    // =======================================================================
+    //
+    // Controller stats
+    //
+    // =======================================================================
+
+    let stats = interface COH_SCRATCH_CONTROLLER_STATS;
+                    method Bool cleanPutxReceived() = cleanPutxReceivedW;  
+                    method Bool dirtyPutxReceived() = dirtyPutxReceivedW;
+                    method Bool getsReceived() = getsReceivedW;
+                    method Bool getxReceived() = getxReceivedW;
+                    method Bool writebackReceived() = writebackReceivedW;
+                    method Bool ownerbitCheckout() = ownerbitCheckoutW;
+                    method Bool dataReceived() = dataReceivedW;
+                    method Bool respSent() = respSentW;
+                    method Bool putRetry() = putRetryW;
+                    method Bool getRetry() = getRetryW;
+                endinterface;
+
+    statsConstructor(stats);
 
 endmodule
 

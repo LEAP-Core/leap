@@ -16948,3 +16948,19 @@ Add the remote access (no private cache) supoort for coherent scratchpads.
 In remote access mode, reads/writes are sent to the centralized scratchpad. 
 User can choose whether to use coherent caches or remote access using a 
 config ogject that is passed into coherent scratchpads as an argument. 
+
+----------
+hjyang      Date: Thu Dec 12 19:04:23 EST 2013  CSN: CSN-leap-501
+                  Fri Dec 13 00:04:23 UTC 2013
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          500 
+ rl-cache.bsv              Locally Modified          500 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-client.bsv Locally Modified          500 
+ coherent-scratchpad-memory-utils.bsv Locally Modified          500 
+ coherent-scratchpad-memory-controller.bsv Locally Modified          500 
+
+Add coherence controller stats and more coherent cache stats for debugging. 

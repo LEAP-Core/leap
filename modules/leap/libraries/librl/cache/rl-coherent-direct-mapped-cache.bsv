@@ -539,7 +539,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     PulseWire writeCacheMissW      <- mkPulseWire();
     PulseWire writePermissionMissW <- mkPulseWire();
     // PulseWire selfInvalW           <- mkPulseWire();
-    PulseWire selfFlushW           <- mkPulseWire();
+    PulseWire selfDirtyFlushW      <- mkPulseWire();
+    PulseWire selfCleanFlushW      <- mkPulseWire();
     PulseWire coherenceInvalW      <- mkPulseWire();
     PulseWire coherenceFlushW      <- mkPulseWire();
     // PulseWire forceInvalLineW      <- mkPulseWire();
@@ -1251,13 +1252,20 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                     let old_addr = cacheAddrFromEntry(cur_entry.tag, idx);
                     debugLog.record($format("    Cache: localLookupRead: FLUSH addr=0x%x, entry=0x%x, val=0x%x, dirty=%s", 
                                     old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
-                    selfFlushW.send();
                     // Write back old data
                     let clean_write_back = (cacheMode == RL_COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty; 
                     sourceData.putExclusive(old_addr, clean_write_back);
                     mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back);
                     need_writeback = True;
                     writebackStatusBits.upd(idx, True);
+                    if (clean_write_back)
+                    begin
+                        selfCleanFlushW.send();
+                    end
+                    else
+                    begin
+                        selfDirtyFlushW.send();
+                    end
                 end
             end
         end
@@ -1341,12 +1349,19 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 let old_addr = cacheAddrFromEntry(cur_entry.tag, idx);
                 debugLog.record($format("    Cache: doLocalWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x, dirty=%s", 
                                 old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
-                selfFlushW.send();
                 let clean_write_back = (cacheMode == RL_COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty;
                 sourceData.putExclusive(old_addr, clean_write_back);
                 mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back);
                 need_writeback = True;
                 writebackStatusBits.upd(idx, True);
+                if (clean_write_back)
+                begin
+                    selfCleanFlushW.send();
+                end
+                else
+                begin
+                    selfDirtyFlushW.send();
+                end
             end
         end
 
@@ -1711,17 +1726,17 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     interface RL_COH_CACHE_STATS stats;
         method Bool readHit() = readHitW;
         method Bool readMiss() = readMissW;
-        method Bool readRecentLineHit() = False;    
         method Bool writeHit() = writeHitW;
         method Bool writeCacheMiss() = writeCacheMissW;
         method Bool writePermissionMiss () = writePermissionMissW;
-        method Bool newMRU() = False;
         method Bool invalEntry() = False;
-        method Bool dirtyEntryFlush() = selfFlushW;
+        method Bool dirtyEntryFlush() = selfDirtyFlushW;
+        method Bool cleanEntryFlush() = selfCleanFlushW;
         method Bool coherenceInval() = coherenceInvalW;
         method Bool coherenceFlush() = coherenceFlushW;
         method Bool forceInvalLine() = False;
         method Bool forceFlushlLine() = False;
+        method Bool mshrRetry() = mshrRetryW;
     endinterface
 
 endmodule
