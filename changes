@@ -16964,3 +16964,20 @@ Directory modules/leap/libraries/platform-services/mem-services/coherent-scratch
  coherent-scratchpad-memory-controller.bsv Locally Modified          500 
 
 Add coherence controller stats and more coherent cache stats for debugging. 
+
+----------
+keflemin    Date: Mon Dec 16 12:09:07 EST 2013  CSN: CSN-leap-502
+                  Mon Dec 16 17:09:07 UTC 2013
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          501 
+
+
+Fixed two small bugs in loader script.
+
+1) We were not noting reservations when they were actually made. Thus,
+some reservations we not vacated when early exits occured.
+
+2) The force load exit path was using a direct exit call. Failed
+bitfiles were also leading to not correctly vacating reservations. 
