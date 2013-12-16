@@ -814,6 +814,9 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
     //
     // Read rules
     //
+    Rules read_req = emptyRules();
+    Rules enq_fifo = emptyRules();
+
     for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
     begin
         //
@@ -831,28 +834,39 @@ module mkMemIfcToPseudoMultiMemAsyncWrites#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
         //     Forward read requests to the memory.  Only one reader queue
         //     will have a chance to forward a request per cycle.
         //
-        rule processReadReq (arbiter.clients[p].grant);
-            let addr = incomingReqQ[p].first();
-            incomingReqQ[p].deq();
+        let rr =
+        (rules
+            rule processReadReq (arbiter.clients[p].grant);
+                let addr = incomingReqQ[p].first();
+                incomingReqQ[p].deq();
 
-            mem.readReq(addr);
+                mem.readReq(addr);
 
-            noteReqQ.enq(fromInteger(p));
-            bufferingAvailable[p].down();
-        endrule
+                noteReqQ.enq(fromInteger(p));
+                bufferingAvailable[p].down();
+            endrule
+        endrules);
+        read_req = rJoinMutuallyExclusive(read_req, rr);
 
         //
         // enqIntoFIFO --
         //     Forward BRAM response to read port's response buffer.
         //
-        rule enqIntoFIFO (noteReqQ.first() == fromInteger(p));
-            noteReqQ.deq();
+        let enqf =
+        (rules
+            rule enqIntoFIFO (noteReqQ.first() == fromInteger(p));
+                noteReqQ.deq();
 
-            let data <- mem.readRsp();
-            buffer[p].enq(data);
-        endrule
+                let data <- mem.readRsp();
+                buffer[p].enq(data);
+            endrule
+        endrules);
+        enq_fifo = rJoinMutuallyExclusive(enq_fifo, enqf);
     end
     
+    addRules(read_req);
+    addRules(enq_fifo);
+
 
     //
     // readPorts

@@ -16981,3 +16981,13 @@ some reservations we not vacated when early exits occured.
 
 2) The force load exit path was using a direct exit call. Failed
 bitfiles were also leading to not correctly vacating reservations. 
+
+----------
+mcadler     Date: Mon Dec 16 18:48:34 EST 2013  CSN: CSN-leap-503
+                  Mon Dec 16 23:48:34 UTC 2013
+
+
+Directory modules/leap/libraries/librl/base
+ memory-interface.bsv      Locally Modified          502 
+
+Add some scheduling assertions to eliminate compile-time warnings.
