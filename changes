@@ -16991,3 +16991,13 @@ Directory modules/leap/libraries/librl/base
  memory-interface.bsv      Locally Modified          502 
 
 Add some scheduling assertions to eliminate compile-time warnings.
+
+----------
+mcadler     Date: Wed Dec 18 09:47:53 EST 2013  CSN: CSN-leap-504
+                  Wed Dec 18 14:47:53 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common.awb    Locally Modified          503 
+
+Grow default max number of scratchpads.
