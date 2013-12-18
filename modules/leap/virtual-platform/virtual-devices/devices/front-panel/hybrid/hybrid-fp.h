@@ -2,7 +2,7 @@
 #define __HYBRID_FRONT_PANEL__
 
 #include "awb/provides/rrr.h"
-
+#include "tbb/atomic.h"
 #include "command-switches.h"
 
 #include "awb/rrr/client_stub_FRONT_PANEL.h"
@@ -57,6 +57,8 @@ class FRONT_PANEL_SERVER_CLASS: public RRR_SERVER_CLASS,
     UINT32  outputCache;
     bool    outputDirty;
     
+    class tbb::atomic<bool> initialized;
+
     volatile bool active;
     
     // internal methods

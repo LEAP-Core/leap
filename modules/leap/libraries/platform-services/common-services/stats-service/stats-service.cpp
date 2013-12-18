@@ -53,8 +53,13 @@ STATS_SERVER_CLASS::STATS_SERVER_CLASS() :
     // instantiate stubs
     clientStub(new STATS_CLIENT_STUB_CLASS(this)),
     serverStub(new STATS_SERVER_STUB_CLASS(this)),
-    didInit(false)
+    initialized(),
+    uninitialized()
 {
+
+    initialized = false;
+    uninitialized = false;
+
 }
 
 
@@ -74,7 +79,7 @@ STATS_SERVER_CLASS::Init(
     parent = p;
 
     VERIFYX(! pthread_create(&liveStatsThread, NULL, &StatsThread, NULL));
-    didInit = true;
+    initialized = true;
 }
 
 
@@ -190,8 +195,15 @@ STATS_SERVER_CLASS::Uninit()
 void
 STATS_SERVER_CLASS::Cleanup()
 {
+    bool didCleanup = uninitialized.fetch_and_store(true);
+
+    if (didCleanup)
+    {
+        return;
+    }
+
     // Kill the thread monitoring the live file
-    if (didInit)
+    if (initialized)
     {
         pthread_cancel(liveStatsThread);
         pthread_join(liveStatsThread, NULL);

@@ -19,11 +19,13 @@ FRONT_PANEL_SERVER_CLASS FRONT_PANEL_SERVER_CLASS::instance;
 
 // constructor
 FRONT_PANEL_SERVER_CLASS::FRONT_PANEL_SERVER_CLASS() :
-    fpSwitch()
+    fpSwitch(),
+    initialized()
 {
     // instantiate stubs
     clientStub = new FRONT_PANEL_CLIENT_STUB_CLASS(this);
     serverStub = new FRONT_PANEL_SERVER_STUB_CLASS(this);
+    initialized = false;
 }
 
 // destructor
@@ -40,7 +42,7 @@ FRONT_PANEL_SERVER_CLASS::Init(
     // set parent pointer
     parent = p;
 
-    // set intial state
+    // set initial state
     inputCache = 0;
     inputDirty = false;
     outputCache = 0;
@@ -51,6 +53,7 @@ FRONT_PANEL_SERVER_CLASS::Init(
     if (fpSwitch.ShowFrontPanel() == false)
     {
         active = fpSwitch.ShowLEDsOnStdOut();
+	initialized = true;
         return;
     }
 
@@ -89,6 +92,8 @@ FRONT_PANEL_SERVER_CLASS::Init(
 
     // chain
     PLATFORMS_MODULE_CLASS::Init();
+
+    initialized = true;
 }
 
 // uninit: override
@@ -106,6 +111,13 @@ FRONT_PANEL_SERVER_CLASS::Uninit()
 void
 FRONT_PANEL_SERVER_CLASS::Cleanup()
 {
+    bool needCleanup = initialized.fetch_and_store(false);
+
+    if (!needCleanup)
+    {
+        return;
+    } 
+
     if (active)
     {
         if (dialogpid != 0)
@@ -138,8 +150,10 @@ FRONT_PANEL_SERVER_CLASS::UpdateLEDs(
 bool
 FRONT_PANEL_SERVER_CLASS::Poll()
 {
-    if (! active) return false;
 
+    if ((! active ) && initialized ) return false;
+
+    if (! initialized) return true;
     // Is dialog disabled?
     if (fpSwitch.ShowFrontPanel() == false)
     {

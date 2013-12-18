@@ -51,10 +51,12 @@ ASSERTIONS_SERVER_CLASS ASSERTIONS_SERVER_CLASS::instance;
 // ===== methods =====
 
 // constructor
-ASSERTIONS_SERVER_CLASS::ASSERTIONS_SERVER_CLASS()
+ASSERTIONS_SERVER_CLASS::ASSERTIONS_SERVER_CLASS():
+    uninitialized()
 {
     // instantiate stubs
     serverStub = new ASSERTIONS_SERVER_STUB_CLASS(this);
+    uninitialized = false;
 }
 
 // destructor
@@ -91,6 +93,14 @@ ASSERTIONS_SERVER_CLASS::Uninit()
 void
 ASSERTIONS_SERVER_CLASS::Cleanup()
 {
+
+    bool didCleanup = uninitialized.fetch_and_store(true);
+
+    if (didCleanup)
+    {
+        return;
+    }
+
     // kill stubs
     delete serverStub;
 }

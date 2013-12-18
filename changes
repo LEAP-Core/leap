@@ -17001,3 +17001,68 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
  mem-scratch-common.awb    Locally Modified          503 
 
 Grow default max number of scratchpads.
+
+----------
+keflemin    Date: Wed Dec 18 11:26:59 EST 2013  CSN: CSN-leap-505
+                  Wed Dec 18 16:26:59 UTC 2013
+
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.cpp  Locally Modified          504 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ platforms-module.h        Locally Modified          504 
+ llpi.cpp                  Locally Modified          504 
+ hybrid-llpi.awb           Locally Modified          504 
+ platforms-module.cpp      Locally Modified          504 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.cpp             Locally Modified          504 
+ hybrid-fp.h               Locally Modified          504 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          504 
+ stdio-service.h           Locally Modified          504 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.h Locally Modified          504 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          504 
+ debug-scan-service.h      Locally Modified          504 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.cpp    Locally Modified          504 
+ assertions-service.h      Locally Modified          504 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          504 
+ stats-service.cpp         Locally Modified          504 
+
+
+Reworked the way platforms modules operate to fix a number of lurking
+parallelism bugs exposed by the LIM compiler. Originally, the
+platforms module class built some tree and did initialization and
+tear-down on this tree. However, this code was terribly unguarded.  In
+multiple threaded cases, multiple calls to Exit would lead to multipl
+tear down attempts.  This caused occasional segmentation faults, due
+to multiple frees, etc.  Although the code appeared to work natively,
+valgrind usually noticed these issues and complained.
+
+1) Replaced old tree code with a seperate manager class. This class is
+based on a list.
+
+2) Improved synchronization to ensure that
+initialization/deinitialization can only occur once
+
+3) Fixed numerous bugs service code wherein both Uninit and the
+destructor called the same Cleanup method. Races are fun, but not in
+code.
+
+4) Because initialization order was perturbed, a bug was exposed in
+front panel wherein it would not display information because it told
+the rrr server that it was not-existant because the server asked about
+its status prior to initialization.
+
+I'm sure this code will cause a few more bugs to be found, but they're
+worth debugging.  The segfaults marked us as amateurs.

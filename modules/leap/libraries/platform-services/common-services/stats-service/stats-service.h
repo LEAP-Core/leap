@@ -26,9 +26,11 @@
 #include <condition_variable>
 #include <list>
 
+#include "tbb/atomic.h"
+
 #include "asim/syntax.h"
 
-#include "platforms-module.h"
+#include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/rrr.h"
 #include "awb/provides/soft_services_deps.h"
 
@@ -218,7 +220,9 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     static bool ackReceived;
 
     pthread_t liveStatsThread;
-    bool didInit;
+    
+    class tbb::atomic<bool> initialized;
+    class tbb::atomic<bool> uninitialized;
 
     void SendCommand(STATS_SERVER_COMMAND cmd);
 

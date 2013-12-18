@@ -61,8 +61,13 @@ DEBUG_SCAN_SERVER_CLASS::DEBUG_SCAN_SERVER_CLASS() :
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
     serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this)),
-    didInit(false)
+    initialized(),
+    uninitialized()
 {
+
+    initialized = false;
+    uninitialized = false;
+
 }
 
 
@@ -82,7 +87,7 @@ DEBUG_SCAN_SERVER_CLASS::Init(
     parent = p;
 
     VERIFYX(! pthread_create(&liveDbgThread, NULL, &DebugScanThread, NULL));
-    didInit = true;
+    initialized = true;
 }
 
 
@@ -100,8 +105,16 @@ DEBUG_SCAN_SERVER_CLASS::Uninit()
 void
 DEBUG_SCAN_SERVER_CLASS::Cleanup()
 {
+
+    bool didCleanup = uninitialized.fetch_and_store(true);
+
+    if (didCleanup)
+    {
+        return;
+    }
+
     // Kill the thread monitoring the live file
-    if (didInit)
+    if (initialized)
     {
         pthread_cancel(liveDbgThread);
         pthread_join(liveDbgThread, NULL);

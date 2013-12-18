@@ -38,7 +38,8 @@ STDIO_SERVER_CLASS::STDIO_SERVER_CLASS() :
     reqBufferWriteIdx(0),
     // instantiate stubs
     clientStub(new STDIO_CLIENT_STUB_CLASS(this)),
-    serverStub(new STDIO_SERVER_STUB_CLASS(this))
+    serverStub(new STDIO_SERVER_STUB_CLASS(this)),
+    uninitialized()
 {
     memset(fileTable, 0, sizeof(fileTable));
     memset(fileIsPipe, 0, sizeof(fileIsPipe));
@@ -46,6 +47,8 @@ STDIO_SERVER_CLASS::STDIO_SERVER_CLASS() :
     fileTable[0] = stdout;
     fileTable[1] = stdin;
     fileTable[2] = stderr;
+
+    uninitialized = false;
 }
 
 
@@ -83,6 +86,13 @@ STDIO_SERVER_CLASS::Uninit()
 void
 STDIO_SERVER_CLASS::Cleanup()
 {
+    bool didCleanup = uninitialized.fetch_and_store(true);
+
+    if (didCleanup)
+    {
+        return;
+    }
+
     // kill stubs
     delete serverStub;
     delete clientStub;

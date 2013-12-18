@@ -18,7 +18,9 @@
 
 #include <stdio.h>
 
-#include "platforms-module.h"
+#include "tbb/atomic.h"
+
+#include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/rrr.h"
 
 // this module handles reporting assertion failures.
@@ -33,6 +35,8 @@ class ASSERTIONS_SERVER_CLASS: public RRR_SERVER_CLASS,
     
     // stubs
     RRR_SERVER_STUB serverStub;
+
+    class tbb::atomic<bool> uninitialized;
 
     // File for output until we use DRAL.
     FILE* assertionsFile;

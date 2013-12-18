@@ -25,8 +25,10 @@
 #include <mutex>
 #include <condition_variable>
 
+#include "tbb/atomic.h"
+
 #include "asim/syntax.h"
-#include "platforms-module.h"
+#include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/rrr.h"
 #include "awb/provides/soft_services_deps.h"
 
@@ -101,7 +103,9 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     pthread_t liveDbgThread;
     pthread_t testRRRThread;
-    bool didInit;
+   
+    class tbb::atomic<bool> initialized;
+    class tbb::atomic<bool> uninitialized;
 
   public:
     DEBUG_SCAN_SERVER_CLASS();

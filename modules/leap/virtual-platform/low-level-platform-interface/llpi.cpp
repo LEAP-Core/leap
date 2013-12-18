@@ -105,6 +105,7 @@ LLPI_CLASS::Init()
     rrrClient.SetMonitorThreadID(monitorThreadID);
 
     // initialize UMF_ALLOCATOR (FIXME: could do this cleaner)
+    // or earlier...
     UMF_ALLOCATOR_CLASS::GetInstance()->Init(this);
     
 }

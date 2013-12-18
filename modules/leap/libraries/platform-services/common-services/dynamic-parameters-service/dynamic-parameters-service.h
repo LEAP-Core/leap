@@ -11,9 +11,9 @@
 
 #include <stdio.h>
 
-#include "platforms-module.h"
 #include "awb/provides/rrr.h"
 #include "awb/rrr/client_stub_PARAMS.h"
+#include "awb/provides/low_level_platform_interface.h"
 
 typedef class DYNAMIC_PARAMS_SERVICE_CLASS* DYNAMIC_PARAMS_SERVICE;
 

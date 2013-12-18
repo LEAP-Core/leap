@@ -6,67 +6,110 @@
 
 using namespace std;
 
+UINT32 PLATFORMS_MODULE_MANAGER_CLASS::init;
+   
+PLATFORMS_MODULE_MANAGER_CLASS::PLATFORMS_MODULE_MANAGER_CLASS()
+{ 
+    if(!init) 
+    {
+        init = 1;
+        modules = new list<PLATFORMS_MODULE>();
+        uninitAtomic = new tbb::atomic<UINT32>();
+        *uninitAtomic = 0;
+    }
+}
+
+PLATFORMS_MODULE_MANAGER_CLASS::~PLATFORMS_MODULE_MANAGER_CLASS()
+{
+
+}
+
+
+void PLATFORMS_MODULE_MANAGER_CLASS::AddModule(PLATFORMS_MODULE module)
+{
+    assert(init);
+    assert(modules);
+    modules->push_back(module);
+}
+
+// Sometimes modules encounter error conditions as a result of 
+// exit()'s teardown of various modules.  
+void PLATFORMS_MODULE_MANAGER_CLASS::CallbackExit(int exitCode)
+{
+    UINT32 uninit = (*uninitAtomic).fetch_and_store(1);
+    if(!uninit)
+    {
+        UninitHelper();
+        exit(exitCode);
+    }
+}
+
+void PLATFORMS_MODULE_MANAGER_CLASS::Init()
+{
+
+    for(std::list<PLATFORMS_MODULE>::iterator modules_iter = (*modules).begin(); 
+        modules_iter != (*modules).end(); modules_iter++)
+    {
+        (*modules_iter)->Init();
+    }
+
+}
+
+void PLATFORMS_MODULE_MANAGER_CLASS::UninitHelper()
+{
+    
+    for(std::list<PLATFORMS_MODULE>::reverse_iterator modules_iter = (*modules).rbegin(); 
+        modules_iter != (*modules).rend(); modules_iter++)
+    {
+        (*modules_iter)->Uninit();
+    }
+}
+
+
+void PLATFORMS_MODULE_MANAGER_CLASS::Uninit()
+{
+
+    UINT32 uninit = (*uninitAtomic).fetch_and_store(1);
+    if(!uninit)
+    {
+        UninitHelper();
+    }
+
+}
+
+PLATFORMS_MODULE_MANAGER_CLASS *PLATFORMS_MODULE_CLASS::manager;
+UINT32 PLATFORMS_MODULE_CLASS::init;
+
+// Declare a static platform module to ensure static construction 
+// time intialization of platforms module manager. This enables us 
+// get away with non-thread-safe initialization code, since there will be 
+// no threads at this point.
+ 
+static PLATFORMS_MODULE_CLASS dummyPlatform;
+
 // constructors
 PLATFORMS_MODULE_CLASS::PLATFORMS_MODULE_CLASS()
-{
-    parent   = NULL;
-    next     = NULL;
-    prev     = NULL;
-    children = NULL;
+{ 
+    InitPlatformsManager();
+    manager->AddModule(this);
 }
 
 PLATFORMS_MODULE_CLASS::PLATFORMS_MODULE_CLASS(
     PLATFORMS_MODULE p)
 {
-    // set parent
-    parent = p;
-
-    // set default name
-    name = "noname";
-
-    // initialize siblings and children to NULL
-    next = NULL;
-    prev = NULL;
-    children = NULL;
-
-    // add self to parent's child list
-    if (parent != NULL)
-    {
-        parent->AddChild(this);
-    }
+    InitPlatformsManager();
+    manager->AddModule(this);
 }
 
 PLATFORMS_MODULE_CLASS::PLATFORMS_MODULE_CLASS(
     PLATFORMS_MODULE p,
-    string n)
+    string n):
+    name(n)
 {
-    // set parent
-    parent = p;
-
-    // set name
-    name = n;
-
-    // initialize siblings and children to NULL
-    next = NULL;
-    prev = NULL;
-    children = NULL;
-
-    // add self to parent's child list
-    if (parent != NULL)
-    {
-        parent->AddChild(this);
-    }
+    InitPlatformsManager();
+    manager->AddModule(this);
 }
 
-// destructor: don't link this to explicit uninit
-// chain. Destructors get chained automatically,
-// and assuming discipline has been maintained in
-// writing modules, the uninit tree should be a
-// replica of the auto-destruction tree. Any node
-// in the tree that needs to do something during
-// destruction/uninit apart from the default
-// chaining-to-children should make sure the
-// node-specific code gets called on both paths.
 PLATFORMS_MODULE_CLASS::~PLATFORMS_MODULE_CLASS()
 {
 }
@@ -76,96 +119,47 @@ void
 PLATFORMS_MODULE_CLASS::AddChild(
     PLATFORMS_MODULE child)
 {
-    // sanity check
-    assert(child->next == NULL && child->prev == NULL);
 
-    //
-    // add to list of children
-    //
+}
 
-    // maintain doubly-linked circular list,
-    // because Init() needs to call them in the
-    // order they were constructed, while Uninit()
-    // needs to call them in the reverse order.
-
-    if (children != NULL)
+// sets up static values. 
+void 
+PLATFORMS_MODULE_CLASS::InitPlatformsManager()
+{
+    if(!init)
     {
-        PLATFORMS_MODULE first = children;
-        PLATFORMS_MODULE last  = children->prev;
-
-        last->next = child;
-        child->prev = last;
-
-        child->next = first;
-        first->prev = child;
+        init = 1;
+        manager = new PLATFORMS_MODULE_MANAGER_CLASS();
     }
-    else
-    {
-        child->next = child;
-        child->prev = child;
+}
 
-        children = child;
-    }
+// init
+void 
+PLATFORMS_MODULE_CLASS::InitPlatforms()
+{
+    InitPlatformsManager();
+    manager->Init();
 }
 
 // init
 void
 PLATFORMS_MODULE_CLASS::Init()
 {
-    // walk through list of children in FIFO order and init them
-    if (children != NULL)
-    {
-        PLATFORMS_MODULE child = children;
-        do
-        {
-            child->Init();
-            child = child->next;
-        }
-        while (child != children);
-    }
+   
 }
 
 // init
 void
 PLATFORMS_MODULE_CLASS::Init(PLATFORMS_MODULE p)
 {
-    // walk through list of children in FIFO order and init them
-    if (children != NULL)
-    {
-        PLATFORMS_MODULE child = children;
-        do
-        {
-            child->Init();
-            child = child->next;
-        }
-        while (child != children);
-    }
 
-    // set parent
-    parent = p;
-
-    // add self to parent's child list
-    if (parent != NULL)
-    {
-        parent->AddChild(this);
-    }
 }
 
 // uninit
 void
 PLATFORMS_MODULE_CLASS::Uninit()
 {
-    // walk through list of children in LIFO order and uninit them
-    if (children != NULL)
-    {
-        PLATFORMS_MODULE child = children;
-        do
-        {
-            child->Uninit();
-            child = child->prev;
-        }
-        while (child != children);
-    }
+
 }
 
 // callback-exit
@@ -173,15 +167,6 @@ void
 PLATFORMS_MODULE_CLASS::CallbackExit(
     int exitcode)
 {
-    if (parent == NULL)
-    {
-        // chain-uninit, then exit
-        Uninit();
-        exit(exitcode);
-    }
-    else
-    {
-        // transfer to parent
-        parent->CallbackExit(exitcode);
-    }
+  InitPlatformsManager();
+  manager->CallbackExit(exitcode);
 }

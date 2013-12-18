@@ -21,11 +21,13 @@
 
 #include <stdio.h>
 
+#include "tbb/atomic.h"
+
 #include "asim/syntax.h"
 #include "asim/trace.h"
 #include "asim/regexobj.h"
 
-#include "platforms-module.h"
+#include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/rrr.h"
 #include "awb/provides/command_switches.h"
 #include "awb/provides/soft_services_deps.h"
@@ -115,6 +117,8 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
   private:
     // self-instantiation
     static STDIO_SERVER_CLASS instance;
+
+    class tbb::atomic<bool> uninitialized;
 
     STDIO_COND_PRINTF_MASK_SWITCH_CLASS maskSwitch;
     UINT32 reqBuffer[32];
