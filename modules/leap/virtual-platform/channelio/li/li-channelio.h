@@ -86,53 +86,6 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
     CHANNELIO_BASE_CLASS(PLATFORMS_MODULE parent, PHYSICAL_DEVICES physicalDevicesInit);
     ~CHANNELIO_BASE_CLASS();
 
-    /*
-    template<typename T>    
-      MARSHALLED_LI_CHANNEL_IN_CLASS<T> *getChannelInByName(std::string &name)
-    {
-
-        for(std::vector<std::vector<LI_CHANNEL_IN>*>::iterator platform = incomingChannels.begin(); platform != incomingChannels.end(); ++platform) 
-        {
-	  for(std::vector<LI_CHANNEL_IN>::iterator channel = (*platform)->begin(); channel != (*platform)->end(); ++channel) 
-            {
-  	        if((*channel) == NULL)
-		{
-		    continue;
-		}
-
-	        if(name == (*channel)->getName()) 
-                {
-                    return (MARSHALLED_LI_CHANNEL_IN_CLASS<T> *) *channel;
-                }
-            }
-        }
-        // What happens if there is no match
-        std::cerr << "Warning, unmatched named channel.  We'll probably die now. String name is: " << name;
-    };
-
-    template<typename T>    
-      MARSHALLED_LI_CHANNEL_OUT_CLASS<T> *getChannelOutByName(std::string &name)
-    {
-      //cout << "looking up out channel " << name << endl;  
-        for(std::vector<std::vector<LI_CHANNEL_OUT>*>::iterator platform = outgoingChannels.begin(); platform != outgoingChannels.end(); ++platform) 
-        {
-	  for(std::vector<LI_CHANNEL_OUT>::iterator channel = (*platform)->begin(); channel != (*platform)->end(); ++channel) 
-            {
-  	        if((*channel) == NULL)
-		{
-		    continue;
-		}
-
-	        if(name == (*channel)->getName()) 
-                {
-                    return (MARSHALLED_LI_CHANNEL_OUT_CLASS<T> *) *channel;
-                }
-            }
-        }
-        // What happens if there is no match
-        std::cerr << "Warning, unmatched named channel.  We'll probably die now. String name is: " << name;
-    };
-    */
 };
 
 // Unfortunately we need all of these definitions in the router code. 

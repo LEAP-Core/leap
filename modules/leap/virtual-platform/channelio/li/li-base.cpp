@@ -87,7 +87,6 @@ LI_HALF_CHANNEL LI_CHANNEL_MATCHER_CLASS::registerRecv(LI_HALF_CHANNEL recv)
         // Time will tell whether allowing the matcher to mutate the matchee is a good idea.
         LI_HALF_CHANNEL retVal = (*sendMatch).second;
         sendMap->erase(sendMatch);
-
         return retVal;  
     } 
 

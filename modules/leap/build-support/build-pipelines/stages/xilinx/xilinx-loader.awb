@@ -12,3 +12,4 @@
 
 %scons %library XILINX_LOADER.py
 
+%param DEPEND_ON_SW  0   "For legacy reasons, we depended on software.  This is deprecated and will be removed."

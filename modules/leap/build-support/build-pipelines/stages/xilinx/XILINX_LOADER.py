@@ -175,14 +175,27 @@ class LOADER():
       [],
       leap_xilinx_loader(xilinx_apm_name))
 
-    summary = moduleList.env.Command(
-      moduleList.apmName + '_hw.errinfo',
-      moduleList.getAllDependencies('SIGNATURE') + moduleList.swExe + moduleList.getAllDependencies('TRCE'),
-      [ '@ln -fs ' + moduleList.swExeOrTarget + ' ' + moduleList.apmName,
-        SCons.Script.Delete(moduleList.apmName + '_hw.exe'),
-        SCons.Script.Delete(moduleList.apmName + '_hw.vexe'),
-        '@echo "++++++++++++ Post-Place & Route ++++++++"',
-        leap_xilinx_summary(xilinx_apm_name) ])
+    dependOnSW = moduleList.getAWBParam(['xilinx_loader'], 'DEPEND_ON_SW')
+    summary = 0
+    if(dependOnSW):   
+      summary = moduleList.env.Command(
+        moduleList.apmName + '_hw.errinfo',
+        moduleList.getAllDependencies('SIGNATURE') + moduleList.swExe + moduleList.getAllDependencies('TRCE'),
+        [ '@ln -fs ' + moduleList.swExeOrTarget + ' ' + moduleList.apmName,
+          SCons.Script.Delete(moduleList.apmName + '_hw.exe'),
+          SCons.Script.Delete(moduleList.apmName + '_hw.vexe'),
+          '@echo "++++++++++++ Post-Place & Route ++++++++"',
+          leap_xilinx_summary(xilinx_apm_name) ])
+    else:
+      summary = moduleList.env.Command(
+        moduleList.apmName + '_hw.errinfo',
+        moduleList.getAllDependencies('SIGNATURE') + moduleList.getAllDependencies('TRCE'),
+        [ SCons.Script.Delete(moduleList.apmName + '_hw.exe'),
+          SCons.Script.Delete(moduleList.apmName + '_hw.vexe'),
+          '@echo "++++++++++++ Post-Place & Route ++++++++"',
+          leap_xilinx_summary(xilinx_apm_name) ])
+
+
 
     moduleList.env.Depends(summary, loader)
 

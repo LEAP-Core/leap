@@ -17083,3 +17083,23 @@ Directory modules/leap/libraries/librl/storage
 - Add a new mkSizedSlowBRAMFIFOF() that is just a normal BRAM FIFO
   but with a LUT-based FIFO on the outbound path.  These are often
   useful for timing closure, as BRAM read to use is sometimes tight.
+
+----------
+keflemin    Date: Mon Dec 23 17:08:21 EST 2013  CSN: CSN-leap-507
+                  Mon Dec 23 22:08:21 UTC 2013
+
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio.h            Locally Modified          506 
+ li-base.cpp               Locally Modified          506 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-loader.awb         Locally Modified          506 
+ XILINX_LOADER.py          Locally Modified          506 
+
+
+1) Cleanup up some LI code
+
+2) Deprecated software build dependence from xilinx-loader. This
+appears to not be needed.  If needed, it can be renabled with an awb
+option.
