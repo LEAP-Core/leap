@@ -24,6 +24,8 @@ import FIFO::*;
 import FIFOF::*;
 import FIFOLevel::*;
 import SpecialFIFOs::*;
+import Connectable::*;
+import GetPut::*;
 
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
@@ -93,6 +95,34 @@ module mkSizedBRAMFIFOF#(Integer depth)
     else if (depth <= 4294967296) begin MEMORY_IFC#(Bit#(32), t_DATA) mem <- mkBRAMUnguarded(); FIFOCountIfc#(t_DATA, 4294967296) fifo <- mkMemoryFIFOF(mem); _f = fifoCountToFifof(fifo); end
 
     return _f;
+endmodule
+
+
+//
+// mkSizedSlowBRAMFIFOF --
+//   The slow variant of sized BRAM FIFOs is identical except that a buffer
+//   is added on the receiver side to relax timing from BRAM read to consumer.
+//
+module mkSizedSlowBRAMFIFOF#(Integer depth)
+    // Interface:
+    (FIFOF#(t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ));
+
+    FIFOF#(t_DATA) _f <- mkSizedBRAMFIFOF(depth);
+    FIFOF#(t_DATA) _buf <- mkFIFOF();
+
+    mkConnection(toGet(_f), toPut(_buf));
+
+    method enq = _f.enq;
+    method first = _buf.first;
+    method deq = _buf.deq;
+    method notEmpty = _buf.notEmpty;
+    method notFull = _f.notFull;
+
+    method Action clear();
+        _f.clear();
+        _buf.clear();
+    endmethod
 endmodule
 
 

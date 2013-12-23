@@ -81,9 +81,9 @@ class BSV():
             self.isDependsBuild = False
 
             if not moduleList.env.GetOption('clean'):
-                print 'Building depends-init...'
                 # Convert command line ARGUMENTS dictionary to a string
-                args = ' '.join(['%s=%s' % (k, v) for (k, v) in moduleList.arguments.items()])
+                args = ' '.join(['%s="%s"' % (k, v) for (k, v) in moduleList.arguments.items()])
+                print 'Building depends-init ' + args + '...'
                 s = os.system('scons depends-init ' + args)
                 if (s & 0xffff) != 0:
                     print 'Aborting due to dependence errors'

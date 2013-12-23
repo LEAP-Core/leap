@@ -7,5 +7,5 @@ Description=Description of leap
 Name=leap
 Tag=v13.06
 Prerelease=1
-CSN=CSN-leap-505
+CSN=CSN-leap-506
 Sourceurl=http://asim.csail.mit.edu/redmine/projects/leap/repository/entry/trunk/

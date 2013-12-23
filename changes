@@ -17066,3 +17066,20 @@ its status prior to initialization.
 
 I'm sure this code will cause a few more bugs to be found, but they're
 worth debugging.  The segfaults marked us as amateurs.
+
+----------
+mcadler     Date: Mon Dec 23 08:41:45 EST 2013  CSN: CSN-leap-506
+                  Mon Dec 23 13:41:45 UTC 2013
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          505 
+
+Directory modules/leap/libraries/librl/storage
+ fifo-mem.bsv              Locally Modified          505 
+
+- Put quotation marks around arguments passed to scons depends-init.
+
+- Add a new mkSizedSlowBRAMFIFOF() that is just a normal BRAM FIFO
+  but with a LUT-based FIFO on the outbound path.  These are often
+  useful for timing closure, as BRAM read to use is sometimes tight.
