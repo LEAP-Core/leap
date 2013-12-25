@@ -46,5 +46,6 @@ void
 VIRTUAL_PLATFORM_CLASS::Init()
 {
     PLATFORMS_MODULE_CLASS::InitPlatforms();
+    llpint->StartMonitorThread();
     virtualDevices->Init();
 }

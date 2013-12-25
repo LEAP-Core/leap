@@ -68,6 +68,7 @@ class LLPI_CLASS: public PLATFORMS_MODULE_CLASS
 
     // misc
     void Poll();
+    void StartMonitorThread();
     void KillMonitorThread();
 };
 

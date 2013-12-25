@@ -17103,3 +17103,19 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 2) Deprecated software build dependence from xilinx-loader. This
 appears to not be needed.  If needed, it can be renabled with an awb
 option.
+
+----------
+mcadler     Date: Wed Dec 25 11:25:57 EST 2013  CSN: CSN-leap-508
+                  Wed Dec 25 16:25:57 UTC 2013
+
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.cpp  Locally Modified          507 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.cpp                  Locally Modified          507 
+ llpi.h                    Locally Modified          507 
+
+Changes on Dec. 18 introduced a race between initialization of RRR tables
+and starting the LLPI monitor thread.  When the thread started first some
+messages were lost.  Added an explicit monitor thread start.

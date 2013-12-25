@@ -90,20 +90,6 @@ LLPI_CLASS::Init()
         CallbackExit(1);
     }
 
-    // spawn off Monitor/Service thread which calls LLPI's Main()
-    if (pthread_create(&monitorThreadID,
-                       NULL,
-                       LLPI_Main,
-                       (void *)this) != 0)
-    {
-        perror("pthread_create");
-        exit(1);
-    }
-    
-    // RRR needs to know the monitor thread ID
-    monitorAlive = true;
-    rrrClient.SetMonitorThreadID(monitorThreadID);
-
     // initialize UMF_ALLOCATOR (FIXME: could do this cleaner)
     // or earlier...
     UMF_ALLOCATOR_CLASS::GetInstance()->Init(this);
@@ -125,20 +111,38 @@ LLPI_CLASS::Uninit()
 }
 
 
+void LLPI_CLASS:: StartMonitorThread()
+{
+    // Spawn Monitor/Service thread which calls LLPI's Main()
+    if (pthread_create(&monitorThreadID,
+                       NULL,
+                       LLPI_Main,
+                       (void *)this) != 0)
+    {
+        perror("pthread_create");
+        exit(1);
+    }
+    
+    // RRR needs to know the monitor thread ID
+    monitorAlive = true;
+    rrrClient.SetMonitorThreadID(monitorThreadID);
+}
+
+
 // cleanup
 void LLPI_CLASS::KillMonitorThread()
 {
+    if (! monitorAlive) return;
+
     if (pthread_self() == monitorThreadID)
     {
         ASIMERROR("llpi: Monitor thread trying to cancel itself!\n");
     }
-    else if (monitorAlive)
-    {
-        usleep(50); // Allow non-thread-safe printouts or calls to older stdlib implementations to finish.
-        pthread_cancel(monitorThreadID);
-        pthread_join(monitorThreadID, NULL);
-        monitorAlive = false;
-    }
+
+    usleep(50); // Allow non-thread-safe printouts or calls to older stdlib implementations to finish.
+    pthread_cancel(monitorThreadID);
+    pthread_join(monitorThreadID, NULL);
+    monitorAlive = false;
 }
 
 // main
