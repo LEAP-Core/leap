@@ -20,10 +20,11 @@
 #define _DEBUG_SCAN_SERVICE_
 
 #include <bitset>
-#include <pthread.h>
-#include <stdio.h>
+#include <list>
+#include <iostream>
 #include <mutex>
 #include <condition_variable>
+#include <pthread.h>
 
 #include "tbb/atomic.h"
 
@@ -41,6 +42,45 @@
 typedef class DEBUG_SCAN_SERVER_CLASS* DEBUG_SCAN_SERVER;
 
 
+// ========================================================================
+//
+// DEBUG_SCANNER_CLASS
+//
+//   Other classes may register with the debug scan service and will be
+//   called along with a standard debug scan.  All members of this client
+//   class will be invoked through the Scan() virtual method automatically.
+//
+// ========================================================================
+
+typedef class DEBUG_SCANNER_CLASS* DEBUG_SCANNER;
+
+class DEBUG_SCANNER_CLASS
+{
+  public:
+    DEBUG_SCANNER_CLASS();
+    ~DEBUG_SCANNER_CLASS();
+
+    //
+    // The client must call this after it can be guaranteed that the
+    // static instance of the DEBUG_SCAN_CLASS has been initialized.
+    //
+    // Ideally, this would not be needed and the constructor could
+    // register automatically.  Unfortunately, we have many static instances
+    // of classes and their constructors race at startup.
+    //
+    void RegisterDebugScanner();
+
+    // Method that must be provided by the client to run a client's scan.
+    virtual void DebugScan(std::ostream& ofile = cout) = 0;
+};
+
+
+// ========================================================================
+//
+//   Primary debug scan code.
+//
+// ========================================================================
+
 //
 // Debug scan data class manages a received stream of 8-bit data and parses
 // it into caller-specified chunks.
@@ -49,6 +89,7 @@ typedef class DEBUG_SCAN_DATA_CLASS* DEBUG_SCAN_DATA;
 
 class DEBUG_SCAN_DATA_CLASS
 {
+  private:
     UINT8 *buf;
     UINT32 bufLen;
 
@@ -80,6 +121,8 @@ class DEBUG_SCAN_DATA_CLASS
 class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
                                public PLATFORMS_MODULE_CLASS
 {
+    friend class DEBUG_SCANNER_CLASS;
+
   private:
     // self-instantiation
     static DEBUG_SCAN_SERVER_CLASS instance;
@@ -95,7 +138,7 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     void DisplayMsgFormatted(GLOBAL_STRING_UID tagID, const char *tag);
 
     DEBUG_SCAN_DATA_CLASS msg;
-    FILE *of;
+    std::ostream *of;
 
     static std::mutex doneMutex;
     static std::condition_variable doneCond;
@@ -106,6 +149,9 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
    
     class tbb::atomic<bool> initialized;
     class tbb::atomic<bool> uninitialized;
+
+    // Other register scanners
+    static std::list<DEBUG_SCANNER> scanners;
 
   public:
     DEBUG_SCAN_SERVER_CLASS();
@@ -120,7 +166,7 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Cleanup();
 
     // Method to tell the hardware to dump state.
-    void Scan(FILE *outFile = stdout);
+    void Scan(std::ostream& ofile = cout);
 
     // RRR service methods
     void Send(UINT8 value, UINT8 eom);

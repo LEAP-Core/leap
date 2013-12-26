@@ -17147,3 +17147,18 @@ with the original implementation where local messages always win.
 (2) Add ring stats for debugging. 
 (3) Add more coherent scratchpad stats.
 (4) Add an additional method for synchronization.
+
+----------
+mcadler     Date: Thu Dec 26 13:04:02 EST 2013  CSN: CSN-leap-510
+                  Thu Dec 26 18:04:02 UTC 2013
+
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          509 
+ debug-scan-service.h      Locally Modified          509 
+
+- Add a new DEBUG_SCANNER_CLASS that is a list of scanners that should be invoked
+  when a scan is requested.  HAsim's command service is a member.
+
+- Switch to ostream for output instead of printf.  The commands service
+  was already using it.

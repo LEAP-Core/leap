@@ -30,7 +30,6 @@
 #include <strings.h>
 #include <time.h>
 #include <string>
-#include <iostream>
 #include <cmath>
 #include <list>
 
@@ -51,13 +50,14 @@ DEBUG_SCAN_SERVER_CLASS DEBUG_SCAN_SERVER_CLASS::instance;
 std::mutex DEBUG_SCAN_SERVER_CLASS::doneMutex;
 std::condition_variable DEBUG_SCAN_SERVER_CLASS::doneCond;
 bool DEBUG_SCAN_SERVER_CLASS::doneReceived;
+std::list<DEBUG_SCANNER> DEBUG_SCAN_SERVER_CLASS::scanners;
 
 
 // ===== methods =====
 
 // constructor
 DEBUG_SCAN_SERVER_CLASS::DEBUG_SCAN_SERVER_CLASS() :
-    of(stdout),
+    of(&cout),
     // instantiate stubs
     clientStub(new DEBUG_SCAN_CLIENT_STUB_CLASS(this)),
     serverStub(new DEBUG_SCAN_SERVER_STUB_CLASS(this)),
@@ -137,7 +137,7 @@ DEBUG_SCAN_SERVER_CLASS::Cleanup()
 //     return control and proceed.
 //
 void
-DEBUG_SCAN_SERVER_CLASS::Scan(FILE *outFile)
+DEBUG_SCAN_SERVER_CLASS::Scan(std::ostream& ofile)
 {
     // Only one scan is allowed to execute at a time.  Get the lock.
     static std::mutex scanMutex;
@@ -147,15 +147,17 @@ DEBUG_SCAN_SERVER_CLASS::Scan(FILE *outFile)
 
     doneReceived = false;
     
-    of = outFile;
-    fprintf(of, "DEBUG SCAN:");
-    fflush(of);
+    of = &ofile;
+    ofile << "DEBUG SCAN:";
 
     time_t secs = time(0);
     tm *t = localtime(&secs);
-    fprintf(of, "  (%04d-%02d-%02d %02d:%02d:%02d)\n",
+    char msg[64];
+    sprintf(msg, "  (%04d-%02d-%02d %02d:%02d:%02d)",
             t->tm_year+1900, t->tm_mon+1, t->tm_mday,
             t->tm_hour, t->tm_min, t->tm_sec);
+    ofile << msg << endl;
+    ofile.flush();
 
     // Start a dead RRR timer so the program doesn't hang if RRR has failed
     VERIFYX(! pthread_create(&testRRRThread, NULL, &DeadRRRTimer, NULL));
@@ -167,7 +169,15 @@ DEBUG_SCAN_SERVER_CLASS::Scan(FILE *outFile)
     std::unique_lock<std::mutex> doneLock(doneMutex);
     doneCond.wait(doneLock, []{ return doneReceived; });
 
-    of = stdout;
+    // Invoke all other registered scanners.
+    for (std::list<DEBUG_SCANNER>::iterator s = scanners.begin();
+         s != scanners.end(); s++)
+    {
+        ofile << endl;
+        (*s)->DebugScan(ofile);
+    }
+
+    of = &cout;
 }
 
 
@@ -214,16 +224,16 @@ DEBUG_SCAN_SERVER_CLASS::CheckChannelRsp(UINT8 value)
 
     if (value == 27)
     {
-        fprintf(of, "    OK\n");
-        fflush(of);
+        *of << "    OK" << endl;
+        of->flush();
 
         // Dump the debug scan chain
         clientStub->Scan(0);
     }
     else
     {
-        fprintf(of, "    FAILED!  (%d)\n", value);
-        fflush(of);
+        *of << "    FAILED!  (" << value << ")" << endl;
+        of->flush();
         Done(0);
     }
 }
@@ -276,8 +286,9 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgSoftConnection(
     // UID 0.
     GLOBAL_STRING_UID synth_uid = tagID & (~0 << GLOBAL_STRING_LOCAL_UID_SZ);
 
-    fprintf(of, "  Soft connection state [%s]:\n",
-            (*GLOBAL_STRINGS::Lookup(synth_uid)).c_str());
+    *of << "  Soft connection state ["
+        << *GLOBAL_STRINGS::Lookup(synth_uid)
+        << "]:" << endl;
 
     while (numConnections--)
     {
@@ -288,10 +299,10 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgSoftConnection(
         bool not_empty = (msg.Get(1) != 0);
         bool not_full = (msg.Get(1) != 0);
 
-        fprintf(of, "\t%s:  %sfull / %sempty\n",
-                (*GLOBAL_STRINGS::Lookup(synth_uid | local_uid)).c_str(),
-                not_full ? "not " : "",
-                not_empty ? "not " : "");
+        *of << "\t" << *GLOBAL_STRINGS::Lookup(synth_uid | local_uid) << ":  "
+            << (not_full ? "not " : "") << "full / "
+            << (not_empty ? "not " : "") << "empty"
+            << endl;
     }
 }
 
@@ -301,7 +312,7 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgRaw(
     GLOBAL_STRING_UID tagID,
     const char *tag)
 {
-    fprintf(of, "  %s:\n\tH", tag);
+    *of << "  " << tag << ":" << endl << "\tH";
 
     //
     // Get the data message.  It is easiest to get the data in 64 bit chunks
@@ -323,10 +334,12 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgRaw(
          it != ordered_data.end();
          it++)
     {
-        fprintf(of, " %04x", *it);
+        char msg[32];
+        sprintf(msg, " %04x", *it);
+        *of << msg;
     }
 
-    fprintf(of, "  \tB");
+    *of << "  \tB";
 
     // Print a long binary string
     for (list<UINT16>::iterator it = ordered_data.begin();
@@ -336,13 +349,13 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgRaw(
         for (int b = 16; b > 0; b--)
         {
             if ((b & 3) == 0)
-                fprintf(of, " ");
+                *of << " ";
 
-            fprintf(of, "%d", (*it >> (b - 1)) & 1);
+            *of << "%d", (*it >> (b - 1)) & 1;
         }
     }
 
-    fprintf(of, "\n");
+    *of << endl;
 }
 
 
@@ -362,9 +375,9 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgFormatted(
         // UID 0.
         GLOBAL_STRING_UID synth_uid = tagID & (~0 << GLOBAL_STRING_LOCAL_UID_SZ);
 
-        fprintf(of, "  %s [%s]:\n",
-                tok,
-                (*GLOBAL_STRINGS::Lookup(synth_uid)).c_str());
+        *of << "  " << tok << " ["
+            << *GLOBAL_STRINGS::Lookup(synth_uid)
+            << "]:" << endl;
 
         tok = strtok(NULL, "~");
     }
@@ -392,21 +405,27 @@ DEBUG_SCAN_SERVER_CLASS::DisplayMsgFormatted(
                 bool maybe = (msg.Get(1) == 1);
                 if (maybe)
                 {
-                    fprintf(of, "\t%s:  Valid 0x%llx\n", tok, val);
+                    *of << "\t" << tok << ":  Valid 0x"
+                        << std::setfill('0') << std::hex
+                        << val << endl;
                 }
                 else
                 {
-                    fprintf(of, "\t%s:  Invalid\n", tok);
+                    *of << "\t" << tok << ":  Invalid" << endl;
                 }
             }
             else
             {
-                fprintf(of, "\t%s:  0x%llx\n", tok, val);
+                *of << "\t" << tok << ":  0x"
+                    << std::setfill('0') << std::hex
+                    << val << endl;
             }
 
             tok = strtok(NULL, "~");
         }
     }
+
+    *of << std::dec;
 }
 
 
@@ -511,6 +530,31 @@ void *DeadRRRTimer(void *arg)
 
 // ========================================================================
 //
+//   Manage registered scanners.
+//
+// ========================================================================
+
+DEBUG_SCANNER_CLASS::DEBUG_SCANNER_CLASS()
+{
+}
+
+DEBUG_SCANNER_CLASS::~DEBUG_SCANNER_CLASS()
+{
+    // Ideally we would remove a scanner from the list here in the destructor.
+    // We use so many static class instances that it safer, for now, not
+    // to remove an entry.
+    //DEBUG_SCAN_SERVER_CLASS::GetInstance()->scanners.remove(this);
+}
+
+void
+DEBUG_SCANNER_CLASS::RegisterDebugScanner()
+{
+    DEBUG_SCAN_SERVER_CLASS::GetInstance()->scanners.push_front(this);
+}
+
+
+// ========================================================================
+//
 //   Live system debugging.
 //
 // ========================================================================
@@ -527,10 +571,10 @@ void *DebugScanThread(void *arg)
     while (true)
     {
         // The open() blocks until a reader also opens the pipe.
-        FILE* f = fopen(LEAP_LIVE_DEBUG_PATH "/debug-scan", "w");
+        std::ofstream f(LEAP_LIVE_DEBUG_PATH "/debug-scan");
 
         DEBUG_SCAN_SERVER_CLASS::GetInstance()->Scan(f);
-        fclose(f);
+        f.close();
 
         // The fclose() causes readers to terminate, however the fopen()
         // on the next iteration would cause a slow reader to miss the
