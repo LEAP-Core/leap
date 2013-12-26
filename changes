@@ -17119,3 +17119,31 @@ Directory modules/leap/virtual-platform/low-level-platform-interface
 Changes on Dec. 18 introduced a race between initialization of RRR tables
 and starting the LLPI monitor thread.  When the thread started first some
 messages were lost.  Added an explicit monitor thread start.
+
+----------
+hjyang      Date: Wed Dec 25 22:03:58 EST 2013  CSN: CSN-leap-509
+                  Thu Dec 26 03:03:58 UTC 2013
+
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-common-module-context.awb Locally Modified          508 
+ addressable-ring.bsv      Locally Modified          508 
+
+Directory modules/leap/libraries/soft-services/services/lock-sync-service
+ synchronization.bsv       Locally Modified          508 
+
+Directory modules/leap/libraries/librl/cache
+ rl-cache.bsv              Locally Modified          508 
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          508 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-controller.bsv Locally Modified          508 
+ coherent-scratchpad-memory-client.bsv Locally Modified          508 
+ coherent-scratchpad-memory-utils.bsv Locally Modified          508 
+
+(1) Add a parameter specifying the priority of local messages that need to be 
+sent on the addressable ring. The parameter's default value is consistent 
+with the original implementation where local messages always win. 
+(2) Add ring stats for debugging. 
+(3) Add more coherent scratchpad stats.
+(4) Add an additional method for synchronization.

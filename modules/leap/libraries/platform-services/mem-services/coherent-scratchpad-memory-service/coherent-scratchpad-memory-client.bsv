@@ -109,12 +109,16 @@ module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpa
 
     let statsConstructor = mkNullCoherentScratchpadCacheStats;
     let prefetchStatsConstructor = mkNullScratchpadPrefetchStats;
+    let reqRingStatsConstructor = mkNullCoherentScratchpadRingNodeStats;
+    let respRingStatsConstructor = mkNullCoherentScratchpadRingNodeStats;
     DEBUG_FILE debugLog <- mkDebugFileNull(""); 
     
     let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID,
                                                       conf,
                                                       statsConstructor, 
-                                                      prefetchStatsConstructor, 
+                                                      prefetchStatsConstructor,
+                                                      reqRingStatsConstructor,
+                                                      respRingStatsConstructor,
                                                       debugLog);
     return m;
 endmodule
@@ -131,18 +135,30 @@ module [CONNECTED_MODULE] mkMultiReadDebugCoherentScratchpadClient#(Integer scra
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ));
-
-    let statsConstructor = mkBasicCoherentScratchpadCacheStats("Coherent_scratchpad_" + integerToString(scratchpadID) + "_client_" + integerToString(statsID) + "_", "");
-    let prefetchStatsConstructor = mkNullScratchpadPrefetchStats;
     
+    String statsName = "Coherent_scratchpad_" + integerToString(scratchpadID) + "_client_" + integerToString(statsID) + "_";
     NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
     
-    if (`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE == 1)
-    begin
-        prefetchStatsConstructor = mkBasicScratchpadPrefetchStats("Coherent_scratchpad_" + integerToString(scratchpadID) + "_client_" + integerToString(statsID) + "_", "", n_prefetch_learners);
-    end
+    let statsConstructor = mkBasicCoherentScratchpadCacheStats(statsName, "");
+    let prefetchStatsConstructor = (`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE == 1)?
+                                   mkBasicScratchpadPrefetchStats(statsName, "", n_prefetch_learners):
+                                   mkNullScratchpadPrefetchStats;
+    
+    let reqRingStatsConstructor = (`ADDR_RING_DEBUG_ENABLE == 1)? 
+                                  mkBasicCoherentScratchpadRingNodeStats(statsName + "req_", ""):
+                                  mkNullCoherentScratchpadRingNodeStats;
 
-    let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID, conf, statsConstructor, prefetchStatsConstructor, debugLog);
+    let respRingStatsConstructor = (`ADDR_RING_DEBUG_ENABLE == 1)?
+                                   mkBasicCoherentScratchpadRingNodeStats(statsName + "resp_", ""):
+                                   mkNullCoherentScratchpadRingNodeStats; 
+    
+    let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID, 
+                                                      conf, 
+                                                      statsConstructor, 
+                                                      prefetchStatsConstructor, 
+                                                      reqRingStatsConstructor,
+                                                      respRingStatsConstructor,
+                                                      debugLog);
     return m;
 endmodule
 
@@ -156,6 +172,8 @@ module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scra
                                                                     COH_SCRATCH_CONFIG conf,
                                                                     COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                     SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
+                                                                    COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
+                                                                    COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
                                                                     DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -185,11 +203,21 @@ module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scra
     end
     else if (valueOf(t_NATURAL_SZ) <= valueOf(t_COH_SCRATCH_MEM_VALUE_SZ)/2)
     begin
-        mem <- mkSmallMultiReadStatsCoherentScratchpadClient(scratchpadID, statsConstructor, prefetchStatsConstructor, debugLog);
+        mem <- mkSmallMultiReadStatsCoherentScratchpadClient(scratchpadID, 
+                                                             statsConstructor, 
+                                                             prefetchStatsConstructor, 
+                                                             reqStatsConstructor,
+                                                             respStatsConstructor,
+                                                             debugLog);
     end
     else
     begin
-        mem <- mkMediumMultiReadStatsCoherentScratchpadClient(scratchpadID, statsConstructor, prefetchStatsConstructor, debugLog);
+        mem <- mkMediumMultiReadStatsCoherentScratchpadClient(scratchpadID, 
+                                                              statsConstructor, 
+                                                              prefetchStatsConstructor,
+                                                              reqStatsConstructor,
+                                                              respStatsConstructor,
+                                                              debugLog);
     end
     
     return mem;
@@ -213,6 +241,8 @@ endmodule
 module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
                                                                          COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
+                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
+                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
                                                                          DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -246,6 +276,8 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
                                                      n_cache_prefetch_learners,
                                                      statsConstructor,
                                                      prefetchStatsConstructor,
+                                                     reqStatsConstructor,
+                                                     respStatsConstructor,
                                                      debugLog);
 
     
@@ -340,6 +372,8 @@ endmodule
 module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
                                                                           COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                           SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
+                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
+                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
                                                                           DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -362,6 +396,8 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
                                                      n_cache_prefetch_learners,
                                                      statsConstructor,
                                                      prefetchStatsConstructor,
+                                                     reqStatsConstructor,
+                                                     respStatsConstructor,
                                                      debugLog);
     //
     // Methods
@@ -418,6 +454,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                                                                         NumTypeParam#(n_PREFETCH_LEARNER_SIZE) nPrefetchLearners,
                                                                         COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                         SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
+                                                                        COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
+                                                                        COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
                                                                         DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(n_READERS, t_MEM_ADDR, COH_SCRATCH_MEM_VALUE, t_MEM_MASK))
@@ -440,7 +478,10 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     Param#(2) cacheMode              <- mkDynamicParameter(fromInteger(cacheModeParam), paramNode);
 
     // Connection between private cache and the scratchpad virtual device
-    let sourceData <- mkCoherentScratchpadCacheSourceData(scratchpadID, debugLog);
+    let sourceData <- mkCoherentScratchpadCacheSourceData(scratchpadID, 
+                                                          reqStatsConstructor,
+                                                          respStatsConstructor,
+                                                          debugLog);
                              
     // Cache Prefetcher
     let prefetcher <- (`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE == 1) ?
@@ -666,6 +707,17 @@ typedef struct
 RL_COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY
     deriving(Bits, Eq);
 
+
+//
+// Statistics wires for coherent scratchpad ring nodes.
+// When a line becomes true the coresponding statistic should be incremented.
+//
+interface COH_SCRATCH_RING_NODE_STATS;
+    method Bool localMsgSent();  // send local message on to the ring
+    method Bool fwdMsgSent();    // forward message on the ring
+    method Bool msgReceived();   // receive message from the ring
+endinterface: COH_SCRATCH_RING_NODE_STATS
+
 //
 // mkCoherentScratchpadCacheSourceData --
 //     Connection between a private cache for a coherent scratchpad client and 
@@ -674,7 +726,10 @@ RL_COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY
 // arrive here when the cache either misses or needs to flush dirty data.  
 // Requests will be forwarded to the coherent scratchpad controller.
 //
-module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpadID, DEBUG_FILE debugLog)
+module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpadID, 
+                                                               COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
+                                                               COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
+                                                               DEBUG_FILE debugLog)
     // interface:
     (RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, COH_SCRATCH_MEM_VALUE, t_CACHE_META, t_REQ_IDX))
     provisos (Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
@@ -712,7 +767,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
         mkConnectionAddrRingDynNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Req"):
         mkConnectionTokenRingDynNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Req");
-
+        
     // Addressable ring
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
         (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
@@ -724,6 +779,31 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         mkConnectionChain("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_ActivatedReq");
    
 
+    // =======================================================================
+    //
+    // Ring stats
+    //
+    // =======================================================================
+    let req_stats = ?;
+    let resp_stats = ?;
+
+`ifndef ADDR_RING_DEBUG_ENABLE_Z
+    req_stats = interface COH_SCRATCH_RING_NODE_STATS;
+                    method Bool localMsgSent() = link_mem_req.localMsgSent();  
+                    method Bool fwdMsgSent()   = link_mem_req.fwdMsgSent();  
+                    method Bool msgReceived()  = link_mem_req.msgReceived();  
+                endinterface;
+    
+    resp_stats = interface COH_SCRATCH_RING_NODE_STATS;
+                     method Bool localMsgSent() = link_mem_resp.localMsgSent();  
+                     method Bool fwdMsgSent()   = link_mem_resp.fwdMsgSent();  
+                     method Bool msgReceived()  = link_mem_resp.msgReceived();  
+                 endinterface;
+`endif
+    
+    reqStatsConstructor(req_stats);
+    respStatsConstructor(resp_stats);
+    
     // =======================================================================
     //
     // Initialization

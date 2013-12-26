@@ -29,6 +29,7 @@
 
 typedef function CONNECTED_MODULE#(Empty) f(RL_COH_CACHE_STATS stats) COH_SCRATCH_CACHE_STATS_CONSTRUCTOR;
 typedef function CONNECTED_MODULE#(Empty) f(COH_SCRATCH_CONTROLLER_STATS stats) COH_SCRATCH_CONTROLLER_STATS_CONSTRUCTOR;
+typedef function CONNECTED_MODULE#(Empty) f(COH_SCRATCH_RING_NODE_STATS stats) COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR;
 
 //
 // mkBasicCoherentScratchpadCacheStats --
@@ -44,7 +45,7 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
 
     String tag_prefix = "LEAP_" + tagPrefix;
 
-    STAT_ID statIDs[11] = {
+    STAT_ID statIDs[13] = {
         statName(tag_prefix + "COH_SCRATCH_LOAD_HIT",
                  descPrefix + "Coherent scratchpad load hits"),
         statName(tag_prefix + "COH_SCRATCH_LOAD_MISS",
@@ -53,8 +54,10 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
                  descPrefix + "Coherent scratchpad store hits"),
         statName(tag_prefix + "COH_SCRATCH_STORE_CACHELINE_MISS",
                  descPrefix + "Coherent scratchpad store cache-line misses"),
-        statName(tag_prefix + "COH_SCRATCH_STORE_PERMISSION_MISS",
-                 descPrefix + "Coherent scratchpad store permission misses"),
+        statName(tag_prefix + "COH_SCRATCH_STORE_PERMISSION_MISS_S",
+                 descPrefix + "Coherent scratchpad store permission misses from S state"),
+        statName(tag_prefix + "COH_SCRATCH_STORE_PERMISSION_MISS_O",
+                 descPrefix + "Coherent scratchpad store permission misses from O state"),
         statName(tag_prefix + "COH_SCRATCH_SELF_INVAL",
                  descPrefix + "Coherent scratchpad self invalidate"),
         statName(tag_prefix + "COH_SCRATCH_SELF_DIRTY_FLUSH",
@@ -66,10 +69,12 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
         statName(tag_prefix + "COH_SCRATCH_COH_FLUSH",
                  descPrefix + "Coherent scratchpad flush due to coherence"),
         statName(tag_prefix + "COH_SCRATCH_MSHR_RETRY",
-                 descPrefix + "Coherent scratchpad cache retry due to unavailable mshr entry")
+                 descPrefix + "Coherent scratchpad cache retry due to unavailable mshr entry"),
+        statName(tag_prefix + "COH_SCRATCH_GETX_RETRY",
+                 descPrefix + "Coherent scratchpad resend GETX forced by other caches")
 
     };
-    STAT_VECTOR#(11) sv <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(13) sv <- mkStatCounter_Vector(statIDs);
     
     rule readHit (stats.readHit());
         sv.incr(0);
@@ -87,32 +92,40 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
         sv.incr(3);
     endrule
 
-    rule writePermissionMiss (stats.writePermissionMiss());
+    rule writePermissionMissS (stats.writePermissionMissS());
         sv.incr(4);
     endrule
 
-    rule invalEntry (stats.invalEntry());
+    rule writePermissionMissO (stats.writePermissionMissO());
         sv.incr(5);
+    endrule
+    
+    rule invalEntry (stats.invalEntry());
+        sv.incr(6);
     endrule
 
     rule dirtyEntryFlush (stats.dirtyEntryFlush());
-        sv.incr(6);
+        sv.incr(7);
     endrule
     
     rule cleanEntryFlush (stats.cleanEntryFlush());
-        sv.incr(7);
-    endrule
-
-    rule coherenceInval (stats.coherenceInval());
         sv.incr(8);
     endrule
 
-    rule coherenceFlush (stats.coherenceFlush());
+    rule coherenceInval (stats.coherenceInval());
         sv.incr(9);
+    endrule
+
+    rule coherenceFlush (stats.coherenceFlush());
+        sv.incr(10);
     endrule
     
     rule mshrRetry (stats.mshrRetry());
-        sv.incr(10);
+        sv.incr(11);
+    endrule
+
+    rule getxRetry (stats.getxRetry());
+        sv.incr(12);
     endrule
 
 endmodule
@@ -203,6 +216,48 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadControllerStats#(String tagPr
 endmodule
 
 module [CONNECTED_MODULE] mkNullCoherentScratchpadControllerStats#(COH_SCRATCH_CONTROLLER_STATS stats)
+    // interface:
+    ();
+endmodule
+
+//
+// mkBasicCoherentScratchpadRingNodeStats --
+//     Shim between an COH_SCRATCH_RING_NODE_STATS interface and statistics counters.
+//     Tag and description prefixes allow the caller to define the prefixes
+//     of the statistic.
+//
+module [CONNECTED_MODULE] mkBasicCoherentScratchpadRingNodeStats#(String tagPrefix,
+                                                                  String descPrefix,
+                                                                  COH_SCRATCH_RING_NODE_STATS stats)
+    // interface:
+    ();
+
+    String tag_prefix = "LEAP_" + tagPrefix;
+
+    STAT_ID statIDs[3] = {
+        statName(tag_prefix + "COH_SCRATCH_RING_NODE_LOCAL_SENT",
+                 descPrefix + "Coherence scratchpad ring node local message sent"),
+        statName(tag_prefix + "COH_SCRATCH_RING_NODE_FORWARD",
+                 descPrefix + "Coherence scratchpad ring node forward message"),
+        statName(tag_prefix + "COH_SCRATCH_RING_NODE_RECEIVED",
+                 descPrefix + "Coherence scratchpad ring node message received")
+    };
+    STAT_VECTOR#(3) sv <- mkStatCounter_Vector(statIDs);
+    
+    rule localMsgSent (stats.localMsgSent());
+        sv.incr(0);
+    endrule
+
+    rule fwdMsgSent (stats.fwdMsgSent());
+        sv.incr(1);
+    endrule
+
+    rule msgReceived (stats.msgReceived());
+        sv.incr(2);
+    endrule
+endmodule
+
+module [CONNECTED_MODULE] mkNullCoherentScratchpadRingNodeStats#(COH_SCRATCH_RING_NODE_STATS stats)
     // interface:
     ();
 endmodule

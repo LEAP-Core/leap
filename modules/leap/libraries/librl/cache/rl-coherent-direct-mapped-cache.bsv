@@ -41,7 +41,7 @@ import SpecialFIFOs::*;
 // Number of entries in the network request completion table 
 typedef 16 RL_COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES;
 // Number of entries in the miss status handling registers (MSHR)
-typedef 32 RL_COH_DM_CACHE_MSHR_ENTRIES;
+typedef 64 RL_COH_DM_CACHE_MSHR_ENTRIES;
 // Size of the unactivated request buffer
 typedef  8 RL_COH_DM_CACHE_NW_REQ_BUF_SIZE;
 
@@ -533,16 +533,17 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     PulseWire resendGetXFromMSHRW                 <- mkPulseWire();
 
     // Wires for communicating stats
-    PulseWire readHitW             <- mkPulseWire();
-    PulseWire readMissW            <- mkPulseWire();
-    PulseWire writeHitW            <- mkPulseWire();
-    PulseWire writeCacheMissW      <- mkPulseWire();
-    PulseWire writePermissionMissW <- mkPulseWire();
+    PulseWire readHitW              <- mkPulseWire();
+    PulseWire readMissW             <- mkPulseWire();
+    PulseWire writeHitW             <- mkPulseWire();
+    PulseWire writeCacheMissW       <- mkPulseWire();
+    PulseWire writePermissionMissSW <- mkPulseWire();
+    PulseWire writePermissionMissOW <- mkPulseWire();
     // PulseWire selfInvalW           <- mkPulseWire();
-    PulseWire selfDirtyFlushW      <- mkPulseWire();
-    PulseWire selfCleanFlushW      <- mkPulseWire();
-    PulseWire coherenceInvalW      <- mkPulseWire();
-    PulseWire coherenceFlushW      <- mkPulseWire();
+    PulseWire selfDirtyFlushW       <- mkPulseWire();
+    PulseWire selfCleanFlushW       <- mkPulseWire();
+    PulseWire coherenceInvalW       <- mkPulseWire();
+    PulseWire coherenceFlushW       <- mkPulseWire();
     // PulseWire forceInvalLineW      <- mkPulseWire();
     // PulseWire forceFlushLineW      <- mkPulseWire();
 
@@ -1392,7 +1393,14 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 if (cur_entry.tag == tag && cur_entry.state != COH_DM_CACHE_STATE_I)
                 begin
                     debugLog.record($format("    Cache: doLocalWrite: Permission MISS addr=0x%x, entry=0x%x, state=0x%x", r.addr, idx, cur_entry.state));
-                    writePermissionMissW.send();
+                    if (cur_entry.state == COH_DM_CACHE_STATE_O)
+                    begin
+                        writePermissionMissOW.send();
+                    end
+                    else
+                    begin
+                        writePermissionMissSW.send();
+                    end
                 end
                 else
                 begin
@@ -1728,7 +1736,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         method Bool readMiss() = readMissW;
         method Bool writeHit() = writeHitW;
         method Bool writeCacheMiss() = writeCacheMissW;
-        method Bool writePermissionMiss () = writePermissionMissW;
+        method Bool writePermissionMissS () = writePermissionMissSW;
+        method Bool writePermissionMissO () = writePermissionMissOW;
         method Bool invalEntry() = False;
         method Bool dirtyEntryFlush() = selfDirtyFlushW;
         method Bool cleanEntryFlush() = selfCleanFlushW;
@@ -1737,6 +1746,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         method Bool forceInvalLine() = False;
         method Bool forceFlushlLine() = False;
         method Bool mshrRetry() = mshrRetryW;
+        method Bool getxRetry() = resendGetXFromMSHRW;
     endinterface
 
 endmodule

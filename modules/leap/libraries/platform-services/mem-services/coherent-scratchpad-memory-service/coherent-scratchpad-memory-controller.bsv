@@ -108,7 +108,7 @@ COH_SCRATCH_CONTROLLER_DATA_REQ
 
 // Number of entries in request tables that stores GETX/GETS requests 
 // that are checking out the ownership in ownerbitMem
-typedef 16 COH_SCRATCH_CONTROLLER_GET_REQ_TABLE_ENTRIES;
+typedef 32 COH_SCRATCH_CONTROLLER_GET_REQ_TABLE_ENTRIES;
 
 //
 // Statistics wires for coherent scratchpad controller.

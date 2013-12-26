@@ -45,6 +45,12 @@ interface CONNECTION_ADDR_RING#(type t_NODE_ID, type t_MSG);
 
     method t_NODE_ID nodeID();
     method t_NODE_ID maxID();
+    
+`ifndef ADDR_RING_DEBUG_ENABLE_Z
+    method Bool localMsgSent();
+    method Bool fwdMsgSent();
+    method Bool msgReceived();
+`endif
 endinterface
 
 
@@ -166,8 +172,10 @@ module [CONNECTED_MODULE] mkConnectionAddrRingNode_Impl#(String chainID,
     FIFOF#(t_MSG) recvQ <- mkFIFOF();
     FIFOF#(Tuple2#(t_NODE_ID, t_MSG)) sendQ <- mkFIFOF();
 
-    PulseWire localSentMsg <- mkPulseWire();
-
+    PulseWire localMsgSentW <- mkPulseWire();
+    PulseWire fwdMsgPrior   <- mkPulseWire();
+    PulseWire fwdMsgSentW   <- mkPulseWire();
+    PulseWire msgReceivedW  <- mkPulseWire();
 
     //
     // Initialization of the ring.
@@ -204,29 +212,54 @@ module [CONNECTED_MODULE] mkConnectionAddrRingNode_Impl#(String chainID,
     rule recvFromRing (newMsgIsForMe());
         match {.id, .msg} <- chain.recvFromPrev();
         recvQ.enq(msg);
+        msgReceivedW.send();
     endrule
 
+    //
+    // checkMsgSendPrior
+    //
+    if (`ADDR_RING_MSG_MODE == 2)
+    begin
+        Reg#(Bool)  localPrior <- mkReg(True);
+        rule checkMsgSendPrior(init.initialized && chain.recvNotEmpty());
+            if (!newMsgIsForMe() && !localPrior)
+            begin
+                fwdMsgPrior.send();
+            end
+        endrule
+        rule updArbiter(localMsgSentW || fwdMsgSentW);
+            localPrior <= fwdMsgSentW;
+        endrule
+    end
+    else if (`ADDR_RING_MSG_MODE == 1)
+    begin
+        rule checkMsgSendPrior(init.initialized && chain.recvNotEmpty());
+            if (!newMsgIsForMe())
+            begin
+                fwdMsgPrior.send();
+            end
+        endrule
+    end
 
     //
     // sendToRing --
     //     This node has a new message for the ring.
     //
-    rule sendToRing (init.initialized);
+    rule sendToRing (init.initialized && !fwdMsgPrior);
         chain.sendToNext(sendQ.first());
         sendQ.deq();
-
-        localSentMsg.send();
+        localMsgSentW.send();
     endrule
-
 
     //
     // forwardOnRing --
     //     Local node did not send a message this cycle and message coming
     //     from ring is not for this node.  Is there a message to forward?
     //
-    rule forwardOnRing (init.initialized && ! localSentMsg && ! newMsgIsForMe());
+    rule forwardOnRing (init.initialized && ! localMsgSentW && ! newMsgIsForMe());
         let m <- chain.recvFromPrev();
         chain.sendToNext(m);
+        fwdMsgSentW.send();
     endrule
 
 
@@ -258,6 +291,13 @@ module [CONNECTED_MODULE] mkConnectionAddrRingNode_Impl#(String chainID,
 
     method t_NODE_ID nodeID() = init.nodeID();
     method t_NODE_ID maxID() = init.maxID();
+
+`ifndef ADDR_RING_DEBUG_ENABLE_Z
+    // Signals for debugging
+    method Bool localMsgSent() = localMsgSentW;
+    method Bool fwdMsgSent() = fwdMsgSentW;
+    method Bool msgReceived() = msgReceivedW;
+`endif 
 endmodule
 
 
@@ -480,6 +520,13 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
 
     method t_NODE_ID nodeID() = init.nodeID();
     method t_NODE_ID maxID() = init.maxID();
+    
+`ifndef ADDR_RING_DEBUG_ENABLE_Z
+    // Signals for debugging
+    method Bool localMsgSent() = False;
+    method Bool fwdMsgSent()   = False;
+    method Bool msgReceived()  = False;
+`endif
 endmodule
 
 

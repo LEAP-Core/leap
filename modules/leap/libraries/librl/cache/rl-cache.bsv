@@ -90,20 +90,22 @@ interface RL_COH_CACHE_STATS;
     method Bool readMiss();
     
     method Bool writeHit();
-    method Bool writeCacheMiss();        // Write miss due to cache-line miss
-    method Bool writePermissionMiss();   // Write miss due to permission miss (cache line already exists)
+    method Bool writeCacheMiss();         // Write miss due to cache-line miss
+    method Bool writePermissionMissS();   // Write miss due to permission miss (cache line already exists)
+    method Bool writePermissionMissO();   // Write miss due to permission miss (cache line already exists)
 
-    method Bool invalEntry();            // Invalidate due to capacity
-    method Bool dirtyEntryFlush();       // Dirty flush due to capacity
-    method Bool cleanEntryFlush();       // Clean flush due to capacity
+    method Bool invalEntry();             // Invalidate due to capacity
+    method Bool dirtyEntryFlush();        // Dirty flush due to capacity
+    method Bool cleanEntryFlush();        // Clean flush due to capacity
 
-    method Bool coherenceInval();        // Invalidate due to coherence
-    method Bool coherenceFlush();        // Flush due to coherence
+    method Bool coherenceInval();         // Invalidate due to coherence
+    method Bool coherenceFlush();         // Flush due to coherence
     
-    method Bool forceInvalLine();        // Invalidate forced by external request
-    method Bool forceFlushlLine();       // Flush forced by external request
+    method Bool forceInvalLine();         // Invalidate forced by external request
+    method Bool forceFlushlLine();        // Flush forced by external request
 
-    method Bool mshrRetry();             // Retry read/write because mshr entry is not available
+    method Bool mshrRetry();              // Retry read/write because mshr entry is not available
+    method Bool getxRetry();              // GETX retry forced by other caches
 endinterface: RL_COH_CACHE_STATS
 
 module mkNullRLCoherentCacheStats (RL_COH_CACHE_STATS);

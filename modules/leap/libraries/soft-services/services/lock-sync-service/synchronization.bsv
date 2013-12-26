@@ -37,7 +37,7 @@ import Vector::*;
 //
 // The maximum number of associated synchronization nodes
 //
-typedef 32 N_SYNC_NODES;
+typedef 64 N_SYNC_NODES;
 
 //
 // Sync node port number. 
@@ -81,12 +81,17 @@ interface SYNC_SERVICE_IFC;
     // Wait for synchronization 
     // This method can only be fired when the synchronization is complete
     method Action waitForSync();
+    // This method is only used for the master synchronization node
+    // Return true if all slave synchronization nodes have reached 
+    // the synchronization point
+    method Bool othersSyncAllReached();
 endinterface
 
 interface SYNC_IFC;
     method Action setSyncBarrier(Bit#(N_SYNC_NODES) barrier);
     method Action signalSyncReached();
     method Action waitForSync();
+    method Bool othersSyncAllReached();
 endinterface
 
 interface SYNC_SERVICE_MULTI_SYNC_IFC#(numeric type n_SYNCS);
@@ -109,6 +114,7 @@ module [CONNECTED_MODULE] mkSyncNode#(Integer syncGroupID, Bool isMasterNode)
     method Action setSyncBarrier(Bit#(N_SYNC_NODES) barrier) = syncNode.syncPorts[0].setSyncBarrier(barrier);
     method Action signalSyncReached() = syncNode.syncPorts[0].signalSyncReached();
     method Action waitForSync() = syncNode.syncPorts[0].waitForSync();
+    method Bool othersSyncAllReached() = syncNode.syncPorts[0].othersSyncAllReached();
 endmodule
 
 //
@@ -264,7 +270,7 @@ module [CONNECTED_MODULE] mkMultiSyncNodeMaster#(Integer syncGroupID)
     begin
         portsLocal[p] =
             interface SYNC_IFC;
-                method Action setSyncBarrier(Bit#(N_SYNC_NODES) barrier) if (!initDone && !fold(\&& , readVReg(barrierInitialized)));
+                method Action setSyncBarrier(Bit#(N_SYNC_NODES) barrier) if (!fold(\&& , readVReg(barrierInitialized)));
                     barrierInitValues[p] <= barrier;
                     barrierInitialized[p] <= True;
                 endmethod
@@ -276,6 +282,12 @@ module [CONNECTED_MODULE] mkMultiSyncNodeMaster#(Integer syncGroupID)
                 method Action waitForSync() if (syncRespQs[p].notEmpty());
                     syncRespQs[p].deq();
                 endmethod
+
+                method Bool othersSyncAllReached();
+                    let barrier = barriers[p];
+                    barrier[0] = False;
+                    return (!fold(\|| , barrier));
+                endmethod 
             endinterface;
     end
 
@@ -399,6 +411,8 @@ module [CONNECTED_MODULE] mkMultiSyncNodeSlave#(Integer syncGroupID)
                 method Action waitForSync() if (syncRespQs[p].notEmpty());
                     syncRespQs[p].deq();
                 endmethod
+
+                method Bool othersSyncAllReached() = False;
             endinterface;
     end
 
