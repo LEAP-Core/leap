@@ -24,3 +24,5 @@
 %param DEBUG_REVBUF 0 "Turn on debugging for reversal buffer"
 %param DEBUG_REWIND_FIFO 0 "Turn on debugging for rewind fifo"
 
+%param --global FIFO_MEM_MIN_ENTRIES_FOR_BRAM      256  "Heuristic for BRAM/LUT-based FIFOs: Min. FIFO depth for choosing BRAM."
+%param --global FIFO_MEM_MIN_TOTAL_BITS_FOR_BRAM 14000  "Heuristic for BRAM/LUT-based FIFOs: Min. total storage bits for choosing BRAM."

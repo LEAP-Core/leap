@@ -17162,3 +17162,17 @@ Directory modules/leap/libraries/platform-services/common-services/debug-scan-se
 
 - Switch to ostream for output instead of printf.  The commands service
   was already using it.
+
+----------
+mcadler     Date: Mon Dec 30 14:35:47 EST 2013  CSN: CSN-leap-511
+                  Mon Dec 30 19:35:47 UTC 2013
+
+
+Directory modules/leap/libraries/librl/storage
+ librl-bsv-storage.awb     Locally Modified          510 
+ fifo-mem.bsv              Locally Modified          510 
+
+Add a new mkSizedAutoMemFIFO that implements the FIFO either as BRAM or LUTRAM
+depending on the depth and width of the FIFO.  Default parameters to the
+heuristic are set as AWB parameters and parameter overrides are passed in
+to the module.

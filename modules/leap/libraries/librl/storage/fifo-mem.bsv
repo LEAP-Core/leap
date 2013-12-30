@@ -26,10 +26,86 @@ import FIFOLevel::*;
 import SpecialFIFOs::*;
 import Connectable::*;
 import GetPut::*;
+import DefaultValue::*;
 
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 
+
+// ========================================================================
+//
+//   FIFOs stored in either BRAM or LUTRAM, picked heuristically depending
+//   on size.
+//
+// ========================================================================
+
+//
+// Parameters for configuring the heuristic that picks either BRAM or LUTRAM
+// for a FIFO.
+//
+typedef struct
+{
+    // FIFO must be at least this deep before it is stored in BRAM.
+    Integer minEntriesForBRAM;
+    // Total FIFO size must be at least this large before picking BRAM.
+    Integer minTotalBitsForBRAM;
+}
+AUTO_SIZED_FIFO_CONFIG;
+
+instance DefaultValue#(AUTO_SIZED_FIFO_CONFIG);
+    defaultValue = AUTO_SIZED_FIFO_CONFIG {
+        minEntriesForBRAM: `FIFO_MEM_MIN_ENTRIES_FOR_BRAM,
+        minTotalBitsForBRAM: `FIFO_MEM_MIN_TOTAL_BITS_FOR_BRAM
+    };
+endinstance
+
+
+//
+// mkSizedAutoMemFIFOF --
+//   Build sized FIFOF using either mkSizedBRAMFIFOF or mkSizedFIFOF.
+//   The choice depends on the requested size and the heuristic configuration
+//   set in "heur".  Note that "heur" has an optional defaultValue.
+//
+module mkSizedAutoMemFIFOF#(Integer nEntries, AUTO_SIZED_FIFO_CONFIG heur)
+    // Interface:
+    (FIFOF#(t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ));
+
+    FIFOF#(t_DATA) _fifof;
+
+    if ((nEntries >= heur.minEntriesForBRAM) &&
+        (nEntries * valueOf(t_DATA_SZ) >= heur.minTotalBitsForBRAM))
+    begin
+        _fifof <- mkSizedBRAMFIFOF(nEntries);
+    end
+    else
+    begin
+        _fifof <- mkSizedFIFOF(nEntries);
+    end
+
+    return _fifof;
+endmodule
+
+
+//
+// mkSizedAutoMemFIFO --
+//   Same as mkSizedAutoMemFIFOF but a FIFO instead of a FIFOF.
+//
+module mkSizedAutoMemFIFO#(Integer nEntries, AUTO_SIZED_FIFO_CONFIG heur)
+    // Interface:
+    (FIFO#(t_DATA))
+    provisos (Bits#(t_DATA, t_DATA_SZ));
+
+    FIFOF#(t_DATA) _fifof <- mkSizedAutoMemFIFOF(nEntries, heur);
+    return fifofToFifo(_fifof);
+endmodule
+
+
+// ========================================================================
+//
+//   FIFOs stored in BRAM.
+//
+// ========================================================================
 
 //
 // mkSizedBRAMFIFO --
@@ -40,8 +116,8 @@ module mkSizedBRAMFIFO#(Integer nEntries)
     (FIFO#(t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ));
      
-    FIFOF#(t_DATA) fifof <- mkSizedBRAMFIFOF(nEntries);
-    return fifofToFifo(fifof);
+    FIFOF#(t_DATA) _fifof <- mkSizedBRAMFIFOF(nEntries);
+    return fifofToFifo(_fifof);
 endmodule
 
 
@@ -136,8 +212,8 @@ module mkSizedBRAMFIFOCount
     provisos (Bits#(t_DATA, t_DATA_SZ));
 
     MEMORY_IFC#(Bit#(TLog#(n_ENTRIES)), t_DATA) mem <- mkBRAMUnguarded();
-    FIFOCountIfc#(t_DATA,n_ENTRIES) fifo <- mkMemoryFIFOF(mem);
-    return fifo;
+    FIFOCountIfc#(t_DATA,n_ENTRIES) _fifo <- mkMemoryFIFOF(mem);
+    return _fifo;
 endmodule
 
 
@@ -365,11 +441,11 @@ module mkSizedLUTRAMFIFOF#(NumTypeParam#(t_DEPTH) dummy)
 endmodule
 
 
-module mkSizedLUTRAMFIFO#(NumTypeParam#(t_DETPH) dummy) (FIFO#(data_T))
-  provisos
-          (Bits#(data_T, data_SZ));
+module mkSizedLUTRAMFIFO#(NumTypeParam#(t_DETPH) dummy)
+    // Interface:
+    (FIFO#(data_T))
+    provisos (Bits#(data_T, data_SZ));
 
-    let q <- mkSizedLUTRAMFIFOF(dummy);
-    return fifofToFifo(q);
-
+    let _q <- mkSizedLUTRAMFIFOF(dummy);
+    return fifofToFifo(_q);
 endmodule
