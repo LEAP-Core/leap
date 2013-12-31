@@ -17176,3 +17176,48 @@ Add a new mkSizedAutoMemFIFO that implements the FIFO either as BRAM or LUTRAM
 depending on the depth and width of the FIFO.  Default parameters to the
 heuristic are set as AWB parameters and parameter overrides are passed in
 to the module.
+
+----------
+keflemin    Date: Tue Dec 31 14:28:19 EST 2013  CSN: CSN-leap-512
+                  Tue Dec 31 19:28:19 UTC 2013
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          511 
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio.h            Locally Modified          511 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.log Locally Modified          511 
+ pcie-bluenoc-physical-channel.cpp Locally Modified          511 
+ pcie-bluenoc-physical-channel.h Locally Modified          511 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.h    Locally Modified          511 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          511 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ SimulationPipeline.py     Locally Modified          511 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/fpga
+ FPGAPipeline.py           Locally Modified          511 
+
+Directory modules/leap/libraries/command-switches
+ command-switches.h        Locally Modified          511 
+
+
+Added support for multiple FPGAs communicating with CPU.  Previously,
+only one FPGA could communicate with CPU. This paves the way for
+CPU+FPGA+SIM configurations.
+
+1) Changed physical channels to accept construction/initialization
+time parameterization of communication file paths. 
+
+2) Added some generic classs to the command switch parser.  I found a
+lot of switch code that was needless replicated. I refactored some,
+but I doubt that I found all the instances.
+
+3) Modified run.bmark to support multiple HW-SW communication paths. 

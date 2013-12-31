@@ -233,14 +233,28 @@ my @pidlist = ();
 my $cpuPlatform = undef;
 my $fpgaDev = undef;
 
+# Need to check for existance of master for handling legacy builds.
+# If we have a master, we should not pass in platform arguments for 
+# other FPGAs.
+my $masterExists = 0;
+for my $platform (@$platforms_ref) {
+    $masterExists = $masterExists || ($platform->{"master"} eq "True");
+} 
+
 for my $platform (@$platforms_ref) {
     my $platformType = $platform->{"type"};
     my $platformName = $platform->{"name"};
+    my $platformLogicalName = $platform->{"logicalName"};
     my $directory = $platform->{"directory"};
     my $master = $platform->{"master"} eq "True";
     
     `mkdir -p "$config{modelDir}/${directory}/leap_debug"`;
     if ($platformType eq "BLUESIM") {
+        if(!$masterExists) 
+        {
+            $fpgaDev .= " --$platformLogicalName=\"$platformLogicalName\"";
+	}
+
         my $pid = fork();
         if ($pid == 0) { 
             setpgrp; 
@@ -280,7 +294,15 @@ for my $platform (@$platforms_ref) {
             $fpga_dev = ExecRead("leap-fpga-ctrl --device-id=${fpga_dev_id} --getconfig=dev", "Failed to query FPGA device configuration");
             $fpgaDev .= " --param FPGA_DEV_PATH=\"${fpga_dev}\"";
         }
-
+        elsif(!$masterExists) 
+        {
+            $fpga_dev = ExecRead("leap-fpga-ctrl --device-id=${fpga_dev_id} --getconfig=dev", "Failed to query FPGA device configuration");
+            $fpgaDev .= " --$platformLogicalName \"${fpga_dev}\"";
+	}
+        else
+        {
+            $fpga_dev = ExecRead("leap-fpga-ctrl --device-id=${fpga_dev_id} --getconfig=dev", "Failed to query FPGA device configuration");
+	}
     }
 
     if ($platformType eq "CPU") {

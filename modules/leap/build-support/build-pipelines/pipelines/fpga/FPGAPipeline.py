@@ -44,8 +44,8 @@ class Build(ProjectDependency):
     # The run script allows us to have multiple types for the same apm
     # This accomodate legacy builds.  If multiple types are assigned to the same APM, 
     # then their directory and master (soon to be deprecated) will go away. 
-    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "CPU", "directory" => "./", "master", "False"}')
-    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "FPGA", "directory" => "./", "master", "True"}')
+    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "CPU", "directory" => "./", "master" => "False", "logicalName" => "Legacy"}')
+    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "FPGA", "directory" => "./", "master" => "True", "logicalName" => "Legacy"}')
 
     configFile.write('platforms=['+ ",".join(platformMetadata) +']\n')
     configFile.close()

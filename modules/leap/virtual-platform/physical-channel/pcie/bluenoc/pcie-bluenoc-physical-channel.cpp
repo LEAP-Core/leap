@@ -79,6 +79,7 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
     scanFile = NULL;
 
     pcieDev = new PCIE_DEVICE_CLASS(p);
+    // this check is non-sensical: the pcie device is not opened until init time.
     VERIFY(pcieDev != NULL, "Failed to open BlueNoC PCIe device");
 }
 

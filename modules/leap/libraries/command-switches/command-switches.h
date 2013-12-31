@@ -167,5 +167,111 @@ class COMMAND_SWITCH_LIST_CLASS : public COMMAND_SWITCH_CLASS
         virtual void ProcessSwitchList(int switch_argc, char **switch_argv) {}
 };
 
+// 
+//  BASIC SWITCH IMPLEMENTATIONS
+//
+//  The most obvious thing for a switch to do is return its value.  The
+//  following classes provide this functionality. This is an incomplete 
+//  set.  Feel free to add implementations as necessary.  There is a 
+//  refactoring around the help string, but that can wait for a different 
+//  day.
+//  
+
+// BASIC_COMMAND_SWITCH_VOID
+
+// A basic interface to the command switch void. Provides a single function which 
+// tests the presence of the switch.
+
+typedef class BASIC_COMMAND_SWITCH_VOID_CLASS* BASIC_COMMAND_SWITCH_VOID;
+class BASIC_COMMAND_SWITCH_VOID_CLASS : COMMAND_SWITCH_VOID_CLASS
+{
+ private:
+  bool switchPresent;
+  string helpString;
+  string nameString;
+
+ public:
+  BASIC_COMMAND_SWITCH_VOID_CLASS(const char* name, const char* help) :
+  COMMAND_SWITCH_VOID_CLASS(name),
+    helpString(help),  
+    nameString(name)
+  {
+      switchPresent = false; 
+  };
+
+  BASIC_COMMAND_SWITCH_VOID_CLASS(const char* name) :
+    COMMAND_SWITCH_VOID_CLASS(name),
+    helpString("No help provided"),
+    nameString(name)
+  {
+      switchPresent = false; 
+  };
+
+  ~BASIC_COMMAND_SWITCH_VOID_CLASS() {};
+
+  void ProcessSwitchVoid() { switchPresent = true; };
+  void ShowSwitch(std::ostream& ostr, const string& prefix)
+  {
+      ostr << prefix << "[--" << nameString << "]          " << helpString << endl;
+  }
+
+  bool SwitchPresent() { return switchPresent; }
+};
+
+// BASIC_COMMAND_SWITCH_STRING
+
+// A basic interface to the command switch string. Returns NULL if no string present. 
+
+typedef class BASIC_COMMAND_SWITCH_STRING_CLASS* BASIC_COMMAND_SWITCH_STRING;
+class BASIC_COMMAND_SWITCH_STRING_CLASS : COMMAND_SWITCH_STRING_CLASS
+{
+ private:
+  string *switchValue;
+  string helpString;
+  string nameString;
+
+ public:
+  BASIC_COMMAND_SWITCH_STRING_CLASS(const char* name, const char* help) :
+    COMMAND_SWITCH_STRING_CLASS(name),
+    helpString(help),
+    nameString(name)
+  {
+      switchValue = NULL;
+  };
+
+  BASIC_COMMAND_SWITCH_STRING_CLASS(const char* name) :
+    COMMAND_SWITCH_STRING_CLASS(name),
+    helpString("No help provided"),
+    nameString(name)
+  {
+      switchValue = NULL;
+  };
+ 
+  ~BASIC_COMMAND_SWITCH_STRING_CLASS() 
+   { 
+       if(switchValue != NULL) 
+       {
+           delete switchValue; 
+       }
+   };
+
+  void ProcessSwitchString(const char *arg_val) 
+  { 
+      if(arg_val != NULL) 
+      {
+          switchValue = new std::string(arg_val); 
+      }
+  };
+
+  void ShowSwitch(std::ostream& ostr, const string& prefix)
+  {
+      ostr << prefix << "[--" << nameString << "]          " << helpString << endl;
+  }
+
+  const string * SwitchValue() { return switchValue; }
+};
+
+
+
 #endif
 

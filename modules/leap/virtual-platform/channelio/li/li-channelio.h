@@ -77,8 +77,8 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
 
   protected:
         
-    vector<vector<LI_CHANNEL_IN>*>  incomingChannels;
-    vector<vector<LI_CHANNEL_OUT>*> outgoingChannels;
+    map<string, vector<LI_CHANNEL_IN>* > incomingChannels;
+    map<string, vector<LI_CHANNEL_OUT>* > outgoingChannels;
     PHYSICAL_DEVICES physicalDevices;    
 
   public:

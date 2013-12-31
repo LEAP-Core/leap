@@ -129,7 +129,7 @@ class BSV():
                 all_str_src.extend(module.moduleDependency['STR'])
             bsc_str = moduleList.env.Command(self.TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
                                              all_str_src,
-                                             [ 'cat $SOURCES > $TARGET' ])
+                                             [ 'cat $SOURCES > $TARGET'])
             strDep = moduleList.env.Command(moduleList.env['DEFS']['APM_NAME'] + '.str',
                                             bsc_str,
                                             [ 'ln -fs ' + self.TMP_BSC_DIR + '/$TARGET $TARGET' ])
