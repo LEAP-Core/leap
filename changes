@@ -17221,3 +17221,33 @@ lot of switch code that was needless replicated. I refactored some,
 but I doubt that I found all the instances.
 
 3) Modified run.bmark to support multiple HW-SW communication paths. 
+
+----------
+mcadler     Date: Wed Jan  1 21:32:53 EST 2014  CSN: CSN-leap-513
+                  Thu Jan  2 02:32:53 UTC 2014
+
+
+Directory modules/leap/virtual-platform/channelio/null
+ README-with-dummy-physical Locally Added               0 
+ null-channelio-with-dummy-physical.awb Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ bsv.awb                   Locally Modified          512 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          512 
+ hybrid-mem-scratch.bsv    Locally Modified          512 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory.bsv Locally Modified          512 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ starter-service.awb       Locally Modified          512 
+
+Directory modules/leap/libraries/platform-services/front-panel-service
+ front-panel-service.awb   Locally Modified          512 
+
+- Add a NULL channel I/O module with a dummy physical channel.  See today's
+  leap-multifpga check-in for an explanation.
+
+- Make scratchpad statistics and debug file naming consistent.

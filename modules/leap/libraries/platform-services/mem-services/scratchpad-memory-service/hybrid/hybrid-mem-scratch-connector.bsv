@@ -261,7 +261,7 @@ module [CONNECTED_MODULE] mkScratchpadConnectorMultiSlave#(FIFO#(SCRATCHPAD_RRR_
     // Interface:
     (Empty);
     
-    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_" + integerToString(fpgaPlatformID()) + ".out");
+    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_" + fpgaPlatformName() + ".out");
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RING_REQ) link_mem_req <-
         mkConnectionAddrRingNode("ScratchpadGlobalReq", fromInteger(fpgaPlatformID()));

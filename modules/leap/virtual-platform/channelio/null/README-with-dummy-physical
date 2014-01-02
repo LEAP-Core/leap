@@ -1,0 +1,8 @@
+The NULL channel I/O with dummy physical channel variant exists as a temporary
+measure until multi-FPGA compilation properly unifies dynamic parameter spaces.
+
+The current version does not handle dynamic parameter enumeration in dictionaries
+correctly, leaving different namespaces on separate FPGAs when the set of
+AWB parameters is not the same on each FPGA.  Inclusion of the physical channel
+makes it possible to have a NULL channel I/O but still import the names that
+are on FPGAs with host channels.

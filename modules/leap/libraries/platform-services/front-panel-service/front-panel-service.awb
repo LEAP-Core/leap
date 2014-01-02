@@ -1,5 +1,5 @@
 %name Front Panel Service 
-%desc Wrapt the Front Panel Device in Soft Connections
+%desc Wrap the Front Panel Device in Soft Connections
 
 %provides front_panel_service
 

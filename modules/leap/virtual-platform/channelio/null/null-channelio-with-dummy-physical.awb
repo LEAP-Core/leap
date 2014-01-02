@@ -1,0 +1,13 @@
+%name Null Channel IO Module with Dummy Physical
+%desc Null Channel IO Module with Dummy Physical
+
+%provides channelio
+%requires physical_channel
+
+%notes README-with-dummy-physical
+
+%sources -t BSV -v PUBLIC NullChannelIO.bsv
+%sources -t BSV -v PUBLIC channelio-common.bsv
+%sources -t CPP -v PUBLIC null-channelio.cpp
+%sources -t H -v PUBLIC   null-channelio.h
+%param CIO_NUM_CHANNELS   2   "Number of virtual duplex channels"

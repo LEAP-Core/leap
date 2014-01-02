@@ -134,9 +134,10 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
               Alias#(Vector#(SCRATCHPAD_WORDS_PER_LINE, SCRATCHPAD_MEM_VALUE), t_SCRATCHPAD_LINE),
               Alias#(Vector#(SCRATCHPAD_WORDS_PER_LINE, SCRATCHPAD_MEM_MASK), t_SCRATCHPAD_LINE_MASK));
 
+    let dbg_name = "memory_scratchpad_" + fpgaPlatformName() + ".out";
     DEBUG_FILE debugLog <- (`SCRATCHPAD_MEMORY_DEBUG_ENABLE == 1)?
-                           mkDebugFile("memory_scratchpad.out"):
-                           mkDebugFileNull("memory_scratchpad.out");  
+                           mkDebugFile(dbg_name):
+                           mkDebugFileNull(dbg_name);
 
     //
     // Port state
@@ -347,6 +348,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
                         SCRATCHPAD_RRR_INIT_REGION_REQ { regionID: zeroExtend(port),
                                                          regionEndIdx: zeroExtend(alloc_last_word_idx),
                                                          initFilePath: zeroExtend(init_file_path) });
+
+        debugLog.record($format("initRegion: id %0d, endIdx 0x%0x, path %0d", port, alloc_last_word_idx, init_file_path));
     endrule
 
 

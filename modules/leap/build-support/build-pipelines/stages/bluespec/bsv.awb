@@ -15,7 +15,7 @@
 %sources -t XCF -v PRIVATE bluespec.xcf
 
 
-%param BSC_FLAGS  "-steps 10000000 +RTS -K1000M -RTS -suppress-warnings G0043 -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -licenseWarning 7 -elab -show-schedule -verilog -remove-dollar"  "Bluespec compiler options"
+%param BSC_FLAGS  "-steps 10000000 +RTS -K1000M -RTS -suppress-warnings G0043 -keep-fires -aggressive-conditions -wait-for-license -no-show-method-conf -licenseWarning 7 -elab -show-schedule -show-range-conflict -verilog -remove-dollar"  "Bluespec compiler options"
 
 %param BUILD_VERILOG  1             "Direct BSC to build verilog"
 %param --global BUILD_LOGS_ONLY 0   "True if we should build only logfiles"

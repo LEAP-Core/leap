@@ -137,8 +137,12 @@ typedef 128 SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS;
 //
 // Scratchpad ports must be unique and non-zero.  Port 0 is the server.
 //
-function SCRATCHPAD_PORT_NUM scratchpadPortId(Integer n);
+function Integer scratchpadIntPortId(Integer n);
     return fromInteger(n - `VDEV_SCRATCH__BASE + 1);
+endfunction
+
+function SCRATCHPAD_PORT_NUM scratchpadPortId(Integer n);
+    return fromInteger(scratchpadIntPortId(n));
 endfunction
 
 
@@ -190,10 +194,11 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
     NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
     if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE != 0)
     begin
-        statsConstructor = mkBasicScratchpadCacheStats("Scratchpad_" + integerToString(scratchpadID) + "_", "");
+        let prefix = "Scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_";
+        statsConstructor = mkBasicScratchpadCacheStats(prefix, "");
         if (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1)
         begin
-            prefetchStatsConstructor = mkBasicScratchpadPrefetchStats("Scratchpad_" + integerToString(scratchpadID) + "_", "", n_prefetch_learners);
+            prefetchStatsConstructor = mkBasicScratchpadPrefetchStats(prefix, "", n_prefetch_learners);
         end
     end
 
@@ -236,7 +241,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
     if (isValid(conf.initFilePath) &&
         (valueOf(TExp#(TLog#(t_DATA_SZ))) != valueOf(t_DATA_SZ)))
     begin
-        error("Scratchpad ID " + integerToString(scratchpadID) + ": Initialized scratchpads must have power of 2 data sizes.");
+        error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + ": Initialized scratchpads must have power of 2 data sizes.");
     end
 
 
@@ -358,10 +363,10 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
     
     if (valueOf(t_MEM_ADDRESS_SZ) > valueOf(t_SCRATCHPAD_MEM_ADDRESS_SZ))
     begin
-        error("Scratchpad ID " + integerToString(scratchpadID) + " address is too large: " + integerToString(valueOf(t_MEM_ADDRESS_SZ)) + " bits");
+        error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + " address is too large: " + integerToString(valueOf(t_MEM_ADDRESS_SZ)) + " bits");
     end
 
-    String debugLogFilename = "memory_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
+    String debugLogFilename = "memory_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
     DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
@@ -539,13 +544,13 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
               Bits#(t_MAF_IDX, t_MAF_IDX_SZ));
               
-    String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
+    String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
     DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
                                mkDebugFile(debugLogFilename):
                                mkDebugFileNull(debugLogFilename); 
 
     // Debug file and log for the cache prefetcher
-    String debugLogFilenameForPrefetcher = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + "_prefetch.out";
+    String debugLogFilenameForPrefetcher = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_prefetch.out";
     DEBUG_FILE debugLogForPrefetcher <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
                                             mkDebugFile(debugLogFilenameForPrefetcher):
                                             mkDebugFileNull(debugLogFilenameForPrefetcher); 
@@ -714,15 +719,15 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
 
     if (valueOf(t_CACHE_ADDR_SZ) > valueOf(t_SCRATCHPAD_MEM_ADDRESS_SZ))
     begin
-        error("Scratchpad ID " + integerToString(scratchpadID) + " address is too large: " + integerToString(valueOf(t_CACHE_ADDR_SZ)) + " bits");
+        error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + " address is too large: " + integerToString(valueOf(t_CACHE_ADDR_SZ)) + " bits");
     end
 
     if (valueOf(t_MAF_IDX_SZ) > valueOf(SCRATCHPAD_CLIENT_READ_UID_SZ))
     begin
-        error("Scratchpad ID " + integerToString(scratchpadID) + " read UID is too large: " + integerToString(valueOf(t_MAF_IDX_SZ)) + " bits");
+        error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + " read UID is too large: " + integerToString(valueOf(t_MAF_IDX_SZ)) + " bits");
     end
 
-    String debugLogFilename = "memory_scratchpad_src_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
+    String debugLogFilename = "memory_scratchpad_src_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
     DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
@@ -886,7 +891,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID,
               Bits#(t_MAF_IDX, t_MAF_IDX_SZ),
               Alias#(t_NATURAL_IDX, t_MAF_DATA));
 
-    String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadID - `VDEV_SCRATCH__BASE + 1) + ".out";
+    String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
     DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
