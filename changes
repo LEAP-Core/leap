@@ -17264,3 +17264,15 @@ Directory modules/leap/libraries/librl/base
 Add a new CRC generator that takes a CRC width, an input chunk size and a
 polynomial.  The generator performs its iterations statically at compile-time
 so that the generated run-time code is just a set of XORs.
+
+----------
+mcadler     Date: Mon Jan  6 16:36:35 EST 2014  CSN: CSN-leap-515
+                  Mon Jan  6 21:36:35 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ crc.bsv                   Locally Modified          514 
+
+New wrapper module mkAutoCRCGen picks the right polynomial for a given CRC
+size.  An error is generated when no polynomial is defined for the requested
+size.

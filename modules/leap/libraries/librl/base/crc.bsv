@@ -29,8 +29,43 @@ endinterface
 
 
 //
-// Note that standard generators are defined at the end.
+// mkAutoCRCGen --
+//   Pick the right polynomial for the requested CRC size.
 //
+module mkAutoCRCGen
+    // Interface:
+    (CRCGEN#(t_REM_SZ, t_CHUNK))
+    provisos (Bits#(t_CHUNK, t_CHUNK_SZ),
+              Add#(t_REM_SZ, n_OFFSET, t_CHUNK_SZ));
+
+    CRCGEN#(t_REM_SZ, t_CHUNK) _c = ?;
+
+    case (valueOf(t_REM_SZ))
+         1: _c <- mkCRCGen('h1);                   // parity
+         4: _c <- mkCRCGen('h3);                   // ITU
+         5: _c <- mkCRCGen('h15);                  // ITU
+         6: _c <- mkCRCGen('h3);                   // ITU
+         7: _c <- mkCRCGen('h9);                   // MMC
+         8: _c <- mkCRCGen('h7);                   // CCITT
+        10: _c <- mkCRCGen('h233);                 // ATM
+        11: _c <- mkCRCGen('h385);                 // FlexRay
+        12: _c <- mkCRCGen('hf13);                 // CDMA2000
+        13: _c <- mkCRCGen('h1cf5);                // BBC
+        15: _c <- mkCRCGen('h6815);                // MPT1327
+        16: _c <- mkCRCGen('h8005);                // ANSI
+        17: _c <- mkCRCGen('h1685b);               // CAN
+        21: _c <- mkCRCGen('h102899);              // CAN
+        24: _c <- mkCRCGen('h864cfb);              // Radix-64
+        30: _c <- mkCRCGen('h2030b9c7);            // CDMA
+        32: _c <- mkCRCGen('h4c11db7);             // ANSI
+        40: _c <- mkCRCGen('h4820009);             // GSM
+        64: _c <- mkCRCGen('h42f0e1eba9ea3693);    // ECMA
+
+        default: error("No CRC polynomial defined for size " + integerToString(valueOf(t_REM_SZ)));
+    endcase
+
+    return _c;
+endmodule
 
 
 //
@@ -117,19 +152,4 @@ module mkCRCGen#(Bit#(t_REM_SZ) poly)
 
         return r;
     endmethod
-endmodule
-
-
-//
-// mkCRCGen8 --
-//   CRC-8-CCITT (ATM HEC).  Arbitrary chunk size.
-//
-module mkCRCGen8
-    // Interface:
-    (CRCGEN#(8, t_CHUNK))
-    provisos (Bits#(t_CHUNK, t_CHUNK_SZ),
-              Add#(8, n_OFFSET, t_CHUNK_SZ));
-
-    let _c <- mkCRCGen(8'h7);
-    return _c;
 endmodule
