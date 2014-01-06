@@ -8,6 +8,7 @@
 %notes README
 
 %public bluespec-def.bsv
+%public crc.bsv
 %public compress.bsv
 %public counters.bsv
 %public debug-file.bsv

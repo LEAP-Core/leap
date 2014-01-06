@@ -17251,3 +17251,16 @@ Directory modules/leap/libraries/platform-services/front-panel-service
   leap-multifpga check-in for an explanation.
 
 - Make scratchpad statistics and debug file naming consistent.
+
+----------
+mcadler     Date: Mon Jan  6 08:53:17 EST 2014  CSN: CSN-leap-514
+                  Mon Jan  6 13:53:17 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ crc.bsv                   Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          513 
+
+Add a new CRC generator that takes a CRC width, an input chunk size and a
+polynomial.  The generator performs its iterations statically at compile-time
+so that the generated run-time code is just a set of XORs.
