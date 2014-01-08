@@ -295,6 +295,7 @@ class STATS_EMITTER_CLASS
     };
 
     virtual void EmitStats(ofstream &statsFile) = 0;
+    virtual void ResetStats() = 0;
 };
 
 #endif // __STATS_SERVICE_H__

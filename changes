@@ -17276,3 +17276,14 @@ Directory modules/leap/libraries/librl/base
 New wrapper module mkAutoCRCGen picks the right polynomial for a given CRC
 size.  An error is generated when no polynomial is defined for the requested
 size.
+
+----------
+mcadler     Date: Wed Jan  8 11:18:03 EST 2014  CSN: CSN-leap-516
+                  Wed Jan  8 16:18:03 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          515 
+ stats-service.cpp         Locally Modified          515 
+
+Add ResetStats() method to STATS_EMITTER_CLASS.

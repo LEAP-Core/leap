@@ -366,6 +366,14 @@ void STATS_SERVER_CLASS::ResetStatValues()
         }
     }
 
+    // Call other emitters.
+    list<STATS_EMITTER> emitters = STATS_EMITTER_CLASS::GetStatsEmitters();
+    for (list<STATS_EMITTER>::iterator i = emitters.begin();
+         i != emitters.end();
+         i++)
+    {
+        (*i)->ResetStats();
+    }
 }
 
 //
