@@ -17287,3 +17287,13 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
  stats-service.cpp         Locally Modified          515 
 
 Add ResetStats() method to STATS_EMITTER_CLASS.
+
+----------
+mcadler     Date: Thu Jan  9 14:10:53 EST 2014  CSN: CSN-leap-517
+                  Thu Jan  9 19:10:53 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.awb Locally Modified          516 
+
+Remove unused CENTRAL_CACHE_STATS parameter.

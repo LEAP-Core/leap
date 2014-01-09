@@ -12,5 +12,3 @@
 %public central-cache-service.bsh
 %public platform-central-cache.bsv
 %public central-cache-service.bsv
-
-%param CENTRAL_CACHE_STATS 1 "Do we enable central cache stats collection"
