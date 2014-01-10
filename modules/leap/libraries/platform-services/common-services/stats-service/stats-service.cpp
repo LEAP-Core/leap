@@ -43,7 +43,7 @@ std::condition_variable STATS_SERVER_CLASS::ackCond;
 bool STATS_SERVER_CLASS::ackReceived;
 
 // ===== registered stats emitters =====
-list<STATS_EMITTER>* STATS_EMITTER_CLASS::statsEmitters = NULL;
+ALL_STATS_EMITTERS* STATS_EMITTER_CLASS::statsEmitters = NULL;
 
 // ===== methods =====
 
@@ -367,8 +367,8 @@ void STATS_SERVER_CLASS::ResetStatValues()
     }
 
     // Call other emitters.
-    list<STATS_EMITTER> emitters = STATS_EMITTER_CLASS::GetStatsEmitters();
-    for (list<STATS_EMITTER>::iterator i = emitters.begin();
+    ALL_STATS_EMITTERS emitters = STATS_EMITTER_CLASS::GetStatsEmitters();
+    for (ALL_STATS_EMITTERS::iterator i = emitters.begin();
          i != emitters.end();
          i++)
     {
@@ -467,8 +467,8 @@ STATS_SERVER_CLASS::EmitFile(ofstream& statsFile)
 
     // Call other emitters.  Clearly this needs to be improved with some
     // structured data.
-    list<STATS_EMITTER> emitters = STATS_EMITTER_CLASS::GetStatsEmitters();
-    for (list<STATS_EMITTER>::iterator i = emitters.begin();
+    ALL_STATS_EMITTERS emitters = STATS_EMITTER_CLASS::GetStatsEmitters();
+    for (ALL_STATS_EMITTERS::iterator i = emitters.begin();
          i != emitters.end();
          i++)
     {
@@ -547,31 +547,20 @@ STATS_EMITTER_CLASS::STATS_EMITTER_CLASS()
 {
     if (statsEmitters == NULL)
     {
-        statsEmitters = new list<STATS_EMITTER>;
+        statsEmitters = new ALL_STATS_EMITTERS;
     }
 
-    statsEmitters->push_front(this);
+    statsEmitters->insert({this, this});
 }
 
 STATS_EMITTER_CLASS::~STATS_EMITTER_CLASS()
 {
     //
-    // Drop me from the global list of emitters.
+    // Drop me from the global set of emitters.
     //
     if (statsEmitters != NULL)
     {
-        for (list<STATS_EMITTER>::iterator i = statsEmitters->begin();
-             i != statsEmitters->end();
-             i++)
-        {
-            if (*i == this)
-            {
-                statsEmitters->erase(i);
-                break;
-            }
-        }
-
-        delete statsEmitters;
+        statsEmitters->erase(statsEmitters->find(this));
     }
 }
 

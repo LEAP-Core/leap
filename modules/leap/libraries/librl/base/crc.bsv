@@ -29,8 +29,21 @@ endinterface
 
 
 //
+// Convert a Koopman-style polynomial into an MSB-first polynomial that is
+// used by our code.  CRC polynomials have both the high and the bits always
+// set and the only difference between the two is which bit is represented
+// (and always 1).  MSB-first drops the high bit, Koopman drops the low bit.
+//
+function Bit#(t_SZ) koopmanPoly(Bit#(t_SZ) x) = (x << 1) | 1;
+
+//
 // mkAutoCRCGen --
 //   Pick the right polynomial for the requested CRC size.
+//
+//   Many polynomials are chosen from Philip Koopman's papers, either:
+//     Cyclic Redundancy Code (CRC) Polynomial Selection For Embedded Networks
+//   or
+//     32-Bit Cyclic Redundancy Codes for Internet Applications
 //
 module mkAutoCRCGen
     // Interface:
@@ -39,25 +52,27 @@ module mkAutoCRCGen
               Add#(t_REM_SZ, n_OFFSET, t_CHUNK_SZ));
 
     CRCGEN#(t_REM_SZ, t_CHUNK) _c = ?;
-
     case (valueOf(t_REM_SZ))
          1: _c <- mkCRCGen('h1);                   // parity
-         4: _c <- mkCRCGen('h3);                   // ITU
-         5: _c <- mkCRCGen('h15);                  // ITU
-         6: _c <- mkCRCGen('h3);                   // ITU
-         7: _c <- mkCRCGen('h9);                   // MMC
-         8: _c <- mkCRCGen('h7);                   // CCITT
-        10: _c <- mkCRCGen('h233);                 // ATM
-        11: _c <- mkCRCGen('h385);                 // FlexRay
-        12: _c <- mkCRCGen('hf13);                 // CDMA2000
-        13: _c <- mkCRCGen('h1cf5);                // BBC
-        15: _c <- mkCRCGen('h6815);                // MPT1327
-        16: _c <- mkCRCGen('h8005);                // ANSI
+         3: _c <- mkCRCGen(koopmanPoly('h5));
+         4: _c <- mkCRCGen(koopmanPoly('h9));
+         5: _c <- mkCRCGen(koopmanPoly('h12));
+         6: _c <- mkCRCGen(koopmanPoly('h21));
+         7: _c <- mkCRCGen(koopmanPoly('h48));
+         8: _c <- mkCRCGen(koopmanPoly('ha6));
+         9: _c <- mkCRCGen(koopmanPoly('h14b));
+        10: _c <- mkCRCGen(koopmanPoly('h319));
+        11: _c <- mkCRCGen(koopmanPoly('h583));
+        12: _c <- mkCRCGen(koopmanPoly('hc07));
+        13: _c <- mkCRCGen(koopmanPoly('h102a));
+        14: _c <- mkCRCGen(koopmanPoly('h21e8));
+        15: _c <- mkCRCGen(koopmanPoly('h4976));
+        16: _c <- mkCRCGen(koopmanPoly('hbaad));
         17: _c <- mkCRCGen('h1685b);               // CAN
         21: _c <- mkCRCGen('h102899);              // CAN
         24: _c <- mkCRCGen('h864cfb);              // Radix-64
         30: _c <- mkCRCGen('h2030b9c7);            // CDMA
-        32: _c <- mkCRCGen('h4c11db7);             // ANSI
+        32: _c <- mkCRCGen(koopmanPoly('hba0dc66b));
         40: _c <- mkCRCGen('h4820009);             // GSM
         64: _c <- mkCRCGen('h42f0e1eba9ea3693);    // ECMA
 

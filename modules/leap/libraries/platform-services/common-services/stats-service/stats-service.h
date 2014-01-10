@@ -21,6 +21,7 @@
 
 #include <pthread.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <iostream>
 #include <mutex>
 #include <condition_variable>
@@ -275,20 +276,23 @@ void StatsEmitFile();
 
 typedef class STATS_EMITTER_CLASS *STATS_EMITTER;
 
+// Set of all stats emitters.
+typedef std::unordered_set<STATS_EMITTER> ALL_STATS_EMITTERS;
+
 class STATS_EMITTER_CLASS
 {
   private:
-    static std::list<STATS_EMITTER>* statsEmitters;
+    static ALL_STATS_EMITTERS* statsEmitters;
 
   public:
     STATS_EMITTER_CLASS();
     ~STATS_EMITTER_CLASS();
 
-    static std::list<STATS_EMITTER> GetStatsEmitters(void)
+    static ALL_STATS_EMITTERS GetStatsEmitters(void)
     {
         if (statsEmitters == NULL)
         {
-            statsEmitters = new list<STATS_EMITTER>;
+            statsEmitters = new ALL_STATS_EMITTERS;
         }
 
         return *statsEmitters;

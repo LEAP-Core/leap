@@ -17297,3 +17297,24 @@ Directory modules/leap/libraries/platform-services/mem-services/central-cache-se
  central-cache-service.awb Locally Modified          516 
 
 Remove unused CENTRAL_CACHE_STATS parameter.
+
+----------
+mcadler     Date: Thu Jan  9 23:04:05 EST 2014  CSN: CSN-leap-518
+                  Fri Jan 10 04:04:05 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ crc.bsv                   Locally Modified          517 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          517 
+ stats-service.cpp         Locally Modified          517 
+
+- Use CRC polynomials from the Koopman papers for better multi-bit error detection.
+  Between 10 and 16 bit CRCs now catch at least 4 error bits in 500+ bit
+  packets.  11 through 16 bit CRC cover 4 error bits in over 1000 bit packets.
+
+- Use unordered_set instead of list for STATS_EMITTER since the structure
+  was searched linearly in the STATS_EMITTER_CLASS deconstructor.
+
+- Fix a SEGV on program exit in STATS_EMITTER list destructor.
