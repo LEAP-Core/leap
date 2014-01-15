@@ -17318,3 +17318,16 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
   was searched linearly in the STATS_EMITTER_CLASS deconstructor.
 
 - Fix a SEGV on program exit in STATS_EMITTER list destructor.
+
+----------
+mcadler     Date: Wed Jan 15 08:02:31 EST 2014  CSN: CSN-leap-519
+                  Wed Jan 15 13:02:31 UTC 2014
+
+
+Directory modules/leap/libraries/librl/storage
+ fifo-rewind.bsv           Locally Modified          518 
+
+- Add a variant using BRAM in addition to the current LUTRAM code.  Most
+  of the code is shared.
+
+- Reformat using LEAP coding standards.
