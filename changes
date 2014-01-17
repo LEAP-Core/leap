@@ -17331,3 +17331,13 @@ Directory modules/leap/libraries/librl/storage
   of the code is shared.
 
 - Reformat using LEAP coding standards.
+
+----------
+mcadler     Date: Fri Jan 17 16:40:39 EST 2014  CSN: CSN-leap-520
+                  Fri Jan 17 21:40:39 UTC 2014
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          519 
+
+Fix --help
