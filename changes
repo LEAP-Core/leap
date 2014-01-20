@@ -17341,3 +17341,30 @@ Directory scripts/bmark
  run.bmark                 Locally Modified          519 
 
 Fix --help
+
+----------
+mcadler     Date: Mon Jan 20 11:05:29 EST 2014  CSN: CSN-leap-521
+                  Mon Jan 20 16:05:29 UTC 2014
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          520 
+
+Directory modules/leap/libraries/librl/base
+ compress.bsv              Locally Modified          520 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-backwards-compat.bsv Locally Modified          520 
+
+- Fix bugs in UNBALANCED_MAYBE.  (Used to be UnbalancedMaybe -- changed to conform
+  to LEAP type syntax.)
+
+- Add some missing flavors to toGet/toPut for COMPRESSION_ENCODER and legacy
+  connection server/client classes.
+
+For the curious, I used all this to experiment with changing the HAsim functional
+model's ITranslate and DTranslate services to UNBALANCED_MAYBE in multi-FPGA
+models where the timing and functional models are on separate FPGAs.  The
+performance improvement was about 4% -- enough to consider compression in
+the multi-FPGA compiler valuable but not enough to mess up the functional
+model interface explicitly.

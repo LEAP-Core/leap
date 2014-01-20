@@ -16,6 +16,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
+import GetPut::*;
+
+
 `include "awb/provides/soft_connections_common.bsh"
 
 // Backwards compatability
@@ -146,3 +149,50 @@ module [ConnectedModule] mkConnection_Chain#(Integer chain_id)
   method sendNotFull = c.sendNotFull;
 
 endmodule
+
+
+instance ToPut#(Connection_Server#(t_REQ, t_RSP), t_RSP);
+    function Put#(t_RSP) toPut(Connection_Server#(t_REQ, t_RSP) send);
+        let put = interface Put;
+                      method Action put(t_RSP value) if (send.respNotFull);
+                          send.makeResp(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
+endinstance
+
+instance ToGet#(Connection_Server#(t_REQ, t_RSP), t_REQ);
+    function Get#(t_REQ) toGet(Connection_Server#(t_REQ, t_RSP) recv);
+        let get = interface Get;
+                      method ActionValue#(t_REQ) get() if (recv.reqNotEmpty());
+                          recv.deq;
+                          return recv.getReq(); 
+                      endmethod
+                  endinterface;  
+        return get;
+    endfunction
+endinstance
+
+instance ToPut#(Connection_Client#(t_REQ, t_RSP), t_REQ);
+    function Put#(t_REQ) toPut(Connection_Client#(t_REQ, t_RSP) send);
+        let put = interface Put;
+                      method Action put(t_REQ value) if (send.reqNotFull);
+                          send.makeReq(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
+endinstance
+
+instance ToGet#(Connection_Client#(t_REQ, t_RSP), t_RSP);
+    function Get#(t_RSP) toGet(Connection_Client#(t_REQ, t_RSP) recv);
+        let get = interface Get;
+                      method ActionValue#(t_RSP) get() if (recv.respNotEmpty());
+                          recv.deq;
+                          return recv.getResp(); 
+                      endmethod
+                  endinterface;  
+        return get;
+    endfunction
+endinstance

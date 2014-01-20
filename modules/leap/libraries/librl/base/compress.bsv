@@ -233,6 +233,18 @@ instance ToPut#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA), t_DATA);
     endfunction
 endinstance
 
+instance ToGet#(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA), t_ENC_DATA);
+    function Get#(t_ENC_DATA) toGet(COMPRESSION_ENCODER#(t_DATA, t_ENC_DATA) recv);
+        let get = interface Get;
+                      method ActionValue#(t_ENC_DATA) get();
+                          recv.deq;
+                          return recv.first; 
+                      endmethod
+                  endinterface; 
+        return get;
+    endfunction
+endinstance
+
 instance Connectable#(Put#(t_DATA), COMPRESSION_DECODER#(t_DATA, t_ENC_DATA));
     module mkConnection#(Put#(t_DATA) client,
                          COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) server) (Empty);
@@ -262,6 +274,17 @@ instance ToGet#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA), t_DATA);
                       endmethod
                   endinterface;  
         return get;
+    endfunction
+endinstance
+
+instance ToPut#(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA), t_ENC_DATA);
+    function Put#(t_ENC_DATA) toPut(COMPRESSION_DECODER#(t_DATA, t_ENC_DATA) send);
+        let put = interface Put;
+                      method Action put(t_ENC_DATA value);
+                          send.enq(value);
+                      endmethod
+                  endinterface; 
+        return put; 
     endfunction
 endinstance
 
@@ -357,28 +380,42 @@ endinstance
 // ========================================================================
 
 typedef union tagged {
-    t_DATA UnbalancedValid;
     void   UnbalancedInvalid;
-} UnbalancedMaybe#(type t_DATA) deriving (Bits,Eq);
+    t_DATA UnbalancedValid;
+}
+UNBALANCED_MAYBE#(type t_DATA)
+    deriving (Bits,Eq);
+
+function Maybe#(t_DATA) unbalancedToMaybe(UNBALANCED_MAYBE#(t_DATA) d);
+    return (d matches tagged UnbalancedValid .v ? tagged Valid v :
+                                                  tagged Invalid);
+endfunction
+
+function UNBALANCED_MAYBE#(t_DATA) maybeToUnbalanced(Maybe#(t_DATA) d);
+    return (d matches tagged Valid .v ? tagged UnbalancedValid v :
+                                        tagged UnbalancedInvalid);
+endfunction
 
 typedef union tagged {
-    t_DATA    UnbalancedValid;
     Bit#(3)   UnbalancedInvalid;
-} CompressedUnbalancedMaybe#(type t_DATA) deriving (Bits,Eq);
+    t_DATA    UnbalancedValid;
+}
+COMPRESSED_UNBALANCED_MAYBE#(type t_DATA)
+    deriving (Bits,Eq);
 
 instance Compress#(// Original type
-                   UnbalancedMaybe#(t_DATA),
+                   UNBALANCED_MAYBE#(t_DATA),
                    // Compressed container (maximum size)
-                   CompressedUnbalancedMaybe#(t_DATA),
+                   COMPRESSED_UNBALANCED_MAYBE#(t_DATA),
                    t_MODULE)
     provisos (Bits#(t_DATA, t_DATA_SZ),
-              Alias#(CompressedUnbalancedMaybe#(t_DATA), t_ENC_DATA),
+              Alias#(COMPRESSED_UNBALANCED_MAYBE#(t_DATA), t_ENC_DATA),
               IsModule#(t_MODULE, m__));
 
-    module mkCompressor (COMPRESSION_ENCODER#(UnbalancedMaybe#(t_DATA), 
-                                              CompressedUnbalancedMaybe#(t_DATA)));
-        FIFOF#(UnbalancedMaybe#(t_DATA)) inQ <- mkBypassFIFOF();
-        FIFOF#(CompressedUnbalancedMaybe#(t_DATA)) outQ <- mkBypassFIFOF();
+    module mkCompressor (COMPRESSION_ENCODER#(UNBALANCED_MAYBE#(t_DATA), 
+                                              COMPRESSED_UNBALANCED_MAYBE#(t_DATA)));
+        FIFOF#(UNBALANCED_MAYBE#(t_DATA)) inQ <- mkBypassFIFOF();
+        FIFOF#(COMPRESSED_UNBALANCED_MAYBE#(t_DATA)) outQ <- mkBypassFIFOF();
 	Reg#(Bit#(3)) invalidCount <- mkReg(0);
 	Reg#(Bit#(3)) flushCount <- mkReg(0);
 
@@ -386,45 +423,58 @@ instance Compress#(// Original type
 	    flushCount <= flushCount + 1;
         endrule
 
-	rule flush(flushCount == maxBound && invalidCount > 0 && !inQ.notEmpty);
-            Bit#(3) tag = invalidCount;
-            invalidCount <= 0;
+	rule flush (flushCount == maxBound && invalidCount > 0 && ! inQ.notEmpty);
             outQ.enq(tagged UnbalancedInvalid invalidCount);
+            invalidCount <= 0;
         endrule
 
-        rule transfer(inQ.notEmpty);
+        rule transfer (inQ.notEmpty);
             let val = inQ.first();
 
-	    CompressedUnbalancedMaybe#(t_DATA) compressedToken = tagged UnbalancedInvalid invalidCount;
+	    Bool send;
+	    COMPRESSED_UNBALANCED_MAYBE#(t_DATA) compressedToken;
 
-	    Bool send = True;
-	    if(inQ.first matches tagged UnbalancedValid .payload)
+	    if (inQ.first matches tagged UnbalancedValid .payload)
             begin
-		compressedToken = tagged UnbalancedValid payload;
-		invalidCount <= 0;
-                if(invalidCount == 0)
+                // New valid message to send.  Are there Invalids to send first?
+                if (invalidCount == 0)
                 begin
+                    // No.  Send message.
+		    compressedToken = tagged UnbalancedValid payload;
                     inQ.deq();
                 end	
+                else
+                begin
+                    // Have invalids to send first.
+		    compressedToken = tagged UnbalancedInvalid invalidCount;
+                end	
+
+                send = True;
             end
             else 
             begin
-	        invalidCount <= invalidCount + 1;
-		if(invalidCount + 1 != 0)
-                begin
-	  	    inQ.deq;
-		    send = False;
-                end
+                // New invalid.
+	  	inQ.deq;
+                
+                // Send only if the counter will now be full.  Otherwise,
+                // just collect invalids in the counter.
+                send = (invalidCount == maxBound - 1);
+                compressedToken = tagged UnbalancedInvalid maxBound;
             end
 
-            // The message is compressed by moving the tag to the low bit so it
-            // will be next to the useful data.  The 2nd element in the returned
-            // tuple is the compressed length
-
-            if(send)
+            if (send)
             begin 
 	        flushCount <= 0;
                 outQ.enq(compressedToken);
+
+                // Either sending invalids or a message.  Either way, the
+                // count is now zero.
+		invalidCount <= 0;
+            end
+            else
+            begin
+                // Must be an invalid that is being collected in the counter.
+	        invalidCount <= invalidCount + 1;
             end
         endrule
 
@@ -436,28 +486,29 @@ instance Compress#(// Original type
         method notEmpty() = outQ.notEmpty();
     endmodule
 
-    module mkDecompressor (COMPRESSION_DECODER#(UnbalancedMaybe#(t_DATA), 
-                                                CompressedUnbalancedMaybe#(t_DATA)));
-        FIFOF#(CompressedUnbalancedMaybe#(t_DATA)) inQ <- mkBypassFIFOF();
-        FIFOF#(UnbalancedMaybe#(t_DATA)) outQ <- mkBypassFIFOF();
+    module mkDecompressor (COMPRESSION_DECODER#(UNBALANCED_MAYBE#(t_DATA), 
+                                                COMPRESSED_UNBALANCED_MAYBE#(t_DATA)));
+        FIFOF#(COMPRESSED_UNBALANCED_MAYBE#(t_DATA)) inQ <- mkBypassFIFOF();
+        FIFOF#(UNBALANCED_MAYBE#(t_DATA)) outQ <- mkBypassFIFOF();
 	Reg#(Bit#(3)) invalidCount <- mkReg(0);
 
-	rule transferInvalid(invalidCount > 0);
+	rule transferInvalid (invalidCount != 0);
 	    invalidCount <= invalidCount - 1;
             outQ.enq(tagged UnbalancedInvalid);
 	endrule
 
-        rule transfer(invalidCount == 0);
-            CompressedUnbalancedMaybe#(t_DATA) compressedToken = inQ.first();
+        rule transfer (invalidCount == 0);
 	    inQ.deq();
-            // Separate the tag and data
-            if (compressedToken matches tagged UnbalancedValid .data)
+
+            if (inQ.first matches tagged UnbalancedValid .data)
 	    begin
                 outQ.enq(tagged UnbalancedValid data);
 	    end
-            else if(compressedToken matches tagged UnbalancedInvalid .invalids)
+            else if (inQ.first matches tagged UnbalancedInvalid .invalids)
 	    begin
-	        invalidCount <= invalids;
+                outQ.enq(tagged UnbalancedInvalid);
+                // Record remaining invalids from the compressed packet.
+	        invalidCount <= invalids - 1;
             end
         endrule
 
@@ -466,9 +517,9 @@ instance Compress#(// Original type
 	method first = outQ.first();
         method Bool notFull() = inQ.notFull();
         method Bool notEmpty() = inQ.notEmpty();
-
     endmodule
 endinstance
+
 
 // ========================================================================
 //
@@ -541,7 +592,7 @@ endmodule
 //
 module [t_MODULE] mkCompressingDemarshaller
     // Interface:
-        (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
+    (DEMARSHALLER#(t_FIFO_DATA, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
               Bits#(t_FIFO_DATA, t_FIFO_DATA_SZ),
               Compress#(t_DATA, t_ENC_DATA, t_MODULE),
@@ -574,6 +625,7 @@ module [t_MODULE] mkCompressingDemarshaller
 
     method Action enq(t_FIFO_DATA fifoData) = dem.enq(fifoData);
     method Bool notFull() = dem.notFull;
+    method Action clear() = dem.clear;
 
     method t_DATA first() = decoder.first;
     method Action deq() = decoder.deq;
