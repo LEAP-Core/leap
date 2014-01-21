@@ -17368,3 +17368,15 @@ models where the timing and functional models are on separate FPGAs.  The
 performance improvement was about 4% -- enough to consider compression in
 the multi-FPGA compiler valuable but not enough to mess up the functional
 model interface explicitly.
+
+----------
+keflemin    Date: Tue Jan 21 03:47:55 EST 2014  CSN: CSN-leap-522
+                  Tue Jan 21 08:47:55 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-utils.bsv Locally Modified          521 
+ 
+
+Added function for converting MEMORY_WITH_FENCES_IFC to MEMORY_IFC.
+This is useful in some test benches.

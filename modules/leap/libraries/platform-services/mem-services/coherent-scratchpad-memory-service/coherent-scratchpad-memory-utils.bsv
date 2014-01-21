@@ -262,3 +262,16 @@ module [CONNECTED_MODULE] mkNullCoherentScratchpadRingNodeStats#(COH_SCRATCH_RIN
     ();
 endmodule
 
+// 
+// memoryFenceIfcToMemoryIfc -- Converts coherent memory interface into base memory interface.
+//
+
+function MEMORY_IFC#(t_ADDR, t_DATA) memoryFenceIfcToMemoryIfc(MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA) ifc);
+
+    MEMORY_IFC#(t_ADDR, t_DATA) baseIfc = interface MEMORY_IFC;
+                                              method readReq = ifc.readReq;
+                                              method readRsp = ifc.readRsp;
+                                              method write = ifc.write;
+                                          endinterface;
+    return baseIfc;
+endfunction
