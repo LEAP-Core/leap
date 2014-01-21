@@ -17380,3 +17380,13 @@ Directory modules/leap/libraries/platform-services/mem-services/coherent-scratch
 
 Added function for converting MEMORY_WITH_FENCES_IFC to MEMORY_IFC.
 This is useful in some test benches.
+
+----------
+mcadler     Date: Tue Jan 21 10:55:13 EST 2014  CSN: CSN-leap-523
+                  Tue Jan 21 15:55:13 UTC 2014
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          522 
+
+Use global string files from each platform instead of expecting a single file.
