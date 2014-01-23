@@ -17390,3 +17390,18 @@ Directory scripts/bmark
  run.bmark                 Locally Modified          522 
 
 Use global string files from each platform instead of expecting a single file.
+
+----------
+keflemin    Date: Wed Jan 22 22:50:28 EST 2014  CSN: CSN-leap-524
+                  Thu Jan 23 03:50:28 UTC 2014
+
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_vc707.apm    Locally Added               0 
+
+Directory modules/leap/examples/hello-world
+ hello-world.awb           Locally Modified          523 
+
+
+Made hello world a synthesis boundary. This was helpful in building a
+multiple FPGA implementation of the code.

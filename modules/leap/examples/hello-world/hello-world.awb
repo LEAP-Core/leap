@@ -17,4 +17,6 @@
 %sources -t H    -v PUBLIC  hello-world.h
 %sources -t CPP  -v PRIVATE hello-world.cpp
 
+%param SYNTH_BOUNDARY mkConnectedApplication "name of synthesis boundary"
+
 %AWB_END
