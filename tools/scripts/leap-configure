@@ -1125,7 +1125,7 @@ sub __make_bsvfiles {
                 # Dynamic parameter.  Declare a default value that may be
                 # overridden during build.  (That default may then be overridden
                 # again at run time.
-                print HFILE "#define ${pname}_DYNDEFAULT $pvalue;\n";
+                print HFILE "#define ${pname}_DYNDEFAULT $pvalue\n";
             }
         }
     }

@@ -17405,3 +17405,20 @@ Directory modules/leap/examples/hello-world
 
 Made hello world a synthesis boundary. This was helpful in building a
 multiple FPGA implementation of the code.
+
+----------
+keflemin    Date: Thu Feb  6 10:09:44 EST 2014  CSN: CSN-leap-525
+                  Thu Feb  6 15:09:44 UTC 2014
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          524 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          524 
+
+
+1) Fixed bug in leap-configure, macro was terminated by ;.  Oops
+
+2) Changed pcie-physcial channel to support new uninitialized device
+mode.

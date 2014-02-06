@@ -114,7 +114,13 @@ PHYSICAL_CHANNEL_CLASS::Init()
     if (initialized) return;
     initialized = true;
 
-    pcieDev->Init();
+    // It is possible that the PCIE device is unbounded. If so,
+    // initialization will fail, and we should not spawn threads. 
+    if (!pcieDev->Init())
+    {
+        initialized = false;
+        return;
+    }
 
     VERIFY(UMF_CHUNK_BYTES >= 8, "Expected at least 8-byte UMF chunks!");
     VERIFY(pcieDev->BytesPerBeat() == UMF_CHUNK_BYTES, "BlueNoc beat size must equal UMF chunk size!");
