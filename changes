@@ -17422,3 +17422,18 @@ Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
 
 2) Changed pcie-physcial channel to support new uninitialized device
 mode.
+
+----------
+keflemin    Date: Mon Feb 10 15:48:58 EST 2014  CSN: CSN-leap-526
+                  Mon Feb 10 20:48:58 UTC 2014
+
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio.cpp          Locally Modified          525 
+ li-channelio.h            Locally Modified          525 
+
+
+Added support for software LI channel route-throughs.  These classes
+allow the LIM compiler to instantiate channel route-throughs across
+CPU platforms. 
+
