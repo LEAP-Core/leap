@@ -248,8 +248,8 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadRingNodeStats#(String tagPref
         sv.incr(0);
     endrule
 
-    rule fwdMsgSent (stats.fwdMsgSent());
-        sv.incr(1);
+    rule fwdMsgSent (stats.fwdMsgSent() != 0);
+        sv.incrBy(1, zeroExtend(stats.fwdMsgSent()));
     endrule
 
     rule msgReceived (stats.msgReceived());
@@ -262,16 +262,3 @@ module [CONNECTED_MODULE] mkNullCoherentScratchpadRingNodeStats#(COH_SCRATCH_RIN
     ();
 endmodule
 
-// 
-// memoryFenceIfcToMemoryIfc -- Converts coherent memory interface into base memory interface.
-//
-
-function MEMORY_IFC#(t_ADDR, t_DATA) memoryFenceIfcToMemoryIfc(MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA) ifc);
-
-    MEMORY_IFC#(t_ADDR, t_DATA) baseIfc = interface MEMORY_IFC;
-                                              method readReq = ifc.readReq;
-                                              method readRsp = ifc.readRsp;
-                                              method write = ifc.write;
-                                          endinterface;
-    return baseIfc;
-endfunction

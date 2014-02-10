@@ -79,6 +79,18 @@ COH_SCRATCH_RSHR_ENTRY#(type t_RSHR_TAG)
     deriving (Eq, Bits);
 
 //
+// Ownerbit request table entry
+//
+typedef struct
+{
+    t_ADDR      addr;
+    Bool        writeback;
+    Bool        recheckout;
+}
+COH_SCRATCH_OWNERBIT_REQ_TABLE_ENTRY#(type t_ADDR)
+    deriving (Eq, Bits);
+
+//
 // Coherence controller's ownerbit memory request 
 //
 typedef struct
@@ -195,6 +207,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
               // RSHR request
               Alias#(COH_SCRATCH_CONTROLLER_RSHR_REQ#(t_ADDR, t_RSHR_IDX, t_RSHR_TAG), t_RSHR_REQ),
               // Get request table entry
+              Alias#(COH_SCRATCH_OWNERBIT_REQ_TABLE_ENTRY#(t_ADDR), t_GET_REQ_TABLE_ENTRY),
               Alias#(UInt#(TMin#(t_RSHR_IDX_SZ, TLog#(COH_SCRATCH_CONTROLLER_GET_REQ_TABLE_ENTRIES))), t_GET_REQ_TABLE_IDX),
               // Memory request
               Alias#(COH_SCRATCH_CONTROLLER_OWNER_BIT_REQ#(t_ADDR, t_GET_REQ_TABLE_IDX), t_OWNER_BIT_REQ),
@@ -237,9 +250,9 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
 
     // Addressable ring
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
-        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
-        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0):
-        mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0);
+        (`ADDR_RING_DEBUG_ENABLE == 1)?
+        mkDebugConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0, debugLog):
+        mkConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0);
 
     // Broadcast ring
     CONNECTION_CHAIN#(t_COH_SCRATCH_ACTIVATED_REQ) link_mem_activatedReq <- 
@@ -280,7 +293,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     // Request status handling registers (for write back PUTXs)
     BRAM#(t_RSHR_IDX, Maybe#(t_RSHR_ENTRY)) rshr <- mkBRAMInitialized(tagged Invalid);
     // Reguest table that stores get requests that are checking out ownerbits in the ownerbitMem
-    LUTRAM#(t_GET_REQ_TABLE_IDX, Maybe#(t_ADDR)) ownerbitReqTable <- mkLUTRAM(tagged Invalid);
+    LUTRAM#(t_GET_REQ_TABLE_IDX, Maybe#(t_GET_REQ_TABLE_ENTRY)) ownerbitReqTable <- mkLUTRAM(tagged Invalid);
 
     // Pipeline FIFOs
     FIFO#(t_RSHR_REQ) incomingReqQ                                       <- mkFIFO();
@@ -367,29 +380,6 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             endaction;
     endfunction
 
-
-    // =======================================================================
-    //
-    // Initialization: initialize the ownerbitMem
-    //
-    // =======================================================================
-
-    Reg#(Bool) initialized <- mkReg(False);
-    Reg#(t_ADDR) initAddr  <- mkReg(unpack(0));  
-
-    (* fire_when_enabled *)
-    rule doInit (!initialized);
-        ownerbitMem.write(initAddr, True);
-        if (initAddr == maxBound)
-        begin
-            initialized <= True;
-            debugLog.record($format("    ownerbitMem initialization: done"));
-            debugLog.record($format("    client addr size = %d, scratchpad addr size = %d, rshr idx size = %d", 
-                            valueOf(t_IN_ADDR_SZ), valueOf(t_ADDR_SZ), valueOf(t_RSHR_IDX_SZ)));
-        end
-        initAddr <= initAddr + 1;
-    endrule
-
     // =======================================================================
     //
     // Start RSHR lookup requests:
@@ -411,7 +401,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     // collectClientReq --
     //     Collect scratchpad client requests from the request ring.
     //
-    rule colletClientReq (initialized);
+    rule colletClientReq (True);
         let req = link_mem_req.first();
         let start_req = False;
         t_RSHR_REQ lookup_req = ?;
@@ -468,7 +458,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     //     Collect scratchpad client responses (PUTX write-back data) from the 
     // response ring.
     //
-    rule collectClientResp (initialized);
+    rule collectClientResp (True);
         let resp = link_mem_resp.first();
         link_mem_resp.deq();
 
@@ -489,7 +479,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         putReqRetryQ.deq();
         rshr.readReq(r.idx);
         rshrLookupQ.enq(r);
-        debugLog.record($format("  startPutRetry: idx=0x%x", r.idx));
+        debugLog.record($format("  startPutRetry: idx=0x%x, addr=0x%x", r.idx, r.addr));
     endrule
 
     //
@@ -500,7 +490,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         getReqRetryQ.deq();
         rshr.readReq(r.idx);
         rshrLookupQ.enq(r);
-        debugLog.record($format("  startGetRetry: idx=0x%x", r.idx));
+        debugLog.record($format("  startGetRetry: idx=0x%x, addr=0x%x", r.idx, r.addr));
     endrule
 
     //
@@ -537,12 +527,16 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         rshrLookupQ.deq();
 
         let cur_entry <- rshrReadRespBypass(r.idx);
+        let req_table_idx = unpack(truncateNP(pack(r.idx)));
         Bool retry = False;
+        Bool ownerbit_checkout = False;
+        t_GET_REQ_TABLE_ENTRY new_req_entry = ?;
 
         // rshr hit
         if (cur_entry matches tagged Valid .e &&& e.tag == r.tag)
         begin
-            debugLog.record($format("      rshrGetLookup HIT: idx=0x%x, %s", r.idx, (e.needForward)? "ignore" : "wait to be forwarded"));
+            debugLog.record($format("      rshrGetLookup HIT: idx=0x%x, addr=0x%x, %s", 
+                            r.idx, r.addr, (e.needForward)? "ignore" : "wait to be forwarded"));
             if (!e.needForward)
             begin
                 let new_entry = e;
@@ -555,27 +549,43 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         end
         else // rshr miss
         begin
-            let req_table_idx = unpack(truncateNP(pack(r.idx)));
-            if (ownerbitReqTable.sub(req_table_idx) matches tagged Valid .addr)
+            if (ownerbitReqTable.sub(req_table_idx) matches tagged Valid .req_entry)
             begin
-                // if hit (r.addr == addr), which means there is already one 
+                // If hit (r.addr == addr), which means there is already one 
                 // GETS/GETX going to check out the ownerbit, then do nothing.
-                // if miss (r.addr != addr), retry and wait until the table
+                // There is an exception: 
+                // If there is a write-back coming after the inflight GETS/GETX, 
+                // that inflight request won't obtain ownership. Therefore, it
+                // requires to re-checkout the ownerbit. 
+                //
+                // If miss (r.addr != addr), retry and wait until the table 
                 // entry is free
-                retry = r.addr != addr;
+
+                retry = (r.addr != req_entry.addr);
+                ownerbit_checkout = (r.addr == req_entry.addr) && req_entry.writeback && !req_entry.recheckout;
+                debugLog.record($format("      rshrGetLookup: idx=0x%x, addr=0x%x (entry: addr=0x%x, writeback=%s, recheckout=%s)", 
+                                r.idx, r.addr, req_entry.addr, req_entry.writeback? "True" : "False", req_entry.recheckout? "True" : "False"));
+                new_req_entry = COH_SCRATCH_OWNERBIT_REQ_TABLE_ENTRY { addr: r.addr, writeback: req_entry.writeback, recheckout: True };
             end
             else
             begin
-                ownerbitMemLookupQ.enq( COH_SCRATCH_CONTROLLER_OWNER_BIT_REQ { addr: r.addr,
-                                                                               idx: req_table_idx,
-                                                                               requester: r.requester,
-                                                                               clientMeta: r.clientMeta,
-                                                                               globalReadMeta: r.globalReadMeta,
-                                                                               needCheckout: ?} );
-                ownerbitMem.readReq(r.addr);
-                ownerbitReqTable.upd(req_table_idx, tagged Valid r.addr);
-                debugLog.record($format("      rshrGetLookup MISS: idx=0x%x, read ownerbitMem: addr=0x%x", r.idx, r.addr));
+                ownerbit_checkout = True;
+                debugLog.record($format("      rshrGetLookup MISS: idx=0x%x, addr=0x%x", r.idx, r.addr));
+                new_req_entry = COH_SCRATCH_OWNERBIT_REQ_TABLE_ENTRY { addr: r.addr, writeback: False, recheckout: False };
             end
+        end
+
+        if (ownerbit_checkout)
+        begin
+            ownerbitMemLookupQ.enq( COH_SCRATCH_CONTROLLER_OWNER_BIT_REQ { addr: r.addr,
+                                                                           idx: req_table_idx,
+                                                                           requester: r.requester,
+                                                                           clientMeta: r.clientMeta,
+                                                                           globalReadMeta: r.globalReadMeta,
+                                                                           needCheckout: ?} );
+            ownerbitMem.readReq(r.addr);
+            ownerbitReqTable.upd(req_table_idx, tagged Valid new_req_entry);
+            debugLog.record($format("      rshrGetLookup: idx=0x%x, read ownerbitMem: addr=0x%x", r.idx, r.addr));
         end
         
         if (retry)
@@ -585,7 +595,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             begin
                 processGetRetry <= False;
             end
-            debugLog.record($format("      rshrGetLookup: idx=0x%x, retry!", r.idx));
+            debugLog.record($format("      rshrGetLookup: idx=0x%x, addr=0x%x, retry!", r.idx, r.addr));
             getRetryW.send();
         end
         else
@@ -633,12 +643,12 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             begin
                 processPutRetry <= False;
             end
-            debugLog.record($format("      rshrPutLookup: idx=0x%x, addr=0x%x, retry!", r.idx, r.addr));
+            debugLog.record($format("      rshrDirtyPutLookup: idx=0x%x, addr=0x%x, retry!", r.idx, r.addr));
             putRetryW.send();
         end
         else // entry available
         begin
-            debugLog.record($format("      rshrPutLookup: idx=0x%x, addr=0x%x, allocate new entry", r.idx, r.addr));
+            debugLog.record($format("      rshrDirtyPutLookup: idx=0x%x, addr=0x%x, allocate new entry", r.idx, r.addr));
             
             rshrWriteBypass(r.idx, tagged Valid COH_SCRATCH_RSHR_ENTRY { tag: r.tag,
                                                                          val: ?,
@@ -646,6 +656,19 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                          forwardId: ?,
                                                                          clientMeta: ?,
                                                                          globalReadMeta: ? });
+            
+            
+            // If hit in the ownerbitReqTable, update the entry's writeback bit
+            // The GETS/GETX request following this request needs to re-checkout the ownerbit
+            let req_table_idx = unpack(truncateNP(pack(r.idx)));
+            if (ownerbitReqTable.sub(req_table_idx) matches tagged Valid .req_entry &&& r.addr == req_entry.addr)
+            begin
+                debugLog.record($format("      rshrDirtyPutLookup: idx=0x%x, addr=0x%x, hit in ownerbitReqTable, update writeback bit", r.idx, r.addr));
+                ownerbitReqTable.upd(req_table_idx, tagged Valid COH_SCRATCH_OWNERBIT_REQ_TABLE_ENTRY { addr: r.addr, 
+                                                                                                        writeback: True,
+                                                                                                        recheckout: False });
+            end
+            
             // forward request to the activated request ring
             let put_req = COH_SCRATCH_ACTIVATED_PUT_REQ { requester: r.requester,
                                                           addr: r.addr,
@@ -665,7 +688,18 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         rshrLookupQ.deq();
         let cur_entry <- rshrReadRespBypass(r.idx);
         debugLog.record($format("      rshrCleanPutLookup: addr=0x%x, write back ownerbit", r.addr));
-        ownerbitMem.write(r.addr, True);
+        ownerbitMem.write(r.addr, False);
+            
+        // If hit in the ownerbitReqTable, update the entry's writeback bit
+        // The GETS/GETX request following this request needs to re-checkout the ownerbit
+        let req_table_idx = unpack(truncateNP(pack(r.idx)));
+        if (ownerbitReqTable.sub(req_table_idx) matches tagged Valid .req_entry &&& r.addr == req_entry.addr)
+        begin
+            debugLog.record($format("      rshrCleanPutLookup: idx=0x%x, addr=0x%x, hit in ownerbitReqTable, update writeback bit", r.idx, r.addr));
+            ownerbitReqTable.upd(req_table_idx, tagged Valid COH_SCRATCH_OWNERBIT_REQ_TABLE_ENTRY { addr: r.addr, 
+                                                                                                    writeback: True,
+                                                                                                    recheckout: False });
+        end
             
         // forward request to the activated request ring
         let put_req = COH_SCRATCH_ACTIVATED_PUT_REQ { requester: r.requester,
@@ -701,7 +735,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             if (!e.needForward)
             begin
                 let w_addr = rshrAddrFromEntry(e.tag, r.idx);
-                ownerbitMem.write(w_addr, True);
+                ownerbitMem.write(w_addr, False);
                 dataMem.write(w_addr, r.val);
                 debugLog.record($format("      rshrRespLookup: idx=0x%x, ownerbitMem & dataMem write back, addr=0x%x, val=0x%x", r.idx, w_addr, r.val));
             end
@@ -804,7 +838,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     rule ownerbitMemLookup (True);
         let r = ownerbitMemLookupQ.first();
         ownerbitMemLookupQ.deq();
-        let ownership <- ownerbitMem.readRsp();
+        let checkout <- ownerbitMem.readRsp(); // True means the ownership has been checked out
+        let ownership = !checkout;
         debugLog.record($format("      ownerbitMemLookup: addr=0x%x, ownership=%s", r.addr, ownership? "True" : "False"));
 
         if (ownership)
@@ -826,17 +861,29 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         ownerbitMemCheckoutQ.deq();
         if (r.needCheckout)
         begin
-            ownerbitMem.write(r.addr, False);
+            ownerbitMem.write(r.addr, True);
             debugLog.record($format("      ownerbitMemCheckout: checkout ownerbitMem: addr=0x%x", r.addr));
             ownerbitCheckoutW.send();
         end
-        // release ownerbitReqTable entry
-        ownerbitReqTable.upd(r.idx, tagged Invalid);
-        ownerbitReqTableReleaseIdx <= r.idx;
-        debugLog.record($format("      ownerbitMemCheckout: release ownerbitReqTable: addr=0x%x, idx=0x%x", r.addr, r.idx));
+        
+        // Mark the writeback bit to False if there is a following recheckout request
+        if (ownerbitReqTable.sub(r.idx) matches tagged Valid .req_entry &&& req_entry.writeback == True &&& req_entry.recheckout == True)
+        begin
+            ownerbitReqTable.upd(r.idx, tagged Valid COH_SCRATCH_OWNERBIT_REQ_TABLE_ENTRY { addr: r.addr, 
+                                                                                            writeback: False,
+                                                                                            recheckout: True });
+
+            debugLog.record($format("      ownerbitMemCheckout: update writeback bit in ownerbitReqTable: addr=0x%x, idx=0x%x", r.addr, r.idx));
+        end 
+        else // release ownerbitReqTable entry
+        begin
+            ownerbitReqTable.upd(r.idx, tagged Invalid);
+            ownerbitReqTableReleaseIdx <= r.idx;
+            debugLog.record($format("      ownerbitMemCheckout: release ownerbitReqTable: addr=0x%x, idx=0x%x", r.addr, r.idx));
+        end
     endrule
 
-    (* descending_urgency = "doInit, collectClientResp, rshrRespLookup, rshrFwdLookup, rshrCleanPutLookup, enablePutRetry, enableGetRetry, startForward, startPutRetry, startGetRetry, colletClientReq, ownerbitMemCheckout, rshrDirtyPutLookup, rshrGetLookup, ownerbitMemLookup, dataMemLookup" *)
+    (* descending_urgency = "collectClientResp, rshrRespLookup, rshrFwdLookup, rshrCleanPutLookup, enablePutRetry, enableGetRetry, startForward, startPutRetry, startGetRetry, colletClientReq, ownerbitMemCheckout, rshrDirtyPutLookup, rshrGetLookup, ownerbitMemLookup, dataMemLookup" *)
     rule dataMemLookup (True);
         let r = dataMemLookupQ.first();
         dataMemLookupQ.deq();

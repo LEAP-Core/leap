@@ -46,6 +46,7 @@ typedef struct
 {
     t_CACHE_ADDR              addr;
     t_CACHE_WORD              val;
+    Maybe#(t_CACHE_WORD)      oldVal; // for test&set request
     RL_COH_DM_CACHE_COH_STATE newState;
     Bool                      isCacheable;
     RL_COH_CACHE_REQ_TYPE     msgType;
@@ -99,7 +100,9 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
                                t_CACHE_WORD val,
                                t_CACHE_WORD writeData,
                                t_CACHE_MASK byteWriteMask, 
-                               RL_COH_DM_CACHE_COH_STATE oldState);
+                               RL_COH_DM_CACHE_COH_STATE oldState,
+                               t_CACHE_CLIENT_META meta,
+                               Bool isTestSet);
 
     // Write back and give up ownership
     method Action putExclusive(t_MSHR_IDX idx,
@@ -202,6 +205,7 @@ typedef struct
     t_MSHR_MASK               byteWriteMask;
     RL_COH_CACHE_TRANS_STATE  state;
     Bool                      isRead;
+    Bool                      isTestSet;
     Bool                      isCacheable; // GETS can be non-cacheable
     Bool                      doubleReqs;
     t_CLIENT_META             meta;
@@ -239,6 +243,7 @@ typedef struct
     RL_COH_CACHE_TRANS_STATE  state;
     t_CLIENT_META             meta;
     Bool                      isGetX;
+    Bool                      isTestSet;
 }
 RL_COH_DM_CACHE_MSHR_GET_REQ#(type t_MSHR_IDX,
                               type t_MSHR_ADDR, 
@@ -380,6 +385,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                                            byteWriteMask: r.byteWriteMask,
                                                            state: r.state,
                                                            isRead: !r.isGetX,
+                                                           isTestSet: r.isTestSet,
                                                            isCacheable: (r.state == COH_CACHE_STATE_OM_A),
                                                            doubleReqs: False,
                                                            meta: r.meta,
@@ -412,12 +418,12 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         Bool mshr_release = False;
         t_LOCAL_RESP resp = RL_COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
                                                               val: e.val,
+                                                              oldVal: tagged Invalid,
                                                               newState: ?,
                                                               isCacheable: e.isCacheable,
                                                               msgType: (e.isRead)? COH_CACHE_GETS : COH_CACHE_GETX,
                                                               clientMeta: e.meta,
                                                               globalReadMeta: e.globalReadMeta };
-
         if (e.isRead)
         begin
             getsProcessedW.send();
@@ -453,6 +459,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                     mshr_release   = True;
                     resp.newState  = COH_DM_CACHE_STATE_M;
                     resp.val       = applyWriteMask(e.val, e.writeData, e.byteWriteMask);
+                    resp.oldVal    = (e.isTestSet)? tagged Valid e.val : tagged Invalid;
                 end
             end
         endcase
@@ -496,6 +503,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         // send local response back to cache
         respLocalQ.enq( RL_COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
                                                           val: e.val,
+                                                          oldVal: tagged Invalid,
                                                           newState: COH_DM_CACHE_STATE_I,
                                                           isCacheable: e.needResp,
                                                           msgType: COH_CACHE_PUTX,
@@ -624,7 +632,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             new_entry.state = COH_CACHE_STATE_IM_AD;
             new_entry.forwardMeta = replicate(False);
             mshrGet.upd(r.meta, new_entry);
-            debugLog.record($format("        MSHR: mshrGet entry (0x%x) update: state=%d, doubleReqs=%s", r.meta, e.addr, (new_entry.doubleReqs)? "True" : "False"));
+            debugLog.record($format("        MSHR: mshrGet entry (0x%x) update: state=%d, doubleReqs=%s", r.meta, new_entry.state, (new_entry.doubleReqs)? "True" : "False"));
             
             // send retry request
             if (retryReqQ.notFull())
@@ -656,6 +664,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             let forward_idx         = ?;
             t_LOCAL_RESP local_resp = RL_COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
                                                                         val: r.val,
+                                                                        oldVal: (e.isTestSet)? tagged Valid r.val : tagged Invalid,
                                                                         newState: ?,
                                                                         isCacheable: r.isCacheable,
                                                                         msgType: (e.isRead)? COH_CACHE_GETS : COH_CACHE_GETX,
@@ -815,7 +824,8 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                                    byteWriteMask: unpack(pack(replicate(False))),
                                                    state: COH_CACHE_STATE_IM_AD,
                                                    meta: meta,
-                                                   isGetX: False });
+                                                   isGetX: False,
+                                                   isTestSet: False});
     endmethod
     
     // Request for data and exlusive ownership
@@ -824,10 +834,12 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                t_CACHE_WORD val,
                                t_CACHE_WORD writeData,
                                t_CACHE_MASK byteWriteMask,
-                               RL_COH_DM_CACHE_COH_STATE oldState) if (!mshrBusy);
+                               RL_COH_DM_CACHE_COH_STATE oldState,
+                               t_CACHE_CLIENT_META meta,
+                               Bool isTestSet) if (!mshrBusy);
 
-        debugLog.record($format("        MSHR: receive GETX request from cache to allocate a new entry (idx=0x%x, addr=0x%x), numPendingGetX=%x", 
-                        idx, addr, numPendingGetX.value()));
+        debugLog.record($format("        MSHR: receive GETX request from cache to allocate a new entry (idx=0x%x, addr=0x%x), numPendingGetX=%x, isTestSet=%s", 
+                        idx, addr, numPendingGetX.value(), isTestSet? "True" : "False"));
         
         mshrGetValidBits.upd(idx, True);
         cacheGetReqEnW.send();
@@ -839,8 +851,9 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                                    writeData: writeData,
                                                    byteWriteMask: byteWriteMask,
                                                    state: new_state,
-                                                   meta: ?,
-                                                   isGetX: True });
+                                                   meta: meta,
+                                                   isGetX: True,
+                                                   isTestSet: isTestSet});
 
     endmethod
 

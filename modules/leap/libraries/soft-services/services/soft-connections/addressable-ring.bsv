@@ -48,8 +48,8 @@ interface CONNECTION_ADDR_RING#(type t_NODE_ID, type t_MSG);
     
 `ifndef ADDR_RING_DEBUG_ENABLE_Z
     method Bool localMsgSent();
-    method Bool fwdMsgSent();
     method Bool msgReceived();
+    method Bit#(2) fwdMsgSent();
 `endif
 endinterface
 
@@ -134,6 +134,81 @@ module [CONNECTED_MODULE] mkConnectionTokenRingDynNode#(String chainID)
               Arith#(t_NODE_ID));
 
     let n <- mkConnectionTokenRingNode_Impl(chainID, tagged Invalid);
+    return n;
+endmodule
+
+//
+// mkConnectionAddrRingNodeNtoN --
+//     A non-token, addressable ring with a compile-time static ring stop ID.
+// This implementation supports N sources and N sinks (N-to-N), while 
+// mkConnectionTokenRingNode only suuports single source (1-to-N) or single 
+// sink (N-to-1).
+//
+module [CONNECTED_MODULE] mkConnectionAddrRingNodeNtoN#(String chainID,
+                                                        t_NODE_ID staticID)
+    // Interface:
+    (CONNECTION_ADDR_RING#(t_NODE_ID, t_MSG))
+    provisos (Bits#(t_MSG, t_MSG_SZ),
+              Bits#(t_NODE_ID, t_NODE_ID_SZ),
+              Eq#(t_NODE_ID),
+              Bounded#(t_NODE_ID),
+              Ord#(t_NODE_ID),
+              Arith#(t_NODE_ID));
+
+    DEBUG_FILE debugLog <- mkDebugFileNull(""); 
+    let n <- mkConnectionAddrRingNodeNtoN_Impl(chainID, tagged Valid staticID, debugLog);
+    return n;
+endmodule
+
+module [CONNECTED_MODULE] mkDebugConnectionAddrRingNodeNtoN#(String chainID,
+                                                             t_NODE_ID staticID,
+                                                             DEBUG_FILE debugLog)
+    // Interface:
+    (CONNECTION_ADDR_RING#(t_NODE_ID, t_MSG))
+    provisos (Bits#(t_MSG, t_MSG_SZ),
+              Bits#(t_NODE_ID, t_NODE_ID_SZ),
+              Eq#(t_NODE_ID),
+              Bounded#(t_NODE_ID),
+              Ord#(t_NODE_ID),
+              Arith#(t_NODE_ID));
+
+    let n <- mkConnectionAddrRingNodeNtoN_Impl(chainID, tagged Valid staticID, debugLog);
+    return n;
+endmodule
+//
+// mkConnectionAddrRingDynNodeNtoN --
+//     A non-token, addressable ring with a run-time computed ring stop ID.
+// This implementation supports N sources and N sinks (N-to-N), while 
+// mkConnectionTokenRingDynNode only suuports single source (1-to-N) or 
+// single sink (N-to-1).
+//
+module [CONNECTED_MODULE] mkConnectionAddrRingDynNodeNtoN#(String chainID)
+    // Interface:
+    (CONNECTION_ADDR_RING#(t_NODE_ID, t_MSG))
+    provisos (Bits#(t_MSG, t_MSG_SZ),
+              Bits#(t_NODE_ID, t_NODE_ID_SZ),
+              Eq#(t_NODE_ID),
+              Bounded#(t_NODE_ID),
+              Ord#(t_NODE_ID),
+              Arith#(t_NODE_ID));
+
+    DEBUG_FILE debugLog <- mkDebugFileNull(""); 
+    let n <- mkConnectionAddrRingNodeNtoN_Impl(chainID, tagged Invalid, debugLog);
+    return n;
+endmodule
+
+module [CONNECTED_MODULE] mkDebugConnectionAddrRingDynNodeNtoN#(String chainID,
+                                                                DEBUG_FILE debugLog)
+    // Interface:
+    (CONNECTION_ADDR_RING#(t_NODE_ID, t_MSG))
+    provisos (Bits#(t_MSG, t_MSG_SZ),
+              Bits#(t_NODE_ID, t_NODE_ID_SZ),
+              Eq#(t_NODE_ID),
+              Bounded#(t_NODE_ID),
+              Ord#(t_NODE_ID),
+              Arith#(t_NODE_ID));
+
+    let n <- mkConnectionAddrRingNodeNtoN_Impl(chainID, tagged Invalid, debugLog);
     return n;
 endmodule
 
@@ -295,12 +370,246 @@ module [CONNECTED_MODULE] mkConnectionAddrRingNode_Impl#(String chainID,
 `ifndef ADDR_RING_DEBUG_ENABLE_Z
     // Signals for debugging
     method Bool localMsgSent() = localMsgSentW;
-    method Bool fwdMsgSent() = fwdMsgSentW;
     method Bool msgReceived() = msgReceivedW;
+    method Bit#(2) fwdMsgSent();
+        return (fwdMsgSentW)? 1 : 0;
+    endmethod
 `endif 
 endmodule
 
+//
+// mkConnectionAddrRingNodeNtoN_Impl --
+//     Build a node on an addressable ring.  This implementation uses dateline
+// technique to guarantee deadlock freedom when there are multiple sources and
+// multiple sinks on the ring. Similar to mkConnectionAddrRingNode_Impl, this
+// implementation does not enforce fairness.  
+//
+module [CONNECTED_MODULE] mkConnectionAddrRingNodeNtoN_Impl#(String chainID,
+                                                             Maybe#(t_NODE_ID) staticID,
+                                                             DEBUG_FILE debugLog)
+    // Interface:
+    (CONNECTION_ADDR_RING#(t_NODE_ID, t_MSG))
+    provisos (Bits#(t_MSG, t_MSG_SZ),
+              Bits#(t_NODE_ID, t_NODE_ID_SZ),
+              Eq#(t_NODE_ID),
+              Bounded#(t_NODE_ID),
+              Ord#(t_NODE_ID),
+              Arith#(t_NODE_ID),
 
+              Alias#(Tuple2#(t_NODE_ID, t_MSG), t_RING_MSG));
+
+    //
+    // Allocate a node on two physical chains (to prevent deadlocks)
+    //
+    // The dateline is inserted at the node 0 (the primary node). Local messages
+    // are injected to chain0. Any message (on chain0) passing node 0 is forwarded 
+    // to chain1. 
+    //
+    CONNECTION_CHAIN#(t_RING_MSG) chain0 <- mkConnectionChain(chainID+"_0");
+    CONNECTION_CHAIN#(t_RING_MSG) chain1 <- mkConnectionChain(chainID+"_1");
+
+    // Inbound & outbound FIFOs provide buffering, mostly useful to relax
+    // timing constraints on potentially long wires between ring stops.
+    FIFOF#(t_MSG) recvQ <- mkFIFOF();
+    FIFOF#(t_RING_MSG) sendQ <- mkFIFOF();
+
+    PulseWire localMsgSentW <- mkPulseWire();
+    PulseWire fwdMsgPrior   <- mkPulseWire();
+    PulseWire fwdMsgSent0W  <- mkPulseWire();
+    PulseWire fwdMsgSent1W  <- mkPulseWire();
+    PulseWire msgReceived0W <- mkPulseWire();
+    PulseWire msgReceived1W <- mkPulseWire();
+
+    //
+    // Initialization of the ring.
+    //
+
+    // Send just the ID to the next node.  Message doesn't matter.
+    function Action initSendToNext(t_NODE_ID id) = chain0.sendToNext(tuple2(id, ?));
+
+    // Receive an ID from the previous node.
+    function ActionValue#(t_NODE_ID) initRecvFromPrev();
+    actionvalue
+        match {.id, .msg} <- chain0.recvFromPrev();
+        return id;
+    endactionvalue
+    endfunction
+
+    CONNECTION_ADDR_RING_INIT#(t_NODE_ID) init <-
+        mkConnectionAddrRingInitializer(chainID, staticID,
+                                        initSendToNext,
+                                        initRecvFromPrev);
+
+
+    //
+    // newMsgIsForMe --
+    //     Does incoming message on the ring have data for this node?
+    //
+    function Bool newMsgIsForMe0() = (tpl_1(chain0.peekFromPrev()) == init.nodeID);
+    function Bool newMsgIsForMe1() = (tpl_1(chain1.peekFromPrev()) == init.nodeID);
+
+    function Bool nodeIsPrimary() = (isValid(staticID) &&
+                                     (validValue(staticID) == 0));
+
+    //
+    // recvFromRing --
+    //     Receive a new message from the ring destined for this node.
+    //
+    Reg#(Bool) chain0Prior     <- mkReg(True);
+    PulseWire chain0RecvPriorW <- mkPulseWire();
+    
+    // Check if chain0 has priority to receive a message
+    rule checkMsgRecv0Prior(newMsgIsForMe0() && chain0Prior);
+        chain0RecvPriorW.send();
+    endrule
+    
+    // Receive a new message from the chain1 if chain0 does not have priority
+    rule recvFromRing1 (newMsgIsForMe1() && !chain0RecvPriorW && !nodeIsPrimary);
+        match {.id, .msg} <- chain1.recvFromPrev();
+        recvQ.enq(msg);
+        msgReceived1W.send();
+        chain0Prior <= True;
+        debugLog.record($format("Ring Node 0x%x: recvFromRing1: id:0x%x", init.nodeID, id));
+    endrule
+    
+    // Receive a new message from chain0 if chain1 doesn't receive a message
+    rule recvFromRing0 (newMsgIsForMe0() && !msgReceived1W);
+        match {.id, .msg} <- chain0.recvFromPrev();
+        recvQ.enq(msg);
+        msgReceived0W.send();
+        chain0Prior <= False;
+        debugLog.record($format("Ring Node 0x%x: recvFromRing0: id:0x%x", init.nodeID, id));
+    endrule
+
+    
+    //
+    // checkMsgSendPrior
+    //
+    if (`ADDR_RING_MSG_MODE == 2)
+    begin
+        Reg#(Bool)  localPrior <- mkReg(True);
+        rule checkMsgSendPrior(init.initialized && chain0.recvNotEmpty() && !nodeIsPrimary);
+            if (!newMsgIsForMe0() && !localPrior)
+            begin
+                fwdMsgPrior.send();
+            end
+        endrule
+        rule updArbiter(localMsgSentW || fwdMsgSent0W);
+            localPrior <= fwdMsgSent0W;
+        endrule
+    end
+    else if (`ADDR_RING_MSG_MODE == 1)
+    begin
+        rule checkMsgSendPrior(init.initialized && chain0.recvNotEmpty() && !nodeIsPrimary);
+            if (!newMsgIsForMe0())
+            begin
+                fwdMsgPrior.send();
+            end
+        endrule
+    end
+
+    //
+    // sendToRing --
+    //     This node has a new message for the ring.
+    //
+    rule sendToRing (init.initialized && !fwdMsgPrior);
+        chain0.sendToNext(sendQ.first());
+        sendQ.deq();
+        localMsgSentW.send();
+        debugLog.record($format("Ring Node 0x%x: sendToRing: id:0x%x", init.nodeID, tpl_1(sendQ.first())));
+    endrule
+
+    //
+    // forwardOnRing0 --
+    //     A non-primary node forwards a message on chain0 if the local node 
+    // did not send a message this cycle and message coming from ring is not 
+    // for this node.
+    //
+    rule forwardOnRing0 (init.initialized && ! localMsgSentW && ! newMsgIsForMe0() && ! nodeIsPrimary);
+        let m <- chain0.recvFromPrev();
+        chain0.sendToNext(m);
+        fwdMsgSent0W.send();
+        debugLog.record($format("Ring Node 0x%x: forwardOnRing0: id:0x%x", init.nodeID, tpl_1(m)));
+    endrule
+
+    //
+    // forwardOnRing1 --
+    //     A non-primary node forwards a message on chain1 if the message from 
+    // the ring is not for this node.
+    //
+    rule forwardOnRing1 (init.initialized && ! newMsgIsForMe1() && ! nodeIsPrimary);
+        let m <- chain1.recvFromPrev();
+        chain1.sendToNext(m);
+        fwdMsgSent1W.send();
+        debugLog.record($format("Ring Node 0x%x: forwardOnRing1: id:0x%x", init.nodeID, tpl_1(m)));
+    endrule
+    
+    //
+    // forwardOnRingPrimary --
+    //     The primary node forwards a message from chain0 to chain1 if the message
+    // comming from the ring is not for this node.
+    //
+    rule forwardOnRingPrimary (init.initialized && ! newMsgIsForMe0() && nodeIsPrimary);
+        let m <- chain0.recvFromPrev();
+        chain1.sendToNext(m);
+        fwdMsgSent1W.send();
+        debugLog.record($format("Ring Node 0x%x: forwardOnRingPrimary: id:0x%x", init.nodeID, tpl_1(m)));
+    endrule
+
+    // This should not fire
+    rule recvRing1Primary (init.initialized && nodeIsPrimary);
+        let m <- chain1.recvFromPrev();
+        debugLog.record($format("Ring Node 0x%x: ERROR recvRing1Primary: id:0x%x", init.nodeID, tpl_1(m)));
+    endrule
+    
+
+    //
+    // Methods...
+    //
+
+    //
+    // Outbound messages
+    //
+    method Action enq(t_NODE_ID dstNode, t_MSG data);
+        sendQ.enq(tuple2(dstNode, data));
+    endmethod
+
+    method Bool notFull() = sendQ.notFull();
+
+
+    //
+    // Incoming messages
+    //
+    method t_MSG first() = recvQ.first();
+
+    method Action deq();
+        recvQ.deq();
+    endmethod
+
+    method Bool notEmpty() = recvQ.notEmpty();
+
+
+    method t_NODE_ID nodeID() = init.nodeID();
+    method t_NODE_ID maxID() = init.maxID();
+
+`ifndef ADDR_RING_DEBUG_ENABLE_Z
+    // Signals for debugging
+    method Bool localMsgSent() = localMsgSentW;
+    method Bool msgReceived() = msgReceived0W || msgReceived1W;
+    method Bit#(2) fwdMsgSent();
+        Bit#(2) fwd_msg = 0;
+        if (fwdMsgSent0W && fwdMsgSent1W)
+        begin
+            fwd_msg = 2;
+        end
+        else if (fwdMsgSent0W || fwdMsgSent1W)
+        begin
+            fwd_msg = 1;
+        end
+        return fwd_msg;
+    endmethod
+`endif 
+endmodule
 
 //
 // Internal types
@@ -524,8 +833,8 @@ module [CONNECTED_MODULE] mkConnectionTokenRingNode_Impl#(String chainID,
 `ifndef ADDR_RING_DEBUG_ENABLE_Z
     // Signals for debugging
     method Bool localMsgSent() = False;
-    method Bool fwdMsgSent()   = False;
     method Bool msgReceived()  = False;
+    method Bit#(2) fwdMsgSent() = 0;
 `endif
 endmodule
 

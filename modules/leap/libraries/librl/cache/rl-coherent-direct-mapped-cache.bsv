@@ -151,7 +151,16 @@ interface RL_COH_DM_CACHE#(type t_CACHE_ADDR,
     method Bit#(2) numReadProcessed();
     // Return the number of write requests being processed now (0, 1, or 2)
     method Bit#(2) numWriteProcessed();
-   
+
+    // Test&set request and response
+    method Action testAndSetReq(t_CACHE_ADDR addr, 
+                                t_CACHE_WORD val, 
+                                t_CACHE_MASK mask, 
+                                t_CACHE_CLIENT_META readMeta, 
+                                RL_CACHE_GLOBAL_READ_META globalReadMeta);
+    method ActionValue#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) testAndSetResp();
+    method RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekTestAndSetResp();
+
     //
     // Set cache and prefetch mode.  Mostly useful for debugging.  This may not be changed
     // in the middle of a run!
@@ -351,6 +360,8 @@ typedef struct
  
    // Write data index
    RL_COH_DM_WRITE_DATA_HEAP_IDX writeDataIdx;
+   // Test and set request flag
+   Bool isTestSet; 
 }
 RL_COH_DM_CACHE_LOCAL_REQ_INFO#(type t_CACHE_CLIENT_META)
     deriving (Eq, Bits);
@@ -518,6 +529,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     // Pipelines
     FIFO#(Tuple2#(t_CACHE_REQ, Bool)) fillReqQ <- mkFIFO();
     FIFO#(t_CACHE_LOAD_RESP) readRespQ <- mkBypassFIFO();
+    FIFO#(t_CACHE_LOAD_RESP) testSetRespQ <- mkBypassFIFO();
     
     // Use peekable fifo to enable accessing an arbitrary opject in the fifo
     PEEKABLE_FIFOF#(t_CACHE_REQ, 2) cacheLookupQ <- mkPeekableFIFOF();
@@ -1377,6 +1389,15 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             entryFilter.remove(idx);
             reqInfo_writeData.free(f.writeDataIdx);
             numFreedSlots.wset(2);
+            if (f.isTestSet)
+            begin
+                t_CACHE_LOAD_RESP resp;
+                resp.val = cur_entry.val;
+                resp.isCacheable = True;
+                resp.readMeta = f.readMeta.clientReadMeta;
+                resp.globalReadMeta = f.globalReadMeta;
+                testSetRespQ.enq(resp);
+            end
         end
         else // Request fill for write permission (and data)
         begin
@@ -1384,7 +1405,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             begin
                 let old_state = (cur_entry.tag == tag)? cur_entry.state : COH_DM_CACHE_STATE_I;
                 fillReqQ.enq(tuple2(r, False));
-                mshr.getExclusive(mshr_idx, r.addr, cur_entry.val, w_data, w_mask, old_state);
+                mshr.getExclusive(mshr_idx, r.addr, cur_entry.val, w_data, w_mask, old_state, pack(f.readMeta), f.isTestSet);
                 reqInfo_writeData.free(f.writeDataIdx);
                 upd_entry = RL_COH_DM_CACHE_ENTRY { tag: tag,
                                                     val: cur_entry.val,
@@ -1491,16 +1512,25 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         debugLog.record($format("    Cache: fillResp: FILL addr=0x%x, entry=0x%x, msgType=%x, cacheable=%b, state=%d, val=0x%x", f.addr, idx, f.msgType, f.isCacheable, f.newState, f.val));
         
         t_CACHE_READ_META read_meta = unpack(f.clientMeta);
+        t_CACHE_LOAD_RESP resp;
         
         if (f.msgType == COH_CACHE_GETS && !read_meta.isLocalPrefetch)
         begin
-            t_CACHE_LOAD_RESP resp;
             resp.val = f.val;
             resp.isCacheable = f.isCacheable;
             resp.readMeta = read_meta.clientReadMeta;
             resp.globalReadMeta = f.globalReadMeta;
             readRespQ.enq(resp);
-            debugLog.record($format("    Cache: fillResp: send response to client: addr=0x%x, val=0x%x", f.addr, f.val));
+            debugLog.record($format("    Cache: fillResp: send read response to client: addr=0x%x, val=0x%x", f.addr, f.val));
+        end
+        else if (f.oldVal matches tagged Valid .old_val) // test and set response
+        begin
+            resp.val = old_val;
+            resp.isCacheable = False;
+            resp.readMeta = read_meta.clientReadMeta;
+            resp.globalReadMeta = f.globalReadMeta;
+            testSetRespQ.enq(resp);
+            debugLog.record($format("    Cache: fillResp: send test&set response to client: addr=0x%x, val=0x%x", f.addr, old_val));
         end
        
         if (f.msgType == COH_CACHE_PUTX && !f.isCacheable) // write backs due to cache conflicts
@@ -1658,7 +1688,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         r.reqInfo = tagged LocalReqInfo RL_COH_DM_CACHE_LOCAL_REQ_INFO { act: COH_DM_CACHE_WRITE,
                                                                          readMeta: ?,
                                                                          globalReadMeta: ?,
-                                                                         writeDataIdx: data_idx };
+                                                                         writeDataIdx: data_idx,
+                                                                         isTestSet: False };
         localReqQ.enq(r);
         debugLog.record($format("    Cache: New request: WRITE addr=0x%x, wData heap=%0d, val=0x%x, mask=0x%x", addr, data_idx, val, byteWriteMask));
     endmethod
@@ -1724,6 +1755,40 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
              n = n + 1;
          end
          return n;
+    endmethod
+    
+    method Action testAndSetReq(t_CACHE_ADDR addr, 
+                                t_CACHE_WORD val, 
+                                t_CACHE_MASK byteWriteMask, 
+                                t_CACHE_CLIENT_META readMeta, 
+                                RL_CACHE_GLOBAL_READ_META globalReadMeta);
+        // Store the write data on a heap
+        let data_idx <- reqInfo_writeData.malloc();
+        reqInfo_writeData.upd(data_idx, tuple2(val, byteWriteMask));
+
+        let read_meta = RL_COH_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                                    clientReadMeta: readMeta };
+        t_CACHE_REQ r = ?;
+        r.addr = addr;
+        r.reqInfo = tagged LocalReqInfo RL_COH_DM_CACHE_LOCAL_REQ_INFO { act: COH_DM_CACHE_WRITE,
+                                                                         readMeta: read_meta,
+                                                                         globalReadMeta: globalReadMeta,
+                                                                         writeDataIdx: data_idx,
+                                                                         isTestSet: True };
+
+        localReqQ.enq(r);
+        debugLog.record($format("    Cache: New request: TEST & SET addr=0x%x, wData heap=%0d, val=0x%x, mask=0x%x", addr, data_idx, val, byteWriteMask));
+    endmethod
+    
+    method ActionValue#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) testAndSetResp();
+        let r = testSetRespQ.first();
+        testSetRespQ.deq();
+        debugLog.record($format("    Cache: send test&set response: val=0x%x, meta=0x%x", r.val, r.readMeta));
+        return r;
+    endmethod
+    
+    method RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekTestAndSetResp();
+        return testSetRespQ.first();
     endmethod
 
     method Action setCacheMode(RL_COH_DM_CACHE_MODE mode, RL_COH_DM_CACHE_PREFETCH_MODE en);

@@ -71,11 +71,15 @@ interface MEMORY_WITH_FENCE_IFC#(type t_ADDR, type t_DATA);
     // Read request possible?
     method Bool notFull();
 
-
     method Action write(t_ADDR addr, t_DATA val);
     
     // Write request possible?
     method Bool writeNotFull();
+
+    // Test and set request 
+    method Action testAndSetReq(t_ADDR addr, t_DATA val);
+    // Test and set response
+    method ActionValue#(t_DATA) testAndSetRsp();
 
     // Insert a memory fence. All requests issued earlier should
     // be processed before the fence request gets processed.
@@ -134,6 +138,12 @@ interface MEMORY_MULTI_READ_WITH_FENCE_IFC#(numeric type n_READERS, type t_ADDR,
 
     method Action write(t_ADDR addr, t_DATA val);
     method Bool writeNotFull();
+    
+    // Test and set request 
+    method Action testAndSetReq(t_ADDR addr, t_DATA val);
+    // Test and set response
+    method ActionValue#(t_DATA) testAndSetRsp();
+
     // Insert a memory fence. All requests issued earlier should
     // be processed before the fence request gets processed.
     method Action fence();
@@ -170,6 +180,12 @@ interface MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(numeric type n_READERS,
 
     method Action write(t_ADDR addr, t_DATA val, t_MASK mask);
     method Bool writeNotFull();
+    
+    // Test and set request 
+    method Action testAndSetReq(t_ADDR addr, t_DATA val, t_MASK mask);
+    // Test and set response
+    method ActionValue#(t_DATA) testAndSetRsp();
+
     // Insert a memory fence. All requests issued earlier should
     // be processed before the fence request gets processed.
     method Action fence();
@@ -362,6 +378,31 @@ module mkMultiMemIfcToMemIfc#(MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) multiMem
     method Bool writeNotFull() = multiMem.writeNotFull();
 endmodule
 
+// 
+// mkMemFenceIfcToMemIfc -- 
+//     Interface conversion from a MEMORY_WITH_FENCE_IFC to a basic MEMORY_IFC.    
+// 
+module mkMemFenceIfcToMemIfc#(MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA) mem)
+    // interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    method Action readReq(t_ADDR addr) = mem.readReq(addr);
+
+    method ActionValue#(t_DATA) readRsp();
+        let v <- mem.readRsp();
+        return v;
+    endmethod
+
+    method t_DATA peek() = mem.peek();
+    method Bool notEmpty() = mem.notEmpty();
+    method Bool notFull() = mem.notFull();
+
+    method Action write(t_ADDR addr, t_DATA val) = mem.write(addr, val);
+    method Bool writeNotFull() = mem.writeNotFull();
+endmodule
+
 //
 // mkMultiMemFenceIfcToMemFenceIfc --
 //     Interface conversion from a MEMORY_MULTI_READ_WITH_FENCE_IFC with one port 
@@ -388,6 +429,12 @@ module mkMultiMemFenceIfcToMemFenceIfc#(MEMORY_MULTI_READ_WITH_FENCE_IFC#(1, t_A
 
     method Action write(t_ADDR addr, t_DATA val) = multiMem.write(addr, val);
     method Bool writeNotFull() = multiMem.writeNotFull();
+
+    method Action testAndSetReq(t_ADDR addr, t_DATA val) = multiMem.testAndSetReq(addr, val);
+    method ActionValue#(t_DATA) testAndSetRsp();
+        let resp <- multiMem.testAndSetRsp();
+        return resp;
+    endmethod
 
     method Action fence() = multiMem.fence();
     method Action writeFence() = multiMem.writeFence();

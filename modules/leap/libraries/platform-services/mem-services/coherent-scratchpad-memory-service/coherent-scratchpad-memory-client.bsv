@@ -42,6 +42,7 @@ import DefaultValue::*;
 // for a given port.
 
 typedef SCRATCHPAD_PORT_ROB_SLOTS COH_SCRATCH_PORT_ROB_SLOTS;
+typedef SCRATCHPAD_PORT_ROB_SLOTS COH_SCRATCH_TEST_SET_ROB_SLOTS;
 
 // ========================================================================
 //
@@ -283,6 +284,7 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
     
     // Read request info holds the address of the requested data within the container.
     Vector#(n_READERS, FIFO#(t_OBJ_IDX)) readReqInfoQ <- replicateM(mkSizedFIFO(valueOf(COH_SCRATCH_PORT_ROB_SLOTS)));
+    FIFO#(t_OBJ_IDX) testAndSetReqInfoQ <- mkSizedFIFO(valueOf(COH_SCRATCH_TEST_SET_ROB_SLOTS));
 
     //
     // addrSplit --
@@ -355,6 +357,24 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
     endmethod
 
     method Bool writeNotFull() = mem.writeNotFull();
+    
+    method Action testAndSetReq(t_ADDR addr, t_DATA val);
+        match {.c_addr, .o_idx} = addrSplit(addr);
+        // Put the data at the right place in the container
+        t_PACKED_CONTAINER pack_data = unpack(0);
+        pack_data[o_idx] = zeroExtendNP(pack(val));
+        testAndSetReqInfoQ.enq(o_idx);
+        mem.testAndSetReq(c_addr, unpack(zeroExtendNP(pack(pack_data))), computeByteMask(o_idx));
+    endmethod
+
+    method ActionValue#(t_DATA) testAndSetRsp();
+        let o_idx = testAndSetReqInfoQ.first();
+        testAndSetReqInfoQ.deq();
+        // Receive the data and return the desired object from the container.
+        let d <- mem.testAndSetRsp();
+        t_PACKED_CONTAINER pack_data = unpack(truncateNP(pack(d)));
+        return unpack(truncateNP(pack_data[o_idx]));
+    endmethod
 
     method Action fence() = mem.fence();
     method Action writeFence() = mem.writeFence();
@@ -433,6 +453,15 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
     endmethod
 
     method Bool writeNotFull() = mem.writeNotFull();
+    
+    method Action testAndSetReq(t_ADDR addr, t_DATA val);
+        mem.testAndSetReq(addr, unpack(zeroExtendNP(pack(val))), unpack(pack(replicate(True))));
+    endmethod
+
+    method ActionValue#(t_DATA) testAndSetRsp();
+        let d <- mem.testAndSetRsp();
+        return unpack(truncateNP(pack(d)));
+    endmethod
 
     method Action fence() = mem.fence();
     method Action writeFence() = mem.writeFence();
@@ -466,6 +495,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
               Div#(t_MEM_DATA_SZ, 8, t_MEM_MASK_SZ),
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(COH_SCRATCH_PORT_ROB_SLOTS), t_REORDER_ID),
+              Alias#(SCOREBOARD_FIFO_ENTRY_ID#(TMin#(COH_SCRATCH_PORT_ROB_SLOTS, COH_SCRATCH_TEST_SET_ROB_SLOTS)), t_TS_REORDER_ID),
               // MAF for in-flight reads
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
               Bits#(t_MAF_IDX, t_MAF_IDX_SZ));
@@ -500,14 +530,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot. The write port is always second from last. The port for 
     // the fence request is always last. 
-    MERGE_FIFOF#(TAdd#(n_READERS, 2), Tuple2#(t_MEM_ADDR, t_REORDER_ID)) incomingReqQ <- mkMergeFIFOF();
+    MERGE_FIFOF#(TAdd#(n_READERS, 2), Tuple2#(t_MEM_ADDR, Maybe#(t_REORDER_ID))) incomingReqQ <- mkMergeFIFOF();
 
     // Write data (and write mask) is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(Tuple2#(t_MEM_DATA, t_MEM_MASK)) writeDataQ <- mkFIFO();
 
     // Cache responses are not ordered.  Sort them with a reorder buffer.
     Vector#(n_READERS, SCOREBOARD_FIFOF#(COH_SCRATCH_PORT_ROB_SLOTS, t_MEM_DATA)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
-  
+    SCOREBOARD_FIFOF#(COH_SCRATCH_TEST_SET_ROB_SLOTS, t_MEM_DATA) sortTestAndSetRespQ <- mkScoreboardFIFOF();
+
     // Read and write request counter
     COUNTER#(TLog#(TAdd#(TMul#(n_READERS, COH_SCRATCH_PORT_ROB_SLOTS),1))) numPendingReads  <- mkLCounter(0);
     COUNTER#(TLog#(TAdd#(COH_SCRATCH_PORT_ROB_SLOTS,1))) numPendingWrites <- mkLCounter(0);
@@ -556,17 +587,34 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         cache.fence(unpack(truncate(fence_mode)));
     endrule
 
-    // Write requests
+    // Write requests and test&set requests
     rule forwardWriteReq (initialized && incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS)));
-        let addr = tpl_1(incomingReqQ.first());
+        match {.addr, .idx} = incomingReqQ.first();
         incomingReqQ.deq();
-
         match {.val, .mask} = writeDataQ.first();
         writeDataQ.deq();
-
-        cache.write(addr, val, mask);
+        // test&set requests
+        if (idx matches tagged Valid .d)
+        begin
+            t_MAF_IDX maf_idx = tuple2(?, d);
+            cache.testAndSetReq(addr, val, mask, maf_idx, defaultValue());
+        end
+        else
+        begin
+            cache.write(addr, val, mask);
+        end
     endrule
 
+    //
+    // recvTestAndSetResp --
+    //     Push test&set responses to the reorder buffer.  They will be returned
+    //     through testAndSetRsp() in order.
+    //
+    rule recvTestAndSetResp (True);
+        let r <- cache.testAndSetResp();
+        t_REORDER_ID idx = tpl_2(r.readMeta);
+        sortTestAndSetRespQ.setValue(unpack(truncate(pack(idx))), r.val);
+    endrule
 
     // Read requests
     for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
@@ -574,13 +622,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         rule forwardReadReq (initialized && incomingReqQ.firstPortID() == fromInteger(p));
             match {.addr, .idx} = incomingReqQ.first();
             incomingReqQ.deq();
+            if (idx matches tagged Valid .d)
+            begin
+                // The read UID for this request is the concatenation of the
+                // port ID and the ROB index.
+                t_MAF_IDX maf_idx = tuple2(fromInteger(p), d);
 
-            // The read UID for this request is the concatenation of the
-            // port ID and the ROB index.
-            t_MAF_IDX maf_idx = tuple2(fromInteger(p), idx);
-
-            // Request data from the cache
-            cache.readReq(addr, maf_idx, defaultValue());
+                // Request data from the cache
+                cache.readReq(addr, maf_idx, defaultValue());
+            end
         endrule
 
         //
@@ -614,7 +664,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                     // Allocate a slot in the reorder buffer for the read request.  Each
                     // read port gets its own reorder buffer.
                     let idx <- sortResponseQ[p].enq();
-                    incomingReqQ.ports[p].enq(tuple2(addr, idx));
+                    incomingReqQ.ports[p].enq(tuple2(addr, tagged Valid idx));
                     readIssuedW[p].send();
                     debugLog.record($format("read port %0d: req addr=0x%x, rob idx=%0d, numPendingReads=0x%x", 
                                     p, addr, idx, numPendingReads.value()));
@@ -641,7 +691,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
 
     method Action write(t_MEM_ADDR addr, t_MEM_DATA val, t_MEM_MASK byteMask) if (numPendingWrites.value() != maxBound);
         // The write port is the second from last in the merge FIFO
-        incomingReqQ.ports[valueOf(n_READERS)].enq(tuple2(addr, ?));
+        incomingReqQ.ports[valueOf(n_READERS)].enq(tuple2(addr, tagged Invalid));
         writeDataQ.enq(tuple2(val, byteMask));
         numPendingWrites.up(); 
         debugLog.record($format("write addr=0x%x, val=0x%x, byteMask=0x%x, numPendingWrites=0x%x", 
@@ -649,6 +699,24 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     endmethod
 
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
+
+    method Action testAndSetReq(t_MEM_ADDR addr, t_MEM_DATA val, t_MEM_MASK byteMask) if (numPendingWrites.value() != maxBound);
+        // The write port is the second from last in the merge FIFO
+        let idx <- sortTestAndSetRespQ.enq();
+        t_REORDER_ID d = zeroExtend(idx);
+        incomingReqQ.ports[valueOf(n_READERS)].enq(tuple2(addr, tagged Valid d));
+        writeDataQ.enq(tuple2(val, byteMask));
+        numPendingWrites.up(); 
+        debugLog.record($format("test&set addr=0x%x, val=0x%x, byteMask=0x%x, numPendingWrites=0x%x", 
+                        addr, val, byteMask, numPendingWrites.value()));
+    endmethod
+    
+    method ActionValue#(t_MEM_DATA) testAndSetRsp();
+        let r = sortTestAndSetRespQ.first();
+        sortTestAndSetRespQ.deq();
+        debugLog.record($format("test&set: resp val=0x%x", r));
+        return r;
+    endmethod
 
     method Action fence();
         incomingReqQ.ports[valueOf(n_READERS)+1].enq(unpack(zeroExtend(pack(RL_COH_DM_ALL_FENCE))));
@@ -713,9 +781,9 @@ RL_COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY
 // When a line becomes true the coresponding statistic should be incremented.
 //
 interface COH_SCRATCH_RING_NODE_STATS;
-    method Bool localMsgSent();  // send local message on to the ring
-    method Bool fwdMsgSent();    // forward message on the ring
-    method Bool msgReceived();   // receive message from the ring
+    method Bool localMsgSent();   // send local message on to the ring
+    method Bool msgReceived();    // receive message from the ring
+    method Bit#(2) fwdMsgSent();  // number of forwarding messages on the ring
 endinterface: COH_SCRATCH_RING_NODE_STATS
 
 //
@@ -770,9 +838,9 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         
     // Addressable ring
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
-        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
-        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read()):
-        mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read());
+        (`ADDR_RING_DEBUG_ENABLE == 1)?
+        mkDebugConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read(), debugLog):
+        mkConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read());
 
     // Broadcast ring
     CONNECTION_CHAIN#(t_ACTIVATED_REQ) link_mem_activatedReq <- 
@@ -789,15 +857,15 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
 
 `ifndef ADDR_RING_DEBUG_ENABLE_Z
     req_stats = interface COH_SCRATCH_RING_NODE_STATS;
-                    method Bool localMsgSent() = link_mem_req.localMsgSent();  
-                    method Bool fwdMsgSent()   = link_mem_req.fwdMsgSent();  
-                    method Bool msgReceived()  = link_mem_req.msgReceived();  
+                    method Bool localMsgSent()  = link_mem_req.localMsgSent();  
+                    method Bool msgReceived()   = link_mem_req.msgReceived();  
+                    method Bit#(2) fwdMsgSent() = link_mem_req.fwdMsgSent();  
                 endinterface;
     
     resp_stats = interface COH_SCRATCH_RING_NODE_STATS;
-                     method Bool localMsgSent() = link_mem_resp.localMsgSent();  
-                     method Bool fwdMsgSent()   = link_mem_resp.fwdMsgSent();  
-                     method Bool msgReceived()  = link_mem_resp.msgReceived();  
+                     method Bool localMsgSent()  = link_mem_resp.localMsgSent();  
+                     method Bool msgReceived()   = link_mem_resp.msgReceived();  
+                     method Bit#(2) fwdMsgSent() = link_mem_resp.fwdMsgSent();  
                  endinterface;
 `endif
     
@@ -1363,6 +1431,15 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadClient#(Integer scratchpad
     endmethod
 
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
+
+    method Action testAndSetReq(t_ADDR addr, t_DATA val) if (numPendingWrites.value() != maxBound);
+        noAction;
+    endmethod
+    
+    method ActionValue#(t_MEM_DATA) testAndSetRsp();
+        noAction;
+        return ?;
+    endmethod
 
     method Action fence();
         noAction;

@@ -17437,3 +17437,29 @@ Added support for software LI channel route-throughs.  These classes
 allow the LIM compiler to instantiate channel route-throughs across
 CPU platforms. 
 
+
+----------
+hjyang      Date: Mon Feb 10 16:27:02 EST 2014  CSN: CSN-leap-527
+                  Mon Feb 10 21:27:02 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ memory-interface.bsv      Locally Modified          526 
+
+Directory modules/leap/libraries/librl/cache
+ rl-cache-mshr.bsv         Locally Modified          526 
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          526 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-client.bsv Locally Modified          526 
+ coherent-scratchpad-memory-utils.bsv Locally Modified          526 
+ coherent-scratchpad-memory-controller.bsv Locally Modified          526 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ addressable-ring.bsv      Locally Modified          526 
+
+(1) Add an atomic test&set operation for coherent scratchpads.
+(2) Fix a bug inside the coherent scratchpad controller that causes deadlocks.
+(3) The original addressable ring only supports single source or single sink configuration. 
+    Add a new addressable ring implementation that supports N sources and N sinks using two
+    broadcast chains to avoid circular dependencies.
