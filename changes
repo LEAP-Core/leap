@@ -17463,3 +17463,15 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 (3) The original addressable ring only supports single source or single sink configuration. 
     Add a new addressable ring implementation that supports N sources and N sinks using two
     broadcast chains to avoid circular dependencies.
+
+----------
+mcadler     Date: Tue Feb 11 08:12:18 EST 2014  CSN: CSN-leap-528
+                  Tue Feb 11 13:12:18 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ valid.bsv                 Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          527 
+
+Add toValid() and toValidM() -- convenience functions for promoting objects
+to tagged Valid.  These can be used with map/mapM, among other things.

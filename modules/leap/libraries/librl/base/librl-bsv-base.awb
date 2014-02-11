@@ -18,6 +18,7 @@
 %public fifo-marshaller.bsv
 %public fifo-merge.bsv
 %public fifo-peekable.bsv
+%public guarded-pipelines.bsv
 %public hash-bits.bsv
 %public hash-compile-time.bsv
 %public lfsr.bsv
@@ -28,8 +29,8 @@
 %public memory-mapping.bsv
 %public memory-misc.bsv
 %public memory-pack.bsv
-%public guarded-pipelines.bsv
 %public register.bsv
+%public valid.bsv
 
 %include --type=verilog @BLUESPECDIR@/Verilog
 %include --type=verilog @BLUESPECDIR@/Libraries
