@@ -17497,3 +17497,14 @@ Directory modules/leap/build-support/build-pipelines/pipelines/verilog
 Resurrected verilog compilation flow. I tested the flow on both
 iverilog and vcs.  Currently, only iverilog support is enabled. vcs
 support is contingent on resolving a webcase with synopsis.
+
+----------
+keflemin    Date: Thu Feb 13 10:00:37 EST 2014  CSN: CSN-leap-530
+                  Thu Feb 13 15:00:37 UTC 2014
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          529 
+
+
+Verilog builds require a little extra environment. 

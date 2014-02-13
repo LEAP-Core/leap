@@ -264,6 +264,8 @@ for my $platform (@$platforms_ref) {
                 $bluesimCmd = "";
             }
 
+            # Some executables need to do a little setup work.                                                  
+            $ENV{PLATFORM_DIRECTORY} = "$config{modelDir}/${directory}/";
             exec("unbuffer $config{modelDir}/${directory}/${platformName}_hw.exe $bluesimCmd 2>&1 | tee ${platformName}.log");    
             exit(0); # in case we get here    
         }
