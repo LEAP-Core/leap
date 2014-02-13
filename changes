@@ -17508,3 +17508,14 @@ Directory scripts/bmark
 
 
 Verilog builds require a little extra environment. 
+
+----------
+keflemin    Date: Thu Feb 13 17:31:42 EST 2014  CSN: CSN-leap-531
+                  Thu Feb 13 22:31:42 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/verilog
+ verilog.py                Locally Modified          530 
+
+
+Improved verilog wrapper script to allow support for multiple platforms. 
