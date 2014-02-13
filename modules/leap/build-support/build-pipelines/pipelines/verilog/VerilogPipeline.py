@@ -21,3 +21,24 @@ class Build(ProjectDependency):
     if not bsv.isDependsBuild:
       Software(moduleList)
       Verilog(moduleList, True)
+
+    # Legacy pipelines require the creation of a platform description file
+    # for platform
+    configFile = open("config/platform_env.sh","w");
+
+    # the stuff below here should likely go in a different file, and there will be many hard-coded paths                         
+    # copy the environment descriptions to private                                                                               
+    #APM_FILE                                                                                                                    
+    #WORKSPACE_ROOT                                                                                                              
+    platformMetadata = []
+    platformName = moduleList.apmName
+  
+    # sprinkle breadcrumbs in config file                                                                                       
+    # The run script allows us to have multiple types for the same apm
+    # This accomodate legacy builds.  If multiple types are assigned to the same APM, 
+    # then their directory and master (soon to be deprecated) will go away. 
+    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "CPU", "directory" => "./", "master" => "0", "logicalName" => "Legacy"}')
+    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "BLUESIM", "directory" => "./", "master" => "1", "logicalName" => "Legacy"}')
+
+    configFile.write('platforms=['+ ",".join(platformMetadata) +']\n')
+    configFile.close()

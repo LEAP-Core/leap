@@ -17475,3 +17475,25 @@ Directory modules/leap/libraries/librl/base
 
 Add toValid() and toValidM() -- convenience functions for promoting objects
 to tagged Valid.  These can be used with map/mapM, among other things.
+
+----------
+keflemin    Date: Wed Feb 12 19:47:52 EST 2014  CSN: CSN-leap-529
+                  Thu Feb 13 00:47:52 UTC 2014
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-vexe.apm   Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/verilog
+ verilog.py                Locally Modified          528 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          528 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/verilog
+ VerilogPipeline.py        Locally Modified          528 
+
+
+Resurrected verilog compilation flow. I tested the flow on both
+iverilog and vcs.  Currently, only iverilog support is enabled. vcs
+support is contingent on resolving a webcase with synopsis.

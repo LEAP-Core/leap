@@ -132,12 +132,10 @@ class WrapperGen():
           wrapper_bsv.write('    let m <- mkModel(allClocks, topReset,\n')
           wrapper_bsv.write('                     clocked_by noClock, reset_by noReset);\n')
         else:
-          # No exposed clocks or reset
-          wrapper_bsv.write('(* no_default_clock, no_default_reset *)\n')
           wrapper_bsv.write('module [Module] mk_model_Wrapper\n')
           wrapper_bsv.write('    (TOP_LEVEL_WIRES);\n\n')
           wrapper_bsv.write('    // Instantiate main module\n')
-          wrapper_bsv.write('    let m <- mkModel();\n')
+          wrapper_bsv.write('    let m <- mkModel(clocked_by noClock, reset_by noReset);\n')
 
         wrapper_bsv.write('    return m;\n')
         wrapper_bsv.write('endmodule\n')
