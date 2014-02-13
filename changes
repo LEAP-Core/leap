@@ -17519,3 +17519,404 @@ Directory modules/leap/build-support/build-pipelines/stages/verilog
 
 
 Improved verilog wrapper script to allow support for multiple platforms. 
+
+----------
+mcadler     Date: Thu Feb 13 17:58:58 EST 2014  CSN: CSN-leap-532
+                  Thu Feb 13 22:58:58 UTC 2014
+
+
+Directory lib/libli
+ libli.cpp                 Locally Modified          531 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ channelio-common.bsv      Locally Modified          531 
+ basic-channelio.cpp       Locally Modified          531 
+ basic-channelio.bsv       Locally Modified          531 
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio.cpp          Locally Modified          531 
+
+Directory modules/leap/virtual-platform/channelio/null
+ null-channelio.bsv        Locally Modified          531 
+ NullChannelIO.bsv         Locally Modified          531 
+ null-channelio.cpp        Locally Modified          531 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.cpp  Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/serial
+ serial-physical-channel-loopback.bsv Locally Modified          531 
+ serial-physical-channel.cpp Locally Modified          531 
+ serial-physical-channel-8bit.cpp Locally Modified          531 
+ serial-physical-channel.h Locally Modified          531 
+ serial-physical-channel.bsv Locally Modified          531 
+ serial-physical-channel-8bit.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/dma
+ dma-physical-channel.h    Locally Modified          531 
+ dma-physical-channel.bsv  Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluespec
+ pcie-bluespec-physical-channel.cpp Locally Modified          531 
+ pcie-bluespec-physical-channel.h Locally Modified          531 
+ pcie-bluespec-physical-channel.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          531 
+ pcie-bluenoc-physical-channel.h Locally Modified          531 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/csr
+ pcie-physical-channel.cpp Locally Modified          531 
+ pcie-physical-channel.h   Locally Modified          531 
+ pcie-physical-channel.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/passthrough
+ pcie-passthrough-physical-channel.cpp Locally Modified          531 
+ pcie-passthrough-physical-channel.h Locally Modified          531 
+ pcie-passthrough-physical-channel.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag/altera
+ jtag-physical-channel.cpp Locally Modified          531 
+ jtag-physical-channel.h   Locally Modified          531 
+ jtag-physical-channel.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/jtag/generic
+ jtag-physical-channel.cpp Locally Modified          531 
+ jtag-physical-channel.h   Locally Modified          531 
+ jtag-physical-channel.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.bsv  Locally Modified          531 
+ sim-physical-channel.cpp  Locally Modified          531 
+ sim-physical-channel.h    Locally Modified          531 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-client.cpp      Locally Modified          531 
+ basic-rrr-server.bsv      Locally Modified          531 
+ basic-rrr-client.bsv      Locally Modified          531 
+ basic-rrr-server.cpp      Locally Modified          531 
+
+Directory modules/leap/virtual-platform/rrr/null
+ null-rrr-server.cpp       Locally Modified          531 
+ null-rrr.bsv              Locally Modified          531 
+ null-rrr-client.cpp       Locally Modified          531 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ arbiters.bsv              Locally Modified          531 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/pci-express-dma
+ remote-memory-pcie-dma.h  Locally Modified          531 
+ remote-memory-pcie-dma.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null
+ null-remote-memory.h      Locally Modified          531 
+ null-remote-memory.bsv    Locally Modified          531 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.cpp                  Locally Modified          531 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.bsv        Locally Modified          531 
+ local-mem-ddr-common.bsv  Locally Modified          531 
+ local-mem-ddr-narrow.bsv  Locally Modified          531 
+ local-mem-ddr-wide.bsv    Locally Modified          531 
+ local-mem-interface.bsv   Locally Modified          531 
+ local-mem-bram.bsv        Locally Modified          531 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.h                    Locally Modified          531 
+ vico-llpi.bsv             Locally Modified          531 
+ llpi.bsv                  Locally Modified          531 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/null
+ null-virtual-devices.cpp  Locally Modified          531 
+ null-virtual-devices.h    Locally Modified          531 
+ null-virtual-devices.bsv  Locally Modified          531 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.cpp   Locally Modified          531 
+ std-virtual-devices.h     Locally Modified          531 
+ std-virtual-devices.bsv   Locally Modified          531 
+ std-virtual-devices-null-mem.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/null
+ local-memory-device-null.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft
+ local-memory-device-soft.bsv Locally Modified          531 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.cpp        Locally Modified          531 
+ starter-device.bsv        Locally Modified          531 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ starter-device.bsv        Locally Modified          531 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.bsv             Locally Modified          531 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.h    Locally Modified          531 
+
+Directory modules/leap/virtual-platform/vico-headers
+ scemi_errors.h            Locally Modified          531 
+ vico_be_lib.h             Locally Modified          531 
+ vico_fw.h                 Locally Modified          531 
+ vico_rrr_layer.h          Locally Modified          531 
+ vico_extra.h              Locally Modified          531 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          531 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          531 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.cpp   Locally Modified          531 
+
+Directory modules/leap/build-support/project/application-env/base
+ application-env-hybrid-base.bsv Locally Modified          531 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ application-env-hybrid-soft-service.bsv Locally Modified          531 
+
+Directory modules/leap/build-support/project/application-env/soft-services/default-sw
+ connected-application-default-sw.bsv Locally Modified          531 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          531 
+ project-bare-hw-main.bsv  Locally Modified          531 
+ project-hybrid-init.cpp   Locally Modified          531 
+
+Directory modules/leap/libraries/librl/cache
+ rl-prefetch-stats.bsv     Locally Modified          531 
+ rl-direct-mapped-cache.bsv Locally Modified          531 
+ rl-prefetch.bsv           Locally Modified          531 
+ rl-set-assoc-cache.bsv    Locally Modified          531 
+ rl-cache.bsv              Locally Modified          531 
+ rl-tiny-cache.bsv         Locally Modified          531 
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          531 
+ rl-cache-mshr.bsv         Locally Modified          531 
+
+Directory modules/leap/libraries/librl/storage
+ counting-filter.bsv       Locally Modified          531 
+ fifo-commit.bsv           Locally Modified          531 
+ reversal-buffer-bram.bsv  Locally Modified          531 
+ fifo-rewind.bsv           Locally Modified          531 
+ dual-write-bit1.bsv       Locally Modified          531 
+ reversal-buffer.bsv       Locally Modified          531 
+ fifo-mem.bsv              Locally Modified          531 
+ memory-heap.bsv           Locally Modified          531 
+ fifo-scoreboard.bsv       Locally Modified          531 
+
+Directory modules/leap/libraries/librl
+ librl-bsv.bsh             Locally Modified          531 
+
+Directory modules/leap/libraries/librl/base
+ fifo-functions.bsv        Locally Modified          531 
+ fifo-peekable.bsv         Locally Modified          531 
+ compress.bsv              Locally Modified          531 
+ lists.bsv                 Locally Modified          531 
+ bluespec-def.bsv          Locally Modified          531 
+ valid.bsv                 Locally Modified          531 
+ guarded-pipelines.bsv     Locally Modified          531 
+ memory-mapping.bsv        Locally Modified          531 
+ memory-misc.bsv           Locally Modified          531 
+ counters.bsv              Locally Modified          531 
+ local-arbiters.bsv        Locally Modified          531 
+ debug-file.bsv            Locally Modified          531 
+ hash-compile-time.bsv     Locally Modified          531 
+ memory-interface.bsv      Locally Modified          531 
+ lfsr.bsv                  Locally Modified          531 
+ crc.bsv                   Locally Modified          531 
+ memory-init.bsv           Locally Modified          531 
+ fifo-marshaller.bsv       Locally Modified          531 
+ fifo-delay.bsv            Locally Modified          531 
+ fifo-merge.bsv            Locally Modified          531 
+ hash-bits.bsv             Locally Modified          531 
+
+Directory modules/leap/libraries/librl/base/support
+ hash-check.c              Locally Modified          531 
+ hash-inverse.c            Locally Modified          531 
+
+Directory modules/leap/libraries/librl/base
+ memory-pack.bsv           Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          531 
+ hybrid-mem-scratch.cpp    Locally Modified          531 
+ hybrid-mem-scratch.h      Locally Modified          531 
+ hybrid-mem-scratch.bsv    Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/common
+ mem-scratch-common-interfaces.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/local
+ local-mem-scratch.bsv     Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ platform-scratchpad-memory-utils.bsv Locally Modified          531 
+ platform-scratchpad-memory.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-controller.bsv Locally Modified          531 
+ coherent-scratchpad-interfaces.bsv Locally Modified          531 
+ coherent-scratchpad-memory-client.bsv Locally Modified          531 
+ coherent-scratchpad-memory-utils.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/hybrid
+ local-mem-central-cache-stats.bsv Locally Modified          531 
+ local-mem-central-cache.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ platform-central-cache.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/common
+ central-cache-bypass.bsv  Locally Modified          531 
+ central-cache-interfaces.bsv Locally Modified          531 
+ central-cache-backing-store.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service/null
+ null-central-cache.bsv    Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service/hybrid
+ standard-shared-memory.h  Locally Modified          531 
+ standard-shared-memory.bsv Locally Modified          531 
+ standard-shared-memory-server.h Locally Modified          531 
+ standard-shared-memory.cpp Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/mem-services/shared-memory-service/null
+ null-shared-memory.h      Locally Modified          531 
+ null-shared-memory.bsv    Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-null-mem.bsv Locally Modified          531 
+ platform-services-null.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          531 
+ stdio-local.bsv           Locally Modified          531 
+ stdio-service.h           Locally Modified          531 
+ stdio-service.bsv         Locally Modified          531 
+ stdio-utils.bsv           Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.cpp Locally Modified          531 
+ dynamic-parameters-local.bsv Locally Modified          531 
+ dynamic-parameters-service.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.bsv    Locally Modified          531 
+ debug-scan-service.cpp    Locally Modified          531 
+ debug-scan-local.bsv      Locally Modified          531 
+ debug-scan-service.h      Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.bsv    Locally Modified          531 
+ assertions-service.cpp    Locally Modified          531 
+ assertions-local.bsv      Locally Modified          531 
+ assertions-service.h      Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.cpp Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          531 
+ stats-service.h           Locally Modified          531 
+ stats-service.bsv         Locally Modified          531 
+ stats-service.cpp         Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.h Locally Modified          531 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-standard.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/lock-sync-service
+ lock.bsv                  Locally Modified          531 
+ synchronization.bsv       Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.bsv        Locally Modified          531 
+ global-strings.cpp        Locally Modified          531 
+ global-strings.h          Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-clocks
+ basic-clock.bsv           Locally Modified          531 
+ basic-clock-lib.bsv       Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          531 
+ connected-common.bsv      Locally Modified          531 
+ with-connections.bsv      Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ null-connected-module.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/shared-tree
+ tree-routing-table.bsv    Locally Modified          531 
+ tree-helper.bsv           Locally Modified          531 
+ tree-interface.bsv        Locally Modified          531 
+ tree-station.bsv          Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/physical-interconnects/null
+ null-physical-interconnect.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ bury-connections.bsv      Locally Modified          531 
+ connection-compressed.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/latency
+ connections-latency.bsv   Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ addressable-ring.bsv      Locally Modified          531 
+ connection-dispatchers.bsv Locally Modified          531 
+ connection-implementation-multifpga.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-stations-tree.bsv Locally Modified          531 
+ connect-top-level.bsv     Locally Modified          531 
+ connect-multicasts.bsv    Locally Modified          531 
+ expose-connections.bsv    Locally Modified          531 
+ connect-top-level-multifpga.bsv Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          531 
+ connection-backwards-compat.bsv Locally Modified          531 
+ latency-fifo.bsv          Locally Modified          531 
+ connection-context.bsv    Locally Modified          531 
+ connections.bsv           Locally Modified          531 
+ connection-vectors.bsv    Locally Modified          531 
+ connection-implementation.bsv Locally Modified          531 
+ connected-module.bsv      Locally Modified          531 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-sc-deps.bsh Locally Modified          531 
+ soft-services-lib.bsv     Locally Modified          531 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function.bsv Locally Modified          531 
+
+Directory modules/leap/examples/traffic-light
+ traffic-light-system.bsv  Locally Modified          531 
+
+Directory modules/leap/examples/hello-world
+ hello-world.bsv           Locally Modified          531 
+ hello-world.cpp           Locally Modified          531 
+ hello-world.h             Locally Modified          531 
+
+Switch to BSD license.
