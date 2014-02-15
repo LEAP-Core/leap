@@ -67,10 +67,13 @@ class Bluesim():
       bsc_sim_command += ' -Xc++ ' + definition + ' -Xc ' + definition
 
     # construct full path to BAs
-    def modify_path(str):
-        array = str.split('/')
+    def modify_path_ba(path):
+        array = path.split('/')
         file = array.pop()
         return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + '/'.join(array) + '/' + TMP_BSC_DIR + '/' + file 
+
+    def modify_path_bdpi(path):
+        return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
 
     bsc_sim_command += \
         ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -p +:' + ALL_LIB_DIRS_FROM_ROOT +' -simdir ' + \
@@ -80,11 +83,12 @@ class Bluesim():
     if (getBuildPipelineDebug(moduleList) != 0):
         for ba in moduleList.getAllDependencies('BA'):
             print 'BA dep: ' + str(ba) + '\n'
-    print "foo " + bsc_sim_command + "\n"
+
     sbin = moduleList.env.Command(
         TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
         moduleList.getAllDependencies('BA') + 
-        moduleList.getAllDependencies('BDPI_CS') + moduleList.getAllDependencies('BDPI_HS'),
+        map(modify_path_bdpi, moduleList.getAllDependenciesWithPaths('GIVEN_BDPI_CS')) + 
+        map(modify_path_bdpi, moduleList.getAllDependenciesWithPaths('GIVEN_BDPI_HS')),
         bsc_sim_command)
 
     if moduleList.env.GetOption('clean'):
@@ -104,7 +108,7 @@ class Bluesim():
 
     exe = moduleList.env.Command(
         APM_NAME + '_hw.exe', 
-        sbin + moduleList.getAllDependencies('BDPI_CS') + moduleList.getAllDependencies('BDPI_HS'),
+        sbin,
         [ '@ln -fs ${SOURCE} ${TARGET}',
           '@ln -fs ${SOURCE}.so ${TARGET}.so',
           '@ln -fs ' + moduleList.swExeOrTarget + ' ' + APM_NAME,

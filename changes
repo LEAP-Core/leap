@@ -17920,3 +17920,22 @@ Directory modules/leap/examples/hello-world
  hello-world.h             Locally Modified          531 
 
 Switch to BSD license.
+
+----------
+keflemin    Date: Sat Feb 15 18:02:48 EST 2014  CSN: CSN-leap-533
+                  Sat Feb 15 23:02:48 UTC 2014
+
+
+Directory scripts/bmark
+ run.bmark                 Locally Modified          532 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          532 
+
+
+1) Modified run.bmark to sandbox simulation platforms. This feature
+enables us to seperate the debugging files and vcd of different
+platforms.
+
+2) Fixed bug in bluesim.py wherein bdpi dependencies were not
+correctly expressed.
