@@ -8,6 +8,7 @@
 #include "awb/provides/umf.h"
 #include "awb/provides/physical_channel.h"
 #include "awb/provides/physical_platform.h"
+#include "awb/provides/physical_platform_utils.h"
 
 using namespace std;
 

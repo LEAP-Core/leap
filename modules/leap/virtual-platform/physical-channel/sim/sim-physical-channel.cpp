@@ -44,6 +44,7 @@
 
 #include "awb/provides/physical_channel.h"
 
+
 using namespace std;
 
 // ============================================
@@ -51,12 +52,12 @@ using namespace std;
 // ============================================
 
 // constructor
-PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
+SIM_PHYSICAL_CHANNEL_CLASS::SIM_PHYSICAL_CHANNEL_CLASS(
     PLATFORMS_MODULE     p
     ) :
-    PLATFORMS_MODULE_CLASS(p),
+    PHYSICAL_CHANNEL_CLASS(p),
     writeQ(),
-    unixPipeDevice(this)
+    unixPipeDevice((PLATFORMS_MODULE) (PHYSICAL_CHANNEL) this)
     
 {
     incomingMessage = NULL;
@@ -78,13 +79,13 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
 }
 
 // destructor
-PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
+SIM_PHYSICAL_CHANNEL_CLASS::~SIM_PHYSICAL_CHANNEL_CLASS()
 {
 }
 
 // blocking read
 UMF_MESSAGE
-PHYSICAL_CHANNEL_CLASS::Read()
+SIM_PHYSICAL_CHANNEL_CLASS::Read()
 {
     // blocking loop
     while (true)
@@ -108,7 +109,7 @@ PHYSICAL_CHANNEL_CLASS::Read()
 
 // non-blocking read
 UMF_MESSAGE
-PHYSICAL_CHANNEL_CLASS::TryRead()
+SIM_PHYSICAL_CHANNEL_CLASS::TryRead()
 {
 
     // if there's fresh data on the pipe, update
@@ -131,7 +132,7 @@ PHYSICAL_CHANNEL_CLASS::TryRead()
 
 // write
 void
-PHYSICAL_CHANNEL_CLASS::Write(
+SIM_PHYSICAL_CHANNEL_CLASS::Write(
     UMF_MESSAGE message)
 {
     writeQ.push(message);
@@ -139,7 +140,7 @@ PHYSICAL_CHANNEL_CLASS::Write(
 
 // read un-processed data on the pipe
 void
-PHYSICAL_CHANNEL_CLASS::readPipe()
+SIM_PHYSICAL_CHANNEL_CLASS::readPipe()
 {
     // determine if we are starting a new message
     if (incomingMessage == NULL)

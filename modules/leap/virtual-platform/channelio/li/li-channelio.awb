@@ -12,6 +12,11 @@
 
 %sources -t H   -v PUBLIC   li-channelio.h
 %sources -t CPP -v PRIVATE  li-channelio.cpp
+
+%sources -t H   -v PUBLIC   li-channelio-routethrough.h
+%sources -t CPP -v PRIVATE  li-channelio-routethrough.cpp
+
+
 %library libtbb.so
 
 

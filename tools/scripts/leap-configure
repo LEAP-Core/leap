@@ -1067,6 +1067,15 @@ sub __make_bsvfiles {
     print HFILE "//   This file was created by " . basename($0) . "\n";
     print HFILE "//\n";
     print HFILE "\n";
+    ## In some cases, we use strings in the generated header. If we
+    ## are in C++ this makes sense. However, sometimes we import
+    ## headers into C code (typically bdpi), so we protect those
+    ## compilations with an ifdef.  If the included header in C uses a
+    ## string, then obviously it will fail to compile, but that's the
+    ## programmer's problem. 
+    print HFILE "#ifdef __cplusplus\n";
+    print HFILE "    #include <string>\n";
+    print HFILE "#endif\n";
     print HFILE "#include \"asim/syntax.h\"\n";
     ##
     ## Add defines for parameters.  These go before the tests for AWB_DEFS_ONLY

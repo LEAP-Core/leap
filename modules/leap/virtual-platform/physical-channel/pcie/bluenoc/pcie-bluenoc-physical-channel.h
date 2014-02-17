@@ -29,14 +29,15 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef __PHYSICAL_CHANNEL__
-#define __PHYSICAL_CHANNEL__
+
+#ifndef __PCIE_PHYSICAL_CHANNEL__
+#define __PCIE_PHYSICAL_CHANNEL__
 
 #include <stdio.h>
 #include <pthread.h>
 
 #include "tbb/concurrent_queue.h"
-
+#include "awb/provides/physical_platform_utils.h"
 #include "awb/provides/umf.h"
 #include "awb/provides/pcie_device.h"
 
@@ -44,12 +45,11 @@
 //               Physical Channel              
 // ============================================
 
-typedef class PHYSICAL_CHANNEL_CLASS* PHYSICAL_CHANNEL;
+typedef class PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS* PCIE_BLUENOC_PHYSICAL_CHANNEL;
 
-class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
+class PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS: public PHYSICAL_CHANNEL_CLASS
 {
   private:
-
 
     // Size of an I/O buffer (in UMF_CHUNKS)
     static const int bufMaxChunks = 65536 / sizeof(UMF_CHUNK);
@@ -120,8 +120,8 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
 
   public:
 
-    PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE);
-    ~PHYSICAL_CHANNEL_CLASS();
+    PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE);
+    ~PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS();
 
     void Init();
 

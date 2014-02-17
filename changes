@@ -17939,3 +17939,41 @@ platforms.
 
 2) Fixed bug in bluesim.py wherein bdpi dependencies were not
 correctly expressed.
+
+----------
+keflemin    Date: Mon Feb 17 15:55:59 EST 2014  CSN: CSN-leap-534
+                  Mon Feb 17 20:55:59 UTC 2014
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          533 
+
+Directory modules/leap/virtual-platform/channelio/basic
+ basic-channelio.h         Locally Modified          533 
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio-routethrough-unsafe.cpp Locally Added               0 
+ li-channelio-routethrough.cpp Locally Added               0 
+ li-channelio.cpp          Locally Modified          533 
+ li-channelio-routethrough-unsafe.h Locally Added               0 
+ li-channelio-routethrough.h Locally Added               0 
+ li-channelio.h            Locally Modified          533 
+ li-channelio.awb          Locally Modified          533 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          533 
+ pcie-bluenoc-physical-channel.h Locally Modified          533 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.cpp  Locally Modified          533 
+ sim-physical-channel.h    Locally Modified          533 
+
+
+1) Fixed small bug in leap-configure in which header files with
+insufficient dependencies were being emitted.
+
+2) Added route-through support for software LI channels. LIM compiler
+can now route LI channels through both software and hardware. 
+
+3) Changed existing software physical channels to reflect new class
+hierarchy.

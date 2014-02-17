@@ -42,9 +42,9 @@ void* BNReadThread(void *argv);
 void* BNWriteThread(void *argv);
 
 
-PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS(
     PLATFORMS_MODULE p) :
-    PLATFORMS_MODULE_CLASS(p)
+    PHYSICAL_CHANNEL_CLASS(p)
 {
     initialized = false;
 
@@ -98,7 +98,7 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
 
 
 // destructor
-PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::~PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS()
 {
     delete pcieDev;
 
@@ -122,7 +122,7 @@ PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
 
 
 void
-PHYSICAL_CHANNEL_CLASS::Init()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::Init()
 {
     if (initialized) return;
     initialized = true;
@@ -182,7 +182,7 @@ PHYSICAL_CHANNEL_CLASS::Init()
 // locks to guarantee that only one instance of Read and TryRead is active.
 // 
 UMF_MESSAGE
-PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
 {
     UINT32 n_bn_bytes_left;
     UINT64 header;
@@ -289,7 +289,7 @@ PHYSICAL_CHANNEL_CLASS::DoRead(bool tryRead)
 // 
 //
 UMF_MESSAGE
-PHYSICAL_CHANNEL_CLASS::TryRead()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::TryRead()
 {
     UMF_MESSAGE msg = NULL;
 
@@ -336,7 +336,7 @@ PHYSICAL_CHANNEL_CLASS::TryRead()
 //   requests in order to optimize PCIe throughput.
 //
 inline UMF_CHUNK*
-PHYSICAL_CHANNEL_CLASS::ReadChunks(UINT32 *nChunks)
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::ReadChunks(UINT32 *nChunks)
 {
     //
     // Is the current read buffer empty?  If so, fill it.
@@ -389,7 +389,7 @@ PHYSICAL_CHANNEL_CLASS::ReadChunks(UINT32 *nChunks)
 //   Generate the 4-byte BlueNoC header for a packet.
 //
 inline UINT32
-PHYSICAL_CHANNEL_CLASS::BlueNoCHeader(
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::BlueNoCHeader(
     UINT8 dst,
     UINT8 src,
     UINT8 msgBytes,
@@ -404,7 +404,7 @@ PHYSICAL_CHANNEL_CLASS::BlueNoCHeader(
 //   BlueNoC's bridge exposed some PCIe registers.
 //
 void
-PHYSICAL_CHANNEL_CLASS::Debug()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::Debug()
 {
     // Request state by sending an empty message to port 0xff.  The response
     // will come back in the message stream and will be detected by the
@@ -418,7 +418,7 @@ PHYSICAL_CHANNEL_CLASS::Debug()
 //   Called by the packet processing code when a debug scan packet is detected.
 //
 void
-PHYSICAL_CHANNEL_CLASS::DebugDump(UINT64 packet)
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::DebugDump(UINT64 packet)
 {
     UINT64 len = (packet >> 16) & 0xff;
 
@@ -463,7 +463,7 @@ PHYSICAL_CHANNEL_CLASS::DebugDump(UINT64 packet)
 //   AWB parameter BLUENOC_HISTORY_INDEX_BITS to a non-zero value.
 //
 void
-PHYSICAL_CHANNEL_CLASS::ScanHistory()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::ScanHistory()
 {
     if (BLUENOC_HISTORY_INDEX_BITS == 0)
     {
@@ -510,8 +510,8 @@ void* BNReadThread(void* argv)
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
 
-    // Rejoin the PHYSICAL_CHANNEL_CLASS instance
-    PHYSICAL_CHANNEL instance = PHYSICAL_CHANNEL(argv);
+    // Rejoin the PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS instance
+    PCIE_BLUENOC_PHYSICAL_CHANNEL instance = PCIE_BLUENOC_PHYSICAL_CHANNEL(argv);
     instance->ReadThread();
     return NULL;
 }
@@ -521,7 +521,7 @@ void* BNReadThread(void* argv)
 //   Read a BlueNoC stream pass buffers to the main reader thread(s).
 //
 void
-PHYSICAL_CHANNEL_CLASS::ReadThread()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::ReadThread()
 {
     while (true)
     {
@@ -578,8 +578,8 @@ void* BNWriteThread(void* argv)
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
 
-    // Rejoin the PHYSICAL_CHANNEL_CLASS instance
-    PHYSICAL_CHANNEL instance = PHYSICAL_CHANNEL(argv);
+    // Rejoin the PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS instance
+    PCIE_BLUENOC_PHYSICAL_CHANNEL instance = PCIE_BLUENOC_PHYSICAL_CHANNEL(argv);
     instance->WriteThread();
     return NULL;
 }
@@ -590,7 +590,7 @@ void* BNWriteThread(void* argv)
 //   UMF_MESSAGEs and pass them to hardware.
 //
 void
-PHYSICAL_CHANNEL_CLASS::WriteThread()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::WriteThread()
 {
     wrNext = outBuf;
     wrLastBNHeader = outBuf;
@@ -711,7 +711,7 @@ PHYSICAL_CHANNEL_CLASS::WriteThread()
 //   Flush the collection of buffered host to FPGA BlueNoC packets.
 //
 void
-PHYSICAL_CHANNEL_CLASS::WriteFlush()
+PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::WriteFlush()
 {
     size_t count = (wrNext - outBuf) * sizeof(outBuf[0]);
     if (count > 0)

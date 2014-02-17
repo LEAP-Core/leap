@@ -29,10 +29,11 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef __PHYSICAL_CHANNEL__
-#define __PHYSICAL_CHANNEL__
+#ifndef __SIM_PHYSICAL_CHANNEL__
+#define __SIM_PHYSICAL_CHANNEL__
 
 #include "awb/provides/umf.h"
+#include "awb/provides/physical_platform_utils.h"
 #include "awb/provides/unix_pipe_device.h"
 #include "tbb/concurrent_queue.h"
 #include <pthread.h>
@@ -40,8 +41,8 @@
 // ============================================
 //               Physical Channel              
 // ============================================
-typedef class PHYSICAL_CHANNEL_CLASS* PHYSICAL_CHANNEL;
-class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
+typedef class SIM_PHYSICAL_CHANNEL_CLASS* SIM_PHYSICAL_CHANNEL;
+class SIM_PHYSICAL_CHANNEL_CLASS: public PHYSICAL_CHANNEL_CLASS
 {
     private:
         // our lower-level physical device.
@@ -61,8 +62,8 @@ class PHYSICAL_CHANNEL_CLASS: public PLATFORMS_MODULE_CLASS
         pthread_t   writerThread;
 
     public:
-        PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE);
-        ~PHYSICAL_CHANNEL_CLASS();
+        SIM_PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE);
+        ~SIM_PHYSICAL_CHANNEL_CLASS();
 
         static void * WriterThread(void *argv) {
 	    void ** args = (void**) argv;
