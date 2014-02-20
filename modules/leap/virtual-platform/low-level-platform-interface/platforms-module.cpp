@@ -6,7 +6,7 @@
 
 using namespace std;
 
-UINT32 PLATFORMS_MODULE_MANAGER_CLASS::init;
+UINT32 PLATFORMS_MODULE_MANAGER_CLASS::init = 0;
    
 PLATFORMS_MODULE_MANAGER_CLASS::PLATFORMS_MODULE_MANAGER_CLASS()
 { 
@@ -37,6 +37,7 @@ void PLATFORMS_MODULE_MANAGER_CLASS::AddModule(PLATFORMS_MODULE module)
 void PLATFORMS_MODULE_MANAGER_CLASS::CallbackExit(int exitCode)
 {
     UINT32 uninit = (*uninitAtomic).fetch_and_store(1);
+
     if(!uninit)
     {
         UninitHelper();
@@ -57,7 +58,6 @@ void PLATFORMS_MODULE_MANAGER_CLASS::Init()
 
 void PLATFORMS_MODULE_MANAGER_CLASS::UninitHelper()
 {
-    
     for(std::list<PLATFORMS_MODULE>::reverse_iterator modules_iter = (*modules).rbegin(); 
         modules_iter != (*modules).rend(); modules_iter++)
     {

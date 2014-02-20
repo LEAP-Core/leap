@@ -62,6 +62,7 @@ STARTER_DEVICE_SERVER_CLASS::STARTER_DEVICE_SERVER_CLASS() :
     lastStatsScanCycle(0),
     exitCode(0)
 {
+
     // Initialize hardware status variables.
     hardwareStarted = 0;
     hardwareFinished = 0;
@@ -76,6 +77,8 @@ STARTER_DEVICE_SERVER_CLASS::STARTER_DEVICE_SERVER_CLASS() :
 // destructor
 STARTER_DEVICE_SERVER_CLASS::~STARTER_DEVICE_SERVER_CLASS()
 {
+    delete clientStub;
+    delete serverStub;
 }
 
 //
@@ -93,21 +96,9 @@ STARTER_DEVICE_SERVER_CLASS::Init(
 void
 STARTER_DEVICE_SERVER_CLASS::Uninit()
 {
-    // cleanup
-    Cleanup();
-    
-    // chain
-    PLATFORMS_MODULE_CLASS::Uninit();
+
 }
 
-// cleanup
-void
-STARTER_DEVICE_SERVER_CLASS::Cleanup()
-{
-    // deallocate stubs
-    delete clientStub;
-    delete serverStub;
-}
 
 // End
 void

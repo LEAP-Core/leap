@@ -39,7 +39,6 @@
 #include <mutex>
 #include <condition_variable>
 #include <list>
-
 #include "tbb/atomic.h"
 
 #include "asim/syntax.h"
@@ -259,7 +258,6 @@ class STATS_SERVER_CLASS: public RRR_SERVER_CLASS,
     // required RRR methods
     void Init(PLATFORMS_MODULE);
     void Uninit();
-    void Cleanup();
 
     // RRR server methods
     void ReportStat(GLOBAL_STRING_UID desc, UINT32 pos, UINT32 value);

@@ -66,6 +66,8 @@ STATS_SERVER_CLASS::STATS_SERVER_CLASS() :
     // instantiate stubs
     clientStub(new STATS_CLIENT_STUB_CLASS(this)),
     serverStub(new STATS_SERVER_STUB_CLASS(this)),
+    statVectors(),
+    bucketMap(),
     initialized(),
     uninitialized()
 {
@@ -79,7 +81,9 @@ STATS_SERVER_CLASS::STATS_SERVER_CLASS() :
 // destructor
 STATS_SERVER_CLASS::~STATS_SERVER_CLASS()
 {
-    Cleanup();
+    // kill stubs
+    delete serverStub;
+    delete clientStub;
 }
 
 
@@ -198,19 +202,9 @@ STATS_SERVER_CLASS::SetupStats()
 void
 STATS_SERVER_CLASS::Uninit()
 {
-    Cleanup();
+    bool didUninit = uninitialized.fetch_and_store(true);
 
-    // chain
-    PLATFORMS_MODULE_CLASS::Uninit();
-}
-
-// cleanup
-void
-STATS_SERVER_CLASS::Cleanup()
-{
-    bool didCleanup = uninitialized.fetch_and_store(true);
-
-    if (didCleanup)
+    if (didUninit)
     {
         return;
     }
@@ -223,16 +217,13 @@ STATS_SERVER_CLASS::Cleanup()
     }
     unlink(LEAP_LIVE_DEBUG_PATH "/stats");
 
-    // kill stubs
-    delete serverStub;
-    delete clientStub;
-
     // Delete all statistics vectors (the counter buckets)
     for (list<STAT_VECTOR>::const_iterator li = statVectors.begin();
          li != statVectors.end(); li++)
     {
         delete *li;
     }
+
     statVectors.clear();
 
     // Delete all maps from statistics nodes to counter vectors
@@ -242,6 +233,7 @@ STATS_SERVER_CLASS::Cleanup()
         delete mi->second;
     }
     bucketMap.clear();
+
 }
 
 //

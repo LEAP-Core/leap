@@ -50,7 +50,6 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     // required RRR methods
     void Init(PLATFORMS_MODULE);
     void Uninit();
-    void Cleanup();
 
     //
     // RRR server methods

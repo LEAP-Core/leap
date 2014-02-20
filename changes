@@ -17977,3 +17977,29 @@ can now route LI channels through both software and hardware.
 
 3) Changed existing software physical channels to reflect new class
 hierarchy.
+
+----------
+keflemin    Date: Thu Feb 20 11:47:35 EST 2014  CSN: CSN-leap-535
+                  Thu Feb 20 16:47:35 UTC 2014
+
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.cpp  Locally Modified          534 
+ sim-physical-channel.h    Locally Modified          534 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ platforms-module.cpp      Locally Modified          534 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.cpp        Locally Modified          534 
+ starter-device.h          Locally Modified          534 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.h           Locally Modified          534 
+ stats-service.cpp         Locally Modified          534 
+
+
+1) Fixed some latency deallocation bugs related to the Cleanup anti-pattern.
+2) Added tear down code for unix pipe threads.
+
+

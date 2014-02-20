@@ -36,6 +36,7 @@
 #include "awb/provides/physical_platform_utils.h"
 #include "awb/provides/unix_pipe_device.h"
 #include "tbb/concurrent_queue.h"
+#include "tbb/atomic.h"
 #include <pthread.h>
 
 // ============================================
@@ -61,17 +62,33 @@ class SIM_PHYSICAL_CHANNEL_CLASS: public PHYSICAL_CHANNEL_CLASS
 
         pthread_t   writerThread;
 
+        class tbb::atomic<bool> uninitialized;
+
     public:
         SIM_PHYSICAL_CHANNEL_CLASS(PLATFORMS_MODULE);
         ~SIM_PHYSICAL_CHANNEL_CLASS();
 
         static void * WriterThread(void *argv) {
 	    void ** args = (void**) argv;
-	    tbb::concurrent_bounded_queue<UMF_MESSAGE> *incomingQ = (tbb::concurrent_bounded_queue<UMF_MESSAGE>*) args[1];
+	    SIM_PHYSICAL_CHANNEL physicalChannel = (SIM_PHYSICAL_CHANNEL) args[1];
+	    tbb::concurrent_bounded_queue<UMF_MESSAGE> *incomingQ = &(physicalChannel->writeQ); 
 	    UNIX_PIPE_DEVICE pipeDevice = (UNIX_PIPE_DEVICE) args[0];
 	    while(1) {
 	        UMF_MESSAGE message;
 	        incomingQ->pop(message);
+
+                // Check to see if we're being torn down -- this is
+                // done by passing a special message through the writeQ
+
+                if (message == NULL)
+                {
+                    if (!physicalChannel->uninitialized)
+                    {
+                        cerr << "SIM_PHYSICAL_CHANNEL got an unexpected NULL value" << endl;
+                    }
+
+                    pthread_exit(0);
+                }
 
 	        // construct header                               
 	        UMF_CHUNK header = 0;
@@ -98,6 +115,7 @@ class SIM_PHYSICAL_CHANNEL_CLASS: public PHYSICAL_CHANNEL_CLASS
         UMF_MESSAGE Read();             // blocking read
         UMF_MESSAGE TryRead();          // non-blocking read
         void        Write(UMF_MESSAGE); // write
+        void        Uninit(); 
         class tbb::concurrent_bounded_queue<UMF_MESSAGE> *GetWriteQ() { return &writeQ; }
         void SetUMFFactory(UMF_FACTORY factoryInit) { umfFactory = factoryInit; };
         void RegisterLogicalDeviceName(string name) { unixPipeDevice.RegisterLogicalDeviceName(name); }

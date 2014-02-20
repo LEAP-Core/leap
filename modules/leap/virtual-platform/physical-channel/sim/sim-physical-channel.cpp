@@ -57,17 +57,20 @@ SIM_PHYSICAL_CHANNEL_CLASS::SIM_PHYSICAL_CHANNEL_CLASS(
     ) :
     PHYSICAL_CHANNEL_CLASS(p),
     writeQ(),
+    uninitialized(),
     unixPipeDevice((PLATFORMS_MODULE) (PHYSICAL_CHANNEL) this)
     
 {
     incomingMessage = NULL;
     umfFactory = new UMF_FACTORY_CLASS(); //Use a default umf factory, but allow an external device to set it later...
 
+    uninitialized = 0;
+
     // Start up write thread
     void ** writerArgs = NULL;
     writerArgs = (void**) malloc(2*sizeof(void*));
     writerArgs[0] = &unixPipeDevice;
-    writerArgs[1] = &writeQ;
+    writerArgs[1] = this;
     if (pthread_create(&writerThread,
 		       NULL,
 		       WriterThread,
@@ -81,6 +84,17 @@ SIM_PHYSICAL_CHANNEL_CLASS::SIM_PHYSICAL_CHANNEL_CLASS(
 // destructor
 SIM_PHYSICAL_CHANNEL_CLASS::~SIM_PHYSICAL_CHANNEL_CLASS()
 {
+    Uninit();
+}
+
+void SIM_PHYSICAL_CHANNEL_CLASS::Uninit()
+{
+    if (!uninitialized.fetch_and_store(1))
+    {
+        // Tear down writer thread
+        writeQ.push(NULL); 
+        pthread_join(writerThread, NULL);
+    }
 }
 
 // blocking read
