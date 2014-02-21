@@ -29,6 +29,7 @@
 #include "platforms-module.h"
 #include "awb/provides/umf.h"
 #include "awb/provides/physical_platform.h"
+#include "awb/provides/physical_platform_utils.h"
 #include "awb/provides/multifpga_switch.h"
 #include "awb/provides/li_base_types.h"
 #include "awb/provides/multifpga_switch.h"
@@ -57,7 +58,7 @@ template <typename T> class MARSHALLED_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_L
     };
 
     virtual void pushUMF(UMF_MESSAGE &message);
-
+  
 };
 
 
@@ -102,6 +103,32 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
     map<string, vector<LI_CHANNEL_IN>* > incomingChannels;
     map<string, vector<LI_CHANNEL_OUT>* > outgoingChannels;
     PHYSICAL_DEVICES physicalDevices;    
+
+    static void * handleIncomingMessages(void *argv)
+    {
+        void ** args = (void**) argv;
+        PHYSICAL_CHANNEL_CLASS *physicalChannel = (PHYSICAL_CHANNEL_CLASS*) args[0];
+        vector<LI_CHANNEL_IN> *inChannels = (vector<LI_CHANNEL_IN>*) args[1];
+        while (1) 
+        {
+            UMF_MESSAGE msg = physicalChannel->Read();
+	    inChannels->at(msg->GetServiceID())->pushUMF(msg);
+        }
+    }
+
+    // This code is currently unused in generated routers
+    static void * handleOutgoingMessages(void *argv)
+    {
+        void ** args = (void**) argv;
+        tbb::concurrent_bounded_queue<UMF_MESSAGE> *mergedMessages = (tbb::concurrent_bounded_queue<UMF_MESSAGE>*) args[1];
+        PHYSICAL_CHANNEL_CLASS *physicalChannel = (PHYSICAL_CHANNEL_CLASS*) args[0];
+        while(1) 
+        {
+	    UMF_MESSAGE msg;
+	    mergedMessages->pop(msg);
+	    physicalChannel->Write(msg);
+        }
+    }
 
   public:
 

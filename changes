@@ -18003,3 +18003,14 @@ Directory modules/leap/libraries/platform-services/common-services/stats-service
 2) Added tear down code for unix pipe threads.
 
 
+
+----------
+keflemin    Date: Fri Feb 21 12:01:54 EST 2014  CSN: CSN-leap-536
+                  Fri Feb 21 17:01:54 UTC 2014
+
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio.h            Locally Modified          535 
+
+
+Refactored li-channel threading code to use a common function.
