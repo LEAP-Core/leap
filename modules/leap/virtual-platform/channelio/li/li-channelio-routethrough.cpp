@@ -77,7 +77,8 @@ void ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS::push(UMF_MESSAGE &outMesg)
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << endl << "****Outbound Route-through Channel "<< this->name << " message complete" << endl;            }
+        cout << endl << "****Outbound Route-through Channel "<< this->name << " message complete" << endl;            
+    }
 }
 
 
@@ -95,11 +96,13 @@ void ROUTE_THROUGH_LI_CHANNEL_IN_CLASS::pushUMF(UMF_MESSAGE &inMesg)
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "Channel is  " << this << endl;        
+        cout << "Channel " << this->name << " is  " << this << endl;
+        inMesg->Print(cout);
         cout << this->name << " route through acquiring credit " << messageLengthChunks << endl;
     }
 
-    acquireCredits(messageLengthChunks);
+    // This technically frees our credits.
+    
 
     // We need to push the message directly to the the outbound queue.
     // If the outbound queue doesn't have credit, in theory this push
@@ -108,9 +111,7 @@ void ROUTE_THROUGH_LI_CHANNEL_IN_CLASS::pushUMF(UMF_MESSAGE &inMesg)
     // ones getting blocked.  A better solution needs to check
     // channelPartner's status and store messages that will be unsent.  
 
-    channelPartner->push(inMesg); 
-
-    freeCredits(inMesg->GetServiceID());
+    msgBuffer.push(inMesg);
 
     if(DEBUG_CHANNELIO) 
     {

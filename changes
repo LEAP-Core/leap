@@ -18014,3 +18014,27 @@ Directory modules/leap/virtual-platform/channelio/li
 
 
 Refactored li-channel threading code to use a common function.
+
+----------
+keflemin    Date: Fri Feb 21 14:24:21 EST 2014  CSN: CSN-leap-537
+                  Fri Feb 21 19:24:21 UTC 2014
+
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio-routethrough.cpp Locally Modified          536 
+ li-channelio-routethrough.h Locally Modified          536 
+
+
+1) Fixed bug in route-through in which packet header was recoded
+prematurely.
+
+2) Added support for a route-through thread.  This thread is
+instantiated per route-through (a terrible architecture, but fixable)
+
+A better architecture involves a single thread and an out-of-order
+send queue. Each channel is inorder, but if a send would block, it is
+dequeued re-injected at the tail of the work queue. This enables a
+single thread to handle all route-throughs (RRR can proably also be
+handled this way also), reducing the thread overhead issues that we
+currently face.
+

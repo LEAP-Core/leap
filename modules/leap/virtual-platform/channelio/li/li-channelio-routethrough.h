@@ -44,31 +44,65 @@ Software route-through
 
 These classes handle software route-throughs.  Software does not
 attempt to decode the packet, only translate the header and push the
-packet on. Incoming flow-control is simple for now: we simply
-deallocate the credit as soon as we get the message. This implements
-an infinitely sized buffer.  To prevent pathological cases and improve
- fairness, this buffer should eventually be finite in size.  Outgoing
-flows require special handling with respect to flowcontrol.  Normally,
-if credit is available, we send directly on enqueue. However, if not
-enough credit is availabel, this will deadlock if we block for credit.
-In this case, we will buffer the incoming packets and when flowcontrol
-updates are obtained, the flowcontrol update thread will send packets
-on our behalf, as many as are possible.  
+packet on. Because we want to provide backpressure across platforms,
+the two ROUTE_THROUGH modules below must collaborate on flow control.
+
+In the current implementation, the outgoing route-through is threaded.
+This probably degrades performance, but it was easier to code up.
+Incoming and outgoing routethrough share information about flow
+control, and both will get updated when the outgoing route-through
+receives credit from the consumer of the message. 
 
 *****/
 
 // Handles inbound route-through packets
-
+typedef class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS* ROUTE_THROUGH_LI_CHANNEL_IN;
 class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS, public LI_CHANNEL_SEND_CLASS<UMF_MESSAGE>
 {
+
+  friend class ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS;
+
+  private:
+
+    pthread_t       forwardingThread; 
+    tbb::concurrent_bounded_queue<UMF_MESSAGE> msgBuffer;
+    
+    static void * routeMessage(void *argv) 
+    {
+        UMF_MESSAGE inMesg;
+        ROUTE_THROUGH_LI_CHANNEL_IN router = (ROUTE_THROUGH_LI_CHANNEL_IN) argv;
+        while (1) 
+        {
+            router->msgBuffer.pop(inMesg);
+            UINT32 messageLengthBytes = inMesg->GetLength();  // Length of message already framed in bytes
+            UINT32 messageLengthChunks = 1 + ((inMesg->GetLength()) / sizeof(UMF_CHUNK));  // Each message has a header
+            // Must get message before sending to partner.  Partner will recode header.      
+            UINT32 serviceID = inMesg->GetServiceID(); 
+	    router->acquireCredits(messageLengthChunks);
+            router->channelPartner->push(inMesg); // do not touch inMesg after this call. Partner will recode header.
+            router->freeCredits(serviceID);
+        }
+    }
+
+
+
   public:
     ROUTE_THROUGH_LI_CHANNEL_IN_CLASS(tbb::concurrent_bounded_queue<UMF_MESSAGE> *flowcontrolQInitializer,
                                    std::string nameInitializer,
 				   UMF_FACTORY factoryInitializer,  
                                    UINT64 flowcontrolChannelIDInitializer):
       FLOWCONTROL_LI_CHANNEL_IN_CLASS(flowcontrolQInitializer, factoryInitializer, flowcontrolChannelIDInitializer),
-      LI_CHANNEL_SEND_CLASS<UMF_MESSAGE>(nameInitializer)
+      LI_CHANNEL_SEND_CLASS<UMF_MESSAGE>(nameInitializer),
+      msgBuffer()
     {
+	if (pthread_create(&forwardingThread,
+			   NULL,
+			   routeMessage,
+			   this))
+	  {
+	    perror("pthread_create, forwardingThread:");
+	    exit(1);
+	  }
     };
 
     void pushUMF(UMF_MESSAGE &message);
@@ -77,12 +111,14 @@ class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS,
 
 
 // Handles outbound route-through packets
-
+typedef class ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS* ROUTE_THROUGH_LI_CHANNEL_OUT;
 class ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_LI_CHANNEL_OUT_CLASS, public LI_HALF_CHANNEL_RECV_CLASS<UMF_MESSAGE>
 {
 
+  friend class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS;
+
   private:
-    UMF_FACTORY factory; // we need to take T and pack it in to a UMF_MESSAGE
+    UMF_FACTORY factory; // It isn't clear that the route through needs to make use of the UMF factory.
     UINT64 channelID;
 
   protected:
