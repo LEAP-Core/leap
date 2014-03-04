@@ -46,16 +46,14 @@ endinterface
 // module
 module mkRRRDemarshaller
     // interface:
-        (RRR_DEMARSHALLER#(in_T, out_T))
+        (RRR_DEMARSHALLER#(in_T, Vector#(n_CHUNKS,in_T)))
     provisos
-        (Bits#(in_T, in_SZ),
-         Bits#(out_T, out_SZ),
-         Div#(out_SZ, in_SZ, n_CHUNKS));
+        (Bits#(in_T, in_SZ));
     
     // =============== state ================
     
     // shift register we fill up as chunks come in.
-    Reg#(Vector#(n_CHUNKS, Bit#(in_SZ))) chunks <- mkRegU();
+    Reg#(Vector#(n_CHUNKS, in_T))chunks <- mkRegU();
     
     // number of chunks remaining in current sequence
     Reg#(UMF_MSG_LENGTH) chunksRemaining <- mkReg(0);
@@ -79,34 +77,29 @@ module mkRRRDemarshaller
     method Action insert(in_T chunk) if (state == STATE_queueing &&
                                          chunksRemaining != 0);
     
-        // newer chunks are closer to the LSB.
-        chunks <= shiftInAt0(chunks, pack(chunk));
+        chunks <= shiftInAt0(chunks, chunk); 
         
         // decrement chunks remaining
         chunksRemaining <= chunksRemaining - 1;
-        
+
     endmethod
     
     // return the entire vector
-    method ActionValue#(out_T) readAndDelete() if (state == STATE_queueing &&
-                                                   chunksRemaining == 0);
+    method ActionValue#(Vector#(n_CHUNKS,in_T)) readAndDelete() if (state == STATE_queueing &&
+                                                                    chunksRemaining == 0);
 
         // switch to idle state
         state <= STATE_idle;
 
-        // return
-        Bit#(out_SZ) final_val = truncateNP(pack(chunks));
-        return unpack(final_val);
+        return chunks;
 
     endmethod
 
     // return the entire vector
-    method out_T peek() if (state == STATE_queueing &&
-                            chunksRemaining == 0);
+    method Vector#(n_CHUNKS,in_T) peek() if (state == STATE_queueing &&
+                                             chunksRemaining == 0);
 
-        Bit#(out_SZ) final_val = truncateNP(pack(chunks));
-        return unpack(final_val);
-
+        return chunks;
     endmethod
 
 endmodule

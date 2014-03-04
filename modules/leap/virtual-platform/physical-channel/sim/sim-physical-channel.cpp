@@ -97,7 +97,8 @@ void SIM_PHYSICAL_CHANNEL_CLASS::Uninit()
     }
 }
 
-// blocking read
+// blocking read.  A return value of tells us that the underlying
+// infrastructure is in the process of begin torn down. 
 UMF_MESSAGE
 SIM_PHYSICAL_CHANNEL_CLASS::Read()
 {

@@ -178,7 +178,20 @@ sub print_stub
     {
         print $file "module mkClientStub_" . $self->{name} . "#(RRR_CLIENT client)";
     }
-    print $file " (ClientStub_" . $self->{name} . ");\n";
+    print $file " (ClientStub_" . $self->{name} . ")\n";
+
+    print $file "provisos(\n";
+ 
+    # Each incoming method has a number of chunks which it needs use for truncation
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        $method->print_client_provisos($file, $indent);
+    }
+
+    # somewhat counterintuitively, outsize is the correct value.
+    print $file "\tDiv#($maxoutsize,SizeOf#(UMF_CHUNK), n_CHUNKS));\n";
+
+
     print $file "\n";
     
     # global state
@@ -240,7 +253,7 @@ sub _print_state
 
     if ($maxoutsize != 0)
     {
-        print $file "    RRR_DEMARSHALLER#(UMF_CHUNK, Bit#($maxoutsize)) dem <- mkRRRDemarshaller();\n";
+        print $file "    RRR_DEMARSHALLER#(UMF_CHUNK, Vector#(n_CHUNKS,UMF_CHUNK)) dem <- mkRRRDemarshaller();\n";
         print $file "\n";
         print $file "    Reg#(UMF_METHOD_ID) mid <- mkReg(0);\n";
     }

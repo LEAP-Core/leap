@@ -35,6 +35,7 @@
 
 
 `include "awb/provides/physical_platform.bsh"
+`include "awb/provides/physical_platform.bsh"
 
 module [t_CONTEXT] mkPhysicalConnectionSend#(
     String send_name,
@@ -87,6 +88,10 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
 	         method Action deq();
                      q.deq();
                      sendDequeued.send;
+                     if (`DUMP_CHANNEL_TRAFFIC_ENABLE != 0)
+                     begin
+                         $display(fshow("Dequeue:" + send_name + ":") + fshow(pack(q.first))); 
+                     end                  
                  endmethod                     
               
                  interface Clock clock = localClock;
@@ -143,6 +148,7 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
             };
 
         addConnectionDebugInfo(dbg_info);
+
     end
 
     if(`CON_LATENCY_ENABLE > 0)
@@ -362,6 +368,7 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
             };
 
         addConnectionDebugInfo(dbg_info);
+
     end
 
 

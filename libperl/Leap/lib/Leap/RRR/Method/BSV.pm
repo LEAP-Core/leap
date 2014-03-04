@@ -240,11 +240,14 @@ sub print_accept_request_definition
 
     # body
     print $file $indent . "    let a <- dem.readAndDelete();\n";
+   
+
+    print $file $indent . "    Vector#(numChunksDemarsh_" . $self->{name} . ", UMF_CHUNK) reqData = reverse(take(a));\n";
     print $file $indent . "    ";
 
     # acceptRequest()s always return a struct/bitvector
     print $file $self->_intype_name();
-    print $file " retval = unpack(truncate(a));\n";
+    print $file " retval = unpack(truncate(pack(reqData)));\n";
     print $file $indent . "    return retval;\n";
 
     # endmethod
@@ -262,11 +265,13 @@ sub print_accept_request_definition
 
     # body
     print $file $indent . "    let a = dem.peek();\n";
+
+    print $file $indent . "    Vector#(numChunksDemarsh_" . $self->{name} . ", UMF_CHUNK) reqData = reverse(take(a));\n";
     print $file $indent . "    ";
 
     # acceptRequest()s always return a struct/bitvector
     print $file $self->_intype_name();
-    print $file " retval = unpack(truncate(a));\n";
+    print $file " retval = unpack(truncate(pack(reqData)));\n";
     print $file $indent . "    return retval;\n";
 
     # endmethod
@@ -486,9 +491,13 @@ sub print_get_response_definition
 
     # body
     print $file $indent . "    let a <- dem.readAndDelete();\n";
+    
+
+    print $file $indent . "    Vector#(numChunksDemarsh_" . $self->{name} . ", UMF_CHUNK) reqData = reverse(take(a));\n";
     print $file $indent . "    ";
+
     print $file $self->_outtype_name();
-    print $file " retval = unpack(truncate(a));\n";
+    print $file " retval = unpack(truncate(pack(reqData)));\n";
     print $file $indent . "    return retval;\n";
 
     # endmethod
@@ -508,9 +517,10 @@ sub print_get_response_definition
 
     # body
     print $file $indent . "    let a = dem.peek();\n";
+    print $file $indent . "    Vector#(numChunksDemarsh_" . $self->{name} . ", UMF_CHUNK) reqData = reverse(take(a));\n";
     print $file $indent . "    ";
     print $file $self->_outtype_name();
-    print $file " retval = unpack(truncate(a));\n";
+    print $file " retval = unpack(truncate(pack(reqData)));\n";
     print $file $indent . "    return retval;\n";
 
     # endmethod
@@ -542,6 +552,37 @@ sub print_server_state
                               " = ($outsize % valueOf(UMF_CHUNK_BITS)) == 0 ?\n";
         print $file $indent . "    ($outsize / valueOf(UMF_CHUNK_BITS)) :\n";
         print $file $indent . "    ($outsize / valueOf(UMF_CHUNK_BITS)) + 1;\n";
+    }
+}
+
+##
+## print provisos
+##
+sub print_server_provisos
+{
+    my $self   = shift;
+    my $file   = shift;
+    my $indent = shift;
+
+    if ($self->inargs()->num() != 0)
+    {
+        my $insize = $self->inargs()->size();
+
+        print $file $indent . "Div#($insize, SizeOf#(UMF_CHUNK), numChunksDemarsh_" . $self->{name} . "),\n";
+    }
+}
+
+sub print_client_provisos
+{
+    my $self   = shift;
+    my $file   = shift;
+    my $indent = shift;
+
+    if ($self->outargs()->num() != 0)
+    {
+        my $outsize = $self->outargs()->size();
+
+        print $file $indent . "Div#($outsize, SizeOf#(UMF_CHUNK), numChunksDemarsh_" . $self->{name} . "),\n";
     }
 }
 

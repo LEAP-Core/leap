@@ -135,15 +135,15 @@ template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &
         UMF_MESSAGE outMesg = factory->createUMFMessage();
         outMesg->SetLength(2 * sizeof(UMF_CHUNK)); 
         outMesg->SetServiceID(this->channelID);
-	outMesg->AppendChunk(0);
-	outMesg->AppendChunk(baseHeader);
+        outMesg->AppendChunk(baseHeader);
+        outMesg->AppendChunk(0);
         outputQ->push(outMesg);
     }
 
-    element->StartReverseExtract();
-    while (element->CanReverseExtract())
+    element->StartExtract();
+    while (element->CanExtract())
     {
-        UMF_CHUNK chunk = element->ReverseExtractChunk();
+        UMF_CHUNK chunk = element->ExtractChunk();
         UMF_MESSAGE outMesg = factory->createUMFMessage();
 
         if(DEBUG_CHANNELIO) 
@@ -162,8 +162,8 @@ template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &
 	}
 
         outMesg->SetServiceID(this->channelID);
-	outMesg->AppendChunk(1);  
         outMesg->AppendChunk(chunk);
+        outMesg->AppendChunk(1);  
 
         if(DEBUG_CHANNELIO) 
         {

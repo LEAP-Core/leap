@@ -25,6 +25,7 @@
 %param --global ADDR_RING_MSG_MODE 0 "Addressable ring message priority: 0 always choose local message, 1 always forward, 2 use arbiter"
 %param --global ADDR_RING_DEBUG_ENABLE 0 "Enable addressable ring debug"
 %param CON_LATENCY_ENABLE   0   "Add soft-connection latency test fixture"
+%param --global DUMP_CHANNEL_TRAFFIC_ENABLE   0   "Dump all li channel traffic at runtime (simulation only)"
 
 %AWB_END
 

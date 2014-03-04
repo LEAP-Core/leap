@@ -114,6 +114,8 @@ sub print_stub
     print $file "`define _" . $self->{name} . "_SERVER_STUB_\n";
     print $file "\n";
 
+    print $file "import Vector::*;\n";
+
     if ($self->{ifc} eq "connection")
     {
         print $file "`include \"awb/provides/soft_connections.bsh\"\n";
@@ -179,9 +181,20 @@ sub print_stub
     {
         print $file "module mkServerStub_" . $self->{name} . "#(RRR_SERVER server)";
     }
-    print $file " (ServerStub_" . $self->{name} . ");\n";
+    print $file " (ServerStub_" . $self->{name} . ")\n";
     print $file "\n";
     
+    # print out provisos
+    print $file "provisos(\n";
+ 
+    # Each incoming method has a number of chunks which it needs use for truncation
+    foreach my $method (@{ $self->{methodlist} })
+    {
+        $method->print_server_provisos($file, $indent);
+    }
+
+    print $file "\tDiv#($maxinsize,SizeOf#(UMF_CHUNK), n_CHUNKS));\n";
+
     # global state
     $self->_print_state($file, $maxinsize, $maxoutsize);
     
@@ -237,7 +250,7 @@ sub _print_state
         print $file "\n";
     }
 
-    print $file "    RRR_DEMARSHALLER#(UMF_CHUNK, Bit#($maxinsize)) dem <- mkRRRDemarshaller();\n";
+    print $file "    RRR_DEMARSHALLER#(UMF_CHUNK, Vector#(n_CHUNKS,UMF_CHUNK)) dem <- mkRRRDemarshaller();\n";
     if ($maxoutsize != 0)
     {
         print $file "    MARSHALLER_N#(UMF_CHUNK, Bit#($maxoutsize)) mar <- mkSimpleMarshallerN(True);\n";

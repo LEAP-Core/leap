@@ -659,11 +659,11 @@ PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::WriteThread()
         // NOTE: hardware demarshaller expects chunk pattern to start from most
         //       significant chunk and end at least significant chunk, so we will
         //       send chunks in reverse order
-        msg->StartReverseExtract();
-        while (msg->CanReverseExtract())
+        msg->StartExtract();
+        while (msg->CanExtract())
         {
             VERIFYX(op + bn_chunks < op_end);
-            msg->ReverseExtractChunks(bn_chunks, op);
+            msg->ExtractChunks(bn_chunks, op);
             op += bn_chunks;
             umf_chunks -= bn_chunks;
 
@@ -687,8 +687,7 @@ PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::WriteThread()
         }
 
         VERIFYX(umf_chunks == 0);
-        VERIFYX(msg->GetReadIndex() == 0);
-
+        
         wrNext = op;
 
         // Write() method is expected to delete the chunk

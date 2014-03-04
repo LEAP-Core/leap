@@ -18038,3 +18038,50 @@ single thread to handle all route-throughs (RRR can proably also be
 handled this way also), reducing the thread overhead issues that we
 currently face.
 
+
+----------
+keflemin    Date: Tue Mar  4 16:15:04 EST 2014  CSN: CSN-leap-538
+                  Tue Mar  4 21:15:04 UTC 2014
+
+
+Directory libperl/Leap/lib/Leap/RRR/Method
+ BSV.pm                    Locally Modified          537 
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ BSV.pm                    Locally Modified          537 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ BSV.pm                    Locally Modified          537 
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio.cpp          Locally Modified          537 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.cpp Locally Modified          537 
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.cpp  Locally Modified          537 
+ sim-physical-channel.h    Locally Modified          537 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ demarshaller.bsv          Locally Modified          537 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ compare-connections.py    Locally Added               0 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-common-module-context.awb Locally Modified          537 
+ connection-implementation.bsv Locally Modified          537 
+
+
+1) Changed HW-SW physical channels to used same packet endianess.
+Previously, HW->SW and SW->HW took opposite endianess decisions.
+
+2) Fixed RRR, RRR demarshaller, and physical device drivers to enable
+this unified endianess.  Minimally, reconfiguration is necessary, but
+I recommend a nuke.
+
+3) Added a debugging mode for LI channels.  LI channels can now be
+made to dump all traffic.  I added a script that diffs two dumps and
+reports differences.
+

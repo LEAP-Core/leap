@@ -99,16 +99,16 @@ class SIM_PHYSICAL_CHANNEL_CLASS: public PHYSICAL_CHANNEL_CLASS
 	        // write message data to pipe                                                     
 	        // NOTE: hardware demarshaller expects chunk pattern to start from most       	    
                 //       significant chunk and end at least significant chunk, so we will                  
-	        //       send chunks in reverse order                                                               
-                message->StartReverseExtract();
-	        while (message->CanReverseExtract())
-	        {
-	 	    UMF_CHUNK chunk = message->ReverseExtractChunk();
-		    pipeDevice->Write((unsigned char*)&chunk, sizeof(UMF_CHUNK));
-	        }
+                //       send chunks in reverse order                                                               
+                message->StartExtract();
+                while (message->CanExtract())
+                {
+                    UMF_CHUNK chunk = message->ExtractChunk();
+                    pipeDevice->Write((unsigned char*)&chunk, sizeof(UMF_CHUNK));
+                }
 
-	       // de-allocate message                                                                                 	
-               delete message;
+                // de-allocate message                                                                                 	
+                delete message;
 	    }
 	}
 
