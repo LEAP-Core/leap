@@ -53,13 +53,13 @@ void ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS::push(UMF_MESSAGE &outMesg)
     UINT32 messageLengthChunks = 1 + ((outMesg->GetLength()) / sizeof(UMF_CHUNK));  // Each chunk takes a header plus one bit for encoding?
 
 
-    if (DEBUG_CHANNELIO) 
+    if(DEBUG_CHANNELIO) 
     {
         cout << endl << "****Outbound Channel "<< this->name << " Sends message " << endl;               
         cout << endl << "Base Message length "<< dec << (UINT32) (outMesg->GetLength()) << endl;  
         cout << "UMF_CHUNK (bytes) " << sizeof(UMF_CHUNK) << endl;
         cout << "Message Length (bytes) "<< dec << messageLengthBytes << endl;
-        cout << "Message Credits (chunks) "<< dec << messageLengthChunks << endl;
+	cout << "Message Credits (chunks) "<< dec << messageLengthChunks << endl;
         cout << "Channel ID "<< dec << this->channelID << endl;
     }
 
@@ -79,6 +79,40 @@ void ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS::push(UMF_MESSAGE &outMesg)
     {
         cout << endl << "****Outbound Route-through Channel "<< this->name << " message complete" << endl;            
     }
+}
+
+// Try push does a push, if credits can be allocated.  Otherwise, 
+
+bool ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS::tryPush(UMF_MESSAGE &outMesg) 
+{
+
+    // Software expects encoding in terms of bytes while the credit scheme speaks in terms of chunks 
+    UINT32 messageLengthBytes = outMesg->GetLength(); 
+    UINT32 messageLengthChunks = 1 + ((outMesg->GetLength()) / sizeof(UMF_CHUNK));  // Each chunk takes a header plus one bit for encoding?
+
+
+    if(DEBUG_CHANNELIO) 
+    {
+        cout << endl << "****Outbound Channel "<< this->name << " Sends message " << endl;               
+        cout << endl << "Base Message length "<< dec << (UINT32) (outMesg->GetLength()) << endl;  
+        cout << "UMF_CHUNK (bytes) " << sizeof(UMF_CHUNK) << endl;
+        cout << "Message Length (bytes) "<< dec << messageLengthBytes << endl;
+	cout << "Message Credits (chunks) "<< dec << messageLengthChunks << endl;
+        cout << "Channel ID "<< dec << this->channelID << endl;
+    }
+
+    // For now we will allow the system to deadlock here. What is really needed is an 
+    // means of back pressure all the way to the incoming route through. 
+    // TODO: Fix this deadlock with better backpressure cooperation among threads
+
+    if(tryAcquireCredits(messageLengthChunks))
+    {
+        outMesg->SetServiceID(this->channelID);
+        outputQ->push(outMesg);
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -110,8 +144,33 @@ void ROUTE_THROUGH_LI_CHANNEL_IN_CLASS::pushUMF(UMF_MESSAGE &inMesg)
     // leading to deadlocks, since the main handler threads are the
     // ones getting blocked.  A better solution needs to check
     // channelPartner's status and store messages that will be unsent.  
-
-    msgBuffer.push(inMesg);
+    
+    unique_lock<std::mutex> flowcontrolLock(msgBufferMutex);
+    
+    // If msgBuffer is empty, we should try to send.  If not empty,
+    // then the fifo is full and we are guaranteed that the partner
+    // will try to send upon reception of flow control.
+    if (msgBuffer.empty()) 
+    { 
+        UINT32 messageLengthBytes = inMesg->GetLength();  // Length of message already framed in bytes
+        UINT32 messageLengthChunks = 1 + ((inMesg->GetLength()) / sizeof(UMF_CHUNK));  // Each message has a header
+        // Must get ID before sending to partner.  Partner may recode header.       
+        UINT32 serviceID = inMesg->GetServiceID(); 
+        if(((ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS*)channelPartner)->tryPush(inMesg)) 
+        {
+            acquireCredits(messageLengthChunks);
+            freeCredits(serviceID);
+        }      
+        else 
+	{
+	    // No dice, try to send later. 
+            msgBuffer.push(inMesg);
+	}
+    }
+    else
+    {
+        msgBuffer.push(inMesg);
+    }
 
     if(DEBUG_CHANNELIO) 
     {
@@ -122,4 +181,48 @@ void ROUTE_THROUGH_LI_CHANNEL_IN_CLASS::pushUMF(UMF_MESSAGE &inMesg)
     // outbound message. channelPartner owns the message and is
     // responsible for deletion.
 
+}
+
+void ROUTE_THROUGH_LI_CHANNEL_IN_CLASS::clearMsgQ()
+{
+    // Lock message Q
+    unique_lock<std::mutex> flowcontrolLock(msgBufferMutex);
+
+    // try to send data while data is available
+    while (!msgBuffer.empty()) 
+    {
+        UMF_MESSAGE inMesg = msgBuffer.front();
+        UINT32 messageLengthBytes = inMesg->GetLength();  // Length of message already framed in bytes
+        UINT32 messageLengthChunks = 1 + ((inMesg->GetLength()) / sizeof(UMF_CHUNK));  // Each message has a header
+
+        // Must get message before sending to partner.  Partner may recode header.      
+        UINT32 serviceID = inMesg->GetServiceID(); 
+        if (((ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS*)channelPartner)->tryPush(inMesg)) // do not touch inMesg after this call. Partner will recode header.cd 
+	{    
+   	    // fix up incoming channel credit
+            acquireCredits(messageLengthChunks);
+            freeCredits(serviceID);
+            msgBuffer.pop();
+	}
+        else
+	{
+  	    // No more credit
+	    return; 
+	}
+    }
+    // No more messages
+    return;
+}
+
+
+// Since the route-through class has special properties. Actually, I
+// think all channel classes have these properties, so this
+// implementation might extend to send/recv pairs also.  
+void ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS::freeCredits(UINT32 credits) 
+{
+    // we could probably have a templatized version of this
+    // class/function which does not involve a lock, since
+    // route-throughs already have a lock. 
+    FLOWCONTROL_LI_CHANNEL_OUT_CLASS::freeCredits(credits);
+    ((ROUTE_THROUGH_LI_CHANNEL_IN_CLASS*)channelPartner)->clearMsgQ();
 }

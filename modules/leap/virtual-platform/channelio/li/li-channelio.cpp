@@ -61,7 +61,8 @@ using namespace std;
 CHANNELIO_BASE_CLASS::CHANNELIO_BASE_CLASS(
     PLATFORMS_MODULE parent,
     PHYSICAL_DEVICES devices) :
-    PLATFORMS_MODULE_CLASS(parent)   
+    PLATFORMS_MODULE_CLASS(parent),
+    incomingHandlers()
 {
     physicalDevices = devices;
 }
@@ -69,7 +70,25 @@ CHANNELIO_BASE_CLASS::CHANNELIO_BASE_CLASS(
 // destructor 
 CHANNELIO_BASE_CLASS::~CHANNELIO_BASE_CLASS()
 {
+
 }
+
+void CHANNELIO_BASE_CLASS::Uninit()
+{
+}
+ 
+bool CHANNELIO_BASE_CLASS::UninitComplete()
+{
+    // Wait for our threads to get cancelled.
+    for(std::vector<pthread_t*>::iterator channelsIter = incomingHandlers.begin(); 
+            channelsIter != incomingHandlers.end(); channelsIter++)   
+    {   
+        pthread_join(*(*channelsIter), NULL);
+    }
+
+    return true;
+}
+
 
 
 // Specialized marshalling logic for handling the UMF_MESSAGE type.

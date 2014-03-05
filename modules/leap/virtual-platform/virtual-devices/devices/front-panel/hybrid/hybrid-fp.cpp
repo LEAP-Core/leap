@@ -31,7 +31,9 @@ FRONT_PANEL_SERVER_CLASS::FRONT_PANEL_SERVER_CLASS() :
 // destructor
 FRONT_PANEL_SERVER_CLASS::~FRONT_PANEL_SERVER_CLASS()
 {
-    Cleanup();
+    // destroy stubs
+    delete clientStub;
+    delete serverStub;
 }
 
 // init
@@ -100,17 +102,6 @@ FRONT_PANEL_SERVER_CLASS::Init(
 void
 FRONT_PANEL_SERVER_CLASS::Uninit()
 {
-    // cleanup
-    Cleanup();
-
-    // chain
-    PLATFORMS_MODULE_CLASS::Uninit();
-}
-
-// cleanup: kill panel process
-void
-FRONT_PANEL_SERVER_CLASS::Cleanup()
-{
     bool needCleanup = initialized.fetch_and_store(false);
 
     if (!needCleanup)
@@ -128,9 +119,6 @@ FRONT_PANEL_SERVER_CLASS::Cleanup()
         active = false;
     }
 
-    // destroy stubs
-    delete clientStub;
-    delete serverStub;
 }
 
 // handle UpdateLEDs request

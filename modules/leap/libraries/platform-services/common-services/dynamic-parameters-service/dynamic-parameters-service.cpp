@@ -96,7 +96,8 @@ DYNAMIC_PARAMS_SERVICE_CLASS::DYNAMIC_PARAMS_SERVICE_CLASS() :
 // destructor
 DYNAMIC_PARAMS_SERVICE_CLASS::~DYNAMIC_PARAMS_SERVICE_CLASS()
 {
-    Cleanup();
+    // delete stubs
+    delete clientStub;
 }
 
 // init
@@ -107,22 +108,6 @@ DYNAMIC_PARAMS_SERVICE_CLASS::Init(PLATFORMS_MODULE p)
     PLATFORMS_MODULE_CLASS::Init(p);
 }
 
-void
-DYNAMIC_PARAMS_SERVICE_CLASS::Uninit()
-{
-    Cleanup();
-
-    // chain
-    PLATFORMS_MODULE_CLASS::Uninit();
-}
-
-// cleanup
-void
-DYNAMIC_PARAMS_SERVICE_CLASS::Cleanup()
-{
-    // delete stubs
-    delete clientStub;
-}
 
 void 
 DYNAMIC_PARAMS_SERVICE_CLASS::SendAllParams()

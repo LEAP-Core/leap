@@ -68,7 +68,10 @@ STDIO_SERVER_CLASS::STDIO_SERVER_CLASS() :
 // destructor
 STDIO_SERVER_CLASS::~STDIO_SERVER_CLASS()
 {
-    Cleanup();
+
+    // kill stubs
+    delete serverStub;
+    delete clientStub;
 }
 
 
@@ -82,33 +85,6 @@ STDIO_SERVER_CLASS::Init(
 
     SetCondMask(maskSwitch.Mask());
     clientStub->Ready(0);
-}
-
-
-// uninit: we have to write this explicitly
-void
-STDIO_SERVER_CLASS::Uninit()
-{
-    Cleanup();
-
-    // chain
-    PLATFORMS_MODULE_CLASS::Uninit();
-}
-
-// cleanup
-void
-STDIO_SERVER_CLASS::Cleanup()
-{
-    bool didCleanup = uninitialized.fetch_and_store(true);
-
-    if (didCleanup)
-    {
-        return;
-    }
-
-    // kill stubs
-    delete serverStub;
-    delete clientStub;
 }
 
 

@@ -72,20 +72,23 @@ class LI_HALF_CHANNEL_CLASS
   
 };
 
+template <typename T> class LI_CHANNEL_SEND_CLASS;
 
 // Virtual base class allowing super classes to pick implementations for push
 template <typename T> class LI_HALF_CHANNEL_RECV_CLASS: public LI_HALF_CHANNEL_CLASS
 {
     template <typename U> friend class LI_CHANNEL_SEND_CLASS; // Allow Send to access our push
 
+  protected:
+    class LI_CHANNEL_SEND_CLASS<T> *channelPartner; 
+
   public:
     virtual void push(T &message ) = 0;
+    void SetChannelPartner(class LI_CHANNEL_SEND_CLASS<T> *channelPartnerInit) { channelPartner = channelPartnerInit; };
     LI_HALF_CHANNEL_RECV_CLASS(string nameInitializer);	   
    ~LI_HALF_CHANNEL_RECV_CLASS() {};
 
 };
-
-
 
 // Send does push
 template <typename T> class LI_CHANNEL_SEND_CLASS: public LI_HALF_CHANNEL_CLASS
@@ -93,7 +96,6 @@ template <typename T> class LI_CHANNEL_SEND_CLASS: public LI_HALF_CHANNEL_CLASS
     template <typename U> friend class LI_HALF_CHANNEL_RECV_CLASS; // Allow Recv to register with us
   
   protected:  
-    // need to tuck the matcher class somehere.  This is a decent place to do it. 
     class LI_HALF_CHANNEL_RECV_CLASS<T> *channelPartner; 
 
     void SetChannelPartner(class LI_HALF_CHANNEL_RECV_CLASS<T> *channelPartnerInit) { channelPartner = channelPartnerInit; };
@@ -111,7 +113,8 @@ template <typename T> class LI_CHANNEL_SEND_CLASS: public LI_HALF_CHANNEL_CLASS
 // Recv does pop
 template <typename T> class LI_CHANNEL_RECV_CLASS: LI_HALF_CHANNEL_RECV_CLASS<T>
 {
-  
+    template <typename U> friend class LI_CHANNEL_SEND_CLASS; // Allow Recv to register with us  
+
   protected:  
 
     class tbb::concurrent_bounded_queue<T> dataQ; // We need flow control messages. 
@@ -137,11 +140,17 @@ class LI_CHANNEL_OUT_CLASS
   
   protected:  
     class tbb::concurrent_bounded_queue<UMF_MESSAGE> *outputQ; // We need flow control messages. 
+    bool needsFlowcontrol;
 
   public:
      LI_CHANNEL_OUT_CLASS(class tbb::concurrent_bounded_queue<UMF_MESSAGE> *outputQInitializer): 
-     outputQ(outputQInitializer) {};
+       outputQ(outputQInitializer) 
+     {
+         needsFlowcontrol = true;
+     };
+
     ~LI_CHANNEL_OUT_CLASS() {};
+    bool doesNeedFlowcontrol() { return needsFlowcontrol; }
 
 };
 
@@ -170,6 +179,7 @@ template<typename T> LI_HALF_CHANNEL_RECV_CLASS<T>::LI_HALF_CHANNEL_RECV_CLASS(s
     if(send != NULL)
     {
         send->SetChannelPartner(this);
+        SetChannelPartner(send);
     }
 } 
 
@@ -182,6 +192,7 @@ template<typename T> LI_CHANNEL_SEND_CLASS<T>::LI_CHANNEL_SEND_CLASS(std::string
 
     if(recv != NULL)
     {
+        recv->SetChannelPartner(this);
         SetChannelPartner(recv);
     }
 

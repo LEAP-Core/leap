@@ -75,7 +75,7 @@ ASSERTIONS_SERVER_CLASS::ASSERTIONS_SERVER_CLASS():
 // destructor
 ASSERTIONS_SERVER_CLASS::~ASSERTIONS_SERVER_CLASS()
 {
-    Cleanup();
+    delete serverStub;
 }
 
 // init
@@ -94,19 +94,6 @@ ASSERTIONS_SERVER_CLASS::Init(
 void
 ASSERTIONS_SERVER_CLASS::Uninit()
 {
-    fclose(assertionsFile);
-
-    Cleanup();
-
-    // chain
-    PLATFORMS_MODULE_CLASS::Uninit();
-}
-
-// cleanup
-void
-ASSERTIONS_SERVER_CLASS::Cleanup()
-{
-
     bool didCleanup = uninitialized.fetch_and_store(true);
 
     if (didCleanup)
@@ -114,9 +101,9 @@ ASSERTIONS_SERVER_CLASS::Cleanup()
         return;
     }
 
-    // kill stubs
-    delete serverStub;
+    fclose(assertionsFile);
 }
+
 
 //
 // RRR request methods

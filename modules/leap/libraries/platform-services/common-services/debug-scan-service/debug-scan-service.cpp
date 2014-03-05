@@ -87,7 +87,11 @@ DEBUG_SCAN_SERVER_CLASS::DEBUG_SCAN_SERVER_CLASS() :
 // destructor
 DEBUG_SCAN_SERVER_CLASS::~DEBUG_SCAN_SERVER_CLASS()
 {
-    Cleanup();
+
+    // kill stubs
+    delete serverStub;
+    delete clientStub;
+
 }
 
 
@@ -108,16 +112,6 @@ DEBUG_SCAN_SERVER_CLASS::Init(
 void
 DEBUG_SCAN_SERVER_CLASS::Uninit()
 {
-    Cleanup();
-
-    // chain
-    PLATFORMS_MODULE_CLASS::Uninit();
-}
-
-// cleanup
-void
-DEBUG_SCAN_SERVER_CLASS::Cleanup()
-{
 
     bool didCleanup = uninitialized.fetch_and_store(true);
 
@@ -134,9 +128,6 @@ DEBUG_SCAN_SERVER_CLASS::Cleanup()
     }
     unlink(LEAP_LIVE_DEBUG_PATH "/debug-scan");
 
-    // kill stubs
-    delete serverStub;
-    delete clientStub;
 }
 
 //

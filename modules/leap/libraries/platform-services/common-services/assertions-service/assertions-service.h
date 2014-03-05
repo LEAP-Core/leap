@@ -64,7 +64,6 @@ class ASSERTIONS_SERVER_CLASS: public RRR_SERVER_CLASS,
     // required RRR methods
     void Init(PLATFORMS_MODULE);
     void Uninit();
-    void Cleanup();
 
     // RRR service methods
     void AssertStr(UINT64 fpgaCC, UINT32 strUID, UINT8 severity);

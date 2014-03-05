@@ -6,16 +6,16 @@
 
 using namespace std;
 
-UINT32 PLATFORMS_MODULE_MANAGER_CLASS::init = 0;
+bool PLATFORMS_MODULE_MANAGER_CLASS::init = false;
    
 PLATFORMS_MODULE_MANAGER_CLASS::PLATFORMS_MODULE_MANAGER_CLASS()
 { 
     if(!init) 
     {
-        init = 1;
+        init = true;
         modules = new list<PLATFORMS_MODULE>();
-        uninitAtomic = new tbb::atomic<UINT32>();
-        *uninitAtomic = 0;
+        uninitAtomic = new tbb::atomic<bool>();
+        *uninitAtomic = false;
     }
 }
 
@@ -58,10 +58,18 @@ void PLATFORMS_MODULE_MANAGER_CLASS::Init()
 
 void PLATFORMS_MODULE_MANAGER_CLASS::UninitHelper()
 {
+    // Issue requests for module tear down
     for(std::list<PLATFORMS_MODULE>::reverse_iterator modules_iter = (*modules).rbegin(); 
         modules_iter != (*modules).rend(); modules_iter++)
     {
         (*modules_iter)->Uninit();
+    }
+ 
+    // Verify that all modules have torn themselves down. 
+    for(std::list<PLATFORMS_MODULE>::reverse_iterator modules_iter = (*modules).rbegin(); 
+        modules_iter != (*modules).rend(); modules_iter++)
+    {
+        while(!(*modules_iter)->UninitComplete()) {};
     }
 }
 
@@ -69,12 +77,17 @@ void PLATFORMS_MODULE_MANAGER_CLASS::UninitHelper()
 void PLATFORMS_MODULE_MANAGER_CLASS::Uninit()
 {
 
-    UINT32 uninit = (*uninitAtomic).fetch_and_store(1);
+    bool uninit = (*uninitAtomic).fetch_and_store(true);
     if(!uninit)
     {
         UninitHelper();
     }
 
+}
+
+bool PLATFORMS_MODULE_MANAGER_CLASS::UninitInProgress() 
+{
+    return *uninitAtomic;
 }
 
 PLATFORMS_MODULE_MANAGER_CLASS *PLATFORMS_MODULE_CLASS::manager;
@@ -142,6 +155,14 @@ PLATFORMS_MODULE_CLASS::InitPlatforms()
 }
 
 // init
+void 
+PLATFORMS_MODULE_CLASS::UninitPlatforms()
+{
+    InitPlatformsManager();
+    manager->Uninit();
+}
+
+// init
 void
 PLATFORMS_MODULE_CLASS::Init()
 {
@@ -170,3 +191,11 @@ PLATFORMS_MODULE_CLASS::CallbackExit(
   InitPlatformsManager();
   manager->CallbackExit(exitcode);
 }
+
+bool PLATFORMS_MODULE_CLASS::UninitInProgress() 
+{
+    InitPlatformsManager();
+    return manager->UninitInProgress();
+}
+
+

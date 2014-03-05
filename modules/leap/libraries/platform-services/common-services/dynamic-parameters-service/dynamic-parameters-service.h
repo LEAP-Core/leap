@@ -33,8 +33,7 @@ class DYNAMIC_PARAMS_SERVICE_CLASS: public PLATFORMS_MODULE_CLASS
 
     // required RRR service methods
     void Init(PLATFORMS_MODULE);
-    void Uninit();
-    void Cleanup();
+
 };
 
 

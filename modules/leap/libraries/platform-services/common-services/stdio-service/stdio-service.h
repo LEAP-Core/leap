@@ -175,8 +175,6 @@ class STDIO_SERVER_CLASS: public RRR_SERVER_CLASS,
 
     // required RRR methods
     void Init(PLATFORMS_MODULE);
-    void Uninit();
-    void Cleanup();
 
     // Called at the end of a run to make sure all messages are flushed
     void Sync();

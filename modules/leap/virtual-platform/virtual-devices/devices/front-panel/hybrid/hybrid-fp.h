@@ -74,7 +74,6 @@ class FRONT_PANEL_SERVER_CLASS: public RRR_SERVER_CLASS,
     
     void    Init(PLATFORMS_MODULE);
     void    Uninit();
-    void    Cleanup();
     bool    Poll();
 
     void    UpdateLEDs(UINT8 state);

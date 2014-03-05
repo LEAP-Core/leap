@@ -18085,3 +18085,48 @@ I recommend a nuke.
 made to dump all traffic.  I added a script that diffs two dumps and
 reports differences.
 
+
+----------
+keflemin    Date: Wed Mar  5 14:38:36 EST 2014  CSN: CSN-leap-539
+                  Wed Mar  5 19:38:36 UTC 2014
+
+
+Directory modules/leap/virtual-platform/channelio/li
+ li-channelio-routethrough.cpp Locally Modified          538 
+ li-channelio-routethrough-unthreaded.cpp Locally Added               0 
+ li-base.h                 Locally Modified          538 
+ li-channelio.cpp          Locally Modified          538 
+ li-channelio-routethrough-unthreaded.h Locally Added               0 
+ li-channelio.h            Locally Modified          538 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ platforms-module.h        Locally Modified          538 
+ platforms-module.cpp      Locally Modified          538 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.cpp             Locally Modified          538 
+ hybrid-fp.h               Locally Modified          538 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.cpp         Locally Modified          538 
+ stdio-service.h           Locally Modified          538 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.cpp Locally Modified          538 
+ dynamic-parameters-service.h Locally Modified          538 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.cpp    Locally Modified          538 
+ debug-scan-service.h      Locally Modified          538 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.cpp    Locally Modified          538 
+ assertions-service.h      Locally Modified          538 
+
+
+1) Refactored most LEAP services to use new teardown model, in which
+Uninit gives an opportunity to teardown threads.
+
+2) Added non-threaded implementation of LI channel route-through.
+This seems to be slower than the fully threaded implementaiton.
+

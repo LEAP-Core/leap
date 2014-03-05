@@ -176,7 +176,6 @@ class DEBUG_SCAN_SERVER_CLASS: public RRR_SERVER_CLASS,
     // required RRR methods
     void Init(PLATFORMS_MODULE);
     void Uninit();
-    void Cleanup();
 
     // Method to tell the hardware to dump state.
     void Scan(std::ostream& ofile = cout);

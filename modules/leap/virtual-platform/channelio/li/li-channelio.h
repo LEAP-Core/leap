@@ -102,6 +102,8 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
         
     map<string, vector<LI_CHANNEL_IN>* > incomingChannels;
     map<string, vector<LI_CHANNEL_OUT>* > outgoingChannels;
+    vector<pthread_t*> incomingHandlers;
+
     PHYSICAL_DEVICES physicalDevices;    
 
     static void * handleIncomingMessages(void *argv)
@@ -109,6 +111,7 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
         void ** args = (void**) argv;
         PHYSICAL_CHANNEL_CLASS *physicalChannel = (PHYSICAL_CHANNEL_CLASS*) args[0];
         vector<LI_CHANNEL_IN> *inChannels = (vector<LI_CHANNEL_IN>*) args[1];
+
         while (1) 
         {
             UMF_MESSAGE msg = physicalChannel->Read();
@@ -134,6 +137,10 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
 
     CHANNELIO_BASE_CLASS(PLATFORMS_MODULE parent, PHYSICAL_DEVICES physicalDevicesInit);
     ~CHANNELIO_BASE_CLASS();
+ 
+    void Uninit();
+    bool UninitComplete();
+
 
 };
 

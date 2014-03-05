@@ -16,11 +16,13 @@ typedef class PLATFORMS_MODULE_CLASS* PLATFORMS_MODULE;
 class PLATFORMS_MODULE_MANAGER_CLASS
 {
     protected:
-        list<PLATFORMS_MODULE> *modules;   // parent module
-        // this can be non-atomic. It will only be used at static construction time, 
+        list<PLATFORMS_MODULE>  *modules;
+   
+        // this variable can be non-atomic. It will only be used at static construction time, 
         // which is single threaded.     
-        static UINT32           init;   
-        class tbb::atomic<UINT32> *uninitAtomic;
+        static bool             init;   
+
+        class tbb::atomic<bool> *uninitAtomic;
      
         // Actually do the uninit.
         void UninitHelper();
@@ -32,6 +34,7 @@ class PLATFORMS_MODULE_MANAGER_CLASS
         void CallbackExit(int retVal);
         void Init();
         void Uninit();
+        bool UninitInProgress();
 };
 
 class PLATFORMS_MODULE_CLASS
@@ -43,6 +46,7 @@ class PLATFORMS_MODULE_CLASS
         string       name;     // descriptive name
         
 	static void InitPlatformsManager();
+        bool UninitInProgress();
 
     public:
         // constructor - destructor
@@ -53,6 +57,7 @@ class PLATFORMS_MODULE_CLASS
 
         // Call to initialize all platforms modules
 	static void InitPlatforms();
+	static void UninitPlatforms();
 
         // common methods
         void AddChild(PLATFORMS_MODULE);
@@ -60,8 +65,16 @@ class PLATFORMS_MODULE_CLASS
         // common virtual methods
         virtual void Init();
         virtual void Init(PLATFORMS_MODULE parent);
+
+        // Unlike init, which can complete asychronously, we need to
+        // be sure that uninit operations have completed before
+        // exiting the program. Uninit routines may be asynchronous,
+        // so we need a means of testing that they have completed. 
+
         virtual void Uninit();
+        virtual bool UninitComplete() {return true;}; 
         virtual void CallbackExit(int);
+
 };
 
 #endif
