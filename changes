@@ -18130,3 +18130,16 @@ Uninit gives an opportunity to teardown threads.
 2) Added non-threaded implementation of LI channel route-through.
 This seems to be slower than the fully threaded implementaiton.
 
+
+----------
+hjyang      Date: Thu Mar  6 16:16:57 EST 2014  CSN: CSN-leap-540
+                  Thu Mar  6 21:16:57 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-interfaces.bsv Locally Modified          539 
+ coherent-scratchpad-memory-client.bsv Locally Modified          539 
+ coherent-scratchpad-memory-service.awb Locally Modified          539 
+ coherent-scratchpad-memory-controller.bsv Locally Modified          539 
+
+Add a multi-controller option for coherent scratchpads across FPGAs.
