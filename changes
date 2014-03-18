@@ -18143,3 +18143,15 @@ Directory modules/leap/libraries/platform-services/mem-services/coherent-scratch
  coherent-scratchpad-memory-controller.bsv Locally Modified          539 
 
 Add a multi-controller option for coherent scratchpads across FPGAs.
+
+----------
+hjyang      Date: Tue Mar 18 15:06:35 EDT 2014  CSN: CSN-leap-541
+                  Tue Mar 18 19:06:35 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-client.bsv Locally Modified          540 
+ coherent-scratchpad-memory-service.awb Locally Modified          540 
+ coherent-scratchpad-memory-controller.bsv Locally Modified          540 
+
+Fix a bug in the multi-controller coherent scratchpad.

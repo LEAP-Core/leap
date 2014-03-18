@@ -1051,7 +1051,6 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
             
             cache_req.ownReq = isOwnReq(req.requester, req.reqControllerId);
             cache_req.addr = req.addr;
-            new_entry.reqControllerId = req.reqControllerId;
 
             case (req.reqInfo) matches
                 tagged COH_SCRATCH_ACTIVATED_GETS .gets_req:
@@ -1059,6 +1058,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     cache_req.reqType         = COH_CACHE_GETS;
                     need_snoop                = !cache_req.ownReq;
                     new_entry.requester       = req.requester;
+                    new_entry.reqControllerId = req.reqControllerId;
                     new_entry.ownership       = False; 
                     new_entry.isCacheable     = True;
                     new_entry.meta            = zeroExtendNP(gets_req.clientMeta); 
@@ -1070,6 +1070,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     cache_req.reqType         = COH_CACHE_GETX;
                     need_snoop                = !cache_req.ownReq;
                     new_entry.requester       = req.requester;
+                    new_entry.reqControllerId = req.reqControllerId;
                     new_entry.ownership       = True;
                     new_entry.isCacheable     = True;
                     new_entry.meta            = zeroExtendNP(getx_req.clientMeta); 
@@ -1081,6 +1082,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     cache_req.reqType         = COH_CACHE_PUTX;
                     need_snoop                = cache_req.ownReq && !putx_req.isCleanWB;
                     new_entry.requester       = 0;
+                    new_entry.reqControllerId = req.homeControllerId;
                     new_entry.ownership       = True;
                     new_entry.isCacheable     = True;
                     new_entry.meta            = zeroExtendNP(putx_req.controllerMeta); 
@@ -1206,7 +1208,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         let resp = respToNetworkQ.first();
         respToNetworkQ.deq();
         link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
-        debugLog.record($format("    sourceData: sendRespToNetwork: val=0x%x ", tpl_2(resp).val));
+        debugLog.record($format("    sourceData: sendRespToNetwork: val=0x%x, dest=%03d", tpl_2(resp).val, tpl_1(resp)));
     endrule
 
     // =======================================================================

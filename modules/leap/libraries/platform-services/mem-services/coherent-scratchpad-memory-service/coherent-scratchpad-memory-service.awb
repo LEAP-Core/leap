@@ -16,7 +16,7 @@
 
 %param --global COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE                 0  "0 Use non-token ring, 1 use token ring"
 
-%param --global COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE            1  "0 Use single/centralized controller and central cache, 1 use multiple controllers and central caches"
+%param --global COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE            0  "0 Use single/centralized controller and central cache, 1 use multiple controllers and central caches"
 
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_ENTRIES               1024  "Coherent scratchpad client private cache entries (must be a power of 2)"
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM    32  "Number of prefetch learners in scratchpad private cache (must be a power of 2)"

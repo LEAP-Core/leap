@@ -1262,8 +1262,13 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         let req = link_mem_req.first();
         let addr = req.addr;
         Bool is_local = isLocalRequest(addr);
-        debugLog.record($format("    router: check an unactivated request from client: addr=0x%x, %s", 
-                        addr, is_local? "local request" : "remote request"));
+        Bool is_put = False;
+        if (req.reqInfo matches tagged COH_SCRATCH_PUTX .info)
+        begin
+            is_put = True;
+        end
+        debugLog.record($format("    router: check an unactivated request from client: addr=0x%x, %s %s request", 
+                        addr, is_local? "local" : "remote", is_put? "PUT" : "GET" ));
         if (is_local)
         begin
             clientReqLocalW.send();
@@ -1280,8 +1285,13 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
             let req = links_controllers_req[p].peekFromPrev();
             let addr = req.addr;
             Bool is_local = isLocalRequest(addr);
-            debugLog.record($format("    router: check an unactivated request from global chain[%01d]: addr=0x%x, %s, requester=%03d, reqControllerId=%02d", 
-                            p, addr, is_local? "local request" : "remote request", req.requester, req.reqControllerId));
+            Bool is_put = False;
+            if (req.reqInfo matches tagged COH_SCRATCH_PUTX .info)
+            begin
+                is_put = True;
+            end
+            debugLog.record($format("    router: check an unactivated request from global chain[%01d]: addr=0x%x, %s %s request, requester=%03d, reqControllerId=%02d", 
+                            p, addr, is_local? "local" : "remote", is_put? "PUT" : "GET", req.requester, req.reqControllerId));
             if (is_local)
             begin
                 networkReqLocalW[p].send();
@@ -1390,7 +1400,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         fwdRespArb <= False;
         link_controllers_resp.enq(resp.controllerId, resp);
         memoryRemoteRespW.send();
-        debugLog.record($format("    router: forward memory response to remote response network"));
+        debugLog.record($format("    router: forward memory response to remote response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
     endrule
     
     rule wbFwdResp (!memoryRemoteRespW && writebackRemoteW);
@@ -1398,7 +1409,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         link_mem_resp.deq();
         fwdRespArb <= True;
         link_controllers_resp.enq(resp.controllerId, resp);
-        debugLog.record($format("    router: forward write-back response to remote response network"));
+        debugLog.record($format("    router: forward write-back response to remote response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
     endrule
     
     rule memoryLocalResp (localMemRespQ.first().controllerId == controllerPort && (localRespArb || !link_controllers_resp.notEmpty()));
@@ -1407,7 +1419,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         link_mem_resp.enq(resp.clientId, resp);
         localRespArb <= False;
         memoryLocalRespW.send();
-        debugLog.record($format("    router: send memory response to local response network"));
+        debugLog.record($format("    router: send memory response to local response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
     endrule
     
     rule remoteToLocalResp (!memoryLocalRespW);
@@ -1415,7 +1428,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         link_controllers_resp.deq();
         link_mem_resp.enq(resp.clientId, resp);
         localRespArb <= True;
-        debugLog.record($format("    router: send remote response to local response network"));
+        debugLog.record($format("    router: send remote response to local response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
     endrule
 
     (* mutually_exclusive = "wbLocalResp, wbFwdResp" *)
