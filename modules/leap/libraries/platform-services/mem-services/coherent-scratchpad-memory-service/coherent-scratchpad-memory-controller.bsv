@@ -1394,6 +1394,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
     PulseWire         memoryLocalRespW  <- mkPulseWire();
     PulseWire         memoryRemoteRespW <- mkPulseWire();
 
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+
     rule memoryFwdResp (localMemRespQ.first().controllerId != controllerPort && (fwdRespArb || !writebackRemoteW));
         let resp = localMemRespQ.first();
         localMemRespQ.deq();
@@ -1452,6 +1454,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
             writebackRemoteW.send();
         end
     endrule
+`endif
 
     // =======================================================================
     //
@@ -1466,8 +1469,10 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
    
     method Action sendMemoryResp(COH_SCRATCH_PORT_NUM dest, COH_SCRATCH_RESP resp);
         localMemRespQ.enq(resp);
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
         debugLog.record($format("    router: receive a memory response, receiver: clientId=%03d, controllerId=%02d",
                         resp.clientId, resp.controllerId));
+`endif
     endmethod
 
     method ActionValue#(COH_SCRATCH_MEM_REQ#(t_ADDR)) unactivatedReq();

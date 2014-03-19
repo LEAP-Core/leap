@@ -18155,3 +18155,13 @@ Directory modules/leap/libraries/platform-services/mem-services/coherent-scratch
  coherent-scratchpad-memory-controller.bsv Locally Modified          540 
 
 Fix a bug in the multi-controller coherent scratchpad.
+
+----------
+hjyang      Date: Wed Mar 19 15:01:16 EDT 2014  CSN: CSN-leap-542
+                  Wed Mar 19 19:01:16 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-controller.bsv Locally Modified          541 
+
+Fix the switch between single-controller & multi-controller options. 
