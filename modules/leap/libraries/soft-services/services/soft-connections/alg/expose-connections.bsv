@@ -87,10 +87,10 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  stationStack: tagged Nil,
                  debugInfo: tagged Nil,
                  latencyInfo: tagged Nil,
-                 synthesisBoundaryPlatform: fpgaPlatformName,
-                 synthesisBoundaryPlatformID: fpgaPlatformID,
+                 synthesisBoundaryPlatform: fpgaPlatformName(),
+                 synthesisBoundaryPlatformID: fpgaPlatformID(),
                  synthesisBoundaryID: 0,
-                 synthesisBoundaryName: "Unknown",
+                 synthesisBoundaryName: fpgaPlatformName(),
                  rootStationName: "InvalidRootStation",
                  softReset: sReset
              };
@@ -167,16 +167,12 @@ module exposeDanglingSends#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
         let name = ctHashKey(cur);
         let cur_val = ctHashValue(cur);
         dsends = List::tail(dsends);
-        // Only interested in connections on this FPGA Platform
-        if(cur_val.computePlatform == fpgaPlatformName)
+        if((cur_val.computePlatform == fpgaPlatformName()) ||
+           (`EXPOSE_ALL_CONNECTIONS != 0))
         begin
             printDanglingSend(cur_out,cur);
             res[cur_out] = cur_val.outgoing;
             cur_out = cur_out + 1;
-        end
-        else
-        begin
-            messageM("Dropping Send" + name + " should be on " + cur_val.computePlatform + " and we are compiling " + fpgaPlatformName);
         end
     end
 
@@ -220,16 +216,12 @@ module exposeDanglingRecvs#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
         let name = ctHashKey(cur);
         let cur_val = ctHashValue(cur);
         drecvs = List::tail(drecvs);
-        // Only interested in connections on this FPGA Platform
-        if (cur_val.computePlatform == fpgaPlatformName)
+        if((cur_val.computePlatform == fpgaPlatformName) ||
+           (`EXPOSE_ALL_CONNECTIONS != 0))
         begin
             printDanglingRecv(cur_in,cur);
             res[cur_in] = cur_val.incoming;
             cur_in = cur_in + 1;
-        end
-        else
-        begin
-            messageM("Dropping Recv" + name + " should be on " + cur_val.computePlatform + " and we are compiling " + fpgaPlatformName);
         end
     end
 
@@ -330,61 +322,6 @@ module exposeDanglingRecvMultis#(LOGICAL_CONNECTION_INFO ctx) (Vector#(n, PHYSIC
 
 endmodule
   
-
-//If there are no links then it's just a pass-through queue
-/*module mkPassThrough
-    //interface:
-                (PHYSICAL_CHAIN);
-
-    // Local Clock and reset
-    Clock localClock <- exposeCurrentClock();
-    Reset localReset <- exposeCurrentReset();
-
-    FIFOF#(PHYSICAL_CHAIN_DATA) passQ <- mkUGFIFOF();
-    PulseWire enW <- mkPulseWire();
-    PulseWire sendDeqeueued <- mkPulseWire();
-
-    interface PHYSICAL_CHAIN_IN incoming;
-
-        method Action try(PHYSICAL_CHAIN_DATA d);
-            if (passQ.notFull())
-            begin
-                passQ.enq(d);
-                enW.send();
-            end
-        endmethod
-
-        method Bool   success();
-            return enW;
-        endmethod
-                    
-        method Bool dequeued();
-            return sendDequeued();  
-        endmethod
-
-        interface Clock clock = localClock;
-        interface Reset reset = localReset; 
-
-    endinterface
-
-    // A physical outgoing connection
-    interface PHYSICAL_CHAIN_OUT outgoing;
-
-      method Bool notEmpty() = passQ.notEmpty();
-      method PHYSICAL_CHAIN_DATA first() = passQ.first();
-
-      method Action deq(); 
-          passQ.deq();
-          sendDeqeueued.send();
-      endmethod
-
-      interface Clock clock = localClock;
-      interface Reset reset = localReset; 
-
-    endinterface
-
-endmodule*/
-
 // make the printout similar to connections.  this may assist in parsing later.
 module printChain#(Integer cur_out, LOGICAL_CHAIN_INFO cur) (Empty);
     messageM("Dangling Chain {" + cur.logicalType + "} [" + integerToString(cur_out) +  "]:" + cur.logicalName + ":" + cur.computePlatform + ":False:" + integerToString(cur.bitWidth) + ":" + cur.moduleNameIncoming+ ":" + cur.moduleNameOutgoing);
@@ -404,13 +341,17 @@ module exposeChains#(LOGICAL_CONNECTION_INFO ctx) (Vector#(n, PHYSICAL_CHAIN));
         // For non-empty chains, we connect to the head of the first link
         // and the tail of the last link. (These could be the same link if
         // there was only one.)
-        printChain(cur_chain, chain);
-        chns[cur_chain] = (interface PHYSICAL_CHAIN;
-                               interface incoming = chain.incoming;
-                               interface outgoing = chain.outgoing;
-                           endinterface);
-        cur_chain = cur_chain + 1;
-
+        //Drop chain if not used
+        if((chain.computePlatform == fpgaPlatformName()) ||
+           (`EXPOSE_ALL_CONNECTIONS != 0))
+        begin
+            printChain(cur_chain, chain);
+            chns[cur_chain] = (interface PHYSICAL_CHAIN;
+                                   interface incoming = chain.incoming;
+                                   interface outgoing = chain.outgoing;
+                               endinterface);
+            cur_chain = cur_chain + 1;
+        end
     end
 
 

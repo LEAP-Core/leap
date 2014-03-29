@@ -36,6 +36,20 @@ def get_temp_path(moduleList, module):
   TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
   return MODULE_PATH + '/' + TMP_BSC_DIR + '/'
 
+# The following funtions are used in several places throughout the
+# code base.  It is not clear that they should be located here.
+# Perhaps some other library code may be needed?
+def get_wrapper(module):
+    return module.name + '_Wrapper.bsv'
+
+def get_log(module):
+    return module.name + '_Log.bsv'
+
+def get_logfile(moduleList,module):
+    TEMP_PATH = get_temp_path(moduleList,module)
+    return TEMP_PATH + get_wrapper(module).replace('.bsv', '.log')
+
+
 # The module list class.  This class exists as an interface between
 # AWB and the build pipeline. 
 

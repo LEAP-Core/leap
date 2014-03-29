@@ -332,7 +332,7 @@ module [CONNECTED_MODULE] mkAssertionNode#(ASSERTIONS_DICT_TYPE baseID)
     // *********** Connections ***********
 
     // Connection to the assertions controller
-    Connection_Chain#(ASSERTION_DATA) chain <- mkConnection_Chain(`RINGID_ASSERTS);
+    CONNECTION_CHAIN#(ASSERTION_DATA) chain <- mkConnectionChain("ASSERTS_DICT");
 
     // Wires & registers for individual assertions
     Vector#(`ASSERTIONS_PER_NODE, Wire#(ASSERTION_SEVERITY)) raiseWire <- replicateM(mkDWire(ASSERT_NONE));

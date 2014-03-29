@@ -62,10 +62,6 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   // Connect all broadcasts in the resulting context.
   match {.unmatched_sends, .unmatched_recvs} <- connectMulticasts(clk, info);
 
-  // Connect all trees in the resulting context.
-  // Eventually more physical interconnects will be supported.
-  connectStationsTree(clk, info);
-
   // Error out if there are dangling connections
   // however, "model" where this is called may be on another FPGA.  So, unmatched things 
   // are acceptable - the generated 
@@ -77,12 +73,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     let cur_entry = ctHashValue(cur);
   
     // clear out leftovers from model top level 
-    if(cur_entry.computePlatform != fpgaPlatformName)
-      begin
-	let newStr <- printSend(cur);
-        errorStr = "Dropping: " + newStr + errorStr;	
-      end
-    else if(cur_entry.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
+    if(`EXPOSE_ALL_CONNECTIONS > 0)
       begin
         // In this case we should display the unmatched connection
         printDanglingSend(x,cur);
@@ -93,7 +84,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
       begin
         messageM("ERROR: Unmatched logical send: ");
 	let newStr <- printSend(cur);
-        errorStr = "ERROR: Unmatched logical send" + integerToString(x) + ": " + newStr + errorStr;	
+        errorStr = "ERROR: Unmatched logical send " + integerToString(x) + ": " + newStr + "\n" + errorStr;	
         error_occurred = True;
       end
   end
@@ -106,13 +97,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
 
     messageM("Working on: " + fpgaPlatformName);
     // clear out leftovers from model top level 
-    if(cur_entry.computePlatform != fpgaPlatformName)
-      begin
-        messageM("Top Level Dropping Recv: ");
-	let newStr <- printRecv(cur);		 
-        errorStr = "Dropping Top Level: " + newStr + errorStr; 
-      end
-    else if(cur_entry.computePlatform == fpgaPlatformName && `IGNORE_PLATFORM_MISMATCH == 1)
+    if(`EXPOSE_ALL_CONNECTIONS > 0)
       begin
         // In this case we should display the unmatched connection
         printDanglingRecv(x,cur);
@@ -123,7 +108,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
       begin
         messageM("ERROR: Unmatched logical receive: ");
 	let newStr <- printRecv(cur);		 
-        errorStr = "ERROR: Unmatched logical receive " + integerToString(x) + ": " + newStr + errorStr; 
+        errorStr = "ERROR: Unmatched logical receive " + integerToString(x) + ": " + newStr + "\n" + errorStr; 
         error_occurred = True;
       end
   end

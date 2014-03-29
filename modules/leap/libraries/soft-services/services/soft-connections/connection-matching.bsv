@@ -145,14 +145,16 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    messageM("Calling register chain");
     // See what existing links are out there.
     let existing_links <- getChain(new_link);
 
-    if(new_link.computePlatform != fpgaPlatformName)
-      begin
+    // If the platforms do not match, drop the chain.  Unless we have been 
+    // asked to propagate all connections to the top level.  
+    if((new_link.computePlatform != fpgaPlatformName) &&
+       (`EXPOSE_ALL_CONNECTIONS == 0))
+    begin
         messageM("Dropping Chain Link " + new_link.logicalName + " should be on " + new_link.computePlatform + " and we are compiling " + fpgaPlatformName);
-      end
+    end
     else if (existing_links matches tagged Valid .latest_link)
     begin
 
@@ -164,16 +166,16 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         begin
 
             // Error out
-            messageM("Detected existing chain type: " + latest_link.logicalType);
-            messageM("Detected new link type: " + new_link.logicalType);
-            error("ERROR: data types for Connection Chain #" + new_link.logicalName + " do not match.");
+            error("ERROR: data types for Connection Chain " + new_link.logicalName + " do not match: \n" + 
+                  "Detected existing chain type: " + latest_link.logicalType + 
+                  "\nDetected new link type: " + new_link.logicalType + "\n");
 
         end
       
         // Good news! We didn't blow up.
         // Actually do the connection, with a new LOGICAL_CHAIN_INFO 
         // This lets us keep a single LOGICAL_CHAIN_INFO
-        messageM("Adding Link to Chain: [" + new_link.logicalName + "] from " + new_link.moduleNameIncoming);
+        messageM("Adding Link to Chain: [" + new_link.logicalName + "]  " + new_link.computePlatform + ":"  + new_link.moduleNameIncoming);
         connectOutToIn(new_link.outgoing, latest_link.incoming);
 
         // Add the new link to the list.
@@ -190,8 +192,8 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
     else
     begin
 
-        // It's the only member of the chain, so just add it.
-        messageM("Adding Initial Link for Chain: [" + new_link.logicalName + "]");
+        // It's the first member of the chain, so just add it.
+        messageM("Adding Initial Link for Chain: [" + new_link.logicalName + "] " + new_link.computePlatform + ":" + new_link.moduleNameIncoming );
         putChain(new_link);
 
     end
@@ -313,9 +315,7 @@ module [t_CONTEXT] connect#(LOGICAL_SEND_ENTRY sEntry, LOGICAL_RECV_ENTRY rEntry
     if (csend.logicalType != crecv.logicalType && crecv.logicalType != "")
     begin
 
-        messageM("Detected send type: " + csend.logicalType);
-        messageM("Detected receive type: " + crecv.logicalType);
-        error("ERROR: data types for Connection " + name + " do not match.");
+        error("ERROR: data types for Connection " + name + " do not match. \n" + "Detected send type: " + csend.logicalType + "\nDetected receive type: " + crecv.logicalType + "\n");
 
     end
     else

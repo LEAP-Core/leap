@@ -40,10 +40,14 @@ module [CONNECTED_MODULE] mkCommonServices
     // interface:
         ();
 
-    let assertionsService <- mkAssertionsService();
-    let debugScanService  <- mkDebugScanService();
-    let paramsService     <- mkDynamicParametersService();
-    let statsService      <- mkStatsService();
-    let stdioService      <- mkStdIOService();
+    if (`BUILD_COMMON_SERVICES == 1)
+    begin 
+        let assertionsService <- mkAssertionsService();
+        let debugScanService  <- mkDebugScanService();
+        let paramsService     <- mkDynamicParametersService();
+        let statsService      <- mkStatsService();
+        let stdioService      <- mkStdIOService();
+    end
+
 
 endmodule

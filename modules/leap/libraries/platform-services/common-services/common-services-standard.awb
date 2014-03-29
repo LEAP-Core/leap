@@ -19,4 +19,6 @@
 %public  common-services-standard.h
 %private common-services-standard.cpp
 
+%param --global  BUILD_COMMON_SERVICES 1 "Actually instantiate common services""
+
 %param SYNTH_BOUNDARY mkCommonServices "Name of synthesis boundary"

@@ -95,7 +95,7 @@ module [CONNECTED_MODULE] mkAssertionsService
     // ========================================================================
 
     // Communication link to the rest of the Assertion checkers
-    Connection_Chain#(ASSERTION_DATA) chainDict <- mkConnection_Chain(`RINGID_ASSERTS);
+    CONNECTION_CHAIN#(ASSERTION_DATA) chainDict <- mkConnectionChain("ASSERTS_DICT");
   
     rule processDictResp (True);
         let ast <- chainDict.recvFromPrev();

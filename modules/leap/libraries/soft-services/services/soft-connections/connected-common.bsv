@@ -264,6 +264,7 @@ typedef struct
     String logicalName;
     String logicalType;
     String computePlatform;
+    String moduleName;
     Integer bitWidth;
     PHYSICAL_CONNECTION_OUT_MULTI outgoing;
 } 
@@ -275,6 +276,7 @@ typedef struct
     String logicalName;
     String logicalType;
     String computePlatform;
+    String moduleName;
     Integer bitWidth;
     PHYSICAL_CONNECTION_IN_MULTI incoming;
 } 

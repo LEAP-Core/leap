@@ -8,7 +8,6 @@ class LIChannel():
       self.sc_type = sc_type
       self.raw_type = raw_type
       self.name = name
-      self.inverse_name = "ERROR"
       self.module_idx = module_idx # we don't care about the physical indexes yet. They get assigned during the match operation
       self.idx ="unassigned" # we don't care about the physical indexes yet. They get assigned during the match operation
       self.platform = platform
@@ -16,21 +15,35 @@ class LIChannel():
       self.bitwidth = int(bitwidth)
       self.matched = False
       self.module_name = module_name # this is only the name of the module
-      self.inverse_sc_type = "ERROR"
-      self.via_idx = "unassigned"
-      self.via_link = "unassigned"
+      self.via_idx_ingress = "unassigned"
+      self.via_link_ingress = "unassigned"
+      self.via_idx_egress = "unassigned"
+      self.via_link_egress = "unassigned"
       self.type_structure = type_structure
       self.activity = -1 # this is used in lane allocation
       self.module = "unassigned" # the actual module object.  Assigned at graph construction time
       self.partnerModule = "unassigned"
       self.partnerChannel = "unassigned"
+      self.code = "" #Code() # This is used to store various definitions related to type compression
+
 
   def __repr__(self):
-      return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":" + self.module_name + ":" + self.platform + " }"
+
+      partnerModule = "unassigned"
+      partnerChannel = "unassigned"
+
+      if(not isinstance(self.partnerChannel, str)):
+          partnerChannel = self.partnerChannel.name
+
+      if(not isinstance(self.partnerModule, str)):
+          partnerModule = self.partnerModule.name
+
+      return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":" + self.module_name + ":" + self.platform + "->" + partnerChannel + ":" + partnerModule + " }"
 
   def copy(self):
       newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.platform, self.optional, self.bitwidth, self.module_name, self.type_structure)
       return newChannel
+
   # can probably extend matches to support chains
   def matches(self, other):
       if (other.name == self.name):
@@ -61,3 +74,8 @@ class LIChannel():
         return 1
       else:
         return 2
+
+
+
+
+

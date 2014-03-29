@@ -109,11 +109,11 @@ endmodule
 
 interface Connection_Client#(type req_T, type resp_T);
 
-  method Action makeReq(req_T data);
-  method Bool   reqNotFull();
-  method Bool   respNotEmpty(); 
-  method resp_T getResp();
-  method Action deq();
+    method Action makeReq(req_T data);
+    method Bool   reqNotFull();
+    method Bool   respNotEmpty(); 
+    method resp_T getResp();
+    method Action deq();
   
 endinterface
 
@@ -124,27 +124,28 @@ module [ConnectedModule] mkConnection_Client#(String client_name)
             (Bits#(t_REQ, t_REQ_SIZE),
 	     Bits#(t_RSP, t_RSP_SIZE));
 
-  CONNECTION_CLIENT#(t_REQ, t_RSP) c <- mkConnectionClient(client_name);
+    CONNECTION_CLIENT#(t_REQ, t_RSP) c <- mkConnectionClient(client_name);
 
-  method Action makeReq(t_REQ data) = c.makeReq(data);
-  method Bool   respNotEmpty() = c.rspNotEmpty();
-  method t_RSP  getResp() = c.getRsp();
-  method Action deq() = c.deq();
-  method Bool   reqNotFull() = c.reqNotFull();
+    method Action makeReq(t_REQ data) = c.makeReq(data);
+    method Bool   respNotEmpty() = c.rspNotEmpty();
+    method t_RSP  getResp() = c.getRsp();
+    method Action deq() = c.deq();
+    method Bool   reqNotFull() = c.reqNotFull();
 
 endmodule
 
 
 interface Connection_Chain#(type msg_T);
 
-  method ActionValue#(msg_T) recvFromPrev();
-  method msg_T               peekFromPrev();
-  method Bool                recvNotEmpty();
+    method ActionValue#(msg_T) recvFromPrev();
+    method msg_T               peekFromPrev();
+    method Bool                recvNotEmpty();
 
-  method Action              sendToNext(msg_T data);
-  method Bool                sendNotFull();
+    method Action              sendToNext(msg_T data);
+    method Bool                sendNotFull();
   
 endinterface
+
 
 
 module [ConnectedModule] mkConnection_Chain#(Integer chain_id)
@@ -152,14 +153,17 @@ module [ConnectedModule] mkConnection_Chain#(Integer chain_id)
 		(Connection_Chain#(msg_T))
     provisos
 	    (Bits#(msg_T, msg_SZ));
-  CONNECTION_CHAIN#(msg_T) c <- mkConnectionChain("OldSchoolChain" + integerToString(chain_id));
 
-  method recvFromPrev = c.recvFromPrev;
-  method peekFromPrev = c.peekFromPrev;
-  method recvNotEmpty = c.recvNotEmpty;
+    warningM("Old-style Integer chains are deprecated. Please fix your code.");
 
-  method sendToNext = c.sendToNext;
-  method sendNotFull = c.sendNotFull;
+    CONNECTION_CHAIN#(msg_T) c <- mkConnectionChain("OldSchoolChain" + integerToString(chain_id));
+
+    method recvFromPrev = c.recvFromPrev;
+    method peekFromPrev = c.peekFromPrev;
+    method recvNotEmpty = c.recvNotEmpty;
+
+    method sendToNext = c.sendToNext;
+    method sendNotFull = c.sendNotFull;
 
 endmodule
 

@@ -18165,3 +18165,60 @@ Directory modules/leap/libraries/platform-services/mem-services/coherent-scratch
  coherent-scratchpad-memory-controller.bsv Locally Modified          541 
 
 Fix the switch between single-controller & multi-controller options. 
+
+----------
+keflemin    Date: Sat Mar 29 16:49:41 EDT 2014  CSN: CSN-leap-543
+                  Sat Mar 29 20:49:41 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          542 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          542 
+ liChannel.py              Locally Modified          542 
+ liGraph.py                Locally Modified          542 
+ liChain.py                Locally Modified          542 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          542 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.awb Locally Modified          542 
+ common-services-standard.bsv Locally Modified          542 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.bsv    Locally Modified          542 
+ assertions-local.bsv      Locally Modified          542 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          542 
+ connected-common.bsv      Locally Modified          542 
+ soft-connections-common-module-context.awb Locally Modified          542 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          542 
+ connect-top-level-multifpga.bsv Locally Modified          542 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          542 
+ connection-backwards-compat.bsv Locally Modified          542 
+ connection-implementation.bsv Locally Modified          542 
+
+
+1) Updated services to use string-based chains.  Integer-based chains
+are deprecated.
+
+2) Improved LI library to support LIM compiler reorganization. Chief
+new functionalities include the ability to dump/load LIM graphs
+and some high-level manipulations on those graphs such as graph
+merging.
+
+3) Added support in BSV compilation to dump an IR of the LIM graph
+using the new LI library functionalities.
+
+4) Added new mode to BSV LI channels in which all LI channels can be
+exposed (except intra-module channels, which only have module-level
+scope).  BSV compilation now dumps a LIM graph IR after its first
+pass.  This IR can be read in during subsequent LIM compilation and
+operated on by the LIM compiler.

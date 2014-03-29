@@ -91,6 +91,7 @@ typeclass Matchable#(type t);
   function String  getLogicalName(t val);
   function Integer getLogicalWidth(t val);
   function String  getComputePlatform(t val);
+  function String  getModuleName(t val);
 endtypeclass
 
 instance Matchable#(LOGICAL_RECV_ENTRY);
@@ -104,6 +105,10 @@ instance Matchable#(LOGICAL_RECV_ENTRY);
 
   function String getComputePlatform(LOGICAL_RECV_ENTRY r_entry);
     return ctHashValue(r_entry).computePlatform;
+  endfunction
+
+  function String getModuleName(LOGICAL_RECV_ENTRY r_entry);
+    return ctHashValue(r_entry).moduleName;
   endfunction
 endinstance
 
@@ -119,6 +124,10 @@ instance Matchable#(LOGICAL_SEND_ENTRY);
   function String getComputePlatform(LOGICAL_SEND_ENTRY s_entry);
     return ctHashValue(s_entry).computePlatform;
   endfunction
+
+  function String getModuleName(LOGICAL_SEND_ENTRY r_entry);
+    return ctHashValue(r_entry).moduleName;
+  endfunction
 endinstance
 
 instance Matchable#(LOGICAL_RECV_MULTI_INFO);
@@ -132,6 +141,10 @@ instance Matchable#(LOGICAL_RECV_MULTI_INFO);
 
   function String getComputePlatform(LOGICAL_RECV_MULTI_INFO rinfo);
     return rinfo.computePlatform;
+  endfunction
+
+  function String getModuleName(LOGICAL_RECV_MULTI_INFO rinfo);
+    return rinfo.moduleName;
   endfunction
 endinstance
 
@@ -147,6 +160,10 @@ instance Matchable#(LOGICAL_SEND_MULTI_INFO);
   function String getComputePlatform(LOGICAL_SEND_MULTI_INFO sinfo);
     return sinfo.computePlatform;
   endfunction
+
+  function String getModuleName(LOGICAL_SEND_MULTI_INFO sinfo);
+    return sinfo.moduleName;
+  endfunction
 endinstance
 
 instance Matchable#(LOGICAL_CHAIN_INFO);
@@ -161,14 +178,25 @@ instance Matchable#(LOGICAL_CHAIN_INFO);
   function String getComputePlatform(LOGICAL_CHAIN_INFO sinfo);
     return sinfo.computePlatform;
   endfunction
-endinstance
+
+  function String getModuleName(LOGICAL_CHAIN_INFO sinfo); 
+
+    // Although chains carry information about incoming and outgoing
+    // modules for chain links, it is sufficient to only look at the incoming module, since all new links 
+    // have the incoming and outgoing modules tagged in the same way.
+    
+    return sinfo.moduleNameIncoming; 
+  endfunction endinstance
 
 function Bool nameMatches(r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));
   
   return (getLogicalName(sinfo) == getLogicalName(rinfo)) &&          
-         (getComputePlatform(sinfo) == getComputePlatform(rinfo));
+         // In the first pass of multifpga builds, we expose all connections. 
+         // However connections within the same module can be joined immediately. 
+         ((getModuleName(sinfo) == getModuleName(rinfo)) ||
+         (`EXPOSE_ALL_CONNECTIONS == 0));
  
 endfunction
 
@@ -210,7 +238,6 @@ module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SI
       rule success (cin.success());
           // We succeeded in moving the data
           cout.deq();
-    
       endrule
   end
   else

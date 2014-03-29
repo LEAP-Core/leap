@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import string
+import dill as pickle
 import SCons.Script
 from model import  *
 from li_module import *
@@ -13,15 +14,6 @@ except ImportError:
     print "\n"
     # print "Warning you should upgrade to pygraph 1.8"
 
-def get_wrapper(module):
-    return module.name + '_Wrapper.bsv'
-
-def get_log(module):
-    return module.name + '_Log.bsv'
-
-def get_logfile(moduleList,module):
-    TEMP_PATH = get_temp_path(moduleList,module)
-    return TEMP_PATH + get_wrapper(module).replace('.bsv', '.log')
 
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
@@ -109,13 +101,83 @@ class BSV():
             ## the top module.
             self.build_synth_boundary(moduleList, moduleList.topModule)
 
+
+            # If we're doing a LIM compilation, we need to dump an LIM Graph. 
+            # This must be done before the build tree attempts to reorganize the world.
+            # dump_lim_graph = moduleList.getAWBParam('wrapper_gen_tool', 'DUMP_LIM_GRAPH')
+            do_dump_lim_graph = 1
+            if do_dump_lim_graph:
+                all_logs = []
+                for module in  moduleList.topologicalOrderSynth():
+                    # scrub tree build, which is introduced above us...
+                    if (module.name != 'build_tree'):
+                        all_logs.extend(module.moduleDependency['BSV_LOG'])
+
+                li_graph = moduleList.env['DEFS']['APM_NAME'] + '.li'
+
+                ## dump a LIM graph for use by the LIM compiler.  here
+                ## we wastefully contstruct (or reconstruct, depending on your
+                ## perspective, a LIM graph including the platform channels.
+                ## Probably this result could be acheived with the mergeGraphs
+                ## function.
+                def dump_lim_graph(target, source, env):
+            
+                    connections = []
+                    # filter out build_tree connections.  These are not real
+                    
+                    for connection in parseLogfiles(all_logs):
+                        if (connection.module_name != 'build_tree'):
+                            connections.append(connection)
+                    
+                    fullLIGraph = LIGraph(connections) 
+
+
+                    # annotate modules with relevant object code (useful in
+                    # LIM compilation)
+                    # this is not technically a part of the tree cut methodology, but we need to do this             
+
+                    # For the LIM compiler, we must also annotate those
+                    # channels which are coming out of the platform code.
+
+                    for module in topo + [moduleList.topModule]:
+                        print str(module.moduleDependency)
+                        modulePath = module.buildPath
+
+                        # Add references to object code to graph module
+                        def addBuildPath(fileName):
+                            return fileName + modulePath
+
+                        # the liGraph only knows about modules that actually
+                        # have connections some modules are vestigial, andso
+                        # we can forget about them...
+                        if (module.name in fullLIGraph.modules):
+                            fullLIGraph.modules[module.name].putObjectCode('BSV_LOG', map(addBuildPath, module.moduleDependency['BSV_LOG']))
+
+                    # dump graph representation. 
+                    pickleHandle = open(li_graph, 'wb')
+                    pickle.dump(fullLIGraph, pickleHandle, protocol=-1)
+                    pickleHandle.close()
+
+                    if (self.pipeline_debug != 0):
+                        print "Initial Graph is: " + str(fullLIGraph) + ": " + sys.version +"\n"
+
+                # Setup the graph dump
+                dumpGraph = env.Command(li_graph,
+                                        all_logs,
+                                        dump_lim_graph)
+                moduleList.topDependency += [dumpGraph]
+
+
+
+
+
             ## Merge all synthesis boundaries using a tree?  The tree reduces
             ## the number of connections merged in a single compilation, allowing
             ## us to support larger systems.
             use_tree_build = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
             if use_tree_build:
                 moduleList.moduleList += self.setup_tree_build(moduleList, topo)
-
+        
             ##
             ## Generate the global string table.  Bluespec-generated global
             ## strings are stored in files by the compiler.
@@ -520,7 +582,7 @@ class BSV():
     
         moduleList.env.Append(BUILDERS = {'BSC' : bsc, 'BSC_LOG' : bsc_log, 'BSC_LOG_ONLY' : bsc_log_only})
 
- 
+
     ##
     ## setup_tree_build --
     ##   Merge exposed soft connections using a tree of synthesis boundaries
@@ -540,12 +602,14 @@ class BSV():
 
         pipeline_debug = self.pipeline_debug
 
+
         ##
         ## cut_tree_build does the heavy lifting as a build-time method when
         ## invoked in the 2nd pass of SCons.
         ##
         def cut_tree_build(target, source, env):
             liGraph = LIGraph(parseLogfiles(boundary_logs))     
+            
             
             synth_handle = open(tree_file_synth,'w')
             wrapper_handle = open(tree_file_wrapper,'w')
@@ -959,9 +1023,17 @@ class BSV():
         ## This produces the treeNode BSV. It must wait for the
         ## compilation of the log files, which it will read to form the
         ## LIM graph
+        ##
+        ## We do two operations during this phase.  First, we dump a
+        ## representation of the user program. This representation is
+        ## used by the LIM compiler to create heterogeneous
+        ## executables.  We then do a local modification to the build
+        ## tree to reduce Bluespec compilation time. 
         tree_components = env.Command([tree_file_wrapper, tree_file_synth],
                                       boundary_logs,
                                       cut_tree_build)
+
+
 
         ## The top level build depends on the compilation of the tree components 
         ## into bo/ba/v files. 

@@ -368,7 +368,6 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
             };
 
         addConnectionDebugInfo(dbg_info);
-
     end
 
 
@@ -558,7 +557,8 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
       };
 
   String platformName <- getSynthesisBoundaryPlatform(); 
-  if(platformName == fpgaPlatformName)
+  if((platformName == fpgaPlatformName) ||
+     (`EXPOSE_ALL_CONNECTIONS != 0))
     begin
       // Register the chain
       registerChain(info);

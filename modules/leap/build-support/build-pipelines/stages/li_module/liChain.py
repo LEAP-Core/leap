@@ -8,7 +8,6 @@ class LIChain():
       self.sc_type = sc_type
       self.raw_type = raw_type
       self.name = name
-      self.inverse_name = "ERROR"
       self.module_idx = module_idx # we don't care about the physical indexes yet. They get assigned during the match operation
       self.idx ="unassigned" # we don't care about the physical indexes yet. They get assigned during the match operation
       self.platform = platform
@@ -17,17 +16,39 @@ class LIChain():
       self.matched = False
       self.module_name = module_name
       self.chainroot = chainroot
-      self.inverse_sc_type = "ERROR"
-      self.via_idx = "unassigned"
-      self.via_link = "unassigned"
+      self.via_idx_ingress = "unassigned"
+      self.via_link_ingress = "unassigned"
+      self.via_idx_egress = "unassigned"
+      self.via_link_egress = "unassigned"
       self.type_structure = type_structure
       self.activity = -1 # this is used in lane allocation
       self.module = "unassigned"
       self.sourcePartnerChain = "unassigned"
       self.sinkPartnerChain = "unassigned"
+      self.sourcePartnerModule = "unassigned"
+      self.sinkPartnerModule = "unassigned"
 
   def __repr__(self):
-      return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":" + self.module_name + ":" + self.platform + " }"
+      # Partner objects may not be initialized.
+      sourcePartnerChain = "unassigned"
+      sinkPartnerChain = "unassigned"
+      sourcePartnerModule = "unassigned"
+      sinkPartnerModule = "unassigned"
+
+      if(not isinstance(self.sourcePartnerChain, str)):
+          sourcePartnerChain = self.sourcePartnerChain.name
+
+      if(not isinstance(self.sinkPartnerChain, str)):
+          sinkPartnerChain = self.sinkPartnerChain.name
+
+      if(not isinstance(self.sourcePartnerModule, str)):
+          sourcePartnerModule = self.sourcePartnerModule.name
+
+      if( not isinstance(self.sinkPartnerModule, str)):
+          sinkPartnerModule = self.sinkPartnerModule.name
+ 
+      return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":" + self.module_name + ":" + self.platform + "sink->" + sinkPartnerChain + ":" + sinkPartnerModule +  "source->" +  sourcePartnerChain + ":" + sourcePartnerModule +  " }"
+
 
   def copy(self):
       newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, self.platform, self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)
