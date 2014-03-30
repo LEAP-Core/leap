@@ -71,7 +71,7 @@ module mkDebugFile#(String fname)
     // interface:
     (DEBUG_FILE);
 
-`ifndef SYNTH
+`ifdef SYNTH_Z
 
     COUNTER#(32) fpga_cycle <- mkLCounter(0);
 

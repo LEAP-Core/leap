@@ -18222,3 +18222,16 @@ exposed (except intra-module channels, which only have module-level
 scope).  BSV compilation now dumps a LIM graph IR after its first
 pass.  This IR can be read in during subsequent LIM compilation and
 operated on by the LIM compiler.
+
+----------
+keflemin    Date: Sun Mar 30 16:29:17 EDT 2014  CSN: CSN-leap-544
+                  Sun Mar 30 20:29:17 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ debug-file.bsv            Locally Modified          543 
+
+
+
+Added a SYNTH definition to the simulation awb components.  In
+practice, this means that ifdefs keying on SYNTH now key on SYNTH_Z.
