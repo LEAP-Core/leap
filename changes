@@ -18248,3 +18248,18 @@ Directory modules/leap/build-support/build-pipelines/stages/bluespec
 Changed dill to cPickle.  The advanced features of dill were not being
 used, so the build dependency was not justified. 
 
+
+----------
+keflemin    Date: Tue Apr  1 16:14:48 EDT 2014  CSN: CSN-leap-546
+                  Tue Apr  1 20:14:48 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          545 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liGraph.py                Locally Modified          545 
+
+
+1) Removed a spurious print from BSV.py
+2) Turned off liGraph debug by default.

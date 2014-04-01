@@ -140,7 +140,6 @@ class BSV():
                     # channels which are coming out of the platform code.
 
                     for module in topo + [moduleList.topModule]:
-                        print str(module.moduleDependency)
                         modulePath = module.buildPath
 
                         # Add references to object code to graph module

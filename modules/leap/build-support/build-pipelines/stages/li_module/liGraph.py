@@ -14,7 +14,7 @@ except ImportError:
     # print "Warning you should upgrade to pygraph 1.8"
 import pygraph.algorithms.sorting
 
-DUMP_GRAPH_DEBUG = 1
+DUMP_GRAPH_DEBUG = 0
 
 class LIGraph():
   
