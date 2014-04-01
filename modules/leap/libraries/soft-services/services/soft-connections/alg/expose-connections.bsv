@@ -240,6 +240,7 @@ module exposeDanglingRecvs#(LOGICAL_CONNECTION_INFO ctx, String platform) (Vecto
                      interface reset = noReset;
                      method Bool success() = False;
                      method Action try(PHYSICAL_CONNECTION_DATA d) = noAction;
+                     method Bool dequeued = False;
                    endinterface);
     end
 

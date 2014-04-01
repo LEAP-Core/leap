@@ -96,7 +96,13 @@ provisos( Bits#(t_MSG, t_MSG_sz) );
 
 
          method Bool notEmpty = fifoMem.notEmpty && (delay < pack(abs(stampDelta)));   
+
          method Bool notFull = fifoMem.notFull && (count.value <= depth);
+
+         method Action clear(); 
+             fifoMem.clear();
+             count.setC(0);   
+         endmethod
 
     endinterface
 

@@ -18263,3 +18263,21 @@ Directory modules/leap/build-support/build-pipelines/stages/li_module
 
 1) Removed a spurious print from BSV.py
 2) Turned off liGraph debug by default.
+
+----------
+keflemin    Date: Tue Apr  1 17:04:22 EDT 2014  CSN: CSN-leap-547
+                  Tue Apr  1 21:04:22 UTC 2014
+
+
+Directory modules/leap/libraries/librl/storage
+ memory-heap.bsv           Locally Modified          546 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          546 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ latency-fifo.bsv          Locally Modified          546 
+ connection-implementation.bsv Locally Modified          546 
+
+
+Fixed several warning due to unimplemented methods. 

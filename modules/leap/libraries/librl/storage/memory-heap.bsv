@@ -247,7 +247,7 @@ module mkMemoryHeap#(MEMORY_HEAP_DATA#(1, t_INDEX, t_DATA) heap)
     method peek = h.readPorts[0].peek;
     method notEmpty = h.readPorts[0].notEmpty;
     method notFull = h.readPorts[0].notFull;
-
+    method heapNotEmpty = h.heapNotEmpty;
     method write = h.write;
     method writeNotFull = h.writeNotFull;
 endmodule

@@ -323,6 +323,7 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
 
     // Collect up our info.
     String platformName <- getSynthesisBoundaryPlatform(); 
+    String moduleName   <- getSynthesisBoundaryName();       
     let info = 
         LOGICAL_SEND_MULTI_INFO 
         {
@@ -330,7 +331,8 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
             logicalType: original_type,
             bitWidth: valueof(SizeOf#(t_MSG)),  
             computePlatform: platformName,
-            outgoing: outg
+            outgoing: outg,
+            moduleName: moduleName
         };
 
     // Is this a shared connection?
@@ -433,7 +435,8 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
 	       endinterface);
 
     // Collect up our info.
-    String platformName <- getSynthesisBoundaryPlatform(); 
+    String platformName <- getSynthesisBoundaryPlatform();
+    String moduleName   <- getSynthesisBoundaryName();  
     let info = 
         LOGICAL_RECV_MULTI_INFO 
         {
@@ -441,7 +444,8 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
             logicalType: original_type,  
             bitWidth: valueof(SizeOf#(t_MSG)), 
             computePlatform: platformName,
-            incoming: inc
+            incoming: inc,
+            moduleName: moduleName
         };
 
     // Is this a shared connection?
