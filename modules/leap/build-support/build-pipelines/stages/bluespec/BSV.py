@@ -2,7 +2,7 @@ import os
 import sys
 import re
 import string
-import dill as pickle
+import cPickle as pickle
 import SCons.Script
 from model import  *
 from li_module import *
