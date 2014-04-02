@@ -18281,3 +18281,28 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 
 Fixed several warning due to unimplemented methods. 
+
+----------
+mcadler     Date: Tue Apr  1 21:51:18 EDT 2014  CSN: CSN-leap-548
+                  Wed Apr  2 01:51:18 UTC 2014
+
+
+Directory modules/leap/libraries/librl/cache
+ rl-set-assoc-cache.bsv    Locally Modified          547 
+
+Directory modules/leap/libraries/librl/base
+ memory-misc.bsv           Locally Modified          547 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.bsv    Locally Modified          547 
+
+- Add mkSlowMemory and mkSlowMemoryM to libRL.  The modules wrap a MEMORY_IFC
+  (typically a BRAM) and add a FIFO on exit to relax timing between reading
+  memory and computing a function of the result.  The modules optionally add
+  a buffer on the readReq and write methods.
+
+- Add buffering around critical BRAMs in scratchpad and central cache core
+  code.
+
+- After tweaks, mem_test_hybrid_vc707 synthesizes at 130MHz.  (Need to run a
+  few cost tables to get a solution.)

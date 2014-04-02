@@ -29,9 +29,130 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+import FIFOF::*;
+
+
 //
 // Miscellaneous memory modules.
 //
+
+//
+// mkSlowMemory --
+//   Very large BRAMs can be slow and timing becomes tight when incoming
+//   values are computed in the same cycle or outgoing values are used
+//   in logic in the exit cycle.  If bufBefore is True this wrapper adds
+//   a buffer stage at each end of the pipeline.  If bufBefore is False
+//   only the output is buffered.
+//
+module [m] mkSlowMemory#(MEMORY_IFC#(t_ADDR, t_DATA) mem, Bool bufBefore)
+    // Interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              Bounded#(t_ADDR),
+              IsModule#(m, a__));
+    
+    // Shared read request and write queue
+    FIFOF#(Tuple2#(Maybe#(t_ADDR), Maybe#(Tuple2#(t_ADDR, t_DATA)))) reqQ = ?;
+    if (bufBefore)
+    begin
+        reqQ <- mkFIFOF();
+    end
+
+    FIFOF#(t_DATA) readRspQ <- mkFIFOF();
+    RWire#(t_ADDR) readReqW <- mkRWire();
+    RWire#(Tuple2#(t_ADDR, t_DATA)) writeW <- mkRWire();
+
+    rule fwdReadRsp (True);
+        let rsp <- mem.readRsp();
+        readRspQ.enq(rsp);
+    endrule
+
+    if (bufBefore)
+    begin
+        rule fwdReq (True);
+            match {.m_r_addr, .m_w_req} = reqQ.first();
+            reqQ.deq();
+
+            if (m_r_addr matches tagged Valid .r_addr)
+            begin
+                mem.readReq(r_addr);
+            end
+
+            if (m_w_req matches tagged Valid {.w_addr, .w_data})
+            begin
+                mem.write(w_addr, w_data);
+            end
+        endrule
+
+        (* fire_when_enabled *)
+        rule genReq (True);
+            reqQ.enq(tuple2(readReqW.wget, writeW.wget));
+        endrule
+    end
+
+
+    method Action readReq(t_ADDR addr) if (! bufBefore || reqQ.notFull);
+        if (bufBefore)
+        begin
+            // Buffering input requests.  Write the request wire, which will
+            // trigger an enq to the buffer FIFO.
+            readReqW.wset(addr);
+        end
+        else
+        begin
+            // Not buffering.  Send request directly to memory.
+            mem.readReq(addr);
+        end
+    endmethod
+
+    method ActionValue#(t_DATA) readRsp();
+        let data = readRspQ.first();
+        readRspQ.deq();
+
+        return data;
+    endmethod
+
+    method Action write(t_ADDR addr, t_DATA data) if (! bufBefore || reqQ.notFull);
+        if (bufBefore)
+        begin
+            // Buffering input requests.  Write the request wire, which will
+            // trigger an enq to the buffer FIFO.
+            writeW.wset(tuple2(addr, data));
+        end
+        else
+        begin
+            // Not buffering.  Send request directly to memory.
+            mem.write(addr, data);
+        end
+    endmethod
+
+    method Bool notFull = (bufBefore ? reqQ.notFull : mem.notFull);
+    method Bool writeNotFull = (bufBefore ? reqQ.notFull : mem.writeNotFull);
+    method Bool notEmpty = readRspQ.notEmpty;
+    method t_DATA peek = readRspQ.first;
+endmodule
+
+
+//
+// mkSlowMemoryM --
+//   Equivalent of mkSlowMemory() but takes a function that can instantiate
+//   a base memory to wrap.
+//
+module [m] mkSlowMemoryM#(function m#(MEMORY_IFC#(t_ADDR, t_DATA)) memImpl,
+                          Bool bufBefore)
+    // Interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              Bounded#(t_ADDR),
+              IsModule#(m, a__));
+
+    let _m <- memImpl();
+    let _s <- mkSlowMemory(_m, bufBefore);
+    return _s;
+endmodule
+
 
 //
 // mkWriteBeforeReadMemory --

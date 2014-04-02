@@ -45,6 +45,7 @@ import Vector::*;
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/physical_platform.bsh"
@@ -165,7 +166,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     let centralCachePort = centralCache.clientPorts[`VDEV_CACHE_SCRATCH - `VDEV_CACHE__BASE];
 
     // Meta-data for outstanding reads from the host
-    FIFO#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedBRAMFIFO(1024);
+    FIFOF#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedSlowBRAMFIFOF(1024);
 
     FIFOF#(Tuple4#(SCRATCHPAD_MEM_ADDRESS,
                    SCRATCHPAD_MEM_VALUE,
@@ -174,7 +175,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
 
     // RRR routethrough FIFOs.  These will pass local requests to the hybrid
     // connector.
-    FIFO#(SCRATCHPAD_RRR_REQ) rrrReqQ <- mkBypassFIFO();
+    FIFO#(SCRATCHPAD_RRR_REQ) rrrReqQ <- mkFIFO();
     FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) rrrRespQ <- mkBypassFIFO();
 
     // Instantiate the connector.

@@ -539,7 +539,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) newReqQ <- mkFIFOF();
 
     // First stage coming out of handleIncomingReq
-    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) processReqQ0 <- mkFIFOF();
+    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) processReqQ0 <- mkSizedFIFOF(4);
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, Bool)) processReqQ1 <- mkSizedFIFOF(8);
 
     // Hit path for operations that read the cache (read and flush)
@@ -772,7 +772,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     Reg#(Bool) enableRecentLineCache <- mkReg(True);
 
     MEMORY_IFC#(t_RECENT_READ_CACHE_IDX, t_RECENT_READ_CACHE_ENTRY)
-        recentLineCache <- mkBRAMInitialized(tagged Invalid);
+        recentLineCache <- mkSlowMemoryM(mkBRAMInitialized(tagged Invalid), True);
 
     // Lock out potential reads and writes of the same entry in a cycle
     RWire#(t_RECENT_READ_CACHE_IDX) recentLineWriteLock <- mkRWire();
