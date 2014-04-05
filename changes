@@ -18306,3 +18306,21 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 
 - After tweaks, mem_test_hybrid_vc707 synthesizes at 130MHz.  (Need to run a
   few cost tables to get a solution.)
+
+----------
+keflemin    Date: Sat Apr  5 17:33:51 EDT 2014  CSN: CSN-leap-549
+                  Sat Apr  5 21:33:51 UTC 2014
+
+
+Directory tools/scripts
+ leap-configure            Locally Modified          548 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liChannel.py              Locally Modified          548 
+ liChain.py                Locally Modified          548 
+
+
+1) Improved LEAP configure error message in the case that a python
+library is missing.
+
+2) Added additional state movement to LI data structure copy methods.

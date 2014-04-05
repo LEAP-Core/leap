@@ -1460,7 +1460,8 @@ sub __generate_build_libraries {
 	# Make a symlink
         # rebase the simlink for portability
         unless(-e $library) {
-           print "Failed to find python library: $library, does it exist?\n";
+           my $module_name = $module->name; 
+           print "Failed to find python library in module ${module_name}: $library, does it exist?\n";
            return 0;
 	}
 

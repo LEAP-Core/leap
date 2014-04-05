@@ -1,6 +1,9 @@
 import sys
 from code import *
 
+# TODO: Some of the data in this structure would be better captured as
+# an attribute dictionary.  This would also be more modular since
+# external access could be hidden behind an accessor function.
 
 class LIChain():
   
@@ -52,6 +55,8 @@ class LIChain():
 
   def copy(self):
       newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, self.platform, self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)
+
+      newChain.activity = self.activity
       return newChain
 
   def matches(self, other):

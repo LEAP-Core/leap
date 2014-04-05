@@ -1,6 +1,10 @@
 import sys
 from code import *
 
+# TODO: Some of the data in this structure would be better captured as
+# an attribute dictionary.  This would also be more modular since
+# external access could be hidden behind an accessor function.
+
 
 class LIChannel():
   
@@ -42,6 +46,8 @@ class LIChannel():
 
   def copy(self):
       newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.platform, self.optional, self.bitwidth, self.module_name, self.type_structure)
+      # Need to copy some other values as well...
+      newChannel.activity = self.activity
       return newChannel
 
   # can probably extend matches to support chains
