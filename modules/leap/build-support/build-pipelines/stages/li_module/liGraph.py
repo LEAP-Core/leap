@@ -9,9 +9,7 @@ from liChain import *
 try:
     from pygraph.classes.digraph import digraph
 except ImportError:
-    # don't need to do anything
     print "\n"
-    # print "Warning you should upgrade to pygraph 1.8"
 import pygraph.algorithms.sorting
 
 DUMP_GRAPH_DEBUG = 0
@@ -40,7 +38,6 @@ class LIGraph():
             else:
                 self.modules[connection.module_name].addChain(connection)
  
-            #connection.module = self.modules[connection.module_name]
 
         # let's match up all those connections
         self.matchGraphChannels()       
@@ -133,36 +130,42 @@ class LIGraph():
                             channel.matched = True
                             partnerChannel.matched = True
 
-    # merge another LI Graph into this one. 
-    def merge(self, otherGraph):
-        self.modules.update(otherGraph.modules) 
+    # merge another LI Graph into this one.  
+    def merge(self, otherGraphs):
+
+        for otherGraph in otherGraphs:
+            self.modules.update(otherGraph.modules) 
 
         # let's match up all those connections
         self.matchGraphChannels()       
 
-        self.graph.add_nodes(otherGraph.modules)
-    
+        for otherGraph in otherGraphs:
+            self.graph.add_nodes(otherGraph.modules.values())
+                    
         # add edges - for now all edges have unit weight
-        for module in otherGraph.modules.values():
-            for channel in module.channels:
-                # depending on what we are doing with the graph,
-                # unmatched channels may not be an error.  We will
-                # instead mark the object in case the caller cares
-                if (not (channel.matched or channel.optional)):
-                    self.unmatchedChannels = True                    
-                    continue
-                # It is possible that optional channels do not have a match
-                if (not channel.matched):
-                    continue
-                #Only add an edge if the channel is a source.
-                if (channel.isSource()):
-                    if (not self.graph.has_edge((module, channel.partnerModule))):
-                        self.graph.add_edge((module, channel.partnerModule))
-                        self.weights[(module, channel.partnerModule)] = channel.activity
-                    else:
-                        self.weights[(module, channel.partnerModule)] += channel.activity
-         
+        for otherGraph in otherGraphs:
+            for module in otherGraph.modules.values():
+                for channel in module.channels:
+                    # depending on what we are doing with the graph,
+                    # unmatched channels may not be an error.  We will
+                    # instead mark the object in case the caller cares
+                    if (not (channel.matched or channel.optional)):
+                        self.unmatchedChannels = True                    
+                        continue
 
+                    # It is possible that optional channels do not have a match
+                    if (not channel.matched):
+                        continue
+
+                    #Only add an edge if the channel is a source.
+                    if (channel.isSource()):
+                        if (not self.graph.has_edge((channel.module, channel.partnerModule))):
+                            self.graph.add_edge((module, channel.partnerModule))
+                            self.weights[(module, channel.partnerModule)] = channel.activity
+                        else:
+                            self.weights[(module, channel.partnerModule)] += channel.activity
+             
+    
 #    def dumpDot(self, filename):
 #        dot = pygraph.readwrite.dot.write(self.graph)
 #        gvv = gv.readstring(dot)

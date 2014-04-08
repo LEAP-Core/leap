@@ -27,7 +27,7 @@ class LIModule():
         self.numExportedRules = 0
 
     def __repr__(self):
-        return "{" + self.name + ":" + self.type + ":" + ','.join(map(str, self.channels)) + ":" + ','.join(map(str, self.chains)) + ":" + ','.join(map(str, self.chainNames.keys())) + "}"
+        return "{ MODULE:" + self.name + ":" + self.type + ":\nChannels:" + ',\n'.join(map(str, self.channels)) + ":\nChains:" + ',\n'.join(map(str, self.chains)) + "\nChainsNames:" + ',\n'.join(map(str, self.chainNames.keys())) + "}"
 
     def addChannel(self, channel):
         channelCopy = channel.copy()
@@ -75,7 +75,11 @@ class LIModule():
         
 
     def getAttribute(self, key):
-        return self.attributes[key]
+        try:
+            return self.attributes[key]
+        except KeyError:
+            print "Module " + self.name + " does not have attribute " + key + "\n"
+            exit(0)
 
 
 # These functions make it easier to decide which modules connect to

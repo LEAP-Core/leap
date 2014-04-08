@@ -13,3 +13,4 @@
 
 %scons %library software.py
 
+%param DUMP_LIM_GRAPH 0 "Should we dump a LIM graph."

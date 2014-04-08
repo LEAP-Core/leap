@@ -18324,3 +18324,24 @@ Directory modules/leap/build-support/build-pipelines/stages/li_module
 library is missing.
 
 2) Added additional state movement to LI data structure copy methods.
+
+----------
+keflemin    Date: Tue Apr  8 19:14:15 EDT 2014  CSN: CSN-leap-550
+                  Tue Apr  8 23:14:15 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          549 
+ software.awb              Locally Modified          549 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          549 
+ liChannel.py              Locally Modified          549 
+ liGraph.py                Locally Modified          549 
+
+
+1) Software compilation now optionally dumps an LI graph. 
+
+2) Changed merge graph function to operate on vectors
+
+3) Added some debug in LI library.  
