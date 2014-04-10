@@ -30,6 +30,7 @@
 //
 
 `include "awb/provides/model_params.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
 
 
 // All debug output files go in a subdirectory
