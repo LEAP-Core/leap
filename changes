@@ -18355,3 +18355,14 @@ Directory modules/leap/libraries/librl/base
  debug-file.bsv            Locally Modified          550 
 
 Include librl_bsv_base.
+
+----------
+keflemin    Date: Mon Apr 14 14:35:36 EDT 2014  CSN: CSN-leap-552
+                  Mon Apr 14 18:35:36 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.cpp    Locally Modified          551 
+
+
+Legacy ACP interfaces have been updated to use new interfaces. 

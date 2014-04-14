@@ -63,7 +63,7 @@ static bool PseudoDMA(
     int methodID,
     int length,
     const void *msg,
-    PHYSICAL_CHANNEL_CLASS::PSEUDO_DMA_READ_RESP &resp);
+    NALLATECH_EDGE_PHYSICAL_CHANNEL_CLASS::PSEUDO_DMA_READ_RESP &resp);
 
 #endif
 
@@ -93,9 +93,9 @@ SCRATCHPAD_MEMORY_SERVER_CLASS::SCRATCHPAD_MEMORY_SERVER_CLASS()
     fmt_data = Format("0x", fmt);
 
 #ifdef PSEUDO_DMA_ENABLED
-    PHYSICAL_CHANNEL_CLASS::RegisterPseudoDMAHandler(0,
-                                                     SCRATCHPAD_MEMORY_SERVICE_ID,
-                                                     &PseudoDMA);
+    NALLATECH_EDGE_PHYSICAL_CHANNEL_CLASS::RegisterPseudoDMAHandler(0,
+                                                                    SCRATCHPAD_MEMORY_SERVICE_ID,
+                                                                    &PseudoDMA);
 #endif
 }
 
@@ -535,7 +535,7 @@ PseudoDMA(
     int methodID,
     int length,
     const void *msg,
-    PHYSICAL_CHANNEL_CLASS::PSEUDO_DMA_READ_RESP &resp)
+    NALLATECH_EDGE_PHYSICAL_CHANNEL_CLASS::PSEUDO_DMA_READ_RESP &resp)
 {
     const UINT64 *u64msg = (const UINT64*) msg;
     const SCRATCHPAD_MEMORY_SERVER instance = &SCRATCHPAD_MEMORY_SERVER_CLASS::instance;
@@ -569,7 +569,7 @@ PseudoDMA(
       }
       case SCRATCHPAD_MEMORY_METHOD_ID_LoadLine:
       {
-        static PHYSICAL_CHANNEL_CLASS::PSEUDO_DMA_READ_RESP_CLASS r;
+        static NALLATECH_EDGE_PHYSICAL_CHANNEL_CLASS::PSEUDO_DMA_READ_RESP_CLASS r;
         static bool did_init = false;
         static UMF_MESSAGE_CLASS m;
 
