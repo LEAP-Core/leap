@@ -1,0 +1,59 @@
+
+# /
+/Makefile
+/config.log
+/config.status
+/autom4te.cache
+/build-arch-stamp
+/build-indep-stamp
+/config.guess
+/config.sub
+
+# /debian/
+/debian/leap
+/debian/leap-??.??
+/debian/leap-bin
+/debian/files
+/debian/*.debhelper
+/debian/*.log
+/debian/*.substvars
+
+# /docs/
+/docs/Makefile
+/docs/dox
+
+# /include/
+/include/config.h
+/include/stamp-h1
+
+# /libperl/
+/libperl/Makefile
+
+# /libperl/Leap/
+/libperl/Leap/MYMETA.yml
+/libperl/Leap/Makefile
+/libperl/Leap/blib
+/libperl/Leap/pm_to_blib
+
+# /scripts/
+/scripts/IGNORES
+
+# /tools/
+/tools/Makefile
+
+# /tools/leap/
+/tools/leap/Makefile
+
+# /tools/leap/leap-front-panel/
+/tools/leap/leap-front-panel/Makefile
+/tools/leap/leap-front-panel/leap-front-panel
+/tools/leap/leap-front-panel/leap_front_panel.ui.pm
+/tools/leap/leap-front-panel/leap_front_panel_images.pm
+
+# /tools/leap/leap-front-panel-qt3/
+/tools/leap/leap-front-panel-qt3/Makefile
+/tools/leap/leap-front-panel-qt3/leap-front-panel
+/tools/leap/leap-front-panel-qt3/leap_front_panel.ui.pm
+
+# /tools/scripts/
+/tools/scripts/Makefile
