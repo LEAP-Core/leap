@@ -18366,3 +18366,17 @@ Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memor
 
 
 Legacy ACP interfaces have been updated to use new interfaces. 
+
+----------
+keflemin    Date: Tue Apr 15 21:56:15 EDT 2014  CSN: CSN-leap-553
+                  Wed Apr 16 01:56:15 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-par.awb            Locally Modified          552 
+ XILINX_PAR.py             Locally Modified          552 
+
+
+Added a capability to dump post-par utilizations.  A .util file will
+be inserted in .xilinx directory.  This capability can be disabled by
+.awb parameter, if it is found not to work.

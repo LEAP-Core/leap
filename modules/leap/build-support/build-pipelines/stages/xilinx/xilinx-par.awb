@@ -12,3 +12,5 @@
 
 %scons %library XILINX_PAR.py
 
+%param DUMP_UTILIZATION   1   "Dump out post-par utilization"
+
