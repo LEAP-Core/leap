@@ -18380,3 +18380,25 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 Added a capability to dump post-par utilizations.  A .util file will
 be inserted in .xilinx directory.  This capability can be disabled by
 .awb parameter, if it is found not to work.
+
+----------
+keflemin    Date: Thu Apr 17 17:10:47 EDT 2014  CSN: CSN-leap-554
+                  Thu Apr 17 21:10:47 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          553 
+ liGraph.py                Locally Modified          553 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          553 
+
+
+1) Extended LI interface to support some new manipulations on the LI Graph.
+
+2) Patched some legacy code in module list.  Module list still knows
+about the module graph, but this is no longer necessary for the
+current LIM flow.  This code should be removed and has been tagged as
+such.
+
+
