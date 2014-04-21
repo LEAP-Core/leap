@@ -18402,3 +18402,25 @@ current LIM flow.  This code should be removed and has been tagged as
 such.
 
 
+
+----------
+keflemin    Date: Mon Apr 21 15:00:46 EDT 2014  CSN: CSN-leap-555
+                  Mon Apr 21 19:00:46 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          554 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          554 
+
+Directory modules/leap/build-support/project
+ ProjectDependency.py      Locally Modified          554 
+
+
+1) BSV builds now dump an LI graph which includes references to the
+actual design source.  These are used during LIM compilation to
+simplify the backend build process.
+
+2) BSV's LI graph dump is now optionally enabled. Legacy builds need
+not dump an LI graph.

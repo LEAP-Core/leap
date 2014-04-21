@@ -104,8 +104,7 @@ class BSV():
 
             # If we're doing a LIM compilation, we need to dump an LIM Graph. 
             # This must be done before the build tree attempts to reorganize the world.
-            # dump_lim_graph = moduleList.getAWBParam('wrapper_gen_tool', 'DUMP_LIM_GRAPH')
-            do_dump_lim_graph = 1
+            do_dump_lim_graph = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')
             if do_dump_lim_graph:
                 all_logs = []
                 for module in  moduleList.topologicalOrderSynth():
@@ -144,14 +143,26 @@ class BSV():
 
                         # Add references to object code to graph module
                         def addBuildPath(fileName):
-                            return fileName + modulePath
+                            if(not os.path.isabs(fileName)): 
+                                return modulePath + '/' + fileName
+                            else:
+                                return fileName
 
                         # the liGraph only knows about modules that actually
                         # have connections some modules are vestigial, andso
                         # we can forget about them...
                         if (module.name in fullLIGraph.modules):
-                            fullLIGraph.modules[module.name].putObjectCode('BSV_LOG', map(addBuildPath, module.moduleDependency['BSV_LOG']))
-
+                            for objectType in module.moduleDependency:
+                                # it appears that we need to filter
+                                # these objects.  TODO: Clean the
+                                # things adding to this list so we
+                                # don't require the filtering step.
+                                depList = module.moduleDependency[objectType]
+                                
+                                convertedDeps = convertDependencies(depList)
+                                relativeDeps = map(addBuildPath,convertedDeps)
+                                fullLIGraph.modules[module.name].putObjectCode(objectType, relativeDeps)
+                             
                     # dump graph representation. 
                     pickleHandle = open(li_graph, 'wb')
                     pickle.dump(fullLIGraph, pickleHandle, protocol=-1)

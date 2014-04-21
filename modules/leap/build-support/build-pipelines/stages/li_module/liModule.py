@@ -54,12 +54,12 @@ class LIModule():
  
     def putObjectCode(self, key, value):
         if (key in self.objectCache):
-            if (value is list):
+            if (isinstance(value,list)):
                 self.objectCache[key] += value
             else:
                 self.objectCache[key].append(value)
         else: 
-            if (value is list):
+            if (isinstance(value,list)):
                 self.objectCache[key] = value
             else:
                 self.objectCache[key] = [value]
