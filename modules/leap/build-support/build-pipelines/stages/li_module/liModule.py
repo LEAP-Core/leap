@@ -54,12 +54,12 @@ class LIModule():
  
     def putObjectCode(self, key, value):
         if (key in self.objectCache):
-            if (value is list):
+            if (isinstance(value,list)):
                 self.objectCache[key] += value
             else:
                 self.objectCache[key].append(value)
         else: 
-            if (value is list):
+            if (isinstance(value,list)):
                 self.objectCache[key] = value
             else:
                 self.objectCache[key] = [value]
@@ -75,16 +75,28 @@ class LIModule():
         
 
     def getAttribute(self, key):
-        try:
+        if(key in self.attributes):
             return self.attributes[key]
-        except KeyError:
-            print "Module " + self.name + " does not have attribute " + key + "\n"
-            exit(0)
+        else:
+            return None
 
+
+    def trimOptionalChannels(self):
+        self.channels = [channel for channel in self.channels if (channel.matched or not channel.optional)]
+
+    def checkUnmatchedChannels(self):
+        for channel in self.channels:
+            if(not channel.matched):
+                return True
+        return False
 
 # These functions make it easier to decide which modules connect to
 # to one another. They are mostly used in the LIM compiler.
 def channelsByPartner(liModule, channelPartnerModule):
+    for channel in liModule.channels:
+        if(isinstance(channel.partnerModule, str)): 
+            print "Channel " + channel.name + " is " + channel.partnerModule
+        
     return [channel for channel in liModule.channels if (channel.partnerModule.name == channelPartnerModule)]
 
 def ingressChainsByPartner(liModule, chainPartnerModule):

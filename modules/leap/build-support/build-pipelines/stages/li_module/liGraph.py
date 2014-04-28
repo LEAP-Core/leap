@@ -165,7 +165,18 @@ class LIGraph():
                         else:
                             self.weights[(module, channel.partnerModule)] += channel.activity
              
+
+    def trimOptionalChannels(self):
+        for module in self.modules.values():
+            module.trimOptionalChannels()
+
+    def checkUnmatchedChannels(self):
+        unmatched = False
+        for module in self.modules.values():
+            unmatched = unmatched or module.checkUnmatchedChannels()
     
+        return unmatched
+
 #    def dumpDot(self, filename):
 #        dot = pygraph.readwrite.dot.write(self.graph)
 #        gvv = gv.readstring(dot)
