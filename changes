@@ -18424,3 +18424,13 @@ simplify the backend build process.
 
 2) BSV's LI graph dump is now optionally enabled. Legacy builds need
 not dump an LI graph.
+
+----------
+hjyang      Date: Wed May  7 19:06:02 EDT 2014  CSN: CSN-leap-556
+                  Wed May  7 23:06:02 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ debug-file.bsv            Locally Modified          555 
+
+Fix the include path so that debug files can be created in simulation. 
