@@ -33,9 +33,9 @@ sub new($) {
     $self->{NAME} = $name;
     $self->{DEFS} = undef;
     $self->{SUBDICTS} = undef;
-    $self->{UID} = -1;
-    $self->{UID_BITS} = 0;
+    $self->{BASE_IDX} = -1;
     $self->{TOTAL_BITS} = 0;
+    $self->{TOTAL_ENTRIES} = 0;
 
     bless($self);
     return $self;
@@ -50,11 +50,7 @@ sub GetSortedEntries($) {
     my $self = shift;
     my @entries;
 
-    foreach my $d (sort keys %{$self->{DEFS}}) {
-        $entries[++$#entries] = $d;
-    }
-
-    return @entries;
+    return sort keys %{$self->{DEFS}};
 }
 
 sub GetDefinition($$) {
@@ -73,11 +69,7 @@ sub GetSortedDictionaryNames($) {
     my $self = shift;
     my @names;
 
-    foreach my $d (sort keys %{$self->{SUBDICTS}}) {
-        $names[++$#names] = $d;
-    }
-
-    return @names;
+    return sort keys %{$self->{SUBDICTS}};
 }
 
 sub GetDictionary($$) {
@@ -92,19 +84,46 @@ sub GetDictionary($$) {
     }
 }
 
-sub GetUID($) {
+##
+## GetNumEntries --
+##   Return the number of entries for the given dictionary.
+##
+sub GetNumEntries($) {
     my $self = shift;
-    return $self->{UID};
+
+    my @e = keys %{$self->{DEFS}};
+    return (scalar @e);
 }
 
-sub GetUIDNumBits($) {
+##
+## GetNumDictionariesInTree --
+##   Return the total number of subdictionaries under the given dictionary.
+##
+sub GetNumDictionariesInTree($) {
     my $self = shift;
-    return $self->{UID_BITS};
+
+    my $n = 1;
+    foreach my $subName (keys %{$self->{SUBDICTS}}) {
+        my $sd = $self->GetDictionary($subName);
+        $n += $sd->GetNumDictionariesInTree();
+    }
+
+    return $n;
+}
+
+sub GetBaseIdx($) {
+    my $self = shift;
+    return $self->{BASE_IDX};
 }
 
 sub GetTotalNumBits($) {
     my $self = shift;
     return $self->{TOTAL_BITS};
+}
+
+sub GetTotalNumEntries($) {
+    my $self = shift;
+    return $self->{TOTAL_ENTRIES};
 }
 
 sub GetOrAddDictionary($$) {
@@ -147,25 +166,25 @@ sub AddDefinition($$$) {
     return 0;
 }
 
-sub SetUID($$) {
+sub SetBaseIdx($$) {
     my $self = shift;
     my $uid = shift;
 
-    $self->{UID} = $uid;
-}
-
-sub SetUIDNumBits($$) {
-    my $self = shift;
-    my $uid = shift;
-
-    $self->{UID_BITS} = $uid;
+    $self->{BASE_IDX} = $uid;
 }
 
 sub SetTotalNumBits($$) {
     my $self = shift;
-    my $uid = shift;
+    my $bits = shift;
 
-    $self->{TOTAL_BITS} = $uid;
+    $self->{TOTAL_BITS} = $bits;
+}
+
+sub SetTotalNumEntries($$) {
+    my $self = shift;
+    my $e = shift;
+
+    $self->{TOTAL_ENTRIES} = $e;
 }
 
 1;
@@ -193,8 +212,7 @@ DictBuilder class supporting building of Leap dictionaries
     $def = $ob->GetDefinition("<entry>");
     @subdict = $ob->GetSortedDictionaryNames();
     $dict = $ob->GetDictionary("<name>");
-    $uid = $ob->GetUID();
-    $n = $ob->GetUIDNumBits();
+    $uid = $ob->GetBaseIdx();
     $n = $ob->GetTotalNumBits();
 
     ### Set/Get Versions (Add entry if one isn't already present) ###
@@ -203,8 +221,7 @@ DictBuilder class supporting building of Leap dictionaries
     ### Set Versions ###
     $ob->AddDictionary($sub_ob);
     $ob->AddDefinition("<entry>", "<value>");
-    $ob->SetUID(<integer uid>);
-    $ob->SetUIDNumBits(<min bits for storing uid>);
+    $ob->SetBaseIdx(<integer uid>);
     $ob->SetTotalNumBits(<min bits for storing entry id>);
 
 =head1 DESCRIPTION

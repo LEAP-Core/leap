@@ -454,7 +454,7 @@ module [CONNECTED_MODULE] mkAssertionNode#(ASSERTIONS_DICT_TYPE baseID)
                             ASSERT_ERROR: "ERROR";
                         endcase;
 
-        $display("ASSERTION %s: cycle %0d, %s", a_type, cycle, showASSERTIONS_DICT(myID));
+        $display("ASSERTION %s: cycle %0d, %s", a_type, cycle, strASSERTIONS_DICT[myID]);
 
     endmethod
 

@@ -18434,3 +18434,25 @@ Directory modules/leap/libraries/librl/base
  debug-file.bsv            Locally Modified          555 
 
 Fix the include path so that debug files can be created in simulation. 
+
+----------
+mcadler     Date: Thu May  8 22:38:18 EDT 2014  CSN: CSN-leap-557
+                  Fri May  9 02:38:18 UTC 2014
+
+
+Directory libperl/Leap/lib/Leap
+ DictBuilder.pm            Locally Modified          556 
+
+Directory tools/scripts
+ leap-dict                 Locally Modified          556 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsv Locally Modified          556 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          556 
+
+Update dictionaries:
+
+- Now generate dense values.
+- Add descriptors so code can detect groups within the hierarchy.

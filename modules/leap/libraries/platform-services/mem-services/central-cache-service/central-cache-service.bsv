@@ -74,7 +74,7 @@ module [CONNECTED_MODULE] mkCentralCacheService
         // connections for internal clients.
         //
 `ifdef VDEV_CACHE__BASE
-        if (showVDEV_CACHE_DICT(fromInteger(p + `VDEV_CACHE__BASE)) != "platform")
+        if (strVDEV_DICT[p + `VDEV_CACHE__BASE] != "platform")
         begin
             link_cache[p] <- mkConnectionServerOptional("vdev_cache_" + integerToString(p));
 
