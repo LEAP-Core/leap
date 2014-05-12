@@ -73,11 +73,6 @@ env['DEFS']['ROOT_DIR_SW_MODEL'] = env['DEFS']['ROOT_DIR_SW'] + '/' + \
 
 env.Decider('MD5-timestamp')
 
-# Set up build cache if enabled
-if('LEAP_BUILD_CACHE_DIR' in env['ENV']): 
-    CacheDir(env['ENV']['LEAP_BUILD_CACHE_DIR'])
-
-
 
 ##
 ## env.Clone() is new as of 0.97.  It used to be called Copy().
@@ -150,9 +145,12 @@ def print_build_failures():
 
     # default status file
     try:
-                    a_file = open('build.status', 'w')
+        file_name = 'build'
+        if(moduleList.isDependsBuild):
+            file_name = 'depends'
+        a_file = open(file_name + '.status', 'w')
     except IOError:
-                    return()
+        return()
 
     result = GetBuildFailures()
     if not result:

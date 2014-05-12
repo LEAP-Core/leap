@@ -18456,3 +18456,17 @@ Update dictionaries:
 
 - Now generate dense values.
 - Add descriptors so code can detect groups within the hierarchy.
+
+----------
+keflemin    Date: Mon May 12 18:50:03 EDT 2014  CSN: CSN-leap-558
+                  Mon May 12 22:50:03 UTC 2014
+
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          557 
+
+
+We run two passes (depends and non-depends) for regular compilation.
+This was producing two build.status files, making it difficult for
+scripts to diagnose build completion.  Now we produce two differently
+named status files. 
