@@ -18651,3 +18651,14 @@ by python code.
 
 3) BSV.py is getting bloated.  Probably it needs to be refactored
 (especially code related to code gen, which is slightly replicated)
+
+----------
+keflemin    Date: Tue May 13 17:21:15 EDT 2014  CSN: CSN-leap-560
+                  Tue May 13 21:21:15 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          559 
+
+
+Location of configuration variable changed. 

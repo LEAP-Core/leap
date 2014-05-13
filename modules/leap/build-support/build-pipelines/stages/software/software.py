@@ -234,7 +234,7 @@ class Software():
                     connections.append(connection)
                     # Currently, all connections come from this platform.
                     # TODO: Fix this assumption
-                    platformName = moduleList.getAWBParam('physical_platform_utils', 'FPGA_PLATFORM_NAME')
+                    platformName = moduleList.getAWBParam('physical_platform_defs', 'FPGA_PLATFORM_NAME')
                     connection.module_name = platformName
                 
 
