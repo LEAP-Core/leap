@@ -71,7 +71,7 @@ interface WITH_SERVICES#(parameter type t_INTERMEDIATE_IFC, parameter type t_IFC
 
 endinterface
 
-module [t_CONTEXT] instantiateWithConnections#(ModuleContext#(t_SS_CTX, Empty) m) 
+module [t_CONTEXT] instantiateWithConnections#(ModuleContext#(t_SS_CTX, Empty) m, Maybe#(t_SS_CTX) alternativeContext) 
     // interface: 
         ()
     provisos
@@ -79,7 +79,15 @@ module [t_CONTEXT] instantiateWithConnections#(ModuleContext#(t_SS_CTX, Empty) m
          IsModule#(t_CONTEXT, t_DUMMY),
          ContextRun#(t_CONTEXT, t_SS_CTX, t_SS_CTX));
 
-    t_SS_CTX int_ctx0 <- initializeServiceContext();
+    t_SS_CTX int_ctx0;
+    if(alternativeContext matches tagged Valid .altCtx)
+    begin
+        int_ctx0 = altCtx;
+    end
+    else
+    begin
+        int_ctx0 <- initializeServiceContext();
+    end
 
     // By convention m_final is Empty.
     match {.final_ctx, .m_final} <- runWithContext(int_ctx0, m);

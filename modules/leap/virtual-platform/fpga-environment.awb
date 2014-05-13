@@ -13,3 +13,6 @@
 
 %attributes leap
 
+%param --global  BUILD_PLATFORM_MODULES 1 "Actually instantiate platform"
+
+

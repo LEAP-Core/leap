@@ -67,6 +67,8 @@ class GLOBAL_STRINGS : public COMMAND_SWITCH_STRING_CLASS
   private:
     static unordered_map <GLOBAL_STRING_UID, string> uidToString;
 
+    static void DumpUIDs();
+
     static void AddString(GLOBAL_STRING_UID uid, const string& str);
 
     static GLOBAL_STRING_UID nextAllocId;

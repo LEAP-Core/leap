@@ -187,3 +187,10 @@ RESET_ACTIVE_HIGH=1
 [Aurora Device Wrapper Null]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora/aurora-device-null/aurora-device-null.awb
 Packagehint=leap-platforms
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms

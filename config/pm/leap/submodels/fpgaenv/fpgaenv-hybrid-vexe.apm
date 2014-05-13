@@ -139,3 +139,10 @@ local_mem=Local Memory using DDR DRAM (burst holds at least one line)
 [Build Pipeline Verilog]
 File=config/pm/leap/submodels/pipelines/build-pipeline-verilog.apm
 Packagehint=leap
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms

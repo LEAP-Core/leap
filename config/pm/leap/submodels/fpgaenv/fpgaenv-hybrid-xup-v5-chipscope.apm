@@ -117,8 +117,6 @@ Packagehint=leap
 [Basic Virtual Channel Multiplexer/Requires]
 physical_channel=Old-Style Bluespec PCIe Physical Channel
 
-
-
 [XUP Virtex 5 Chipscope]
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/chipscope/xilinx-xup-chipscope.awb
 Packagehint=leap-platforms
@@ -148,4 +146,11 @@ Packagehint=leap
 
 [XUPv5 PCIE Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-xupv5/pcie-bluespec.awb
+Packagehint=leap-platforms
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms

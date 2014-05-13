@@ -34,7 +34,6 @@ import Clocks::*;
 import ModuleContext::*;
 import HList::*;
 
-`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/physical_interconnect.bsh"
 `include "awb/provides/soft_connections_common.bsh"
@@ -57,7 +56,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   String errorStr = "";
 
   // Backwards compatability: Connect all chains in the resulting context.
-  connectChains(clk, info.chains); 
+  connectChains(info, clk); 
 
   // Connect all broadcasts in the resulting context.
   match {.unmatched_sends, .unmatched_recvs} <- connectMulticasts(clk, info);
@@ -73,7 +72,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     let cur_entry = ctHashValue(cur);
   
     // clear out leftovers from model top level 
-    if(`EXPOSE_ALL_CONNECTIONS > 0)
+    if(info.exposeAllConnections)
       begin
         // In this case we should display the unmatched connection
         printDanglingSend(x,cur);
@@ -95,9 +94,8 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     let cur = unmatched_recvs[x];
     let cur_entry = ctHashValue(cur);
 
-    messageM("Working on: " + fpgaPlatformName);
     // clear out leftovers from model top level 
-    if(`EXPOSE_ALL_CONNECTIONS > 0)
+    if(info.exposeAllConnections)
       begin
         // In this case we should display the unmatched connection
         printDanglingRecv(x,cur);
@@ -116,9 +114,6 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   // Emit the global string table
   printGlobStrings(info.globalStrings);
 
-  if (error_occurred)
-    error("\nError: Unmatched logical connections at top level. \n" + errorStr);
-
 endmodule
 
 
@@ -126,20 +121,22 @@ endmodule
 
 // Backwards Compatability: Connection Chains
 
-module connectChains#(Clock c, List#(LOGICAL_CHAIN_INFO) chains) ();
+module connectChains#(LOGICAL_CONNECTION_INFO info, Clock c) ();
+
+    let chains = info.chains;
 
     for (Integer x = 0; x < length(chains); x = x + 1)
       begin		
         // Iterate through the chains.
         let chn = chains[x];
-        if(`CLOSE_CHAINS == 1)
+        if(info.exposeAllConnections)
           begin
-            messageM("Closing Chain: [" + chn.logicalName + "]");
-            connectOutToIn(chn.outgoing, chn.incoming);
+            printChain(x,chn);
           end
         else
           begin
-            printChain(x,chn);
+            messageM("Closing Chain: [" + chn.logicalName + "]");
+            connectOutToIn(chn.outgoing, chn.incoming);
           end
       end
     

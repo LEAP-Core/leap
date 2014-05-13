@@ -4,12 +4,12 @@ from parameter_substitution import *
 # Construct a list of all generated and given Verilog and VHDL.  These
 # can appear anywhere in the code. The generated Verilog live in the
 # .bsc directory.
-def globalRTLs(moduleList):
+def globalRTLs(moduleList, rtlModules):
     globalVerilogs = moduleList.getAllDependencies('VERILOG_LIB')
     globalVHDs = []
-    for module in moduleList.moduleList + [moduleList.topModule]:
+    for module in rtlModules + [moduleList.topModule]:
         MODULE_PATH =  get_build_path(moduleList, module) 
-        for v in moduleList.getDependencies(module, 'GEN_VERILOGS'): 
+        for v in moduleList.getDependencies(module, 'GEN_VERILOGS'):              
             globalVerilogs += [MODULE_PATH + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '/' + v]
         for v in moduleList.getDependencies(module, 'GIVEN_VERILOGS'): 
             globalVerilogs += [MODULE_PATH + '/' + v]

@@ -17,8 +17,6 @@
 
 %public connected-common.bsv connection-helper.bsv with-connections.bsv latency-fifo.bsv
 
-%param --global EXPOSE_ALL_CONNECTIONS 0 "True if we should expose all soft connections"
-
 %param --global CON_CWIDTH 700 "Phyisical Connection Bit Width after splitting."
 %param --global CON_CHAIN_CWIDTH 700 "Phyisical Chain Connection Bit Width, which is not split."
 %param --global CON_BUFFERING 2 "Amount of Buffering Slots per Connection."

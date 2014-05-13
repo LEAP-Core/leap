@@ -1,5 +1,8 @@
 import sys
+import copy
+
 from code import *
+
 
 class LIModule():
   
@@ -27,7 +30,20 @@ class LIModule():
         self.numExportedRules = 0
 
     def __repr__(self):
-        return "{ MODULE:" + self.name + ":" + self.type + ":\nChannels:" + ',\n'.join(map(str, self.channels)) + ":\nChains:" + ',\n'.join(map(str, self.chains)) + "\nChainsNames:" + ',\n'.join(map(str, self.chainNames.keys())) + "}"
+        return "{ MODULE:" + self.name + ":" + self.type + ":\nChannels:" + ',\n'.join(map(str, self.channels)) + ":\nChains:" + ',\n'.join(map(str, self.chains)) + "\nChainsNames:" + ',\n'.join(map(str, self.chainNames.keys())) + "\nAttributes: " + str(self.attributes) + "}\n"
+
+
+
+    def copy(self):
+        moduleCopy = LIModule(self.type, self.name)
+        for channel in self.channels:
+            moduleCopy.addChannel(channel.copy())
+        for chain in self.chains:
+            moduleCopy.addChain(chain.copy())
+        moduleCopy.numExportedRules = self.numExportedRules
+        moduleCopy.attributes = copy.deepcopy(self.attributes)
+        moduleCopy.objectCache = copy.deepcopy(self.objectCache)
+        return moduleCopy  
 
     def addChannel(self, channel):
         channelCopy = channel.copy()
@@ -89,6 +105,13 @@ class LIModule():
             if(not channel.matched):
                 return True
         return False
+
+    def dumpUnmatchedChannels(self):
+        for channel in self.channels:
+            if(not channel.matched):
+                print str(channel)
+
+
 
 # These functions make it easier to decide which modules connect to
 # to one another. They are mostly used in the LIM compiler.

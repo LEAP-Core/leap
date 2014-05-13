@@ -30,6 +30,7 @@
 //
 
 `include "awb/provides/common_utility_devices.bsh"
+`include "awb/provides/fpgaenv.bsh"
 
 `include "awb/provides/soft_connections.bsh"
 
@@ -40,8 +41,10 @@ module [CONNECTED_MODULE] mkCommonServices
     // interface:
         ();
 
-    if (`BUILD_COMMON_SERVICES == 1)
-    begin 
+    if (`BUILD_COMMON_SERVICES == 1 &&
+        `BUILD_PLATFORM_MODULES ==1)
+    begin
+        messageM("Building Common Services"); 
         let assertionsService <- mkAssertionsService();
         let debugScanService  <- mkDebugScanService();
         let paramsService     <- mkDynamicParametersService();

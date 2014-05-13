@@ -188,7 +188,7 @@ instance Matchable#(LOGICAL_CHAIN_INFO);
     return sinfo.moduleNameIncoming; 
   endfunction endinstance
 
-function Bool nameMatches(r rinfo, s sinfo)
+function Bool nameMatches(Bool exposeAllConnections, r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));
   
@@ -196,15 +196,14 @@ function Bool nameMatches(r rinfo, s sinfo)
          // In the first pass of multifpga builds, we expose all connections. 
          // However connections within the same module can be joined immediately. 
          ((getModuleName(sinfo) == getModuleName(rinfo)) ||
-         (`EXPOSE_ALL_CONNECTIONS == 0));
- 
+          !exposeAllConnections);   
 endfunction
 
-function Bool nameDoesNotMatch(r rinfo, s sinfo)
+function Bool nameDoesNotMatch(Bool exposeAllConnections, r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));
   
-  return !nameMatches(rinfo,sinfo);
+  return !nameMatches(exposeAllConnections, rinfo,sinfo);
 endfunction
 
 function Bool primNameMatches(String rinfo, s sinfo)
@@ -226,6 +225,25 @@ endfunction
 // physical endpoints. This is for 1-to-1 communication only.
 //
 module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin) ();
+  
+    rule trySend (cout.notEmpty());
+        // Try to move the data
+        Bit#(t_MSG_SIZE) x = cout.first();
+        cin.try(x);
+    endrule
+
+    rule success (cin.success());
+        // We succeeded in moving the data
+        cout.deq();
+    endrule
+    
+endmodule
+
+// Smart Version of the above.
+// This version is not used presently, due to issues in 
+// carrying clock information through the import BVI 
+// version of the build tree.
+module connectOutToInMulti#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin) ();
   
   if(sameFamily(cin.clock,cout.clock))
   begin

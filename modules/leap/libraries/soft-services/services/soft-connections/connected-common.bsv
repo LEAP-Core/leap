@@ -401,6 +401,7 @@ typedef struct
     Integer synthesisBoundaryPlatformID;  // UID for a given FPGA
     Integer synthesisBoundaryID;          // UID a synthesis boundary within a single platform
     String synthesisBoundaryName;
+    Bool exposeAllConnections;
     String rootStationName;
     Reset softReset;
 }

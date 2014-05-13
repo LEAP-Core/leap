@@ -73,9 +73,8 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     let cur_entry = ctHashValue(cur);
     if (!cur_entry.optional)
       begin
-        messageM("ERROR: Unmatched logical send: " +  cur_name);
-	let newStr <- printSend(cur);
-        errorStr = "Unmatched Send: " + newStr + errorStr;	
+        messageM("ERROR: Unmatched logical send: " +  cur_name + ":\n");
+        printDanglingSend(x, cur);
         error_occurred = True;
       end
   end
@@ -88,9 +87,8 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
     let cur_entry = ctHashValue(cur);
     if (!cur_entry.optional)
       begin
-        messageM("ERROR: Unmatched logical receive: " + cur_name);
-	let newStr <- printRecv(cur);		 
-        errorStr = "ERROR: Unmatched logical receive " + integerToString(x) + ": " + newStr + errorStr; 
+        messageM("ERROR: Unmatched logical receive: " + cur_name + ":\n");
+	printDanglingRecv(x,cur);		 
         error_occurred = True;
       end
   end
@@ -99,7 +97,7 @@ module finalizeSoftConnection#(LOGICAL_CONNECTION_INFO info) (Empty);
   printGlobStrings(info.globalStrings);
 
   if (error_occurred)
-    error("\nError: Unmatched logical connections at top level. \n" + errorStr);
+    error("\nError: Unmatched logical connections at top level. \n");
 
 endmodule
 

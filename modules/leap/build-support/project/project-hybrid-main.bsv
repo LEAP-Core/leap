@@ -31,6 +31,7 @@
 
 import Vector::*;
 import Clocks::*;
+import ModuleContext::*;
 
 `include "awb/provides/model.bsh"
 `include "awb/provides/application_env.bsh"
@@ -40,7 +41,7 @@ import Clocks::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/clocks_device.bsh"
 
-`include "awb/provides/soft_connections_alg.bsh"
+`include "awb/provides/soft_connections_alg.bsh" 
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/soft_services.bsh"
@@ -48,6 +49,8 @@ import Clocks::*;
 `include "awb/provides/soft_connections_debug.bsh"
 `include "awb/provides/soft_connections_latency.bsh"
 `include "awb/provides/platform_services.bsh"
+`include "awb/provides/physical_platform_utils.bsh" 
+`include "awb/provides/physical_platform_defs.bsh" 
 
 
 //
@@ -94,9 +97,20 @@ endmodule
 module [Module] mkClockedSystem#(LowLevelPlatformInterface llpi)
     // interface:
         ();
-    
+
+    let int_ctx1 <- initializeServiceContext();
+
+    // Set some initial context.
+    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, putSynthesisBoundaryPlatform(fpgaPlatformName()));
+    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, putSynthesisBoundaryPlatformID(fpgaPlatformID()));
+    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryID(fpgaPlatformID()));
+    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, putSynthesisBoundaryName(fpgaPlatformName()));
+    match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, putExposeAllConnections(`EXPOSE_ALL_CONNECTIONS == 1));
+
+    messageM("PPP " + fpgaPlatformName() + " -> " + integerToString(fpgaPlatformID()));
+
     // Instantiate the soft-connected system
-    instantiateWithConnections(mkConnectedSystem(llpi));
+    instantiateWithConnections(mkConnectedSystem(llpi), tagged Valid int_ctx6);
 
 endmodule
 

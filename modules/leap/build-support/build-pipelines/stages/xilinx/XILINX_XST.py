@@ -14,12 +14,14 @@ from parameter_substitution import *
 class Synthesize():
   def __init__(self, moduleList):
 
+    self.DEBUG = getBuildPipelineDebug(moduleList) 
+
     # string together the xcf, sort of like the ucf
     # Concatenate XCF files
     xcfSrcs = moduleList.getAllDependencies('XCF')
     MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
     if (len(xcfSrcs) > 0):
-      if (getBuildPipelineDebug(moduleList) != 0):
+      if (self.DEBUG != 0):
         for xcf in xcfSrcs:
           print 'xst found xcf: ' + xcf
 
@@ -41,22 +43,25 @@ class Synthesize():
 
     xstTemplate = parseAWBFile(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + templateFile[0])
                 
+    ngcModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore] 
 
-    [globalVerilogs, globalVHDs] = globalRTLs(moduleList)
+    [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
 
     generatePrj(moduleList, moduleList.topModule, globalVerilogs, globalVHDs)
     topXSTPath = generateXST(moduleList, moduleList.topModule, xstTemplate)
 
     synth_deps = []
+    # drop exiting boundaries. 
 
-    for module in moduleList.synthBoundaries():
+    for module in ngcModules:
         #Let's synthesize a xilinx .prj file for this synth boundary.
         # spit out a new prj
         generatePrj(moduleList, module, globalVerilogs, globalVHDs)
         newXSTPath = generateXST(moduleList, module, xstTemplate)
 
-        if (getBuildPipelineDebug(moduleList) != 0):
-            print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
+        if (self.DEBUG != 0):
+            if('VERILOG' in module.moduleDependency):
+                print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
 
         # Sort dependencies because SCons will rebuild if the order changes.
         sub_netlist = moduleList.env.Command(

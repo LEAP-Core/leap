@@ -140,3 +140,9 @@ rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
 local_mem=Local Memory using DDR DRAM (burst holds at least one line)
 
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms

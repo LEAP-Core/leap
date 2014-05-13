@@ -18,6 +18,7 @@ class Module(ProjectDependency.ProjectDependency):
     self.buildPath = buildPath
     self.parent = parent
     self.childArray = childArray
+    self.liIgnore = False
 
     self.isSynthBoundary = (synthBoundary != [])
     if(self.isSynthBoundary):
@@ -111,6 +112,14 @@ class Module(ProjectDependency.ProjectDependency):
       self.linkToEmptyOverrideFile('EMPTY_params_override.h', sw_path)
 
     return params
+
+  def cleanAWBParams(self):    
+    hw_path = 'hw/include/awb/provides/' + self.name + '_params_override.bsh'
+    sw_path = 'sw/include/awb/provides/' + self.name + '_params_override.h'
+    # on a clean kill the override files.
+    os.system('rm -f ' + hw_path)
+    os.system('rm -f ' + sw_path)
+
 
 
   ##

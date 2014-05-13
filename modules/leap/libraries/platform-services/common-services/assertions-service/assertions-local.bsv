@@ -37,7 +37,6 @@ import FIFOF::*;
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv.bsh"
-`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/fpga_components.bsh"
 
 `include "awb/dict/RINGID.bsh"

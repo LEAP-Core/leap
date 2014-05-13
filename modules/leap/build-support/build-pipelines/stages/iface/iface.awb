@@ -14,6 +14,7 @@
 %scons %library iface.py
 
 %param --global EXTRA_DICTS " " "A set of extra dictionary files"
+%param --global EXTRA_INC_DIRS " " "A set of include directories"
 %param --global EXTRA_RRRS  " " "A set of extra rrr files"
 %param --global GENERATE_VICO 0 "True if we are building a vico target"
 

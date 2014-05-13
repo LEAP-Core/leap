@@ -33,10 +33,6 @@
 // unguarded FIFO, which makes the scheduler's life much easier.
 // The dispatcher which invokes this may guard the FIFO as appropriate.
 
-
-`include "awb/provides/physical_platform.bsh"
-`include "awb/provides/physical_platform.bsh"
-
 module [t_CONTEXT] mkPhysicalConnectionSend#(
     String send_name,
     Maybe#(STATION) m_station,
@@ -100,13 +96,12 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
 	       endinterface);
 
     // Collect up our info.
-    String platformName <- getSynthesisBoundaryPlatform(); 
     String moduleName   <- getSynthesisBoundaryName(); 
     let info = 
         LOGICAL_SEND_INFO 
         {
             logicalType: original_type, 
-            computePlatform: platformName,
+            computePlatform: "Deprecated",
             moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
@@ -218,13 +213,12 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
 	       endinterface);
 
     // Collect up our info.
-    String platformName <- getSynthesisBoundaryPlatform(); 
     String moduleName   <- getSynthesisBoundaryName(); 
     let info = 
         LOGICAL_RECV_INFO 
         {
             logicalType: original_type, 
-            computePlatform: platformName,
+            computePlatform: "Deprecated",
             moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
@@ -322,7 +316,6 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
 	       endinterface);
 
     // Collect up our info.
-    String platformName <- getSynthesisBoundaryPlatform(); 
     String moduleName   <- getSynthesisBoundaryName();       
     let info = 
         LOGICAL_SEND_MULTI_INFO 
@@ -330,7 +323,7 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
             logicalName: send_name, 
             logicalType: original_type,
             bitWidth: valueof(SizeOf#(t_MSG)),  
-            computePlatform: platformName,
+            computePlatform: "Deprecated",
             outgoing: outg,
             moduleName: moduleName
         };
@@ -435,7 +428,6 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
 	       endinterface);
 
     // Collect up our info.
-    String platformName <- getSynthesisBoundaryPlatform();
     String moduleName   <- getSynthesisBoundaryName();  
     let info = 
         LOGICAL_RECV_MULTI_INFO 
@@ -443,7 +435,7 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
             logicalName: recv_name, 
             logicalType: original_type,  
             bitWidth: valueof(SizeOf#(t_MSG)), 
-            computePlatform: platformName,
+            computePlatform: "Deprecated",
             incoming: inc,
             moduleName: moduleName
         };
@@ -544,7 +536,6 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
 
 	     endinterface);
 
-  String platform <- getSynthesisBoundaryPlatform();
   String moduleName   <- getSynthesisBoundaryName(); 
   // Collect up our info.
   let info = 
@@ -552,7 +543,7 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
       {
           logicalName: chain_name, 
           logicalType: original_type, 
-          computePlatform: platform,
+          computePlatform: "Deprecated",
           moduleNameIncoming: moduleName,
           moduleNameOutgoing: moduleName,
           bitWidth: valueof(SizeOf#(msg_T)),  
@@ -560,14 +551,9 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
           outgoing: outg
       };
 
-  String platformName <- getSynthesisBoundaryPlatform(); 
-  if((platformName == fpgaPlatformName) ||
-     (`EXPOSE_ALL_CONNECTIONS != 0))
-    begin
-      // Register the chain
-      registerChain(info);
-    end
-
+  // Register the chain
+  registerChain(info);
+ 
   method msg_T peekFromPrev() if (dataW.wget() matches tagged Valid .val);
     return val;
   endmethod 

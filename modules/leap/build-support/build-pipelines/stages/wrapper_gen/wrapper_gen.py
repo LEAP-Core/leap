@@ -1,13 +1,68 @@
 import os
+import cPickle as pickle
+
 from model import  *
 from config import  *
  
+# Load up LI graph from first pass. For now, we assume that this comes
+# from a file, but eventually this will be generated from the first
+# pass compilation.
+def getFirstPassLIGraph():
+    # The first pass will dump a well known file. 
+    firstPassLIGraph = "lim.li"
+
+    if(os.path.isfile(firstPassLIGraph)):
+        # We got a valid LI graph from the first pass.
+        pickleHandle = open(firstPassLIGraph, 'rb')
+        firstPassGraph = pickle.load(pickleHandle)
+        pickleHandle.close()
+        return firstPassGraph
+    return None
+
+def generateAWBCompileWrapper(moduleList, module):
+    compileWrapperPath = get_build_path(moduleList, module)
+    wrapper = open( compileWrapperPath + '/' + module.name + '_compile.bsv', 'w')
+
+    wrapper.write('//   This file was created by wrapper-gen')  
+    wrapper.write('`define BUILDING_MODULE_' + module.name + '\n')
+
+    for bsv in module.moduleDependency['GIVEN_BSVS']:
+        wrapper.write('`include "' + bsv +'"\n')
+    wrapper.close()
+
+def generateWrapperStub(moduleList, module):
+    compileWrapperPath = get_build_path(moduleList, module)
+    for suffix in ['_Wrapper.bsv','_Log.bsv']:
+         wrapper = open( compileWrapperPath + '/' + module.name + suffix, 'w')
+
+         wrapper.write('//   This file was created by wrapper-gen')  
+
+         wrapper.write('import HList::*;\n')
+         wrapper.write('import Vector::*;\n')
+         wrapper.write('import ModuleContext::*;\n')
+         wrapper.write('// These are well-known/required leap modules\n')
+         wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
+         wrapper.write('`include "awb/provides/soft_services_lib.bsh"\n')
+         wrapper.write('`include "awb/provides/soft_services.bsh"\n')
+         wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
+         wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
+         wrapper.write('`include "awb/provides/soft_connections_latency.bsh"\n')
+         wrapper.write('`include "awb/provides/physical_platform_utils.bsh"\n')
+         wrapper.write('// import non-synthesis public files\n')
+         wrapper.write('`include "' + module.name + '_compile.bsv"\n')
+
+         wrapper.close()
+
+                      
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
 # This is going to recursively build all the bsvs
 class WrapperGen():
 
   def __init__(self, moduleList):
+
+    # The LIM compiler uniquifies synthesis boundary names  
+    uidOffset = int(moduleList.getAWBParam('wrapper_gen_tool', 'MODULE_UID_OFFSET'))
 
     ## Here we use a module list sorted alphabetically in order to guarantee
     ## the generated wrapper files are consistent.  The topological sort
@@ -35,8 +90,19 @@ class WrapperGen():
       modPath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + module.name
       wrapperPath =  modPath + "_Wrapper.bsv"
       logPath = modPath + "_Log.bsv"
+
       conSizePath =  modPath + "_Wrapper_con_size.bsh"
       ignorePath = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/.ignore'
+
+      # clear out code on clean.
+      if moduleList.env.GetOption('clean'):
+          os.system('rm -f ' + wrapperPath)
+          os.system('rm -f ' + logPath)
+          os.system('rm -f ' + conSizePath)
+          os.system('rm -f ' + ignorePath)
+          if (module.name != moduleList.topModule.name):
+              os.system('rm -f ' + modPath + '.bsv') 
+          continue
 
       if (getBuildPipelineDebug(moduleList) != 0):
         print "Wrapper path is " + wrapperPath
@@ -76,7 +142,12 @@ class WrapperGen():
         # boundaries.  It will be invoked inside the top level model
         # in order to build all soft connections
         use_build_tree = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
-    
+        expose_all_connections = 0
+        try:
+            expose_all_connections = moduleList.getAWBParam('model', 'EXPOSE_ALL_CONNECTIONS')
+        except:
+            pass
+
         if (use_build_tree == 1):
             wrapper_bsv.write('\n\n`ifdef  CONNECTION_SIZES_KNOWN\n');
             # build_tree.bsv will get generated later, during the
@@ -160,20 +231,21 @@ class WrapperGen():
         dummy_import_bsv.close()
 
         if not os.path.exists(modPath + '_synth.bsv'):
-          os.system('leap-connect --dummy --softservice ' + moduleList.apmFile + ' ' + modPath + '_synth.bsv')
+            os.system('leap-connect --dummy --softservice ' + moduleList.apmFile + ' ' + modPath + '_synth.bsv')
 
         for wrapper in [wrapper_bsv, log_bsv]:      
-          wrapper.write('// These are well-known/required leap modules\n')
-          wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
-          wrapper.write('`include "awb/provides/soft_services_lib.bsh"\n')
-          wrapper.write('`include "awb/provides/soft_services.bsh"\n')
-          wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
-          wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
-          wrapper.write('`include "awb/provides/soft_connections_latency.bsh"\n')
-          wrapper.write('// import non-synthesis public files\n')
-          wrapper.write('`include "' + module.name + '_compile.bsv"\n')
-          wrapper.write('\n\n')
-
+            wrapper.write('// These are well-known/required leap modules\n')
+            wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
+            wrapper.write('`include "awb/provides/soft_services_lib.bsh"\n')
+            wrapper.write('`include "awb/provides/soft_services.bsh"\n')
+            wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
+            wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
+            wrapper.write('`include "awb/provides/soft_connections_latency.bsh"\n')
+            wrapper.write('`include "awb/provides/physical_platform_utils.bsh"\n')
+            wrapper.write('// import non-synthesis public files\n')
+            wrapper.write('`include "' + module.name + '_compile.bsv"\n')
+            wrapper.write('\n\n')
+            
         log_bsv.write('// First pass to see how large the vectors should be\n')
         log_bsv.write('`define CON_RECV_' + module.name + ' 100\n')
         log_bsv.write('`define CON_SEND_' + module.name + ' 100\n')
@@ -184,28 +256,29 @@ class WrapperGen():
         wrapper_bsv.write('`include "' + module.name + '_Wrapper_con_size.bsh"\n')
 
         for wrapper in [wrapper_bsv, log_bsv]:      
-          wrapper.write('(* synthesize *)\n')
-          wrapper.write('module [Module] mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.name + ', `CON_SEND_' + module.name + ', `CON_RECV_MULTI_' + module.name + ', `CON_SEND_MULTI_' + module.name +', `CHAINS_' + module.name +'));\n')
-          wrapper.write('  \n')
-          # we need to insert the fpga platform here
-          # get my parameters 
+            wrapper.write('(* synthesize *)\n')
+            wrapper.write('module [Module] mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.name + ', `CON_SEND_' + module.name + ', `CON_RECV_MULTI_' + module.name + ', `CON_SEND_MULTI_' + module.name +', `CHAINS_' + module.name +'));\n')
+            wrapper.write('  \n')
+            # we need to insert the fpga platform here
+            # get my parameters 
 
-          wrapper.write('    // instantiate own module\n')
-          wrapper.write('    let int_ctx0 <- initializeServiceContext();\n')
-          wrapper.write('    match {.int_ctx1, .int_name1} <- runWithContext(int_ctx0, putSynthesisBoundaryID(' + str(module.synthBoundaryUID)  + '));\n');
-          wrapper.write('    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, putSynthesisBoundaryPlatform("' + module.synthBoundaryPlatformName + '"));\n')
-          wrapper.write('    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, putSynthesisBoundaryPlatformID(' + str(module.synthBoundaryPlatformUID) + '));\n')
-          wrapper.write('    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryName("' + str(module.name) + '"));\n')
-          wrapper.write('    // By convention, global string ID 0 (the first string) is the module name\n');
-          wrapper.write('    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, getGlobalStringUID("' + module.synthBoundaryPlatformName + ':' + module.name + '"));\n');
-          wrapper.write('    match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, ' + module.synthBoundaryModule + ');\n')
-          wrapper.write('    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, mkSoftConnectionDebugInfo);\n')
-          wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx7, mkSoftConnectionLatencyInfo);\n')
-          wrapper.write('    let service_ifc <- exposeServiceContext(final_ctx);\n')
-          wrapper.write('    interface services = service_ifc;\n')
-          wrapper.write('    interface device = m_final;\n')
-          wrapper.write('endmodule\n')
-
+            wrapper.write('    // instantiate own module\n')
+            wrapper.write('    let int_ctx0 <- initializeServiceContext();\n')
+            wrapper.write('    match {.int_ctx1, .int_name1} <- runWithContext(int_ctx0, putSynthesisBoundaryID(fpgaNumPlatforms() + ' + str(module.synthBoundaryUID + uidOffset)  + '));\n');
+            wrapper.write('    messageM("PPP: " + "' + str(module.name) + '" + "  -> " + integerToString(fpgaNumPlatforms() + ' + str(module.synthBoundaryUID + uidOffset )  + '));\n');
+            wrapper.write('    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, putSynthesisBoundaryPlatform("' + module.synthBoundaryPlatformName + '"));\n')
+            wrapper.write('    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, putSynthesisBoundaryPlatformID(' + str(module.synthBoundaryPlatformUID) + '));\n')
+            wrapper.write('    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryName("' + str(module.name) + '"));\n')
+            wrapper.write('    // By convention, global string ID 0 (the first string) is the module name\n');
+            wrapper.write('    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, getGlobalStringUID("' + module.synthBoundaryPlatformName + ':' + module.name + '"));\n');
+            wrapper.write('    match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, ' + module.synthBoundaryModule + ');\n')
+            wrapper.write('    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, mkSoftConnectionDebugInfo);\n')
+            wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx7, mkSoftConnectionLatencyInfo);\n')
+            wrapper.write('    let service_ifc <- exposeServiceContext(final_ctx);\n')
+            wrapper.write('    interface services = service_ifc;\n')
+            wrapper.write('    interface device = m_final;\n')
+            wrapper.write('endmodule\n')
+    
         log_bsv.close()
 
       wrapper_bsv.close()

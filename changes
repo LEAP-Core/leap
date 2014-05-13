@@ -18470,3 +18470,184 @@ We run two passes (depends and non-depends) for regular compilation.
 This was producing two build.status files, making it difficult for
 scripts to diagnose build completion.  Now we produce two differently
 named status files. 
+
+----------
+keflemin    Date: Tue May 13 08:07:10 EDT 2014  CSN: CSN-leap-559
+                  Tue May 13 12:07:10 UTC 2014
+
+
+Directory libperl/Leap/lib/Leap/RRR/Method
+ BSV.pm                    Locally Modified          558 
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ BSV.pm                    Locally Modified          558 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ BSV.pm                    Locally Modified          558 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified          558 
+ fpgaenv-hybrid-exe-no-memory.apm Locally Modified          558 
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          558 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified          558 
+ fpgaenv-hybrid-vc707-pcie-no-memory.apm Locally Modified          558 
+ fpgaenv-hybrid-vexe.apm   Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          558 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-pcie-no-memory.apm Locally Modified          558 
+ fpgaenv-de2-jtag.apm      Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          558 
+ fpgaenv-de3-jtag.apm      Locally Modified          558 
+ fpgaenv-hybrid-exe.apm    Locally Modified          558 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          558 
+ fpgaenv-hybrid-vc707-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          558 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          558 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-common.bsh      Locally Removed           558 
+ basic-rrr.awb             Locally Modified          558 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ rrr-common.awb            Locally Modified          558 
+ basic-rrr-common.bsh      Locally Added               - 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.bsv   Locally Modified          558 
+
+Directory modules/leap/virtual-platform
+ fpga-environment.awb      Locally Modified          558 
+ std-virtual-platform.bsv  Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/synthesis
+ synthesis-library.py      Locally Removed           558 
+ synthesis-library.awb     Locally Removed           558 
+ synthesis_functions.py    Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.awb              Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          558 
+ bsv.awb                   Locally Modified          558 
+ sched.tcl                 Locally Added               0 
+ path.tcl                  Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Modified          558 
+ iface.py                  Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          558 
+ liChannel.py              Locally Modified          558 
+ liGraph.py                Locally Modified          558 
+ liChain.py                Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          558 
+ synthesis_boundary_wrapper_gen.awb Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          558 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified          558 
+ project-hybrid-main.bsv   Locally Modified          558 
+ ModuleList.py             Locally Modified          558 
+ Module.py                 Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          558 
+ hybrid-mem-scratch.bsv    Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsv Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.cpp        Locally Modified          558 
+ global-strings.h          Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          558 
+ connected-common.bsv      Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-common-module-context.awb Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/latency
+ connections-latency.bsv   Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-implementation-multifpga.bsv Locally Removed           558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-top-level.bsv     Locally Modified          558 
+ expose-connections.bsv    Locally Modified          558 
+ connect-top-level-multifpga.bsv Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          558 
+ connection-context.bsv    Locally Modified          558 
+ connection-implementation.bsv Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.bsv     Locally Modified          558 
+
+
+Huge reorganization of LIM compiler to support object-only backend
+builds.  The LIM compiler now passes an LI graph directly to the
+backend, stitches the frontend object code together using the build
+tree mechanism.  This improves compile time by effectively removing
+the user code (and portions of the platform code located in LI
+Modules) from the backend compilation flow.  
+
+Other changes:
+
+1) Fixed many spurious user-level dependencies on physical platform
+code. No user code should ever depend on the physical platform
+directly.  This speeds compilation time. 
+
+2) Changed generated .ba/.v compilation dependencies.  These are now
+based on the awb modules which are declared (by the programmer) to
+produce the .ba/.v.  The resulting build parallelism breaks older
+versions of scons.  2.3.0 and 2.3.1 seem to work. 
+
+3) Deprecation of platformModule annotation.  Since the LIM compiler
+now completely manages mapping of modules to FPGAs, most of the old
+mechanisms for multiple FPGA compilation are no longer needed.  Many
+have been marked as deprecated and will eventually be removed. 
+
+4) Steps towards ability to add arbitrary LI Modules at compile time.
+This is gated by strong dependence on AWB style-synthesis boundaries. 
+
+Known issues:
+
+1) build_tree dependencies are not being correctly calculated due to
+the absences of a build tree .depends.  Some experimental code.
+
+2) leap-connect is now vestigial.  It should be removed and replaced
+by python code.
+
+3) BSV.py is getting bloated.  Probably it needs to be refactored
+(especially code related to code gen, which is slightly replicated)

@@ -79,6 +79,7 @@ class ModuleList:
     self.apmName = env['DEFS']['APM_NAME']
     self.apmFile = env['DEFS']['APM_FILE']
     self.moduleList = []
+    self.modules = {} # Convenient dictionary
     self.awbParams = {}
     self.isDependsBuild = (getCommandLineTargets(self) == [ 'depends-init' ])
     
@@ -137,11 +138,16 @@ class ModuleList:
       # command-line overrides.  Build a dictionary indexed by module name.
       self.awbParams[module.name] = module.parseAWBParams()
 
+      if self.env.GetOption('clean'):
+        module.cleanAWBParams()
+
       # check to see if this is the top module (has no parent)
       if(module.parent == ''): 
         self.topModule = module
       else:
         self.moduleList.append(module)
+
+      self.modules[module.name] = module
 
       #This should be done in xst process 
       module.moduleDependency['VERILOG'] = givenVerilogs
@@ -172,6 +178,9 @@ class ModuleList:
     self.topModule.moduleDependency['BA'] = []
     self.topModule.moduleDependency['BSV_LOG'] = []   # Synth boundary build log file
     self.topModule.moduleDependency['STR'] = []       # Global string table
+
+    if(self.getAWBParam('model', 'LEAP_BUILD_CACHE_DIR') != ""):
+      self.env.CacheDir(self.getAWBParam('model', 'LEAP_BUILD_CACHE_DIR'))
 
     try:
       self.localPlatformUID = self.getAWBParam('physical_platform_utils', 'FPGA_PLATFORM_ID')
@@ -422,9 +431,22 @@ class ModuleList:
               if m.synthBoundaryPlatformUID == self.localPlatformUID]
 
 
+  ## Adds a new module to the module list.  This get used dynamically in the build tree.
+  def insertModule(self, newModule):
+      if(isinstance(newModule, list)):
+          def assignMod(mod):
+             self.modules[mod.name] = mod
+             return None
+          self.moduleList += newModule
+          map(assignMod, newModule)
+      else:
+          self.moduleList.append(newModule)
+          self.modules[newModule.name] = newModule
+
 ##
 ## Helper functions
 ##
+
 
 def checkSynth(module):
   return module.isSynthBoundary

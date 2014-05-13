@@ -110,8 +110,6 @@ physical_platform_utils=Common Physical Platform Utilities
 File=modules/bluespec/common/fpgaenv/physical-platform/xilinx_xupV5/pcie/xilinx-xup-pcie.awb
 Packagehint=leap-platforms
 
-
-
 [FPGA Build Pipeline Xilinx]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
 Packagehint=leap
@@ -138,4 +136,11 @@ Packagehint=leap
 
 [XUPv5 PCIE Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-xupv5/pcie-bluespec.awb
+Packagehint=leap-platforms
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms

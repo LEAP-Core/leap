@@ -36,7 +36,6 @@ import List::*;
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_services_deps.bsh"
 
-`include "awb/provides/physical_platform.bsh"
 `include "awb/provides/debug_scan_service.bsh"
 
 

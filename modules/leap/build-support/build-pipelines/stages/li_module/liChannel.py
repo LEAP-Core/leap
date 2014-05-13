@@ -1,5 +1,6 @@
 import sys
 from code import *
+from liModule import *
 
 # TODO: Some of the data in this structure would be better captured as
 # an attribute dictionary.  This would also be more modular since
@@ -14,7 +15,6 @@ class LIChannel():
         self.name = name
         self.module_idx = module_idx # we don't care about the physical indexes yet. They get assigned during the match operation
         self.idx ="unassigned" # we don't care about the physical indexes yet. They get assigned during the match operation
-        self.platform = platform
         self.optional = optional 
         self.bitwidth = int(bitwidth)
         self.matched = False
@@ -42,10 +42,10 @@ class LIChannel():
         if(not isinstance(self.partnerModule, str)):
             partnerModule = self.partnerModule.name
 
-        return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":Module " + self.module_name + ":Platform " + self.platform + "-> PartnerChannel " + partnerChannel + ": partnerModule " + partnerModule + " }"
+        return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":Module " + self.module_name + ":Platform " + self.platform() + "-> PartnerChannel " + partnerChannel + ": partnerModule " + partnerModule + " }"
 
     def copy(self):
-        newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.platform, self.optional, self.bitwidth, self.module_name, self.type_structure)
+        newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, "Deprecated", self.optional, self.bitwidth, self.module_name, self.type_structure)
         # Need to copy some other values as well...
         newChannel.activity = self.activity
         return newChannel
@@ -81,6 +81,14 @@ class LIChannel():
         else:
           return 2
 
+    def platform(self):
+        if(isinstance(self.module, LIModule)):
+            if(self.module.getAttribute('MAPPING') is None):
+                return "unassigned"
+            else:
+                return self.module.getAttribute('MAPPING')
+        else:
+            return "unassigned"
 
     # TODO: This is a less than satifactory was of getting the
     # to-software LIChannels to compile

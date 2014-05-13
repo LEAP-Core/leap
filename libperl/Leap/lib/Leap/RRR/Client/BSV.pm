@@ -118,7 +118,6 @@ sub print_stub
         print $file "`include \"awb/provides/soft_connections.bsh\"\n";
     }
     print $file "`include \"awb/provides/librl_bsv_base.bsh\"\n";
-    print $file "`include \"awb/provides/rrr.bsh\"\n";
     print $file "`include \"awb/provides/rrr_common.bsh\"\n";
     print $file "`include \"awb/provides/umf.bsh\"\n";
     print $file "\n";

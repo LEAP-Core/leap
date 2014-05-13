@@ -5,12 +5,17 @@ import string
 import SCons.Script
 from model import  *
 
+def getIfaceIncludeDirs():
+    return 'iface/build/include:iface/build/hw'
+
 class Iface():
 
   def __init__(self, moduleList):
+
     # Create link for legacy asim include tree
     if os.path.exists('iface/build/include') and not os.path.exists('iface/build/include/asim'):
-      os.symlink('awb', 'iface/build/include/asim')
+        os.symlink('awb', 'iface/build/include/asim')
+
     BSC = moduleList.env['DEFS']['BSC']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ROOT_DIR_SW_INC = ":".join(moduleList.env['DEFS']['ROOT_DIR_SW_INC'].split(" ") + moduleList.env['DEFS']['SW_INC_DIRS'].split(" "))
@@ -18,13 +23,18 @@ class Iface():
 
     moduleList.env['ENV']['SHELL'] = '/bin/sh'
 
+    # First pass of LIM build may supply us with extra context for backend compilation. 
+    if(re.search('\w', moduleList.getAWBParam('iface_tool', 'EXTRA_INC_DIRS'))):
+        EXTRA_INC_DIRS = moduleList.getAWBParam('iface_tool', 'EXTRA_INC_DIRS')
+        ROOT_DIR_SW_INC += ":" + EXTRA_INC_DIRS
+
+
     inc_tgt = 'iface/build/include'
     dict_inc_tgt = inc_tgt + '/awb/dict'
     rrr_inc_tgt = inc_tgt + '/awb/rrr'
     hw_tgt = 'iface/build/hw'
 
-    #Unforutnately these have the silly iface dirs
-    # the rrr seem to reflect the synthboundary hierarchy
+    # RRR files seem to reflect the synthesis boundary hierarchy
     def addPathDic(path):
       return 'iface/src/dict/' + path
 
@@ -32,14 +42,14 @@ class Iface():
       return 'iface/src/rrr/' + path
 
     if moduleList.env.GetOption('clean'):
-      os.system('rm -rf iface/build')
+        os.system('rm -rf iface/build')
     else:
       if not os.path.isdir(dict_inc_tgt):
-        os.makedirs(dict_inc_tgt)
+          os.makedirs(dict_inc_tgt)
       if not os.path.isdir(rrr_inc_tgt):
-        os.makedirs(rrr_inc_tgt)
+          os.makedirs(rrr_inc_tgt)
       if not os.path.isdir(hw_tgt):
-        os.makedirs(hw_tgt + '/' + TMP_BSC_DIR)
+          os.makedirs(hw_tgt + '/' + TMP_BSC_DIR)
 
     tgt = []
 
@@ -62,7 +72,8 @@ class Iface():
 
         # Ask leap-dict for the output names based on the input file
         if(getBuildPipelineDebug(moduleList) != 0):
-          print 'leap-dict --querymodules --src-inc ' + inc_dirs + ' ' + src_names +'\n'
+            print 'leap-dict --querymodules --src-inc ' + inc_dirs + ' ' + src_names +'\n'
+
         for d in os.popen('leap-dict --querymodules --src-inc ' + inc_dirs + ' ' + src_names).readlines():
             #
             # Querymodules describes both targets and dependence info.  Targets
@@ -95,16 +106,22 @@ class Iface():
 
     # Define the dictionary builder
     # not really sure why srcs stopped working?
-    # leap-configure creates this dynamic_params.dic. Gotta handle is specially. Boo. 
+    # leap-configure creates this dynamic_params.dic. Gotta handle is specially. Boo.
+    localDictionaries = moduleList.getAllDependencies('GIVEN_DICTS') 
     extra_dicts = []
     if(re.search('\w', moduleList.getAWBParam('iface_tool', 'EXTRA_DICTS'))):
-      EXTRA_DICTS = moduleList.getAWBParam('iface_tool', 'EXTRA_DICTS')
-      extra_dicts = EXTRA_DICTS.split(':') 
-    dicts = map(addPathDic,moduleList.getAllDependencies('GIVEN_DICTS')+['dynamic_params.dic'] + extra_dicts)
+        EXTRA_DICTS = moduleList.getAWBParam('iface_tool', 'EXTRA_DICTS')
+        extra_dicts = EXTRA_DICTS.split(':') 
+
+    dicts = map(addPathDic, set(localDictionaries + ['dynamic_params.dic'] + extra_dicts))
+
+    # leap-dict generates dictionary entries in the order
+    # received. Force this order to be lexical
+    dicts.sort()
 
     dictCommand = 'leap-dict --src-inc ' + inc_dirs + ' --tgt-inc ' + dict_inc_tgt + ' --tgt-hw ' + hw_tgt + " " + (" ".join(dicts))
     if(getBuildPipelineDebug(moduleList) != 0):
-      print dictCommand
+        print dictCommand
 
     d_bld = moduleList.env.Builder(action = dictCommand,
                     emitter = dict_emitter)
@@ -122,11 +139,16 @@ class Iface():
 
     # Add dependence info computed by previous RRR builds (it uses cpp).
     extra_rrrs = []
+    localRRRs = moduleList.getAllDependenciesWithPaths('GIVEN_RRRS')
     if(re.search('\w', moduleList.getAWBParam('iface_tool', 'EXTRA_RRRS'))):
-      EXTRA_RRRS = moduleList.getAWBParam('iface_tool', 'EXTRA_RRRS')
-      extra_rrrs = EXTRA_RRRS.split(':') 
-    rrrs = map(addPathRRR,moduleList.getAllDependenciesWithPaths('GIVEN_RRRS') + extra_rrrs)
-   
+        EXTRA_RRRS = moduleList.getAWBParam('iface_tool', 'EXTRA_RRRS')
+        extra_rrrs = EXTRA_RRRS.split(':') 
+
+    rrrs = map(addPathRRR, set(localRRRs + extra_rrrs))
+
+    # leap-rrr-stubgen generates dictionary entries in the order
+    # received. Force this order to be lexical
+    rrrs.sort()
     for rrr in rrrs:
         d = '.depends-rrr-' + os.path.basename(rrr)
         moduleList.env.NoCache(d)
@@ -137,10 +159,11 @@ class Iface():
     #  files exist.
     generate_vico = ''
     if (moduleList.getAWBParam('iface_tool', 'GENERATE_VICO')):
-      generate_vico = '--vico'
+        generate_vico = '--vico'
     r_tgt = moduleList.env.Command(rrr_inc_tgt + '/service_ids.h',
                        rrrs,
                        'leap-rrr-stubgen ' + generate_vico + ' --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')
+
     tgt += r_tgt
     #
     # Compile generated BSV stubs

@@ -50,7 +50,9 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
 
     FRONT_PANEL fp = ?;
     STARTER st = ?;
-
+ 
+    let platformID <- getSynthesisBoundaryPlatformID();
+    
     //
     // Normal (master) platform and services are on platform ID 0.  Slaves are
     // on non-zero platform IDs.  Slave (multi-FPGA) platforms need the
@@ -58,7 +60,7 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     // instantiate the services.  These are all rings, with the primary node
     // on the master FPGA.
     //
-    if (fpgaPlatformID() == 0)
+    if (platformID == 0)
     begin
         fp <- mkFrontPanel(llpint);
         st <- mkStarter(llpint);
