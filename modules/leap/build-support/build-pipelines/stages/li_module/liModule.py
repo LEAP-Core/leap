@@ -12,6 +12,7 @@ class LIModule():
         self.channels = []    
         self.chains = []    
         self.chainNames = {}
+        self.channelNames = {}    
 
         self.attributes = {}
         
@@ -28,6 +29,18 @@ class LIModule():
         # number of rules equal to the number of local rules for channels
         # plus the number of exported rules of its children.
         self.numExportedRules = 0
+
+        self.id()
+
+    def id(self):
+        print "LIModule: " + self.name + ":"  + str(id(self)) + ':' + str(id(self.attributes))  
+        for channel in self.channels:
+            partnerID = str(id(channel.partnerModule))
+            partnerName = 'unassigned'
+            if(isinstance(channel.partnerModule, LIModule)):
+                partnerName = channel.partnerModule.name
+            print "\tchannel " + channel.name + ':' + str(id(channel)) + ' partner ' + partnerName + ':' + partnerID
+        
 
     def __repr__(self):
         return "{ MODULE:" + self.name + ":" + self.type + ":\nChannels:" + ',\n'.join(map(str, self.channels)) + ":\nChains:" + ',\n'.join(map(str, self.chains)) + "\nChainsNames:" + ',\n'.join(map(str, self.chainNames.keys())) + "\nAttributes: " + str(self.attributes) + "}\n"
@@ -47,8 +60,9 @@ class LIModule():
 
     def addChannel(self, channel):
         channelCopy = channel.copy()
-        channelCopy.module = self # You belong to me.
+        channelCopy.module = self # You belong to me. 
         self.channels.append(channelCopy)
+        self.channelNames[channelCopy.name] = channelCopy
 
     # it is nonsensical to have more than one instance of the same
     # chain, so we drop extraneous chain references. 

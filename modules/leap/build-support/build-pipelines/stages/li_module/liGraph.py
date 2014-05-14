@@ -72,6 +72,10 @@ class LIGraph():
                     else:
                         self.weights[(module, channel.partnerModule)] += channel.activity
 
+    def id(self):
+        for module in self.modules:
+            self.modules[module].id()
+
     def __str__(self):        
         rep = '\nLIGraph{\n'
         for (name,module) in self.modules.items():
@@ -184,6 +188,19 @@ class LIGraph():
             unmatched = unmatched or module.checkUnmatchedChannels()
     
         return unmatched
+
+    # Checks to see that all internal pointers are correct.
+    def healthCheck(self):
+        for module in self.modules.values():
+            for channel in module.channels:
+                partnerModuleId = id(channel.partnerModule)
+                partnerChannelId = id(channel.partnerChannel)
+                partnerModuleIdLocal = id(self.modules[channel.partnerModule.name])
+                partnerChannelIdLocal = id(self.modules[channel.partnerModule.name].channelNames[channel.name])
+                if(partnerModuleId != partnerModuleIdLocal):
+                    print "Warning, "  + channel.partnerModule.name + " pointer is not correct"
+                if(partnerChannelId != partnerChannelIdLocal):
+                    print "Warning, "  + channel.name + " pointer is not correct"
 
     def dumpUnmatchedChannels(self):
         for line in traceback.format_stack():

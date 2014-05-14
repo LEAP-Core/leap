@@ -37,6 +37,8 @@ import List::*;
 `include "awb/provides/soft_services_deps.bsh"
 
 `include "awb/provides/debug_scan_service.bsh"
+`include "awb/provides/stats_service.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
 
 
 //
@@ -52,8 +54,10 @@ import List::*;
 //
 module [CONNECTED_MODULE] mkSoftConnectionDebugInfo (Empty);
     List#(CONNECTION_DEBUG_INFO) info <- getConnectionDebugInfo();
+    let sends <- getUnmatchedSends();
 
     DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+
 
     while (info matches tagged Nil ? False : True)
     begin
@@ -61,6 +65,20 @@ module [CONNECTED_MODULE] mkSoftConnectionDebugInfo (Empty);
 
         // Allocate an integer tag for the name.
         GLOBAL_STRING_UID tag <- getGlobalStringUID(elem.sendName);
+
+        if(`CON_STATS_ENABLE > 0)
+        begin
+            // Only put stats on dangling connections
+            if(ctHashTableLookup(sends, elem.sendName) matches tagged Valid .sendMetadata)
+            begin                              
+                STAT stat <- mkStatCounter(statName("TRAFFIC_" + elem.sendName,
+                                                 "Traffic through " + elem.sendName));
+
+                rule incrStat(elem.state.dequeued);
+                    stat.incr_NB();  // Lossy but does not impact scheduling. 
+                 endrule
+            end                                        
+        end
 
         dbg_list <- addDebugScanField(dbg_list,
                                       "",

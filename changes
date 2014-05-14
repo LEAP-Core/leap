@@ -18698,3 +18698,37 @@ Directory modules/leap/libraries/soft-services/services/soft-connections
 
 
 Removed remainder of first-pass compute platform code.
+
+----------
+keflemin    Date: Wed May 14 16:26:01 EDT 2014  CSN: CSN-leap-562
+                  Wed May 14 20:26:01 UTC 2014
+
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.log Locally Modified          561 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          561 
+ liGraph.py                Locally Modified          561 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          561 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          561 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          561 
+ connections-debug.awb     Locally Modified          561 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-implementation.bsv Locally Modified          561 
+
+
+Support for optimal communications-based FPGA mapping
+
+1) Added new debug derivative which collects statistics for every send
+channel crossing between modules. This code is optionally enabled
+along with the debug scan code.
+
+2) Added necessary other support for compile-time module mapping.

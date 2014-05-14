@@ -306,6 +306,7 @@ STATION_INFO;
 interface PHYSICAL_CONNECTION_DEBUG_STATE;
     method Bool notEmpty();
     method Bool notFull();
+    method Bool dequeued();
 endinterface
 
 typedef struct

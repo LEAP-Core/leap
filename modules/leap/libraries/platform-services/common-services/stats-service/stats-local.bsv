@@ -93,6 +93,14 @@ interface STAT;
     // the `STATS_SIZE bit counter can cause data to be lost if the counter
     // rises faster than it can be dumped to the host.
     method Action incrBy(STAT_VALUE amount);
+
+    // Non-blocking methods are for use by callers involved in I/O
+    // where blocking due to activity in the statistics code could cause
+    // a deadlock (e.g. the multi-FPGA router).  These routines sacrifice
+    // fidelity, dropping increment requests, when necessary.
+    method Action incr_NB();
+    method Action incrBy_NB(STAT_VALUE amount);
+
 endinterface: STAT
 
 //
@@ -146,6 +154,9 @@ module [CONNECTED_MODULE] mkStatCounter#(STAT_ID statID)
     
     method Action incr() = m.incr(0);
     method Action incrBy(STAT_VALUE amount) = m.incrBy(0, amount);
+
+    method Action incr_NB() = m.incr_NB(0);
+    method Action incrBy_NB(STAT_VALUE amount) = m.incrBy_NB(0, amount);
 endmodule
 
 //
@@ -165,6 +176,9 @@ module [CONNECTED_MODULE] mkStatCounterDistributed#(STAT_ID statID,
     
     method Action incr() = m.incr(0);
     method Action incrBy(STAT_VALUE amount) = m.incrBy(0, amount);
+
+    method Action incr_NB() = m.incr_NB(0);
+    method Action incrBy_NB(STAT_VALUE amount) = m.incrBy_NB(0, amount);
 endmodule
 
 

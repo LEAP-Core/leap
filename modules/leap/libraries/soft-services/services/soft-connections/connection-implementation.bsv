@@ -132,6 +132,7 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
             interface PHYSICAL_CONNECTION_DEBUG_STATE;
                 method Bool notEmpty() = q.notEmpty();
                 method Bool notFull() = q.notFull();
+                method Bool dequeued() = sendDequeued;
             endinterface);
 
         let dbg_info =
@@ -350,6 +351,7 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
             interface PHYSICAL_CONNECTION_DEBUG_STATE;
                 method Bool notEmpty() = q.notEmpty();
                 method Bool notFull() = q.notFull();
+                method Bool dequeued() = sendDequeued;
             endinterface);
 
         let dbg_info =
