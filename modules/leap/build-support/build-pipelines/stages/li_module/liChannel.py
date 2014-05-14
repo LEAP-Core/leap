@@ -9,7 +9,7 @@ from liModule import *
 
 class LIChannel():
   
-    def __init__(self, sc_type, raw_type, module_idx, name, platform, optional, bitwidth, module_name, type_structure):
+    def __init__(self, sc_type, raw_type, module_idx, name, optional, bitwidth, module_name, type_structure):
         self.sc_type = sc_type
         self.raw_type = raw_type
         self.name = name
@@ -45,7 +45,7 @@ class LIChannel():
         return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":Module " + self.module_name + ":Platform " + self.platform() + "-> PartnerChannel " + partnerChannel + ": partnerModule " + partnerModule + " }"
 
     def copy(self):
-        newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, "Deprecated", self.optional, self.bitwidth, self.module_name, self.type_structure)
+        newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.type_structure)
         # Need to copy some other values as well...
         newChannel.activity = self.activity
         return newChannel

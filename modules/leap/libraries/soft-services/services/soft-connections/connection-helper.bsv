@@ -90,7 +90,6 @@ endmodule
 typeclass Matchable#(type t);
   function String  getLogicalName(t val);
   function Integer getLogicalWidth(t val);
-  function String  getComputePlatform(t val);
   function String  getModuleName(t val);
 endtypeclass
 
@@ -101,10 +100,6 @@ instance Matchable#(LOGICAL_RECV_ENTRY);
 
   function Integer getLogicalWidth(LOGICAL_RECV_ENTRY r_entry);
     return ctHashValue(r_entry).bitWidth;
-  endfunction
-
-  function String getComputePlatform(LOGICAL_RECV_ENTRY r_entry);
-    return ctHashValue(r_entry).computePlatform;
   endfunction
 
   function String getModuleName(LOGICAL_RECV_ENTRY r_entry);
@@ -121,10 +116,6 @@ instance Matchable#(LOGICAL_SEND_ENTRY);
     return ctHashValue(s_entry).bitWidth;
   endfunction
 
-  function String getComputePlatform(LOGICAL_SEND_ENTRY s_entry);
-    return ctHashValue(s_entry).computePlatform;
-  endfunction
-
   function String getModuleName(LOGICAL_SEND_ENTRY r_entry);
     return ctHashValue(r_entry).moduleName;
   endfunction
@@ -137,10 +128,6 @@ instance Matchable#(LOGICAL_RECV_MULTI_INFO);
 
   function Integer getLogicalWidth(LOGICAL_RECV_MULTI_INFO rinfo);
     return rinfo.bitWidth;
-  endfunction
-
-  function String getComputePlatform(LOGICAL_RECV_MULTI_INFO rinfo);
-    return rinfo.computePlatform;
   endfunction
 
   function String getModuleName(LOGICAL_RECV_MULTI_INFO rinfo);
@@ -157,10 +144,6 @@ instance Matchable#(LOGICAL_SEND_MULTI_INFO);
     return sinfo.bitWidth;
   endfunction
 
-  function String getComputePlatform(LOGICAL_SEND_MULTI_INFO sinfo);
-    return sinfo.computePlatform;
-  endfunction
-
   function String getModuleName(LOGICAL_SEND_MULTI_INFO sinfo);
     return sinfo.moduleName;
   endfunction
@@ -173,10 +156,6 @@ instance Matchable#(LOGICAL_CHAIN_INFO);
 
   function Integer getLogicalWidth(LOGICAL_CHAIN_INFO sinfo);
     return sinfo.bitWidth;
-  endfunction
-
-  function String getComputePlatform(LOGICAL_CHAIN_INFO sinfo);
-    return sinfo.computePlatform;
   endfunction
 
   function String getModuleName(LOGICAL_CHAIN_INFO sinfo); 
@@ -289,7 +268,7 @@ endmodule
 
 module printSend#(LOGICAL_SEND_ENTRY entry) (String);
   match {.name, .send} = entry;
-  String printStr = "Send: " + name + " " + send.computePlatform + "\n";
+  String printStr = "Send: " + name + " " + send.moduleName + "\n";
   messageM(printStr);
   return printStr;
 endmodule
@@ -300,7 +279,7 @@ endmodule
 
 module printRecv#(LOGICAL_RECV_ENTRY entry) (String);
   match {.name, .recv} = entry;
-  String printStr = "Recv: " + name + " " + recv.computePlatform + "\n";
+  String printStr = "Recv: " + name + " " + recv.moduleName + "\n";
   messageM(printStr);
   return printStr;
 endmodule

@@ -101,7 +101,6 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
         LOGICAL_SEND_INFO 
         {
             logicalType: original_type, 
-            computePlatform: "Deprecated",
             moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
@@ -218,7 +217,6 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
         LOGICAL_RECV_INFO 
         {
             logicalType: original_type, 
-            computePlatform: "Deprecated",
             moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
             optional: optional, 
@@ -323,7 +321,6 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
             logicalName: send_name, 
             logicalType: original_type,
             bitWidth: valueof(SizeOf#(t_MSG)),  
-            computePlatform: "Deprecated",
             outgoing: outg,
             moduleName: moduleName
         };
@@ -435,7 +432,6 @@ module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATI
             logicalName: recv_name, 
             logicalType: original_type,  
             bitWidth: valueof(SizeOf#(t_MSG)), 
-            computePlatform: "Deprecated",
             incoming: inc,
             moduleName: moduleName
         };
@@ -543,7 +539,6 @@ module [t_CONTEXT] mkPhysicalConnectionChain#(String chain_name, String original
       {
           logicalName: chain_name, 
           logicalType: original_type, 
-          computePlatform: "Deprecated",
           moduleNameIncoming: moduleName,
           moduleNameOutgoing: moduleName,
           bitWidth: valueof(SizeOf#(msg_T)),  

@@ -169,13 +169,12 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         // Good news! We didn't blow up.
         // Actually do the connection, with a new LOGICAL_CHAIN_INFO 
         // This lets us keep a single LOGICAL_CHAIN_INFO
-        messageM("Adding Link to Chain: [" + new_link.logicalName + "]  Platform: " + new_link.computePlatform + ", Module:"  + new_link.moduleNameIncoming);
+        messageM("Adding Link to Chain: [" + new_link.logicalName + "] Module:"  + new_link.moduleNameIncoming);
         connectOutToIn(new_link.outgoing, latest_link.incoming);
 
         // Add the new link to the list.
         putChain(LOGICAL_CHAIN_INFO{logicalName: new_link.logicalName, 
                                                logicalType: new_link.logicalType, 
-                                               computePlatform: new_link.computePlatform,
                                                moduleNameIncoming: new_link.moduleNameIncoming,
                                                moduleNameOutgoing: latest_link.moduleNameOutgoing,
                                                bitWidth: new_link.bitWidth, 
@@ -187,7 +186,7 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
     begin
 
         // It's the first member of the chain, so just add it.
-        messageM("Adding Initial Link for Chain: [" + new_link.logicalName + "] Platform: " + new_link.computePlatform + " Module:" + new_link.moduleNameIncoming );
+        messageM("Adding Initial Link for Chain: [" + new_link.logicalName + "]  Module:" + new_link.moduleNameIncoming );
         putChain(new_link);
 
     end

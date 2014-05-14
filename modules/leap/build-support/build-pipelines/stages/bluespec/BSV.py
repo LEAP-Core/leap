@@ -1216,7 +1216,7 @@ class BSV():
 
                     synth_handle.write('    ' + ch_reg_stmt + '("' + channel.name + '", ' + ch_type +\
                                     ' { logicalType: "' + channel.raw_type +\
-                                    '", computePlatform: "Deprecated", optional: ' +\
+                                    '", optional: ' +\
                                     str(channel.optional) + ', ' + ch_src + ': connections.' + ch_src +'[' +\
                                     str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) +\
                                     ', moduleName: "' + channel.module_name + '"});\n')   
@@ -1224,7 +1224,6 @@ class BSV():
                 for chain in top_module.chains:
                     synth_handle.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' +\
                                     chain.name + '", logicalType: "' + chain.raw_type +\
-                                    '", computePlatform: "Deprecated' +\
                                     '", incoming: connections.chains[' + str(chain.module_idx) +\
                                     '].incoming, outgoing: connections.chains[' + str(chain.module_idx) +\
                                     '].outgoing, bitWidth:' + str(chain.bitwidth) +\
@@ -1293,8 +1292,8 @@ class BSV():
                         limLinkTargets += localNames
                         limLinkSources += module.objectCache[objType]
                    
-                li_module = Module( module.name, ["mk_" + module.name + "_Wrapper"], moduleList.topModule.buildPath,\
-                                    moduleList.topModule.computePlatform, moduleList.topModule.name,\
+                li_module = Module( module.name, ["mk_" + module.name + "_Wrapper"],\
+                                    moduleList.topModule.buildPath, moduleList.topModule.name,\
                                     [], moduleList.topModule.name, [], moduleDeps)
 
                 # Need to generate verilog stub files here. Stub gen
@@ -1327,7 +1326,7 @@ class BSV():
         buildTreeDeps['VERILOG_STUB'] = oldStubs
 
         tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
-                             moduleList.topModule.computePlatform, moduleList.topModule.name,\
+                             moduleList.topModule.name,\
                              [], moduleList.topModule.name, [], buildTreeDeps)
 
 

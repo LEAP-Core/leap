@@ -13,7 +13,7 @@ class Module(ProjectDependency.ProjectDependency):
     ProjectDependency.ProjectDependency.dump(self)
 
   
-  def __init__(self, name, synthBoundary, buildPath, computePlatform, parent, childArray, synthParent, synthChildArray, sources):
+  def __init__(self, name, synthBoundary, buildPath, parent, childArray, synthParent, synthChildArray, sources):
     self.name = name
     self.buildPath = buildPath
     self.parent = parent
@@ -39,7 +39,6 @@ class Module(ProjectDependency.ProjectDependency):
 
     self.synthParent = synthParent
     self.synthChildArray = synthChildArray
-    self.computePlatform = computePlatform
     ProjectDependency.ProjectDependency.__init__(self)
     # grab the deps from source lists. 
     # we don't insert the special generated files that awb 

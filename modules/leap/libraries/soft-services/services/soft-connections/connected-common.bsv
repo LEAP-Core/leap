@@ -216,7 +216,6 @@ typedef 1024 NUM_CONNECTION_MATCHING_HASH_BUCKETS;
 typedef struct 
 {
     String logicalType;
-    String computePlatform;
     String moduleName;
     Bool optional;
     Integer bitWidth;
@@ -239,7 +238,6 @@ typedef COMPILE_TIME_HASH_IDX#(NUM_CONNECTION_MATCHING_HASH_BUCKETS)
 typedef struct 
 {
     String logicalType;
-    String computePlatform;
     String moduleName;
     Bool optional;
     Integer bitWidth;
@@ -263,7 +261,6 @@ typedef struct
 {
     String logicalName;
     String logicalType;
-    String computePlatform;
     String moduleName;
     Integer bitWidth;
     PHYSICAL_CONNECTION_OUT_MULTI outgoing;
@@ -275,7 +272,6 @@ typedef struct
 {
     String logicalName;
     String logicalType;
-    String computePlatform;
     String moduleName;
     Integer bitWidth;
     PHYSICAL_CONNECTION_IN_MULTI incoming;
@@ -369,7 +365,6 @@ typedef struct
 {
     String  logicalName;
     String  logicalType;
-    String  computePlatform;
     String  moduleNameIncoming;
     String  moduleNameOutgoing;
     Integer bitWidth;

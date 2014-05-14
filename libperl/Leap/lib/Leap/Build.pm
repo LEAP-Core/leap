@@ -439,13 +439,6 @@ sub pythonize_module {
     # get build dir get_module_build_dir_from_module
     $stringRepresentation = $stringRepresentation . "\'" . get_module_build_dir_from_module($module) . "\', ";
 
-    # get compute platform
-    if(is_synthesis_boundary($module)) {
-	$stringRepresentation = $stringRepresentation . "\'" . get_compute_platform($module) . "\', ";
-    } else {
-        $stringRepresentation = $stringRepresentation . "\'" . get_compute_platform( get_synthesis_boundary_parent($module)) . "\', "
-    }
-
     # all modules have parents/children.  We'll preserve this structure
     # because it will make life easier in the python
     # get parent synthesis boundary 

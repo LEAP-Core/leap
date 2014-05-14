@@ -18662,3 +18662,39 @@ Directory modules/leap/build-support/build-pipelines/stages/software
 
 
 Location of configuration variable changed. 
+
+----------
+keflemin    Date: Wed May 14 16:02:58 EDT 2014  CSN: CSN-leap-561
+                  Wed May 14 20:02:58 UTC 2014
+
+
+Directory libperl/Leap/lib/Leap
+ Build.pm                  Locally Modified          560 
+
+Directory tools/scripts
+ leap-connect              Locally Modified          560 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          560 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liUtility.py              Locally Modified          560 
+ liChannel.py              Locally Modified          560 
+ liChain.py                Locally Modified          560 
+
+Directory modules/leap/build-support/project
+ Module.py                 Locally Modified          560 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          560 
+ connected-common.bsv      Locally Modified          560 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          560 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          560 
+ connection-implementation.bsv Locally Modified          560 
+
+
+Removed remainder of first-pass compute platform code.

@@ -8,7 +8,7 @@ from liModule import *
 
 class LIChain():
   
-    def __init__(self, sc_type, raw_type, module_idx, name, platform, optional, bitwidth, module_name, chainroot, type_structure):
+    def __init__(self, sc_type, raw_type, module_idx, name, optional, bitwidth, module_name, chainroot, type_structure):
         self.sc_type = sc_type
         self.raw_type = raw_type
         self.name = name
@@ -55,7 +55,7 @@ class LIChain():
 
 
     def copy(self):
-        newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, "Deprecated", self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)
+        newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)
 
         newChain.activity = self.activity
         return newChain
