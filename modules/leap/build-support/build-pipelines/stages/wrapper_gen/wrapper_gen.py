@@ -1,5 +1,6 @@
 import os
 import cPickle as pickle
+from li_module import *
 
 from model import  *
 from config import  *
@@ -121,7 +122,13 @@ class WrapperGen():
       # Generate a dummy connection size file to avoid errors during dependence
       # analysis.
       if not os.path.exists(conSizePath):
-        os.system('leap-connect --dummy --dynsize ' + module.name + ' ' + conSizePath)
+          dummyModule = LIModule(module.name, module.name)
+          bsh_handle = open(conSizePath, 'w')
+          generateConnectionBSH(dummyModule, bsh_handle)
+          bsh_handle.close()
+
+
+          #os.system('leap-connect --dummy --dynsize ' + module.name + ' ' + conSizePath)
 
       wrapper_bsv.write('import HList::*;\n')
       wrapper_bsv.write('import Vector::*;\n')
@@ -154,7 +161,7 @@ class WrapperGen():
             # leap-connect phase.
             wrapper_bsv.write('    import build_tree_synth::*;\n'); 
             wrapper_bsv.write('    module [Connected_Module] instantiateAllSynthBoundaries ();\n')
-            wrapper_bsv.write('        let m <- mkBuildTree();\n')
+            wrapper_bsv.write('        let m <- build_tree();\n')
             wrapper_bsv.write('    endmodule\n')
             wrapper_bsv.write('`else\n');
       

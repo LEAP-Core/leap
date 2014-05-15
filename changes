@@ -18732,3 +18732,20 @@ channel crossing between modules. This code is optionally enabled
 along with the debug scan code.
 
 2) Added necessary other support for compile-time module mapping.
+
+----------
+keflemin    Date: Thu May 15 19:10:00 EDT 2014  CSN: CSN-leap-563
+                  Thu May 15 23:10:00 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          562 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          562 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          562 
+
+
+leap-connect is no more.  It has been subsumed by python code. 
