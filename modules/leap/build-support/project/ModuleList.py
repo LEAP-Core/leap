@@ -16,15 +16,6 @@ import Module
 import Utils
 from CommandLine import *
 
-try:
-  from fpgamap_parser import *
-  from fpga_environment_parser import *
-  multiFPGAAvail = True
-except ImportError:
-  # Not multi-FPGA
-  multiFPGAAvail = False
-
-
 # Some helper functions for navigating the build tree
 
 def get_build_path(moduleList, module):
@@ -195,7 +186,6 @@ class ModuleList:
     self.graphize()
     self.graphizeSynth()
 
-    self.loadFPGAMapping()
     
   def getAWBParam(self, moduleName, param):
     if (hasattr(moduleName, '__iter__') and not isinstance(moduleName, basestring)):
@@ -378,58 +368,15 @@ class ModuleList:
           self.graphSynth.add_edge((module,child)) 
   # and this concludes the graph build
 
-  ##
-  ## Load multi-FPGA mapping and decorate the module class
-  ## TODO: This code is soon to be deprecated and removed.
-  ##
-  def loadFPGAMapping(self):
-      if not multiFPGAAvail or not self.localPlatformValid:
-          ## Not multi-FPGA.  Set simple default values.
-          for module in [self.topModule] + self.synthBoundaries():
-              module.setSynthBoundaryPlatform(self.localPlatformName, self.localPlatformUID)
-          return
 
-      envFile = self.getAllDependenciesWithPaths('GIVEN_FPGAENV_MAPPINGS')
-      if (len(envFile) != 1):
-          sys.exit('Found more than one mapping file: ' + str(envFile) + ', exiting')
-      mapping = parseFPGAMap(self.env['DEFS']['ROOT_DIR_HW'] + '/' + envFile[0])
-
-      envFile = self.getAllDependenciesWithPaths('GIVEN_FPGAENVS')
-      if (len(envFile) != 1):
-          sys.exit('Found more than one environment file: ' + str(envFile) + ', exiting')
-      environment = parseFPGAEnvironment(self.env['DEFS']['ROOT_DIR_HW'] + '/' + envFile[0])
-
-      for module in [self.topModule] + self.synthBoundaries():
-          n = mapping.getSynthesisBoundaryPlatform(module.name)
-          if(n is None): # Mapping file doesn't know about this boundary
-              module.setSynthBoundaryPlatform(self.localPlatformName, self.localPlatformUID)
-          else:
-              module.setSynthBoundaryPlatform(n, environment.getSynthesisBoundaryPlatformID(n))
-              if (getBuildPipelineDebug(self) > 0):
-                  print 'MList mapping: ' + module.name + ' -> (' + module.synthBoundaryPlatformName + ', ' + str(module.synthBoundaryPlatformUID) + ')'
-      
-    
   ## Returns a dependency based topological sort of the source tree 
   def topologicalOrderSynth(self):
     return pygraph.algorithms.sorting.topological_sorting(self.graphSynth)
-
-  ## Same as topologicalOrderSynth but returns only boundaries local to
-  ## the FPGA that is the target of this compilation.
-  def topologicalOrderSynthThisFPGA(self):
-    return [m for m in self.topologicalOrderSynth() \
-              if m.synthBoundaryPlatformUID == self.localPlatformUID]
 
   ## Return all modules that are synthesis boundaries.  This list does
   ## NOT include the top module.
   def synthBoundaries(self):
     return filter(checkSynth, self.moduleList)
-
-  ## Return all modules that are synthesis boundaries and are mapped to the
-  ## FPGA targeted in this compilation.
-  def synthBoundariesThisFPGA(self):
-    return [m for m in self.synthBoundaries() \
-              if m.synthBoundaryPlatformUID == self.localPlatformUID]
-
 
   ## Adds a new module to the module list.  This get used dynamically in the build tree.
   def insertModule(self, newModule):

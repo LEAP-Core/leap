@@ -18749,3 +18749,20 @@ Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
 
 
 leap-connect is no more.  It has been subsumed by python code. 
+
+----------
+keflemin    Date: Thu May 15 21:25:43 EDT 2014  CSN: CSN-leap-564
+                  Fri May 16 01:25:43 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          563 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          563 
+ Module.py                 Locally Modified          563 
+
+
+
+Removed spurious mapping code.  With LIM compiler reorganization, this
+code is no longer needed.

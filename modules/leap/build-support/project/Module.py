@@ -11,7 +11,7 @@ class Module(ProjectDependency.ProjectDependency):
     print "Module: " + self.name + "\n"
     print "\tBuildPath: " + self.buildPath + "\n"
     ProjectDependency.ProjectDependency.dump(self)
-
+ 
   
   def __init__(self, name, synthBoundary, buildPath, parent, childArray, synthParent, synthChildArray, sources):
     self.name = name
@@ -31,9 +31,6 @@ class Module(ProjectDependency.ProjectDependency):
         Module.lastSynthId += 1
         self.synthBoundaryUID = Module.lastSynthId
 
-      # Multi-FPGA mapping.  Set default values that may be updated later.
-      self.synthBoundaryPlatformName = "default"
-      self.synthBoundaryPlatformUID = 0
     else:
       self.synthBoundaryModule = ""
 
@@ -60,10 +57,6 @@ class Module(ProjectDependency.ProjectDependency):
       f = open(empty_path, 'w')
       f.close()
 
-
-  def setSynthBoundaryPlatform(self, name, uid):
-      self.synthBoundaryPlatformName = name
-      self.synthBoundaryPlatformUID = uid
 
   def wrapperName(self):
     return 'mk_' + self.name + '_Wrapper'

@@ -273,11 +273,11 @@ class WrapperGen():
             wrapper.write('    let int_ctx0 <- initializeServiceContext();\n')
             wrapper.write('    match {.int_ctx1, .int_name1} <- runWithContext(int_ctx0, putSynthesisBoundaryID(fpgaNumPlatforms() + ' + str(module.synthBoundaryUID + uidOffset)  + '));\n');
             wrapper.write('    messageM("PPP: " + "' + str(module.name) + '" + "  -> " + integerToString(fpgaNumPlatforms() + ' + str(module.synthBoundaryUID + uidOffset )  + '));\n');
-            wrapper.write('    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, putSynthesisBoundaryPlatform("' + module.synthBoundaryPlatformName + '"));\n')
-            wrapper.write('    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, putSynthesisBoundaryPlatformID(' + str(module.synthBoundaryPlatformUID) + '));\n')
+            wrapper.write('    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, putSynthesisBoundaryPlatform("' + moduleList.localPlatformName + '"));\n')
+            wrapper.write('    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, putSynthesisBoundaryPlatformID(' + str(moduleList.localPlatformUID) + '));\n')
             wrapper.write('    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryName("' + str(module.name) + '"));\n')
             wrapper.write('    // By convention, global string ID 0 (the first string) is the module name\n');
-            wrapper.write('    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, getGlobalStringUID("' + module.synthBoundaryPlatformName + ':' + module.name + '"));\n');
+            wrapper.write('    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, getGlobalStringUID("' + moduleList.localPlatformName + ':' + module.name + '"));\n');
             wrapper.write('    match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, ' + module.synthBoundaryModule + ');\n')
             wrapper.write('    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, mkSoftConnectionDebugInfo);\n')
             wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx7, mkSoftConnectionLatencyInfo);\n')
