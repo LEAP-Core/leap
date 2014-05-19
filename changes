@@ -18766,3 +18766,14 @@ Directory modules/leap/build-support/project
 
 Removed spurious mapping code.  With LIM compiler reorganization, this
 code is no longer needed.
+
+----------
+mcadler     Date: Mon May 19 19:42:17 EDT 2014  CSN: CSN-leap-565
+                  Mon May 19 23:42:17 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          564 
+
+Add mkAssertionSimOnly, an assertion module that generates no hardware but can
+trigger in simulation.

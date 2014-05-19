@@ -69,9 +69,41 @@ instance Ord#(ASSERTION_SEVERITY);
 endinstance
 
 
+
+
 // ============================================================================
 //
-//  Current interface, using global strings.
+//  Assertions that trigger only in simulation.
+//
+// ============================================================================
+
+module [CONNECTED_MODULE] mkAssertionSimOnly#(String str,
+                                              ASSERTION_SEVERITY mySeverity)
+    // interface:
+    (ASSERTION);
+
+    // Check the boolean expression and enqueue a pass/fail.
+    function Action assert_function(Bool b);
+    action
+        // Check the boolean expression
+        if (!b && (mySeverity != ASSERT_NONE))
+        begin   // Failed. The system is sad. :(
+            $display(str);
+            if (mySeverity == ASSERT_ERROR)
+            begin
+                $finish;
+            end
+        end
+    endaction
+    endfunction
+  
+    return assert_function;
+endmodule
+
+
+// ============================================================================
+//
+//  Assertions that trigger even in synthesized hardware.
 //
 // ============================================================================
 
