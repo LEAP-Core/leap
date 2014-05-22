@@ -92,7 +92,4 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
         noAction;
     endmethod
 
-    method List#(Tuple2#(String, Bool)) debugScanState();
-        return List::nil;
-    endmethod
 endmodule

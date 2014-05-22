@@ -174,8 +174,8 @@ class ModuleList:
       self.env.CacheDir(self.getAWBParam('model', 'LEAP_BUILD_CACHE_DIR'))
 
     try:
-      self.localPlatformUID = self.getAWBParam('physical_platform_utils', 'FPGA_PLATFORM_ID')
-      self.localPlatformName = self.getAWBParam('physical_platform_utils', 'FPGA_PLATFORM_NAME')
+      self.localPlatformUID = self.getAWBParam('physical_platform_defs', 'FPGA_PLATFORM_ID')
+      self.localPlatformName = self.getAWBParam('physical_platform_defs', 'FPGA_PLATFORM_NAME')
       self.localPlatformValid = True
     except:
       self.localPlatformUID = 0

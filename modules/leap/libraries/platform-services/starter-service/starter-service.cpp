@@ -38,7 +38,7 @@
 #include "asim/atomic.h"
 
 #include "awb/rrr/service_ids.h"
-#include "awb/provides/starter_device.h"
+#include "awb/provides/starter_service.h"
 #include "awb/provides/application_env.h"
 
 #include "asim/ioformat.h"
@@ -55,10 +55,10 @@ int hardwareExitCode;
 
 
 // ===== service instantiation =====
-STARTER_DEVICE_SERVER_CLASS STARTER_DEVICE_SERVER_CLASS::instance;
+STARTER_SERVICE_SERVER_CLASS STARTER_SERVICE_SERVER_CLASS::instance;
 
 // constructor
-STARTER_DEVICE_SERVER_CLASS::STARTER_DEVICE_SERVER_CLASS() :
+STARTER_SERVICE_SERVER_CLASS::STARTER_SERVICE_SERVER_CLASS() :
     lastStatsScanCycle(0),
     exitCode(0)
 {
@@ -69,13 +69,13 @@ STARTER_DEVICE_SERVER_CLASS::STARTER_DEVICE_SERVER_CLASS() :
     hardwareExitCode = 0;
 
     // instantiate stubs
-    clientStub = new STARTER_DEVICE_CLIENT_STUB_CLASS(this);
-    serverStub = new STARTER_DEVICE_SERVER_STUB_CLASS(this);
+    clientStub = new STARTER_SERVICE_CLIENT_STUB_CLASS(this);
+    serverStub = new STARTER_SERVICE_SERVER_STUB_CLASS(this);
 }
 
 
 // destructor
-STARTER_DEVICE_SERVER_CLASS::~STARTER_DEVICE_SERVER_CLASS()
+STARTER_SERVICE_SERVER_CLASS::~STARTER_SERVICE_SERVER_CLASS()
 {
     delete clientStub;
     delete serverStub;
@@ -87,14 +87,14 @@ STARTER_DEVICE_SERVER_CLASS::~STARTER_DEVICE_SERVER_CLASS()
 
 // init
 void
-STARTER_DEVICE_SERVER_CLASS::Init(
+STARTER_SERVICE_SERVER_CLASS::Init(
     PLATFORMS_MODULE p)
 {
 }
 
 // uninit: override
 void
-STARTER_DEVICE_SERVER_CLASS::Uninit()
+STARTER_SERVICE_SERVER_CLASS::Uninit()
 {
 
 }
@@ -102,7 +102,7 @@ STARTER_DEVICE_SERVER_CLASS::Uninit()
 
 // End
 void
-STARTER_DEVICE_SERVER_CLASS::End(
+STARTER_SERVICE_SERVER_CLASS::End(
     UINT8 exit_code)
 {
     // Set that the hardware is finished.
@@ -119,7 +119,7 @@ STARTER_DEVICE_SERVER_CLASS::End(
 
 // Heartbeat
 void
-STARTER_DEVICE_SERVER_CLASS::Heartbeat(
+STARTER_SERVICE_SERVER_CLASS::Heartbeat(
     UINT64 fpga_cycles)
 {
     // TODO: add deadlock detection timeout.
@@ -129,7 +129,7 @@ STARTER_DEVICE_SERVER_CLASS::Heartbeat(
 
 // client: Start
 void
-STARTER_DEVICE_SERVER_CLASS::Start()
+STARTER_SERVICE_SERVER_CLASS::Start()
 {
     // Record that the hardware has started.
     std::unique_lock<std::mutex> lk(hardwareStatusMutex);
@@ -142,7 +142,7 @@ STARTER_DEVICE_SERVER_CLASS::Start()
 
 // client: WaitForHardware
 UINT8
-STARTER_DEVICE_SERVER_CLASS::WaitForHardware()
+STARTER_SERVICE_SERVER_CLASS::WaitForHardware()
 {
     std::unique_lock<std::mutex> lk(hardwareStatusMutex);
     if(!hardwareFinished)
@@ -153,7 +153,7 @@ STARTER_DEVICE_SERVER_CLASS::WaitForHardware()
 }
     
 void
-STARTER_DEVICE_SERVER_CLASS::StatusMsg()
+STARTER_SERVICE_SERVER_CLASS::StatusMsg()
 {
     if (exitCode == 0)
     {

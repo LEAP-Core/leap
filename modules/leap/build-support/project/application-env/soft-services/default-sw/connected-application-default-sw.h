@@ -14,7 +14,7 @@ class CONNECTED_APPLICATION_CLASS
     void Init() {}
     int Main() 
     { 
-        STARTER_DEVICE_CLASS::GetInstance()->WaitForHardware();
+        STARTER_SERVICE_CLASS::GetInstance()->WaitForHardware();
     } 
 };
 

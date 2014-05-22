@@ -1,3 +1,0 @@
-
-// Include base device
-`include "awb/provides/starter_device.bsh"

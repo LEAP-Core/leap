@@ -135,19 +135,11 @@ Packagehint=leap-platforms
 
 [PCIe Board with DDR/Requires]
 pcie_device=BlueNoC PCIe Bridge
-clocks_device=Differential Crystal Clocks Device from Clocks
+clocks_device=Differential Crystal Clocks Device from Wires
 physical_platform_config=VC707 Virtex-7 Platform with PCIe
 physical_platform_utils=Common Physical Platform Utilities
 ddr_sdram_device=Xilinx DDR SDRAM Physical Device
 aurora_device=Aurora Device Wrapper Null
-
-[Differential Crystal Clocks Device from Clocks]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-from-clocks.awb
-Packagehint=leap-platforms
-
-[Differential Crystal Clocks Device from Clocks/Params]
-CRYSTAL_CLOCK_FREQ=200
-RESET_ACTIVE_HIGH=1
 
 [VC707 Virtex-7 Platform with PCIe]
 File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc707/vc707-v7-pcie-dma.awb
@@ -178,4 +170,12 @@ physical_platform_defs=Common Physical Platform Definitions
 
 [Common Physical Platform Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms
+
+[Differential Crystal Clocks Device from Wires/Params]
+CRYSTAL_CLOCK_FREQ=200
+RESET_ACTIVE_HIGH=1
+
+[Differential Crystal Clocks Device from Wires]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms

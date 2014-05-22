@@ -1,7 +1,0 @@
-This directory contains alternatives for the Starter Virtual Device.
-
-This device synchronizes the beginning and end of HW/SW hybrid execution.
-
-null/       Empty version of the starter for platforms that have limited
-            capabilities.
-hybrid/     Implementation of the starter using LEAP RRR.

@@ -13,19 +13,26 @@ class Module(ProjectDependency.ProjectDependency):
     ProjectDependency.ProjectDependency.dump(self)
  
   
-  def __init__(self, name, synthBoundary, buildPath, parent, childArray, synthParent, synthChildArray, sources):
+  def __init__(self, name, synthBoundary, buildPath, parent, childArray, synthParent, synthChildArray, sources, platformModule=False):
     self.name = name
     self.buildPath = buildPath
     self.parent = parent
     self.childArray = childArray
     self.liIgnore = False
+    self.platformModule = platformModule
+    self.dependsFile = '.depends-bsv'
+    self.interfaceType = 'Empty'
+    self.extraImports = []
 
     self.isSynthBoundary = (synthBoundary != [])
     if(self.isSynthBoundary):
       self.synthBoundaryModule = synthBoundary[0]
 
-      # Generate a UID for the synthesis boundary.  Top level is always 0.
-      if (parent == ''):
+      # Generate a UID for the synthesis boundary.  Top level is
+      # always 0.  this UID assignment is a little bit broken. It
+      # needs to consider the UID variables passed in from the top
+      # level.
+      if (parent == '' or platformModule):
         self.synthBoundaryUID = 0
       else:
         Module.lastSynthId += 1

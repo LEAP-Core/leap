@@ -20,6 +20,20 @@ def getFirstPassLIGraph():
         return firstPassGraph
     return None
 
+def generateSynthStub(moduleList, module):
+    compileWrapperPath = get_build_path(moduleList, module)
+    wrapper = open( compileWrapperPath + '/' + module.name + '_synth.bsv', 'w')
+    wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
+    wrapper.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
+
+    conSizePath =  compileWrapperPath + '/' + module.name + "_Wrapper_con_size.bsh"
+    wrapper.write('import ' + module.name + '_Wrapper::*;\n')        
+
+    wrapper.write("module [Connected_Module] " + module.synthBoundaryModule + "(" + module.interfaceType + ");\n")
+    wrapper.write("\nendmodule\n")
+
+    wrapper.close()
+
 def generateAWBCompileWrapper(moduleList, module):
     compileWrapperPath = get_build_path(moduleList, module)
     wrapper = open( compileWrapperPath + '/' + module.name + '_compile.bsv', 'w')
@@ -64,6 +78,34 @@ class WrapperGen():
 
     # The LIM compiler uniquifies synthesis boundary names  
     uidOffset = int(moduleList.getAWBParam('wrapper_gen_tool', 'MODULE_UID_OFFSET'))
+
+    # Inject a synth boundary for platform build code. 
+    platformDeps = {}
+    platformDeps['GEN_VERILOGS'] = []
+    platformDeps['GEN_BAS'] = []
+    #This is sort of a hack.
+    platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh']
+    platformDeps['BA'] = []
+    platformDeps['STR'] = []
+    platformDeps['VERILOG'] = []
+    platformDeps['BSV_LOG'] = []
+    platformDeps['VERILOG_STUB'] = []
+       
+    platform_module = Module( moduleList.localPlatformName, ["mkVirtualPlatform"], moduleList.topModule.buildPath,\
+                          moduleList.topModule.name,\
+                          [], moduleList.topModule.name, [], platformDeps, platformModule=True)
+
+    platform_module.dependsFile = '.depends-platform'
+    platform_module.interfaceType = 'VIRTUAL_PLATFORM'
+    platform_module.extraImports = ['virtual_platform']
+
+    moduleList.insertModule(platform_module)
+    moduleList.graphize()
+    moduleList.graphizeSynth()
+
+    # Sprinkle more files expected by the two-pass build.  
+    generateWrapperStub(moduleList, platform_module)
+    generateAWBCompileWrapper(moduleList, platform_module)
 
     ## Here we use a module list sorted alphabetically in order to guarantee
     ## the generated wrapper files are consistent.  The topological sort
@@ -164,20 +206,28 @@ class WrapperGen():
             wrapper_bsv.write('        let m <- build_tree();\n')
             wrapper_bsv.write('    endmodule\n')
             wrapper_bsv.write('`else\n');
-      
+
         wrapper_bsv.write('\n    module ')
         if len(synth_modules) != 1:
             wrapper_bsv.write('[Connected_Module]')
         wrapper_bsv.write(' instantiateAllSynthBoundaries ();\n')
 
         for synth in synth_modules:
-          if synth != module:
+          if synth != module and not synth.platformModule:
               wrapper_bsv.write('        ' + synth.synthBoundaryModule + '();\n')
 
         wrapper_bsv.write('    endmodule\n')
         if (use_build_tree == 1):
             wrapper_bsv.write('`endif\n'); 
 
+
+        wrapper_bsv.write('    import ' + moduleList.localPlatformName +'_synth::*;\n'); 
+        wrapper_bsv.write('    module [Connected_Module] instantiatePlatform ('+ platform_module.interfaceType +');\n')
+        wrapper_bsv.write('        let m <- ' + moduleList.localPlatformName + '();\n')
+        wrapper_bsv.write('        return m;\n')
+        wrapper_bsv.write('    endmodule\n')
+
+     
 
         wrapper_bsv.write('`include "' + module.name + '.bsv"\n')
 
@@ -237,8 +287,8 @@ class WrapperGen():
         dummy_import_bsv.write('endmodule\n');
         dummy_import_bsv.close()
 
-        if not os.path.exists(modPath + '_synth.bsv'):
-            os.system('leap-connect --dummy --softservice ' + moduleList.apmFile + ' ' + modPath + '_synth.bsv')
+        if not os.path.exists(modPath + '_synth.bsv'):            
+            generateSynthStub(moduleList, module)
 
         for wrapper in [wrapper_bsv, log_bsv]:      
             wrapper.write('// These are well-known/required leap modules\n')
@@ -264,7 +314,7 @@ class WrapperGen():
 
         for wrapper in [wrapper_bsv, log_bsv]:      
             wrapper.write('(* synthesize *)\n')
-            wrapper.write('module [Module] mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.name + ', `CON_SEND_' + module.name + ', `CON_RECV_MULTI_' + module.name + ', `CON_SEND_MULTI_' + module.name +', `CHAINS_' + module.name +'));\n')
+            wrapper.write('module [Module] mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.name + ', `CON_SEND_' + module.name + ', `CON_RECV_MULTI_' + module.name + ', `CON_SEND_MULTI_' + module.name +', `CHAINS_' + module.name +', ' + module.interfaceType + '));\n')
             wrapper.write('  \n')
             # we need to insert the fpga platform here
             # get my parameters 
@@ -272,20 +322,28 @@ class WrapperGen():
             wrapper.write('    // instantiate own module\n')
             wrapper.write('    let int_ctx0 <- initializeServiceContext();\n')
             wrapper.write('    match {.int_ctx1, .int_name1} <- runWithContext(int_ctx0, putSynthesisBoundaryID(fpgaNumPlatforms() + ' + str(module.synthBoundaryUID + uidOffset)  + '));\n');
-            wrapper.write('    messageM("PPP: " + "' + str(module.name) + '" + "  -> " + integerToString(fpgaNumPlatforms() + ' + str(module.synthBoundaryUID + uidOffset )  + '));\n');
             wrapper.write('    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, putSynthesisBoundaryPlatform("' + moduleList.localPlatformName + '"));\n')
             wrapper.write('    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, putSynthesisBoundaryPlatformID(' + str(moduleList.localPlatformUID) + '));\n')
             wrapper.write('    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryName("' + str(module.name) + '"));\n')
             wrapper.write('    // By convention, global string ID 0 (the first string) is the module name\n');
             wrapper.write('    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, getGlobalStringUID("' + moduleList.localPlatformName + ':' + module.name + '"));\n');
-            wrapper.write('    match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, ' + module.synthBoundaryModule + ');\n')
-            wrapper.write('    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, mkSoftConnectionDebugInfo);\n')
-            wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx7, mkSoftConnectionLatencyInfo);\n')
+            wrapper.write('    match {.int_ctx6, .module_ifc} <- runWithContext(int_ctx5, ' + module.synthBoundaryModule + ');\n')
+            
+            # Need to expose clocks of the platform Module
+            if(module.platformModule):
+                wrapper.write('    match {.clk, .rst} = extractClocks(module_ifc);\n')
+                wrapper.write('    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, mkSoftConnectionDebugInfo(clocked_by clk, reset_by rst));\n')
+                wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx7, mkSoftConnectionLatencyInfo(clocked_by clk, reset_by rst));\n')                
+            else:
+                wrapper.write('    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, mkSoftConnectionDebugInfo);\n')
+                wrapper.write('    match {.final_ctx, .m_final}  <- runWithContext(int_ctx7, mkSoftConnectionLatencyInfo);\n')
             wrapper.write('    let service_ifc <- exposeServiceContext(final_ctx);\n')
             wrapper.write('    interface services = service_ifc;\n')
-            wrapper.write('    interface device = m_final;\n')
+            wrapper.write('    interface device = module_ifc;\n')
             wrapper.write('endmodule\n')
     
         log_bsv.close()
 
       wrapper_bsv.close()
+
+

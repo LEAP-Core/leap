@@ -1,4 +1,4 @@
-service STARTER_DEVICE
+service STARTER_SERVICE
 {
     server hw (bsv, connection) <- sw (cpp, method)
     {

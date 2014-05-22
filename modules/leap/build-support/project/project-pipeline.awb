@@ -36,7 +36,6 @@
 %scons %library Utils.py
 %scons %library CommandLine.py
 %scons %library ProjectDependency.py
-%scons %hw      SCons.hw.pipeline.template
 %scons %sw      SCons.sw.pipeline.template
 %scons %iface   SCons.iface.template
 
@@ -46,5 +45,6 @@
 %param EXPOSE_ALL_CONNECTIONS 0 "True if we should expose all soft connections"
 %param SMART_SYNTH_BOUNDARY   0        "use smart synthesis boundaries"
 %param SYNTH_BOUNDARY          mkModel  "name of synthesis boundary"
+%param INSTANTIATE_ROUTERS 0        "use smart synthesis boundaries"
 
 %param WAIT_FOR_HARDWARE      1         "1 = SW application waits for done signal from hardware."

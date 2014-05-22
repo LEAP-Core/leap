@@ -48,7 +48,7 @@
 #include "awb/provides/virtual_platform.h"
 #include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/virtual_devices.h"
-#include "awb/provides/starter_device.h"
+#include "awb/provides/starter_service.h"
 #include "awb/provides/stats_service.h"
 #include "awb/provides/stdio_service.h"
 #include "awb/provides/application_env.h"
@@ -131,9 +131,9 @@ int Init(int argc, char *argv[])
     
     if (PLATFORM_SERVICES_AVAILABLE)
     {
-        STARTER_DEVICE_CLASS::GetInstance()->WaitForHardware();
+        STARTER_SERVICE_CLASS::GetInstance()->WaitForHardware();
         STDIO_SERVER_CLASS::GetInstance()->Sync();
-        STARTER_DEVICE_CLASS::GetInstance()->StatusMsg();
+        STARTER_SERVICE_CLASS::GetInstance()->StatusMsg();
 
         // Emit statistics
         STATS_SERVER_CLASS::GetInstance()->DumpStats();

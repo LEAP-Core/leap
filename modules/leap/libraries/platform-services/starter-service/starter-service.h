@@ -7,9 +7,9 @@
 
 #include "awb/provides/low_level_platform_interface.h"
 #include "awb/provides/rrr.h"
-#include "awb/provides/starter_device.h"
+#include "awb/provides/starter_service.h"
 #include "awb/provides/model.h"
-#include "awb/rrr/client_stub_STARTER_DEVICE.h"
+#include "awb/rrr/client_stub_STARTER_SERVICE.h"
 
 
 // this module provides both client and server functionalities
@@ -20,17 +20,17 @@
 //
 //
 
-typedef class STARTER_DEVICE_SERVER_CLASS* STARTER_DEVICE_SERVER;
+typedef class STARTER_SERVICE_SERVER_CLASS* STARTER_SERVICE_SERVER;
 
-class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
+class STARTER_SERVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
                             public PLATFORMS_MODULE_CLASS
 {
   private:
     // self-instantiation
-    static STARTER_DEVICE_SERVER_CLASS instance;
+    static STARTER_SERVICE_SERVER_CLASS instance;
 
     // stubs
-    STARTER_DEVICE_CLIENT_STUB clientStub;
+    STARTER_SERVICE_CLIENT_STUB clientStub;
     RRR_SERVER_STUB     serverStub;
 
     // Cycle when statistics were last scanned
@@ -41,11 +41,11 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
     UINT8 exitCode;
 
   public:
-    STARTER_DEVICE_SERVER_CLASS();
-    ~STARTER_DEVICE_SERVER_CLASS();
+    STARTER_SERVICE_SERVER_CLASS();
+    ~STARTER_SERVICE_SERVER_CLASS();
 
     // static methods
-    static STARTER_DEVICE_SERVER GetInstance() { return &instance; }
+    static STARTER_SERVICE_SERVER GetInstance() { return &instance; }
 
     // required RRR methods
     void Init(PLATFORMS_MODULE);
@@ -65,9 +65,9 @@ class STARTER_DEVICE_SERVER_CLASS: public RRR_SERVER_CLASS,
 
 
 // server stub
-#include "awb/rrr/server_stub_STARTER_DEVICE.h"
+#include "awb/rrr/server_stub_STARTER_SERVICE.h"
 
-// our STARTER_DEVICE_SERVER class is itself the main STARTER class
-typedef STARTER_DEVICE_SERVER_CLASS STARTER_DEVICE_CLASS;
+// our STARTER_SERVICE_SERVER class is itself the main STARTER class
+typedef STARTER_SERVICE_SERVER_CLASS STARTER_SERVICE_CLASS;
 
 #endif

@@ -1,7 +1,8 @@
-%name Front Panel Service 
-%desc Wrap the Front Panel Device in Soft Connections
+%name Front Panel Device
+%desc Wrap the Front Panel Driver in Soft Connections
 
-%provides front_panel_service
+%provides front_panel_device
+%requires front_panel
 
 %attributes hybrid connected
 

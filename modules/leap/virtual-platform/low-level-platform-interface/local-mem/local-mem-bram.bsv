@@ -300,7 +300,4 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
         writeBusyCnt <= `LOCAL_MEM_WRITE_LATENCY;
     endmethod
 
-    method List#(Tuple2#(String, Bool)) debugScanState();
-        return List::nil;
-    endmethod
 endmodule

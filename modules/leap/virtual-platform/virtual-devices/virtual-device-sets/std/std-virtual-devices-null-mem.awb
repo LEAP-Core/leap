@@ -4,7 +4,7 @@
 
 %provides virtual_devices
 
-%requires front_panel starter_device common_utility_devices
+%requires front_panel common_utility_devices
 
 %notes README
 

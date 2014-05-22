@@ -18777,3 +18777,174 @@ Directory modules/leap/libraries/platform-services/common-services/assertions-se
 
 Add mkAssertionSimOnly, an assertion module that generates no hardware but can
 trigger in simulation.
+
+----------
+keflemin    Date: Thu May 22 16:47:35 EDT 2014  CSN: CSN-leap-566
+                  Thu May 22 20:47:35 UTC 2014
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          565 
+ standard-platform-null-mem.apm Locally Modified          565 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-vc707-pcie-no-memory.apm Locally Modified          565 
+ fpgaenv-hybrid-vc707-pcie.apm Locally Modified          565 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          565 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.awb Locally Modified          565 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          565 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.bsv        Locally Modified          565 
+ local-mem-ddr-wide.bsv    Locally Modified          565 
+ local-mem-interface.bsv   Locally Modified          565 
+ local-mem-bram.bsv        Locally Modified          565 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.bsv                  Locally Modified          565 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.cpp   Locally Modified          565 
+ std-virtual-devices.h     Locally Modified          565 
+ std-virtual-devices.awb   Locally Modified          565 
+ std-virtual-devices.bsv   Locally Modified          565 
+ std-virtual-devices-null-mem.awb Locally Modified          565 
+ std-virtual-devices-null-mem.bsv Locally Modified          565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft
+ local-memory-device-soft.bsv Locally Modified          565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ starter/                  Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ hybrid/                   Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.log        Locally Removed           565 
+ starter-device.cpp        Locally Removed           565 
+ starter-device.rrr        Locally Removed           565 
+ starter-device.h          Locally Removed           565 
+ starter-device.awb        Locally Removed           565 
+ starter-device.bsv        Locally Removed           565 
+ README                    Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ null/                     Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ null-starter-device.awb   Locally Removed           565 
+ starter-device.cpp        Locally Removed           565 
+ starter-device.h          Locally Removed           565 
+ starter-device.bsv        Locally Removed           565 
+ README                    Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ README                    Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.log             Locally Modified          565 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-xst.awb            Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ SimulationPipeline.py     Locally Modified          565 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified          565 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ application-env-hybrid-soft-service.bsv Locally Modified          565 
+
+Directory modules/leap/build-support/project/application-env/soft-services/default-sw
+ connected-application-default-sw.h Locally Modified          565 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          565 
+ project-hybrid-init.cpp   Locally Modified          565 
+ ModuleList.py             Locally Modified          565 
+ Module.py                 Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.log    Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-null-mem.awb Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ starter-service.cpp       Locally Added               - 
+ starter-service.rrr       Locally Added               - 
+ starter-service.h         Locally Added               - 
+ starter-service.awb       Locally Modified          565 
+ starter-service.bsv       Locally Modified          565 
+ starter-service.bsh       Locally Removed           565 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-null-mem.bsv Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/front-panel-service
+ front-panel-service.awb   Locally Modified          565 
+ front-panel-service.bsv   Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.log         Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.log Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.log    Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.log    Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.log         Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-standard.awb Locally Modified          565 
+ platform-services-standard.bsv Locally Modified          565 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-defs.bsv    Locally Modified          565 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.bsv     Locally Modified          565 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function.bsv Locally Modified          565 
+
+Directory modules/leap/examples/hello-world
+ hello-world.cpp           Locally Modified          565 
+
+
+Reorganized LEAP compilation flow. LEAP now places the platform code
+in a seperate synthesis boundary, which enables this code to be built
+in parallel. 
+
+1) Sweeping reorganization of platform code. The virtual platform
+interface is constrained to a) physical devices b) top-level wires c)
+LI channels.
+
+2) Fixed cpp log formating to reflect new LI channel description
+metadata.
+
+3) Low-level devices can now use LI channels.  Converted debug scan in
+the memory system to use channels directly.

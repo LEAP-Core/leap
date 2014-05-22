@@ -71,9 +71,9 @@ interface WITH_SERVICES#(parameter type t_INTERMEDIATE_IFC, parameter type t_IFC
 
 endinterface
 
-module [t_CONTEXT] instantiateWithConnections#(ModuleContext#(t_SS_CTX, Empty) m, Maybe#(t_SS_CTX) alternativeContext) 
+module [t_CONTEXT] instantiateWithConnections#(ModuleContext#(t_SS_CTX, module_ifc) m, Maybe#(t_SS_CTX) alternativeContext) 
     // interface: 
-        ()
+        (module_ifc)
     provisos
         (SOFT_SERVICE#(t_SS_CTX),
          IsModule#(t_CONTEXT, t_DUMMY),
@@ -92,7 +92,7 @@ module [t_CONTEXT] instantiateWithConnections#(ModuleContext#(t_SS_CTX, Empty) m
     // By convention m_final is Empty.
     match {.final_ctx, .m_final} <- runWithContext(int_ctx0, m);
     finalizeServiceContext(final_ctx);
-
+    return m_final;
 endmodule
 
 module [t_CONTEXT] instantiateSmartBoundary#(ModuleContext#(t_SS_CTX, t_IFC) m) 

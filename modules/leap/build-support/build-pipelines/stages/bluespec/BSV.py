@@ -138,8 +138,8 @@ class BSV():
             if do_dump_lim_graph:
                 all_logs = []
                 for module in  moduleList.topologicalOrderSynth():
-                    # scrub tree build, which is introduced above us...
-                    if (module.name != 'build_tree'):
+                    # scrub tree build/platform, which are redundant. 
+                    if (not module.platformModule):
                         all_logs.extend(module.moduleDependency['BSV_LOG'])
 
                 li_graph = moduleList.env['DEFS']['APM_NAME'] + '.li'
@@ -151,14 +151,8 @@ class BSV():
                 ## function.
                 def dump_lim_graph(target, source, env):
             
-                    connections = []
-                    # filter out build_tree connections.  These are not real
-                    
-                    for connection in parseLogfiles(all_logs):
-                        if (connection.module_name != 'build_tree'):
-                            connections.append(connection)
-                    
-                    fullLIGraph = LIGraph(connections) 
+                    # removing platform modules above allows us to use the logs directly.
+                    fullLIGraph = LIGraph(parseLogfiles(all_logs)) 
 
 
                     # annotate modules with relevant object code (useful in
@@ -270,8 +264,8 @@ class BSV():
             self.isDependsBuild = True
 
             deps = []
-            for module in topo + [moduleList.topModule]:
-                deps += self.compute_dependence(moduleList, module)
+            for module in topo + [moduleList.topModule]:                
+                deps += self.compute_dependence(moduleList, module, fileName=module.dependsFile)
 
             moduleList.env.Alias('depends-init', deps)
 
@@ -368,7 +362,7 @@ class BSV():
         ## Load intra-Bluespec dependence already computed.  This information will
         ## ultimately drive the building of Bluespec modules.
         ##
-        env.ParseDepends(MODULE_PATH + '/.depends-bsv',
+        env.ParseDepends(MODULE_PATH + '/' + module.dependsFile,
                          must_exist = not moduleList.env.GetOption('clean'))
 
         if not os.path.isdir(self.TMP_BSC_DIR):
@@ -483,7 +477,7 @@ class BSV():
                         else:
                             synthModule = liGraph.modules.values()[0]
                         synth_handle = open(str(target[0]), 'w')
-                        generateSynthWrapper(synthModule, synth_handle)
+                        generateSynthWrapper(synthModule, synth_handle, moduleType=module.interfaceType, extraImports=module.extraImports)
                         synth_handle.close()
                     return build_synth_stub_closure
 
@@ -532,8 +526,10 @@ class BSV():
             bb = self.stubGenCommand(MODULE_PATH, bsv, bld_v)
 
             # Only the subordinate modules have stubs.
+            # The platform module should not be enumerated here. This is a false dependency.
             if(module.name != moduleList.topModule.name):
                 moduleList.topModule.moduleDependency['VERILOG_STUB'] += [bb]
+                module.moduleDependency['GEN_VERILOG_STUB'] = [bb]
 
             return [bb] #This doesn't seem to do anything. 
 
@@ -691,7 +687,10 @@ class BSV():
 
         boundary_logs = []
         for module in topo:
-            boundary_logs.extend(module.moduleDependency['BSV_LOG'])
+            # Remove any platform modules.. These are special in that
+            # they can have wired interfaces.
+            if(not module.platformModule):
+                boundary_logs.extend(module.moduleDependency['BSV_LOG'])
 
         pipeline_debug = self.pipeline_debug
 
@@ -814,7 +813,7 @@ class BSV():
                     # Change module generation code below here to use this new interface!
                                      
                     import_handle.write('(*synthesize*)\n')
-                    import_handle.write('module mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + '));\n')
+                    import_handle.write('module mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + ', Empty));\n')
 
                     # This code is very similar to module code below.  We should refactor.
 
@@ -858,7 +857,7 @@ class BSV():
                     import_handle.write("endmodule\n\n")
                     
          
-            wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0)); return ?; endmodule\n')
+            wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
 
             if (pipeline_debug != 0):
                 print "LIGraph: " + str(liGraph)
@@ -919,7 +918,7 @@ class BSV():
                                 
                         wrapper_handle.write("module mk_" + localModule + '_Wrapper')
                         moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
-                             ", " + str(outgoing) + ", 0, 0, " + str(len(single_module.chains)) + ")"
+                             ", " + str(outgoing) + ", 0, 0, " + str(len(single_module.chains)) + ", Empty)"
                         wrapper_handle.write(" (" + moduleType +");\n")
                         wrapper_handle.write("    let m <- mk_" + single_module.name + '_Wrapper' + "();\n")
                         wrapper_handle.write("    return m;\n")
@@ -1127,7 +1126,7 @@ class BSV():
                     wrapper_handle.write("[Module] ")
                 wrapper_handle.write("mk_" + localModule + '_Wrapper')
                 moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
-                             ", " + str(outgoing) + ", 0, 0, " + str(chains) + ")"
+                             ", " + str(outgoing) + ", 0, 0, " + str(chains) + ", Empty)"
 
                 subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
                                    str(outgoing) + ", 0, 0, " + str(chains) + ")"
@@ -1240,7 +1239,8 @@ class BSV():
 
         top_module_path = get_build_path(moduleList, moduleList.topModule) 
 
-        oldStubs =  moduleList.topModule.moduleDependency['VERILOG_STUB']
+        # The top module/build pipeline only depend on non-platformModules.
+        oldStubs = [module.moduleDependency['GEN_VERILOG_STUB'] for module in moduleList.synthBoundaries() if not module.platformModule]
 
         # Inform object code build of the LI Graph retrieved from the
         # first pass.  Probe firstPassGraph for relevant object codes
@@ -1269,7 +1269,8 @@ class BSV():
             # Now that we have demanded bluespec builds (for
             # dependencies), we should now should downgrade synthesis boundaries for the backend.
             for module in topo:
-                module.liIgnore = True
+                if(not module.platformModule):
+                    module.liIgnore = True
 
             oldStubs = []
             for module in self.firstPassLIGraph.modules.values():
@@ -1319,14 +1320,17 @@ class BSV():
         buildTreeDeps['BA'] = []
         buildTreeDeps['STR'] = []
         buildTreeDeps['VERILOG'] = []
-        buildTreeDeps['VERILOG_STUB'] = oldStubs
+        buildTreeDeps['GIVEN_BSVS'] = []
+        buildTreeDeps['VERILOG_STUB'] = convertDependencies(oldStubs)
+
 
         tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
                              moduleList.topModule.name,\
-                             [], moduleList.topModule.name, [], buildTreeDeps)
+                             [], moduleList.topModule.name, [], buildTreeDeps, platformModule=True)
 
 
         moduleList.insertModule(tree_module)
+        generateAWBCompileWrapper(moduleList, tree_module)
 
         ## This produces the treeNode BSV. It must wait for the
         ## compilation of the log files, which it will read to form the
@@ -1418,7 +1422,7 @@ class BSV():
         # but not the top level build.  
         top_bo = moduleList.topModule.moduleDependency['BSV_BO']
         all_bo = moduleList.getAllDependencies('BO')
-        
+
         env.Depends(tree_file_wrapper_bo, all_bo)
 
         tree_file_synth_bo = env.BSC(tree_file_synth_bo_path, tree_components[1])
@@ -1428,13 +1432,23 @@ class BSV():
         env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'],
                     tree_file_synth_bo)
 
+
+        # Handle the platform build, which is special cased. 
+        platform_synth = get_build_path(moduleList, moduleList.topModule) + "/" +  moduleList.localPlatformName + "_synth.bsv"
+        platform_synth_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR +"/" + moduleList.localPlatformName + "_synth"
+        platform_synth_bo = env.BSC(platform_synth_bo_path, platform_synth)
+        env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'],
+                    platform_synth_bo)
+
         # need to generate a stub file for the build tree module.
         # note that in some cases, there will be only one module in
         # the graph, usually in a multifpga build.  In this case,
         # the build_tree module will be vestigal, but since we can't
         # predict this statically we'll have to build it anyway.
         
-        bb = self.stubGenCommand(top_module_path, "build_tree_Wrapper.bsv", top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")
+        tree_module.moduleDependency['GEN_VERILOG_STUB'] = [self.stubGenCommand(top_module_path, "build_tree_Wrapper.bsv", top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")]
         env.Depends(top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v", tree_file_wrapper_bo)
-        moduleList.topModule.moduleDependency['VERILOG_STUB'] = [bb] # top level only depends on the build tree stub       
+        # top level only depends on platform modules       
+        moduleList.topModule.moduleDependency['VERILOG_STUB'] = convertDependencies([module.moduleDependency['GEN_VERILOG_STUB'] for module in moduleList.synthBoundaries() if module.platformModule])
+      
     ## END of setup_tree_build
