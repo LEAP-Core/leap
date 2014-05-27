@@ -176,6 +176,9 @@ class ModuleList:
     try:
       self.localPlatformUID = self.getAWBParam('physical_platform_defs', 'FPGA_PLATFORM_ID')
       self.localPlatformName = self.getAWBParam('physical_platform_defs', 'FPGA_PLATFORM_NAME')
+      if(self.localPlatformName != self.localPlatformName.lower()):
+          print "Error: Platform name must be lower case (due to Bluespec). Fix your environment file." 
+          exit(1)
       self.localPlatformValid = True
     except:
       self.localPlatformUID = 0

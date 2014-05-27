@@ -71,8 +71,8 @@ module [CONNECTED_MODULE] mkSoftConnectionDebugInfo (Empty);
             // Only put stats on dangling connections
             if(ctHashTableLookup(sends, elem.sendName) matches tagged Valid .sendMetadata)
             begin                              
-                STAT stat <- mkStatCounter(statName("TRAFFIC_" + elem.sendName,
-                                                 "Traffic through " + elem.sendName));
+                STAT stat <- mkStatCounter(statName("TRAFFIC_" + elem.sendName + "_from_" + sendMetadata.moduleName,
+                                                 "Traffic through " + elem.sendName + " located in " + sendMetadata.moduleName));
 
                 rule incrStat(elem.state.dequeued);
                     stat.incr_NB();  // Lossy but does not impact scheduling. 

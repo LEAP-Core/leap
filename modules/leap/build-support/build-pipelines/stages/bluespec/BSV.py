@@ -208,6 +208,10 @@ class BSV():
                             fullLIGraph.modules[module.name].putObjectCode('BSV_PATH', modulePaths)
                             fullLIGraph.modules[module.name].putObjectCode('BSV_SCHED', moduleScheds)
 
+                    # Decorate LI modules with type
+                    for module in fullLIGraph.modules.values():
+                        module.putAttribute("EXECUTION_TYPE","RTL")
+
                     # dump graph representation. 
                     pickleHandle = open(li_graph, 'wb')
                     pickle.dump(fullLIGraph, pickleHandle, protocol=-1)
@@ -589,7 +593,7 @@ class BSV():
         bdir = os.path.dirname(str(target[0]))
         lib_dirs = self.__bsc_bdir_prune(module_path + ':' + self.ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
         return self.moduleList.env['DEFS']['BSC'] + " " +  self.BSC_FLAGS + ' -p +:' + \
-               self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/asim/provides:' + \
+               self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/awb/provides:' + \
                lib_dirs + ':' + self.TMP_BSC_DIR + ' -bdir ' + bdir + \
                ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir + \
                ' -fdir ' + bdir
@@ -738,8 +742,8 @@ class BSV():
                 tree_file.write("`ifndef BUILD_" + str(fileID) +  "\n") # these may not be needed
                 tree_file.write("`define BUILD_" + str(fileID) + "\n")
                 tree_file.write('import Vector::*;\n')
-                tree_file.write('`include "asim/provides/smart_synth_boundaries.bsh"\n')
-                tree_file.write('`include "asim/provides/soft_connections.bsh"\n')
+                tree_file.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
+                tree_file.write('`include "awb/provides/soft_connections.bsh"\n')
 
             # include all the dependencies in the graph in the wrapper. 
             for module in liGraph.graph.nodes():
@@ -1257,6 +1261,7 @@ class BSV():
             if(doLink):
                 if(os.path.lexists(linkPath)):
                     os.remove(linkPath)
+                print "Linking: " + absPath + " to " + linkPath
                 os.symlink(absPath, linkPath)
 
             return linkPath
@@ -1277,7 +1282,7 @@ class BSV():
             for module in self.firstPassLIGraph.modules.values():
                 moduleDeps = {}
 
-                for objType in ['BA', 'GEN_VERILOGS', 'GEN_WRAPPER_VERILOGS', 'STR']:
+                for objType in ['BA', 'GEN_BAS', 'GEN_VERILOGS', 'GEN_WRAPPER_VERILOGS', 'STR']:
                     if(objType in module.objectCache):
                         localNames =  map(lambda fileName: makeAWBLink(False, fileName), module.objectCache[objType])
                         # The previous passes GEN_VERILOGS are not
@@ -1407,6 +1412,8 @@ class BSV():
                 for module in self.firstPassLIGraph.modules.values():
                     if('BA' in module.objectCache):
                         map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['BA'])
+                    if('GEN_BAS' in module.objectCache):
+                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_BAS'])
                     if('GEN_VERILOGS' in module.objectCache):
                         map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_VERILOGS'])
                     if('GEN_WRAPPER_VERILOGS' in module.objectCache):

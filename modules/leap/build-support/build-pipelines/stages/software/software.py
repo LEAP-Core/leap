@@ -240,6 +240,10 @@ class Software():
 
                 fullLIGraph = LIGraph(connections)
                 
+                # Decorate LI modules with type
+                for module in fullLIGraph.modules.values():
+                    module.putAttribute("EXECUTION_TYPE","SOFTWARE")
+
                 # dump graph representation. 
                 pickleHandle = open(li_graph, 'wb')
                 pickle.dump(fullLIGraph, pickleHandle, protocol=-1)

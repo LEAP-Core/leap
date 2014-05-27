@@ -75,6 +75,10 @@ class Synthesize():
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
               '@echo xst ' + module.wrapperName() + ' build complete.' ])
 
+        srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
+
+        module.moduleDependency['SRP'] = [srpFile]
+
         module.moduleDependency['SYNTHESIS'] = [sub_netlist]
         synth_deps += sub_netlist
         SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')

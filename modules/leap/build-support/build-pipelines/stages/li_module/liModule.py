@@ -159,8 +159,8 @@ def generateSynthWrapper(liModule, synthHandle, moduleType='Empty', extraImports
     synthHandle.write('import Vector::*;\n')
     for importStm in extraImports:
             synthHandle.write('import ' + importStm + '::*;\n')
-    synthHandle.write('`include "asim/provides/smart_synth_boundaries.bsh"\n')
-    synthHandle.write('`include "asim/provides/soft_connections.bsh"\n')    
+    synthHandle.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
+    synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')    
     #synthHandle.write('`include "' + liModule.name + '_compile.bsv"\n')    
     synthHandle.write('import ' + liModule.name + '_Wrapper::*;\n')        
     synthHandle.write("\n\nmodule [Connected_Module] " + liModule.name + "(" + moduleType + ");\n")

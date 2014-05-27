@@ -1,4 +1,4 @@
-Compilation message: "hw/model/expose-connections.bsv", line 129, column 219: Dangling Recv {umf::GENERIC_UMF_PACKET#(umf::GENERIC_UMF_PACKET_HEADER#(4, 8, 4, 10, 6, 96), Bit#(128))} [10]:rrr_client_ASSERTIONS_req:False:129:Unknown:None
+Compilation message: "hw/model/expose-connections.bsv", line 129, column 219: Dangling Recv {umf::GENERIC_UMF_PACKET#(umf::GENERIC_UMF_PACKET_HEADER#(4, 8, 4, 10, 6, 96), Bit#(128))} [10]:rrr_client_ASSERTIONS_req:False:129:cpu0:None
 Compilation message: "hw/model/connection-helper.bsv", line 234, column 68: Send: rrr_client_ASSERTIONS_req FPGA0
-Compilation message: "hw/model/expose-connections.bsv", line 136, column 217: Dangling Send {umf::GENERIC_UMF_PACKET#(umf::GENERIC_UMF_PACKET_HEADER#(4, 8, 4, 10, 6, 96), Bit#(128))} [8]:rrr_client_ASSERTIONS_resp:False:129:Unknown:None
+Compilation message: "hw/model/expose-connections.bsv", line 136, column 217: Dangling Send {umf::GENERIC_UMF_PACKET#(umf::GENERIC_UMF_PACKET_HEADER#(4, 8, 4, 10, 6, 96), Bit#(128))} [8]:rrr_client_ASSERTIONS_resp:False:129:cpu0:None
 Compilation message: "hw/model/connection-helper.bsv", line 245, column 68: Recv: rrr_client_ASSERTIONS_resp FPGA0

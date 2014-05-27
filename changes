@@ -18980,3 +18980,70 @@ Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
 
 Resurrected support for verilog compilation, post platform
 reorganization.  Added vexe to regressions.
+
+----------
+keflemin    Date: Tue May 27 18:29:56 EDT 2014  CSN: CSN-leap-568
+                  Tue May 27 22:29:56 UTC 2014
+
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.bsv  Locally Modified          567 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.log             Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          567 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          567 
+
+Directory modules/leap/libraries/librl/storage
+ reversal-buffer-bram.bsv  Locally Modified          567 
+ fifo-stream-capture.bsv   Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.log    Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ starter-service.log       Locally Added               0 
+ starter-service.awb       Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.log         Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.log Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.log    Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.log    Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.log         Locally Modified          567 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          567 
+
+
+1) Repaired .logfile format for LI builds 
+
+2) Removed all instances of "asim/provides".  These were causing
+spurious rebuilds.
+
+3) Uniquified traffic statistics strings to include module
+information. This was necessary to prevent stats/strings services from
+misinterpreting duplicate string names.
+
+4) LI dumps now tag modules with object code types. 
