@@ -100,7 +100,9 @@ class Verilog():
         wrapper_handle.write('chomp($vvp);\n')
         wrapper_handle.write('exec("$vvp -m$platform/directc_mk_model_Wrapper.so $platform/' + TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe' + ' +bscvcd \$* ");\n')
         wrapper_handle.close()
-      
+ 
+    def modify_path_ba_local(path):
+        return modify_path_ba(moduleList, path)     
 
     # Bluesim builds apparently touch this code. This control block
     # preserves their behavior, but it is unclear why the verilog build is 
@@ -110,7 +112,8 @@ class Verilog():
             TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
             moduleList.getAllDependencies('VERILOG') +
             moduleList.getAllDependencies('VHDL') +
-            moduleList.getAllDependencies('BA'),
+            moduleList.getAllDependencies('BA') +
+            map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS')),
             [ vexe_gen_command,
               SCons.Script.Delete('directc.sft') ])
 
@@ -131,7 +134,8 @@ class Verilog():
             TMP_BSC_DIR + '/' + APM_NAME + '_hw.vexe',
             moduleList.getAllDependencies('VERILOG') +
             moduleList.getAllDependencies('VHDL') +
-            moduleList.getAllDependencies('BA'),
+            moduleList.getAllDependencies('BA') +
+            map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS')),
             [ vexe_gen_command,
               SCons.Script.Delete('directc.sft') ])
 

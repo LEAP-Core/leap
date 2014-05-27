@@ -1,3 +1,4 @@
+
 import os
 import sys
 import re
@@ -1319,7 +1320,7 @@ class BSV():
         buildTreeDeps['GEN_BAS'] = [  "mk_" + vlog + '_Wrapper' + ".ba" for vlog in verilog_deps]
         buildTreeDeps['BA'] = []
         buildTreeDeps['STR'] = []
-        buildTreeDeps['VERILOG'] = []
+        buildTreeDeps['VERILOG'] = [top_module_path + '/' + self.TMP_BSC_DIR + '/mk_build_tree_Wrapper.v']
         buildTreeDeps['GIVEN_BSVS'] = []
         buildTreeDeps['VERILOG_STUB'] = convertDependencies(oldStubs)
 

@@ -75,7 +75,8 @@ def generateWrapperStub(moduleList, module):
 class WrapperGen():
 
   def __init__(self, moduleList):
-
+    TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
+    topModulePath = get_build_path(moduleList, moduleList.topModule)
     # The LIM compiler uniquifies synthesis boundary names  
     uidOffset = int(moduleList.getAWBParam('wrapper_gen_tool', 'MODULE_UID_OFFSET'))
 
@@ -87,7 +88,7 @@ class WrapperGen():
     platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh']
     platformDeps['BA'] = []
     platformDeps['STR'] = []
-    platformDeps['VERILOG'] = []
+    platformDeps['VERILOG'] = [topModulePath + '/' + TMP_BSC_DIR + '/mk_platform_Wrapper.v']
     platformDeps['BSV_LOG'] = []
     platformDeps['VERILOG_STUB'] = []
        
