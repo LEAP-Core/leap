@@ -88,7 +88,7 @@ class WrapperGen():
     platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh']
     platformDeps['BA'] = []
     platformDeps['STR'] = []
-    platformDeps['VERILOG'] = [topModulePath + '/' + TMP_BSC_DIR + '/mk_platform_Wrapper.v']
+    platformDeps['VERILOG'] = [topModulePath + '/' + TMP_BSC_DIR + '/mk_' + moduleList.localPlatformName + '_Wrapper.v']
     platformDeps['BSV_LOG'] = []
     platformDeps['VERILOG_STUB'] = []
        
