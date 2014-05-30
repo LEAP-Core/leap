@@ -19059,3 +19059,26 @@ Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
 
 LIM compiles do not default to "platform" as their baseline name.
 Removed this hard-coding.
+
+----------
+hjyang      Date: Fri May 30 18:02:30 EDT 2014  CSN: CSN-leap-570
+                  Fri May 30 22:02:30 UTC 2014
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          569 
+
+Directory modules/leap/libraries/librl/cache
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          569 
+ rl-cache-mshr.bsv         Locally Modified          569 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-controller.bsv Locally Modified          569 
+ coherent-scratchpad-interfaces.bsv Locally Modified          569 
+ coherent-scratchpad-memory-client.bsv Locally Modified          569 
+ coherent-scratchpad-memory-service.awb Locally Modified          569 
+ coherent-scratchpad-memory-utils.bsv Locally Modified          569 
+
+Coherent scratchpads with a single coherence controller.
+Fix a bug in the coherence controller.
+Add debug scan codes for debugging.

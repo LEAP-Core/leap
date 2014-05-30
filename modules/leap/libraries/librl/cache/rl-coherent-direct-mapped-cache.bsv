@@ -37,7 +37,9 @@
 // Library imports.
 
 import FIFO::*;
+import FIFOF::*;
 import SpecialFIFOs::*;
+import List::*;
 
 // Project foundation imports.
 
@@ -180,6 +182,14 @@ interface RL_COH_DM_CACHE#(type t_CACHE_ADDR,
     //
     method Action setCacheMode(RL_COH_DM_CACHE_MODE mode, RL_COH_DM_CACHE_PREFETCH_MODE en);
     
+    //
+    // Debug scan state.  The cache can't instantiate a debug scan node because
+    // the debug scan code depends on libRL.  Instantiating a node here would
+    // create a source dependence loop.  Instead, a list of name/value pairs
+    // is available for use by a client.
+    //
+    method List#(Tuple2#(String, Bool)) debugScanState();
+    
     interface RL_COH_CACHE_STATS stats;
 
 endinterface: RL_COH_DM_CACHE
@@ -299,6 +309,9 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
     method Action invalReq(t_CACHE_ADDR addr);
     method Action flushReq(t_CACHE_ADDR addr);
     method Action invalOrFlushWait();
+   
+    // Debug scan state
+    method List#(Tuple2#(String, Bool)) debugScanState();
 
 endinterface: RL_COH_DM_CACHE_SOURCE_DATA
 
@@ -1653,7 +1666,34 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         resendGetXFromMSHRW.send();
         debugLog.record($format("    Cache: resendGetXFromMSHR: resend GETX req: addr=0x%x, mshr_idx=0x%x", addr, idx));
     endrule
-    
+
+
+    // ====================================================================
+    //
+    //   Debug scan state
+    //
+    // ====================================================================
+
+    List#(Tuple2#(String, Bool)) ds_data = List::nil;
+
+    // Cache lookup request sources
+    ds_data = List::cons(tuple2("Coherent Cache localReqQ notEmpty", localReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache localReqQ notFull", localReqQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache remoteReqQ notEmpty", remoteReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache remoteReqQ notFull", remoteReqQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache localRetryQ notEmpty", localRetryQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache localRetryQ notFull", localRetryQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache mshrRetryQ notEmpty", mshrRetryQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache mshrRetryQ notFull", mshrRetryQ.notFull), ds_data);
+    // Cache lookup queues
+    ds_data = List::cons(tuple2("Coherent Cache cacheLookupQ notEmpty", cacheLookupQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache cacheLookupQ notFull", cacheLookupQ.notFull), ds_data);
+    // Request reserved slots
+    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notEmpty", (numFreeReqBufSlots.value()>0)), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notFull", (numFreeReqBufSlots.value()<fromInteger(valueOf(RL_COH_DM_CACHE_NW_REQ_BUF_SIZE)))), ds_data);
+
+    let debugScanData = ds_data;
+
     // ====================================================================
     //
     // Methods
@@ -1807,6 +1847,13 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     method Action setCacheMode(RL_COH_DM_CACHE_MODE mode, RL_COH_DM_CACHE_PREFETCH_MODE en);
         cacheMode    <= mode;
         prefetchMode <= en;
+    endmethod
+    
+    //
+    // debugScanState -- Return cache state for DEBUG_SCAN.
+    //
+    method List#(Tuple2#(String, Bool)) debugScanState();
+        return List::append(debugScanData, mshr.debugScanState());
     endmethod
 
     interface RL_COH_CACHE_STATS stats;
