@@ -224,6 +224,7 @@ class BSV():
                 dumpGraph = env.Command(li_graph,
                                         all_logs,
                                         dump_lim_graph)
+                moduleList.topModule.moduleDependency['LIM_GRAPH'] = [li_graph]
                 moduleList.topDependency += [dumpGraph]
 
 
@@ -744,6 +745,7 @@ class BSV():
                 tree_file.write('import Vector::*;\n')
                 tree_file.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
                 tree_file.write('`include "awb/provides/soft_connections.bsh"\n')
+                tree_file.write('`include "awb/provides/librl_bsv_base.bsh"\n')
 
             # include all the dependencies in the graph in the wrapper. 
             for module in liGraph.graph.nodes():
@@ -1007,7 +1009,7 @@ class BSV():
                             if (pipeline_debug != 0):
                                 print "Found match with " + str(partnerChannel)
                             matched[channel.name] = channel
-                        
+                            
                             if (channel.isSource()):
                                 module_body += "    connectOutToIn(" + channel.module_name + ".outgoing[" + str(channel.module_idx) + "], " +\
                                     partnerChannel.module_name + ".incoming[" + str(partnerChannel.module_idx) + "]);// " + channel.name + "\n"
@@ -1052,8 +1054,10 @@ class BSV():
                    
                     if (not channel.name in matched):
                         if (channel.isSource()):
-                            module_body += "    outgoingVec[" + str(outgoing) +"] = " + channel.module_name +\
-                                           ".outgoing[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
+                            sizeName = "sz_" + channel.module_name + "_" + channel.name + "_" + str(channel.module_idx) 
+                            module_body += "    NumTypeParam#(" + str(channel.bitwidth) + ") " + sizeName + " = ?;\n"
+                            module_body += "    outgoingVec[" + str(outgoing) +"] = resizeConnectOut(" + channel.module_name +\
+                                           ".outgoing[" + str(channel.module_idx) + "], " + sizeName + ");// " + channel.name + "\n"     
                             channelCopy.module_idx = outgoing
                             outgoing = outgoing + 1
                         else:
@@ -1076,10 +1080,12 @@ class BSV():
                     chainCopy = chain.copy()                        
                     if (not (chain.name in matched)):
                         # need to add both incoming and outgoing
+                        sizeName = "sz_" + chain.module_name + "_" + chain.name + "_" + str(chain.module_idx) 
+                        module_body += "    NumTypeParam#(" + str(chain.bitwidth) + ") " + sizeName + " = ?;\n"
                         module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " +\
                                        chain.module_name + ".chains[" + str(chain.module_idx) +\
-                                       "].incoming, outgoing: " + chain.module_name + ".chains[" +\
-                                       str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                                       "].incoming, outgoing: resizeConnectOut(" + chain.module_name + ".chains[" +\
+                                       str(chain.module_idx) + "].outgoing, " + sizeName + ")};// " + chain.name + "\n"     
                         chainCopy.module_idx =  chains
                         chainCopy.module_name = localModule
                         treeModule.addChain(chainCopy)
@@ -1092,10 +1098,12 @@ class BSV():
                             # need to get form a chain based on the
                             # combination of the two modules
                             chain0 = matched[chain.name]
+                            sizeName = "sz_" + chain.module_name + "_" + chain.name + "_" + str(chain.module_idx) 
+                            module_body += "    NumTypeParam#(" + str(chain.bitwidth) + ") " + sizeName + " = ?;\n"
                             module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " +\
                                            chain0.module_name + ".chains[" + str(chain0.module_idx) +\
-                                           "].incoming, outgoing: " + chain.module_name+ ".chains[" +\
-                                           str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                                           "].incoming, outgoing: resizeConnectOut(" + chain.module_name+ ".chains[" +\
+                                           str(chain.module_idx) + "].outgoing, " + sizeName + ")};// " + chain.name + "\n"     
                             chainCopy.module_idx =  chains
                             chainCopy.module_name = localModule                              
                             treeModule.addChain(chainCopy) 
@@ -1228,6 +1236,7 @@ class BSV():
             if(top_module is None):
                 # If we have no top module, then the build tree is empty.
                 synth_handle.write("\n\nmodule [Connected_Module] build_tree();\n")
+                synth_handle.write("    //this space intentionally left blank\n")
                 synth_handle.write("endmodule\n")
             else:
                 generateSynthWrapper(top_module, synth_handle)

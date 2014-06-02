@@ -218,7 +218,28 @@ module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SI
     
 endmodule
 
-// Smart Version of the above.
+//
+// connectOutToInSized.
+// Exposes actual size to high-level tools.  This is necessary so that the Xilinx 
+// partition optimizers can more easily see unused code. 
+//
+module connectOutToInSized#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin, NumTypeParam#(t_ACTUAL_SIZE) connectionSize) ();
+  
+    rule trySend (cout.notEmpty());
+        // Try to move the data
+        Bit#(t_MSG_SIZE) x = cout.first();
+        Bit#(t_ACTUAL_SIZE) xActual = truncateNP(x);
+        cin.try({?,x});
+    endrule
+
+    rule success (cin.success());
+        // We succeeded in moving the data
+        cout.deq();
+    endrule
+    
+endmodule
+
+// Smart, clock-domain aware version, of the above.
 // This version is not used presently, due to issues in 
 // carrying clock information through the import BVI 
 // version of the build tree.
@@ -288,7 +309,6 @@ module printRecvs#(LOGICAL_RECV_INFO_TABLE recvs) (Empty);
   List::mapM(printRecv, ctHashTableToList(recvs));
 endmodule
 
-
 //
 // Global string table.
 //
@@ -303,3 +323,31 @@ module printGlobStrings#(GLOBAL_STRING_TABLE tbl) (Empty);
     List::mapM(printGlobString(hdl), ctHashTableToList(tbl.buckets));
     hClose(hdl);
 endmodule
+
+
+// Functions for resizing input/output connections. 
+
+//
+// resizeConnectOut
+// Exposes actual size to high-level tools.  This is necessary so that the Xilinx 
+// partition optimizers can more easily see unused code. 
+//
+function CONNECTION_OUT#(t_MSG_SIZE) resizeConnectOut(CONNECTION_OUT#(t_MSG_SIZE) cout, NumTypeParam#(t_ACTUAL_SIZE) connectionSize)
+    provisos(Add#(t_EXTRA, t_ACTUAL_SIZE, t_MSG_SIZE));
+
+    CONNECTION_OUT#(t_MSG_SIZE) retval = interface CONNECTION_OUT;
+                                             method Bit#(t_MSG_SIZE) first();
+                                                 Bit#(t_MSG_SIZE) x = cout.first();   
+                                                 Bit#(t_ACTUAL_SIZE) xActual = truncateNP(x);
+                                                 return {?,xActual};
+                                             endmethod
+
+                                             method deq = cout.deq;
+                                             method notEmpty = cout.notEmpty;
+                                             interface clock = cout.clock;
+                                             interface reset = cout.reset;
+                                         endinterface; 
+
+    return retval;
+
+endfunction

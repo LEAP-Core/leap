@@ -1,4 +1,5 @@
 import os
+import re 
 import sys
 import SCons.Script
 from model import  *
@@ -63,11 +64,17 @@ class Synthesize():
             if('VERILOG' in module.moduleDependency):
                 print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
 
+        ngcFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc'
+        srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
+        resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
+
+
         # Sort dependencies because SCons will rebuild if the order changes.
         sub_netlist = moduleList.env.Command(
-            moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
+            [ngcFile, srpFile],
             sorted(module.moduleDependency['VERILOG']) +
             sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
+            sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
             [ newXSTPath ] +
             xilinx_xcf,
             [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
@@ -75,15 +82,25 @@ class Synthesize():
               'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
               '@echo xst ' + module.wrapperName() + ' build complete.' ])
 
-        srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
 
         module.moduleDependency['SRP'] = [srpFile]
+
+        module.moduleDependency['RESOURCES'] = [resourceFile]
 
         module.moduleDependency['SYNTHESIS'] = [sub_netlist]
         synth_deps += sub_netlist
         SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
-    
 
+        moduleList.env.Command(resourceFile,
+                               srpFile,
+                               self.getSRPResourcesClosure(module))
+
+        # If we're building for the FPGA, we'll claim that the
+        # top-level build depends on the existence of the ngc
+        # file. This allows us to do resource analysis later on.
+        if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
+            moduleList.topDependency += [resourceFile]
+  
     if moduleList.getAWBParam('synthesis_tool', 'XST_BLUESPEC_BASICINOUT'):
         basicio_cmd = env['ENV']['BLUESPECDIR'] + '/bin/basicinout ' + 'hw/' + moduleList.topModule.buildPath + '/.bsc/' + moduleList.topModule.wrapperName() + '.v',     #patch top verilog
     else:
@@ -111,3 +128,33 @@ class Synthesize():
 
     # Alias for synthesis
     moduleList.env.Alias('synth', synth_deps)
+
+
+  # Converts SRP file into resource representation which can be used
+  # by the LIM compiler to assign modules to execution platforms.
+  def getSRPResourcesClosure(self, module):
+
+    def collect_srp_resources(target, source, env):
+  
+        srpFile = str(source[0])
+        rscFile = str(target[0])
+
+        srpHandle = open(srpFile, 'r')
+        rscHandle = open(rscFile, 'w')
+        resources =  {}
+
+        attributes = {'LUT': " Number of Slice LUTs",'Reg': " Number of Slice Registers", 'BRAM': " Number of Block RAM/FIFO:"}
+
+        for line in srpHandle:
+            for attribute in attributes:
+                if (re.match(attributes[attribute],line)):
+                    match = re.search(r'\D+(\d+)\D+(\d+)', line)
+                    if(match):
+                        resources[attribute] = [match.group(1), match.group(2)]
+
+        rscHandle.write(module.name + ':')
+        rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources]) + '\n')
+                                   
+        rscHandle.close()
+        srpHandle.close()
+    return collect_srp_resources

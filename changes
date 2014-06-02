@@ -19082,3 +19082,34 @@ Directory modules/leap/libraries/platform-services/mem-services/coherent-scratch
 Coherent scratchpads with a single coherence controller.
 Fix a bug in the coherence controller.
 Add debug scan codes for debugging.
+
+----------
+keflemin    Date: Mon Jun  2 18:14:52 EDT 2014  CSN: CSN-leap-571
+                  Mon Jun  2 22:14:52 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          570 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          570 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          570 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          570 
+
+
+A few changes
+
+1) NGC build now dump a resource file for each LI module. This file is
+used durin LIM compilation to map modules to different FPGAs.
+
+2) Added some new code in tree build to explictly truncate LI channels
+at the top level. This enable backend tools to better optimize
+dangling wires during parallel builds.
+
+3) Better handling of empty top-level tree build case. Sometimes this
+arises during automatic mapping.
+
