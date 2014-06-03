@@ -45,6 +45,7 @@ class Iface():
         os.system('rm -rf iface/build')
     else:
       if not os.path.isdir(dict_inc_tgt):
+          os.makedirs(inc_tgt + '/' + TMP_BSC_DIR)
           os.makedirs(dict_inc_tgt)
       if not os.path.isdir(rrr_inc_tgt):
           os.makedirs(rrr_inc_tgt)

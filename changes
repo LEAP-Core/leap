@@ -19141,3 +19141,22 @@ use this implementation.
 
 Simplified wrapper_gen -- we will not be supporting clocks_from_clocks
 instantiations moving forward.
+
+----------
+mcadler     Date: Tue Jun  3 16:44:32 EDT 2014  CSN: CSN-leap-573
+                  Tue Jun  3 20:44:32 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          572 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          572 
+
+- The SCons version of Python and the shell version may be different.  The old
+  software.py assumed they were the same, leading to m5 builds that would not
+  load.
+
+- Create iface/build/include/.bsc directory so Bluespec won't complain that
+  it doesn't exist.  Easier to make the empty directory than add an exception
+  that it won't have a .bsc directory.

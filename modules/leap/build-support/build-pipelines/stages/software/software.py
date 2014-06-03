@@ -59,8 +59,12 @@ class Software():
             ##
             M5_BUILD_DIR = moduleList.m5BuildDir
             if (M5_BUILD_DIR != ''):
-                # m5 needs Python library
-                inc_paths += [ os.path.join(sys.exec_prefix, 'include', 'python' + sys.version[:3]) ]
+                ## m5 needs Python library.  The installed version of Python isn't
+                ## necessarily the version used by SCons, so we must invoke Python
+                ## to figure out the proper version.
+                m5_python_ver = os.popen('echo "import sys\nsys.stdout.write(sys.version[:3])" | python').read()
+                m5_python_exec_prefix = os.popen('echo "import sys\nsys.stdout.write(sys.exec_prefix)" | python').read()
+                inc_paths += [ os.path.join(m5_python_exec_prefix, 'include', 'python' + m5_python_ver) ]
 
                 cc_flags += ' -DTRACING_ON=1'
                 if (moduleList.env['DEFS']['SIMULATED_ISA'] != ''):
@@ -109,7 +113,7 @@ class Software():
             moduleList.env.Export('sw_env')
             sw_build_dir = sw_env['DEFS']['ROOT_DIR_SW'] + '/obj'
             sw_objects = moduleList.env.SConscript([moduleList.rootDirSw + '/SConscript'],
-                                                   build_dir = sw_build_dir,
+                                                   variant_dir = sw_build_dir,
                                                    duplicate = 0)
         
             
@@ -132,8 +136,8 @@ class Software():
                 sw_exe_link_libs += [ 'z' ]
         
                 # m5 needs python
-                sw_exe_libpath += [ os.path.join(sys.exec_prefix, 'lib') ]
-                sw_exe_link_libs += [ 'python' + sys.version[:3] ] + [ 'util' ]    
+                sw_exe_libpath += [ os.path.join(m5_python_exec_prefix, 'lib') ]
+                sw_exe_link_libs += [ 'python' + m5_python_ver ] + [ 'util' ]    
         
 
             ## 
@@ -255,8 +259,4 @@ class Software():
             # Setup the graph dump
             dumpGraph = moduleList.env.Command(li_graph, all_logs, dump_lim_graph)
 
-            moduleList.topDependency += [dumpGraph]               
-
-        
-    
-    
+            moduleList.topDependency += [dumpGraph]
