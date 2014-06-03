@@ -57,7 +57,6 @@
 
 import FIFO::*;
 import FIFOF::*;
-import SpecialFIFOs::*;
 import Vector::*;
 import List::*;
 
@@ -65,6 +64,7 @@ import List::*;
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/debug_scan_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/ddr_sdram_device.bsh"
 

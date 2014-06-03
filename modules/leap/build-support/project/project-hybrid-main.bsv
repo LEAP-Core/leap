@@ -69,10 +69,6 @@ module [Module] mkModel
     // interface:
     (TOP_LEVEL_WIRES);
 
-    // The Model is instantiated inside a NULL (noClock) clock domain,
-    // so first instantiate the LLPI and get a clock and reset from it.
-
-
     // Instantiate the soft-connected system with new clock and reset
 
     let sys <- mkClockedSystem();

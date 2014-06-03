@@ -237,34 +237,11 @@ class WrapperGen():
         wrapper_bsv.write('import physical_platform::*;\n')
         wrapper_bsv.write('(* synthesize *)\n')
 
-        if (n_top_clocks != 0):
-          # Expose the standard reset interface argument and some top-level
-          # clocks.  The first clock is the default clock.  Additional
-          # clocks are exposed as a vector, named externally as CLK_0, etc.
-          # All incoming clocks are combined into a single vector and
-          # passed to mkModel.  Index 0 of the generated vector is
-          # the same clock as the default clock.
-          wrapper_bsv.write('module [Module] mk_model_Wrapper(\n')
-          if (n_top_clocks > 1):
-            wrapper_bsv.write('    (* osc="CLK" *) Vector#(' + str(n_top_clocks-1) + ', Clock) topClocks,\n')
-          wrapper_bsv.write('    TOP_LEVEL_WIRES wires);\n\n')
-          wrapper_bsv.write('    Reset topReset <- exposeCurrentReset;\n');
-          wrapper_bsv.write('    Vector#(' + str(n_top_clocks) + ', Clock) allClocks = newVector();\n');
-          wrapper_bsv.write('    Vector#(1, Clock) curClk = newVector();\n');
-          wrapper_bsv.write('    curClk[0] <- exposeCurrentClock;\n');
-          if (n_top_clocks > 1):
-            wrapper_bsv.write('    allClocks = Vector::append(curClk, topClocks);\n');
-          else:
-            wrapper_bsv.write('    allClocks = curClk;\n');
-          wrapper_bsv.write('\n');
-          wrapper_bsv.write('    // Instantiate main module\n')
-          wrapper_bsv.write('    let m <- mkModel(allClocks, topReset,\n')
-          wrapper_bsv.write('                     clocked_by noClock, reset_by noReset);\n')
-        else:
-          wrapper_bsv.write('module [Module] mk_model_Wrapper\n')
-          wrapper_bsv.write('    (TOP_LEVEL_WIRES);\n\n')
-          wrapper_bsv.write('    // Instantiate main module\n')
-          wrapper_bsv.write('    let m <- mkModel(clocked_by noClock, reset_by noReset);\n')
+        wrapper_bsv.write('module [Module] mk_model_Wrapper\n')
+        wrapper_bsv.write('    (TOP_LEVEL_WIRES);\n\n')
+        wrapper_bsv.write('    // Instantiate main module\n')
+        
+        wrapper_bsv.write('    let m <- mkModel(clocked_by noClock, reset_by noReset);\n')
 
         wrapper_bsv.write('    return m;\n')
         wrapper_bsv.write('endmodule\n')

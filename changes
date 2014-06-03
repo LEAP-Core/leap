@@ -19113,3 +19113,31 @@ dangling wires during parallel builds.
 3) Better handling of empty top-level tree build case. Sometimes this
 arises during automatic mapping.
 
+
+----------
+keflemin    Date: Tue Jun  3 14:28:04 EDT 2014  CSN: CSN-leap-572
+                  Tue Jun  3 18:28:04 UTC 2014
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-ddr-wide.bsv    Locally Modified          571 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          571 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          571 
+
+Directory modules/leap/libraries/librl/base
+ fifo-merge.bsv            Locally Modified          571 
+ fifo-bypass.bsv           Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          571 
+
+
+Added support for Bluespec's 2014.05 compiler release. Cheifly,
+Bluespec semantically changed the BypassFIFO interface.  Added an
+implementation to preserve the old semantics, and fixed LEAP code to
+use this implementation. 
+
+Simplified wrapper_gen -- we will not be supporting clocks_from_clocks
+instantiations moving forward.
