@@ -19175,3 +19175,15 @@ Directory modules/leap/libraries/librl/base
  librl-bsv-base.awb        Locally Modified          573 
 
 Go back to stock (new) BypassFIFOF.
+
+----------
+keflemin    Date: Wed Jun  4 07:33:21 EDT 2014  CSN: CSN-leap-575
+                  Wed Jun  4 11:33:21 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          574 
+
+
+XST now annotates the LIM graph with ngc, so that LI modules are not
+synthesized twice.
