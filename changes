@@ -19187,3 +19187,15 @@ Directory modules/leap/build-support/build-pipelines/stages/xilinx
 
 XST now annotates the LIM graph with ngc, so that LI modules are not
 synthesized twice.
+
+----------
+mcadler     Date: Wed Jun  4 09:07:06 EDT 2014  CSN: CSN-leap-576
+                  Wed Jun  4 13:07:06 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ counters.bsv              Locally Modified          575 
+
+No more clients use the updatedValue() COUNTER method.  The method tends
+to lead to complex schedules.  Remove the method to eliminate the temptation
+to use it.

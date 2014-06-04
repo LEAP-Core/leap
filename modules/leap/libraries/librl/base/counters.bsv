@@ -36,14 +36,11 @@ import ConfigReg::*;
 // calls.  This code, taken mostly from the Bluespec documentation does.
 //
 // The interface is extended with a few methods:
-//   - updatedValue returns the value after up/down/etc. have been applied.
 //   - isZero is True iff the counter's value was 0 at the start of a cycle.
 //
 interface COUNTER#(numeric type nBits);
     // The value at the beginning of the FPGA cycle.
     method Bit#(nBits) value();
-    // The value at the end of the FPGA cycle, updated by calls to up/down/set.
-    method Bit#(nBits) updatedValue();
 
     method Action up();
     method Action upBy(Bit#(nBits) c);
@@ -67,24 +64,19 @@ module mkLCounter#(Bit#(nBits) initialValue)
     // Is counter 0?
     Reg#(Bool) zero <- mkConfigReg(initialValue == 0);
 
-    Wire#(Bit#(nBits)) up_by   <- mkUnsafeDWire(0);
-    Wire#(Bit#(nBits)) down_by <- mkUnsafeDWire(0);
-    RWire#(Bit#(nBits)) setc_called <- mkUnsafeRWire();
-
-    function newValue();
-        Bit#(nBits) new_value;
-
-        if (setc_called.wget() matches tagged Valid .v)
-            new_value = v + up_by - down_by;
-        else
-            new_value = ctr + up_by - down_by;
-
-        return new_value;
-    endfunction
+    Wire#(Bit#(nBits)) upByW   <- mkUnsafeDWire(0);
+    Wire#(Bit#(nBits)) downByW <- mkUnsafeDWire(0);
+    RWire#(Bit#(nBits)) setcCalledW <- mkUnsafeRWire();
 
     (* fire_when_enabled, no_implicit_conditions *)
     rule updateCounter;
-        let new_value = newValue();
+        Bit#(nBits) new_value;
+
+        if (setcCalledW.wget() matches tagged Valid .v)
+            new_value = v + upByW - downByW;
+        else
+            new_value = ctr + upByW - downByW;
+
         ctr <= new_value;
         zero <= (new_value == 0);
     endrule
@@ -93,28 +85,24 @@ module mkLCounter#(Bit#(nBits) initialValue)
         return ctr;
     endmethod
 
-    method Bit#(nBits) updatedValue();
-        return newValue();
-    endmethod
-
     method Action up();
-        up_by <= 1;
+        upByW <= 1;
     endmethod
 
     method Action upBy(Bit#(nBits) c);
-        up_by <= c;
+        upByW <= c;
     endmethod
 
     method Action down();
-        down_by <= 1;
+        downByW <= 1;
     endmethod
 
     method Action downBy(Bit#(nBits) c);
-        down_by <= c;
+        downByW <= c;
     endmethod
 
     method Action setC(Bit#(nBits) newVal);
-        setc_called.wset(newVal);
+        setcCalledW.wset(newVal);
     endmethod
 
     method Bool isZero();
