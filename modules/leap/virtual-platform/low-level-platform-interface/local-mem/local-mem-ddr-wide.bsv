@@ -57,6 +57,7 @@
 
 import FIFO::*;
 import FIFOF::*;
+import SpecialFIFOs::*;
 import Vector::*;
 import List::*;
 
@@ -404,9 +405,7 @@ module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
     DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
 
     dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide mergeReqQ not full", mergeReqQ.ports[0].notFull);
     dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide writeDataQ not full", writeDataQ.notFull);
     dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty);
     dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide activeReadQ not full", activeReadQ.notFull);
     dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide lineResponseQ not full", lineResponseQ.notFull);

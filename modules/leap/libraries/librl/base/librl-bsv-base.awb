@@ -18,7 +18,6 @@
 %public fifo-marshaller.bsv
 %public fifo-merge.bsv
 %public fifo-peekable.bsv
-%public fifo-bypass.bsv
 %public guarded-pipelines.bsv
 %public hash-bits.bsv
 %public hash-compile-time.bsv
