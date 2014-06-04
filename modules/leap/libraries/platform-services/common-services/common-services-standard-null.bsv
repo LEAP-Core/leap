@@ -4,8 +4,6 @@
 
 `include "awb/provides/soft_connections.bsh"
 
-`include "awb/dict/RINGID.bsh"
-
 
 module [CONNECTED_MODULE] mkCommonServices#(VIRTUAL_DEVICES vdevs)
     // interface:

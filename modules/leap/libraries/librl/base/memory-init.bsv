@@ -58,7 +58,7 @@ module mkMultiMemInitializedWith#(MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DA
     Reg#(Bit#(t_ADDR_SZ)) cur <- mkReg(0);
     
     // Are we initializing?
-    Reg#(Bool) initializing <- mkReg(True);
+    Reg#(Bool) initializing <- mkConfigReg(True);
 
 
     // initialize --
@@ -137,7 +137,7 @@ module mkMultiMemInitializedWithGet#(MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t
               Bits#(t_DATA, t_DATA_SZ));
 
     // Are we initializing?
-    Reg#(Bool) initialized_m <- mkReg(False);
+    Reg#(Bool) initialized_m <- mkConfigReg(False);
     Reg#(Bool) finishInit <- mkReg(False);
     Reg#(Bool) sinkInit <- mkReg(False);
     Reg#(Bit#(t_ADDR_SZ)) init_idx <- mkReg(0);
@@ -246,12 +246,8 @@ module mkMultiMemInitialized#(MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) 
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ));
 
-    // Wrap the data value in a dummy function.
-    function t_DATA initFunc(t_ADDR a);
-        return initVal;
-    endfunction
-
-    MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) m <- mkMultiMemInitializedWith(mem, initFunc);
+    MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) m <-
+        mkMultiMemInitializedWith(mem, constFn(initVal));
 
     return m;
 endmodule
@@ -276,9 +272,9 @@ module mkMemInitializedWith#(MEMORY_IFC#(t_ADDR, t_DATA) mem,
     MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) init_m <- mkMultiMemInitializedWith(multi_m, initFunc);
 
     // Convert back to single reader interface.
-    MEMORY_IFC#(t_ADDR, t_DATA) m <- mkMultiMemIfcToMemIfc(init_m);
+    MEMORY_IFC#(t_ADDR, t_DATA) _m <- mkMultiMemIfcToMemIfc(init_m);
 
-    return m;
+    return _m;
 endmodule
 
 
@@ -294,14 +290,10 @@ module mkMemInitialized#(MEMORY_IFC#(t_ADDR, t_DATA) mem,
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ));
 
-    // Wrap the data value in a dummy function.
-    function t_DATA initFunc(t_ADDR a);
-        return initVal;
-    endfunction
+    MEMORY_IFC#(t_ADDR, t_DATA) _m <-
+        mkMemInitializedWith(mem, constFn(initVal));
 
-    MEMORY_IFC#(t_ADDR, t_DATA) m <- mkMemInitializedWith(mem, initFunc);
-
-    return m;
+    return _m;
 endmodule
 
 
@@ -326,7 +318,7 @@ module mkMemInitializedWithGet#(MEMORY_IFC#(t_ADDR, t_DATA) mem,
     MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) init_m <- mkMultiMemInitializedWithGet(multi_m, initFunc);
 
     // Convert back to single reader interface.
-    MEMORY_IFC#(t_ADDR, t_DATA) m <- mkMultiMemIfcToMemIfc(init_m);
+    MEMORY_IFC#(t_ADDR, t_DATA) _m <- mkMultiMemIfcToMemIfc(init_m);
 
-    return m;
+    return _m;
 endmodule

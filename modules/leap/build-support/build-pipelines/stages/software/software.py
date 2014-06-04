@@ -127,18 +127,7 @@ class Software():
             sw_exe_libpath = [sw_obj_path]  
             sw_exe_link_libs = [moduleList.apmName]  
             sw_exe_tgt  = sw_obj_path + moduleList.apmName + '_sw.exe'
-        
-        
-            ##
-            ## m5 needs libraries
-            ##
-            if (M5_BUILD_DIR != ''):
-                sw_exe_link_libs += [ 'z' ]
-        
-                # m5 needs python
-                sw_exe_libpath += [ os.path.join(m5_python_exec_prefix, 'lib') ]
-                sw_exe_link_libs += [ 'python' + m5_python_ver ] + [ 'util' ]    
-        
+
 
             ## 
             ## Sometimes a module hierarchy can include the same library
@@ -155,6 +144,18 @@ class Software():
             ## 
 
             so_env = sw_env.Clone()
+        
+            ##
+            ## m5 needs libraries
+            ##
+            if (M5_BUILD_DIR != ''):
+                sw_exe_link_libs += [ 'z' ]
+        
+                # m5 needs python
+                m5_python_libpath = os.path.join(m5_python_exec_prefix, 'lib')
+                sw_exe_libpath += [ m5_python_libpath ]
+                sw_exe_link_libs += [ 'python' + m5_python_ver ] + [ 'util' ]    
+                sw_env.Append(RPATH=[m5_python_libpath])
 
             ##
             ## Generate a thin wrapper for the shared library
@@ -200,7 +201,10 @@ class Software():
             # source of the sw_exe target.  Therefore, we must provide the
             # stripped .so name and express the dependecy explicity.
 
-            sw_exe = sw_env.Program(sw_exe_tgt, exe_wrapper + libs + libs, LIBPATH=sw_exe_libpath+sw_libpath, LIBS=sw_exe_link_libs+sw_link_libs+[moduleList.apmName])
+            sw_exe = sw_env.Program(sw_exe_tgt,
+                                    exe_wrapper + libs + libs,
+                                    LIBPATH=sw_exe_libpath+sw_libpath,
+                                    LIBS=sw_exe_link_libs+sw_link_libs+[moduleList.apmName])
             sw_env.Depends(sw_exe, sw_so)  
 
 

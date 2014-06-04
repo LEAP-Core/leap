@@ -52,7 +52,6 @@ import DefaultValue::*;
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/common_services.bsh"
 
-`include "awb/dict/RINGID.bsh"
 `include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 `include "awb/dict/VDEV.bsh"
 

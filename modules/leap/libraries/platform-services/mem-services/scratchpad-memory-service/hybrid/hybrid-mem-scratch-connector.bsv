@@ -39,7 +39,6 @@ import FIFO::*;
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/common_services.bsh"
 
-`include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 `include "awb/rrr/service_ids.bsh"
 `include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"

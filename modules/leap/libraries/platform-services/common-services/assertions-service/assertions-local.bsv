@@ -39,7 +39,6 @@ import FIFOF::*;
 `include "awb/provides/librl_bsv.bsh"
 `include "awb/provides/fpga_components.bsh"
 
-`include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS.bsh"
 
 // Assertions
