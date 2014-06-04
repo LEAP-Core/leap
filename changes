@@ -19199,3 +19199,17 @@ Directory modules/leap/libraries/librl/base
 No more clients use the updatedValue() COUNTER method.  The method tends
 to lead to complex schedules.  Remove the method to eliminate the temptation
 to use it.
+
+----------
+keflemin    Date: Wed Jun  4 13:35:55 EDT 2014  CSN: CSN-leap-577
+                  Wed Jun  4 17:35:55 UTC 2014
+
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          576 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          576 
+
+
+Rotated platform services code to the virtual platform partition. 

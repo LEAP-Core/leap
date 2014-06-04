@@ -48,7 +48,6 @@ import ModuleContext::*;
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/soft_connections_debug.bsh"
 `include "awb/provides/soft_connections_latency.bsh"
-`include "awb/provides/platform_services.bsh"
 `include "awb/provides/physical_platform_utils.bsh" 
 `include "awb/provides/physical_platform_defs.bsh" 
 
@@ -128,13 +127,6 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem
 
     Clock clk = vp.physicalDrivers.clocksDriver.clock;
     Reset rst = vp.physicalDrivers.clocksDriver.reset;
-     
-    //
-    // Platform services are layered on the virtual platform.  These services
-    // are typically device independent and must expose their interfaces as
-    // soft connections.
-    //
-    let spi <- mkPlatformServices(clocked_by clk, reset_by rst);
 
 `ifndef INSTANTIATE_ROUTERS_Z
     let routes <- mkMultifpgaRouterServices(vp, clocked_by clk, reset_by rst);

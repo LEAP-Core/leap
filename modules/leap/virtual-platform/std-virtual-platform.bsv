@@ -40,6 +40,7 @@ import Vector::*;
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/platform_services.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/clocks_device.bsh"
 
@@ -71,6 +72,14 @@ module [CONNECTED_MODULE] mkVirtualPlatform
     Reset rst = llpi.physicalDrivers.clocksDriver.reset;
 
     let vdevs  <- mkVirtualDevices(llpi, clocked_by clk, reset_by rst);
+
+    //
+    // Platform services are layered on the virtual platform.  These services
+    // are typically device independent and must expose their interfaces as
+    // soft connections.
+    //
+    let spi <- mkPlatformServices(clocked_by clk, reset_by rst);
+
     let platformID <- getSynthesisBoundaryPlatformID();
     //
     // auto-generated submodules for RRR connections.  Export them as soft
