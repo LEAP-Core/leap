@@ -148,7 +148,9 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
               Alias#(Vector#(SCRATCHPAD_WORDS_PER_LINE, SCRATCHPAD_MEM_VALUE), t_SCRATCHPAD_LINE),
               Alias#(Vector#(SCRATCHPAD_WORDS_PER_LINE, SCRATCHPAD_MEM_MASK), t_SCRATCHPAD_LINE_MASK));
 
-    let dbg_name = "memory_scratchpad_" + fpgaPlatformName() + ".out";
+    let platformName <- getSynthesisBoundaryPlatform();
+
+    let dbg_name = "memory_scratchpad_" + platformName() + ".out";
     DEBUG_FILE debugLog <- (`SCRATCHPAD_MEMORY_DEBUG_ENABLE == 1)?
                            mkDebugFile(dbg_name):
                            mkDebugFileNull(dbg_name);

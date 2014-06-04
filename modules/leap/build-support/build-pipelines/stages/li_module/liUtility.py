@@ -18,7 +18,7 @@ def parseLogfiles(logfiles):
              
         for line in log:
             if (re.match("Compilation message: .*: Dangling",line)):                
-                match = re.search(r'.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\w+):(\d+):(\w+):(\w+)', line)
+                match = re.search(r'.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\d+):(\w+):(\w+)', line)
                 if (match):
                     #python groups begin at index 1  
                     if (match.group(1) == "Chain"):
@@ -26,21 +26,19 @@ def parseLogfiles(logfiles):
                                                  match.group(2),
                                                  match.group(3),
                                                  match.group(4),      
-                                                 match.group(5),
-                                                 eval(match.group(6)), # optional
+                                                 eval(match.group(5)), # optional
+                                                 match.group(6),
                                                  match.group(7),
                                                  match.group(8),
-                                                 match.group(9),
                                                  type)]
                     else:
                         connections +=  [LIChannel(match.group(1), 
                                                    match.group(2),
                                                    match.group(3),
                                                    match.group(4),      
-                                                   match.group(5),
-                                                   eval(match.group(6)), # optional
+                                                   eval(match.group(5)), # optional
+                                                   match.group(6),
                                                    match.group(7),
-                                                   match.group(8),
                                                    type)]
                            
              

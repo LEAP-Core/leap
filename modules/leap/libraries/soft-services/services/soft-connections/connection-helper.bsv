@@ -90,7 +90,6 @@ endmodule
 typeclass Matchable#(type t);
   function String  getLogicalName(t val);
   function Integer getLogicalWidth(t val);
-  function String  getComputePlatform(t val);
   function String  getModuleName(t val);
 endtypeclass
 
@@ -101,10 +100,6 @@ instance Matchable#(LOGICAL_RECV_ENTRY);
 
   function Integer getLogicalWidth(LOGICAL_RECV_ENTRY r_entry);
     return ctHashValue(r_entry).bitWidth;
-  endfunction
-
-  function String getComputePlatform(LOGICAL_RECV_ENTRY r_entry);
-    return ctHashValue(r_entry).computePlatform;
   endfunction
 
   function String getModuleName(LOGICAL_RECV_ENTRY r_entry);
@@ -121,10 +116,6 @@ instance Matchable#(LOGICAL_SEND_ENTRY);
     return ctHashValue(s_entry).bitWidth;
   endfunction
 
-  function String getComputePlatform(LOGICAL_SEND_ENTRY s_entry);
-    return ctHashValue(s_entry).computePlatform;
-  endfunction
-
   function String getModuleName(LOGICAL_SEND_ENTRY r_entry);
     return ctHashValue(r_entry).moduleName;
   endfunction
@@ -137,10 +128,6 @@ instance Matchable#(LOGICAL_RECV_MULTI_INFO);
 
   function Integer getLogicalWidth(LOGICAL_RECV_MULTI_INFO rinfo);
     return rinfo.bitWidth;
-  endfunction
-
-  function String getComputePlatform(LOGICAL_RECV_MULTI_INFO rinfo);
-    return rinfo.computePlatform;
   endfunction
 
   function String getModuleName(LOGICAL_RECV_MULTI_INFO rinfo);
@@ -157,10 +144,6 @@ instance Matchable#(LOGICAL_SEND_MULTI_INFO);
     return sinfo.bitWidth;
   endfunction
 
-  function String getComputePlatform(LOGICAL_SEND_MULTI_INFO sinfo);
-    return sinfo.computePlatform;
-  endfunction
-
   function String getModuleName(LOGICAL_SEND_MULTI_INFO sinfo);
     return sinfo.moduleName;
   endfunction
@@ -175,10 +158,6 @@ instance Matchable#(LOGICAL_CHAIN_INFO);
     return sinfo.bitWidth;
   endfunction
 
-  function String getComputePlatform(LOGICAL_CHAIN_INFO sinfo);
-    return sinfo.computePlatform;
-  endfunction
-
   function String getModuleName(LOGICAL_CHAIN_INFO sinfo); 
 
     // Although chains carry information about incoming and outgoing
@@ -188,7 +167,7 @@ instance Matchable#(LOGICAL_CHAIN_INFO);
     return sinfo.moduleNameIncoming; 
   endfunction endinstance
 
-function Bool nameMatches(r rinfo, s sinfo)
+function Bool nameMatches(Bool exposeAllConnections, r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));
   
@@ -196,15 +175,14 @@ function Bool nameMatches(r rinfo, s sinfo)
          // In the first pass of multifpga builds, we expose all connections. 
          // However connections within the same module can be joined immediately. 
          ((getModuleName(sinfo) == getModuleName(rinfo)) ||
-         (`EXPOSE_ALL_CONNECTIONS == 0));
- 
+          !exposeAllConnections);   
 endfunction
 
-function Bool nameDoesNotMatch(r rinfo, s sinfo)
+function Bool nameDoesNotMatch(Bool exposeAllConnections, r rinfo, s sinfo)
   provisos (Matchable#(r),
             Matchable#(s));
   
-  return !nameMatches(rinfo,sinfo);
+  return !nameMatches(exposeAllConnections, rinfo,sinfo);
 endfunction
 
 function Bool primNameMatches(String rinfo, s sinfo)
@@ -226,6 +204,46 @@ endfunction
 // physical endpoints. This is for 1-to-1 communication only.
 //
 module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin) ();
+  
+    rule trySend (cout.notEmpty());
+        // Try to move the data
+        Bit#(t_MSG_SIZE) x = cout.first();
+        cin.try(x);
+    endrule
+
+    rule success (cin.success());
+        // We succeeded in moving the data
+        cout.deq();
+    endrule
+    
+endmodule
+
+//
+// connectOutToInSized.
+// Exposes actual size to high-level tools.  This is necessary so that the Xilinx 
+// partition optimizers can more easily see unused code. 
+//
+module connectOutToInSized#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin, NumTypeParam#(t_ACTUAL_SIZE) connectionSize) ();
+  
+    rule trySend (cout.notEmpty());
+        // Try to move the data
+        Bit#(t_MSG_SIZE) x = cout.first();
+        Bit#(t_ACTUAL_SIZE) xActual = truncateNP(x);
+        cin.try({?,x});
+    endrule
+
+    rule success (cin.success());
+        // We succeeded in moving the data
+        cout.deq();
+    endrule
+    
+endmodule
+
+// Smart, clock-domain aware version, of the above.
+// This version is not used presently, due to issues in 
+// carrying clock information through the import BVI 
+// version of the build tree.
+module connectOutToInMulti#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin) ();
   
   if(sameFamily(cin.clock,cout.clock))
   begin
@@ -271,7 +289,7 @@ endmodule
 
 module printSend#(LOGICAL_SEND_ENTRY entry) (String);
   match {.name, .send} = entry;
-  String printStr = "Send: " + name + " " + send.computePlatform + "\n";
+  String printStr = "Send: " + name + " " + send.moduleName + "\n";
   messageM(printStr);
   return printStr;
 endmodule
@@ -282,7 +300,7 @@ endmodule
 
 module printRecv#(LOGICAL_RECV_ENTRY entry) (String);
   match {.name, .recv} = entry;
-  String printStr = "Recv: " + name + " " + recv.computePlatform + "\n";
+  String printStr = "Recv: " + name + " " + recv.moduleName + "\n";
   messageM(printStr);
   return printStr;
 endmodule
@@ -290,7 +308,6 @@ endmodule
 module printRecvs#(LOGICAL_RECV_INFO_TABLE recvs) (Empty);
   List::mapM(printRecv, ctHashTableToList(recvs));
 endmodule
-
 
 //
 // Global string table.
@@ -306,3 +323,31 @@ module printGlobStrings#(GLOBAL_STRING_TABLE tbl) (Empty);
     List::mapM(printGlobString(hdl), ctHashTableToList(tbl.buckets));
     hClose(hdl);
 endmodule
+
+
+// Functions for resizing input/output connections. 
+
+//
+// resizeConnectOut
+// Exposes actual size to high-level tools.  This is necessary so that the Xilinx 
+// partition optimizers can more easily see unused code. 
+//
+function CONNECTION_OUT#(t_MSG_SIZE) resizeConnectOut(CONNECTION_OUT#(t_MSG_SIZE) cout, NumTypeParam#(t_ACTUAL_SIZE) connectionSize)
+    provisos(Add#(t_EXTRA, t_ACTUAL_SIZE, t_MSG_SIZE));
+
+    CONNECTION_OUT#(t_MSG_SIZE) retval = interface CONNECTION_OUT;
+                                             method Bit#(t_MSG_SIZE) first();
+                                                 Bit#(t_MSG_SIZE) x = cout.first();   
+                                                 Bit#(t_ACTUAL_SIZE) xActual = truncateNP(x);
+                                                 return {?,xActual};
+                                             endmethod
+
+                                             method deq = cout.deq;
+                                             method notEmpty = cout.notEmpty;
+                                             interface clock = cout.clock;
+                                             interface reset = cout.reset;
+                                         endinterface; 
+
+    return retval;
+
+endfunction

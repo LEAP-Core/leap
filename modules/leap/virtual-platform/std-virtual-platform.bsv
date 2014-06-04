@@ -35,10 +35,12 @@
 // @brief Standard virtual platform interface
 //
 
+import Vector::*;
+
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/low_level_platform_interface.bsh"
-`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/virtual_devices.bsh"
+`include "awb/provides/platform_services.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/clocks_device.bsh"
 
@@ -47,28 +49,49 @@
 
 interface VIRTUAL_PLATFORM;
 
-    interface LowLevelPlatformInterface llpint;
-    interface VIRTUAL_DEVICES virtualDevices;
-
+    interface PHYSICAL_DRIVERS          physicalDrivers;
+    interface TOP_LEVEL_WIRES           topLevelWires;
+    
 endinterface
 
-module [CONNECTED_MODULE] mkVirtualPlatform#(LowLevelPlatformInterface llpi)
+
+// Helper function used to extract clock and reset from virtual platform.
+// Ultimately this function will not be needed, since it should be possible
+// to derive clock and reset from those interfaces which use them. 
+function Tuple2#(Clock, Reset) extractClocks(VIRTUAL_PLATFORM vp);
+    return tuple2(vp.physicalDrivers.clocksDriver.clock, vp.physicalDrivers.clocksDriver.reset);
+endfunction
+
+module [CONNECTED_MODULE] mkVirtualPlatform
     // interface:
         (VIRTUAL_PLATFORM);
 
-    let vdevs  <- mkVirtualDevices(llpi);
-    
+    let llpi <- mkLowLevelPlatformInterface();
+
+    Clock clk = llpi.physicalDrivers.clocksDriver.clock;
+    Reset rst = llpi.physicalDrivers.clocksDriver.reset;
+
+    let vdevs  <- mkVirtualDevices(llpi, clocked_by clk, reset_by rst);
+
+    //
+    // Platform services are layered on the virtual platform.  These services
+    // are typically device independent and must expose their interfaces as
+    // soft connections.
+    //
+    let spi <- mkPlatformServices(clocked_by clk, reset_by rst);
+
+    let platformID <- getSynthesisBoundaryPlatformID();
     //
     // auto-generated submodules for RRR connections.  Export them as soft
     // connections, but only on the master FPGA.
     //
-    if (fpgaPlatformID() == 0)
+    if(platformID == 0)
     begin
-        let rrrServerLinks <- mkServerConnections(llpi.rrrServer);
-        let rrrClientLinks <- mkClientConnections(llpi.rrrClient);
+        let rrrServerLinks <- mkServerConnections(llpi.rrrServer, clocked_by clk, reset_by rst);
+        let rrrClientLinks <- mkClientConnections(llpi.rrrClient, clocked_by clk, reset_by rst);
     end
 
-    interface llpint = llpi;
-    interface virtualDevices = vdevs;
+    interface physicalDrivers = llpi.physicalDrivers;
+    interface topLevelWires = llpi.topLevelWires;
 
 endmodule

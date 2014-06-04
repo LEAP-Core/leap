@@ -1,4 +1,5 @@
 import os
+import re 
 import sys
 import SCons.Script
 from model import  *
@@ -6,6 +7,7 @@ from model import  *
 from clocks_device import *
 from synthesis_library import *
 from parameter_substitution import *
+from wrapper_gen_tool import *
 
    
 #this might be better implemented as a 'Node' in scons, but 
@@ -14,12 +16,18 @@ from parameter_substitution import *
 class Synthesize():
   def __init__(self, moduleList):
 
+    # We load this graph in to memory several times. 
+    # TODO: load this graph once. 
+    self.firstPassLIGraph = getFirstPassLIGraph()
+
+    self.DEBUG = getBuildPipelineDebug(moduleList) 
+
     # string together the xcf, sort of like the ucf
     # Concatenate XCF files
     xcfSrcs = moduleList.getAllDependencies('XCF')
     MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
     if (len(xcfSrcs) > 0):
-      if (getBuildPipelineDebug(moduleList) != 0):
+      if (self.DEBUG != 0):
         for xcf in xcfSrcs:
           print 'xst found xcf: ' + xcf
 
@@ -41,40 +49,89 @@ class Synthesize():
 
     xstTemplate = parseAWBFile(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + templateFile[0])
                 
+    ngcModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore] 
 
-    [globalVerilogs, globalVHDs] = globalRTLs(moduleList)
+    [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
 
     generatePrj(moduleList, moduleList.topModule, globalVerilogs, globalVHDs)
     topXSTPath = generateXST(moduleList, moduleList.topModule, xstTemplate)
 
     synth_deps = []
+    # drop exiting boundaries. 
 
-    for module in moduleList.synthBoundaries():
-        #Let's synthesize a xilinx .prj file for this synth boundary.
-        # spit out a new prj
-        generatePrj(moduleList, module, globalVerilogs, globalVHDs)
-        newXSTPath = generateXST(moduleList, module, xstTemplate)
+    for module in ngcModules:
+   
+        # did we get an ngc from the first pass?  If so, did the lim
+        # graph give code for this module?  If both are true, then we
+        # will link the old ngc in, rather than regenerate it. 
+        if((not self.firstPassLIGraph is None) and (module.name in self.firstPassLIGraph.modules)):
+            moduleObject = self.firstPassLIGraph.modules[module.name]
+            if('GEN_NGCS' in moduleObject.objectCache):
+                for ngc in moduleObject.objectCache['GEN_NGCS']:
+                    linkPath = moduleList.compileDirectory + '/' + os.path.basename(ngc)
+                    def linkNGC(target, source, env):
+                        # It might be more useful if the Module contained a pointer to the LIModules...                        
+                        if(os.path.lexists(str(target[0]))):
+                            os.remove(str(target[0]))
+                        print "Linking: " + str(source[0]) + " to " + str(target[0])
+                        os.symlink(str(source[0]), str(target[0]))
+                    moduleList.env.Command(linkPath, ngc, linkNGC)
+                    module.moduleDependency['SYNTHESIS'] = [linkPath]
+                else:
+                    # Warn that we did not find the ngc we expected to find..
+                    print "Warning: We did not find an ngc file for module " + module.name 
+        else:
+            #Let's synthesize a xilinx .prj file for this synth boundary.
+            # spit out a new prj
+            generatePrj(moduleList, module, globalVerilogs, globalVHDs)
+            newXSTPath = generateXST(moduleList, module, xstTemplate)
 
-        if (getBuildPipelineDebug(moduleList) != 0):
-            print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
+            if (self.DEBUG != 0):
+                if('VERILOG' in module.moduleDependency):
+                    print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
 
-        # Sort dependencies because SCons will rebuild if the order changes.
-        sub_netlist = moduleList.env.Command(
-            moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc',
-            sorted(module.moduleDependency['VERILOG']) +
-            sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-            [ newXSTPath ] +
-            xilinx_xcf,
-            [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
-              SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
-              'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
-              '@echo xst ' + module.wrapperName() + ' build complete.' ])
+            ngcFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc'
+            srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
+            resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
 
-        module.moduleDependency['SYNTHESIS'] = [sub_netlist]
-        synth_deps += sub_netlist
-        SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
-    
 
+            # Sort dependencies because SCons will rebuild if the order changes.
+            sub_netlist = moduleList.env.Command(
+                [ngcFile, srpFile],
+                sorted(module.moduleDependency['VERILOG']) +
+                sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
+                sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
+                [ newXSTPath ] +
+                xilinx_xcf,
+                [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
+                  SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
+                  'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
+                  '@echo xst ' + module.wrapperName() + ' build complete.' ])
+
+
+            module.moduleDependency['SRP'] = [srpFile]
+
+            if(not 'GEN_NGC' in module.moduleDependency):
+                module.moduleDependency['GEN_NGCS'] = [ngcFile]
+            else:
+                module.moduleDependency['GEN_NGCS'] += [ngcFile]
+
+            module.moduleDependency['RESOURCES'] = [resourceFile]
+
+            module.moduleDependency['SYNTHESIS'] = [sub_netlist]
+            synth_deps += sub_netlist
+            SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
+
+            moduleList.env.Command(resourceFile,
+                                   srpFile,
+                                   self.getSRPResourcesClosure(module))
+
+            # If we're building for the FPGA, we'll claim that the
+            # top-level build depends on the existence of the ngc
+            # file. This allows us to do resource analysis later on.
+            if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
+                moduleList.topDependency += [resourceFile]
+          
     if moduleList.getAWBParam('synthesis_tool', 'XST_BLUESPEC_BASICINOUT'):
         basicio_cmd = env['ENV']['BLUESPECDIR'] + '/bin/basicinout ' + 'hw/' + moduleList.topModule.buildPath + '/.bsc/' + moduleList.topModule.wrapperName() + '.v',     #patch top verilog
     else:
@@ -102,3 +159,33 @@ class Synthesize():
 
     # Alias for synthesis
     moduleList.env.Alias('synth', synth_deps)
+
+
+  # Converts SRP file into resource representation which can be used
+  # by the LIM compiler to assign modules to execution platforms.
+  def getSRPResourcesClosure(self, module):
+
+    def collect_srp_resources(target, source, env):
+  
+        srpFile = str(source[0])
+        rscFile = str(target[0])
+
+        srpHandle = open(srpFile, 'r')
+        rscHandle = open(rscFile, 'w')
+        resources =  {}
+
+        attributes = {'LUT': " Number of Slice LUTs",'Reg': " Number of Slice Registers", 'BRAM': " Number of Block RAM/FIFO:"}
+
+        for line in srpHandle:
+            for attribute in attributes:
+                if (re.match(attributes[attribute],line)):
+                    match = re.search(r'\D+(\d+)\D+(\d+)', line)
+                    if(match):
+                        resources[attribute] = [match.group(1), match.group(2)]
+
+        rscHandle.write(module.name + ':')
+        rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources]) + '\n')
+                                   
+        rscHandle.close()
+        srpHandle.close()
+    return collect_srp_resources

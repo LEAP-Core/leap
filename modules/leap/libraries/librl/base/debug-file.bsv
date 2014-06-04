@@ -31,7 +31,7 @@
 
 `include "awb/provides/model_params.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
-
+`include "awb/provides/fpga_components_params.bsh"
 
 // All debug output files go in a subdirectory
 function String debugPath(String fname) = `LEAP_DEBUG_PATH + "/" + fname;

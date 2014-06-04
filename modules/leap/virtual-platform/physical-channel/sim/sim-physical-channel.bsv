@@ -57,7 +57,6 @@ module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
     method ActionValue#(UMF_CHUNK) read();
         
         drivers.unixPipeLIDriver.deq();
-        UMF_PACKET_HEADER umf_header = unpack(drivers.unixPipeLIDriver.first);
         return drivers.unixPipeLIDriver.first;
         
     endmethod

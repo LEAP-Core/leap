@@ -13,4 +13,6 @@
 
 %scons %library software.py
 
-%param DUMP_LIM_GRAPH 0 "Should we dump a LIM graph."
+%param --global DUMP_LIM_GRAPH 0 "Should we dump a LIM graph."
+%param --global BUILD_FIRST_PASS_SOFTWARE 0 "Should we build software during first pass build? (For legacy compilation only)."
+

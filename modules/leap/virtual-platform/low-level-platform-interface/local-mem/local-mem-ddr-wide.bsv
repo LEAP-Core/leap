@@ -61,17 +61,20 @@ import SpecialFIFOs::*;
 import Vector::*;
 import List::*;
 
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/debug_scan_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/ddr_sdram_device.bsh"
-
 
 //
 // mkLocalMem --
 //   Implement local memory using DDR memory.  The DDR memory has line sizes
 //   large enough to hold a single local memory line.
 //
-module mkLocalMem#(PHYSICAL_DRIVERS drivers)
+module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
     // interface:
     (LOCAL_MEM)
     provisos (Add#(a_, LOCAL_MEM_LINE_SZ, DDR_BURST_DATA_SZ),
@@ -399,23 +402,22 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     // Export debug scan state.  A node will be created by the local memory
     // platform interface.
     //
-    List#(Tuple2#(String, Bool)) ds_data = List::nil;
-    ds_data = List::cons(tuple2("LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide mergeReqQ not full", mergeReqQ.ports[0].notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide writeDataQ not full", writeDataQ.notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide activeReadQ not full", activeReadQ.notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide lineResponseQ not full", lineResponseQ.notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide wordResponseQ not full", wordResponseQ.notFull), ds_data);
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+
+    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide activeReadQ not full", activeReadQ.notFull);
+    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide lineResponseQ not full", lineResponseQ.notFull);
+    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide wordResponseQ not full", wordResponseQ.notFull);
 
     // Collect debug scan state for physical memory controllers
-    for (Integer b = 0; b < valueOf(FPGA_DDR_BANKS); b = b + 1)
-    begin
-        ds_data = List::append(ds_data, dramDriver[b].debugScanState());
-    end
+    //for (Integer b = 0; b < valueOf(FPGA_DDR_BANKS); b = b + 1)
+    /// begin
+    //    ds_data = List::append(ds_data, dramDriver[b].debugScanState());
+    //end
 
-    let debugScanData = ds_data;
+    let dbgNode <- mkDebugScanNode("Local Memory (local-mem-ddr-wide.bsv)", dbg_list);
 
 
     // ====================================================================
@@ -490,7 +492,4 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
         writeDataQ.enq(tuple2(data, mask));
     endmethod
 
-    method List#(Tuple2#(String, Bool)) debugScanState();
-        return debugScanData;
-    endmethod
 endmodule

@@ -9,4 +9,4 @@
 
 %public platform-services-null-mem.bsv
 
-%requires  starter_service front_panel_service common_services
+%requires  starter_service common_services

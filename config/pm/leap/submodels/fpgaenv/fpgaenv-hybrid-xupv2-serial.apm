@@ -129,7 +129,6 @@ Packagehint=leap-platforms
 File=modules/leap/virtual-platform/physical-channel/serial/serial-physical-channel-8bit.awb
 Packagehint=leap
 
-
 [FPGA Build Pipeline Xilinx (Synplify)]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-synplify.apm
 Packagehint=leap
@@ -159,4 +158,11 @@ Packagehint=leap
 
 [XUPv2 DDR SDRAM Physical Device]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/sdram-xupv2/ddr-sdram-device.awb
+Packagehint=leap-platforms
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms

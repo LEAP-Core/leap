@@ -41,9 +41,9 @@
 #include <pthread.h>
 
 #include "awb/provides/low_level_platform_interface.h"
-#include "awb/provides/starter_device.h"
 #include "awb/provides/common_utility_devices.h"
 #include "awb/provides/common_services.h"
+#include "awb/provides/starter_service.h"
 
 typedef class VIRTUAL_DEVICES_CLASS *VIRTUAL_DEVICES;
 

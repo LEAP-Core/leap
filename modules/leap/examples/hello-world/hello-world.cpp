@@ -65,6 +65,6 @@ CONNECTED_APPLICATION_CLASS::Main()
     cout << "Hello, World! This is software speaking." << endl;
     // Wait for the hardware to exit. If it is done before us
     // this will just instantly return.
-    STARTER_DEVICE_CLASS::GetInstance()->WaitForHardware();
+    STARTER_SERVICE_CLASS::GetInstance()->WaitForHardware();
     return;
 }

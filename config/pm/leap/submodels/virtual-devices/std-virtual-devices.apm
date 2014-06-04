@@ -25,23 +25,21 @@ File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-v
 Packagehint=leap
 
 [Standard Virtual Devices/Requires]
-front_panel=Hybrid Front Panel
-starter_device=Starter Virtual Device
 common_utility_devices=Base Common Devices
 local_memory_device=Soft Connection Local Memory Device
-
-[Starter Virtual Device]
-File=modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid/starter-device.awb
-Packagehint=leap
-
+front_panel_device=Front Panel Device
 
 [Base Common Devices]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-devices.awb
 Packagehint=leap
 
-
-
-
 [Soft Connection Local Memory Device]
 File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft/local-memory-device-soft.awb
+Packagehint=leap
+
+[Front Panel Device/Requires]
+front_panel=Hybrid Front Panel
+
+[Front Panel Device]
+File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
 Packagehint=leap

@@ -47,7 +47,7 @@
 // ****** Includes of LEAP platform ******
 
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/front_panel_service.bsh"
+`include "awb/provides/front_panel_device.bsh"
 
 
 // ****** Datatype Definitions ******

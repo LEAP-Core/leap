@@ -66,11 +66,6 @@ class Bluesim():
     for definition in defs:
       bsc_sim_command += ' -Xc++ ' + definition + ' -Xc ' + definition
 
-    # construct full path to BAs
-    def modify_path_ba(path):
-        array = path.split('/')
-        file = array.pop()
-        return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + '/'.join(array) + '/' + TMP_BSC_DIR + '/' + file 
 
     def modify_path_bdpi(path):
         return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
@@ -84,9 +79,14 @@ class Bluesim():
         for ba in moduleList.getAllDependencies('BA'):
             print 'BA dep: ' + str(ba) + '\n'
 
+    def modify_path_ba_local(path):
+        return modify_path_ba(moduleList, path)
+
     sbin = moduleList.env.Command(
         TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
         moduleList.getAllDependencies('BA') + 
+        map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GIVEN_BAS')) +
+        map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS')) +
         map(modify_path_bdpi, moduleList.getAllDependenciesWithPaths('GIVEN_BDPI_CS')) + 
         map(modify_path_bdpi, moduleList.getAllDependenciesWithPaths('GIVEN_BDPI_HS')),
         bsc_sim_command)

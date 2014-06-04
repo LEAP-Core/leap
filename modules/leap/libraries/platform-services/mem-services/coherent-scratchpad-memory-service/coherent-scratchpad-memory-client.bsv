@@ -70,7 +70,7 @@ typedef SCRATCHPAD_PORT_ROB_SLOTS COH_SCRATCH_TEST_SET_ROB_SLOTS;
 //     Build a coherent scratchpad client of an arbitrary data type with 
 // marshalling to the global scratchpad base memory size.
 //
-module [CONNECTED_MODULE] mkCoherentScratchpadClient#(Integer scratchpadID, COH_SCRATCH_CLIENT_CONFIG conf)
+module [CONNECTED_MODULE] mkCoherentScratchpadClient#(Integer scratchpadID, COH_SCRATCH_CONFIG conf)
     // interface:
     (MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
@@ -94,7 +94,7 @@ endmodule
 //
 module [CONNECTED_MODULE] mkDebugCoherentScratchpadClient#(Integer scratchpadID, 
                                                            Integer statsID, 
-                                                           COH_SCRATCH_CLIENT_CONFIG conf,
+                                                           COH_SCRATCH_CONFIG conf,
                                                            DEBUG_FILE debugLog)
     // interface:
     (MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA))
@@ -115,7 +115,7 @@ endmodule
 // mkMultiReadCoherentScratchpadClient --
 //     The same as mkMultiReadStatsCoherentScratchpadClient but we have null stats in this case
 //
-module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpadID, COH_SCRATCH_CLIENT_CONFIG conf)
+module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpadID, COH_SCRATCH_CONFIG conf)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
@@ -125,6 +125,7 @@ module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpa
     let prefetchStatsConstructor = mkNullScratchpadPrefetchStats;
     let reqRingStatsConstructor = mkNullCoherentScratchpadRingNodeStats;
     let respRingStatsConstructor = mkNullCoherentScratchpadRingNodeStats;
+    let debugScanNodeConstructor = mkNullCohScratchClientDebugScanNode;
     DEBUG_FILE debugLog <- mkDebugFileNull(""); 
     
     let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID,
@@ -133,6 +134,7 @@ module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpa
                                                       prefetchStatsConstructor,
                                                       reqRingStatsConstructor,
                                                       respRingStatsConstructor,
+                                                      debugScanNodeConstructor,
                                                       debugLog);
     return m;
 endmodule
@@ -143,7 +145,7 @@ endmodule
 //
 module [CONNECTED_MODULE] mkMultiReadDebugCoherentScratchpadClient#(Integer scratchpadID, 
                                                                     Integer statsID,
-                                                                    COH_SCRATCH_CLIENT_CONFIG conf,
+                                                                    COH_SCRATCH_CONFIG conf,
                                                                     DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -166,12 +168,15 @@ module [CONNECTED_MODULE] mkMultiReadDebugCoherentScratchpadClient#(Integer scra
                                    mkBasicCoherentScratchpadRingNodeStats(statsName + "resp_", ""):
                                    mkNullCoherentScratchpadRingNodeStats; 
     
+    let debugScanNodeConstructor = mkCohScratchClientDebugScanNode(scratchpadID, statsID);
+
     let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID, 
                                                       conf, 
                                                       statsConstructor, 
                                                       prefetchStatsConstructor, 
                                                       reqRingStatsConstructor,
                                                       respRingStatsConstructor,
+                                                      debugScanNodeConstructor,
                                                       debugLog);
     return m;
 endmodule
@@ -183,11 +188,12 @@ endmodule
 //     a write requested in the same cycle.
 //
 module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
-                                                                    COH_SCRATCH_CLIENT_CONFIG conf,
+                                                                    COH_SCRATCH_CONFIG conf,
                                                                     COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
                                                                     SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                     COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
                                                                     COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
+                                                                    COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNodeConstructor,
                                                                     DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -222,7 +228,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scra
                                                              prefetchStatsConstructor, 
                                                              reqStatsConstructor,
                                                              respStatsConstructor,
-                                                             conf.multiController,
+                                                             debugScanNodeConstructor,
                                                              debugLog);
     end
     else
@@ -232,7 +238,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scra
                                                               prefetchStatsConstructor,
                                                               reqStatsConstructor,
                                                               respStatsConstructor,
-                                                              conf.multiController,
+                                                              debugScanNodeConstructor,
                                                               debugLog);
     end
     
@@ -259,7 +265,7 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
                                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
-                                                                         Bool hasMultiController,
+                                                                         COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNodeConstructor,
                                                                          DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -295,7 +301,7 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
                                                      prefetchStatsConstructor,
                                                      reqStatsConstructor,
                                                      respStatsConstructor,
-                                                     hasMultiController,
+                                                     debugScanNodeConstructor,
                                                      debugLog);
 
     
@@ -339,6 +345,8 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
                     match {.c_addr, .o_idx} = addrSplit(addr);
                     mem.readPorts[p].readReq(c_addr);
                     readReqInfoQ[p].enq(o_idx);
+                    debugLog.record($format("wrapper: read port %0d: req addr=0x%x, obj idx=%0d, scratchpad addr=0x%x", 
+                                    p, addr, o_idx, c_addr));
                 endmethod
 
                 method ActionValue#(t_DATA) readRsp();
@@ -347,6 +355,7 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
                     // Receive the data and return the desired object from the container.
                     let d <- mem.readPorts[p].readRsp();
                     t_PACKED_CONTAINER pack_data = unpack(truncateNP(pack(d)));
+                    debugLog.record($format("wrapper: read port %0d: obj idx=%0d, resp val=0x%x", p, o_idx, pack_data[o_idx]));
                     return unpack(truncateNP(pack_data[o_idx]));
                 endmethod
 
@@ -371,6 +380,8 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
         t_PACKED_CONTAINER pack_data = unpack(0);
         pack_data[o_idx] = zeroExtendNP(pack(val));
         mem.write(c_addr, unpack(zeroExtendNP(pack(pack_data))), computeByteMask(o_idx));
+        debugLog.record($format("wrapper: write req addr=0x%x, obj idx=%0d, val=0x%x, scratchpad addr=0x%x, scratchpad data=0x%x", 
+                        addr, o_idx, val, c_addr, pack(pack_data)));
     endmethod
 
     method Bool writeNotFull() = mem.writeNotFull();
@@ -411,7 +422,7 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
                                                                           SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                           COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
                                                                           COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
-                                                                          Bool hasMultiController,
+                                                                          COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNodeConstructor,
                                                                           DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -436,7 +447,7 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
                                                      prefetchStatsConstructor,
                                                      reqStatsConstructor,
                                                      respStatsConstructor,
-                                                     hasMultiController,
+                                                     debugScanNodeConstructor,
                                                      debugLog);
     //
     // Methods
@@ -504,7 +515,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                                                                         SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
-                                                                        Bool hasMultiController,
+                                                                        COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNodeConstructor,
                                                                         DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(n_READERS, t_MEM_ADDR, COH_SCRATCH_MEM_VALUE, t_MEM_MASK))
@@ -531,7 +542,6 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     let sourceData <- mkCoherentScratchpadCacheSourceData(scratchpadID, 
                                                           reqStatsConstructor,
                                                           respStatsConstructor,
-                                                          hasMultiController,
                                                           debugLog);
                              
     // Cache Prefetcher
@@ -576,6 +586,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     // Update read and write request counter
     //
 
+    (* fire_when_enabled *)
     rule incrNumReads (True);
         Bit#(n_READERS) reads = ?;
         for(Integer p = 0; p < valueOf(n_READERS); p = p + 1)
@@ -585,12 +596,14 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         numPendingReads.upBy(zeroExtendNP(pack(countOnesAlt(reads))));
     endrule
     
+    (* fire_when_enabled *)
     rule decNumReads (cache.numReadProcessed() != 0);
         numPendingReads.downBy(zeroExtendNP(cache.numReadProcessed()));
         debugLog.record($format("%x read request being processed, numPendingReads=0x%x", 
                         cache.numReadProcessed(), numPendingReads.value()));
     endrule
 
+    (* fire_when_enabled *)
     rule decNumWrites (cache.numWriteProcessed() != 0);
         numPendingWrites.downBy(zeroExtendNP(cache.numWriteProcessed()));
         debugLog.record($format("%x write request being processed, numPendingWrites=0x%x", 
@@ -667,13 +680,48 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
             match {.port, .maf_idx} = r.readMeta;
 
             sortResponseQ[p].setValue(maf_idx, r.val);
+            debugLog.record($format("receiveResp: port %0d: resp val=0x%x, idx=%0d", p, r.val, maf_idx));
         endrule
     end
 
+    // ====================================================================
+    //
+    // Coherent scratchpad client debug scan for deadlock debugging.
+    //
+    // ====================================================================
+    
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+    dbg_list <- addDebugScanField(dbg_list, "Pending Reads", numPendingReads.value());
+    dbg_list <- addDebugScanField(dbg_list, "Pending Writes", numPendingWrites.value());
+    dbg_list <- addDebugScanField(dbg_list, "Request Queue notEmpty", incomingReqQ.notEmpty());
+    
+    for(Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        dbg_list <- addDebugScanField(dbg_list, "Read request: incomingReqQ port " + integerToString(p) + " notFull", incomingReqQ.ports[p].notFull());
+        dbg_list <- addDebugScanField(dbg_list, "Read request: sortResponseQ port " + integerToString(p) + " notEmpty", sortResponseQ[p].notEmpty());
+        dbg_list <- addDebugScanField(dbg_list, "Read request: sortResponseQ port " + integerToString(p) + " notFull", sortResponseQ[p].notFull());
+    end
+
+    dbg_list <- addDebugScanField(dbg_list, "Write Request Queue notFull ", incomingReqQ.ports[valueOf(n_READERS)].notFull());
+
+    // Append coherent cache state and sourceData state
+    List#(Tuple2#(String, Bool)) debug_scan_state = List::append(cache.debugScanState(), sourceData.debugScanState());
+    while (debug_scan_state matches tagged Nil ? False : True)
+    begin
+        let fld = List::head(debug_scan_state);
+        dbg_list <- addDebugScanField(dbg_list, tpl_1(fld), tpl_2(fld));
+
+        debug_scan_state = List::tail(debug_scan_state);
+    end
+    debugScanNodeConstructor(dbg_list);
+
+
+    // =======================================================================
     //
     // Methods.  All requests are stored in the incomingReqQ to maintain their
     // order.
     //
+    // =======================================================================
 
     Vector#(n_READERS, MEMORY_READER_IFC#(t_MEM_ADDR, t_MEM_DATA)) portsLocal = newVector();
 
@@ -694,7 +742,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                 method ActionValue#(t_MEM_DATA) readRsp();
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
-                    debugLog.record($format("read port %0d: resp val=0x%x", p, r));
+                    debugLog.record($format("read port %0d: resp val=0x%x, rob idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
                 endmethod
 
@@ -786,7 +834,6 @@ endmodule
 typedef struct
 {
     COH_SCRATCH_PORT_NUM       requester;
-    COH_SCRATCH_CTRLR_PORT_NUM reqControllerId;
     COH_SCRATCH_MEM_VALUE      val;
     Bool                       ownership;
     Bool                       isCacheable;
@@ -819,7 +866,6 @@ endinterface: COH_SCRATCH_RING_NODE_STATS
 module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpadID, 
                                                                COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
                                                                COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
-                                                               Bool hasMultiController,
                                                                DEBUG_FILE debugLog)
     // interface:
     (RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, COH_SCRATCH_MEM_VALUE, t_CACHE_META, t_REQ_IDX))
@@ -853,35 +899,22 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     //
     // =======================================================================
 
-    String clientControllerRingName = (hasMultiController)?
-                                      "Coherent_Scratchpad_" + integerToString(scratchpadID) + "_" + `SCRATCHPAD_PLATFORM :
-                                      "Coherent_Scratchpad_" + integerToString(scratchpadID);
-    
     // Addressable ring (self-enumeration)
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_UNACTIVATED_REQ) link_mem_req <-
         (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
-        mkConnectionAddrRingDynNode(clientControllerRingName + "_Req"):
-        mkConnectionTokenRingDynNode(clientControllerRingName + "_Req");
+        mkConnectionAddrRingDynNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Req"):
+        mkConnectionTokenRingDynNode("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Req");
         
     // Addressable ring
     CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
         (`ADDR_RING_DEBUG_ENABLE == 1)?
-        mkDebugConnectionAddrRingNodeNtoN(clientControllerRingName + "_Resp", myPort._read(), debugLog):
-        mkConnectionAddrRingNodeNtoN(clientControllerRingName + "_Resp", myPort._read());
+        mkDebugConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read(), debugLog):
+        mkConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_Resp", myPort._read());
 
     // Broadcast ring
-    Vector#(2, CONNECTION_CHAIN#(t_ACTIVATED_REQ)) links_mem_activatedReq = newVector();
-    CONNECTION_CHAIN#(t_ACTIVATED_REQ) link_mem_activatedReq = ?;
-
-    if (hasMultiController)
-    begin
-        links_mem_activatedReq[0] <- mkConnectionChain(clientControllerRingName + "_ActivatedReq_0");
-        links_mem_activatedReq[1] <- mkConnectionChain(clientControllerRingName + "_ActivatedReq_1");
-    end
-    else
-    begin
-        link_mem_activatedReq <- mkConnectionChain(clientControllerRingName + "_ActivatedReq");
-    end
+    CONNECTION_CHAIN#(t_ACTIVATED_REQ) link_mem_activatedReq <- 
+        mkConnectionChain("Coherent_Scratchpad_" + integerToString(scratchpadID) + "_ActivatedReq");
+   
 
     // =======================================================================
     //
@@ -916,33 +949,15 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
 
 
     Reg#(Bool) initialized <- mkReg(False);
-    Reg#(COH_SCRATCH_CTRLR_PORT_NUM) controllerPort <- mkReg(0);
-   
-    if (hasMultiController)
-    begin
-        // Assign the port number got from request ring's self-enumeration to the response ring
-        // Receive the controller broadcast port number
-        rule doInit (!initialized);
-            initialized <= True;
-            let port_num = link_mem_req.nodeID();
-            myPort <= port_num;
-            let req <- links_mem_activatedReq[0].recvFromPrev();
-            controllerPort <= req.reqControllerId;
-            links_mem_activatedReq[0].sendToNext(req);
-            debugLog.record($format("    sourceData: assigned port ID = %03d", port_num));
-            debugLog.record($format("    sourceData: receive controller port ID = %02d", req.reqControllerId));
-        endrule
-    end
-    else
-    begin
-        // Assign the port number got from request ring's self-enumeration to the response ring
-        rule doInit (!initialized);
-            initialized <= True;
-            let port_num = link_mem_req.nodeID();
-            myPort <= port_num;
-            debugLog.record($format("    sourceData: assigned port ID = %03d", port_num));
-        endrule
-    end
+    
+    // Assign the port number got from request ring's self-enumeration to the response ring
+    rule doInit (!initialized);
+        initialized <= True;
+        let port_num = link_mem_req.nodeID();
+        myPort <= port_num;
+        debugLog.record($format("    sourceData: assigned port ID = %0d", port_num));
+    endrule
+
 
     // =======================================================================
     //
@@ -977,63 +992,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     // The heap size limits the number of in-flight activated requests to be 
     // processed in the cache. 
     MEMORY_HEAP_IMM#(t_REQ_IDX, t_REQ_INFO_ENTRY) snoopedReqTable <- mkMemoryHeapUnionLUTRAM();
-    FIFO#(t_CACHE_NW_REQ) activatedReqQ <- mkSizedFIFO(valueOf(n_REQ_TABLE_ENTRIES));
-    Reg#(Bool) activatedReqArb <- mkReg(True);
-    
-    function Tuple2#(Bit#(1), Maybe#(t_ACTIVATED_REQ)) getActivatedReq();
-        if (hasMultiController)
-        begin
-            if (links_mem_activatedReq[0].recvNotEmpty() && (activatedReqArb || !links_mem_activatedReq[1].recvNotEmpty()))
-            begin
-                return tuple2(0, tagged Valid links_mem_activatedReq[0].peekFromPrev());
-            end
-            else if (links_mem_activatedReq[1].recvNotEmpty())
-            begin
-                return tuple2(1, tagged Valid links_mem_activatedReq[1].peekFromPrev());
-            end
-            else
-            begin
-                return tuple2(?, tagged Invalid);
-            end
-        end
-        else
-        begin
-            if (link_mem_activatedReq.recvNotEmpty())
-            begin
-                return tuple2(?, tagged Valid link_mem_activatedReq.peekFromPrev());
-            end
-            else
-            begin
-                return tuple2(?, tagged Invalid);
-            end
-        end
-    endfunction
-    function Action fwdActivatedReq(Bit#(1) channel_id);
-        return 
-            action
-                if (hasMultiController)
-                begin
-                    let req <- links_mem_activatedReq[channel_id].recvFromPrev();
-                    links_mem_activatedReq[channel_id].sendToNext(req);
-                    activatedReqArb <= !activatedReqArb;
-                end
-                else
-                begin
-                    let req <- link_mem_activatedReq.recvFromPrev();
-                    link_mem_activatedReq.sendToNext(req);
-                end
-            endaction;
-    endfunction
-    function Bool isOwnReq(COH_SCRATCH_PORT_NUM clientId, COH_SCRATCH_CTRLR_PORT_NUM controllerId);
-        if (hasMultiController)
-        begin
-            return (clientId == myPort) && (controllerId == controllerPort);
-        end
-        else
-        begin
-            return (clientId == myPort);
-        end
-    endfunction
+    FIFOF#(t_CACHE_NW_REQ) activatedReqQ <- mkSizedFIFOF(valueOf(n_REQ_TABLE_ENTRIES));
 
     //
     // snoopActivatedReq --
@@ -1041,75 +1000,72 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     // forward them on the same ring. 
     //
     rule snoopActivatedReq (True);
-        match {.channel_id, .r} = getActivatedReq();
-        if (r matches tagged Valid .req)
-        begin
-            t_REQ_INFO_ENTRY new_entry = ?;
-            t_CACHE_NW_REQ cache_req = ?;
-            Bool need_snoop = False;
-            debugLog.record($format("    sourceData: check activated request from the ring..."));
-            
-            cache_req.ownReq = isOwnReq(req.requester, req.reqControllerId);
-            cache_req.addr = req.addr;
-
-            case (req.reqInfo) matches
-                tagged COH_SCRATCH_ACTIVATED_GETS .gets_req:
-                begin
-                    cache_req.reqType         = COH_CACHE_GETS;
-                    need_snoop                = !cache_req.ownReq;
-                    new_entry.requester       = req.requester;
-                    new_entry.reqControllerId = req.reqControllerId;
-                    new_entry.ownership       = False; 
-                    new_entry.isCacheable     = True;
-                    new_entry.meta            = zeroExtendNP(gets_req.clientMeta); 
-                    new_entry.globalReadMeta  = gets_req.globalReadMeta;
-                    debugLog.record($format("    sourceData: check activated %s GETS request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
-                end
-                tagged COH_SCRATCH_ACTIVATED_GETX .getx_req:
-                begin
-                    cache_req.reqType         = COH_CACHE_GETX;
-                    need_snoop                = !cache_req.ownReq;
-                    new_entry.requester       = req.requester;
-                    new_entry.reqControllerId = req.reqControllerId;
-                    new_entry.ownership       = True;
-                    new_entry.isCacheable     = True;
-                    new_entry.meta            = zeroExtendNP(getx_req.clientMeta); 
-                    new_entry.globalReadMeta  = getx_req.globalReadMeta;
-                    debugLog.record($format("    sourceData: check activated %s GETX request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
-                end
-                tagged COH_SCRATCH_ACTIVATED_PUTX .putx_req:
-                begin
-                    cache_req.reqType         = COH_CACHE_PUTX;
-                    need_snoop                = cache_req.ownReq && !putx_req.isCleanWB;
-                    new_entry.requester       = 0;
-                    new_entry.reqControllerId = req.homeControllerId;
-                    new_entry.ownership       = True;
-                    new_entry.isCacheable     = True;
-                    new_entry.meta            = zeroExtendNP(putx_req.controllerMeta); 
-                    debugLog.record($format("    sourceData: check activated %s PUTX request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
-                end
-            endcase
+        let req <- link_mem_activatedReq.recvFromPrev();
+        t_REQ_INFO_ENTRY new_entry = ?;
+        t_CACHE_NW_REQ cache_req = ?;
+        Bool need_snoop = False;
+        debugLog.record($format("    sourceData: check activated request from the ring..."));
+        
+        case (req) matches
+            tagged COH_SCRATCH_ACTIVATED_GETS .gets_req:
+            begin
+                cache_req.ownReq          = (gets_req.requester == myPort);
+                cache_req.addr            = gets_req.addr;
+                cache_req.reqType         = COH_CACHE_GETS;
+                need_snoop                = !cache_req.ownReq;
+                new_entry.requester       = gets_req.requester;
+                new_entry.ownership       = False; 
+                new_entry.isCacheable     = True;
+                new_entry.meta            = zeroExtendNP(gets_req.clientMeta); 
+                new_entry.globalReadMeta  = gets_req.globalReadMeta;
+                debugLog.record($format("    sourceData: check activated %s GETS request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
+            end
+            tagged COH_SCRATCH_ACTIVATED_GETX .getx_req:
+            begin
+                cache_req.ownReq          = (getx_req.requester == myPort);
+                cache_req.addr            = getx_req.addr;
+                cache_req.reqType         = COH_CACHE_GETX;
+                need_snoop                = !cache_req.ownReq;
+                new_entry.requester       = getx_req.requester;
+                new_entry.ownership       = True;
+                new_entry.isCacheable     = True;
+                new_entry.meta            = zeroExtendNP(getx_req.clientMeta); 
+                new_entry.globalReadMeta  = getx_req.globalReadMeta;
+                debugLog.record($format("    sourceData: check activated %s GETX request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
+            end
+            tagged COH_SCRATCH_ACTIVATED_PUTX .putx_req:
+            begin
+                cache_req.ownReq          = (putx_req.requester == myPort);
+                cache_req.addr            = putx_req.addr;
+                cache_req.reqType         = COH_CACHE_PUTX;
+                need_snoop                = cache_req.ownReq && !putx_req.isCleanWB;
+                new_entry.requester       = 0;
+                new_entry.ownership       = True;
+                new_entry.isCacheable     = True;
+                new_entry.meta            = zeroExtendNP(putx_req.controllerMeta); 
+                debugLog.record($format("    sourceData: check activated %s PUTX request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
+            end
+        endcase
        
-            // allocate an entry in the snoopedReqTable if the activated request needs 
-            // to be snooped (own activated PUTX that is not clean write-back also needs
-            // to be included because the controller is waiting for the write back data)
-            if (need_snoop)
-            begin
-                let idx <- snoopedReqTable.malloc();
-                snoopedReqTable.upd(idx, new_entry);
-                cache_req.reqIdx = idx;
-                debugLog.record($format("    sourceData: allocate snoopedReqTable entry (idx=0x%x)", idx));
-            end
-            
-            // request to be sent to the cache
-            if (cache_req.ownReq || need_snoop)
-            begin
-                activatedReqQ.enq(cache_req);
-            end
-
-            // forward activated request on the ring
-            fwdActivatedReq(channel_id);
+        // allocate an entry in the snoopedReqTable if the activated request needs 
+        // to be snooped (own activated PUTX that is not clean write-back also needs
+        // to be included because the controller is waiting for the write back data)
+        if (need_snoop)
+        begin
+            let idx <- snoopedReqTable.malloc();
+            snoopedReqTable.upd(idx, new_entry);
+            cache_req.reqIdx = idx;
+            debugLog.record($format("    sourceData: allocate snoopedReqTable entry (idx=0x%x)", idx));
         end
+        
+        // request to be sent to the cache
+        if (cache_req.ownReq || need_snoop)
+        begin
+            activatedReqQ.enq(cache_req);
+        end
+
+        // forward activated request on the ring
+        link_mem_activatedReq.sendToNext(req);
     endrule
 
     // =======================================================================
@@ -1122,10 +1078,6 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     FIFOF#(t_REQ_IDX) respReadyEntryQ <- mkSizedFIFOF(valueOf(n_REQ_TABLE_ENTRIES));
     FIFOF#(Tuple4#(t_REQ_IDX, t_CACHE_WORD, Bool, Bool)) respFromCacheQ <- mkBypassFIFOF();
 
-    function COH_SCRATCH_PORT_NUM getRespDestination(COH_SCRATCH_CTRLR_PORT_NUM controllerId, COH_SCRATCH_PORT_NUM clientId);
-         return (hasMultiController && controllerPort != controllerId)? 0 : clientId;
-    endfunction
-        
     //
     // recvRespFromCache --
     //     Generate the response to the ring and free the entry in the completion
@@ -1140,20 +1092,15 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         
         if (respToNetworkQ.notFull() && !nullResp)
         begin
-            let dest = getRespDestination(e.reqControllerId, e.requester);
-            respToNetworkQ.enq(tuple2(dest, COH_SCRATCH_RESP { val: val,
-                                                               ownership: e.ownership,
-`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
-                                                               controllerId: e.reqControllerId,
-                                                               clientId: e.requester,
-`endif
-                                                               meta: e.meta, 
-                                                               globalReadMeta: e.globalReadMeta,
-                                                               isCacheable: e.isCacheable,
-                                                               retry: retry }));
+            respToNetworkQ.enq(tuple2(e.requester, COH_SCRATCH_RESP { val: val,
+                                                                      ownership: e.ownership,
+                                                                      meta: e.meta, 
+                                                                      globalReadMeta: e.globalReadMeta,
+                                                                      isCacheable: e.isCacheable,
+                                                                      retry: retry }));
             
             debugLog.record($format("    sourceData: recvRespFromCache: send response: dest=%d, val=0x%x, ownership=%s, %s", 
-                            dest, val, (e.ownership)? "True" : "False", (retry)? "RETRY!!!" : " "));
+                            e.requester, val, (e.ownership)? "True" : "False", (retry)? "RETRY!!!" : " "));
         end
 
         if (respToNetworkQ.notFull() || nullResp)
@@ -1184,20 +1131,15 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         respReadyEntryQ.deq();
         let e = snoopedReqTable.sub(idx);
         // send response
-        let dest = getRespDestination(e.reqControllerId, e.requester);
-        respToNetworkQ.enq(tuple2(dest, COH_SCRATCH_RESP { val: e.val,
-                                                           ownership: e.ownership,
-`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
-                                                           controllerId: e.reqControllerId,
-                                                           clientId: e.requester,
-`endif
-                                                           meta: e.meta, 
-                                                           globalReadMeta: e.globalReadMeta,
-                                                           isCacheable: e.isCacheable,
-                                                           retry: e.retry }));
+        respToNetworkQ.enq(tuple2(e.requester, COH_SCRATCH_RESP { val: e.val,
+                                                                  ownership: e.ownership,
+                                                                  meta: e.meta, 
+                                                                  globalReadMeta: e.globalReadMeta,
+                                                                  isCacheable: e.isCacheable,
+                                                                  retry: e.retry }));
         
         debugLog.record($format("    sourceData: send response from snoopedReqTable: dest=%d, val=0x%x, ownership=%s, %s", 
-                        dest, e.val, (e.ownership)? "True" : "False", (e.retry)? "RETRY!!!" : " "));
+                        e.requester, e.val, (e.ownership)? "True" : "False", (e.retry)? "RETRY!!!" : " "));
         // free the entry in snoopedReqTable
         snoopedReqTable.free(idx); 
         debugLog.record($format("    sourceData: sendRespFromSnoopTable: free snoopedReqTable (entry=0x%x)", idx));
@@ -1208,11 +1150,40 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         let resp = respToNetworkQ.first();
         respToNetworkQ.deq();
         link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
-        debugLog.record($format("    sourceData: sendRespToNetwork: val=0x%x, dest=%03d", tpl_2(resp).val, tpl_1(resp)));
+        debugLog.record($format("    sourceData: sendRespToNetwork: val=0x%x ", tpl_2(resp).val));
     endrule
 
+    
+    // ====================================================================
+    //
+    //   Debug scan state
+    //
+    // ====================================================================
+
+    List#(Tuple2#(String, Bool)) ds_data = List::nil;
+
+    // Request or response queues
+    ds_data = List::cons(tuple2("Coherent Cache Router numBufferedReq notEmpty", numBufferedReq.value()>0), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router numBufferedReq notFull", numBufferedReq.value()<maxBound), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router unactivatedReqQ notEmpty", unactivatedReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router unactivatedReqQ notFull", unactivatedReqQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router activatedReqQ notEmpty", activatedReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router activatedReqQ notFull", activatedReqQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router respReadyEntryQ notEmpty", respReadyEntryQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router respReadyEntryQ notFull", respReadyEntryQ.notFull), ds_data);
+    
+    // Network channels
+    ds_data = List::cons(tuple2("Coherent Cache Router link_mem_req notEmpty", link_mem_req.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router link_mem_req notFull", link_mem_req.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router link_mem_resp notEmpty", link_mem_resp.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router link_mem_resp notFull", link_mem_resp.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router link_mem_activatedReq notEmpty", link_mem_activatedReq.recvNotEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router link_mem_activatedReq notFull", link_mem_activatedReq.sendNotFull), ds_data);
+
+    let debugScanData = ds_data;
+    
     // =======================================================================
-    // 
+    //
     // Methods
     //
     // =======================================================================
@@ -1222,16 +1193,14 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                            t_CACHE_META meta,
                            RL_CACHE_GLOBAL_READ_META globalReadMeta) if (initialized);
     
-        let req_info = COH_SCRATCH_GET_REQ_INFO { clientMeta: unpack(zeroExtendNP(pack(meta))),
-                                                  globalReadMeta: globalReadMeta };
-        let req = COH_SCRATCH_MEM_REQ { requester: myPort,
-                                        reqControllerId: ?,
+        let req = COH_SCRATCH_GET_REQ { requester: myPort,
                                         addr: addr,
-                                        reqInfo: tagged COH_SCRATCH_GETS req_info};
+                                        clientMeta: unpack(zeroExtendNP(pack(meta))),
+                                        globalReadMeta: globalReadMeta };
 
         // Forward the request to the coherent scratchpad controller that orders
         // all coherent scratchpad clients' requests
-        unactivatedReqQ.enq(req);
+        unactivatedReqQ.enq(tagged COH_SCRATCH_GETS req);
 
         debugLog.record($format("    sourceData: send GETS REQ ID %0d: addr 0x%x", myPort, addr));
         
@@ -1245,17 +1214,14 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                                t_CACHE_META meta,
                                RL_CACHE_GLOBAL_READ_META globalReadMeta) if (initialized);
 
-        let req_info = COH_SCRATCH_GET_REQ_INFO { clientMeta: unpack(zeroExtendNP(pack(meta))),
-                                                  globalReadMeta: globalReadMeta };
-
-        let req = COH_SCRATCH_MEM_REQ { requester: myPort,
-                                        reqControllerId: ?,
+        let req = COH_SCRATCH_GET_REQ { requester: myPort,
                                         addr: addr,
-                                        reqInfo: tagged COH_SCRATCH_GETX req_info};
+                                        clientMeta: unpack(zeroExtendNP(pack(meta))),
+                                        globalReadMeta: globalReadMeta };
 
         // Forward the request to the coherent scratchpad controller that orders
         // all coherent scratchpad clients' requests
-        unactivatedReqQ.enq(req);
+        unactivatedReqQ.enq(tagged COH_SCRATCH_GETX req);
 
         debugLog.record($format("    sourceData: send GETX REQ ID %0d: addr 0x%x", myPort, addr));
 
@@ -1297,17 +1263,14 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     
     // Request for writing back data and giving up ownership 
     method Action putExclusive(t_CACHE_ADDR addr, Bool isCleanWB) if (initialized);
-        
-        let req_info = COH_SCRATCH_PUT_REQ_INFO { isCleanWB: isCleanWB };
 
-        let req = COH_SCRATCH_MEM_REQ { requester: myPort,
-                                        reqControllerId: ?,
+        let req = COH_SCRATCH_PUT_REQ { requester: myPort,
                                         addr: addr,
-                                        reqInfo: tagged COH_SCRATCH_PUTX req_info};
+                                        isCleanWB: isCleanWB };
 
         // Forward the request to the coherent scratchpad controller that orders
         // all coherent scratchpad clients' requests
-        unactivatedReqQ.enq(req);
+        unactivatedReqQ.enq(tagged COH_SCRATCH_PUTX req);
 
         debugLog.record($format("    sourceData: send PUTX REQ ID %0d: addr 0x%x, isCleanWB=%s", 
                         myPort, addr, isCleanWB? "True" : "False"));
@@ -1365,6 +1328,13 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     
     method Action invalOrFlushWait();
         noAction;
+    endmethod
+
+    //
+    // debugScanState -- Return cache state for DEBUG_SCAN.
+    //
+    method List#(Tuple2#(String, Bool)) debugScanState();
+        return debugScanData;
     endmethod
 
 endmodule

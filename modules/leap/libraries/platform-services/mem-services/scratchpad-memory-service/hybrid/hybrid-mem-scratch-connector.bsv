@@ -66,7 +66,8 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(FIFO#(SCRATCHPAD_RRR_REQ) local
     else
     begin
         // Multi-FPGA system
-        if (fpgaPlatformID() == 0)
+        let platformID <- getSynthesisBoundaryPlatformID();
+        if (platformID == 0)
         begin
             // Master FPGA
             let c <- mkScratchpadConnectorMultiMaster(localReqQ, localRespQ);
@@ -274,20 +275,23 @@ module [CONNECTED_MODULE] mkScratchpadConnectorMultiSlave#(FIFO#(SCRATCHPAD_RRR_
     // Interface:
     (Empty);
     
-    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_" + fpgaPlatformName() + ".out");
+    let platformName <- getSynthesisBoundaryPlatform();
+    let platformID   <- getSynthesisBoundaryPlatformID();
+
+    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_" + platformName + ".out");
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RING_REQ) link_mem_req <-
-        mkConnectionAddrRingNode("ScratchpadGlobalReq", fromInteger(fpgaPlatformID()));
+        mkConnectionAddrRingNode("ScratchpadGlobalReq", fromInteger(platformID));
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
-        mkConnectionAddrRingNode("ScratchpadGlobalResp", fromInteger(fpgaPlatformID()));
+        mkConnectionAddrRingNode("ScratchpadGlobalResp", fromInteger(platformID));
  
     rule eatReq;
         let req = localReqQ.first();
         localReqQ.deq();
 
         // patch through requests to base handler.
-        link_mem_req.enq(0, SCRATCHPAD_RING_REQ { stopID: fromInteger(fpgaPlatformID()),
+        link_mem_req.enq(0, SCRATCHPAD_RING_REQ { stopID: fromInteger(platformID()),
                                                   req: req });
 
         debugLog.record($format("Scratchpad req"));

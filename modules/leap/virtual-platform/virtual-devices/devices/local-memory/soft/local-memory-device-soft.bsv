@@ -216,14 +216,14 @@ module [CONNECTED_MODULE] mkLocalMemory#(LowLevelPlatformInterface llpi)
     dbg_list <- addDebugScanField(dbg_list, "Server WRITE DATA not empty", lmWriteData.notEmpty);
 
     // Append set associative cache pipeline state
-    List#(Tuple2#(String, Bool)) lm_scan = localMem.debugScanState();
-    while (lm_scan matches tagged Nil ? False : True)
-    begin
-        let fld = List::head(lm_scan);
-        dbg_list <- addDebugScanField(dbg_list, tpl_1(fld), tpl_2(fld));
-
-        lm_scan = List::tail(lm_scan);
-    end
+//    List#(Tuple2#(String, Bool)) lm_scan = localMem.debugScanState();
+//    while (lm_scan matches tagged Nil ? False : True)
+//    begin
+//        let fld = List::head(lm_scan);
+//        dbg_list <- addDebugScanField(dbg_list, tpl_1(fld), tpl_2(fld));
+//
+//        lm_scan = List::tail(lm_scan);
+//    end
 
     let dbgNode <- mkDebugScanNode("Local Memory (local-memory-device-soft.bsv)", dbg_list);
 endmodule

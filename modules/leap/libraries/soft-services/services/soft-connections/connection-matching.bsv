@@ -32,7 +32,6 @@
 import Clocks::*;
 
 `include "awb/provides/soft_connections_common.bsh"
-`include "awb/provides/physical_platform_utils.bsh"
 
 
 // ****** Connection Functions ******
@@ -150,12 +149,7 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
 
     // If the platforms do not match, drop the chain.  Unless we have been 
     // asked to propagate all connections to the top level.  
-    if((new_link.computePlatform != fpgaPlatformName) &&
-       (`EXPOSE_ALL_CONNECTIONS == 0))
-    begin
-        messageM("Dropping Chain Link " + new_link.logicalName + " should be on " + new_link.computePlatform + " and we are compiling " + fpgaPlatformName);
-    end
-    else if (existing_links matches tagged Valid .latest_link)
+    if (existing_links matches tagged Valid .latest_link)
     begin
 
         // There are other links already, so make sure the types
@@ -175,13 +169,12 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         // Good news! We didn't blow up.
         // Actually do the connection, with a new LOGICAL_CHAIN_INFO 
         // This lets us keep a single LOGICAL_CHAIN_INFO
-        messageM("Adding Link to Chain: [" + new_link.logicalName + "]  " + new_link.computePlatform + ":"  + new_link.moduleNameIncoming);
+        messageM("Adding Link to Chain: [" + new_link.logicalName + "] Module:"  + new_link.moduleNameIncoming);
         connectOutToIn(new_link.outgoing, latest_link.incoming);
 
         // Add the new link to the list.
         putChain(LOGICAL_CHAIN_INFO{logicalName: new_link.logicalName, 
                                                logicalType: new_link.logicalType, 
-                                               computePlatform: new_link.computePlatform,
                                                moduleNameIncoming: new_link.moduleNameIncoming,
                                                moduleNameOutgoing: latest_link.moduleNameOutgoing,
                                                bitWidth: new_link.bitWidth, 
@@ -193,7 +186,7 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
     begin
 
         // It's the first member of the chain, so just add it.
-        messageM("Adding Initial Link for Chain: [" + new_link.logicalName + "] " + new_link.computePlatform + ":" + new_link.moduleNameIncoming );
+        messageM("Adding Initial Link for Chain: [" + new_link.logicalName + "]  Module:" + new_link.moduleNameIncoming );
         putChain(new_link);
 
     end
@@ -213,8 +206,10 @@ module [t_CONTEXT] findMatchingRecv#(LOGICAL_SEND_ENTRY send, List#(LOGICAL_RECV
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
+  let exposeAllConnections <- getExposeAllConnections();
+
   let name = ctHashKey(send);
-  let recv_matches = List::filter(nameMatches(send), recvs);
+  let recv_matches = List::filter(nameMatches(exposeAllConnections, send), recvs);
   
   // The list should have exactly zero or one element in it....
 
@@ -247,8 +242,10 @@ module [t_CONTEXT] findMatchingSend#(LOGICAL_RECV_ENTRY recv, List#(LOGICAL_SEND
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
+  let exposeAllConnections <- getExposeAllConnections();
+
   let name = ctHashKey(recv);
-  let send_matches = List::filter(nameMatches(recv), sends);
+  let send_matches = List::filter(nameMatches(exposeAllConnections, recv), sends);
   
   // The list should have exactly zero or one element in it....
 

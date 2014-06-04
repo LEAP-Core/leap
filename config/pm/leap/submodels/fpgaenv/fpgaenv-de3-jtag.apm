@@ -141,3 +141,10 @@ Packagehint=leap
 [Standard Platform Service (No Memory Service)]
 File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
 Packagehint=leap
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms

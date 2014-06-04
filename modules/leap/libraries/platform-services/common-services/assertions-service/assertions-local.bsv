@@ -37,7 +37,6 @@ import FIFOF::*;
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv.bsh"
-`include "awb/provides/physical_platform_utils.bsh"
 `include "awb/provides/fpga_components.bsh"
 
 `include "awb/dict/RINGID.bsh"
@@ -70,9 +69,41 @@ instance Ord#(ASSERTION_SEVERITY);
 endinstance
 
 
+
+
 // ============================================================================
 //
-//  Current interface, using global strings.
+//  Assertions that trigger only in simulation.
+//
+// ============================================================================
+
+module [CONNECTED_MODULE] mkAssertionSimOnly#(String str,
+                                              ASSERTION_SEVERITY mySeverity)
+    // interface:
+    (ASSERTION);
+
+    // Check the boolean expression and enqueue a pass/fail.
+    function Action assert_function(Bool b);
+    action
+        // Check the boolean expression
+        if (!b && (mySeverity != ASSERT_NONE))
+        begin   // Failed. The system is sad. :(
+            $display(str);
+            if (mySeverity == ASSERT_ERROR)
+            begin
+                $finish;
+            end
+        end
+    endaction
+    endfunction
+  
+    return assert_function;
+endmodule
+
+
+// ============================================================================
+//
+//  Assertions that trigger even in synthesized hardware.
 //
 // ============================================================================
 
@@ -454,7 +485,7 @@ module [CONNECTED_MODULE] mkAssertionNode#(ASSERTIONS_DICT_TYPE baseID)
                             ASSERT_ERROR: "ERROR";
                         endcase;
 
-        $display("ASSERTION %s: cycle %0d, %s", a_type, cycle, showASSERTIONS_DICT(myID));
+        $display("ASSERTION %s: cycle %0d, %s", a_type, cycle, strASSERTIONS_DICT[myID]);
 
     endmethod
 

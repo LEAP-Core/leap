@@ -275,3 +275,35 @@ module [CONNECTED_MODULE] mkNullCoherentScratchpadRingNodeStats#(COH_SCRATCH_RIN
     ();
 endmodule
 
+
+// ====================================================================
+//
+// Coherent scratchpad debug scan node wrappers
+//
+// ====================================================================
+
+// coherent scratchpad debugScanNode constructor
+
+typedef function CONNECTED_MODULE#(Empty) f(DEBUG_SCAN_FIELD_LIST dlist) COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR;
+
+//
+// mkCohScratchClientDebugScanNode --
+//     A wrapper that instantiates a debug scan node with a unique client ID and a domain ID
+//
+module [CONNECTED_MODULE] mkCohScratchClientDebugScanNode#(Integer domainId,
+                                                           Integer clientId,
+                                                           DEBUG_SCAN_FIELD_LIST dlist)
+    // interface:
+    ();
+    String cohScratchName = "Coherent Scratchpad Client " + integerToString(clientId) + " in Domain " + integerToString(domainId);
+    let dbgNode <- mkDebugScanNode(cohScratchName + " (coherent-scratchpad-memory-client.bsv)", dlist);
+endmodule
+
+//
+// mkNullCohScratchClientDebugScanNode --
+//
+module [CONNECTED_MODULE] mkNullCohScratchClientDebugScanNode#(DEBUG_SCAN_FIELD_LIST dlist)
+    // interface:
+    ();
+endmodule
+

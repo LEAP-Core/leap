@@ -37,7 +37,7 @@
  
 #include "asim/syntax.h"
 #include "awb/provides/virtual_devices.h"
-#include "awb/provides/starter_device.h"
+#include "awb/provides/starter_service.h"
 
 VIRTUAL_DEVICES_CLASS::VIRTUAL_DEVICES_CLASS(LLPI llpi) :
     commonUtilities(new COMMON_UTILITY_DEVICES_CLASS()),
@@ -62,5 +62,5 @@ VIRTUAL_DEVICES_CLASS::Init()
     commonServices->Init();
 
     // Tell the HW to start running via the Starter.
-    STARTER_DEVICE_CLASS::GetInstance()->Start();
+    STARTER_SERVICE_CLASS::GetInstance()->Start();
 }

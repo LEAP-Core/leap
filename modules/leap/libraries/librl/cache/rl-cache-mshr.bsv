@@ -166,6 +166,14 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
     // Return true if there is at least one pending write request
     method Bool getExclusivePending();
     
+    //
+    // Debug scan state.  The MSHR can't instantiate a debug scan node because
+    // the debug scan code depends on libRL.  Instantiating a node here would
+    // create a source dependence loop.  Instead, a list of name/value pairs
+    // is available for use by a client.
+    //
+    method List#(Tuple2#(String, Bool)) debugScanState();
+
 endinterface: RL_COH_DM_CACHE_MSHR
 
 
@@ -278,7 +286,8 @@ RL_COH_DM_CACHE_MSHR_PUT_REQ#(type t_MSHR_IDX,
                               type t_MSHR_ADDR, 
                               type t_MSHR_WORD)
     deriving (Eq, Bits);
-    
+
+
 // ===================================================================
 //
 // MSHR implementation
@@ -811,12 +820,34 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         debugLog.record($format("        MSHR: resendGetX: resend GETX req: addr=0x%x, entry=0x%x", e.addr, meta));
     endrule
 
+
+    // ====================================================================
+    //
+    //   Debug scan state
+    //
+    // ====================================================================
+
+    List#(Tuple2#(String, Bool)) ds_data = List::nil;
+
+    // Cache lookup request sources
+    ds_data = List::cons(tuple2("Coherent Cache MSHR respToNetworkQ notEmpty", respToNetworkQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR respToNetworkQ notFull", respToNetworkQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR respLocalQ notEmpty", respLocalQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR respLocalQ notFull", respLocalQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR respFromNetworkQ notEmpty", respFromNetworkQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR respFromNetworkQ notFull", respFromNetworkQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR retryReqToNetworkQ notEmpty", retryReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR retryReqToNetworkQ notFull", retryReqQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR resendGetxQ notEmpty", resendGetxQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR resendGetxQ notFull", resendGetxQ.notFull), ds_data);
+
+    let debugScanData = ds_data;
+
     // ====================================================================
     //
     // Methods
     //
     // ====================================================================
-
 
     // Requests that need to allocate a new MSHR entry (triggered by local requests) 
     //
@@ -967,6 +998,13 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     method Bool getSharePending() = (numPendingGetS.value() != 0);
     // Return true if there is at least one pending write request
     method Bool getExclusivePending() = (numPendingGetX.value() != 0);
+
+    //
+    // debugScanState -- Return cache state for DEBUG_SCAN.
+    //
+    method List#(Tuple2#(String, Bool)) debugScanState();
+        return debugScanData;
+    endmethod
 
 endmodule
 

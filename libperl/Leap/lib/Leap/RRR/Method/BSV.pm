@@ -34,6 +34,8 @@ use Leap::RRR::Method::Base;
 # inherit from Method
 our @ISA = qw(Leap::RRR::Method::Base);
 
+my $debug = 0;
+
 ##
 ## constructor
 ##
@@ -240,7 +242,11 @@ sub print_accept_request_definition
 
     # body
     print $file $indent . "    let a <- dem.readAndDelete();\n";
-   
+
+    if($debug)
+    {
+        print $file $indent . "    \$display(\"" . $self->{name} . " gets %h\", a);\n";
+    }
 
     print $file $indent . "    Vector#(numChunksDemarsh_" . $self->{name} . ", UMF_CHUNK) reqData = reverse(take(a));\n";
     print $file $indent . "    ";
@@ -491,7 +497,11 @@ sub print_get_response_definition
 
     # body
     print $file $indent . "    let a <- dem.readAndDelete();\n";
-    
+
+    if($debug)
+    {
+        print $file $indent . "    \$display(\"" . $self->{name} . " gets %h\", a);\n";
+    }
 
     print $file $indent . "    Vector#(numChunksDemarsh_" . $self->{name} . ", UMF_CHUNK) reqData = reverse(take(a));\n";
     print $file $indent . "    ";

@@ -203,9 +203,19 @@ module [t_CONTEXT] getChain#(LOGICAL_CHAIN_INFO descriptor) (Maybe#(LOGICAL_CHAI
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
     
-    return List::find(nameMatches(descriptor),ctxt.chains);
+    return List::find(nameMatches(False, descriptor),ctxt.chains);
 
 endmodule
+
+module [t_CONTEXT] getExposeAllConnections (Bool)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.exposeAllConnections;
+endmodule
+
 
 // ****** Mutators *******
 
@@ -371,10 +381,23 @@ module [t_CONTEXT] putChain#(LOGICAL_CHAIN_INFO chain) ()
          IsModule#(t_CONTEXT, t_DUMMY));
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
-    ctxt.chains = List::cons(chain,List::filter(nameDoesNotMatch(chain),ctxt.chains));
+    ctxt.chains = List::cons(chain,List::filter(nameDoesNotMatch(False, chain),ctxt.chains));
     putContext(ctxt);
 
 endmodule
+
+module [t_CONTEXT] putExposeAllConnections#(Bool exposeAllConnections) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.exposeAllConnections = exposeAllConnections;
+    putContext(ctxt);
+
+endmodule
+
+
 
 // ****** Non-Primitive Mutators ******
 
@@ -437,7 +460,7 @@ module [t_CONTEXT] removeUnmatchedSend#(LOGICAL_SEND_ENTRY send) ()
 
   // Remove entry from the hash table
   LOGICAL_SEND_INFO_TABLE_IDX idx = ctHash(ctHashKey(send));
-  sends.tbl[idx] = List::filter(nameDoesNotMatch(send), sends.tbl[idx]);
+  sends.tbl[idx] = List::filter(nameDoesNotMatch(False,send), sends.tbl[idx]);
 
   putUnmatchedSends(sends);
 
@@ -452,7 +475,7 @@ module [t_CONTEXT] removeUnmatchedRecv#(LOGICAL_RECV_ENTRY recv) ()
 
   // Remove entry from the hash table
   LOGICAL_RECV_INFO_TABLE_IDX idx = ctHash(ctHashKey(recv));
-  recvs.tbl[idx] = List::filter(nameDoesNotMatch(recv), recvs.tbl[idx]);
+  recvs.tbl[idx] = List::filter(nameDoesNotMatch(False,recv), recvs.tbl[idx]);
 
   putUnmatchedRecvs(recvs);
 

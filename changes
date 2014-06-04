@@ -18424,3 +18424,792 @@ simplify the backend build process.
 
 2) BSV's LI graph dump is now optionally enabled. Legacy builds need
 not dump an LI graph.
+
+----------
+hjyang      Date: Wed May  7 19:06:02 EDT 2014  CSN: CSN-leap-556
+                  Wed May  7 23:06:02 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ debug-file.bsv            Locally Modified          555 
+
+Fix the include path so that debug files can be created in simulation. 
+
+----------
+mcadler     Date: Thu May  8 22:38:18 EDT 2014  CSN: CSN-leap-557
+                  Fri May  9 02:38:18 UTC 2014
+
+
+Directory libperl/Leap/lib/Leap
+ DictBuilder.pm            Locally Modified          556 
+
+Directory tools/scripts
+ leap-dict                 Locally Modified          556 
+
+Directory modules/leap/libraries/platform-services/mem-services/central-cache-service
+ central-cache-service.bsv Locally Modified          556 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          556 
+
+Update dictionaries:
+
+- Now generate dense values.
+- Add descriptors so code can detect groups within the hierarchy.
+
+----------
+keflemin    Date: Mon May 12 18:50:03 EDT 2014  CSN: CSN-leap-558
+                  Mon May 12 22:50:03 UTC 2014
+
+
+Directory modules/leap/build-support/project
+ SCons.top.pipeline.template Locally Modified          557 
+
+
+We run two passes (depends and non-depends) for regular compilation.
+This was producing two build.status files, making it difficult for
+scripts to diagnose build completion.  Now we produce two differently
+named status files. 
+
+----------
+keflemin    Date: Tue May 13 08:07:10 EDT 2014  CSN: CSN-leap-559
+                  Tue May 13 12:07:10 UTC 2014
+
+
+Directory libperl/Leap/lib/Leap/RRR/Method
+ BSV.pm                    Locally Modified          558 
+
+Directory libperl/Leap/lib/Leap/RRR/Server
+ BSV.pm                    Locally Modified          558 
+
+Directory libperl/Leap/lib/Leap/RRR/Client
+ BSV.pm                    Locally Modified          558 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-xupv2-serial.apm Locally Modified          558 
+ fpgaenv-hybrid-exe-no-memory.apm Locally Modified          558 
+ fpgaenv-hybrid-ml605-pcie-no-memory.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-pcie-synplify.apm Locally Modified          558 
+ fpgaenv-hybrid-xupv5-serial.apm Locally Modified          558 
+ fpgaenv-hybrid-vc707-pcie-no-memory.apm Locally Modified          558 
+ fpgaenv-hybrid-vexe.apm   Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-pcie-sata.apm Locally Modified          558 
+ fpgaenv-hybrid-evaluation-arriaII-jtag.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-pcie-no-memory.apm Locally Modified          558 
+ fpgaenv-de2-jtag.apm      Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-chipscope.apm Locally Modified          558 
+ fpgaenv-de3-jtag.apm      Locally Modified          558 
+ fpgaenv-hybrid-exe.apm    Locally Modified          558 
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-exe-local-scratchpad.apm Locally Modified          558 
+ fpgaenv-hybrid-vc707-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-jtag.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-pcie.apm Locally Modified          558 
+ fpgaenv-hybrid-xup-v5-pcie-altera.apm Locally Modified          558 
+ fpgaenv-cycloneiii-jtag.apm Locally Modified          558 
+ fpgaenv-hybrid-htg-v5-jtag.apm Locally Modified          558 
+
+Directory modules/leap/virtual-platform/rrr/basic
+ basic-rrr-common.bsh      Locally Removed           558 
+ basic-rrr.awb             Locally Modified          558 
+
+Directory modules/leap/virtual-platform/rrr/rrr-common
+ rrr-common.awb            Locally Modified          558 
+ basic-rrr-common.bsh      Locally Added               - 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.bsv   Locally Modified          558 
+
+Directory modules/leap/virtual-platform
+ fpga-environment.awb      Locally Modified          558 
+ std-virtual-platform.bsv  Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/synthesis
+ synthesis-library.py      Locally Removed           558 
+ synthesis-library.awb     Locally Removed           558 
+ synthesis_functions.py    Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.awb              Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluesim
+ bluesim.py                Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          558 
+ bsv.awb                   Locally Modified          558 
+ sched.tcl                 Locally Added               0 
+ path.tcl                  Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.awb                 Locally Modified          558 
+ iface.py                  Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          558 
+ liChannel.py              Locally Modified          558 
+ liGraph.py                Locally Modified          558 
+ liChain.py                Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          558 
+ synthesis_boundary_wrapper_gen.awb Locally Modified          558 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          558 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified          558 
+ project-hybrid-main.bsv   Locally Modified          558 
+ ModuleList.py             Locally Modified          558 
+ Module.py                 Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          558 
+ hybrid-mem-scratch.bsv    Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.bsv Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-local.bsv      Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          558 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-strings
+ global-strings.cpp        Locally Modified          558 
+ global-strings.h          Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          558 
+ connected-common.bsv      Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ soft-connections-common-module-context.awb Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/latency
+ connections-latency.bsv   Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-implementation-multifpga.bsv Locally Removed           558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ connect-top-level.bsv     Locally Modified          558 
+ expose-connections.bsv    Locally Modified          558 
+ connect-top-level-multifpga.bsv Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          558 
+ connection-context.bsv    Locally Modified          558 
+ connection-implementation.bsv Locally Modified          558 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.bsv     Locally Modified          558 
+
+
+Huge reorganization of LIM compiler to support object-only backend
+builds.  The LIM compiler now passes an LI graph directly to the
+backend, stitches the frontend object code together using the build
+tree mechanism.  This improves compile time by effectively removing
+the user code (and portions of the platform code located in LI
+Modules) from the backend compilation flow.  
+
+Other changes:
+
+1) Fixed many spurious user-level dependencies on physical platform
+code. No user code should ever depend on the physical platform
+directly.  This speeds compilation time. 
+
+2) Changed generated .ba/.v compilation dependencies.  These are now
+based on the awb modules which are declared (by the programmer) to
+produce the .ba/.v.  The resulting build parallelism breaks older
+versions of scons.  2.3.0 and 2.3.1 seem to work. 
+
+3) Deprecation of platformModule annotation.  Since the LIM compiler
+now completely manages mapping of modules to FPGAs, most of the old
+mechanisms for multiple FPGA compilation are no longer needed.  Many
+have been marked as deprecated and will eventually be removed. 
+
+4) Steps towards ability to add arbitrary LI Modules at compile time.
+This is gated by strong dependence on AWB style-synthesis boundaries. 
+
+Known issues:
+
+1) build_tree dependencies are not being correctly calculated due to
+the absences of a build tree .depends.  Some experimental code.
+
+2) leap-connect is now vestigial.  It should be removed and replaced
+by python code.
+
+3) BSV.py is getting bloated.  Probably it needs to be refactored
+(especially code related to code gen, which is slightly replicated)
+
+----------
+keflemin    Date: Tue May 13 17:21:15 EDT 2014  CSN: CSN-leap-560
+                  Tue May 13 21:21:15 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          559 
+
+
+Location of configuration variable changed. 
+
+----------
+keflemin    Date: Wed May 14 16:02:58 EDT 2014  CSN: CSN-leap-561
+                  Wed May 14 20:02:58 UTC 2014
+
+
+Directory libperl/Leap/lib/Leap
+ Build.pm                  Locally Modified          560 
+
+Directory tools/scripts
+ leap-connect              Locally Modified          560 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          560 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liUtility.py              Locally Modified          560 
+ liChannel.py              Locally Modified          560 
+ liChain.py                Locally Modified          560 
+
+Directory modules/leap/build-support/project
+ Module.py                 Locally Modified          560 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-matching.bsv   Locally Modified          560 
+ connected-common.bsv      Locally Modified          560 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/alg
+ expose-connections.bsv    Locally Modified          560 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          560 
+ connection-implementation.bsv Locally Modified          560 
+
+
+Removed remainder of first-pass compute platform code.
+
+----------
+keflemin    Date: Wed May 14 16:26:01 EDT 2014  CSN: CSN-leap-562
+                  Wed May 14 20:26:01 UTC 2014
+
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.log Locally Modified          561 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          561 
+ liGraph.py                Locally Modified          561 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-local.bsv           Locally Modified          561 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connected-common.bsv      Locally Modified          561 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          561 
+ connections-debug.awb     Locally Modified          561 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-implementation.bsv Locally Modified          561 
+
+
+Support for optimal communications-based FPGA mapping
+
+1) Added new debug derivative which collects statistics for every send
+channel crossing between modules. This code is optionally enabled
+along with the debug scan code.
+
+2) Added necessary other support for compile-time module mapping.
+
+----------
+keflemin    Date: Thu May 15 19:10:00 EDT 2014  CSN: CSN-leap-563
+                  Thu May 15 23:10:00 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          562 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          562 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          562 
+
+
+leap-connect is no more.  It has been subsumed by python code. 
+
+----------
+keflemin    Date: Thu May 15 21:25:43 EDT 2014  CSN: CSN-leap-564
+                  Fri May 16 01:25:43 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          563 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          563 
+ Module.py                 Locally Modified          563 
+
+
+
+Removed spurious mapping code.  With LIM compiler reorganization, this
+code is no longer needed.
+
+----------
+mcadler     Date: Mon May 19 19:42:17 EDT 2014  CSN: CSN-leap-565
+                  Mon May 19 23:42:17 UTC 2014
+
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          564 
+
+Add mkAssertionSimOnly, an assertion module that generates no hardware but can
+trigger in simulation.
+
+----------
+keflemin    Date: Thu May 22 16:47:35 EDT 2014  CSN: CSN-leap-566
+                  Thu May 22 20:47:35 UTC 2014
+
+
+Directory config/pm/leap/submodels/platform-services
+ standard-platform-services.apm Locally Modified          565 
+ standard-platform-null-mem.apm Locally Modified          565 
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-vc707-pcie-no-memory.apm Locally Modified          565 
+ fpgaenv-hybrid-vc707-pcie.apm Locally Modified          565 
+
+Directory config/pm/leap/submodels/virtual-devices
+ std-virtual-devices.apm   Locally Modified          565 
+
+Directory modules/leap/virtual-platform/physical-channel/pcie/bluenoc
+ pcie-bluenoc-physical-channel.awb Locally Modified          565 
+ pcie-bluenoc-physical-channel.bsv Locally Modified          565 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-null.bsv        Locally Modified          565 
+ local-mem-ddr-wide.bsv    Locally Modified          565 
+ local-mem-interface.bsv   Locally Modified          565 
+ local-mem-bram.bsv        Locally Modified          565 
+
+Directory modules/leap/virtual-platform/low-level-platform-interface
+ llpi.bsv                  Locally Modified          565 
+
+Directory modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std
+ std-virtual-devices.cpp   Locally Modified          565 
+ std-virtual-devices.h     Locally Modified          565 
+ std-virtual-devices.awb   Locally Modified          565 
+ std-virtual-devices.bsv   Locally Modified          565 
+ std-virtual-devices-null-mem.awb Locally Modified          565 
+ std-virtual-devices-null-mem.bsv Locally Modified          565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/local-memory/soft
+ local-memory-device-soft.bsv Locally Modified          565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices
+ starter/                  Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ hybrid/                   Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/hybrid
+ starter-device.log        Locally Removed           565 
+ starter-device.cpp        Locally Removed           565 
+ starter-device.rrr        Locally Removed           565 
+ starter-device.h          Locally Removed           565 
+ starter-device.awb        Locally Removed           565 
+ starter-device.bsv        Locally Removed           565 
+ README                    Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ null/                     Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter/null
+ null-starter-device.awb   Locally Removed           565 
+ starter-device.cpp        Locally Removed           565 
+ starter-device.h          Locally Removed           565 
+ starter-device.bsv        Locally Removed           565 
+ README                    Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/starter
+ README                    Locally Removed           565 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.log             Locally Modified          565 
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ xilinx-xst.awb            Locally Modified          565 
+
+Directory modules/leap/build-support/build-pipelines/pipelines/simulation
+ SimulationPipeline.py     Locally Modified          565 
+
+Directory modules/leap/build-support/project
+ project-pipeline.awb      Locally Modified          565 
+
+Directory modules/leap/build-support/project/application-env/soft-services
+ application-env-hybrid-soft-service.bsv Locally Modified          565 
+
+Directory modules/leap/build-support/project/application-env/soft-services/default-sw
+ connected-application-default-sw.h Locally Modified          565 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          565 
+ project-hybrid-init.cpp   Locally Modified          565 
+ ModuleList.py             Locally Modified          565 
+ Module.py                 Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.log    Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-null-mem.awb Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ starter-service.cpp       Locally Added               - 
+ starter-service.rrr       Locally Added               - 
+ starter-service.h         Locally Added               - 
+ starter-service.awb       Locally Modified          565 
+ starter-service.bsv       Locally Modified          565 
+ starter-service.bsh       Locally Removed           565 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-null-mem.bsv Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/front-panel-service
+ front-panel-service.awb   Locally Modified          565 
+ front-panel-service.bsv   Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.log         Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.log Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.log    Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.log    Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.log         Locally Modified          565 
+
+Directory modules/leap/libraries/platform-services
+ platform-services-standard.awb Locally Modified          565 
+ platform-services-standard.bsv Locally Modified          565 
+
+Directory modules/leap/libraries/soft-services/soft-service-sets/soft-connections-soft-clocks
+ soft-services-defs.bsv    Locally Modified          565 
+
+Directory modules/leap/libraries/soft-services/util
+ soft-services-lib.bsv     Locally Modified          565 
+
+Directory modules/leap/examples/traffic-light/traffic-light-function
+ traffic-light-function.bsv Locally Modified          565 
+
+Directory modules/leap/examples/hello-world
+ hello-world.cpp           Locally Modified          565 
+
+
+Reorganized LEAP compilation flow. LEAP now places the platform code
+in a seperate synthesis boundary, which enables this code to be built
+in parallel. 
+
+1) Sweeping reorganization of platform code. The virtual platform
+interface is constrained to a) physical devices b) top-level wires c)
+LI channels.
+
+2) Fixed cpp log formating to reflect new LI channel description
+metadata.
+
+3) Low-level devices can now use LI channels.  Converted debug scan in
+the memory system to use channels directly.
+
+----------
+keflemin    Date: Tue May 27 15:16:27 EDT 2014  CSN: CSN-leap-567
+                  Tue May 27 19:16:27 UTC 2014
+
+
+Directory experiments/leap/regression
+ regression.models         Locally Modified          566 
+ regression.benchmarks     Locally Modified          566 
+
+Directory experiments/leap/nightly
+ nightly.models            Locally Modified          566 
+ nightly.benchmarks        Locally Modified          566 
+
+Directory config/pm/leap/demos/hello
+ hello_hybrid_vexe.apm     Locally Added               0 
+
+Directory config/pm/leap/demos/traffic_light
+ traffic_light_vexe_synth.apm Locally Added               0 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          566 
+
+Directory modules/leap/build-support/build-pipelines/stages/verilog
+ verilog.py                Locally Modified          566 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          566 
+
+
+Resurrected support for verilog compilation, post platform
+reorganization.  Added vexe to regressions.
+
+----------
+keflemin    Date: Tue May 27 18:29:56 EDT 2014  CSN: CSN-leap-568
+                  Tue May 27 22:29:56 UTC 2014
+
+
+Directory modules/leap/virtual-platform/physical-channel/sim
+ sim-physical-channel.bsv  Locally Modified          567 
+
+Directory modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid
+ hybrid-fp.log             Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          567 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          567 
+
+Directory modules/leap/build-support/project
+ ModuleList.py             Locally Modified          567 
+
+Directory modules/leap/libraries/librl/storage
+ reversal-buffer-bram.bsv  Locally Modified          567 
+ fifo-stream-capture.bsv   Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch.log    Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/starter-service
+ starter-service.log       Locally Added               0 
+ starter-service.awb       Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/stdio-service
+ stdio-service.log         Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-service.log Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/debug-scan-service
+ debug-scan-service.log    Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-service.log    Locally Modified          567 
+
+Directory modules/leap/libraries/platform-services/common-services/stats-service
+ stats-service.log         Locally Modified          567 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections/debug
+ connections-debug.bsv     Locally Modified          567 
+
+
+1) Repaired .logfile format for LI builds 
+
+2) Removed all instances of "asim/provides".  These were causing
+spurious rebuilds.
+
+3) Uniquified traffic statistics strings to include module
+information. This was necessary to prevent stats/strings services from
+misinterpreting duplicate string names.
+
+4) LI dumps now tag modules with object code types. 
+
+----------
+keflemin    Date: Wed May 28 10:15:17 EDT 2014  CSN: CSN-leap-569
+                  Wed May 28 14:15:17 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          568 
+
+
+LIM compiles do not default to "platform" as their baseline name.
+Removed this hard-coding.
+
+----------
+hjyang      Date: Fri May 30 18:02:30 EDT 2014  CSN: CSN-leap-570
+                  Fri May 30 22:02:30 UTC 2014
+
+
+Directory config/pm/leap/submodels/fpgaenv
+ fpgaenv-hybrid-ml605-pcie.apm Locally Modified          569 
+
+Directory modules/leap/libraries/librl/cache
+ rl-coherent-direct-mapped-cache.bsv Locally Modified          569 
+ rl-cache-mshr.bsv         Locally Modified          569 
+
+Directory modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service
+ coherent-scratchpad-memory-controller.bsv Locally Modified          569 
+ coherent-scratchpad-interfaces.bsv Locally Modified          569 
+ coherent-scratchpad-memory-client.bsv Locally Modified          569 
+ coherent-scratchpad-memory-service.awb Locally Modified          569 
+ coherent-scratchpad-memory-utils.bsv Locally Modified          569 
+
+Coherent scratchpads with a single coherence controller.
+Fix a bug in the coherence controller.
+Add debug scan codes for debugging.
+
+----------
+keflemin    Date: Mon Jun  2 18:14:52 EDT 2014  CSN: CSN-leap-571
+                  Mon Jun  2 22:14:52 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/bluespec
+ BSV.py                    Locally Modified          570 
+
+Directory modules/leap/build-support/build-pipelines/stages/li_module
+ liModule.py               Locally Modified          570 
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          570 
+
+Directory modules/leap/libraries/soft-services/services/soft-connections
+ connection-helper.bsv     Locally Modified          570 
+
+
+A few changes
+
+1) NGC build now dump a resource file for each LI module. This file is
+used durin LIM compilation to map modules to different FPGAs.
+
+2) Added some new code in tree build to explictly truncate LI channels
+at the top level. This enable backend tools to better optimize
+dangling wires during parallel builds.
+
+3) Better handling of empty top-level tree build case. Sometimes this
+arises during automatic mapping.
+
+
+----------
+keflemin    Date: Tue Jun  3 14:28:04 EDT 2014  CSN: CSN-leap-572
+                  Tue Jun  3 18:28:04 UTC 2014
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-ddr-wide.bsv    Locally Modified          571 
+
+Directory modules/leap/build-support/build-pipelines/stages/wrapper_gen
+ wrapper_gen.py            Locally Modified          571 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          571 
+
+Directory modules/leap/libraries/librl/base
+ fifo-merge.bsv            Locally Modified          571 
+ fifo-bypass.bsv           Locally Added               0 
+ librl-bsv-base.awb        Locally Modified          571 
+
+
+Added support for Bluespec's 2014.05 compiler release. Cheifly,
+Bluespec semantically changed the BypassFIFO interface.  Added an
+implementation to preserve the old semantics, and fixed LEAP code to
+use this implementation. 
+
+Simplified wrapper_gen -- we will not be supporting clocks_from_clocks
+instantiations moving forward.
+
+----------
+mcadler     Date: Tue Jun  3 16:44:32 EDT 2014  CSN: CSN-leap-573
+                  Tue Jun  3 20:44:32 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          572 
+
+Directory modules/leap/build-support/build-pipelines/stages/iface
+ iface.py                  Locally Modified          572 
+
+- The SCons version of Python and the shell version may be different.  The old
+  software.py assumed they were the same, leading to m5 builds that would not
+  load.
+
+- Create iface/build/include/.bsc directory so Bluespec won't complain that
+  it doesn't exist.  Easier to make the empty directory than add an exception
+  that it won't have a .bsc directory.
+
+----------
+mcadler     Date: Tue Jun  3 23:42:54 EDT 2014  CSN: CSN-leap-574
+                  Wed Jun  4 03:42:54 UTC 2014
+
+
+Directory modules/leap/virtual-platform/low-level-platform-interface/local-mem
+ local-mem-ddr-wide.bsv    Locally Modified          573 
+
+Directory modules/leap/libraries/librl/base
+ fifo-merge.bsv            Locally Modified          573 
+ fifo-bypass.bsv           Locally Removed           573 
+ librl-bsv-base.awb        Locally Modified          573 
+
+Go back to stock (new) BypassFIFOF.
+
+----------
+keflemin    Date: Wed Jun  4 07:33:21 EDT 2014  CSN: CSN-leap-575
+                  Wed Jun  4 11:33:21 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/xilinx
+ XILINX_XST.py             Locally Modified          574 
+
+
+XST now annotates the LIM graph with ngc, so that LI modules are not
+synthesized twice.
+
+----------
+mcadler     Date: Wed Jun  4 09:07:06 EDT 2014  CSN: CSN-leap-576
+                  Wed Jun  4 13:07:06 UTC 2014
+
+
+Directory modules/leap/libraries/librl/base
+ counters.bsv              Locally Modified          575 
+
+No more clients use the updatedValue() COUNTER method.  The method tends
+to lead to complex schedules.  Remove the method to eliminate the temptation
+to use it.
+
+----------
+keflemin    Date: Wed Jun  4 13:35:55 EDT 2014  CSN: CSN-leap-577
+                  Wed Jun  4 17:35:55 UTC 2014
+
+
+Directory modules/leap/virtual-platform
+ std-virtual-platform.bsv  Locally Modified          576 
+
+Directory modules/leap/build-support/project
+ project-hybrid-main.bsv   Locally Modified          576 
+
+
+Rotated platform services code to the virtual platform partition. 

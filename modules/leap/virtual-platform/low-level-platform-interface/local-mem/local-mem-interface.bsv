@@ -96,11 +96,6 @@ interface LOCAL_MEM;
     method Action writeWordMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data, LOCAL_MEM_WORD_MASK mask);
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
 
-    //
-    // debugScanState -- Return state for scanning.  Platform code can't
-    // create soft connections and must export the list to code that can.
-    //
-    method List#(Tuple2#(String, Bool)) debugScanState();
 endinterface: LOCAL_MEM
 
 

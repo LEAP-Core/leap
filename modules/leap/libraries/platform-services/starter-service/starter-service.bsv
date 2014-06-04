@@ -1,15 +1,17 @@
 
-`include "awb/provides/virtual_devices.bsh"
-`include "awb/provides/starter_device.bsh"
+`include "awb/rrr/client_stub_STARTER_SERVICE.bsh"
+`include "awb/rrr/server_stub_STARTER_SERVICE.bsh"
 
 `include "awb/provides/soft_connections.bsh"
 
 
-module [CONNECTED_MODULE] mkStarterService#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkStarterService
     // interface:
         ();
     
-    let starter = vdevs.starter;
+    ClientStub_STARTER_SERVICE client_stub <- mkClientStub_STARTER_SERVICE;
+    ServerStub_STARTER_SERVICE server_stub <- mkServerStub_STARTER_SERVICE;
+
     
     // ====================================================================
     //
@@ -23,7 +25,7 @@ module [CONNECTED_MODULE] mkStarterService#(VIRTUAL_DEVICES vdevs)
 
     rule sendStarterStartRun (True);
         
-        starter.acceptRequest_Start();
+        let val <- server_stub.acceptRequest_Start();
         linkStarterStartRun.send(?);
         
     endrule
@@ -32,7 +34,7 @@ module [CONNECTED_MODULE] mkStarterService#(VIRTUAL_DEVICES vdevs)
         
         let exit_code = linkStarterFinishRun.receive();
         linkStarterFinishRun.deq();
-        starter.makeRequest_End(exit_code);
+        client_stub.makeRequest_End(exit_code);
         
     endrule
 

@@ -39,7 +39,6 @@ import Vector::*;
 `include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/common_services.bsh"
 
-`include "awb/provides/physical_platform.bsh"
 `include "awb/provides/dynamic_parameters_service.bsh"
 `include "awb/dict/PARAMS_SOFT_CONNECTIONS.bsh"
 

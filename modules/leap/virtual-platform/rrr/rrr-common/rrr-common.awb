@@ -8,5 +8,7 @@
 %sources -t BSV -v PUBLIC  marshaller.bsv
 %sources -t BSV -v PUBLIC  demarshaller.bsv
 %sources -t BSV -v PUBLIC  arbiters.bsv
+%sources -t BSH -v PUBLIC  basic-rrr-common.bsh
+
 
 

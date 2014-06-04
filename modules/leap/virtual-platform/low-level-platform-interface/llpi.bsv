@@ -39,6 +39,8 @@ import Vector::*;
 `include "awb/provides/physical_platform_debugger.bsh"
 `include "awb/provides/clocks_device.bsh"
 `include "awb/provides/umf.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 //
 // LowLevelPlatformInterface.
@@ -62,21 +64,13 @@ endinterface
 //
 // Instantiate the subcomponents in one module.
 //
-`ifdef N_TOP_LEVEL_CLOCKS
-module mkLowLevelPlatformInterface#(Vector#(`N_TOP_LEVEL_CLOCKS, Clock) topClocks, Reset topReset)
-`else
-module mkLowLevelPlatformInterface
-`endif
+module [CONNECTED_MODULE] mkLowLevelPlatformInterface
     // Interface:
     (LowLevelPlatformInterface);
 
     // instantiate physical platform
     
-`ifdef N_TOP_LEVEL_CLOCKS
-    PHYSICAL_PLATFORM phys_plat <- mkPhysicalPlatform(topClocks, topReset);
-`else
     PHYSICAL_PLATFORM phys_plat <- mkPhysicalPlatform();
-`endif
     
     // LLPI is instantiated in a NULL clock domain, so first get some clocks
     // from the physical platform, which we'll pass down into the debugger

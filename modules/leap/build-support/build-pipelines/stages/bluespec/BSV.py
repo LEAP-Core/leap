@@ -1,3 +1,4 @@
+
 import os
 import sys
 import re
@@ -5,7 +6,9 @@ import string
 import cPickle as pickle
 import SCons.Script
 from model import  *
+from iface_tool import *
 from li_module import *
+from wrapper_gen_tool import *
 import pygraph
 try:
     from pygraph.classes.digraph import digraph
@@ -14,6 +17,12 @@ except ImportError:
     print "\n"
     # print "Warning you should upgrade to pygraph 1.8"
 
+# construct full path to BAs
+def modify_path_ba(moduleList, path):
+    array = path.split('/')
+    file = array.pop()
+    TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
+    return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + '/'.join(array) + '/' + TMP_BSC_DIR + '/' + file 
 
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
@@ -25,13 +34,21 @@ class BSV():
         env = moduleList.env
         self.moduleList = moduleList
         self.TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
+        synth_modules = [moduleList.topModule] + moduleList.synthBoundaries()
 
-        self.ALL_DIRS_FROM_ROOT = env['DEFS']['ALL_HW_DIRS']
+        # Ideally, the iface tool would set this value for us. 
+        self.ALL_DIRS_FROM_ROOT = ':'.join([moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath for module in synth_modules]) + ":" + getIfaceIncludeDirs()
+
+        self.USE_TREE_BUILD = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
+
         self.ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(self.ALL_DIRS_FROM_ROOT, ':', '', '/' + self.TMP_BSC_DIR)
         self.ALL_LIB_DIRS_FROM_ROOT = self.ALL_DIRS_FROM_ROOT + ':' + self.ALL_BUILD_DIRS_FROM_ROOT
 
         self.ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
+
         self.TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
+        self.BUILD_LOGS_ONLY = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')
+        self.USE_BVI = moduleList.getAWBParam('bsv_tool', 'USE_BVI')
 
         self.pipeline_debug = getBuildPipelineDebug(moduleList)
 
@@ -46,11 +63,21 @@ class BSV():
         moduleList.env.VariantDir(self.TMP_BSC_DIR, '.', duplicate=0)
         moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
 
-        # Walk synthesis boundaries in reverse topological order
+        self.firstPassLIGraph = getFirstPassLIGraph()
+
         topo = moduleList.topologicalOrderSynth()
         topo.reverse()
+
+        # Cleaning? Wipe out module temporary state. Do this before
+        # the topo pop to ensure that we don't leave garbage around at
+        # the top level.
+        if moduleList.env.GetOption('clean'):
+            for module in topo:
+                MODULE_PATH =  get_build_path(moduleList, module)
+                os.system('cd '+ MODULE_PATH + '/' + self.TMP_BSC_DIR + '; rm -f *.ba *.c *.h *.sched *.log *.v *.bo *.str')
+
         topo.pop() # get rid of top module. 
-     
+
         ##
         ## Is this a normal build or a build in which only Bluespec dependence
         ## is computed?
@@ -82,12 +109,16 @@ class BSV():
                     sys.exit(1)
 
             ##
-            ## Now that the "depends-init" build is complete we can continue with
-            ## accurate inter-Bluespec file dependence.
+            ## Now that the "depends-init" build is complete we can
+            ## continue with accurate inter-Bluespec file dependence.
+            ## This build only takes place for the first pass object
+            ## code generation.  If the first pass li graph exists, it
+            ## subsumes awb-style synthesis boundary generation.
             ##
             for module in topo:
                 self.build_synth_boundary(moduleList, module)
-         
+    
+
             ## We are going to have a whole bunch of BA and V files coming.
             ## We don't yet know what they contain, but we do know that there
             ## will be |synth_modules| - 2 of them
@@ -104,12 +135,12 @@ class BSV():
 
             # If we're doing a LIM compilation, we need to dump an LIM Graph. 
             # This must be done before the build tree attempts to reorganize the world.
-            do_dump_lim_graph = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')
+            do_dump_lim_graph = self.BUILD_LOGS_ONLY
             if do_dump_lim_graph:
                 all_logs = []
                 for module in  moduleList.topologicalOrderSynth():
-                    # scrub tree build, which is introduced above us...
-                    if (module.name != 'build_tree'):
+                    # scrub tree build/platform, which are redundant. 
+                    if (not module.platformModule):
                         all_logs.extend(module.moduleDependency['BSV_LOG'])
 
                 li_graph = moduleList.env['DEFS']['APM_NAME'] + '.li'
@@ -121,14 +152,8 @@ class BSV():
                 ## function.
                 def dump_lim_graph(target, source, env):
             
-                    connections = []
-                    # filter out build_tree connections.  These are not real
-                    
-                    for connection in parseLogfiles(all_logs):
-                        if (connection.module_name != 'build_tree'):
-                            connections.append(connection)
-                    
-                    fullLIGraph = LIGraph(connections) 
+                    # removing platform modules above allows us to use the logs directly.
+                    fullLIGraph = LIGraph(parseLogfiles(all_logs)) 
 
 
                     # annotate modules with relevant object code (useful in
@@ -144,7 +169,16 @@ class BSV():
                         # Add references to object code to graph module
                         def addBuildPath(fileName):
                             if(not os.path.isabs(fileName)): 
-                                return modulePath + '/' + fileName
+                                # does this file contain a partial path?
+                                if(fileName == os.path.basename(fileName)):
+                                    basicPath =  os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/' + fileName)
+                                    if(os.path.exists(basicPath)):
+                                        return basicPath
+                                    else:
+                                        #try .bsc
+                                        return os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/.bsc/' + fileName)
+                                else:
+                                    return os.path.abspath(fileName)
                             else:
                                 return fileName
 
@@ -157,12 +191,27 @@ class BSV():
                                 # these objects.  TODO: Clean the
                                 # things adding to this list so we
                                 # don't require the filtering step.
-                                depList = module.moduleDependency[objectType]
-                                
+                                depList = module.moduleDependency[objectType]                                
                                 convertedDeps = convertDependencies(depList)
                                 relativeDeps = map(addBuildPath,convertedDeps)
                                 fullLIGraph.modules[module.name].putObjectCode(objectType, relativeDeps)
                              
+                    # Collect bluespec interface information for all modules.  
+                    bluespecBuilddirs = 'iface/build/hw/.bsc/:'
+                    for module in topo + [moduleList.topModule]:
+                        bluespecBuilddirs += 'hw/' + module.buildPath + '/.bsc/:'
+
+                    for module in topo:
+                        if(module.name in fullLIGraph.modules):
+                            modulePaths = os.popen('bluetcl ./hw/model/path.tcl  -p ' + bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper').read()
+                            moduleScheds = os.popen('bluetcl ./hw/model/sched.tcl  -p ' + bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper').read()
+                            fullLIGraph.modules[module.name].putObjectCode('BSV_PATH', modulePaths)
+                            fullLIGraph.modules[module.name].putObjectCode('BSV_SCHED', moduleScheds)
+
+                    # Decorate LI modules with type
+                    for module in fullLIGraph.modules.values():
+                        module.putAttribute("EXECUTION_TYPE","RTL")
+
                     # dump graph representation. 
                     pickleHandle = open(li_graph, 'wb')
                     pickle.dump(fullLIGraph, pickleHandle, protocol=-1)
@@ -175,19 +224,16 @@ class BSV():
                 dumpGraph = env.Command(li_graph,
                                         all_logs,
                                         dump_lim_graph)
+                moduleList.topModule.moduleDependency['LIM_GRAPH'] = [li_graph]
                 moduleList.topDependency += [dumpGraph]
-
-
-
 
 
             ## Merge all synthesis boundaries using a tree?  The tree reduces
             ## the number of connections merged in a single compilation, allowing
-            ## us to support larger systems.
-            use_tree_build = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
-            if use_tree_build:
-                moduleList.moduleList += self.setup_tree_build(moduleList, topo)
-        
+            ## us to support larger systems.            
+            if self.USE_TREE_BUILD:
+                self.setup_tree_build(moduleList, topo)
+
             ##
             ## Generate the global string table.  Bluespec-generated global
             ## strings are stored in files by the compiler.
@@ -197,15 +243,19 @@ class BSV():
             ## top-level directory.
             ##
             all_str_src = []
-            for module in topo + [moduleList.topModule]:
-                all_str_src.extend(module.moduleDependency['STR'])
-            bsc_str = moduleList.env.Command(self.TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
-                                             all_str_src,
-                                             [ 'cat $SOURCES > $TARGET'])
-            strDep = moduleList.env.Command(moduleList.env['DEFS']['APM_NAME'] + '.str',
-                                            bsc_str,
-                                            [ 'ln -fs ' + self.TMP_BSC_DIR + '/$TARGET $TARGET' ])
-            moduleList.topDependency += [strDep]
+            #for module in topo + [moduleList.topModule]:
+            for module in moduleList.moduleList + topo + [moduleList.topModule]:
+                if('STR' in module.moduleDependency):
+                    all_str_src.extend(module.moduleDependency['STR'])
+
+            if(self.BUILD_LOGS_ONLY == 0):
+                bsc_str = moduleList.env.Command(self.TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
+                                                 all_str_src,
+                                                 [ 'cat $SOURCES > $TARGET'])
+                strDep = moduleList.env.Command(moduleList.env['DEFS']['APM_NAME'] + '.str',
+                                                bsc_str,
+                                                [ 'ln -fs ' + self.TMP_BSC_DIR + '/$TARGET $TARGET' ])
+                moduleList.topDependency += [strDep]
 
 
             if moduleList.env.GetOption('clean'):
@@ -220,8 +270,8 @@ class BSV():
             self.isDependsBuild = True
 
             deps = []
-            for module in topo + [moduleList.topModule]:
-                deps += self.compute_dependence(moduleList, module)
+            for module in topo + [moduleList.topModule]:                
+                deps += self.compute_dependence(moduleList, module, fileName=module.dependsFile)
 
             moduleList.env.Alias('depends-init', deps)
 
@@ -230,7 +280,7 @@ class BSV():
     ## compute_dependence --
     ##   Build rules for computing intra-Bluespec file dependence.
     ##
-    def compute_dependence(self, moduleList, module):
+    def compute_dependence(self, moduleList, module, useDerived=True, fileName='.depends-bsv'):
         MODULE_PATH =  get_build_path(moduleList, module) 
 
         targets = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + get_wrapper(module) ]
@@ -245,12 +295,12 @@ class BSV():
             if (child.name != module.name):
                 SURROGATE_BSVS += moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + child.buildPath +'/' + child.name + '.bsv '
 
-        if (SURROGATE_BSVS != ''):
+        if (useDerived and SURROGATE_BSVS != ''):
             DERIVED = ' -derived "' + SURROGATE_BSVS + '"'
         else:
             DERIVED = ''
 
-        depends_bsv = MODULE_PATH + '/.depends-bsv'
+        depends_bsv = MODULE_PATH + '/' + fileName
         moduleList.env.NoCache(depends_bsv)
         compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + self.TMP_BSC_DIR + DERIVED + ' -p +:' + self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/awb/provides:' + self.ALL_LIB_DIRS_FROM_ROOT + ' ' + ' '.join(targets) + ' > ' + depends_bsv
 
@@ -304,7 +354,7 @@ class BSV():
     def build_synth_boundary(self, moduleList, module):
         if (self.pipeline_debug != 0):
             print "Working on " + module.name
-        MODULE_PATH =  get_build_path(moduleList, module) 
+
         env = moduleList.env
         BSVS = moduleList.getSynthBoundaryDependencies(module, 'GIVEN_BSVS')
         # each submodel will have a generated BSV
@@ -312,23 +362,17 @@ class BSV():
         APM_FILE = moduleList.env['DEFS']['APM_FILE']
         BSC = moduleList.env['DEFS']['BSC']
 
-        ##
+
+
+        MODULE_PATH =  get_build_path(moduleList, module)         ##
         ## Load intra-Bluespec dependence already computed.  This information will
         ## ultimately drive the building of Bluespec modules.
         ##
-        env.ParseDepends(MODULE_PATH + '/.depends-bsv',
+        env.ParseDepends(MODULE_PATH + '/' + module.dependsFile,
                          must_exist = not moduleList.env.GetOption('clean'))
 
         if not os.path.isdir(self.TMP_BSC_DIR):
             os.mkdir(self.TMP_BSC_DIR)
-
-        ##
-        ## Cleaning?  There are a few somewhat unpredictable files generated by bsc
-        ## depending on the source files.  Delete them here instead of parsing the
-        ## source files and generating scons dependence rules.
-        ##
-        if env.GetOption('clean'):
-            os.system('cd '+ MODULE_PATH + '/' + self.TMP_BSC_DIR + '; rm -f *.ba *.c *.h *.sched')
 
         self.setup_module_build(moduleList, MODULE_PATH)
 
@@ -340,6 +384,11 @@ class BSV():
 
         # This should not be a for loop.
         for bsv in [get_wrapper(module)]:
+
+            if env.GetOption('clean'):
+                os.system('rm -f ' + MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log.bsv'))
+                os.system('rm -f ' + MODULE_PATH + '/' + bsv.replace('.bsv', '_con_size.bsh'))
+
             ##
             ## First pass just generates a log file to figure out cross synthesis
             ## boundary soft connection array sizes.
@@ -357,8 +406,23 @@ class BSV():
                 ##
                 ## Parse the log, generate a stub file
                 ##
+
                 stub_name = bsv.replace('.bsv', '_con_size.bsh')
-                stub = env.Command(MODULE_PATH + '/' + stub_name, log, 'leap-connect --softservice --dynsize $SOURCE $TARGET')
+
+                def build_con_size_bsh(logIn):
+                    def build_con_size_bsh_closure(target, source, env):
+                        liGraph = LIGraph(parseLogfiles([logIn])) 
+                        # Should have only one module...
+                        if(len(liGraph.modules) == 0):
+                            bshModule = LIModule(module.name, module.name)
+                        else:
+                            bshModule = liGraph.modules.values()[0]
+                        bsh_handle = open(str(target[0]), 'w')
+                        generateConnectionBSH(bshModule, bsh_handle)
+                        bsh_handle.close()
+                    return build_con_size_bsh_closure
+
+                stub = env.Command(MODULE_PATH + '/' + stub_name, log, build_con_size_bsh(logfile))
 
             ##
             ## Now we are ready for the real build
@@ -372,11 +436,14 @@ class BSV():
                 ## connections are exposed
                 wrapper_bo = env.BSC_LOG(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''),
                                          MODULE_PATH + '/' + bsv)
+
+
                 ## SCons doesn't deal well with logfile as a 2nd target to BSC_LOG rule,
                 ## failing to derive dependence correctly.
                 module.moduleDependency['BSV_BO'] = [wrapper_bo]
                 env.Command(logfile, wrapper_bo, '')
                 env.Precious(logfile)
+
 
                 ## In case Bluespec build is the end of the build pipeline.
                 moduleList.topDependency += [logfile]
@@ -403,9 +470,26 @@ class BSV():
 
                 synth_stub_path = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'
                 synth_stub = synth_stub_path + module.name +'_synth.bsv'
+                # This stub may be needed in certain compilation flows.  Note its presence here.
+                module.moduleDependency['BSV_SYNTH'] = [module.name +'_synth.bsv']
+                module.moduleDependency['BSV_SYNTH_BSH'] = [module.name +'_Wrapper_con_size.bsh']
+
+                def build_synth_stub(logIn):
+                    def build_synth_stub_closure(target, source, env):
+                        liGraph = LIGraph(parseLogfiles([logIn])) 
+                        # Should have only one module...
+                        if(len(liGraph.modules) == 0):
+                            synthModule = LIModule(module.name, module.name)
+                        else:
+                            synthModule = liGraph.modules.values()[0]
+                        synth_handle = open(str(target[0]), 'w')
+                        generateSynthWrapper(synthModule, synth_handle, moduleType=module.interfaceType, extraImports=module.extraImports)
+                        synth_handle.close()
+                    return build_synth_stub_closure
+
                 env.Command(synth_stub, # target
-                            [stub, wrapper_bo],
-                            ['leap-connect --alternative_logfile ' + logfile  + ' --softservice ' + APM_FILE + ' $TARGET'])
+                            [stub, wrapper_bo, logfile],
+                            build_synth_stub(logfile))
 
             ##
             ## The mk_<wrapper>.v file is really built by the Wrapper() builder
@@ -419,15 +503,6 @@ class BSV():
             for v in moduleList.getSynthBoundaryDependencies(module, 'GEN_VS'):
                 ext_gen_v += [MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + v]
 
-            ##
-            ## Generated Verilog (indicated with %generated in an AWB file) will
-            ## be created by the compilation of some Bluespec file.  We just don't
-            ## know which one.  Claim that all generated Verilog files are produced
-            ## by the module compilation, which is sufficient for SCons to compute
-            ## dependence.
-            ##
-            for v in moduleList.getSynthBoundaryDependencies(module, 'GEN_VERILOGS'):
-                ext_gen_v += [MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + v]
 
             # Add the dependence for all Verilog noted above
             bld_v = env.Command([MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.v')] + ext_gen_v,
@@ -438,6 +513,8 @@ class BSV():
             if (moduleList.getAWBParam('bsv_tool', 'BUILD_VERILOG') == 1):
                 module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
+                module.moduleDependency['GEN_WRAPPER_VERILOGS'] = [os.path.basename('mk_' + bsv.replace('.bsv', '.v'))]
+
             if (self.pipeline_debug != 0):
                 print "Name: " + module.name
 
@@ -445,33 +522,6 @@ class BSV():
             bld_ba = [env.Command([MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba')],
                                   MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
                                   '')]
-
-            ##
-            ## We also generate all this synth boundary's GEN_BAS. This is a
-            ## little different because we must dependent on awb module bo rather
-            ## than the synth boundary bo
-            ##
-            descendents = moduleList.getSynthBoundaryDescendents(module)
-            for descendent in descendents:
-                if (self.pipeline_debug != 0):
-                    print "BA: working on " + descendent.name
-
-                gen_ba = moduleList.getDependencies(descendent, 'GEN_BAS')
-
-                # Dress them with the correct directory. Really the ba's depend on
-                # their specific bo.
-                ext_gen_ba = []
-                for ba in gen_ba:
-                    if (self.pipeline_debug != 0):
-                        print "BA: " + descendent.name + " generates " + MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + ba
-                    ext_gen_ba += [MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + ba]    
-                
-                ##
-                ## Do the same for .ba
-                ##
-                bld_ba += [env.Command(ext_gen_ba,
-                                       MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + descendent.name + '.bo',
-                                       '')]
 
             module.moduleDependency['BA'] += bld_ba 
             env.Precious(bld_ba)
@@ -482,8 +532,10 @@ class BSV():
             bb = self.stubGenCommand(MODULE_PATH, bsv, bld_v)
 
             # Only the subordinate modules have stubs.
+            # The platform module should not be enumerated here. This is a false dependency.
             if(module.name != moduleList.topModule.name):
                 moduleList.topModule.moduleDependency['VERILOG_STUB'] += [bb]
+                module.moduleDependency['GEN_VERILOG_STUB'] = [bb]
 
             return [bb] #This doesn't seem to do anything. 
 
@@ -516,22 +568,33 @@ class BSV():
     ## context to build specific modules.
 
     ##
-    ## Older versions of Bluespec generated a .bi along with every .bo.
-    ## This is how scons learns about them.
+    ## Older versions of Bluespec generated a .bi along with every
+    ## .bo.  This is how scons learns about them.  We also tag module
+    ## .bo with any generated BA/VERILOG that they have declared.
     ##
     def emitter_bo(self):
         def emitter_bo_closure(target, source, env):
+            baseName = os.path.basename(str(target[0])).replace('.bo', '')
+            dirName = os.path.dirname(str(target[0]))
+            def appendDirName(fileName):
+                return dirName + '/' + fileName
             if (getBluespecVersion() < 26572):
                 target.append(str(target[0]).replace('.bo', '.bi'))
-                return target, source
-            return emitter_bo_closure
+
+            # Find Emitted BA/Verilog, but only for module_name.bsv (an awb module)
+            if(baseName in self.moduleList.modules):
+                target.append(map(appendDirName, self.moduleList.getDependencies(self.moduleList.modules[baseName], 'GEN_BAS')))
+                target.append(map(appendDirName, self.moduleList.getDependencies(self.moduleList.modules[baseName], 'GEN_VERILOGS')))                
+
+            return target, source
+        return emitter_bo_closure
 
 
     def compile_bo_bsc_base(self, target, module_path):
         bdir = os.path.dirname(str(target[0]))
         lib_dirs = self.__bsc_bdir_prune(module_path + ':' + self.ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
         return self.moduleList.env['DEFS']['BSC'] + " " +  self.BSC_FLAGS + ' -p +:' + \
-               self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/asim/provides:' + \
+               self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/awb/provides:' + \
                lib_dirs + ':' + self.TMP_BSC_DIR + ' -bdir ' + bdir + \
                ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir + \
                ' -fdir ' + bdir
@@ -582,8 +645,7 @@ class BSV():
         bsc = moduleList.env.Builder(generator = self.compile_bo(module_path), suffix = '.bo', src_suffix = '.bsv',
                                      emitter = self.emitter_bo())
 
-        bsc_log = moduleList.env.Builder(generator = self.compile_bo_log(module_path), suffix = '.bo', src_suffix = '.bsv',
-                                         emitter = self.emitter_bo())
+        bsc_log = moduleList.env.Builder(generator = self.compile_bo_log(module_path), suffix = '.bo', src_suffix = '.bsv')
 
         # This guy has to depend on children existing?
         # and requires a bash shell
@@ -600,15 +662,41 @@ class BSV():
     ##   scheduling pressure and allows us to build larger systems.
     ##
     def setup_tree_build(self, moduleList, topo):
+        useBVI = self.USE_BVI               
         env = moduleList.env
+     
+        ##
+        ## Load intra-Bluespec dependence already computed.  This
+        ## information will ultimately drive the building of Bluespec
+        ## modules. Build tree has a few dependencies which must be
+        ## captured.
+        ##
+        #env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-build-tree',
+        #                 must_exist = not moduleList.env.GetOption('clean'))
+
         tree_file_synth = get_build_path(moduleList, moduleList.topModule) + "/build_tree_synth.bsv"
         tree_file_synth_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR +"/build_tree_synth"
+
         tree_file_wrapper = get_build_path(moduleList, moduleList.topModule) + "/build_tree_Wrapper.bsv"
         tree_file_wrapper_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree_Wrapper"
 
+
+        tree_file_import = get_build_path(moduleList, moduleList.topModule) + "/build_tree_Import.bsv"
+        tree_file_import_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree_Import"
+
+        # this level of indirection is necessary to mimic the way AWB handles .bo builds
+        tree_file_bo = get_build_path(moduleList, moduleList.topModule) + "/build_tree.bsv"
+        tree_file_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree"
+
+        if moduleList.env.GetOption('clean'):
+            os.system('rm -f ' + tree_file_bo)
+
         boundary_logs = []
         for module in topo:
-            boundary_logs.extend(module.moduleDependency['BSV_LOG'])
+            # Remove any platform modules.. These are special in that
+            # they can have wired interfaces.
+            if(not module.platformModule):
+                boundary_logs.extend(module.moduleDependency['BSV_LOG'])
 
         pipeline_debug = self.pipeline_debug
 
@@ -618,32 +706,178 @@ class BSV():
         ## invoked in the 2nd pass of SCons.
         ##
         def cut_tree_build(target, source, env):
-            liGraph = LIGraph(parseLogfiles(boundary_logs))     
+
+            # If we got a graph from the first pass, merge it in now.
+            if(self.firstPassLIGraph is None):
+                liGraph = LIGraph(parseLogfiles(boundary_logs))     
+            else:
+                #cut_tree_build may modify the first pass graph, so we need
+                #to make a copy
+                liGraph = LIGraph([])    
+                firstPassGraph = getFirstPassLIGraph()
+                liGraph.merge([firstPassGraph])
             
-            
+
             synth_handle = open(tree_file_synth,'w')
             wrapper_handle = open(tree_file_wrapper,'w')
-            for tree_file in [synth_handle, wrapper_handle]:
-                tree_file.write("//Generated by BSV.py\n")
-                tree_file.write("`ifndef BUILD_TREE\n") # these may not be needed
-                tree_file.write("`define BUILD_TREE\n")
-                tree_file.write('import Vector::*;\n')
-                tree_file.write('`include "asim/provides/smart_synth_boundaries.bsh"\n')
-                tree_file.write('`include "asim/provides/soft_connections.bsh"\n')
+            import_handle = wrapper_handle #open(tree_file_import,'w')
+            bo_handle = open(tree_file_bo,'w')
 
-            
+            # mimic AWB/leap-configure
+
+            bo_handle.write('//')
+            bo_handle.write('// Synthesized compilation file for module: build_tree')
+            bo_handle.write('//')
+            bo_handle.write('//   This file was created by BSV.py')
+            bo_handle.write('//')
+
+            bo_handle.write('`define BUILDING_MODULE_build_tree')
+            bo_handle.write('`include "build_tree_Wrapper.bsv"')
+
+            bo_handle.close()
+
+            fileID = 0
+            for tree_file in [wrapper_handle, synth_handle, import_handle]:
+                fileID = fileID + 1
+                tree_file.write("//Generated by BSV.py\n")
+                tree_file.write("`ifndef BUILD_" + str(fileID) +  "\n") # these may not be needed
+                tree_file.write("`define BUILD_" + str(fileID) + "\n")
+                tree_file.write('import Vector::*;\n')
+                tree_file.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
+                tree_file.write('`include "awb/provides/soft_connections.bsh"\n')
+                tree_file.write('`include "awb/provides/librl_bsv_base.bsh"\n')
+
             # include all the dependencies in the graph in the wrapper. 
             for module in liGraph.graph.nodes():
-                wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')        
- 
-            wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0)); return ?; endmodule\n')
+                if(not useBVI):                                   
+                    wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')       
+
+                # If we use the BVI indirection, we should write out an import file. 
+                else:
+                    import_handle.write("\ninterface IMP_" + module.name + ";\n")
+                    for channel in module.channels:
+                        if(channel.isSource()):
+                            import_handle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                        else:
+                            import_handle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                    for chain in module.chains:
+                        import_handle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
+                        import_handle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
+                    import_handle.write("endinterface\n\n")
+
+
+                    import_handle.write('import "BVI" module mk_' + module.name + '_Converted (IMP_' + module.name + ');\n\n')
+                    incoming = 0
+                    outgoing = 0
+                    chains = 0
+                    for channel in module.channels:
+                        if(channel.isSource()):                     
+
+                            import_handle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                            import_handle.write('\t\tmethod services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty notEmpty() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty);\n')
+                            import_handle.write('\t\tmethod services_fst_outgoing_' + str(channel.module_idx) + '_first first() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_first);\n')
+                            import_handle.write('\t\tmethod deq() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_deq) enable(EN_services_fst_outgoing_' + str(channel.module_idx) + '_deq);\n')
+                            import_handle.write('\t\toutput_clock clock(CLK_services_fst_outgoing_' + str(channel.module_idx) + '_clock);\n')
+                            import_handle.write('\t\toutput_reset reset(RST_N_services_fst_outgoing_' + str(channel.module_idx) + '_reset);\n')
+                            import_handle.write('\tendinterface\n\n')
+                            outgoing += 1
+
+                        else:
+
+                            import_handle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                            import_handle.write('\t\tmethod try(services_fst_incoming_' + str(channel.module_idx) + '_try_d) ready(RDY_services_fst_incoming_' + str(channel.module_idx)  + '_try) enable(EN_services_fst_incoming_' + str(channel.module_idx) + '_try);\n')
+                            import_handle.write('\t\tmethod services_fst_incoming_' + str(channel.module_idx) + '_success  success() ready( RDY_services_fst_incoming_' + str(channel.module_idx) + '_success);\n')
+                            import_handle.write('\t\tmethod services_fst_incoming_' + str(channel.module_idx) + '_dequeued  dequeued() ready(RDY_services_fst_incoming_' + str(channel.module_idx) + '_dequeued);\n')
+                            import_handle.write('\t\toutput_clock clock(CLK_services_fst_incoming_' + str(channel.module_idx) + '_clock);\n')
+                            import_handle.write('\t\toutput_reset reset(RST_N_services_fst_incoming_' + str(channel.module_idx) + '_reset);\n')
+                            import_handle.write('\tendinterface\n\n')
+                            incoming += 1
+
+                    for chain in module.chains:
+                            import_handle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
+                            import_handle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty notEmpty() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty);\n')
+                            import_handle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_outgoing_first first() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_first);\n')
+                            import_handle.write('\t\tmethod deq() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq);\n')
+                            import_handle.write('\t\toutput_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_outgoing_clock);\n')
+                            import_handle.write('\t\toutput_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_outgoing_reset);\n')
+                            import_handle.write('\tendinterface\n\n')
+
+                            import_handle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
+                            import_handle.write('\t\tmethod try(services_fst_chains_' + str(chain.module_idx) + '_incoming_try_d) ready(RDY_services_fst_chains_' + str(chain.module_idx)  + '_incoming_try) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_incoming_try);\n')
+                            import_handle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_incoming_success  success() ready( RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_success);\n')
+                            import_handle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued  dequeued() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued);\n')
+                            import_handle.write('\t\toutput_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_incoming_clock);\n')
+                            import_handle.write('\t\toutput_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_incoming_reset);\n')
+                            import_handle.write('\tendinterface\n\n')
+                            chains += 1
+                            
+                    # We cached scheduling and path information during the first pass. Use it now. 
+                    import_handle.write(module.objectCache['BSV_PATH'][0] + '\n\n\n')
+                    import_handle.write(module.objectCache['BSV_SCHED'][0] + '\n\n\n')
+
+                    import_handle.write('endmodule\n\n')
+
+                    # Change module generation code below here to use this new interface!
+                                     
+                    import_handle.write('(*synthesize*)\n')
+                    import_handle.write('module mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + ', Empty));\n')
+
+                    # This code is very similar to module code below.  We should refactor.
+
+                    subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
+                                       str(outgoing) + ", 0, 0, " + str(chains) + ")"
+
+                    module_body = "\tlet m <- mk_" + module.name + "_Converted();\n"
+                    
+                    for channel in module.channels:
+                        if(channel.isSource()):                     
+                            module_body += "\toutgoingVec[" + str(channel.module_idx) + "] = m.services_fst_outgoing_" + str(channel.module_idx) + ";\n"
+                        else:
+                            module_body += "\tincomingVec[" + str(channel.module_idx) + "] = m.services_fst_incoming_" + str(channel.module_idx) + ";\n"
+
+                    for chain in module.chains:
+                        module_body += "\tchainsVec[" + str(chain.module_idx) + "] = PHYSICAL_CHAIN{outgoing: m.services_fst_chains_" + str(chain.module_idx) + "_outgoing, incoming: m.services_fst_chains_" + str(chain.module_idx) + "_incoming};\n"
+
+                    #declare interface vectors
+                    import_handle.write("    Vector#(" + str(incoming) + ", PHYSICAL_CONNECTION_IN)  incomingVec = newVector();\n")
+                    import_handle.write("    Vector#(" + str(outgoing) + ", PHYSICAL_CONNECTION_OUT) outgoingVec = newVector();\n")
+                    import_handle.write("    Vector#(" + str(chains) + ", PHYSICAL_CHAIN) chainsVec = newVector();\n")
+            
+                    # lay down module body
+                    import_handle.write(module_body)
+                                    
+                    # fill in external interface 
+
+                    import_handle.write("    let clk <- exposeCurrentClock();\n")
+                    import_handle.write("    let rst <- exposeCurrentReset();\n")
+
+                    import_handle.write("    " + subinterfaceType + " moduleIfc = interface WITH_CONNECTIONS;\n")
+                    import_handle.write("        interface incoming = incomingVec;\n")
+                    import_handle.write("        interface outgoing = outgoingVec;\n")
+                    import_handle.write("        interface chains = chainsVec;\n")                                   
+                    import_handle.write("        interface incomingMultis = replicate(PHYSICAL_CONNECTION_IN_MULTI{try: ?, success: ?, clock: clk, reset: rst});\n")
+                    import_handle.write("        interface outgoingMultis = replicate(PHYSICAL_CONNECTION_OUT_MULTI{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst});\n")
+                    import_handle.write("    endinterface;\n")
+                                                 
+                    import_handle.write("    interface services = tuple3(moduleIfc,?,?);\n")
+                    import_handle.write("    interface device = ?;//e2;\n")
+                    import_handle.write("endmodule\n\n")
+                    
+         
+            wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
+
             if (pipeline_debug != 0):
                 print "LIGraph: " + str(liGraph)
 
             # Top module has a special, well-known name for stub gen.
-            # unless there is only one module in the graph. 
-            module_names = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 2)] + ["build_tree"]
-     
+            # unless there is only one module in the graph.  
+            expected_wrapper_count = len(boundary_logs) - 2
+            if(not self.firstPassLIGraph is None):
+                expected_wrapper_count += len(self.firstPassLIGraph.modules)          
+ 
+            module_names = [ "__TREE_MODULE__" + str(id) for id in range(expected_wrapper_count)] + ["build_tree"]     
+
+
             # A recursive function for partitioning a latency
             # insensitive graph into a a tree of modules so as to
             # minimize the number of rules in the modules of the
@@ -688,12 +922,12 @@ class BSV():
                                 outgoing = outgoing + 1    
                             else:
                                 incoming = incoming + 1
-
-                        wrapper_handle.write("module mk_" + localModule + "_Wrapper")
+                                
+                        wrapper_handle.write("module mk_" + localModule + '_Wrapper')
                         moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
-                             ", " + str(outgoing) + ", 0, 0, " + str(len(single_module.chains)) + ")"
+                             ", " + str(outgoing) + ", 0, 0, " + str(len(single_module.chains)) + ", Empty)"
                         wrapper_handle.write(" (" + moduleType +");\n")
-                        wrapper_handle.write("    let m <- mk_" + single_module.name + "_Wrapper();\n")
+                        wrapper_handle.write("    let m <- mk_" + single_module.name + '_Wrapper' + "();\n")
                         wrapper_handle.write("    return m;\n")
                         wrapper_handle.write("endmodule\n")
                         single_module.name = localModule # sort of a hack, but it does save space
@@ -724,6 +958,7 @@ class BSV():
                   
                 graph0 = LIGraph(graph0Connections)        
                 graph1 = LIGraph(graph1Connections)        
+
 
                 #Pick a name for the local module
                 localModule = module_names.pop()
@@ -756,7 +991,7 @@ class BSV():
                 # Instantiate the submodules.
                 for name in [submodule0.name, submodule1.name]:
                     module_body += "    let " + name + "_inst <- mk_" +\
-                                   name + "_Wrapper();\n"                
+                                   name + '_Wrapper' + "();\n"                
                     module_body += "    let " + name + " = tpl_1(" +\
                                    name + "_inst.services);\n"
 
@@ -774,7 +1009,7 @@ class BSV():
                             if (pipeline_debug != 0):
                                 print "Found match with " + str(partnerChannel)
                             matched[channel.name] = channel
-                        
+                            
                             if (channel.isSource()):
                                 module_body += "    connectOutToIn(" + channel.module_name + ".outgoing[" + str(channel.module_idx) + "], " +\
                                     partnerChannel.module_name + ".incoming[" + str(partnerChannel.module_idx) + "]);// " + channel.name + "\n"
@@ -819,8 +1054,10 @@ class BSV():
                    
                     if (not channel.name in matched):
                         if (channel.isSource()):
-                            module_body += "    outgoingVec[" + str(outgoing) +"] = " + channel.module_name +\
-                                           ".outgoing[" + str(channel.module_idx) + "];// " + channel.name + "\n"     
+                            sizeName = "sz_" + channel.module_name + "_" + channel.name + "_" + str(channel.module_idx) 
+                            module_body += "    NumTypeParam#(" + str(channel.bitwidth) + ") " + sizeName + " = ?;\n"
+                            module_body += "    outgoingVec[" + str(outgoing) +"] = resizeConnectOut(" + channel.module_name +\
+                                           ".outgoing[" + str(channel.module_idx) + "], " + sizeName + ");// " + channel.name + "\n"     
                             channelCopy.module_idx = outgoing
                             outgoing = outgoing + 1
                         else:
@@ -843,10 +1080,12 @@ class BSV():
                     chainCopy = chain.copy()                        
                     if (not (chain.name in matched)):
                         # need to add both incoming and outgoing
+                        sizeName = "sz_" + chain.module_name + "_" + chain.name + "_" + str(chain.module_idx) 
+                        module_body += "    NumTypeParam#(" + str(chain.bitwidth) + ") " + sizeName + " = ?;\n"
                         module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " +\
                                        chain.module_name + ".chains[" + str(chain.module_idx) +\
-                                       "].incoming, outgoing: " + chain.module_name + ".chains[" +\
-                                       str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                                       "].incoming, outgoing: resizeConnectOut(" + chain.module_name + ".chains[" +\
+                                       str(chain.module_idx) + "].outgoing, " + sizeName + ")};// " + chain.name + "\n"     
                         chainCopy.module_idx =  chains
                         chainCopy.module_name = localModule
                         treeModule.addChain(chainCopy)
@@ -859,10 +1098,12 @@ class BSV():
                             # need to get form a chain based on the
                             # combination of the two modules
                             chain0 = matched[chain.name]
+                            sizeName = "sz_" + chain.module_name + "_" + chain.name + "_" + str(chain.module_idx) 
+                            module_body += "    NumTypeParam#(" + str(chain.bitwidth) + ") " + sizeName + " = ?;\n"
                             module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " +\
                                            chain0.module_name + ".chains[" + str(chain0.module_idx) +\
-                                           "].incoming, outgoing: " + chain.module_name+ ".chains[" +\
-                                           str(chain.module_idx) + "].outgoing};// " + chain.name + "\n"     
+                                           "].incoming, outgoing: resizeConnectOut(" + chain.module_name+ ".chains[" +\
+                                           str(chain.module_idx) + "].outgoing, " + sizeName + ")};// " + chain.name + "\n"     
                             chainCopy.module_idx =  chains
                             chainCopy.module_name = localModule                              
                             treeModule.addChain(chainCopy) 
@@ -896,9 +1137,9 @@ class BSV():
                 wrapper_handle.write("\nmodule ")
                 if (not gen_synth_boundary):
                     wrapper_handle.write("[Module] ")
-                wrapper_handle.write("mk_" + localModule + "_Wrapper")
+                wrapper_handle.write("mk_" + localModule + '_Wrapper')
                 moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
-                             ", " + str(outgoing) + ", 0, 0, " + str(chains) + ")"
+                             ", " + str(outgoing) + ", 0, 0, " + str(chains) + ", Empty)"
 
                 subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
                                    str(outgoing) + ", 0, 0, " + str(chains) + ")"
@@ -917,7 +1158,7 @@ class BSV():
                     ## that we know there is none, generate a dummy Verilog
                     ## file.
                     ##
-                    v_path = "mk_" + localModule + "_Wrapper.v"
+                    v_path = "mk_" + localModule + '_Wrapper' + ".v"
                     wrapper_handle.write("    // Hack to generate Verilog file to simulate the possible synthesis boundary\n")
                     wrapper_handle.write("    Handle hdl <- openFile(\"" + v_path + "\", WriteMode);\n")
                     wrapper_handle.write("    hPutStrLn(hdl, \"// Dummy\");\n")
@@ -932,9 +1173,7 @@ class BSV():
                 wrapper_handle.write(module_body)
                                 
                 # fill in external interface 
-                #wrapper_handle.write("    let e0 <- mk_Empty_Wrapper();\n")
-                #wrapper_handle.write("    let e1 <- mk_Empty_Wrapper();\n")
-                #wrapper_handle.write("    let e2 <- mk_Empty_Wrapper();\n")
+
                 wrapper_handle.write("    let clk <- exposeCurrentClock();\n")
                 wrapper_handle.write("    let rst <- exposeCurrentReset();\n")
 
@@ -955,6 +1194,8 @@ class BSV():
                         print "Channel in " + treeModule.name + " " + str(channel)
 
                 return treeModule
+            # END OF cutRecurse
+
 
             # partition the top level LIM graph to produce a tree of
             # latency insensitive modules.  If there is only a
@@ -962,7 +1203,15 @@ class BSV():
             # to the graph. This situation only occurs in a handful
             # of multifpga modules.
 
-            top_module = cutRecurse(liGraph, 1)            
+            # In the first LIM pass, we need to expose all
+            # connections.  Doing so through Bluespec results in
+            # object code changes, which are unacceptable.  Therefore,
+            # We optionally trim the build tree. 
+
+            # assign top_module some default.
+            top_module = None
+            if(self.BUILD_LOGS_ONLY == 0):
+                top_module = cutRecurse(liGraph, 1)            
 
             # In multifpga builds, we may have some leftover modules
             # due to the way that the LIM compiler currently
@@ -972,7 +1221,7 @@ class BSV():
 
             for module in module_names:
                 wrapper_handle.write("\n\n(*synthesize*)\n")
-                wrapper_handle.write("module mk_" + module + "_Wrapper (Reg#(Bit#(1)));\n")
+                wrapper_handle.write("module mk_" + module + '_Wrapper' + " (Reg#(Bit#(1)));\n")
                 wrapper_handle.write("    let m <- mkRegU();\n")
                 wrapper_handle.write("    return m;\n")
                 wrapper_handle.write("endmodule\n")
@@ -984,42 +1233,14 @@ class BSV():
             # however the synth file depends only on the build tree wrapper
             # if we have a single module, it will be the case that
             # this module and not a tree build will be returned. Handle both.
-            synth_handle.write('import ' + top_module.name + '_Wrapper::*;\n')        
-
-            synth_handle.write("\n\nmodule [Connected_Module] mkBuildTree();\n")
-            synth_handle.write("    let tree <- liftModule(mk_" + top_module.name + "_Wrapper());\n")
-            synth_handle.write("    let connections = tpl_1(tree.services);\n")
-
-            # these strings should probably made functions in the
-            # liChannel code
-            for channel in top_module.channels:
-                ch_reg_stmt = 'registerRecv'
-                ch_type = 'LOGICAL_RECV_INFO'
-                ch_src = 'incoming'
-                if (channel.isSource()):
-                    ch_reg_stmt = 'registerSend'
-                    ch_type = 'LOGICAL_SEND_INFO'
-                    ch_src = 'outgoing'
-
-                synth_handle.write('    ' + ch_reg_stmt + '("' + channel.name + '", ' + ch_type +\
-                                ' { logicalType: "' + channel.raw_type +\
-                                '", computePlatform: "' + channel.platform + '", optional: ' +\
-                                str(channel.optional) + ', ' + ch_src + ': connections.' + ch_src +'[' +\
-                                str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) +\
-                                ', moduleName: "' + channel.module_name + '"});\n')   
-
-            for chain in top_module.chains:
-                synth_handle.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' +\
-                                chain.name + '", logicalType: "' + chain.raw_type +\
-                                '", computePlatform: "' + chain.platform +\
-                                '", incoming: connections.chains[' + str(chain.module_idx) +\
-                                '].incoming, outgoing: connections.chains[' + str(chain.module_idx) +\
-                                '].outgoing, bitWidth:' + str(chain.bitwidth) +\
-                                ', moduleNameIncoming: "' + chain.module_name +\
-                                '",  moduleNameOutgoing: "' + chain.module_name + '"});\n')   
-
-            synth_handle.write("endmodule\n")
- 
+            if(top_module is None):
+                # If we have no top module, then the build tree is empty.
+                synth_handle.write("\n\nmodule [Connected_Module] build_tree();\n")
+                synth_handle.write("    //this space intentionally left blank\n")
+                synth_handle.write("endmodule\n")
+            else:
+                generateSynthWrapper(top_module, synth_handle)
+         
             for tree_file in [synth_handle, wrapper_handle]: 
                 tree_file.write("`endif\n")
                 tree_file.close()
@@ -1030,6 +1251,102 @@ class BSV():
         ## Back to SCons configuration (first) pass...
         ##
 
+        top_module_path = get_build_path(moduleList, moduleList.topModule) 
+
+        # The top module/build pipeline only depend on non-platformModules.
+        oldStubs = [module.moduleDependency['GEN_VERILOG_STUB'] for module in moduleList.synthBoundaries() if not module.platformModule]
+
+        # Inform object code build of the LI Graph retrieved from the
+        # first pass.  Probe firstPassGraph for relevant object codes
+        # (BA/NGC/BSV_SYNTH/BSV_SYNTH_BSH) accessed:
+        # module.objectCache['NGC'] (these already have absolute
+        # paths) I feel like the GEN_BAS/GEN_VERILOGS of the first
+        # pass may be missing.  We insert these modules as objects in
+        # the ModuleList.
+
+        def makeAWBLink(doLink, absPath):
+            baseFile = os.path.basename(absPath)
+            linkPath = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/" + baseFile
+            if(doLink):
+                if(os.path.lexists(linkPath)):
+                    os.remove(linkPath)
+                print "Linking: " + absPath + " to " + linkPath
+                os.symlink(absPath, linkPath)
+
+            return linkPath
+
+
+
+        limLinkSources = []
+        limLinkTargets = []
+
+        if(not self.firstPassLIGraph is None):
+            # Now that we have demanded bluespec builds (for
+            # dependencies), we should now should downgrade synthesis boundaries for the backend.
+            for module in topo:
+                if(not module.platformModule):
+                    module.liIgnore = True
+
+            oldStubs = []
+            for module in self.firstPassLIGraph.modules.values():
+                moduleDeps = {}
+
+                for objType in ['BA', 'GEN_BAS', 'GEN_VERILOGS', 'GEN_WRAPPER_VERILOGS', 'STR']:
+                    if(objType in module.objectCache):
+                        localNames =  map(lambda fileName: makeAWBLink(False, fileName), module.objectCache[objType])
+                        # The previous passes GEN_VERILOGS are not
+                        # really generated here, so we can't call them
+                        # as such. Tuck them in to 'VERILOG'
+                        if(objType == 'GEN_WRAPPER_VERILOGS'):
+                            moduleDeps['VERILOG'] = localNames
+                        else:
+                            moduleDeps[objType] = localNames
+                        limLinkTargets += localNames
+                        limLinkSources += module.objectCache[objType]
+                   
+                li_module = Module( module.name, ["mk_" + module.name + "_Wrapper"],\
+                                    moduleList.topModule.buildPath, moduleList.topModule.name,\
+                                    [], moduleList.topModule.name, [], moduleDeps)
+
+                # Need to generate verilog stub files here. Stub gen
+                # claims to want the BSV to exist, but this is not
+                # true.
+                bb = self.stubGenCommand(top_module_path, module.name + "_Wrapper.bsv", top_module_path + '/' + self.TMP_BSC_DIR + "/mk_" + module.name + "_Wrapper.v")
+                oldStubs += [bb]
+
+                moduleList.insertModule(li_module)
+
+
+
+        ## Enumerate the dependencies created by the build tree.
+        buildTreeDeps = {}
+
+        ## We have now generated a completely new module. Let's throw it
+        ## into the list.  Although we are building it seperately, this
+        ## module is an extension to the build tree.
+        expected_wrapper_count = len(boundary_logs) - 2
+        if(not self.firstPassLIGraph is None):
+            expected_wrapper_count += len(self.firstPassLIGraph.modules)
+
+        verilog_deps = [ "__TREE_MODULE__" + str(id) for id in range(expected_wrapper_count)] 
+
+        buildTreeDeps['GEN_VERILOGS'] = [ "mk_" + vlog + '_Wrapper' + ".v"  for vlog in verilog_deps]
+        buildTreeDeps['GEN_BAS'] = [  "mk_" + vlog + '_Wrapper' + ".ba" for vlog in verilog_deps]
+        buildTreeDeps['BA'] = []
+        buildTreeDeps['STR'] = []
+        buildTreeDeps['VERILOG'] = [top_module_path + '/' + self.TMP_BSC_DIR + '/mk_build_tree_Wrapper.v']
+        buildTreeDeps['GIVEN_BSVS'] = []
+        buildTreeDeps['VERILOG_STUB'] = convertDependencies(oldStubs)
+
+
+        tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
+                             moduleList.topModule.name,\
+                             [], moduleList.topModule.name, [], buildTreeDeps, platformModule=True)
+
+
+        moduleList.insertModule(tree_module)
+        generateAWBCompileWrapper(moduleList, tree_module)
+
         ## This produces the treeNode BSV. It must wait for the
         ## compilation of the log files, which it will read to form the
         ## LIM graph
@@ -1038,11 +1355,38 @@ class BSV():
         ## representation of the user program. This representation is
         ## used by the LIM compiler to create heterogeneous
         ## executables.  We then do a local modification to the build
-        ## tree to reduce Bluespec compilation time. 
+        ## tree to reduce Bluespec compilation time.
+
+        # If I got an LI graph, I don't care about the boundary logs.
+        # In this case, everything comes from the first pass graph.
+
         tree_components = env.Command([tree_file_wrapper, tree_file_synth],
                                       boundary_logs,
                                       cut_tree_build)
 
+        def deleteSpuriousBAs(target, source, env):
+
+            spuriousBAs = []
+            baPath = lambda name: top_module_path + '/' + self.TMP_BSC_DIR + '/mk_' + name + '_Wrapper.ba'
+            #spuriousBAs = [baPath(module.name) for module in topo]
+
+            vPath = lambda name: top_module_path + '/' + self.TMP_BSC_DIR + '/mk_' + name + '_Wrapper.v'
+            #spuriousBAs = [vPath(module.name) for module in topo]
+
+            if(not self.firstPassLIGraph is None):
+                spuriousBAs += [baPath(module.name) for module in self.firstPassLIGraph.modules.values()]
+                spuriousBAs += [vPath(module.name)  for module in self.firstPassLIGraph.modules.values()]
+                spuriousBAs += [top_module_path + '/' + self.TMP_BSC_DIR + '/build_tree_Import.bo']
+
+            for baFile in spuriousBAs:
+                # sometimes a .ba will not be generated (if, for
+                # example, the module has no LI Channels. Therefore,
+                # we check for the BA before trying (and failing) to
+                # remove it.
+                if(os.path.isfile(baFile)):
+                    os.remove(baFile)
+
+            return 0
 
 
         ## The top level build depends on the compilation of the tree components 
@@ -1052,13 +1396,50 @@ class BSV():
         ## tree whether or not we should just invoke build synth boundary on it.  
         ## The difficulty is that the dependency checker won't work because the code 
         ## doesn't actually exist. 
-        tree_file_wrapper_bo = env.BSC(tree_file_wrapper_bo_path, tree_components[0])
-        
+       
+        tree_file_wrapper_bo = env.BSC(tree_file_bo_path, tree_components[0])
+
+        if(useBVI):
+            env.AddPreAction(tree_file_wrapper_bo, deleteSpuriousBAs)
+
+        # If we use the BVI-style build, spurious .ba files will be
+        # created.  Wipe them out now.  They get replaced by LIM
+        # objects in the following step.
+        delete_spurious_ba = env.AddPostAction(tree_file_wrapper_bo, deleteSpuriousBAs)
+
+        ## Compiling the build tree wrapper produces several .ba
+        ## files, some that are useful, the TREE_MODULES, and some
+        ## which are not, the _Wrapper.ba.  As a result, we dump the
+        ## tree build output to a different directory, so as not to
+        ## pollute the existing build.  Here, we link to the relevant
+        ## files in that directory.
+
+        def linkLIMObj(target, source, env):
+            if(not self.firstPassLIGraph is None):
+                # The LIM build has passed us some source and we need
+                # to patch it through.
+                for module in self.firstPassLIGraph.modules.values():
+                    if('BA' in module.objectCache):
+                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['BA'])
+                    if('GEN_BAS' in module.objectCache):
+                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_BAS'])
+                    if('GEN_VERILOGS' in module.objectCache):
+                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_VERILOGS'])
+                    if('GEN_WRAPPER_VERILOGS' in module.objectCache):
+                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_WRAPPER_VERILOGS'])
+                    if('STR' in module.objectCache):
+                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['STR'])
+                    
+                
+        link_lim_objs = env.Command(limLinkTargets, limLinkSources, linkLIMObj)
+        env.Depends(link_lim_objs, tree_file_wrapper_bo)
+        env.Depends(link_lim_objs, delete_spurious_ba)
+
         # the tree_file_wrapper build needs all the wrapper bo from the user program,
         # but not the top level build.  
         top_bo = moduleList.topModule.moduleDependency['BSV_BO']
         all_bo = moduleList.getAllDependencies('BO')
-        
+
         env.Depends(tree_file_wrapper_bo, all_bo)
 
         tree_file_synth_bo = env.BSC(tree_file_synth_bo_path, tree_components[1])
@@ -1068,28 +1449,23 @@ class BSV():
         env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'],
                     tree_file_synth_bo)
 
+
+        # Handle the platform build, which is special cased. 
+        platform_synth = get_build_path(moduleList, moduleList.topModule) + "/" +  moduleList.localPlatformName + "_synth.bsv"
+        platform_synth_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR +"/" + moduleList.localPlatformName + "_synth"
+        platform_synth_bo = env.BSC(platform_synth_bo_path, platform_synth)
+        env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'],
+                    platform_synth_bo)
+
         # need to generate a stub file for the build tree module.
         # note that in some cases, there will be only one module in
         # the graph, usually in a multifpga build.  In this case,
         # the build_tree module will be vestigal, but since we can't
         # predict this statically we'll have to build it anyway.
         
-        top_module_path = get_build_path(moduleList, moduleList.topModule)
-        bb = self.stubGenCommand(top_module_path, "build_tree_Wrapper.bsv", top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")
+        tree_module.moduleDependency['GEN_VERILOG_STUB'] = [self.stubGenCommand(top_module_path, "build_tree_Wrapper.bsv", top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")]
         env.Depends(top_module_path + '/' + self.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v", tree_file_wrapper_bo)
-        oldStubs =  moduleList.topModule.moduleDependency['VERILOG_STUB']
-        moduleList.topModule.moduleDependency['VERILOG_STUB'] = [bb] # top level only depends on the build tree
-        
-        ## We have now generated a completely new module. Let's throw it
-        ## into the list.  Although we are building it seperately, this
-        ## module is an extension to the build tree.
-        verilog_deps = [ "__TREE_MODULE__" + str(id) for id in range(len(boundary_logs) - 2)] 
-        tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
-                             moduleList.topModule.computePlatform, moduleList.topModule.name,\
-                             [], moduleList.topModule.name, [], \
-                             {'GEN_VERILOGS': [ "mk_" + vlog + "_Wrapper.v"  for vlog in verilog_deps],\
-                              'GEN_BAS': [  "mk_" + vlog + "_Wrapper.ba" for vlog in verilog_deps],
-                              'VERILOG': [],
-                              'VERILOG_STUB': oldStubs})
-
-        return [tree_module]
+        # top level only depends on platform modules       
+        moduleList.topModule.moduleDependency['VERILOG_STUB'] = convertDependencies([module.moduleDependency['GEN_VERILOG_STUB'] for module in moduleList.synthBoundaries() if module.platformModule])
+      
+    ## END of setup_tree_build

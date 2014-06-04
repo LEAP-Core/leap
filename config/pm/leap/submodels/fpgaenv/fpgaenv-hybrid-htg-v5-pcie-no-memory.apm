@@ -92,7 +92,6 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
 Packagehint=leap-platforms
 
-
 [PCI-Express CSR-based Physical Channel]
 File=modules/leap/virtual-platform/physical-channel/pcie/csr/pcie-physical-channel.awb
 Packagehint=leap
@@ -161,3 +160,10 @@ Packagehint=leap-platforms
 [NULL Local Memory Interface]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms

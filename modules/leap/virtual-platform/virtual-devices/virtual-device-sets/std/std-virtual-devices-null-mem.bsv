@@ -31,14 +31,12 @@
 
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/front_panel.bsh"
-`include "awb/provides/starter_device.bsh"
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_connections.bsh"
 
 interface VIRTUAL_DEVICES;
 
     interface FRONT_PANEL frontPanel;
-    interface STARTER starter;
 
 endinterface
 
@@ -48,9 +46,7 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
 
     let fp  <- mkFrontPanel(llpint);
     // TODO: use the new Stats device for real stats
-    let st  <- mkStarter(llpint);
 
     interface frontPanel = fp;
-    interface starter = st;
 
 endmodule

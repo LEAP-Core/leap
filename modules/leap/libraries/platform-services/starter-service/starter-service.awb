@@ -7,5 +7,9 @@
 
 %notes README
 
-%public starter-service.bsh
 %public starter-service.bsv
+%public starter-service.cpp
+%public starter-service.rrr
+%public starter-service.h
+%sources -t LOG -v PUBLIC     starter-service.log
+

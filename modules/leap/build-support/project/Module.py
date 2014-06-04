@@ -11,34 +11,38 @@ class Module(ProjectDependency.ProjectDependency):
     print "Module: " + self.name + "\n"
     print "\tBuildPath: " + self.buildPath + "\n"
     ProjectDependency.ProjectDependency.dump(self)
-
+ 
   
-  def __init__(self, name, synthBoundary, buildPath, computePlatform, parent, childArray, synthParent, synthChildArray, sources):
+  def __init__(self, name, synthBoundary, buildPath, parent, childArray, synthParent, synthChildArray, sources, platformModule=False):
     self.name = name
     self.buildPath = buildPath
     self.parent = parent
     self.childArray = childArray
+    self.liIgnore = False
+    self.platformModule = platformModule
+    self.dependsFile = '.depends-bsv'
+    self.interfaceType = 'Empty'
+    self.extraImports = []
 
     self.isSynthBoundary = (synthBoundary != [])
     if(self.isSynthBoundary):
       self.synthBoundaryModule = synthBoundary[0]
 
-      # Generate a UID for the synthesis boundary.  Top level is always 0.
-      if (parent == ''):
+      # Generate a UID for the synthesis boundary.  Top level is
+      # always 0.  this UID assignment is a little bit broken. It
+      # needs to consider the UID variables passed in from the top
+      # level.
+      if (parent == '' or platformModule):
         self.synthBoundaryUID = 0
       else:
         Module.lastSynthId += 1
         self.synthBoundaryUID = Module.lastSynthId
 
-      # Multi-FPGA mapping.  Set default values that may be updated later.
-      self.synthBoundaryPlatformName = "default"
-      self.synthBoundaryPlatformUID = 0
     else:
       self.synthBoundaryModule = ""
 
     self.synthParent = synthParent
     self.synthChildArray = synthChildArray
-    self.computePlatform = computePlatform
     ProjectDependency.ProjectDependency.__init__(self)
     # grab the deps from source lists. 
     # we don't insert the special generated files that awb 
@@ -60,10 +64,6 @@ class Module(ProjectDependency.ProjectDependency):
       f = open(empty_path, 'w')
       f.close()
 
-
-  def setSynthBoundaryPlatform(self, name, uid):
-      self.synthBoundaryPlatformName = name
-      self.synthBoundaryPlatformUID = uid
 
   def wrapperName(self):
     return 'mk_' + self.name + '_Wrapper'
@@ -111,6 +111,14 @@ class Module(ProjectDependency.ProjectDependency):
       self.linkToEmptyOverrideFile('EMPTY_params_override.h', sw_path)
 
     return params
+
+  def cleanAWBParams(self):    
+    hw_path = 'hw/include/awb/provides/' + self.name + '_params_override.bsh'
+    sw_path = 'sw/include/awb/provides/' + self.name + '_params_override.h'
+    # on a clean kill the override files.
+    os.system('rm -f ' + hw_path)
+    os.system('rm -f ' + sw_path)
+
 
 
   ##

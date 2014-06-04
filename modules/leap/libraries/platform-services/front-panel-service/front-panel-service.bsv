@@ -1,18 +1,16 @@
 
-`include "awb/provides/virtual_devices.bsh"
 `include "awb/provides/front_panel.bsh"
-
+`include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/soft_connections.bsh"
 
 
 
-module [CONNECTED_MODULE] mkFrontPanelService#(VIRTUAL_DEVICES vdevs)
+module [CONNECTED_MODULE] mkFrontPanelDevice#(LowLevelPlatformInterface llpi)
     // interface:
         ();
 
     
-    // Get a link to the real front panel.
-    FRONT_PANEL frontPanel = vdevs.frontPanel;
+    FRONT_PANEL frontPanel <- mkFrontPanel(llpi);
 
     // Optional connections applications can use to read/write the 
     // front panel.

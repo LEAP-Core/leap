@@ -189,10 +189,23 @@ GLOBAL_STRINGS::ProcessSwitchString(const char *db)
     }
 
     fclose(f);
+
 }
 
 
 GLOBAL_STRINGS::GLOBAL_STRINGS() :
     COMMAND_SWITCH_STRING_CLASS("global-strings")
 {
+}
+
+
+void GLOBAL_STRINGS::DumpUIDs()
+{
+    cout << "Dumping string state" << endl;
+    for(unordered_map<GLOBAL_STRING_UID, string>::iterator idIter = uidToString.begin();
+        idIter != uidToString.end();
+        idIter++)
+    {
+        cout << idIter->second << ":" << idIter->first << endl; 
+    }
 }

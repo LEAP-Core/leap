@@ -9,4 +9,4 @@
 
 %public platform-services-standard.bsv
 
-%requires  starter_service front_panel_service mem_services common_services
+%requires  starter_service mem_services common_services
