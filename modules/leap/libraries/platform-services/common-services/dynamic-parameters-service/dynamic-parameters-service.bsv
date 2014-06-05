@@ -66,7 +66,7 @@ module [CONNECTED_MODULE] mkDynamicParametersService
     // ****** State Elements ******
 
     // Communication link to the Params themselves
-    Connection_Chain#(PARAM_DATA) chain <- mkConnection_Chain(`RINGID_PARAMS);
+    CONNECTION_CHAIN#(PARAM_DATA) chain <- mkConnectionChain("DynamicParamsRing");
  
     // Communication to our RRR server
     ServerStub_PARAMS server_stub <- mkServerStub_PARAMS();

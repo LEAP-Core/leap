@@ -39,7 +39,6 @@ import Arbiter::*;
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/common_services.bsh"
 
-`include "awb/dict/RINGID.bsh"
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 

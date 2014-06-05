@@ -19213,3 +19213,48 @@ Directory modules/leap/build-support/project
 
 
 Rotated platform services code to the virtual platform partition. 
+
+----------
+mcadler     Date: Wed Jun  4 18:18:37 EDT 2014  CSN: CSN-leap-578
+                  Wed Jun  4 22:18:37 UTC 2014
+
+
+Directory modules/leap/build-support/build-pipelines/stages/software
+ software.py               Locally Modified          577 
+
+Directory modules/leap/libraries/librl/base
+ memory-init.bsv           Locally Modified          577 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/hybrid
+ hybrid-mem-scratch-connector.bsv Locally Modified          577 
+
+Directory modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service
+ scratchpad-memory-service.bsv Locally Modified          577 
+ platform-scratchpad-memory.bsv Locally Modified          577 
+ scratchpad-memory-service.dic Locally Modified          577 
+
+Directory modules/leap/libraries/platform-services/mem-services
+ mem-services-standard.bsv Locally Modified          577 
+ mem-services-standard-null.bsv Locally Modified          577 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.awb Locally Modified          577 
+ common-services-standard.bsv Locally Modified          577 
+
+Directory modules/leap/libraries/platform-services/common-services/dynamic-parameters-service
+ dynamic-parameters-local.bsv Locally Modified          577 
+ dynamic-parameters-service.bsv Locally Modified          577 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard.dic Locally Removed           577 
+
+Directory modules/leap/libraries/platform-services/common-services/assertions-service
+ assertions-local.bsv      Locally Modified          577 
+
+Directory modules/leap/libraries/platform-services/common-services
+ common-services-standard-null.bsv Locally Modified          577 
+
+- Improve Python shared library support in the GEM5 software build path.
+- Clean up initialized memory wrapper.
+- Replace old style (deprecated) rings using dictionary IDs with the new string ID
+  version.

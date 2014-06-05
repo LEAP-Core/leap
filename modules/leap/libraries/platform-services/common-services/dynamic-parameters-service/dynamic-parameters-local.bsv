@@ -38,7 +38,6 @@
 
 `include "awb/provides/soft_connections.bsh"
 
-`include "awb/dict/RINGID.bsh"
 `include "awb/dict/PARAMS.bsh"
 
 //
@@ -96,7 +95,7 @@ module [CONNECTED_MODULE] mkDynamicParameterNode
         (PARAMETER_NODE);
 
     // Ring connections
-    Connection_Chain#(PARAM_DATA) chain <- mkConnection_Chain(`RINGID_PARAMS);
+    CONNECTION_CHAIN#(PARAM_DATA) chain <- mkConnectionChain("DynamicParamsRing");
     Reg#(Bool) receiving <- mkReg(False);
 
     // Most recent param that came in on the ring
