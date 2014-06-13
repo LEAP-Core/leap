@@ -56,9 +56,21 @@ typedef TAdd#(1, COH_SCRATCH_N_CLIENTS) COH_SCRATCH_N_PORTS;
 typedef Bit#(TLog#(TAdd#(1, COH_SCRATCH_N_PORTS))) COH_SCRATCH_PORT_NUM;
 
 //
-// Coherent scratchpad data
+// The maximum number of coherent scratchpad controllers in a coherence region
+//
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+    typedef 16 COH_SCRATCH_N_CONTROLLERS;
+`else
+    typedef 1  COH_SCRATCH_N_CONTROLLERS;
+`endif
+
+typedef Bit#(TLog#(COH_SCRATCH_N_CONTROLLERS)) COH_SCRATCH_CTRLR_PORT_NUM;
+
+//
+// Coherent scratchpad memory data and address
 //
 typedef SCRATCHPAD_MEM_VALUE COH_SCRATCH_MEM_VALUE;
+typedef Bit#(`COHERENT_SCRATCHPAD_MEMORY_ADDR_BITS) COH_SCRATCH_MEM_ADDRESS;
 
 //
 // Responses returned to cherent scratchpad clients may not be in order. 
@@ -101,19 +113,41 @@ COH_SCRATCH_CACHE_MODE
     deriving (Eq, Bits);
 
 //
-// Coherent scratchpad configuration (passed to the constructors of coherent 
+// Coherent scratchpad configurations (passed to the constructors of coherent 
 // scratchpad controller and client)
 //
 typedef struct
 {
-    COH_SCRATCH_CACHE_MODE cacheMode;
+    COH_SCRATCH_CACHE_MODE  cacheMode;
+    Bool                    multiController;
 }
-COH_SCRATCH_CONFIG
+COH_SCRATCH_CLIENT_CONFIG
     deriving (Eq, Bits);
 
-instance DefaultValue#(COH_SCRATCH_CONFIG);
-    defaultValue = COH_SCRATCH_CONFIG {
-        cacheMode: COH_SCRATCH_CACHED
+instance DefaultValue#(COH_SCRATCH_CLIENT_CONFIG);
+    defaultValue = COH_SCRATCH_CLIENT_CONFIG {
+        cacheMode: COH_SCRATCH_CACHED,
+        multiController: False
+    };
+endinstance
+
+typedef struct
+{
+    COH_SCRATCH_CACHE_MODE             cacheMode;
+    Bool                               multiController;
+    Integer                            coherenceDomainID;
+    Bool                               isMaster;
+    COH_SCRATCH_PARTITION_CONSTRUCTOR  partition;
+}
+COH_SCRATCH_CONTROLLER_CONFIG;
+
+instance DefaultValue#(COH_SCRATCH_CONTROLLER_CONFIG);
+    defaultValue = COH_SCRATCH_CONTROLLER_CONFIG {
+        cacheMode: COH_SCRATCH_CACHED,
+        multiController: False,
+        coherenceDomainID: ?,
+        isMaster: False,
+        partition: mkCohScratchControllerNullPartition
     };
 endinstance
 
@@ -126,80 +160,100 @@ endinstance
 // ========================================================================
 
 //
-// Coherence get request -- 
+// Coherence get request info -- 
 // request for data/ownership (read request)
 //
 typedef struct
 {
-    COH_SCRATCH_PORT_NUM       requester;
-    t_ADDR                     addr;
-    COH_SCRATCH_CLIENT_META    clientMeta;
-    RL_CACHE_GLOBAL_READ_META  globalReadMeta;
+    COH_SCRATCH_CLIENT_META     clientMeta;
+    RL_CACHE_GLOBAL_READ_META   globalReadMeta;
 }
-COH_SCRATCH_GET_REQ#(type t_ADDR)
+COH_SCRATCH_GET_REQ_INFO
     deriving(Bits, Eq);
 
-
 //
-// Coherence put request -- 
+// Coherence put request info -- 
 // give up ownership and write-back data
 //
 typedef struct
 {
-    COH_SCRATCH_PORT_NUM     requester;
-    t_ADDR                   addr;
-    Bool                     isCleanWB;
+    Bool                        isCleanWB;
 }
-COH_SCRATCH_PUT_REQ#(type t_ADDR)
+COH_SCRATCH_PUT_REQ_INFO
     deriving(Bits, Eq);
 
 //
-// Coherence activated put request -- 
-// add COH_SCRATCH_CTRL_META to the COH_SCRATCH_PUT_REQ 
+// Coherence activated put request info -- 
+// add COH_SCRATCH_CTRL_META to the COH_SCRATCH_PUT_REQ_INFO
 // 
 typedef struct
 {
-    COH_SCRATCH_PORT_NUM     requester;
-    t_ADDR                   addr;
-    COH_SCRATCH_CTRL_META    controllerMeta;
-    Bool                     isCleanWB;
+    COH_SCRATCH_CTRL_META       controllerMeta;
+    Bool                        isCleanWB;
 }
-COH_SCRATCH_ACTIVATED_PUT_REQ#(type t_ADDR)
+COH_SCRATCH_ACTIVATED_PUT_REQ_INFO
     deriving(Bits, Eq);
 
 //
-// Coherence request message
+// Coherence request info message
 //
 typedef union tagged
 {
     // Get shared
-    COH_SCRATCH_GET_REQ#(t_ADDR) COH_SCRATCH_GETS;
+    COH_SCRATCH_GET_REQ_INFO COH_SCRATCH_GETS;
 
     // Get exclusive
-    COH_SCRATCH_GET_REQ#(t_ADDR) COH_SCRATCH_GETX;
+    COH_SCRATCH_GET_REQ_INFO COH_SCRATCH_GETX;
 
     // Put exclusive
-    COH_SCRATCH_PUT_REQ#(t_ADDR) COH_SCRATCH_PUTX;
+    COH_SCRATCH_PUT_REQ_INFO COH_SCRATCH_PUTX;
+}
+COH_SCRATCH_MEM_REQ_INFO
+    deriving(Bits, Eq);
+
+//
+// Coherence activated request info message
+//
+typedef union tagged
+{
+    // Get shared
+    COH_SCRATCH_GET_REQ_INFO COH_SCRATCH_ACTIVATED_GETS;
+
+    // Get exclusive
+    COH_SCRATCH_GET_REQ_INFO COH_SCRATCH_ACTIVATED_GETX;
+
+    // Put exclusive
+    COH_SCRATCH_ACTIVATED_PUT_REQ_INFO COH_SCRATCH_ACTIVATED_PUTX;
+}
+COH_SCRATCH_ACTIVATED_REQ_INFO
+    deriving(Bits, Eq);
+
+//
+// Coherence unactivated request message 
+//
+typedef struct
+{
+    COH_SCRATCH_PORT_NUM        requester;
+    COH_SCRATCH_CTRLR_PORT_NUM  reqControllerId;
+    t_ADDR                      addr;
+    COH_SCRATCH_MEM_REQ_INFO    reqInfo;
 }
 COH_SCRATCH_MEM_REQ#(type t_ADDR)
-    deriving(Bits, Eq);
+    deriving (Eq, Bits);
 
 //
-// Coherence activated request message
+// Coherence activated request message 
 //
-typedef union tagged
+typedef struct
 {
-    // Get shared
-    COH_SCRATCH_GET_REQ#(t_ADDR) COH_SCRATCH_ACTIVATED_GETS;
-
-    // Get exclusive
-    COH_SCRATCH_GET_REQ#(t_ADDR) COH_SCRATCH_ACTIVATED_GETX;
-
-    // Put exclusive
-    COH_SCRATCH_ACTIVATED_PUT_REQ#(t_ADDR) COH_SCRATCH_ACTIVATED_PUTX;
+    COH_SCRATCH_PORT_NUM            requester;
+    COH_SCRATCH_CTRLR_PORT_NUM      reqControllerId;
+    COH_SCRATCH_CTRLR_PORT_NUM      homeControllerId;
+    t_ADDR                          addr;
+    COH_SCRATCH_ACTIVATED_REQ_INFO  reqInfo;
 }
 COH_SCRATCH_ACTIVATED_REQ#(type t_ADDR)
-    deriving(Bits, Eq);
+    deriving (Eq, Bits);
 
 //
 // Coherence load response -- 
@@ -209,6 +263,10 @@ typedef struct
 {
     COH_SCRATCH_MEM_VALUE      val;
     Bool                       ownership;
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+    COH_SCRATCH_CTRLR_PORT_NUM controllerId;
+    COH_SCRATCH_PORT_NUM       clientId;
+`endif    
     COH_SCRATCH_META           meta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
     Bool                       isCacheable;
@@ -216,7 +274,6 @@ typedef struct
 }
 COH_SCRATCH_RESP
     deriving (Eq, Bits);
-
 
 // ========================================================================
 //
@@ -228,28 +285,32 @@ COH_SCRATCH_RESP
 
 typedef struct
 {
-    COH_SCRATCH_PORT_NUM            requester;
-    t_ADDR                          addr;
     COH_SCRATCH_REMOTE_CLIENT_META  clientMeta;
     RL_CACHE_GLOBAL_READ_META       globalReadMeta;
 }
-COH_SCRATCH_REMOTE_READ_REQ#(type t_ADDR)
+COH_SCRATCH_REMOTE_READ_REQ_INFO
     deriving (Eq, Bits);
 
 typedef struct
 {
-    COH_SCRATCH_PORT_NUM            requester;
-    t_ADDR                          addr;
     t_DATA                          data;
 }
-COH_SCRATCH_REMOTE_WRITE_REQ#(type t_ADDR,
-                              type t_DATA)
+COH_SCRATCH_REMOTE_WRITE_REQ_INFO#(type t_DATA)
     deriving (Eq, Bits);
 
 typedef union tagged 
 {
-    COH_SCRATCH_REMOTE_READ_REQ#(t_ADDR)           COH_SCRATCH_REMOTE_READ;
-    COH_SCRATCH_REMOTE_WRITE_REQ#(t_ADDR, t_DATA)  COH_SCRATCH_REMOTE_WRITE;
+    COH_SCRATCH_REMOTE_READ_REQ_INFO            COH_SCRATCH_REMOTE_READ;
+    COH_SCRATCH_REMOTE_WRITE_REQ_INFO#(t_DATA)  COH_SCRATCH_REMOTE_WRITE;
+}
+COH_SCRATCH_REMOTE_REQ_INFO#(type t_DATA)
+    deriving (Eq, Bits);
+
+typedef struct
+{
+    COH_SCRATCH_PORT_NUM                 requester;
+    t_ADDR                               addr;
+    COH_SCRATCH_REMOTE_REQ_INFO#(t_DATA) reqInfo;
 }
 COH_SCRATCH_REMOTE_REQ#(type t_ADDR,
                         type t_DATA)
@@ -270,5 +331,22 @@ typedef union tagged
     void                                   COH_SCRATCH_REMOTE_WRITE;
 }
 COH_SCRATCH_REMOTE_RESP#(type t_DATA)
+    deriving (Eq, Bits);
+
+typedef struct
+{
+    COH_SCRATCH_CTRLR_PORT_NUM              reqControllerId;
+    COH_SCRATCH_REMOTE_REQ#(t_ADDR, t_DATA) reqLocal;
+}
+COH_SCRATCH_CONTROLLERS_REMOTE_REQ#(type t_ADDR,
+                                    type t_DATA)
+    deriving (Eq, Bits);
+
+typedef struct
+{
+    COH_SCRATCH_PORT_NUM             clientId;
+    COH_SCRATCH_REMOTE_RESP#(t_DATA) resp;
+}
+COH_SCRATCH_CONTROLLERS_REMOTE_RESP#(type t_DATA)
     deriving (Eq, Bits);
 

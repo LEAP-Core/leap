@@ -32,14 +32,27 @@
 import FIFO::*;
 import FIFOF::*;
 
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/scratchpad_memory.bsh"
+`include "awb/provides/scratchpad_memory_service.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
-`include "awb/provides/soft_connections.bsh"
-`include "awb/provides/common_services.bsh"
 `include "awb/provides/fpga_components.bsh"
+`include "awb/provides/common_services.bsh"
+
+`include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
+`include "awb/dict/VDEV.bsh"
+
+// ========================================================================
+//
+// Coherent scratchpad controller with private caches 
+//
+// ========================================================================
 
 //
 // Coherence message type 
@@ -62,6 +75,7 @@ COH_SCRATCH_MSG_TYPE
 typedef struct
 {
     COH_SCRATCH_PORT_NUM        requester;
+    COH_SCRATCH_CTRLR_PORT_NUM  reqControllerId;
     COH_SCRATCH_MSG_TYPE        reqType;
     t_RSHR_ADDR                 addr;
     COH_SCRATCH_MEM_VALUE       val;
@@ -85,6 +99,7 @@ typedef struct
     COH_SCRATCH_MEM_VALUE      val;
     Bool                       needForward;
     COH_SCRATCH_PORT_NUM       forwardId;
+    COH_SCRATCH_CTRLR_PORT_NUM fwdControllerId;
     COH_SCRATCH_CLIENT_META    clientMeta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
 }
@@ -111,6 +126,7 @@ typedef struct
     t_ADDR                     addr;
     t_IDX                      idx;
     COH_SCRATCH_PORT_NUM       requester;
+    COH_SCRATCH_CTRLR_PORT_NUM reqControllerId;
     COH_SCRATCH_CLIENT_META    clientMeta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
     Bool                       needCheckout;
@@ -125,6 +141,7 @@ COH_SCRATCH_CONTROLLER_OWNER_BIT_REQ#(type t_ADDR,
 typedef struct
 {
     COH_SCRATCH_PORT_NUM       requester;
+    COH_SCRATCH_CTRLR_PORT_NUM reqControllerId;
     COH_SCRATCH_CLIENT_META    clientMeta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
 }
@@ -148,9 +165,25 @@ interface COH_SCRATCH_CONTROLLER_STATS;
     method Bool ownerbitCheckout();   // checkout ownerbit from lower level memory
     method Bool dataReceived();       // receive data from lower level memory
     method Bool respSent();           // send out data response to clients
-    method Bool putRetry();          // retry putX because table entry is not available
-    method Bool getRetry();          // retry getX because table entry is not available
+    method Bool putRetry();           // retry putX because table entry is not available
+    method Bool getRetry();           // retry getX because table entry is not available
 endinterface: COH_SCRATCH_CONTROLLER_STATS
+
+//
+// Interface of cached coherent scratchpad controller's router
+//
+interface COH_SCRATCH_CACHED_CONTROLLER_ROUTER#(type t_ADDR);
+    // activated request to network
+    method Action sendActivatedReq(COH_SCRATCH_ACTIVATED_REQ#(t_ADDR) req);
+    // response to network
+    method Action sendMemoryResp(COH_SCRATCH_PORT_NUM dest, COH_SCRATCH_RESP resp);
+    // unactivated request from network
+    method ActionValue#(COH_SCRATCH_MEM_REQ#(t_ADDR)) unactivatedReq();
+    method COH_SCRATCH_MEM_REQ#(t_ADDR) peekUnactivatedReq();
+    // write-back response from network
+    method ActionValue#(COH_SCRATCH_RESP) writebackResp();
+    method COH_SCRATCH_RESP peekWritebackResp();
+endinterface: COH_SCRATCH_CACHED_CONTROLLER_ROUTER
 
 //
 // mkCoherentScratchpadController --
@@ -160,7 +193,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpad
                                                           Integer ownerbitScratchpadID,
                                                           NumTypeParam#(t_IN_ADDR_SZ) inAddrSz,
                                                           NumTypeParam#(t_IN_DATA_SZ) inDataSz,
-                                                          COH_SCRATCH_CONFIG conf)
+                                                          COH_SCRATCH_CONTROLLER_CONFIG conf)
     // interface:
     ();
     
@@ -168,17 +201,18 @@ module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpad
     begin
         let statsConstructor = mkBasicCoherentScratchpadControllerStats("Coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller_", "");
         // Each coherent scratchpad client has a private cache.
-        mkCachedCoherentScratchpadController(dataScratchpadID, ownerbitScratchpadID, inAddrSz, inDataSz, statsConstructor);
+        mkCachedCoherentScratchpadController(dataScratchpadID, ownerbitScratchpadID, inAddrSz, inDataSz, statsConstructor, conf);
     end
     else
     begin
         // There are no private caches in this coherence domain. 
         // Coherent scratchpad clients just send remote reads/writes to the centralized 
         // private scratchpad inside the conherent scratchpad controller
-        mkUncachedCoherentScratchpadController(dataScratchpadID, inAddrSz, inDataSz);
+        mkUncachedCoherentScratchpadController(dataScratchpadID, inAddrSz, inDataSz, conf);
     end
 
 endmodule
+
 
 //
 // mkCachedCoherentScratchpadController --
@@ -196,7 +230,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                 Integer ownerbitScratchpadID,
                                                                 NumTypeParam#(t_IN_ADDR_SZ) inAddrSz,
                                                                 NumTypeParam#(t_IN_DATA_SZ) inDataSz,
-                                                                COH_SCRATCH_CONTROLLER_STATS_CONSTRUCTOR statsConstructor)
+                                                                COH_SCRATCH_CONTROLLER_STATS_CONSTRUCTOR statsConstructor,
+                                                                COH_SCRATCH_CONTROLLER_CONFIG conf)
     // interface:
     ()
     provisos (
@@ -205,8 +240,10 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
               Max#(8, TExp#(TLog#(t_IN_DATA_SZ)), t_NATURAL_SZ),
               Bits#(COH_SCRATCH_MEM_VALUE, t_COH_SCRATCH_MEM_VALUE_SZ),
               // Compute the container (scratchpad) address size
-              NumAlias#(TSub#(t_IN_ADDR_SZ, TLog#(TDiv#(t_COH_SCRATCH_MEM_VALUE_SZ, t_NATURAL_SZ))), t_ADDR_SZ),
+              NumAlias#(TLog#(TDiv#(t_COH_SCRATCH_MEM_VALUE_SZ, t_NATURAL_SZ)), t_NATURAL_IDX_SZ),
+              NumAlias#(TSub#(t_IN_ADDR_SZ, t_NATURAL_IDX_SZ), t_ADDR_SZ),
               Alias#(Bit#(t_ADDR_SZ), t_ADDR),
+              Bits#(COH_SCRATCH_MEM_ADDRESS, t_COH_SCRATCH_MEM_ADDR_SZ),
               // Coherence messages
               Alias#(COH_SCRATCH_MEM_REQ#(t_ADDR), t_COH_SCRATCH_REQ),
               Alias#(COH_SCRATCH_ACTIVATED_REQ#(t_ADDR), t_COH_SCRATCH_ACTIVATED_REQ),
@@ -227,7 +264,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
               Bounded#(t_RSHR_IDX));
 
 
-    String debugLogFilename = "coherent_scratchpad_" + integerToString(dataScratchpadID) + ".out";
+    String debugLogFilename = "coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller.out";
+
     DEBUG_FILE debugLog <- (`COHERENT_SCRATCHPAD_DEBUG_ENABLE == 1)?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
@@ -242,42 +280,55 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         // and they need to be automic.
         // This requires a locking scheme so currently is not supported. 
         //
-        error("Coherent scratchpad doesn't support data larger than scratchpad's base size");
+        error("Coherent scratchpad doesn't support data larger than coherent scratchpad's base size. Change COH_SCRATCH_MEM_VALUE.");
     end
 
+    if (valueOf(t_IN_ADDR_SZ) > valueOf(t_COH_SCRATCH_MEM_ADDR_SZ))
+    begin
+        error("Coherent scratchpad address size is not big enough. Increase parameter COHERENT_SCRATCHPAD_MEMORY_ADDR_BITS.");
+    end
+    
     // =======================================================================
     //
-    // Coherent scratchpad clients and this controller are connected via rings.
-    //
-    // Three rings are required to avoid deadlocks: one for requests, 
-    // one for responses, and one for activated requests.
+    // Coherent scratchpad controller partition module
     //
     // =======================================================================
+    
+    let partition <- conf.partition();
 
-    // Addressable ring
-    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
-        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
-        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0):
-        mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0);
+    // =======================================================================
+    //
+    // Coherent scratchpad controller router
+    //
+    // =======================================================================
+    
+    COH_SCRATCH_CACHED_CONTROLLER_ROUTER#(t_ADDR) router;
 
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
 
-    // Addressable ring
-    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
-        (`ADDR_RING_DEBUG_ENABLE == 1)?
-        mkDebugConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0, debugLog):
-        mkConnectionAddrRingNodeNtoN("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0);
+    router <- (!conf.multiController)? mkCachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, debugLog):
+                                       mkCachedCoherentScratchpadMultiControllerRouter(dataScratchpadID, conf.coherenceDomainID, 
+                                                                                       partition.isLocalReq, conf.isMaster, debugLog);
+`else
+    
+    if (conf.multiController)
+    begin
+        error("COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE is not enabled");
+    end
+    router <- mkCachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, debugLog);
 
-    // Broadcast ring
-    CONNECTION_CHAIN#(t_COH_SCRATCH_ACTIVATED_REQ) link_mem_activatedReq <- 
-        mkConnectionChain("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_ActivatedReq");
+`endif
 
-
+    // =======================================================================
     //
     // Instantiate two private scratchpads
     //
-    // (1) dataMem: a private scratchpad that serves as the interface to read/write data from/to local memory
-    // (2) ownerbitMem: a private scratchpad that manages coherence owner bits storage
-    
+    // (1) dataMem: a private scratchpad that serves as the interface to 
+    //              read/write data from/to local memory
+    // (2) ownerbitMem: a private scratchpad that serves as a small directory 
+    //                  to store coherence owner bits
+    //
+    // =======================================================================
 
     SCRATCHPAD_CONFIG dataMemConfig = defaultValue;
     SCRATCHPAD_CONFIG ownerbitMemConfig = defaultValue;
@@ -287,7 +338,6 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     
     MEMORY_IFC#(t_ADDR, COH_SCRATCH_MEM_VALUE) dataMem  <- mkScratchpad(dataScratchpadID, dataMemConfig);
     MEMORY_IFC#(t_ADDR, Bool) ownerbitMem  <- mkScratchpad(ownerbitScratchpadID, ownerbitMemConfig); 
-
 
     // =======================================================================
     //
@@ -309,16 +359,15 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     LUTRAM#(t_GET_REQ_TABLE_IDX, Maybe#(t_GET_REQ_TABLE_ENTRY)) ownerbitReqTable <- mkLUTRAM(tagged Invalid);
 
     // Pipeline FIFOs
-    FIFOF#(t_RSHR_REQ) incomingReqQ                                      <- mkFIFOF();
     FIFOF#(t_RSHR_REQ) rshrLookupQ                                       <- mkFIFOF();
     FIFOF#(t_RSHR_REQ) putReqRetryQ                                      <- mkFIFOF();
     FIFOF#(t_RSHR_REQ) getReqRetryQ                                      <- mkFIFOF();
     FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP)) rshrRespQ    <- mkBypassFIFOF();
     FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP)) memRespQ     <- mkBypassFIFOF();
     FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP)) outputRespQ  <- mkSizedFIFOF(8);
-    FIFOF#(COH_SCRATCH_CONTROLLER_DATA_REQ) dataMemLookupQ               <- mkSizedFIFOF(16);
-    FIFOF#(t_OWNER_BIT_REQ) ownerbitMemLookupQ                           <- mkSizedFIFOF(16);
-    FIFOF#(t_OWNER_BIT_REQ) ownerbitMemCheckoutQ                         <- mkSizedFIFOF(16);
+    FIFOF#(COH_SCRATCH_CONTROLLER_DATA_REQ) dataMemLookupQ               <- mkSizedFIFOF(32);
+    FIFOF#(t_OWNER_BIT_REQ) ownerbitMemLookupQ                           <- mkSizedFIFOF(valueOf(COH_SCRATCH_CONTROLLER_GET_REQ_TABLE_ENTRIES));
+    FIFOF#(t_OWNER_BIT_REQ) ownerbitMemCheckoutQ                         <- mkSizedFIFOF(valueOf(COH_SCRATCH_CONTROLLER_GET_REQ_TABLE_ENTRIES));
   
     Reg#(Bool) processPutRetry                                <- mkReg(False);
     Reg#(Bool) processGetRetry                                <- mkReg(False);
@@ -401,7 +450,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     // (1) GETX/GETS/PUTX unactivated requests from coherent scratchpad clients
     // (2) Write back responses (PUTX responses) from coherent scratchpad clients
     // (3) PUTX retry requests
-    // (4) GETX/GETS retry reqeusts
+    // (4) GETX/GETS retry requests
     // (5) Second-time forwarding requests
     //
     // Priority: (2) > (5) > (3) > (4) > (1)
@@ -412,69 +461,64 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
 
     //
     // collectClientReq --
-    //     Collect scratchpad client requests from the request ring.
+    //     Collect scratchpad client requests.
     //
     rule colletClientReq (True);
-        let req = link_mem_req.first();
+        let req = router.peekUnactivatedReq();
         let start_req = False;
         t_RSHR_REQ lookup_req = ?;
+        lookup_req.requester       = req.requester;
+        lookup_req.reqControllerId = req.reqControllerId;
+        lookup_req.addr            = unpack(truncateNP(partition.globalToLocalAddr(zeroExtendNP(pack(req.addr)))));
 
-        case (req) matches
+        case (req.reqInfo) matches
             tagged COH_SCRATCH_GETS .gets_req:
             begin
                 lookup_req.reqType        = COH_MSG_GETS;
-                lookup_req.requester      = gets_req.requester;
-                lookup_req.addr           = gets_req.addr;
                 lookup_req.clientMeta     = gets_req.clientMeta;
                 lookup_req.globalReadMeta = gets_req.globalReadMeta;
                 start_req                 = True;
-                debugLog.record($format("  collect GETS request: sender=%d, addr=0x%x, meta=0x%x",  
-                                lookup_req.requester, lookup_req.addr, lookup_req.clientMeta));
+                debugLog.record($format("  collect GETS request: sender=%03d, reqControllerId=%02d, addr=0x%x, meta=0x%x",  
+                                lookup_req.requester, lookup_req.reqControllerId, lookup_req.addr, lookup_req.clientMeta));
             end
             tagged COH_SCRATCH_GETX .getx_req:
             begin
                 lookup_req.reqType        = COH_MSG_GETX;
-                lookup_req.requester      = getx_req.requester;
-                lookup_req.addr           = getx_req.addr;
                 lookup_req.clientMeta     = getx_req.clientMeta;
                 lookup_req.globalReadMeta = getx_req.globalReadMeta;
                 start_req                 = True;
-                debugLog.record($format("  collect GETX request: sender=%d, addr=0x%x, meta=0x%x", 
-                                lookup_req.requester, lookup_req.addr, lookup_req.clientMeta));
+                debugLog.record($format("  collect GETX request: sender=%03d, reqControllerId=%02d, addr=0x%x, meta=0x%x", 
+                                lookup_req.requester, lookup_req.reqControllerId, lookup_req.addr, lookup_req.clientMeta));
             end
             tagged COH_SCRATCH_PUTX .putx_req:
             begin
                 lookup_req.reqType        = COH_MSG_PUTX;
-                lookup_req.requester      = putx_req.requester;
-                lookup_req.addr           = putx_req.addr;
                 lookup_req.isCleanWB      = putx_req.isCleanWB;
                 start_req                 = !putReqRetryQ.notEmpty();
-                debugLog.record($format("  collect PUTX request: sender=%d, addr=0x%x, isCleanWB=%s",  
-                                lookup_req.requester, lookup_req.addr, lookup_req.isCleanWB? "True" : "False"));
+                debugLog.record($format("  collect PUTX request: sender=%03d, reqControllerId=%02d, addr=0x%x, isCleanWB=%s",  
+                                lookup_req.requester, lookup_req.reqControllerId, lookup_req.addr, lookup_req.isCleanWB? "True" : "False"));
             end
         endcase
         
         if (start_req)
         begin
-            link_mem_req.deq();
+            let deq_req <- router.unactivatedReq();
             match {.tag, .idx} = rshrEntryFromAddr(lookup_req.addr);
             lookup_req.tag = tag;
             lookup_req.idx = idx;
             rshr.readReq(idx);
             rshrLookupQ.enq(lookup_req);
-            debugLog.record($format("  start rshr lookup: addr=0x%x, idx=0x%x", lookup_req.addr, idx));
+            debugLog.record($format("  start rshr lookup: addr=0x%x, idx=0x%x (original addr=0x%x)", 
+                            lookup_req.addr, idx, req.addr));
         end
     endrule
 
     //
     // collectResp --
-    //     Collect scratchpad client responses (PUTX write-back data) from the 
-    // response ring.
+    //     Collect scratchpad client responses (PUTX write-back data).
     //
     rule collectClientResp (True);
-        let resp = link_mem_resp.first();
-        link_mem_resp.deq();
-
+        let resp <- router.writebackResp();
         t_RSHR_REQ lookup_req = ?;
         lookup_req.reqType = COH_MSG_RESP;
         lookup_req.val = resp.val;
@@ -553,10 +597,11 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             if (!e.needForward)
             begin
                 let new_entry = e;
-                new_entry.needForward    = True;
-                new_entry.forwardId      = r.requester;
-                new_entry.clientMeta     = r.clientMeta;
-                new_entry.globalReadMeta = r.globalReadMeta;
+                new_entry.needForward     = True;
+                new_entry.forwardId       = r.requester;
+                new_entry.fwdControllerId = r.reqControllerId;
+                new_entry.clientMeta      = r.clientMeta;
+                new_entry.globalReadMeta  = r.globalReadMeta;
                 rshrWriteBypass(r.idx, tagged Valid new_entry);
             end
         end
@@ -593,6 +638,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             ownerbitMemLookupQ.enq( COH_SCRATCH_CONTROLLER_OWNER_BIT_REQ { addr: r.addr,
                                                                            idx: req_table_idx,
                                                                            requester: r.requester,
+                                                                           reqControllerId: r.reqControllerId,
                                                                            clientMeta: r.clientMeta,
                                                                            globalReadMeta: r.globalReadMeta,
                                                                            needCheckout: ?} );
@@ -615,24 +661,23 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         begin
             // forward request to the activated request ring
             t_COH_SCRATCH_ACTIVATED_REQ activated_req = ?;
-            let get_req = COH_SCRATCH_GET_REQ { requester: r.requester,
-                                                addr: r.addr,
-                                                clientMeta: r.clientMeta,
-                                                globalReadMeta: r.globalReadMeta };
-
+            let get_req_info = COH_SCRATCH_GET_REQ_INFO { clientMeta: r.clientMeta,
+                                                          globalReadMeta: r.globalReadMeta };
             
+            activated_req.requester = r.requester;
+            activated_req.reqControllerId = r.reqControllerId;
+            activated_req.addr = unpack(truncateNP(partition.localToGlobalAddr(zeroExtendNP(pack(r.addr))))); 
             if (r.reqType == COH_MSG_GETS)
             begin
-                activated_req = tagged COH_SCRATCH_ACTIVATED_GETS get_req;
+                activated_req.reqInfo = tagged COH_SCRATCH_ACTIVATED_GETS get_req_info;
                 getsReceivedW.send();
             end
             else
             begin
-                activated_req = tagged COH_SCRATCH_ACTIVATED_GETX get_req;
+                activated_req.reqInfo = tagged COH_SCRATCH_ACTIVATED_GETX get_req_info;
                 getxReceivedW.send();
             end
-
-            link_mem_activatedReq.sendToNext(activated_req);
+            router.sendActivatedReq(activated_req);
         end
    endrule
 
@@ -667,6 +712,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                          val: ?,
                                                                          needForward: False,
                                                                          forwardId: ?,
+                                                                         fwdControllerId: ?,
                                                                          clientMeta: ?,
                                                                          globalReadMeta: ? });
             
@@ -683,12 +729,14 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             end
             
             // forward request to the activated request ring
-            let put_req = COH_SCRATCH_ACTIVATED_PUT_REQ { requester: r.requester,
-                                                          addr: r.addr,
-                                                          controllerMeta: unpack(zeroExtend(pack(r.idx))),
-                                                          isCleanWB: False };
+            let put_req_info = COH_SCRATCH_ACTIVATED_PUT_REQ_INFO { controllerMeta: unpack(zeroExtend(pack(r.idx))),
+                                                                    isCleanWB: False };
 
-            link_mem_activatedReq.sendToNext(tagged COH_SCRATCH_ACTIVATED_PUTX put_req);
+            router.sendActivatedReq( COH_SCRATCH_ACTIVATED_REQ { requester: r.requester,
+                                                                 reqControllerId: r.reqControllerId,
+                                                                 homeControllerId: ?,
+                                                                 addr: unpack(truncateNP(partition.localToGlobalAddr(zeroExtendNP(pack(r.addr))))),
+                                                                 reqInfo: tagged COH_SCRATCH_ACTIVATED_PUTX put_req_info } );
             dirtyPutxReceivedW.send();
         end
     endrule
@@ -715,12 +763,14 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         end
             
         // forward request to the activated request ring
-        let put_req = COH_SCRATCH_ACTIVATED_PUT_REQ { requester: r.requester,
-                                                      addr: r.addr,
-                                                      controllerMeta:?,
-                                                      isCleanWB: True };
+        let put_req_info = COH_SCRATCH_ACTIVATED_PUT_REQ_INFO { controllerMeta: ?,
+                                                                isCleanWB: True };
 
-        link_mem_activatedReq.sendToNext(tagged COH_SCRATCH_ACTIVATED_PUTX put_req);
+        router.sendActivatedReq( COH_SCRATCH_ACTIVATED_REQ { requester: r.requester,
+                                                             reqControllerId: r.reqControllerId,
+                                                             homeControllerId: ?,
+                                                             addr: unpack(truncateNP(partition.localToGlobalAddr(zeroExtendNP(pack(r.addr))))),
+                                                             reqInfo: tagged COH_SCRATCH_ACTIVATED_PUTX put_req_info } );
         cleanPutxReceivedW.send();
     endrule
 
@@ -741,7 +791,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
 
         if (cur_entry matches tagged Valid .e)
         begin
-            let sent_resp = False;
+            Bool sent_resp = False;
             // write back data and ownerbit to memory if the ownership has not 
             // been checked-out by a GETS/GETX
             // (Here we respond GETS with ownership to enable automatically S->M upgrades)
@@ -759,6 +809,10 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 sent_resp = True;
                 rshrRespQ.enq(tuple2(e.forwardId, COH_SCRATCH_RESP { val: r.val,
                                                                      ownership: True,
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+                                                                     controllerId: e.fwdControllerId, 
+                                                                     clientId: e.forwardId,
+`endif
                                                                      meta: zeroExtend(e.clientMeta), 
                                                                      globalReadMeta: e.globalReadMeta,
                                                                      isCacheable: True,
@@ -806,6 +860,10 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 // forward write-back data to a client 
                 rshrRespQ.enq(tuple2(e.forwardId, COH_SCRATCH_RESP { val: e.val,
                                                                      ownership: True,
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+                                                                     controllerId: e.fwdControllerId, 
+                                                                     clientId: e.forwardId,
+`endif
                                                                      meta: zeroExtend(e.clientMeta), 
                                                                      globalReadMeta: e.globalReadMeta,
                                                                      isCacheable: True,
@@ -870,11 +928,13 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             ownerbitCheckoutW.send();
             // read data memory
             dataMemLookupQ.enq( COH_SCRATCH_CONTROLLER_DATA_REQ { requester: r.requester,
+                                                                  reqControllerId: r.reqControllerId,
                                                                   clientMeta: r.clientMeta,
                                                                   globalReadMeta: r.globalReadMeta } );
             dataMem.readReq(r.addr);
             debugLog.record($format("      ownerbitMemCheckout: read dataMem: addr=0x%x, meta=0x%x", r.addr, r.clientMeta));
         end
+        
         // Mark the writeback bit to False if there is a following recheckout request
         if (ownerbitReqTable.sub(r.idx) matches tagged Valid .req_entry &&& req_entry.writeback == True &&& req_entry.recheckout == True)
         begin
@@ -899,6 +959,10 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         let data <- dataMem.readRsp();
         memRespQ.enq(tuple2(r.requester, COH_SCRATCH_RESP { val: data,
                                                             ownership: True,
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+                                                            controllerId: r.reqControllerId,
+                                                            clientId: r.requester,
+`endif
                                                             meta: zeroExtend(r.clientMeta), 
                                                             globalReadMeta: r.globalReadMeta,
                                                             isCacheable: True,
@@ -935,36 +999,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         let resp = outputRespQ.first();
         outputRespQ.deq();
         respSentW.send();
-        link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
-    endrule
-
-
-    // =======================================================================
-    //
-    // Drop activated requests
-    //
-    // =======================================================================
-
-    (* fire_when_enabled *)
-    rule dropActivatedReq (True);
-        
-        let req <- link_mem_activatedReq.recvFromPrev();
-        
-        case (req) matches
-            tagged COH_SCRATCH_ACTIVATED_GETS .gets_req:
-            begin
-                debugLog.record($format("  dropActivatedReq: drop activated GETS request: addr=0x%x, sender=%d", gets_req.addr, gets_req.requester));
-            end
-            tagged COH_SCRATCH_ACTIVATED_GETX .getx_req:
-            begin
-                debugLog.record($format("  dropActivatedReq: drop activated GETX request: addr=0x%x, sender=%d", getx_req.addr, getx_req.requester));
-            end
-            tagged COH_SCRATCH_ACTIVATED_PUTX .putx_req:
-            begin
-                debugLog.record($format("  dropActivatedReq: drop activated PUTX request: addr=0x%x, sender=%d", putx_req.addr, putx_req.requester));
-            end
-        endcase
-
+        router.sendMemoryResp(tpl_1(resp), tpl_2(resp));
     endrule
     
     // =======================================================================
@@ -987,8 +1022,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 endinterface;
 
     statsConstructor(stats);
-
-
+    
     // ====================================================================
     //
     // Coherent scratchpad controller debug scan for deadlock debugging.
@@ -996,8 +1030,6 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     // ====================================================================
     
     DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
-    dbg_list <- addDebugScanField(dbg_list, "incomingReqQ notEmpty", incomingReqQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "incomingReqQ notFull", incomingReqQ.notFull);
     dbg_list <- addDebugScanField(dbg_list, "rshrLookupQ notEmpty", rshrLookupQ.notEmpty);
     dbg_list <- addDebugScanField(dbg_list, "rshrLookupQ notFull", rshrLookupQ.notFull);
     dbg_list <- addDebugScanField(dbg_list, "outputRespQ notEmpty", outputRespQ.notEmpty);
@@ -1008,7 +1040,640 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     dbg_list <- addDebugScanField(dbg_list, "ownerbitMemLookupQ notFull", ownerbitMemLookupQ.notFull);
     dbg_list <- addDebugScanField(dbg_list, "ownerbitMemCheckoutQ notEmpty", ownerbitMemCheckoutQ.notEmpty);
     dbg_list <- addDebugScanField(dbg_list, "ownerbitMemCheckoutQ notFull", ownerbitMemCheckoutQ.notFull);
+   
+    String debugScanName = (conf.multiController)? 
+                           "Coherent Scratchpad Controller " + integerToString(dataScratchpadID) + " in Domain " + integerToString(conf.coherenceDomainID): 
+                           "Coherent Scratchpad Controller in Domain " + integerToString(dataScratchpadID);
+
+    let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+
+endmodule
+
+//
+// mkCachedCoherentScratchpadMultiControllerRouter --
+//     This module handles the situation when each coherent scratchpad client 
+//     has a private cache and there are multiple controllers in the coherence
+//     domain. 
+//
+//     The controller router collects coherence requests from its local clients,
+//     forwards local requests to its local controller and forwards the rest to
+//     the remote controller(s). The router also forwards associated responses 
+//     to its local clients. 
+//
+//     Under the snoopy-based protocol, this module serves as an ordering point
+//     for local requests. 
+//
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+
+module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integer dataScratchpadID,
+                                                                           Integer coherenceDomainID,  
+                                                                           function Bool isLocalReq(COH_SCRATCH_MEM_ADDRESS addr),
+                                                                           Bool isMaster,
+                                                                           DEBUG_FILE debugLog)
+    // interface:
+    (COH_SCRATCH_CACHED_CONTROLLER_ROUTER#(t_ADDR))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              // Coherence messages
+              Alias#(COH_SCRATCH_MEM_REQ#(t_ADDR), t_COH_SCRATCH_REQ),
+              Alias#(COH_SCRATCH_ACTIVATED_REQ#(t_ADDR), t_COH_SCRATCH_ACTIVATED_REQ));
+ 
+    FIFOF#(t_COH_SCRATCH_ACTIVATED_REQ) activatedReqQ <- mkBypassFIFOF();
+    FIFOF#(COH_SCRATCH_RESP)            localMemRespQ <- mkBypassFIFOF();
+    FIFOF#(t_COH_SCRATCH_REQ)         unactivatedReqQ <- mkFIFOF();
+    FIFOF#(COH_SCRATCH_RESP)           writebackRespQ <- mkFIFOF();
+
+    // =======================================================================
+    //
+    // Coherent scratchpad clients and this controller are connected via rings.
+    //
+    // Three rings are required to avoid deadlocks: one for requests, 
+    // one for responses, and one for activated requests.
+    //
+    // For multi-controller settings, hierarchical rings are used, which means
+    // controllers are also connected via three rings.
+    //
+    // To prevent deadlocks, the broadcast rings require 2 channels and the 
+    // dateline technique is used to avoid circular dependency. 
+    // Dateline is allocated at the master controller. 
+    //
+    // =======================================================================
+
+    //
+    // Connections between the coherent scratchpad controller and its local clients
+    //
+    String clientControllerRingName = "Coherent_Scratchpad_" + integerToString(dataScratchpadID);
     
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
+        mkConnectionAddrRingNode(clientControllerRingName + "_Req", 0);
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
+        (`ADDR_RING_DEBUG_ENABLE == 1)?
+        mkDebugConnectionAddrRingNodeNtoN(clientControllerRingName + "_Resp", 0, debugLog):
+        mkConnectionAddrRingNodeNtoN(clientControllerRingName + "_Resp", 0);
+
+    // Broadcast ring (with 2 channels)
+    Vector#(2, CONNECTION_CHAIN#(t_COH_SCRATCH_ACTIVATED_REQ)) links_mem_activatedReq = newVector();
+    links_mem_activatedReq[0] <- mkConnectionChain(clientControllerRingName + "_ActivatedReq_0");
+    links_mem_activatedReq[1] <- mkConnectionChain(clientControllerRingName + "_ActivatedReq_1");
+    
+    //
+    // Connections between multiple controllers
+    //
+    String controllersRingName = "Coherent_Scratchpad_Controllers_" + integerToString(coherenceDomainID);
+    
+    // Broadcast ring (with 2 channels)
+    Vector#(2, CONNECTION_CHAIN#(t_COH_SCRATCH_REQ)) links_controllers_req = newVector();
+    links_controllers_req[0] <- mkConnectionChain(controllersRingName + "_Req_0");
+    links_controllers_req[1] <- mkConnectionChain(controllersRingName + "_Req_1");
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_CTRLR_PORT_NUM, COH_SCRATCH_RESP) link_controllers_resp <- (isMaster)?
+        mkConnectionAddrRingNodeNtoN(controllersRingName + "_Resp", 0):
+        mkConnectionAddrRingDynNodeNtoN(controllersRingName + "_Resp");
+
+    // Broadcast ring (with 2 channels)
+    Vector#(2, CONNECTION_CHAIN#(t_COH_SCRATCH_ACTIVATED_REQ)) links_controllers_activatedReq = newVector();
+    links_controllers_activatedReq[0] <- mkConnectionChain(controllersRingName + "_ActivatedReq_0");
+    links_controllers_activatedReq[1] <- mkConnectionChain(controllersRingName + "_ActivatedReq_1");
+  
+    Reg#(COH_SCRATCH_CTRLR_PORT_NUM) controllerPort <- mkReg(0);
+    Reg#(Bool) initialized <- mkReg(False);
+    Reg#(Bit#(1)) initCnt  <- mkReg(0); 
+
+    rule doInit0 (!initialized && initCnt == 0);
+        let port_num = link_controllers_resp.nodeID();
+        controllerPort <= port_num;
+        debugLog.record($format("    router: assigned controller port ID = %02d", port_num));
+        // broadcast the controller port number to local clients
+        t_COH_SCRATCH_ACTIVATED_REQ req = ?;
+        req.reqControllerId = port_num;
+        links_mem_activatedReq[0].sendToNext(req);
+        initCnt <= 1;
+    endrule
+    
+    rule doInit1 (!initialized && initCnt == 1);
+        initialized <= True;
+        let req <- links_mem_activatedReq[0].recvFromPrev();
+        debugLog.record($format("    router: initDone: drop broacast controller port ID"));
+    endrule
+
+    // =======================================================================
+    //
+    // Activated requests:
+    // 
+    // (1) send local activated requests (activated by the local controller) 
+    //     on to link_mem_activatedReq ring
+    // 
+    // (2) on the local link_mem_activatedReq ring: forward requests to the
+    //     global link_controllers_activatedReq ring
+    //     Optimization: for PUTX, if the requester is local, do not need to
+    //     keep forwarding since the requester has already seen the activated
+    //     request
+    //
+    // (3) on the global link_controllers_activatedReq ring: drop requests if 
+    //     local to the controller (which means the activated requests have 
+    //     traveled the whole loop); otherwise forward them to the local 
+    //     link_mem_activatedReq ring
+    //
+    // =======================================================================
+
+    // An arbiter to choose whether to send local or forwarding message on links_mem_activatedReq[0]
+    Reg#(Bool)      localPrior <- mkReg(True); 
+    PulseWire      fwdMsgSentW <- mkPulseWire();
+    PulseWire    hasMsgToDropW <- mkPulseWire();
+    
+    //
+    // The activated request's broadcast trip starts here
+    // local controller -> local links_mem_activatedReq[0]
+    //
+    (* fire_when_enabled *)
+    rule sendLocalActivatedReq (initialized && !fwdMsgSentW);
+        let req = activatedReqQ.first();
+        activatedReqQ.deq();
+        req.homeControllerId = controllerPort;
+        links_mem_activatedReq[0].sendToNext(req);
+        localPrior <= False;
+        debugLog.record($format("    router: sendLocalActivatedReq: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+    endrule
+
+    // Check if the incoming activated request from the global ring 0 is waiting to be dropped
+    (* fire_when_enabled *)
+    rule checkDropActivatedReqOnGlobalRing0 (initialized && links_controllers_activatedReq[0].recvNotEmpty());
+        let req = links_controllers_activatedReq[0].peekFromPrev();
+        if (req.homeControllerId == controllerPort)
+        begin
+            hasMsgToDropW.send();
+        end
+    endrule
+    
+    // Drop the incoming activated request from the global ring 0 (for non-master controller)
+    (* fire_when_enabled *)
+    rule dropActivatedReqOnGlobalRingNonMaster0 (initialized && !isMaster && hasMsgToDropW);
+        let req <- links_controllers_activatedReq[0].recvFromPrev();
+        debugLog.record($format("    router: dropActivatedReqOnGlobalRing[0]: drop activated request: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+    endrule
+    
+    // Forward the incoming activated request from the global ring 0 to the local ring 0 (for non-master controller)
+    (* mutually_exclusive = "fwdActivatedReqOnGlobalRingNonMaster0, sendLocalActivatedReq" *)
+    (* fire_when_enabled *)
+    rule fwdActivatedReqOnGlobalRingNonMaster0 (initialized && !isMaster && !hasMsgToDropW && (!localPrior || !activatedReqQ.notEmpty()));
+        let req <- links_controllers_activatedReq[0].recvFromPrev();
+        debugLog.record($format("    router: fwdActivatedReqOnGlobalRing[0]: forward activated request to local ring: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+        links_mem_activatedReq[0].sendToNext(req);
+        fwdMsgSentW.send();
+        localPrior <= True;
+    endrule
+    
+    (* fire_when_enabled *)
+    rule handleActivatedReqOnGlobalRingNonMaster1 (initialized && !isMaster);
+        let req <- links_controllers_activatedReq[1].recvFromPrev();
+        Bool drop_req = (req.homeControllerId == controllerPort);
+        debugLog.record($format("    router: handleActivatedReqOnGlobalRing[1]: %s: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d", 
+                        drop_req? "drop activated request" : "forward activated request to global ring 1", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+        if (!drop_req)
+        begin
+            links_mem_activatedReq[1].sendToNext(req);
+        end
+    endrule
+
+    (* fire_when_enabled *)
+    rule handleActivatedReqOnGlobalRingMaster (initialized && isMaster);
+        let req <- links_controllers_activatedReq[0].recvFromPrev();
+        Bool drop_req = (req.homeControllerId == controllerPort);
+        debugLog.record($format("    router: handleActivatedReqOnGlobalRing[0]: %s: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d", 
+                        drop_req? "drop activated request" : "forward activated request to global ring 1", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+        if (!drop_req)
+        begin
+            links_mem_activatedReq[1].sendToNext(req);
+        end
+    endrule
+
+    for(Integer p = 0; p < 2; p = p + 1)
+    begin
+        (* fire_when_enabled *)
+        rule handleActivatedReqOnLocalRing (initialized);
+            let req <- links_mem_activatedReq[p].recvFromPrev();
+           
+            // The request is PUTX and the requester is local
+            Bool drop_req = False;
+            if (req.reqInfo matches tagged COH_SCRATCH_ACTIVATED_PUTX .putx_req &&& req.reqControllerId == controllerPort)
+            begin
+                drop_req = True;
+            end
+            
+            debugLog.record($format("    router: handleActivatedReqOnLocalRing[%01d]: %s: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d", 
+                            p, drop_req? "drop activated request" : "forward activated request to global ring", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+            
+            if (!drop_req)
+            begin
+                links_controllers_activatedReq[p].sendToNext(req);
+            end
+        endrule
+    end
+
+    // =======================================================================
+    //
+    // Unactivated requests (from clients or from global request ring)
+    //  (1) local: forward to the local controller to get activated
+    //  (2) non-local: forward to the link_controllers_req ring to get 
+    //                 activated by a remote controller
+    //
+    // =======================================================================
+   
+    PulseWire   clientReqLocalW             <- mkPulseWire();
+    PulseWire   clientReqRemoteW            <- mkPulseWire();
+    PulseWire   localReqToRemoteW           <- mkPulseWire();
+    Vector#(2, PulseWire) networkReqLocalW  <- replicateM(mkPulseWire());
+    Vector#(2, PulseWire) networkReqRemoteW <- replicateM(mkPulseWire());
+    LOCAL_ARBITER#(3) unactivatedReqRecvArb <- mkLocalArbiter();
+    Reg#(Bool)  unactivatedReqFwdArb        <- mkReg(True);
+    Wire#(Bit#(2)) pickLocalReqIdx          <- mkWire();
+
+    (* fire_when_enabled *)
+    rule checkClientReq (True);
+        let req = link_mem_req.first();
+        let addr = req.addr;
+        Bool is_local = isLocalReq(zeroExtendNP(pack(addr)));
+        Bool is_put = False;
+        if (req.reqInfo matches tagged COH_SCRATCH_PUTX .info)
+        begin
+            is_put = True;
+        end
+        //debugLog.record($format("    router: check an unactivated request from client: addr=0x%x, %s %s request", 
+        //                addr, is_local? "local" : "remote", is_put? "PUT" : "GET" ));
+        if (is_local)
+        begin
+            clientReqLocalW.send();
+        end
+        else
+        begin
+            clientReqRemoteW.send();
+        end
+    endrule
+
+    for(Integer p = 0; p < 2; p = p + 1)
+    begin
+        (* fire_when_enabled *)
+        rule checkGlobalRingReq (True);
+            let req = links_controllers_req[p].peekFromPrev();
+            let addr = req.addr;
+            Bool is_local = isLocalReq(zeroExtendNP(pack(addr)));
+            Bool is_put = False;
+            if (req.reqInfo matches tagged COH_SCRATCH_PUTX .info)
+            begin
+                is_put = True;
+            end
+            //debugLog.record($format("    router: check an unactivated request from global chain[%01d]: addr=0x%x, %s %s request, requester=%03d, reqControllerId=%02d", 
+            //                p, addr, is_local? "local" : "remote", is_put? "PUT" : "GET", req.requester, req.reqControllerId));
+            if (is_local)
+            begin
+                networkReqLocalW[p].send();
+            end
+            else
+            begin
+                networkReqRemoteW[p].send();
+            end
+        endrule
+    end
+    
+    (* fire_when_enabled *)
+    rule pickLocalUnactivatedReq (initialized);
+        LOCAL_ARBITER_CLIENT_MASK#(3) reqs = newVector();
+        reqs[0] = clientReqLocalW;
+        reqs[1] = networkReqLocalW[0];
+        reqs[2] = networkReqLocalW[1];
+        let winner_idx <- unactivatedReqRecvArb.arbitrate(reqs, False);
+        if (winner_idx matches tagged Valid .req_idx)
+        begin
+            pickLocalReqIdx <= pack(req_idx);
+        end
+    endrule
+    
+    (* fire_when_enabled *)
+    rule recvLocalUnactivatedReqFromClient (initialized && pickLocalReqIdx == 0);
+        let req = link_mem_req.first(); 
+        link_mem_req.deq(); 
+        req.reqControllerId = controllerPort;
+        unactivatedReqQ.enq(req);
+        debugLog.record($format("    router: receive an unactivated local request from %s, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        "clients", req.addr, req.requester, req.reqControllerId));
+    endrule
+    
+    (* fire_when_enabled *)
+    rule recvLocalUnactivatedReqFromGlobalChain0 (initialized && pickLocalReqIdx == 1);
+        let req <- links_controllers_req[0].recvFromPrev();
+        unactivatedReqQ.enq(req);
+        debugLog.record($format("    router: receive an unactivated local request from %s, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        "global chain 0", req.addr, req.requester, req.reqControllerId));
+    endrule
+    
+    (* fire_when_enabled *)
+    rule recvLocalUnactivatedReqFromGlobalChain1 (initialized && pickLocalReqIdx == 2);
+        let req <- links_controllers_req[1].recvFromPrev();
+        unactivatedReqQ.enq(req);
+        debugLog.record($format("    router: receive an unactivated local request from %s, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        "global chain 1", req.addr, req.requester, req.reqControllerId));
+    endrule
+
+    (* fire_when_enabled *)
+    rule fwdLocalUnactivatedReqToChain0NonMaster (!isMaster && initialized && clientReqRemoteW && (unactivatedReqFwdArb || !networkReqRemoteW[0]));
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        req.reqControllerId = controllerPort;
+        links_controllers_req[0].sendToNext(req);
+        unactivatedReqFwdArb <= False;
+        localReqToRemoteW.send();
+        debugLog.record($format("    router: forward client's unactivated request to global chain 0, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId));
+    endrule
+
+    (* mutually_exclusive = "fwdLocalUnactivatedReqToChain0NonMaster, fwdRemoteUnactivatedReqToChain0NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdRemoteUnactivatedReqToChain0NonMaster (!isMaster && initialized && !localReqToRemoteW && networkReqRemoteW[0]);
+        let req <- links_controllers_req[0].recvFromPrev();
+        links_controllers_req[0].sendToNext(req);
+        unactivatedReqFwdArb <= True;
+        debugLog.record($format("    router: forward global unactivated request to global chain 0, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId));
+    endrule
+
+    (* mutually_exclusive = "recvLocalUnactivatedReqFromGlobalChain1, fwdUnactivatedReqToChain1NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdUnactivatedReqToChain1NonMaster (!isMaster && networkReqRemoteW[1]);
+        let req <- links_controllers_req[1].recvFromPrev();
+        links_controllers_req[1].sendToNext(req);
+        debugLog.record($format("    router: forward global unactivated request to global chain 1, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId));
+    endrule
+
+    (* mutually_exclusive = "recvLocalUnactivatedReqFromClient, fwdUnactivatedReqToChain0Master, fwdLocalUnactivatedReqToChain0NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdUnactivatedReqToChain0Master (isMaster && clientReqRemoteW);
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        req.reqControllerId = controllerPort;
+        links_controllers_req[0].sendToNext(req);
+        debugLog.record($format("    router: forward client's unactivated request to global chain 0, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId));
+    endrule
+    
+    (* mutually_exclusive = "recvLocalUnactivatedReqFromGlobalChain0, fwdUnactivatedReqToChain1Master, fwdRemoteUnactivatedReqToChain0NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdUnactivatedReqToChain1Master (isMaster && networkReqRemoteW[0]);
+        let req <- links_controllers_req[0].recvFromPrev();
+        links_controllers_req[1].sendToNext(req);
+        debugLog.record($format("    router: forward global unactivated request to global chain 1, addr =0x%x, requester=%03d, reqControllerId=%02d",
+                        req.addr, req.requester, req.reqControllerId));
+    endrule
+
+    // =======================================================================
+    //
+    // Responses
+    //
+    // (1) Responses from local memory 
+    // (2) Write back responses from local clients
+    // (3) Responses from remote memory/clients
+    //
+    // =======================================================================
+    
+    Reg#(Bool)        localRespArb      <- mkReg(True);
+    Reg#(Bool)        fwdRespArb        <- mkReg(True);
+    PulseWire         writebackLocalW   <- mkPulseWire();
+    PulseWire         writebackRemoteW  <- mkPulseWire();
+    PulseWire         memoryLocalRespW  <- mkPulseWire();
+    PulseWire         memoryRemoteRespW <- mkPulseWire();
+    
+    (* fire_when_enabled *)
+    rule collectLocalClientResp (True);
+        let resp = link_mem_resp.first();
+        if (resp.controllerId == controllerPort) // local write back responses
+        begin
+            writebackLocalW.send();
+        end
+        else 
+        begin
+            writebackRemoteW.send();
+        end
+    endrule
+
+    (* fire_when_enabled *)
+    rule memoryFwdResp (localMemRespQ.first().controllerId != controllerPort && (fwdRespArb || !writebackRemoteW));
+        let resp = localMemRespQ.first();
+        localMemRespQ.deq();
+        fwdRespArb <= False;
+        link_controllers_resp.enq(resp.controllerId, resp);
+        memoryRemoteRespW.send();
+        debugLog.record($format("    router: forward memory response to remote response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
+    endrule
+    
+    (* mutually_exclusive = "wbFwdResp, memoryFwdResp" *)
+    (* fire_when_enabled *)
+    rule wbFwdResp (!memoryRemoteRespW && writebackRemoteW);
+        let resp = link_mem_resp.first();
+        link_mem_resp.deq();
+        fwdRespArb <= True;
+        link_controllers_resp.enq(resp.controllerId, resp);
+        debugLog.record($format("    router: forward write-back response to remote response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
+    endrule
+    
+    (* fire_when_enabled *)
+    rule memoryLocalResp (localMemRespQ.first().controllerId == controllerPort && (localRespArb || !link_controllers_resp.notEmpty()));
+        let resp = localMemRespQ.first();
+        localMemRespQ.deq();
+        link_mem_resp.enq(resp.clientId, resp);
+        localRespArb <= False;
+        memoryLocalRespW.send();
+        debugLog.record($format("    router: send memory response to local response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
+    endrule
+    
+    (* mutually_exclusive = "memoryLocalResp, remoteToLocalResp" *)
+    (* fire_when_enabled *)
+    rule remoteToLocalResp (!memoryLocalRespW);
+        let resp = link_controllers_resp.first();
+        link_controllers_resp.deq();
+        link_mem_resp.enq(resp.clientId, resp);
+        localRespArb <= True;
+        debugLog.record($format("    router: send remote response to local response network, val=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.clientId, resp.controllerId));
+    endrule
+
+    (* mutually_exclusive = "wbLocalResp, wbFwdResp" *)
+    (* fire_when_enabled *)
+    rule wbLocalResp (writebackLocalW);
+        let resp = link_mem_resp.first();
+        link_mem_resp.deq();
+        writebackRespQ.enq(resp);
+        debugLog.record($format("    router: receive a local writeback response from a local client"));
+    endrule
+
+    // =======================================================================
+    //
+    // Methods
+    //
+    // =======================================================================
+
+    method Action sendActivatedReq(COH_SCRATCH_ACTIVATED_REQ#(t_ADDR) req);
+        activatedReqQ.enq(req);
+        debugLog.record($format("    router: receive an activated request from local controller, addr=0x%x", req.addr));
+    endmethod                       
+   
+    method Action sendMemoryResp(COH_SCRATCH_PORT_NUM dest, COH_SCRATCH_RESP resp);
+        localMemRespQ.enq(resp);
+        debugLog.record($format("    router: receive a memory response from local controller, receiver: clientId=%03d, controllerId=%02d",
+                        resp.clientId, resp.controllerId));
+    endmethod
+
+    method ActionValue#(COH_SCRATCH_MEM_REQ#(t_ADDR)) unactivatedReq();
+        let r = unactivatedReqQ.first();
+        unactivatedReqQ.deq();
+        return r;
+    endmethod
+
+    method COH_SCRATCH_MEM_REQ#(t_ADDR) peekUnactivatedReq();
+        let r = unactivatedReqQ.first();
+        return r;
+    endmethod
+
+    method ActionValue#(COH_SCRATCH_RESP) writebackResp();
+        let r = writebackRespQ.first();
+        writebackRespQ.deq();
+        return r;
+    endmethod
+
+    method COH_SCRATCH_RESP peekWritebackResp();
+        let r = writebackRespQ.first();
+        return r;
+    endmethod
+
+endmodule
+
+`endif
+
+//
+// mkCachedCoherentScratchpadSingleControllerRouter --
+//     This module handles the situation when each coherent scratchpad client 
+//     has a private cache and there is only one controller in the coherence 
+//     domain. 
+//
+//     The controller router collects coherence requests from clients and 
+//     send responses back to the clients. 
+//
+//     Under the snoopy-based protocol, this module serves as an ordering point.
+//
+module [CONNECTED_MODULE] mkCachedCoherentScratchpadSingleControllerRouter#(Integer dataScratchpadID,
+                                                                            DEBUG_FILE debugLog)
+    // interface:
+    (COH_SCRATCH_CACHED_CONTROLLER_ROUTER#(t_ADDR))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              // Coherence messages
+              Alias#(COH_SCRATCH_MEM_REQ#(t_ADDR), t_COH_SCRATCH_REQ),
+              Alias#(COH_SCRATCH_ACTIVATED_REQ#(t_ADDR), t_COH_SCRATCH_ACTIVATED_REQ));
+
+    FIFOF#(t_COH_SCRATCH_ACTIVATED_REQ) activatedReqQ <- mkBypassFIFOF();
+    FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP)) localMemRespQ <- mkBypassFIFOF();
+    FIFOF#(t_COH_SCRATCH_REQ) unactivatedReqQ <- mkFIFOF();
+    FIFOF#(COH_SCRATCH_RESP)  writebackRespQ  <- mkFIFOF();
+    
+    // =======================================================================
+    //
+    // Coherent scratchpad clients and this controller are connected via rings.
+    //
+    // Three rings are required to avoid deadlocks: one for requests, 
+    // one for responses, and one for activated requests.
+    //
+    // =======================================================================
+
+    //
+    // Connections between the coherent scratchpad controller and its local clients
+    //
+    String clientControllerRingName = "Coherent_Scratchpad_" + integerToString(dataScratchpadID);
+    
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
+        mkConnectionAddrRingNode(clientControllerRingName + "_Req", 0);
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP) link_mem_resp <-
+        (`ADDR_RING_DEBUG_ENABLE == 1)?
+        mkDebugConnectionAddrRingNodeNtoN(clientControllerRingName + "_Resp", 0, debugLog):
+        mkConnectionAddrRingNodeNtoN(clientControllerRingName + "_Resp", 0);
+
+    // Broadcast ring
+    CONNECTION_CHAIN#(t_COH_SCRATCH_ACTIVATED_REQ) link_mem_activatedReq <- 
+        mkConnectionChain(clientControllerRingName + "_ActivatedReq");
+
+    // =======================================================================
+    //
+    // Unactivated requests
+    //
+    // =======================================================================
+    
+    (* fire_when_enabled *)
+    rule collectClientReq (True);
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        debugLog.record($format("    router: receive an unactivated request: addr=0x%x", req.addr));
+        unactivatedReqQ.enq(req);
+    endrule
+   
+    // =======================================================================
+    //
+    // Activated requests
+    //
+    // =======================================================================
+    
+    (* fire_when_enabled *)
+    rule sendActivatedReqToNetwork (True);
+        let req = activatedReqQ.first();
+        activatedReqQ.deq();
+        link_mem_activatedReq.sendToNext(req);
+        debugLog.record($format("    router: sendActivatedReq: addr=0x%x, sender=%d", req.addr, req.requester));
+    endrule
+
+    (* fire_when_enabled *)
+    rule dropActivatedReqFromNetwork (True);
+        let req <- link_mem_activatedReq.recvFromPrev();
+        debugLog.record($format("    router: dropActivatedReq: addr=0x%x, sender=%d", req.addr, req.requester));
+    endrule
+    
+    // =======================================================================
+    //
+    // Responses
+    //
+    // =======================================================================
+    
+    (* fire_when_enabled *)
+    rule sendMemoryResponse (True);
+        let resp = localMemRespQ.first();
+        localMemRespQ.deq();
+        debugLog.record($format("    router: send a memory response"));
+        link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
+    endrule
+
+    (* fire_when_enabled *)
+    rule collectClientResponse (True);
+        let resp = link_mem_resp.first();
+        link_mem_resp.deq();
+        debugLog.record($format("    router: receive a writeback response"));
+        writebackRespQ.enq(resp);
+    endrule
+    
+    // ====================================================================
+    //
+    // Coherent scratchpad single controller router debug scan for 
+    // deadlock debugging.
+    //
+    // ====================================================================
+    
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
     // Network channels
     dbg_list <- addDebugScanField(dbg_list, "link_mem_req notEmpty", link_mem_req.notEmpty);
     dbg_list <- addDebugScanField(dbg_list, "link_mem_req notFull", link_mem_req.notFull);
@@ -1016,32 +1681,96 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notFull", link_mem_resp.notFull);
     dbg_list <- addDebugScanField(dbg_list, "link_mem_activatedReq notEmpty", link_mem_activatedReq.recvNotEmpty);
     dbg_list <- addDebugScanField(dbg_list, "link_mem_activatedReq notFull", link_mem_activatedReq.sendNotFull);
+   
+    String debugScanName = "Coherent Scratchpad Controller Router in Domain " + integerToString(dataScratchpadID);
 
-    let dbgNode <- mkDebugScanNode("Cohererent Scratchpad Controller in Domain "+ integerToString(dataScratchpadID) + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+    let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+
+    // =======================================================================
+    //
+    // Methods
+    //
+    // =======================================================================
+
+    method Action sendActivatedReq(COH_SCRATCH_ACTIVATED_REQ#(t_ADDR) req);
+        activatedReqQ.enq(req);
+        debugLog.record($format("    router: receive an activated request"));
+    endmethod                       
+   
+    method Action sendMemoryResp(COH_SCRATCH_PORT_NUM dest, COH_SCRATCH_RESP resp);
+        localMemRespQ.enq(tuple2(dest,resp));
+        debugLog.record($format("    router: receive a memory response"));
+    endmethod
+
+    method ActionValue#(COH_SCRATCH_MEM_REQ#(t_ADDR)) unactivatedReq();
+        let r = unactivatedReqQ.first();
+        unactivatedReqQ.deq();
+        return r;
+    endmethod
+
+    method COH_SCRATCH_MEM_REQ#(t_ADDR) peekUnactivatedReq();
+        let r = unactivatedReqQ.first();
+        return r;
+    endmethod
+
+    method ActionValue#(COH_SCRATCH_RESP) writebackResp();
+        let r = writebackRespQ.first();
+        writebackRespQ.deq();
+        return r;
+    endmethod
+
+    method COH_SCRATCH_RESP peekWritebackResp();
+        let r = writebackRespQ.first();
+        return r;
+    endmethod
 
 endmodule
+
+
+// ========================================================================
+//
+// Coherent scratchpad controller without private caches (remote access) 
+//
+// ========================================================================
+
+//
+// Interface of uncached coherent scratchpad controller's router
+//
+typedef Tuple2#(COH_SCRATCH_REMOTE_REQ#(t_ADDR, t_DATA), COH_SCRATCH_CTRLR_PORT_NUM) COH_SCRATCH_UNCACHED_CTRLR_REQ#(type t_ADDR, type t_DATA);
+
+interface COH_SCRATCH_UNCACHED_CONTROLLER_ROUTER#(type t_ADDR, type t_DATA);
+    // response to network
+    method Action sendResp(COH_SCRATCH_PORT_NUM dest, 
+                           COH_SCRATCH_CTRLR_PORT_NUM controllerId, 
+                           COH_SCRATCH_REMOTE_RESP#(t_DATA) resp);
+    // client's request from network
+    method ActionValue#(COH_SCRATCH_UNCACHED_CTRLR_REQ#(t_ADDR, t_DATA)) getReq();
+    method COH_SCRATCH_UNCACHED_CTRLR_REQ#(t_ADDR, t_DATA) peekReq();
+endinterface: COH_SCRATCH_UNCACHED_CONTROLLER_ROUTER
 
 typedef Bit#(2) COH_SCRATCH_CTRLR_WRITE_DATA_IDX;
 
 typedef struct
 {
     COH_SCRATCH_PORT_NUM            requester;
+    COH_SCRATCH_CTRLR_PORT_NUM      reqControllerId;
     COH_SCRATCH_REMOTE_CLIENT_META  clientMeta;
     RL_CACHE_GLOBAL_READ_META       globalReadMeta;
 }
-COH_SCRATCH_CTRLR_REMOTE_READ_REQ_INFO
+COH_SCRATCH_UNCACHED_CTRLR_READ_REQ_INFO
     deriving (Eq, Bits);
 
 typedef struct
 {
     COH_SCRATCH_PORT_NUM              requester;
+    COH_SCRATCH_CTRLR_PORT_NUM        reqControllerId;
     t_ADDR                            addr;
     COH_SCRATCH_CTRLR_WRITE_DATA_IDX  writeDataIdx;
     COH_SCRATCH_REMOTE_CLIENT_META    clientMeta;
     RL_CACHE_GLOBAL_READ_META         globalReadMeta;
     Bool                              isRead;
 }
-COH_SCRATCH_CTRLR_REMOTE_REQ#(type t_ADDR)
+COH_SCRATCH_UNCACHED_CTRLR_MEM_REQ#(type t_ADDR)
     deriving (Eq, Bits);
 
 //
@@ -1056,93 +1785,116 @@ COH_SCRATCH_CTRLR_REMOTE_REQ#(type t_ADDR)
 //
 module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataScratchpadID, 
                                                                   NumTypeParam#(t_IN_ADDR_SZ) inAddrSz,
-                                                                  NumTypeParam#(t_IN_DATA_SZ) inDataSz)
+                                                                  NumTypeParam#(t_IN_DATA_SZ) inDataSz,
+                                                                  COH_SCRATCH_CONTROLLER_CONFIG conf)
     // interface:
     ()
     provisos (Alias#(Bit#(t_IN_ADDR_SZ), t_ADDR),
               Alias#(Bit#(t_IN_DATA_SZ), t_DATA),
               // Coherence messages
-              Alias#(COH_SCRATCH_REMOTE_REQ#(t_ADDR, t_DATA), t_COH_SCRATCH_REQ),
               Alias#(COH_SCRATCH_REMOTE_READ_RESP#(t_DATA), t_COH_SCRATCH_READ_RESP),
               Alias#(COH_SCRATCH_REMOTE_RESP#(t_DATA), t_COH_SCRATCH_RESP),
-              Alias#(COH_SCRATCH_CTRLR_REMOTE_REQ#(t_ADDR), t_MEM_REQ),
+              Alias#(COH_SCRATCH_UNCACHED_CTRLR_MEM_REQ#(t_ADDR), t_MEM_REQ),
               Bits#(COH_SCRATCH_CTRLR_WRITE_DATA_IDX, t_WRITE_DATA_IDX_SZ),
+              Bits#(COH_SCRATCH_MEM_ADDRESS, t_COH_SCRATCH_MEM_ADDR_SZ),
               NumAlias#(TExp#(t_WRITE_DATA_IDX_SZ), n_WRITES));
 
-    String debugLogFilename = "coherent_scratchpad_" + integerToString(dataScratchpadID) + ".out";
+    String debugLogFilename = "coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller.out";
+
     DEBUG_FILE debugLog <- (`COHERENT_SCRATCHPAD_DEBUG_ENABLE == 1)?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
+    //
+    // Elaboration time checks
+    //
+    if (valueOf(t_IN_ADDR_SZ) > valueOf(t_COH_SCRATCH_MEM_ADDR_SZ))
+    begin
+        error("Coherent scratchpad address size is not big enough. Increase parameter COHERENT_SCRATCHPAD_MEMORY_ADDR_BITS.");
+    end
+    
+    // =======================================================================
+    //
+    // Coherent scratchpad controller partition module
+    //
+    // =======================================================================
+    
+    let partition <- conf.partition();
+
+    // =======================================================================
+    //
+    // Coherent scratchpad controller router
+    //
+    // =======================================================================
+    
+    COH_SCRATCH_UNCACHED_CONTROLLER_ROUTER#(t_ADDR, t_DATA) router;
+
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+
+    router <- (!conf.multiController)? mkUncachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, debugLog):
+                                       mkUncachedCoherentScratchpadMultiControllerRouter(dataScratchpadID, conf.coherenceDomainID, 
+                                                                                         partition.isLocalReq, conf.isMaster, debugLog);
+`else
+    
+    if (conf.multiController)
+    begin
+        error("COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE is not enabled");
+    end
+    router <- mkUncachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, debugLog);
+
+`endif
 
     // ===============================================================================
     //
-    // Coherent scratchpad clients and this controller are connected via rings.
-    //
-    // Two rings are required to avoid deadlocks: one for requests, one for responses.
+    // Instantiate a private scratchpad that serves as the interface to read/write 
+    // data from/to local memory
     //
     // ===============================================================================
-
-    // Addressable ring
-    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
-        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
-        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0):
-        mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Req", 0);
-
-    // Addressable ring
-    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_RESP) link_mem_resp <-
-        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
-        mkConnectionAddrRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0):
-        mkConnectionTokenRingNode("Coherent_Scratchpad_" + integerToString(dataScratchpadID) + "_Resp", 0);
-
-    //
-    // Instantiate a private scratchpad that serves as the interface to read/write data from/to local memory
-    //
+    
     SCRATCHPAD_CONFIG dataMemConfig = defaultValue;
     dataMemConfig.cacheMode = SCRATCHPAD_CACHED;
     MEMORY_IFC#(t_ADDR, t_DATA) dataMem  <- mkScratchpad(dataScratchpadID, dataMemConfig);
 
     MEMORY_HEAP_IMM#(COH_SCRATCH_CTRLR_WRITE_DATA_IDX, t_DATA) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
     
-    FIFOF#(t_MEM_REQ) incomingReqQ                                            <- mkSizedFIFOF(2*valueOf(n_WRITES));
-    FIFOF#(COH_SCRATCH_CTRLR_REMOTE_READ_REQ_INFO) dataMemReqQ                <- mkSizedFIFOF(32);
-    FIFOF#(COH_SCRATCH_PORT_NUM) ackRespQ                                     <- mkBypassFIFOF();
-    FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_READ_RESP)) memRespQ   <- mkBypassFIFOF();
-    FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_RESP)) outputRespQ     <- mkSizedFIFOF(8);
+    FIFOF#(t_MEM_REQ) incomingReqQ                                                                       <- mkSizedFIFOF(2*valueOf(n_WRITES));
+    FIFOF#(COH_SCRATCH_UNCACHED_CTRLR_READ_REQ_INFO) dataMemReqQ                                         <- mkSizedFIFOF(32);
+    FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_CTRLR_PORT_NUM)) ackRespQ                           <- mkBypassFIFOF();
+    FIFOF#(Tuple3#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_CTRLR_PORT_NUM, t_COH_SCRATCH_READ_RESP)) memRespQ  <- mkBypassFIFOF();
+    FIFOF#(Tuple3#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_CTRLR_PORT_NUM, t_COH_SCRATCH_RESP)) outputRespQ    <- mkSizedFIFOF(8);
 
     //
     // collectClientReq --
-    //     Collect scratchpad client requests from the request ring.
+    //     Collect scratchpad client requests from the router.
     // For write and fence requests, send ack back to the clients. 
     //
     rule colletClientReq (True);
-        let req = link_mem_req.first();
-        link_mem_req.deq();
+        let client_req <- router.getReq();
+        match {.req, .controller_id} = client_req;
+        
         t_MEM_REQ lookup_req = ?;
-        if (req matches tagged COH_SCRATCH_REMOTE_READ .read_req)
+        lookup_req.requester       = req.requester;
+        lookup_req.reqControllerId = controller_id;
+        lookup_req.addr            = req.addr;
+        
+        if (req.reqInfo matches tagged COH_SCRATCH_REMOTE_READ .read_info)
         begin
-            lookup_req.requester      = read_req.requester;
-            lookup_req.addr           = read_req.addr;
-            lookup_req.clientMeta     = read_req.clientMeta;
-            lookup_req.globalReadMeta = read_req.globalReadMeta;
-            lookup_req.isRead         = True;
-            incomingReqQ.enq(lookup_req);
+            lookup_req.clientMeta      = read_info.clientMeta;
+            lookup_req.globalReadMeta  = read_info.globalReadMeta;
+            lookup_req.isRead          = True;
             debugLog.record($format("  collect READ request: sender=%d, addr=0x%x, meta=0x%x",  
                             lookup_req.requester, lookup_req.addr, lookup_req.clientMeta));
         end
-        else if (req matches tagged COH_SCRATCH_REMOTE_WRITE .write_req)
+        else if (req.reqInfo matches tagged COH_SCRATCH_REMOTE_WRITE .write_info)
         begin
             let data_idx <- reqInfo_writeData.malloc();
-            reqInfo_writeData.upd(data_idx, write_req.data);
-            
-            lookup_req.requester      = write_req.requester;
-            lookup_req.addr           = write_req.addr;
-            lookup_req.writeDataIdx   = data_idx;
-            lookup_req.isRead         = False;
-            incomingReqQ.enq(lookup_req);
-            ackRespQ.enq(write_req.requester);
+            reqInfo_writeData.upd(data_idx, write_info.data);
+            lookup_req.writeDataIdx = data_idx;
+            lookup_req.isRead       = False;
+            ackRespQ.enq(tuple2(req.requester, controller_id));
             debugLog.record($format("  collect WRITE request: sender=%d, addr=0x%x, data=0x%x", 
-                            lookup_req.requester, lookup_req.addr, write_req.data));
+                            lookup_req.requester, lookup_req.addr, write_info.data));
         end
+        incomingReqQ.enq(lookup_req);
     endrule
 
     rule accessDataMem (True);
@@ -1151,11 +1903,12 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataSc
 
         if (req.isRead) // read request
         begin
-            dataMemReqQ.enq(COH_SCRATCH_CTRLR_REMOTE_READ_REQ_INFO { requester: req.requester,
-                                                                     clientMeta: req.clientMeta,
-                                                                     globalReadMeta: req.globalReadMeta });
+            dataMemReqQ.enq(COH_SCRATCH_UNCACHED_CTRLR_READ_REQ_INFO { requester: req.requester,
+                                                                       reqControllerId: req.reqControllerId,
+                                                                       clientMeta: req.clientMeta,
+                                                                       globalReadMeta: req.globalReadMeta });
             dataMem.readReq(req.addr);
-            debugLog.record($format("  accessDataMem: READ sender=%d, addr=0x%x, meta=0x%x",  
+            debugLog.record($format("  accessDataMem: READ sender=%d, addr=0x%x, meta=0x%x",
                              req.requester, req.addr, req.clientMeta));
         end
         else // write request
@@ -1173,10 +1926,11 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataSc
         let data <- dataMem.readRsp();
         let r = dataMemReqQ.first();
         dataMemReqQ.deq();
-        memRespQ.enq(tuple2(r.requester, COH_SCRATCH_REMOTE_READ_RESP { val: data,
-                                                                        clientMeta: r.clientMeta, 
-                                                                        globalReadMeta: r.globalReadMeta }));
-        debugLog.record($format("    recvDataResp: send data response: dest=%d, val=0x%x, meta=0x%x", r.requester, data, r.clientMeta));
+        memRespQ.enq(tuple3(r.requester, r.reqControllerId, COH_SCRATCH_REMOTE_READ_RESP { val: data,
+                                                                                           clientMeta: r.clientMeta, 
+                                                                                           globalReadMeta: r.globalReadMeta }));
+        debugLog.record($format("    recvDataResp: send data response: dest=%03d, controllerId=%02d, val=0x%x, meta=0x%x", 
+                        r.requester, r.reqControllerId, data, r.clientMeta));
     endrule
 
     Reg#(Bit#(2)) ackRespArb <- mkReg(0);
@@ -1185,18 +1939,19 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataSc
     rule sendToOutputRespQ (True);
         if (ackRespQ.notEmpty() && ((ackRespArb != 0) || !memRespQ.notEmpty()))
         begin
-            let ack = ackRespQ.first();
+            match {.client_id, .controller_id} = ackRespQ.first();
             ackRespQ.deq();
-            outputRespQ.enq(tuple2(ack, tagged COH_SCRATCH_REMOTE_WRITE));    
-            debugLog.record($format("    sendToOutputRespQ: WRITE ACK response: dest=%d", ack)); 
+            outputRespQ.enq(tuple3(client_id, controller_id, tagged COH_SCRATCH_REMOTE_WRITE));    
+            debugLog.record($format("    sendToOutputRespQ: WRITE ACK response: dest=%03d, controllerId=%02d", 
+                            client_id, controller_id)); 
         end
         else
         begin
             let mem_resp = memRespQ.first();
             memRespQ.deq();
-            outputRespQ.enq(tuple2(tpl_1(mem_resp), tagged COH_SCRATCH_REMOTE_READ tpl_2(mem_resp)));
-            debugLog.record($format("    sendToOutputRespQ: READ DATA response: dest=%d, val=0x%x, meta=0x%x", 
-                            tpl_1(mem_resp), tpl_2(mem_resp).val, tpl_2(mem_resp).clientMeta));
+            outputRespQ.enq(tuple3(tpl_1(mem_resp), tpl_2(mem_resp), tagged COH_SCRATCH_REMOTE_READ tpl_3(mem_resp)));
+            debugLog.record($format("    sendToOutputRespQ: READ DATA response: dest=%03d, controllerId=%02d, val=0x%x, meta=0x%x", 
+                            tpl_1(mem_resp), tpl_2(mem_resp), tpl_3(mem_resp).val, tpl_3(mem_resp).clientMeta));
         end
         ackRespArb <= ackRespArb + 1;
     endrule
@@ -1205,7 +1960,415 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataSc
     rule sendCoherentScratchpadResp (True);
         let resp = outputRespQ.first();
         outputRespQ.deq();
-        link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
+        router.sendResp(tpl_1(resp), tpl_2(resp), tpl_3(resp));
     endrule
 
 endmodule
+
+//
+// mkUncachedCoherentScratchpadMultiControllerRouter --
+//     This module handles the situation where there are no private caches
+//     in this coherence domain. 
+//
+//     The controller router collects requests from its local clients, forwards 
+//     local requests to its local controller and forwards the rest to the 
+//     remote controller(s). The router also forwards associated responses 
+//     to its local clients. 
+//
+module [CONNECTED_MODULE] mkUncachedCoherentScratchpadMultiControllerRouter#(Integer dataScratchpadID,
+                                                                             Integer coherenceDomainID,  
+                                                                             function Bool isLocalReq(COH_SCRATCH_MEM_ADDRESS addr),
+                                                                             Bool isMaster,
+                                                                             DEBUG_FILE debugLog)
+    // interface:
+    (COH_SCRATCH_UNCACHED_CONTROLLER_ROUTER#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              // Coherence messages
+              Alias#(COH_SCRATCH_REMOTE_REQ#(t_ADDR, t_DATA), t_COH_SCRATCH_REQ),
+              Alias#(COH_SCRATCH_REMOTE_RESP#(t_DATA), t_COH_SCRATCH_RESP),
+              Alias#(COH_SCRATCH_UNCACHED_CTRLR_REQ#(t_ADDR, t_DATA), t_CTRLR_REQ),
+              Alias#(COH_SCRATCH_CONTROLLERS_REMOTE_REQ#(t_ADDR, t_DATA), t_CONTROLLERS_REQ),
+              Alias#(COH_SCRATCH_CONTROLLERS_REMOTE_RESP#(t_DATA), t_CONTROLLERS_RESP));
+    
+    FIFOF#(t_CTRLR_REQ) remoteReqQ <- mkFIFOF();
+    FIFOF#(Tuple3#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_CTRLR_PORT_NUM, t_COH_SCRATCH_RESP)) localMemRespQ <- mkBypassFIFOF();
+    
+    // ==============================================================================
+    //
+    // Coherent scratchpad clients and this controller are connected via rings.
+    //
+    // Two rings are required to avoid deadlocks: one for requests, one for responses.
+    //
+    // For multi-controller settings, hierarchical rings are used, which means
+    // controllers are also connected via two rings.
+    //
+    // To prevent deadlocks, the broadcast request ring require 2 channels and the 
+    // dateline technique is used to avoid circular dependency. 
+    // Dateline is allocated at the master controller. 
+    //
+    // ===============================================================================
+
+    //
+    // Connections between the coherent scratchpad controller and its local clients
+    //
+    String clientControllerRingName = "Coherent_Scratchpad_" + integerToString(dataScratchpadID);
+    
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode(clientControllerRingName + "_Req", 0):
+        mkConnectionTokenRingNode(clientControllerRingName + "_Req", 0);
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_RESP) link_mem_resp <-
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode(clientControllerRingName + "_Resp", 0):
+        mkConnectionTokenRingNode(clientControllerRingName + "_Resp", 0);
+
+    //
+    // Connections between multiple controllers
+    //
+    String controllersRingName = "Coherent_Scratchpad_Controllers_" + integerToString(coherenceDomainID);
+    
+    // Broadcast ring (with 2 channels)
+    Vector#(2, CONNECTION_CHAIN#(t_CONTROLLERS_REQ)) links_controllers_req = newVector();
+    links_controllers_req[0] <- mkConnectionChain(controllersRingName + "_Req_0");
+    links_controllers_req[1] <- mkConnectionChain(controllersRingName + "_Req_1");
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_CTRLR_PORT_NUM, t_CONTROLLERS_RESP) link_controllers_resp <- (isMaster)?
+        mkConnectionAddrRingNodeNtoN(controllersRingName + "_Resp", 0):
+        mkConnectionAddrRingDynNodeNtoN(controllersRingName + "_Resp");
+
+    Reg#(COH_SCRATCH_CTRLR_PORT_NUM) controllerPort <- mkReg(0);
+    Reg#(Bool) initialized <- mkReg(False);
+    
+    rule doInit (!initialized);
+        let port_num = link_controllers_resp.nodeID();
+        debugLog.record($format("    router: assigned controller port ID = %02d", port_num));
+        controllerPort <= port_num;
+        initialized    <= True;
+    endrule
+    
+    // =======================================================================
+    //
+    // Remote requests (from clients or from global request ring)
+    //  (1) local: forward to the local controller
+    //  (2) non-local: forward to the link_controllers_req ring
+    //
+    // =======================================================================
+    
+    PulseWire   clientReqLocalW             <- mkPulseWire();
+    PulseWire   clientReqRemoteW            <- mkPulseWire();
+    PulseWire   localReqToRemoteW           <- mkPulseWire();
+    Vector#(2, PulseWire) networkReqLocalW  <- replicateM(mkPulseWire());
+    Vector#(2, PulseWire) networkReqRemoteW <- replicateM(mkPulseWire());
+    LOCAL_ARBITER#(3) reqRecvArb            <- mkLocalArbiter();
+    Wire#(Bit#(2)) pickLocalReqIdx          <- mkWire();
+    Reg#(Bool) reqFwdArb                    <- mkReg(True);
+
+    (* fire_when_enabled *)
+    rule checkClientReq (True);
+        let req  = link_mem_req.first();
+        let addr = req.addr;
+        Bool is_local = isLocalReq(zeroExtendNP(pack(addr)));
+        Bool is_read = False;
+        if (req.reqInfo matches tagged COH_SCRATCH_REMOTE_READ .info)
+        begin
+            is_read = True;
+        end
+        debugLog.record($format("    router: check a request from client: addr=0x%x, %s %s request", 
+                        addr, is_local? "local" : "remote", is_read? "READ" : "WRITE" ));
+        if (is_local)
+        begin
+            clientReqLocalW.send();
+        end
+        else
+        begin
+            clientReqRemoteW.send();
+        end
+    endrule
+
+    for(Integer p = 0; p < 2; p = p + 1)
+    begin
+        (* fire_when_enabled *)
+        rule checkGlobalRingReq (True);
+            let req = links_controllers_req[p].peekFromPrev();
+            let addr = req.reqLocal.addr;
+            Bool is_local = isLocalReq(zeroExtendNP(pack(addr)));
+            Bool is_read = False;
+            if (req.reqLocal.reqInfo matches tagged COH_SCRATCH_REMOTE_READ .info)
+            begin
+                is_read = True;
+            end
+            debugLog.record($format("    router: check a request from global chain[%01d]: addr=0x%x, %s %s request, requester=%03d, reqControllerId=%02d",
+                            p, addr, is_local? "local" : "remote", is_read? "READ" : "WRITE", req.reqLocal.requester, req.reqControllerId));
+            if (is_local)
+            begin
+                networkReqLocalW[p].send();
+            end
+            else
+            begin
+                networkReqRemoteW[p].send();
+            end
+        endrule
+    end
+
+    (* fire_when_enabled *)
+    rule pickLocalReq (initialized);
+        LOCAL_ARBITER_CLIENT_MASK#(3) reqs = newVector();
+        reqs[0] = clientReqLocalW;
+        reqs[1] = networkReqLocalW[0];
+        reqs[2] = networkReqLocalW[1];
+        let winner_idx <- reqRecvArb.arbitrate(reqs, False);
+        if (winner_idx matches tagged Valid .req_idx)
+        begin
+            pickLocalReqIdx <= pack(req_idx);
+        end
+    endrule
+
+    (* fire_when_enabled *)
+    rule recvLocalReqFromClient (initialized && pickLocalReqIdx == 0);
+        let req = link_mem_req.first(); 
+        link_mem_req.deq(); 
+        remoteReqQ.enq(tuple2(req, controllerPort));
+        debugLog.record($format("    router: receive a local request from %s, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        "clients", req.addr, req.requester, controllerPort));
+    endrule
+
+    (* fire_when_enabled *)
+    rule recvLocalReqFromGlobalChain0 (initialized && pickLocalReqIdx == 1);
+        let req <- links_controllers_req[0].recvFromPrev();
+        remoteReqQ.enq(tuple2(req.reqLocal, req.reqControllerId));
+        debugLog.record($format("    router: receive a local request from %s, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        "global chain 0", req.reqLocal.addr, req.reqLocal.requester, req.reqControllerId));
+    endrule
+
+    (* fire_when_enabled *)
+    rule recvLocalReqFromGlobalChain1 (initialized && pickLocalReqIdx == 2);
+        let req <- links_controllers_req[1].recvFromPrev();
+        remoteReqQ.enq(tuple2(req.reqLocal, req.reqControllerId));
+        debugLog.record($format("    router: receive a local request from %s, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        "global chain 1", req.reqLocal.addr, req.reqLocal.requester, req.reqControllerId));
+    endrule
+
+    (* fire_when_enabled *)
+    rule fwdLocalReqToChain0NonMaster (!isMaster && initialized && clientReqRemoteW && (reqFwdArb || !networkReqRemoteW[0]));
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        let controller_req = COH_SCRATCH_CONTROLLERS_REMOTE_REQ { reqControllerId: controllerPort, 
+                                                                  reqLocal: req };
+        links_controllers_req[0].sendToNext(controller_req);
+        reqFwdArb <= False;
+        localReqToRemoteW.send();
+        debugLog.record($format("    router: forward client's request to global chain 0, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.addr, req.requester, controller_req.reqControllerId));
+    endrule
+
+    (* mutually_exclusive = "fwdLocalReqToChain0NonMaster, fwdRemoteReqToChain0NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdRemoteReqToChain0NonMaster (!isMaster && initialized && !localReqToRemoteW && networkReqRemoteW[0]);
+        let req <- links_controllers_req[0].recvFromPrev();
+        links_controllers_req[0].sendToNext(req);
+        reqFwdArb <= True;
+        debugLog.record($format("    router: forward a global request to global chain 0, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.reqLocal.addr, req.reqLocal.requester, req.reqControllerId));
+    endrule
+
+    (* mutually_exclusive = "recvLocalReqFromGlobalChain1, fwdReqToChain1NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdReqToChain1NonMaster (!isMaster && networkReqRemoteW[1]);
+        let req <- links_controllers_req[1].recvFromPrev();
+        links_controllers_req[1].sendToNext(req);
+        debugLog.record($format("    router: forward a global request to global chain 1, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.reqLocal.addr, req.reqLocal.requester, req.reqControllerId));
+    endrule
+
+    (* mutually_exclusive = "recvLocalReqFromClient, fwdReqToChain0Master, fwdLocalReqToChain0NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdReqToChain0Master (isMaster && clientReqRemoteW);
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        let controller_req = COH_SCRATCH_CONTROLLERS_REMOTE_REQ { reqControllerId: controllerPort, 
+                                                                  reqLocal: req };
+        links_controllers_req[0].sendToNext(controller_req);
+        debugLog.record($format("    router: forward client's request to global chain 0, addr=0x%x, requester=%03d, reqControllerId=%02d",
+                        req.addr, req.requester, controller_req.reqControllerId));
+    endrule
+    
+    (* mutually_exclusive = "recvLocalReqFromGlobalChain0, fwdReqToChain1Master, fwdRemoteReqToChain0NonMaster" *)
+    (* fire_when_enabled *)
+    rule fwdReqToChain1Master (isMaster && networkReqRemoteW[0]);
+        let req <- links_controllers_req[0].recvFromPrev();
+        links_controllers_req[1].sendToNext(req);
+        debugLog.record($format("    router: forward global unactivated request to global chain 1, addr =0x%x, requester=%03d, reqControllerId=%02d",
+                        req.reqLocal.addr, req.reqLocal.requester, req.reqControllerId));
+    endrule
+
+
+    // =======================================================================
+    //
+    // Responses
+    //
+    // (1) Responses from local memory 
+    // (2) Responses from remote memories
+    //
+    // =======================================================================
+    
+    Reg#(Bool)  localRespArb      <- mkReg(True);
+    PulseWire   memoryLocalRespW  <- mkPulseWire();
+
+    (* fire_when_enabled *)
+    rule memoryFwdResp (tpl_2(localMemRespQ.first()) != controllerPort);
+        match {.client_id, .controller_id, .resp} = localMemRespQ.first();
+        localMemRespQ.deq();
+        link_controllers_resp.enq(controller_id, COH_SCRATCH_CONTROLLERS_REMOTE_RESP{ clientId: client_id, resp: resp});
+        debugLog.record($format("    router: forward memory response to remote response network, dest=%03d, controller=%02d",
+                        client_id, controller_id));
+    endrule
+
+    (* fire_when_enabled *)
+    rule memoryLocalResp (tpl_2(localMemRespQ.first()) == controllerPort && (localRespArb || !link_controllers_resp.notEmpty()));
+        match {.client_id, .controller_id, .resp} = localMemRespQ.first();
+        localMemRespQ.deq();
+        link_mem_resp.enq(client_id, resp);
+        localRespArb <= False;
+        memoryLocalRespW.send();
+        debugLog.record($format("    router: send memory response to local response network, dest=%03d, controller=%02d",
+                        client_id, controller_id));
+    endrule
+
+    (* mutually_exclusive = "memoryLocalResp, remoteToLocalResp" *)
+    (* fire_when_enabled *)
+    rule remoteToLocalResp (!memoryLocalRespW);
+        let controller_resp = link_controllers_resp.first();
+        link_controllers_resp.deq();
+        link_mem_resp.enq(controller_resp.clientId, controller_resp.resp);
+        localRespArb <= True;
+        debugLog.record($format("    router: send remote response to local response network, dest=%03d, controller=%02d",
+                        controller_resp.clientId, controllerPort));
+    endrule
+    
+    // =======================================================================
+    //
+    // Methods
+    //
+    // =======================================================================
+    
+    method Action sendResp(COH_SCRATCH_PORT_NUM dest, 
+                           COH_SCRATCH_CTRLR_PORT_NUM controllerId, 
+                           COH_SCRATCH_REMOTE_RESP#(t_DATA) resp);
+        localMemRespQ.enq(tuple3(dest, controllerId, resp));
+        debugLog.record($format("    router: receive a controller response, dest=%03d, controllerId=%02d", 
+                        dest, controllerId));
+    endmethod
+    
+    method ActionValue#(COH_SCRATCH_UNCACHED_CTRLR_REQ#(t_ADDR, t_DATA)) getReq();
+        let r = remoteReqQ.first();
+        remoteReqQ.deq();
+        return r;
+    endmethod
+
+    method COH_SCRATCH_UNCACHED_CTRLR_REQ#(t_ADDR, t_DATA) peekReq();
+        return remoteReqQ.first();
+    endmethod
+
+endmodule
+
+//
+// mkUncachedCoherentScratchpadSingleControllerRouter --
+//     This module handles the situation where there are no private caches
+//     in this coherence domain. 
+//
+//     The controller router collects remote read/write requests from coherent 
+//     scratchpad clients and send responses back to the clients. 
+//
+module [CONNECTED_MODULE] mkUncachedCoherentScratchpadSingleControllerRouter#(Integer dataScratchpadID,
+                                                                              DEBUG_FILE debugLog)
+    // interface:
+    (COH_SCRATCH_UNCACHED_CONTROLLER_ROUTER#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              // Coherence messages
+              Alias#(COH_SCRATCH_REMOTE_REQ#(t_ADDR, t_DATA), t_COH_SCRATCH_REQ),
+              Alias#(COH_SCRATCH_REMOTE_RESP#(t_DATA), t_COH_SCRATCH_RESP));
+    
+    FIFOF#(t_COH_SCRATCH_REQ) remoteReqQ <- mkFIFOF();
+    FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_RESP)) localMemRespQ <- mkBypassFIFOF();
+
+    // ===============================================================================
+    //
+    // Coherent scratchpad clients and this controller are connected via rings.
+    //
+    // Two rings are required to avoid deadlocks: one for requests, one for responses.
+    //
+    // ===============================================================================
+
+    String clientControllerRingName = "Coherent_Scratchpad_" + integerToString(dataScratchpadID);
+    
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_REQ) link_mem_req <- 
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode(clientControllerRingName + "_Req", 0):
+        mkConnectionTokenRingNode(clientControllerRingName + "_Req", 0);
+
+    // Addressable ring
+    CONNECTION_ADDR_RING#(COH_SCRATCH_PORT_NUM, t_COH_SCRATCH_RESP) link_mem_resp <-
+        (`COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE == 0) ?
+        mkConnectionAddrRingNode(clientControllerRingName + "_Resp", 0):
+        mkConnectionTokenRingNode(clientControllerRingName + "_Resp", 0);
+
+    //
+    // collectClientReq --
+    //     Collect scratchpad client requests from the router.
+    // For write and fence requests, send ack back to the clients. 
+    //
+    (* fire_when_enabled *)
+    rule colletClientReq (True);
+        let req = link_mem_req.first();
+        link_mem_req.deq();
+        debugLog.record($format("    router: receive a client request: sender=%03d, addr=0x%x",
+                        req.requester, req.addr));
+        remoteReqQ.enq(req);
+    endrule
+    
+    // =======================================================================
+    //
+    // Responses
+    //
+    // =======================================================================
+    
+    (* fire_when_enabled *)
+    rule sendResponse (True);
+        let resp = localMemRespQ.first();
+        localMemRespQ.deq();
+        debugLog.record($format("    router: send a controller response: dest=%03d", tpl_1(resp)));
+        link_mem_resp.enq(tpl_1(resp), tpl_2(resp));
+    endrule
+
+    // =======================================================================
+    //
+    // Methods
+    //
+    // =======================================================================
+    
+    method Action sendResp(COH_SCRATCH_PORT_NUM dest, 
+                           COH_SCRATCH_CTRLR_PORT_NUM controllerId, 
+                           COH_SCRATCH_REMOTE_RESP#(t_DATA) resp);
+        localMemRespQ.enq(tuple2(dest,resp));
+        debugLog.record($format("    router: receive a controller response, dest=%03d", dest));
+    endmethod
+    
+    method ActionValue#(COH_SCRATCH_UNCACHED_CTRLR_REQ#(t_ADDR, t_DATA)) getReq();
+        let r = remoteReqQ.first();
+        remoteReqQ.deq();
+        return tuple2(r, ?);
+    endmethod
+
+    method COH_SCRATCH_UNCACHED_CTRLR_REQ#(t_ADDR, t_DATA) peekReq();
+        return tuple2(remoteReqQ.first(), ?);
+    endmethod
+
+endmodule
+
