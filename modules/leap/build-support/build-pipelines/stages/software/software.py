@@ -102,6 +102,10 @@ class Software():
                                                       '#/iface/build/include',
                                                       '.' ] + inc_paths)
         
+            # Scons does not use the external environment. If an external environment 
+            # variable is needed then it must be added to the $ENV construction variable
+            sw_env.Append(ENV = {'CPLUS_INCLUDE_PATH' : os.environ['CPLUS_INCLUDE_PATH']})
+
             sw_env['DEFS']['CWD_REL'] = sw_env['DEFS']['ROOT_DIR_SW_MODEL']
 
             # this appears to be some secret sauce which works in x86 linux environments,
