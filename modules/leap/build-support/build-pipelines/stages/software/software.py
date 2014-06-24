@@ -41,7 +41,7 @@ class Software():
             libs = moduleList.swLibs
             whole_libs = []
             cc_flags = host_defs()
-            cc_flags += ' -fPIC -std=c++0x '
+            cc_flags += ' -fPIC -std=gnu++11 '
             cc_flags += ' ' + cpp_events_flag
             if (getDebug(moduleList)):
                 cc_flags += ' -DASIM_ENABLE_ASSERTIONS -DDEBUG'
