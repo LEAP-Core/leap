@@ -35,7 +35,7 @@ use Leap::RRR::Method::Base;
 our @ISA = qw(Leap::RRR::Method::Base);
 
 my $debug = 0;
-
+ 
 ##
 ## constructor
 ##
@@ -350,6 +350,12 @@ sub print_send_response_definition
     print $file $self->{name};
     print $file ")\n";
     print $file $indent . "                        };\n";
+
+    if($debug)
+    {
+        print $file $indent . "    \$display(\"" . $self->{name} . " sends header %h\", header);\n";
+    }
+
     if ($ifc eq "connection")
     {
         print $file $indent . "    link_resp.send(header);\n";
@@ -424,6 +430,13 @@ sub print_make_request_definition
     print $file $self->{name};
     print $file ")\n";
     print $file $indent . "                        };\n";
+
+
+    if($debug)
+    {
+        print $file $indent . "    \$display(\"" . $self->{name} . " sends header %h\", header);\n";
+    }
+
     if ($ifc eq "connection")
     {
         print $file $indent . "    link_req.send(header);\n";

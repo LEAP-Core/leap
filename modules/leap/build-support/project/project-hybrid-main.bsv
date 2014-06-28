@@ -37,7 +37,6 @@ import ModuleContext::*;
 `include "awb/provides/application_env.bsh"
 `include "awb/provides/fpgaenv.bsh"
 `include "awb/provides/virtual_platform.bsh"
-`include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/clocks_device.bsh"
 

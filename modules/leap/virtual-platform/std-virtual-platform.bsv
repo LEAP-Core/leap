@@ -43,6 +43,8 @@ import Vector::*;
 `include "awb/provides/platform_services.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/clocks_device.bsh"
+`include "awb/provides/platform_services.bsh"
+
 
 `include "awb/rrr/server_connections.bsh"
 `include "awb/rrr/client_connections.bsh"

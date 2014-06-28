@@ -53,6 +53,12 @@ class LIChain():
    
         return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":" + self.module_name + "Platform: " + self.platform() + " : sink->" + sinkPartnerChain + ":" + sinkPartnerModule +  "source->" +  sourcePartnerChain + ":" + sourcePartnerModule +  " }"
 
+    def unmatch(self):
+        self.matched = False
+        self.sourcePartnerChain = "unassigned"
+        self.sinkPartnerChain = "unassigned"
+        self.sourcePartnerModule = "unassigned"
+        self.sinkPartnerModule = "unassigned"
 
     def copy(self):
         newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)

@@ -70,17 +70,29 @@ class Bluesim():
     def modify_path_bdpi(path):
         return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
 
+    def modify_path_ba_local(path):
+        return modify_path_ba(moduleList, path)
+
+    LI_LINK_DIR = ""
+    if(not (getFirstPassLIGraph()) is None):
+      LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/:"
+
     bsc_sim_command += \
-        ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -p +:' + ALL_LIB_DIRS_FROM_ROOT +' -simdir ' + \
+        ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -p +:' + LI_LINK_DIR + ALL_LIB_DIRS_FROM_ROOT +' -simdir ' + \
         TMP_BSC_DIR + ' ' +\
         ' ' + moduleList.env['DEFS']['BDPI_CS']
 
-    if (getBuildPipelineDebug(moduleList) != 0):
-        for ba in moduleList.getAllDependencies('BA'):
-            print 'BA dep: ' + str(ba) + '\n'
 
-    def modify_path_ba_local(path):
-        return modify_path_ba(moduleList, path)
+    if (getBuildPipelineDebug(moduleList) != 0):
+        print "BLUESIM DEPS: \n" 
+        for ba in moduleList.getAllDependencies('BA'):
+            print 'Bluesim BA dep: ' + str(ba) + '\n'
+
+        for ba in map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GIVEN_BAS')):
+            print 'Bluesim GIVEN_BA dep: ' + str(ba) + '\n'
+
+        for ba in map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS')):
+            print 'Bluesim GEN_BA dep: ' + str(ba) + '\n'
 
     sbin = moduleList.env.Command(
         TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',

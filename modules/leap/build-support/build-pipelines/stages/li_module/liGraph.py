@@ -148,6 +148,7 @@ class LIGraph():
         # Should we make copies of modules here?  
         
         for module in otherModules:
+            module.unmatch()
             self.modules[module.name] = module
 
         # let's match up all those connections

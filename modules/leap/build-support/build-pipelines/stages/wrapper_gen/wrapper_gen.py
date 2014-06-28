@@ -4,6 +4,166 @@ from li_module import *
 
 from model import  *
 from config import  *
+
+# import bsv interface code
+from vector import *
+from interface import *
+from struct import *
+from method import *
+from prim import *
+
+
+def generateBAImport(module, importHandle):
+    ifc = ''
+
+    # do some bookkeeping on conenctions
+    incoming = 0
+    outgoing = 0
+    chains = len(module.chains)
+    for channel in module.channels:
+        if(channel.isSource()):                     
+            outgoing += 1
+        else:
+            incoming += 1
+
+
+    importHandle.write("\ninterface IMP_" + module.name + ";\n")
+    # Some modules may have a secondary interface.
+    if('BSV_IFC' in module.objectCache):
+        bsvIfc = eval(module.objectCache['BSV_IFC'][0])
+        bsvIfc.generateImportInterfaceTop(importHandle)
+
+    else:
+
+        for channel in module.channels:
+            if(channel.isSource()):
+                importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+            else:
+                importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+        for chain in module.chains:
+            importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
+            importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
+
+        
+    importHandle.write("endinterface\n\n")
+
+
+    importHandle.write('import "BVI" module mk_' + module.name + '_Converted (IMP_' + module.name + ');\n\n')
+
+    if('BSV_IFC' in module.objectCache):
+        #importHandle.write('default_clock clock(CLK);\n')
+        #importHandle.write('default_reset reset(RST_N) clocked_by(clock);\n')
+        bsvIfc.generateImport(importHandle)
+    else:
+        for channel in module.channels:
+            if(channel.isSource()):                     
+
+                importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                importHandle.write('\t\tmethod services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty notEmpty() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty);\n')
+                importHandle.write('\t\tmethod services_fst_outgoing_' + str(channel.module_idx) + '_first first() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_first);\n')
+                importHandle.write('\t\tmethod deq() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_deq) enable(EN_services_fst_outgoing_' + str(channel.module_idx) + '_deq);\n')
+                importHandle.write('\t\toutput_clock clock(CLK_services_fst_outgoing_' + str(channel.module_idx) + '_clock);\n')
+                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_outgoing_' + str(channel.module_idx) + '_reset);\n')
+                importHandle.write('\tendinterface\n\n')
+            else:
+
+                importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                importHandle.write('\t\tmethod try(services_fst_incoming_' + str(channel.module_idx) + '_try_d) ready(RDY_services_fst_incoming_' + str(channel.module_idx)  + '_try) enable(EN_services_fst_incoming_' + str(channel.module_idx) + '_try);\n')
+                importHandle.write('\t\tmethod services_fst_incoming_' + str(channel.module_idx) + '_success  success() ready( RDY_services_fst_incoming_' + str(channel.module_idx) + '_success);\n')
+                importHandle.write('\t\tmethod services_fst_incoming_' + str(channel.module_idx) + '_dequeued  dequeued() ready(RDY_services_fst_incoming_' + str(channel.module_idx) + '_dequeued);\n')
+                importHandle.write('\t\toutput_clock clock(CLK_services_fst_incoming_' + str(channel.module_idx) + '_clock);\n')
+                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_incoming_' + str(channel.module_idx) + '_reset);\n')
+                importHandle.write('\tendinterface\n\n')
+
+        for chain in module.chains:
+                importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
+                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty notEmpty() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty);\n')
+                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_outgoing_first first() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_first);\n')
+                importHandle.write('\t\tmethod deq() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq);\n')
+                importHandle.write('\t\toutput_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_outgoing_clock);\n')
+                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_outgoing_reset);\n')
+                importHandle.write('\tendinterface\n\n')
+
+                importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
+                importHandle.write('\t\tmethod try(services_fst_chains_' + str(chain.module_idx) + '_incoming_try_d) ready(RDY_services_fst_chains_' + str(chain.module_idx)  + '_incoming_try) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_incoming_try);\n')
+                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_incoming_success  success() ready( RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_success);\n')
+                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued  dequeued() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued);\n')
+                importHandle.write('\t\toutput_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_incoming_clock);\n')
+                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_incoming_reset);\n')
+                importHandle.write('\tendinterface\n\n')
+        
+            
+    # We cached scheduling and path information during the first pass. Use it now. 
+    importHandle.write(module.objectCache['BSV_PATH'][0] + '\n\n\n')
+    importHandle.write(module.objectCache['BSV_SCHED'][0] + '\n\n\n')
+
+    importHandle.write('endmodule\n\n')
+
+    # Change module generation code below here to use this new interface!
+                     
+    importHandle.write('(*synthesize*)\n')
+
+    if('BSV_IFC' in module.objectCache):        
+        ifc = bsvIfc.type
+        importHandle.write('module mk_' + module.name + '_Wrapper (' + ifc + ');\n')
+
+        # This code is very similar to module code below.  We should refactor.
+        importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n")
+
+        # two phases 1) interface definition.  I allow my children to define 2) interface binding I bind my children. 
+        bsvIfc.generateHierarchy(importHandle, '\t', 'm')
+        importHandle.write('return ' + bsvIfc.getDefinition()  + ';\n')
+
+    else:
+        ifc = 'SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + ', Empty)'
+
+        importHandle.write('module mk_' + module.name + '_Wrapper (' + ifc + ');\n')
+
+        # This code is very similar to module code below.  We should refactor.
+        importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n") 
+        module_body = ''
+
+        subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
+                           str(outgoing) + ", 0, 0, " + str(chains) + ")"
+        
+        for channel in module.channels:
+            if(channel.isSource()):                     
+                module_body += "\toutgoingVec[" + str(channel.module_idx) + "] = m.services_fst_outgoing_" + str(channel.module_idx) + ";\n"
+            else:
+                module_body += "\tincomingVec[" + str(channel.module_idx) + "] = m.services_fst_incoming_" + str(channel.module_idx) + ";\n"
+
+        for chain in module.chains:
+            module_body += "\tchainsVec[" + str(chain.module_idx) + "] = PHYSICAL_CHAIN{outgoing: m.services_fst_chains_" + str(chain.module_idx) + "_outgoing, incoming: m.services_fst_chains_" + str(chain.module_idx) + "_incoming};\n"
+
+        #declare interface vectors
+        importHandle.write("    Vector#(" + str(incoming) + ", PHYSICAL_CONNECTION_IN)  incomingVec = newVector();\n")
+        importHandle.write("    Vector#(" + str(outgoing) + ", PHYSICAL_CONNECTION_OUT) outgoingVec = newVector();\n")
+        importHandle.write("    Vector#(" + str(chains) + ", PHYSICAL_CHAIN) chainsVec = newVector();\n")
+
+        # lay down module body
+        importHandle.write(module_body)
+                        
+        # fill in external interface 
+
+        importHandle.write("    let clk <- exposeCurrentClock();\n")
+        importHandle.write("    let rst <- exposeCurrentReset();\n")
+
+        importHandle.write("    " + subinterfaceType + " moduleIfc = interface WITH_CONNECTIONS;\n")
+        importHandle.write("        interface incoming = incomingVec;\n")
+        importHandle.write("        interface outgoing = outgoingVec;\n")
+        importHandle.write("        interface chains = chainsVec;\n")                                   
+        importHandle.write("        interface incomingMultis = replicate(PHYSICAL_CONNECTION_IN_MULTI{try: ?, success: ?, clock: clk, reset: rst});\n")
+        importHandle.write("        interface outgoingMultis = replicate(PHYSICAL_CONNECTION_OUT_MULTI{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst});\n")
+        importHandle.write("    endinterface;\n")
+                                     
+        importHandle.write("    interface services = tuple3(moduleIfc,?,?);\n")
+        importHandle.write("    interface device = ?;//e2;\n")
+
+        
+    importHandle.write("endmodule\n\n")        
+
+    return ifc
+         
  
 # Load up LI graph from first pass. For now, we assume that this comes
 # from a file, but eventually this will be generated from the first
@@ -20,12 +180,121 @@ def getFirstPassLIGraph():
         return firstPassGraph
     return None
 
-def generateSynthStub(moduleList, module):
+
+def generateSynthWrapper(liModule, synthHandle, moduleType='Empty', extraImports=[]):
+    synthHandle.write("//Generated by liModule.py\n")
+
+    # It may be the case that a module has no li channels. If this is
+    # the case, drop it.  This seems to prevent downstream tools from
+    # erroring on empty modules.
+    if((len(liModule.channels) == 0) and (len(liModule.chains) == 0)):
+        synthHandle.write("\n\nmodule [Connected_Module] " + str(liModule.name) + "(" + moduleType + ");\n")
+        synthHandle.write("    //Module has been optimized away.\n")
+        synthHandle.write("    return ?;\n")
+        synthHandle.write("endmodule\n")
+        return
+
+    synthHandle.write("`ifndef BUILD_" + str(liModule.name) +  "_WRAPPER\n") # these may not be needed
+    synthHandle.write("`define BUILD_" + str(liModule.name) + "_WRAPPER\n")
+    synthHandle.write('import Vector::*;\n')
+    for importStm in extraImports:
+            synthHandle.write('import ' + importStm + '::*;\n')
+    synthHandle.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
+    synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')    
+    #synthHandle.write('`include "' + liModule.name + '_compile.bsv"\n')    
+    synthHandle.write('import ' + liModule.name + '_Wrapper::*;\n')      
+
+    generateSynthModule(liModule, synthHandle, moduleType)
+
+    synthHandle.write("`endif\n")
+
+def generateSynthModule(liModule, synthHandle, moduleType='Empty'):
+    synthHandle.write("\n\nmodule [Connected_Module] " + liModule.name + "(" + moduleType + ");\n")
+
+    synthHandle.write("    let mod <- liftModule(mk_" + liModule.name + '_Wrapper' + "());\n")
+    synthHandle.write("    let connections = tpl_1(mod.services);\n")
+
+    # these strings should probably made functions in the
+    # liChannel code
+    for channel in liModule.channels:
+        ch_reg_stmt = 'registerRecv'
+        ch_type = 'LOGICAL_RECV_INFO'
+        ch_src = 'incoming'
+        if (channel.isSource()):
+            ch_reg_stmt = 'registerSend'
+            ch_type = 'LOGICAL_SEND_INFO'
+            ch_src = 'outgoing'
+
+        synthHandle.write('    ' + ch_reg_stmt + '("' + channel.name + '", ' + ch_type +\
+                        ' { logicalType: "' + channel.raw_type +\
+                        '", optional: ' +\
+                        str(channel.optional) + ', ' + ch_src + ': connections.' + ch_src +'[' +\
+                        str(channel.module_idx) + '], bitWidth:' + str(channel.bitwidth) +\
+                        ', moduleName: "' + channel.module_name + '"});\n')   
+
+    for chain in liModule.chains:
+        synthHandle.write('    registerChain(LOGICAL_CHAIN_INFO { logicalName: "' +\
+                        chain.name + '", logicalType: "' + chain.raw_type +\
+                        '", incoming: connections.chains[' + str(chain.module_idx) +\
+                        '].incoming, outgoing: connections.chains[' + str(chain.module_idx) +\
+                        '].outgoing, bitWidth:' + str(chain.bitwidth) +\
+                        ', moduleNameIncoming: "' + chain.module_name +\
+                        '",  moduleNameOutgoing: "' + chain.module_name + '"});\n')   
+
+    synthHandle.write("    return mod.device;\n")
+
+    synthHandle.write("endmodule\n")
+
+
+def generateConnectionBSH(liModule, bshHandle):
+    send = 0
+    recv = 0
+   
+    for channel in liModule.channels:
+        if (channel.isSource()):
+            send += 1
+        else:
+            recv += 1
+    chains = len(liModule.chains)
+
+    bshHandle.write("//Generated by liModule.py\n")
+    bshHandle.write("`ifndef CON_RECV_" + liModule.name + "\n")
+    bshHandle.write("`define CON_RECV_" + liModule.name + " " + str(recv) + "\n")
+    bshHandle.write("`endif\n")
+
+    bshHandle.write("`ifndef CON_SEND_" + liModule.name + "\n")
+    bshHandle.write("`define CON_SEND_" + liModule.name + " " + str(send) + "\n")
+    bshHandle.write("`endif\n")
+    bshHandle.write("`ifndef CON_RECV_MULTI_" + liModule.name + "\n")
+    bshHandle.write("`define CON_RECV_MULTI_" + liModule.name + " 0\n")
+    bshHandle.write("`endif\n")
+
+    bshHandle.write("`ifndef CHAINS_" + liModule.name + "\n")
+    bshHandle.write("`define CHAINS_" + liModule.name + " " + str(chains) + "\n")
+    bshHandle.write("`endif\n")
+
+    bshHandle.write("`ifndef CON_SEND_MULTI_" + liModule.name + "\n")
+    bshHandle.write("`define CON_SEND_MULTI_" + liModule.name + " 0\n")
+    bshHandle.write("`endif\n")
+
+def getSynthHandle(moduleList, module):
     compileWrapperPath = get_build_path(moduleList, module)
-    wrapper = open( compileWrapperPath + '/' + module.name + '_synth.bsv', 'w')
+    return open( compileWrapperPath + '/' + module.name + '_synth.bsv', 'w')
+
+def generateSynthStub(moduleList, module):
+    wrapper = getSynthHandle(moduleList, module)
+       
     wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
     wrapper.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
+    wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
+    wrapper.write('`include "awb/provides/soft_services_lib.bsh"\n')
+    wrapper.write('`include "awb/provides/soft_services.bsh"\n')
+    wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
+    wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
+    wrapper.write('`include "awb/provides/soft_connections_latency.bsh"\n')
+    wrapper.write('`include "awb/provides/physical_platform_utils.bsh"\n')
 
+    compileWrapperPath = get_build_path(moduleList, module)
     conSizePath =  compileWrapperPath + '/' + module.name + "_Wrapper_con_size.bsh"
     wrapper.write('import ' + module.name + '_Wrapper::*;\n')        
 
@@ -80,7 +349,14 @@ class WrapperGen():
     # The LIM compiler uniquifies synthesis boundary names  
     uidOffset = int(moduleList.getAWBParam('wrapper_gen_tool', 'MODULE_UID_OFFSET'))
 
+    self.firstPassLIGraph = getFirstPassLIGraph()
+
+    # We only inject the platform wrapper in first pass builds.  In
+    # the second pass, we import the first pass object code.  It may
+    # be that we need this code?
+
     # Inject a synth boundary for platform build code. 
+    platformName = moduleList.localPlatformName + '_platform'
     platformDeps = {}
     platformDeps['GEN_VERILOGS'] = []
     platformDeps['GEN_BAS'] = []
@@ -88,11 +364,11 @@ class WrapperGen():
     platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh']
     platformDeps['BA'] = []
     platformDeps['STR'] = []
-    platformDeps['VERILOG'] = [topModulePath + '/' + TMP_BSC_DIR + '/mk_' + moduleList.localPlatformName + '_Wrapper.v']
+    platformDeps['VERILOG'] = [topModulePath + '/' + TMP_BSC_DIR + '/mk_' + platformName + '_Wrapper.v']
     platformDeps['BSV_LOG'] = []
     platformDeps['VERILOG_STUB'] = []
        
-    platform_module = Module( moduleList.localPlatformName, ["mkVirtualPlatform"], moduleList.topModule.buildPath,\
+    platform_module = Module( platformName, ["mkVirtualPlatform"], moduleList.topModule.buildPath,\
                           moduleList.topModule.name,\
                           [], moduleList.topModule.name, [], platformDeps, platformModule=True)
 
@@ -100,13 +376,40 @@ class WrapperGen():
     platform_module.interfaceType = 'VIRTUAL_PLATFORM'
     platform_module.extraImports = ['virtual_platform']
 
-    moduleList.insertModule(platform_module)
-    moduleList.graphize()
-    moduleList.graphizeSynth()
 
-    # Sprinkle more files expected by the two-pass build.  
-    generateWrapperStub(moduleList, platform_module)
-    generateAWBCompileWrapper(moduleList, platform_module)
+    if(self.firstPassLIGraph is None):
+        moduleList.insertModule(platform_module)
+        moduleList.graphize()
+        moduleList.graphizeSynth()
+            
+        # Sprinkle more files expected by the two-pass build.  
+        generateWrapperStub(moduleList, platform_module)
+        generateAWBCompileWrapper(moduleList, platform_module)
+
+    else:
+        platform_module_li =  self.firstPassLIGraph.modules[moduleList.localPlatformName + '_platform']
+
+        # This gives us the right path. 
+        synthHandle = getSynthHandle(moduleList, platform_module)
+
+        # throw in some includes...
+        synthHandle.write('import HList::*;\n')
+        synthHandle.write('import Vector::*;\n')
+        synthHandle.write('import ModuleContext::*;\n')
+        synthHandle.write('import GetPut::*;\n')
+        synthHandle.write('import Clocks::*;\n')
+        synthHandle.write('`include "awb/provides/virtual_platform.bsh"\n')
+        synthHandle.write('`include "awb/provides/physical_platform.bsh"\n')
+        synthHandle.write('`include "awb/provides/clocks_device.bsh"\n')
+        synthHandle.write('`include "awb/provides/soft_services.bsh"\n')
+        synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')
+        synthHandle.write('`include "awb/provides/soft_services_lib.bsh"\n')
+
+        # May need an extra import here?
+        # get the platform module from the LIGraph            
+        generateBAImport(platform_module_li, synthHandle)
+        # include synth stub here....
+        generateSynthModule(platform_module_li, synthHandle, platform_module.interfaceType)
 
     ## Here we use a module list sorted alphabetically in order to guarantee
     ## the generated wrapper files are consistent.  The topological sort
@@ -222,13 +525,13 @@ class WrapperGen():
             wrapper_bsv.write('`endif\n'); 
 
 
-        wrapper_bsv.write('    import ' + moduleList.localPlatformName +'_synth::*;\n'); 
+        # Import platform wrapper.
+        wrapper_bsv.write('    import ' + moduleList.localPlatformName +'_platform_synth::*;\n'); 
+
         wrapper_bsv.write('    module [Connected_Module] instantiatePlatform ('+ platform_module.interfaceType +');\n')
-        wrapper_bsv.write('        let m <- ' + moduleList.localPlatformName + '();\n')
+        wrapper_bsv.write('        let m <- ' + moduleList.localPlatformName + '_platform();\n')
         wrapper_bsv.write('        return m;\n')
         wrapper_bsv.write('    endmodule\n')
-
-     
 
         wrapper_bsv.write('`include "' + module.name + '.bsv"\n')
 

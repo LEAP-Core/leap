@@ -44,6 +44,11 @@ class LIChannel():
 
         return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":Module " + self.module_name + ":Platform " + self.platform() + "-> PartnerChannel " + partnerChannel + ": partnerModule " + partnerModule + " }"
 
+    def unmatch(self):
+        self.partnerModule = "unassigned"
+        self.partnerChannel = "unassigned"
+        self.matched = False
+
     def copy(self):
         newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.type_structure)
         # Need to copy some other values as well...

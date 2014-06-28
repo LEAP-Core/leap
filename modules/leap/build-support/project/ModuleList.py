@@ -240,6 +240,13 @@ class ModuleList:
     # dependence entries to strings.                                                                                                                                                                                                        
     return list(set([str(dep) for dep in allDeps]))
 
+  def getModuleDependenciesWithPaths(self, module, key):
+    allDeps = [] 
+    if(module.moduleDependency.has_key(key)):
+      for dep in module.moduleDependency[key]: 
+        if(allDeps.count(dep) == 0):
+          allDeps.append(module.buildPath + '/' + dep)
+    return allDeps
 
   def getAllDependenciesWithPaths(self, key):
     # we must check to see if the dependencies actually exist.
@@ -249,11 +256,9 @@ class ModuleList:
       for dep in self.topModule.moduleDependency[key]:
         if(allDeps.count(dep) == 0):
           allDeps.append(self.topModule.buildPath + '/' + dep)
+
     for module in self.moduleList:
-      if(module.moduleDependency.has_key(key)):
-        for dep in module.moduleDependency[key]: 
-          if(allDeps.count(dep) == 0):
-            allDeps.append(module.buildPath + '/' + dep)
+      allDeps += self.getModuleDependenciesWithPaths(module,key)
 
     if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
