@@ -2,22 +2,119 @@ Coherent Scratchpad Memory Service
 
 This module provides the coherent scratchpad memory service. 
 
-To use the coherent scratchpad service, first, the coherence
-scratchpad memory data and its owner bit storage are registered 
-as Scratchpad entries in LEAP Dictionaries. 
+To use the coherent scratchpad service, first, the coherence scratchpad memory 
+data and its owner bit storage are registered as scratchpad entries in LEAP 
+Dictionaries. 
 
 def VDEV.SCRATCH.COH_DATA_A "Scratchpad for data in coherent region A";
 def VDEV.SCRATCH.COH_BITS_A "Scratchpad for owner bits of coherent region A";
 
 Then, the coherent scratchpad controller is constructed. 
-
-mkCoherentScratchpadController(`VDEV_SCRATCH_COH_DATA_A,
-                               `VDEV_SCRATCH_COH_BITS_A,
-                               addrSz,
-                               dataSz);
-
 Finally, the coherent scratchpad clients are constructed. 
 
-let client1 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA_A);
-let client2 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA_A);
+===============================================================================
+
+(i) Default setting: Single Coherent Scratchpad Controller
+    
+    (1) Instantiate the only coherent scratchpad controller in the coherence domain.
+    
+        COH_SCRATCH_CONTROLLER_CONFIG controllerConf = defaultValue;
+        
+        mkCoherentScratchpadController(`VDEV_SCRATCH_COH_DATA_A,
+                                       `VDEV_SCRATCH_COH_BITS_A,
+                                       addrSz,
+                                       dataSz,
+                                       controllerConf);
+    
+    
+    (2) The coherent scratchpad clients are constructed. 
+    
+        COH_SCRATCH_CLIENT_CONFIG clientConf = defaultValue;
+        let client1 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA_A, clientConf);
+        let client2 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA_A, clientConf);
+
+===============================================================================
+
+(ii) Multiple Coherent Scratchpad Controller Setting
+
+    There are multiple coherent scratchpad controllers in the coherence domain. 
+    Each controller is assigned with a partitioned memory address space. 
+    
+    (1) Each coherent scratchpad controller is assigned with a different 
+        dataScratchpadID and ownerbitScratchpadID. (data and ownerbit storage 
+        is partitioned)
+    
+        def VDEV.SCRATCH.COH_DATA1_A "Data scratchpad of controller 1 in coherent region A";
+        def VDEV.SCRATCH.COH_BITS1_A "Ownerbit scratchpad of controller 1 in coherent region A";
+     
+        def VDEV.SCRATCH.COH_DATA2_A "Data scratchpad of controller 2 in coherent region A";
+        def VDEV.SCRATCH.COH_BITS2_A "Ownerbit scratchpad of controller 2 in coherent region A";
+    
+    (2) Register a coherence domain ID
+        Coherent scratchpad controllers with the same coherenceDomainID are 
+        connected together.
+    
+        def VDEV.COH.SCRATCH.A       "coherence domain A";
+    
+    (3) Instantiate multiple coherent scratchpad controllers
+        // One of them needs to be a master controller
+        // The memory partition module is passed in as part of the COH_SCRATCH_CONTROLLER_CONFIG
+    
+        COH_SCRATCH_CONTROLLER_CONFIG controllerConf1 = defaultValue;
+        controllerConf1.multiController = True;
+        controllerConf1.coherenceDomainID = `VDEV_COH_SCRATCH_A;
+        controllerConf1.isMaster = True;
+        controllerConf1.partition = mkCohScratchControllerAddrPartition(baseAddr1, addrRange1, data_size); 
+        
+        mkCoherentScratchpadController(`VDEV_SCRATCH_COH_DATA1_A,
+                                       `VDEV_SCRATCH_COH_BITS1_A,
+                                       addrSz,
+                                       dataSz,
+                                       controllerConf1);
+    
+        COH_SCRATCH_CONTROLLER_CONFIG controllerConf2 = defaultValue;
+        controllerConf2.multiController = True;
+        controllerConf2.coherenceDomainID = `VDEV_COH_SCRATCH_A;
+        controllerConf2.isMaster = False;
+        controllerConf2.partition = mkCohScratchControllerAddrPartition(baseAddr2, addrRange2, data_size); 
+        
+        mkCoherentScratchpadController(`VDEV_SCRATCH_COH_DATA2_A,
+                                       `VDEV_SCRATCH_COH_BITS2_A,
+                                       addrSz,
+                                       dataSz,
+                                       controllerConf2);
+    
+    (4) Assign coherent scratchpad clients to each controller 
+        (using the unique dataScratchpadID)
+
+        Ex: client1 and client2 are connected to the first controller, and 
+            client3 is connected to the second one.
+
+        COH_SCRATCH_CLIENT_CONFIG clientConf = defaultValue;
+        clientConf.multiController = True;
+        
+        let client1 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA1_A, clientConf);
+        let client2 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA1_A, clientConf);
+        let client3 <- mkCoherentScratchpadClient(`VDEV_SCRATCH_COH_DATA2_A, clientConf);
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+Remote Access settings:
+
+    The coherent scratchpad service also provides the remote access 
+    configuration. Under the remote access configuration, coherent scratchpad 
+    clients do not have private caches. Therefore, there is no coherence protocol
+    involved. Clients' requests are forwarded to the controller to share a 
+    centralized data scratchpad, and the scratchpad's responses are forwarded 
+    back to the clients. 
+
+    The remote access configuration also allows multiple controllers. 
+    The scratchpad/coherence domain dictionary registration and the controller/client
+    instantiation remain the same. 
+
+    The only thing that needs to change is the controller and client configuration.
+
+    controllerConf.cacheMode = COH_SCRATCH_UNCACHED;
+    clientConf.cacheMode = COH_SCRATCH_UNCACHED;
 

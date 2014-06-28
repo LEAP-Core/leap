@@ -41,7 +41,7 @@ class Software():
             libs = moduleList.swLibs
             whole_libs = []
             cc_flags = host_defs()
-            cc_flags += ' -fPIC -std=c++0x '
+            cc_flags += ' -fPIC -std=gnu++11 '
             cc_flags += ' ' + cpp_events_flag
             if (getDebug(moduleList)):
                 cc_flags += ' -DASIM_ENABLE_ASSERTIONS -DDEBUG'
@@ -102,6 +102,11 @@ class Software():
                                                       '#/iface/build/include',
                                                       '.' ] + inc_paths)
         
+            # Scons does not use the external environment. If an external environment 
+            # variable is needed then it must be added to the $ENV construction variable
+            if os.environ.has_key('CPLUS_INCLUDE_PATH'):
+                sw_env.Append(ENV = {'CPLUS_INCLUDE_PATH' : os.environ['CPLUS_INCLUDE_PATH']})
+
             sw_env['DEFS']['CWD_REL'] = sw_env['DEFS']['ROOT_DIR_SW_MODEL']
 
             # this appears to be some secret sauce which works in x86 linux environments,
