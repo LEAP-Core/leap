@@ -148,14 +148,11 @@ class BSV():
             do_dump_lim_graph = self.BUILD_LOGS_ONLY
             if do_dump_lim_graph:
                 lim_logs = []
-                all_logs = []
                 lim_stubs = []
                 for module in topo:
                     # scrub tree build/platform, which are redundant. 
                     lim_logs.extend(module.moduleDependency['BSV_LOG'])
                     lim_stubs.extend(module.moduleDependency['GEN_VERILOG_STUB'])
-                for module in  moduleList.topologicalOrderSynth():
-                    all_logs.extend(module.moduleDependency['BSV_LOG'])
 
                 li_graph = moduleList.env['DEFS']['APM_NAME'] + '.li'
 
@@ -165,7 +162,6 @@ class BSV():
                 ## Probably this result could be acheived with the mergeGraphs
                 ## function.
                 def dump_lim_graph(target, source, env):
-            
                     # removing platform modules above allows us to use the logs directly.
                     fullLIGraph = LIGraph(parseLogfiles(lim_logs)) 
 
@@ -179,7 +175,6 @@ class BSV():
                     for module in topo + [moduleList.topModule]:
                         modulePath = module.buildPath
 
-                        # Add references to object code to graph module
                         def addBuildPath(fileName):
                             if(not os.path.isabs(fileName)): 
                                 # does this file contain a partial path?
@@ -246,7 +241,7 @@ class BSV():
                 # from only LI modules, the top wrapper contains
                 # sizing information. Also needs stubs.
                 dumpGraph = env.Command(li_graph,
-                                        all_logs + lim_stubs,
+                                        lim_logs + lim_stubs,
                                         dump_lim_graph)
 
                 moduleList.topModule.moduleDependency['LIM_GRAPH'] = [li_graph]
@@ -334,7 +329,12 @@ class BSV():
                 bo_handle.write('`include "build_tree_Wrapper.bsv"\n')
 
                 bo_handle.close()
-        
+                
+                # Calling generateWrapperStub will write out default _Wrapper.bsv
+                # and _Log.bsv files for build tree. However, these files 
+                # may already exists, and, in the case of build_tree_Wrapper.bsv,
+                # have meaningful content.  Fortunately, generateWrapperStub
+                # will not over write existing files. 
                 generateWrapperStub(moduleList, tree_module)
                 generateAWBCompileWrapper(moduleList, tree_module)
                 topo.append(tree_module)
@@ -469,8 +469,6 @@ class BSV():
 
 
         # skip submodule builds if we're importing object code. 
-        #if((not self.firstPassLIGraph is None) and (module.name != moduleList.topModule.name)):
-        #    return []
 
         ##
         ## Load intra-Bluespec dependence already computed.  This information will
@@ -497,6 +495,7 @@ class BSV():
             ##
             logfile = get_logfile(moduleList, module)
             module.moduleDependency['BSV_LOG'] += [logfile]
+            module.moduleDependency['GEN_LOGS'] = [logfile]
             if (module.name != moduleList.topModule.name): 
                 log = env.BSC_LOG_ONLY(logfile, MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log'))
 
@@ -543,7 +542,7 @@ class BSV():
 
 
                 ## In case Bluespec build is the end of the build pipeline.
-                if(not self.firstPassLIGraph is None):       
+                if(not self.BUILD_LOGS_ONLY):
                     moduleList.topDependency += [logfile]
                 
                 ## The toplevel bo also depends on the on the synthesis of the build tree from log files.
@@ -580,8 +579,7 @@ class BSV():
                             synthModule = LIModule(module.name, module.name)
                         else:
                             synthModule = liGraph.modules.values()[0]
-                        print "built using " + logIn
-                        print "SYNTH STUB: " + str(synthModule)
+
                         synth_handle = open(str(target[0]), 'w')
                         generateSynthWrapper(synthModule, synth_handle, moduleType=module.interfaceType, extraImports=module.extraImports)
                         synth_handle.close()
@@ -807,7 +805,6 @@ class BSV():
         ## invoked in the 2nd pass of SCons.
         ##
         def cut_tree_build(target, source, env):
-            pipeline_debug = True
             # If we got a graph from the first pass, merge it in now.
             if(self.firstPassLIGraph is None):
                 liGraph = LIGraph(parseLogfiles(boundary_logs))
@@ -823,36 +820,26 @@ class BSV():
 
             synth_handle = open(tree_file_synth,'w')
             wrapper_handle = open(tree_file_wrapper,'w')
-            import_handle = wrapper_handle #open(tree_file_import,'w')
 
             fileID = 0
-            for tree_file in [wrapper_handle, synth_handle, import_handle]:
+            for tree_file in [wrapper_handle, synth_handle]:
                 fileID = fileID + 1
                 tree_file.write("//Generated by BSV.py\n")
                 tree_file.write("`ifndef BUILD_" + str(fileID) +  "\n") # these may not be needed
                 tree_file.write("`define BUILD_" + str(fileID) + "\n")
                 tree_file.write('import Vector::*;\n')
-                tree_file.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
-                tree_file.write('`include "awb/provides/soft_connections.bsh"\n')
-                tree_file.write('`include "awb/provides/librl_bsv_base.bsh"\n')
-                tree_file.write('`include "awb/provides/soft_connections.bsh"\n')
-                tree_file.write('`include "awb/provides/soft_services_lib.bsh"\n')
-                tree_file.write('`include "awb/provides/soft_services.bsh"\n')
-                tree_file.write('`include "awb/provides/soft_services_deps.bsh"\n')
-                tree_file.write('`include "awb/provides/soft_connections_debug.bsh"\n')
-                tree_file.write('`include "awb/provides/soft_connections_latency.bsh"\n')
-                tree_file.write('`include "awb/provides/physical_platform_utils.bsh"\n')
+                generateWellKnownIncludes(tree_file)
                 tree_file.write('// import non-synthesis public files\n')
-        
-            # include all the dependencies in the graph in the wrapper. 
-            for module in liGraph.graph.nodes():
+                tree_file.write('`include "build_tree_compile.bsv"\n')        
+
+            # include all the dependencies in the graph in the wrapper.                 
+            for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
                 if(not useBVI):                                   
                     wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')       
 
                 # If we use the BVI indirection, we should write out an import file. 
                 else:
-                    generateBAImport(module, import_handle)
-                    
+                    generateBAImport(module, wrapper_handle)
          
             wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
 
@@ -1252,9 +1239,9 @@ class BSV():
         # pass may be missing.  We insert these modules as objects in
         # the ModuleList.
 
-        def makeAWBLink(doLink, absPath):
+        def makeAWBLink(doLink, absPath, buildPath):
             baseFile = os.path.basename(absPath)
-            linkPath = get_build_path(moduleList, moduleList.topModule) + "/.li/" + baseFile
+            linkPath =  buildPath + "/.li/" + baseFile
             if(doLink):
                 if(os.path.lexists(linkPath)):
                     os.remove(linkPath)
@@ -1284,13 +1271,13 @@ class BSV():
                              must_exist = not moduleList.env.GetOption('clean'))
 
             oldStubs = []
-
+            buildPath = get_build_path(moduleList, moduleList.topModule)
             for module in self.firstPassLIGraph.modules.values():
                 moduleDeps = {}
 
                 for objType in ['BA', 'GEN_BAS', 'GEN_VERILOG_STUB', 'STR']:
                     if(objType in module.objectCache):
-                        localNames =  map(lambda fileName: makeAWBLink(False, fileName), module.objectCache[objType])
+                        localNames =  map(lambda fileName: makeAWBLink(False, fileName, buildPath), module.objectCache[objType])
                         # The previous passes GEN_VERILOGS are not
                         # really generated here, so we can't call them
                         # as such. Tuck them in to 'VERILOG'
@@ -1374,28 +1361,25 @@ class BSV():
         ## pollute the existing build.  Here, we link to the relevant
         ## files in that directory.
 
-        def linkLIMObjModules(target, source, env, liModules):
-            if(not self.firstPassLIGraph is None):
-                # The LIM build has passed us some source and we need
-                # to patch it through.
-                for module in liModules:
-                    if('BA' in module.objectCache):
-                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['BA'])
-                    if('GEN_BAS' in module.objectCache):
-                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_BAS'])
-                    #if('GEN_VERILOGS' in module.objectCache):
-                    #    map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_VERILOGS'])
-                    #if('GEN_WRAPPER_VERILOGS' in module.objectCache):
-                    #    map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_WRAPPER_VERILOGS'])
-                    if('GEN_VERILOG_STUB' in module.objectCache):
-                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_VERILOG_STUB'])
-                    if('STR' in module.objectCache):
-                        map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['STR'])
-                    
-                
-        def linkLIMObjClosure(liModules):
+        def linkLIMObjClosure(liModules, buildPath):
             def linkLIMObj(target, source, env):
-                linkLIMObjModules(target, source, env, liModules)
+                if(not self.firstPassLIGraph is None):
+                    # The LIM build has passed us some source and we need
+                    # to patch it through.
+                    for module in liModules:
+                        if('BA' in module.objectCache):
+                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['BA'])
+                        if('GEN_BAS' in module.objectCache):
+                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_BAS'])
+                        #if('GEN_VERILOGS' in module.objectCache):
+                        #    map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_VERILOGS'])
+                        #if('GEN_WRAPPER_VERILOGS' in module.objectCache):
+                        #    map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_WRAPPER_VERILOGS'])
+                        if('GEN_VERILOG_STUB' in module.objectCache):
+                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_VERILOG_STUB'])
+                        if('STR' in module.objectCache):
+                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['STR'])
+                                                         
             return linkLIMObj
 
 
@@ -1418,7 +1402,8 @@ class BSV():
 
         # If we got a first pass LI graph, we need to link its object codes. 
         if(not self.firstPassLIGraph is None):
-            link_lim_user_objs = env.Command(limLinkUserTargets, limLinkUserSources, linkLIMObjClosure(getUserModules(self.firstPassLIGraph)))
+            buildPath = get_build_path(moduleList, moduleList.topModule)
+            link_lim_user_objs = env.Command(limLinkUserTargets, limLinkUserSources, linkLIMObjClosure(getUserModules(self.firstPassLIGraph), buildPath))
             env.Depends(link_lim_user_objs, tree_file_wrapper_bo)
 
 
@@ -1459,7 +1444,8 @@ class BSV():
        
         # Platform synth does the same object-bypass dance as tree_module.
         if(not self.firstPassLIGraph is None):
-            link_lim_platform_objs = env.Command(limLinkPlatformTargets, limLinkPlatformSources, linkLIMObjClosure(getPlatformModules(self.firstPassLIGraph)))
+            buildPath = get_build_path(moduleList, moduleList.topModule)
+            link_lim_platform_objs = env.Command(limLinkPlatformTargets, limLinkPlatformSources, linkLIMObjClosure(getPlatformModules(self.firstPassLIGraph), buildPath))
             env.Depends(link_lim_platform_objs, platform_synth_bo)
 
         # need to generate a stub file for the build tree module.

@@ -45,6 +45,11 @@ import Vector::*;
 `include "awb/provides/clocks_device.bsh"
 `include "awb/provides/platform_services.bsh"
 
+// pick up definition of INSTANTIATE_ROUTERS_Z
+`include "awb/provides/model_params.bsh"
+`ifndef INSTANTIATE_ROUTERS_Z
+`include "multifpga_routing.bsh"
+`endif
 
 `include "awb/rrr/server_connections.bsh"
 `include "awb/rrr/client_connections.bsh"
@@ -92,6 +97,17 @@ module [CONNECTED_MODULE] mkVirtualPlatform
         let rrrServerLinks <- mkServerConnections(llpi.rrrServer, clocked_by clk, reset_by rst);
         let rrrClientLinks <- mkClientConnections(llpi.rrrClient, clocked_by clk, reset_by rst);
     end
+
+
+
+    // We use a hackish means of obtaining information about the width of 
+    // the platform interconnects -- we generate a stub router service which 
+    // exports them.  Virtual platforms instantiate this stub service so
+    // that the lim compilation gets the information. No hardware is instantiated.
+`ifndef INSTANTIATE_ROUTERS_Z
+    let routes <-  mkCommunicationModule(llpi.physicalDrivers, clocked_by clk, reset_by rst);
+`endif
+
 
     interface physicalDrivers = llpi.physicalDrivers;
     interface topLevelWires = llpi.topLevelWires;

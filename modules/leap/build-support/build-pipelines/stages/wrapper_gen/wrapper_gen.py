@@ -12,6 +12,18 @@ from struct import *
 from method import *
 from prim import *
 
+# Scons really, really wants dependencies to be ordered. 
+def generateWellKnownIncludes(fileHandle):
+     fileHandle.write('// These are well-known/required leap modules\n')
+     fileHandle.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
+     fileHandle.write('`include "awb/provides/soft_connections.bsh"\n')
+     fileHandle.write('`include "awb/provides/soft_services_lib.bsh"\n')
+     fileHandle.write('`include "awb/provides/soft_services.bsh"\n')
+     fileHandle.write('`include "awb/provides/soft_services_deps.bsh"\n')
+     fileHandle.write('`include "awb/provides/soft_connections_debug.bsh"\n')
+     fileHandle.write('`include "awb/provides/soft_connections_latency.bsh"\n')
+     fileHandle.write('`include "awb/provides/physical_platform_utils.bsh"\n')
+     fileHandle.write('`include "awb/provides/librl_bsv_base.bsh"\n')
 
 def generateBAImport(module, importHandle):
     ifc = ''
@@ -201,7 +213,6 @@ def generateSynthWrapper(liModule, synthHandle, moduleType='Empty', extraImports
             synthHandle.write('import ' + importStm + '::*;\n')
     synthHandle.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
     synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')    
-    #synthHandle.write('`include "' + liModule.name + '_compile.bsv"\n')    
     synthHandle.write('import ' + liModule.name + '_Wrapper::*;\n')      
 
     generateSynthModule(liModule, synthHandle, moduleType)
@@ -307,31 +318,31 @@ def generateAWBCompileWrapper(moduleList, module):
     compileWrapperPath = get_build_path(moduleList, module)
     wrapper = open( compileWrapperPath + '/' + module.name + '_compile.bsv', 'w')
 
-    wrapper.write('//   This file was created by wrapper-gen')  
+    wrapper.write('//   AWB Compile Wrapper. This file was created by wrapper-gen\n')  
     wrapper.write('`define BUILDING_MODULE_' + module.name + '\n')
 
     for bsv in module.moduleDependency['GIVEN_BSVS']:
         wrapper.write('`include "' + bsv +'"\n')
     wrapper.close()
 
-def generateWrapperStub(moduleList, module):
+# This function generates wrapper stubs so that depends-init does the right thing. 
+def generateWrapperStub(moduleList, module, suffixes=['_Wrapper.bsv','_Log.bsv']):
     compileWrapperPath = get_build_path(moduleList, module)
-    for suffix in ['_Wrapper.bsv','_Log.bsv']:
-         wrapper = open( compileWrapperPath + '/' + module.name + suffix, 'w')
+    for suffix in suffixes:
+         # check for file's existance before overwriting. 
+         wrapperPath = compileWrapperPath + '/' + module.name + suffix
+         if(os.path.exists(wrapperPath)):
+             # No need to dump a spurious wrapper.
+             continue
 
-         wrapper.write('//   This file was created by wrapper-gen')  
+         wrapper = open(wrapperPath, 'w')
+
+         wrapper.write('//   Wrapper Stub. This file was created by wrapper-gen\n')  
 
          wrapper.write('import HList::*;\n')
          wrapper.write('import Vector::*;\n')
          wrapper.write('import ModuleContext::*;\n')
-         wrapper.write('// These are well-known/required leap modules\n')
-         wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
-         wrapper.write('`include "awb/provides/soft_services_lib.bsh"\n')
-         wrapper.write('`include "awb/provides/soft_services.bsh"\n')
-         wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
-         wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
-         wrapper.write('`include "awb/provides/soft_connections_latency.bsh"\n')
-         wrapper.write('`include "awb/provides/physical_platform_utils.bsh"\n')
+         generateWellKnownIncludes(wrapper)
          wrapper.write('// import non-synthesis public files\n')
          wrapper.write('`include "' + module.name + '_compile.bsv"\n')
 
@@ -383,6 +394,7 @@ class WrapperGen():
         moduleList.graphizeSynth()
             
         # Sprinkle more files expected by the two-pass build.  
+        print "Generating wrapper stub for platform_module.\n"
         generateWrapperStub(moduleList, platform_module)
         generateAWBCompileWrapper(moduleList, platform_module)
 
@@ -404,7 +416,7 @@ class WrapperGen():
         synthHandle.write('`include "awb/provides/soft_services.bsh"\n')
         synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')
         synthHandle.write('`include "awb/provides/soft_services_lib.bsh"\n')
-
+        synthHandle.write('`include "awb/provides/librl_bsv_base.bsh"\n')
         # May need an extra import here?
         # get the platform module from the LIGraph            
         generateBAImport(platform_module_li, synthHandle)
@@ -573,13 +585,8 @@ class WrapperGen():
 
         for wrapper in [wrapper_bsv, log_bsv]:      
             wrapper.write('// These are well-known/required leap modules\n')
-            wrapper.write('`include "awb/provides/soft_connections.bsh"\n')
-            wrapper.write('`include "awb/provides/soft_services_lib.bsh"\n')
-            wrapper.write('`include "awb/provides/soft_services.bsh"\n')
-            wrapper.write('`include "awb/provides/soft_services_deps.bsh"\n')
-            wrapper.write('`include "awb/provides/soft_connections_debug.bsh"\n')
-            wrapper.write('`include "awb/provides/soft_connections_latency.bsh"\n')
-            wrapper.write('`include "awb/provides/physical_platform_utils.bsh"\n')
+            generateWellKnownIncludes(wrapper)
+            wrapper.write('`include "awb/provides/librl_bsv_base.bsh"\n')
             wrapper.write('// import non-synthesis public files\n')
             wrapper.write('`include "' + module.name + '_compile.bsv"\n')
             wrapper.write('\n\n')

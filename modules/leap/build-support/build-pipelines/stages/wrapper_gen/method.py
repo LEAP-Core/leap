@@ -12,7 +12,6 @@ class Method():
     def generateImportInterface(self, interfaceHandle, namePrefix=''):
         #interfaces don't know their name. this must be propagated.
         argBindings = []
-        print "Examining Method " + namePrefix
         for arg in self.attributes['args']:
             argBindings.append(arg[0] + ' ' + arg[1])
             

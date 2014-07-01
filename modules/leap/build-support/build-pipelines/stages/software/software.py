@@ -256,13 +256,19 @@ class Software():
                 # Decorate LI modules with type
                 for module in fullLIGraph.modules.values():
                     module.putAttribute("EXECUTION_TYPE","SOFTWARE")
+                    module.putAttribute('MAPPING', moduleList.localPlatformName)
+                    module.putAttribute('PLATFORM_MODULE', True)
+                    # give module a pointer to its log files. 
+                    # this works because all software logs at this time are given
+                    relativeLogs = map(lambda filename:  os.path.abspath(filename), all_logs)
+                    module.putObjectCode('GIVEN_LOGS',relativeLogs)
 
                 # dump graph representation. 
                 pickleHandle = open(li_graph, 'wb')
                 pickle.dump(fullLIGraph, pickleHandle, protocol=-1)
                 pickleHandle.close()
 
-                if (self.pipeline_debug != 0 or True):
+                if (self.pipeline_debug != 0):
                     print "CPP Initial Graph is: " + str(fullLIGraph) + ": " + sys.version +"\n"
 
             # Setup the graph dump

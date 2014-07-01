@@ -128,7 +128,7 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem
     Reset rst = vp.physicalDrivers.clocksDriver.reset;
 
 `ifndef INSTANTIATE_ROUTERS_Z
-    let routes <- mkMultifpgaRouterServices(vp, clocked_by clk, reset_by rst);
+    let routes <- mkMultifpgaRouterServices(vp.physicalDrivers, clocked_by clk, reset_by rst);
 `endif
 
     //
