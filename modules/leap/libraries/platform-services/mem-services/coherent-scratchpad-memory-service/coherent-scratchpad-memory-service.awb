@@ -22,6 +22,11 @@
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM    32  "Number of prefetch learners in scratchpad private cache (must be a power of 2)"
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE          0  "Enable scratchpad private cache prefetcher"
 
+%param --global COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE              1  "0 store full forwarding list, 1 use response chaining"
+
+%param --global COHERENT_SCRATCHPAD_MAX_CLIENT_NUM                    32  "Maximum number of coherent scratchpad clients per controller"
+%param --global COHERENT_SCRATCHPAD_MAX_CONTROLLER_NUM                 4  "Maximum number of coherent scratchpad controllers in a coherence domain"
+
 %param --global COHERENT_SCRATCHPAD_MEMORY_ADDR_BITS                  40  "Word-level address bits per coherent scratchpad domain"
 %param --global COHERENT_SCRATCHPAD_CLIENT_META_BITS                   6  "Bits available to coherent scratchpad clients to tag out-of-order responses"
 %param --global COHERENT_SCRATCHPAD_CONTROLLER_META_BITS               8  "Bits available to coherent scratchpad controller to tag write back data"

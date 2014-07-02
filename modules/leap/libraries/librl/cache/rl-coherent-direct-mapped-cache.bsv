@@ -204,6 +204,7 @@ typedef struct
     Bool                      ownership;
     Bool                      isCacheable;
     Bool                      retry;
+    Bool                      getsFwd;
     RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 RL_COH_DM_CACHE_FILL_RESP#(type t_CACHE_WORD,
@@ -286,10 +287,13 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
     // Data owner sends responses to serve other caches
     // If it is not the owner, null response is sent to clear the entry in the 
     // completion table 
-    method Action sendResp(t_REQ_IDX reqIdx,
-                           t_CACHE_WORD val,
-                           Bool retry,
-                           Bool nullResp);
+    method Action sendResp(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_REQ_IDX,
+                                                             t_CACHE_WORD,
+                                                             t_CACHE_META,
+                                                             t_CACHE_ADDR) resp);
+    // Return the released forwarding entry index
+    // Cache will pass the information to MSHR in order to release the MSHR entry
+    method ActionValue#(t_CACHE_META) getReleasedFwdEntryIdx();
 
     //
     // Activated requests from the network
@@ -504,8 +508,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
               Alias#(RL_COH_DM_CACHE_LOCAL_REQ_INFO#(t_CACHE_CLIENT_META), t_LOCAL_REQ_INFO),
               Alias#(RL_COH_DM_CACHE_REQ#(t_CACHE_CLIENT_META, t_NW_REQ_IDX, t_CACHE_ADDR, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
               Alias#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META), t_CACHE_LOAD_RESP),
-              Alias#(RL_COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_MSHR_IDX), t_CACHE_FILL_RESP),
               Alias#(RL_COH_DM_CACHE_READ_META#(t_CACHE_CLIENT_META), t_CACHE_READ_META),
+              Alias#(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX, t_CACHE_WORD, t_MSHR_IDX, t_CACHE_ADDR), t_ROUTER_RESP),
               Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
 
               // Unactivated request counter bit size
@@ -1164,6 +1168,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     //
     // ========================================================================
     
+    FIFOF#(t_ROUTER_RESP) respToRouterQ <- mkFIFOF();
+    
     (* conservative_implicit_conditions *)
     rule remoteCacheLookup (cacheLookupQ.first().reqInfo matches tagged RemoteReqInfo .f);
         let r = cacheLookupQ.first();
@@ -1186,8 +1192,12 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             begin
                 upd_entry.state = COH_DM_CACHE_STATE_O;
                 coherenceFlushW.send();
-                sourceData.sendResp(f.reqIdx, cur_entry.val, False, False);
+                respToRouterQ.enq(tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
+                                                                                            val: cur_entry.val,
+                                                                                            retry: False });
                 resp_sent = True;
+                debugLog.record($format("    Cache: remoteLookup: REMOTE RESP: addr=0x%x, reqIdx=0x%x, val=0x%x, retry=False", 
+                                r.addr, f.reqIdx, cur_entry.val));
             end
             else if (f.reqType == COH_CACHE_GETX) 
             begin
@@ -1198,8 +1208,12 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 end
                 if ((cur_entry.state == COH_DM_CACHE_STATE_M) || (cur_entry.state == COH_DM_CACHE_STATE_O))
                 begin
-                    sourceData.sendResp(f.reqIdx, cur_entry.val, False, False);
+                    respToRouterQ.enq(tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
+                                                                                                val: cur_entry.val,
+                                                                                                retry: False });
                     resp_sent = True;
+                    debugLog.record($format("    Cache: remoteLookup: REMOTE RESP: addr=0x%x, reqIdx=0x%x, val=0x%x, retry=False", 
+                                    r.addr, f.reqIdx, cur_entry.val));
                 end
             end
             if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.idx == idx)
@@ -1211,6 +1225,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 need_bypass = True;
             end
             cache.write(idx, upd_entry);
+            debugLog.record($format("    Cache: remoteLookup: update cache state=%d", upd_entry.state));
         end
         else if (cur_entry.state == COH_DM_CACHE_STATE_TRANS || writebackStatusBits.sub(idx))
         begin
@@ -1224,8 +1239,13 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         // Send null response to remove the entry from the completion table
         if (!resp_sent)
         begin
-            sourceData.sendResp(f.reqIdx, ?, False, True);
-            debugLog.record($format("    Cache: remoteLookup: send resp to network: addr=0x%x, nullResp=True", r.addr));
+            let gets_fwd = (cur_entry.state == COH_DM_CACHE_STATE_S) && (cur_entry.tag == tag);
+            let null_resp = RL_COH_DM_CACHE_MSHR_NULL_RESP { reqIdx: f.reqIdx, 
+                                                             fwdEntryIdx: gets_fwd? tagged Valid truncateNP(idx) : tagged Invalid,
+                                                             reqAddr: r.addr };
+            respToRouterQ.enq(tagged MSHR_NULL_RESP null_resp);
+            debugLog.record($format("    Cache: remoteLookup: NULL RESP: addr=0x%x, reqIdx=0x%x", 
+                            r.addr, f.reqIdx));
         end
 
         updateBypassEntry(need_bypass, upd_entry);
@@ -1535,7 +1555,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         
         match {.tag, .idx} = cacheEntryFromAddr(f.addr);
         
-        debugLog.record($format("    Cache: fillResp: FILL addr=0x%x, entry=0x%x, msgType=%x, cacheable=%b, state=%d, val=0x%x", f.addr, idx, f.msgType, f.isCacheable, f.newState, f.val));
+        debugLog.record($format("    Cache: fillResp: FILL addr=0x%x, entry=0x%x, msgType=%x, cacheable=%b, state=%d, val=0x%x", 
+                        f.addr, idx, f.msgType, f.isCacheable, f.newState, f.val));
         
         t_CACHE_READ_META read_meta = unpack(f.clientMeta);
         t_CACHE_LOAD_RESP resp;
@@ -1632,6 +1653,14 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         end
     endrule
 
+    (*fire_when_enabled*)
+    rule sendRemoteRespFromCache (True);
+        let resp = respToRouterQ.first();
+        respToRouterQ.deq();
+        sourceData.sendResp(resp);
+    endrule
+
+
     // ====================================================================
     //
     // Connections between MSHR and sourceData
@@ -1652,9 +1681,10 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     // sendRemoteRespFromMSHR --
     //     Forward MSHR responses to the network
     //
+    (* descending_urgency = "sendRemoteRespFromCache, sendRemoteRespFromMSHR" *)
     rule sendRemoteRespFromMSHR (True);
         let f <- mshr.remoteResp();
-        sourceData.sendResp(f.reqIdx, f.val, f.retry, f.nullResp);
+        sourceData.sendResp(f);
     endrule
 
     //
@@ -1667,6 +1697,17 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         debugLog.record($format("    Cache: resendGetXFromMSHR: resend GETX req: addr=0x%x, mshr_idx=0x%x", addr, idx));
     endrule
 
+    //
+    // releaseMSHRGetEntry --
+    //     Receive response from router saying that the forwarding entry is released
+    // Inform MSHR to release the associated GET entry
+    //
+    (*fire_when_enabled*)
+    rule releaseMSHRGetEntry (True);
+        let idx <- sourceData.getReleasedFwdEntryIdx();
+        mshr.releaseGetEntry(idx);
+        debugLog.record($format("    Cache: releaseMSHRGetEntry: release MSHR entry=0x%x", idx));
+    endrule
 
     // ====================================================================
     //

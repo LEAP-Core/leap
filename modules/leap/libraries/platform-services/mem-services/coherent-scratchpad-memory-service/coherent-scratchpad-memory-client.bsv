@@ -814,14 +814,12 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
       
 endmodule
 
-
 typedef struct
 {
     COH_SCRATCH_PORT_NUM       requester;
     COH_SCRATCH_CTRLR_PORT_NUM reqControllerId;
     COH_SCRATCH_MEM_VALUE      val;
     Bool                       ownership;
-    Bool                       isCacheable;
     Bool                       retry;
     COH_SCRATCH_META           meta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
@@ -829,6 +827,39 @@ typedef struct
 RL_COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY
     deriving(Bits, Eq);
 
+
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+
+typedef struct
+{
+    COH_SCRATCH_MEM_VALUE       val;
+    COH_SCRATCH_PORT_NUM        clientId;
+    COH_SCRATCH_CTRLR_PORT_NUM  controllerId;
+    Bool                        isGetx;
+    COH_SCRATCH_CLIENT_META     clientMeta;
+    RL_CACHE_GLOBAL_READ_META   globalReadMeta;
+    Bool                        multiFwd;
+    COH_SCRATCH_PORT_NUM        lastClientId;
+    COH_SCRATCH_CTRLR_PORT_NUM  lastControllerId;
+    Bool                        getsFwd;
+}
+RL_COH_DM_CACHE_FWD_TABLE_ENTRY
+    deriving(Bits, Eq);
+
+`else
+
+typedef struct
+{
+    COH_SCRATCH_MEM_VALUE       val;
+    Vector#(n_ENTRIES, Bool)    forwardMeta;
+    Bool                        hasGetx;
+    COH_SCRATCH_PORT_NUM        getxRequester;
+    COH_SCRATCH_CTRLR_PORT_NUM  getxReqControllerId;
+}
+RL_COH_DM_CACHE_FWD_TABLE_ENTRY#(numeric type n_ENTRIES)
+    deriving(Bits, Eq);
+
+`endif
 
 //
 // Statistics wires for coherent scratchpad ring nodes.
@@ -859,13 +890,28 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
               Bits#(t_CACHE_META, t_CACHE_META_SZ),
               Bits#(t_REQ_IDX, t_REQ_IDX_SZ),
               NumAlias#(TExp#(t_REQ_IDX_SZ), n_REQ_TABLE_ENTRIES),
+              NumAlias#(TExp#(t_CACHE_META_SZ), n_FWD_TABLE_ENTRIES),
               Alias#(COH_SCRATCH_MEM_VALUE, t_CACHE_WORD),
+              NumAlias#(TMul#(COH_SCRATCH_N_CONTROLLERS, COH_SCRATCH_N_CLIENTS), n_FWD_ENTRIES),
+              NumAlias#(TMax#(1, TLog#(COH_SCRATCH_N_CLIENTS)), n_CLIENT_IDX_SZ),
+              Bits#(COH_SCRATCH_CTRLR_PORT_NUM, n_CONTROLLER_IDX_SZ),
+              NumAlias#(TAdd#(n_CONTROLLER_IDX_SZ, n_CLIENT_IDX_SZ), n_TOTAL_NODE_IDX_SZ),
+              Alias#(Bit#(n_TOTAL_NODE_IDX_SZ), t_TOTAL_NODE_IDX), 
+              Alias#(Bit#(TAdd#(t_CACHE_META_SZ, n_TOTAL_NODE_IDX_SZ)), t_FWD_INFO_TABLE_IDX),
               // Coherence messages
               Alias#(COH_SCRATCH_MEM_REQ#(t_CACHE_ADDR), t_UNACTIVATED_REQ),
               Alias#(COH_SCRATCH_ACTIVATED_REQ#(t_CACHE_ADDR), t_ACTIVATED_REQ),
               Alias#(RL_COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_CACHE_META), t_COH_CACHE_FILL_RESP),
               Alias#(RL_COH_DM_CACHE_NETWORK_REQ#(t_CACHE_ADDR, t_REQ_IDX), t_CACHE_NW_REQ),
+              Alias#(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_REQ_IDX, t_CACHE_WORD, t_CACHE_META, t_CACHE_ADDR), t_ROUTER_RESP),
               Alias#(RL_COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY, t_REQ_INFO_ENTRY),
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+              Alias#(RL_COH_DM_CACHE_FWD_TABLE_ENTRY, t_FWD_TABLE_ENTRY),
+`else
+              Alias#(RL_COH_DM_CACHE_FWD_TABLE_ENTRY#(n_FWD_ENTRIES), t_FWD_TABLE_ENTRY),
+`endif
+              Bounded#(t_FWD_INFO_TABLE_IDX),
+              Bounded#(t_CACHE_META),
               Bounded#(t_REQ_IDX));
 
     if (valueOf(t_CACHE_META_SZ) > valueOf(COH_SCRATCH_CLIENT_META_SZ))
@@ -1076,8 +1122,15 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
             t_REQ_INFO_ENTRY new_entry = ?;
             t_CACHE_NW_REQ cache_req = ?;
             Bool need_snoop = False;
-            debugLog.record($format("    sourceData: check activated request from the ring..."));
-            
+            if (hasMultiController)
+            begin
+                debugLog.record($format("    sourceData: check activated request from ring %01d...", channel_id));
+            end
+            else
+            begin
+                debugLog.record($format("    sourceData: check activated request from the ring..."));
+            end
+
             cache_req.ownReq = isOwnReq(req.requester, req.reqControllerId);
             cache_req.addr = req.addr;
 
@@ -1089,10 +1142,10 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     new_entry.requester       = req.requester;
                     new_entry.reqControllerId = req.reqControllerId;
                     new_entry.ownership       = False; 
-                    new_entry.isCacheable     = True;
                     new_entry.meta            = zeroExtendNP(gets_req.clientMeta); 
                     new_entry.globalReadMeta  = gets_req.globalReadMeta;
-                    debugLog.record($format("    sourceData: check activated %s GETS request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
+                    debugLog.record($format("    sourceData: check activated %s GETS request: addr=0x%x, requester=%03d, reqControllerId=%02d, meta=0x%x", 
+                                    (cache_req.ownReq)? "own" : "other", cache_req.addr, new_entry.requester, new_entry.reqControllerId, new_entry.meta));
                 end
                 tagged COH_SCRATCH_ACTIVATED_GETX .getx_req:
                 begin
@@ -1101,10 +1154,10 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     new_entry.requester       = req.requester;
                     new_entry.reqControllerId = req.reqControllerId;
                     new_entry.ownership       = True;
-                    new_entry.isCacheable     = True;
                     new_entry.meta            = zeroExtendNP(getx_req.clientMeta); 
                     new_entry.globalReadMeta  = getx_req.globalReadMeta;
-                    debugLog.record($format("    sourceData: check activated %s GETX request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
+                    debugLog.record($format("    sourceData: check activated %s GETX request: addr=0x%x, requester=%03d, reqControllerId=%02d, meta=0x%x", 
+                                    (cache_req.ownReq)? "own" : "other", cache_req.addr, new_entry.requester, new_entry.reqControllerId, new_entry.meta));
                 end
                 tagged COH_SCRATCH_ACTIVATED_PUTX .putx_req:
                 begin
@@ -1113,9 +1166,9 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     new_entry.requester       = 0;
                     new_entry.reqControllerId = req.homeControllerId;
                     new_entry.ownership       = True;
-                    new_entry.isCacheable     = True;
                     new_entry.meta            = zeroExtendNP(putx_req.controllerMeta); 
-                    debugLog.record($format("    sourceData: check activated %s PUTX request: addr=0x%x", (cache_req.ownReq)? "own" : "other", cache_req.addr));
+                    debugLog.record($format("    sourceData: check activated %s PUTX request: addr=0x%x, requester=%03d, reqControllerId=%02d, meta=0x%x", 
+                                   (cache_req.ownReq)? "own" : "other", cache_req.addr, new_entry.requester, new_entry.reqControllerId, new_entry.meta));
                 end
             endcase
        
@@ -1147,103 +1200,416 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     //
     // =======================================================================
 
+    // Forwarding table
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+    LUTRAM#(t_CACHE_META, Maybe#(t_CACHE_ADDR)) lastGetReqTable <- mkLUTRAM(tagged Invalid);
+    LUTRAM#(t_CACHE_META, t_FWD_TABLE_ENTRY) forwardingTable <- mkLUTRAMU();
+`else
+    LUTRAM#(t_CACHE_META, t_FWD_TABLE_ENTRY) forwardingTable <- mkLUTRAM( RL_COH_DM_CACHE_FWD_TABLE_ENTRY{ val: ?,
+                                                                                                           forwardMeta: replicate(False),
+                                                                                                           hasGetx: False,
+                                                                                                           getxRequester: ?,
+                                                                                                           getxReqControllerId: ? });
+    LUTRAM#(t_FWD_INFO_TABLE_IDX, COH_SCRATCH_GET_REQ_INFO) forwardInfoTable <- mkLUTRAMU();
+`endif
+
     FIFOF#(Tuple2#(COH_SCRATCH_PORT_NUM, COH_SCRATCH_RESP)) respToNetworkQ  <- mkBypassFIFOF();
     FIFOF#(t_REQ_IDX) respReadyEntryQ <- mkSizedFIFOF(valueOf(n_REQ_TABLE_ENTRIES));
-    FIFOF#(Tuple4#(t_REQ_IDX, t_CACHE_WORD, Bool, Bool)) respFromCacheQ <- mkBypassFIFOF();
+    FIFOF#(t_ROUTER_RESP) respFromCacheQ <- mkBypassFIFOF();
+    FIFOF#(t_CACHE_META) pendingFwdEntryQ <- mkSizedFIFOF(valueOf(n_FWD_TABLE_ENTRIES));
+    FIFOF#(t_CACHE_META) releaseFwdEntryQ <- mkFIFOF();
+
+    RWire#(Tuple4#(t_CACHE_META, t_CACHE_WORD, COH_SCRATCH_PORT_NUM, COH_SCRATCH_CTRLR_PORT_NUM))  getsFwdResp <- mkRWire();
+    PulseWire recvGetsFwdRespW <- mkPulseWire();
 
     function COH_SCRATCH_PORT_NUM getRespDestination(COH_SCRATCH_CTRLR_PORT_NUM controllerId, COH_SCRATCH_PORT_NUM clientId);
          return (hasMultiController && controllerPort != controllerId)? 0 : clientId;
     endfunction
-        
+   
+    function Action sendRespToNetworkQ(COH_SCRATCH_CTRLR_PORT_NUM controllerId, 
+                                       COH_SCRATCH_PORT_NUM clientId, 
+                                       t_CACHE_WORD val,
+                                       COH_SCRATCH_META meta, 
+                                       RL_CACHE_GLOBAL_READ_META globalReadMeta,
+                                       Bool ownership,
+                                       Bool retry,
+                                       Tuple3#(Bool, COH_SCRATCH_CTRLR_PORT_NUM, COH_SCRATCH_PORT_NUM) fwdInfo,
+                                       String ruleName);
+        return 
+            action
+                let dest = getRespDestination(controllerId, clientId);
+                respToNetworkQ.enq(tuple2(dest, COH_SCRATCH_RESP { val: val,
+                                                                   ownership: ownership,
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+                                                                   controllerId: controllerId,
+                                                                   clientId: clientId,
+`endif
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+                                                                   needFwd: tpl_1(fwdInfo),
+                                                                   lastFwdControllerId: tpl_2(fwdInfo),
+                                                                   lastFwdClientId: tpl_3(fwdInfo),
+`endif
+                                                                   meta: meta,
+                                                                   globalReadMeta: globalReadMeta,
+                                                                   isCacheable: True,
+                                                                   retry: retry }));
+            
+                debugLog.record($format("    sourceData: %s: send response: dest=%d, val=0x%x, meta=0x%x, ownership=%s, %s", 
+                                ruleName, dest, val, meta, (ownership)? "True" : "False", (retry)? "RETRY!!!" : " "));
+
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+                debugLog.record($format("    sourceData: %s: send response: needFwd=%s, lastFwdClientId=%03d, lastFwdControllerId=%02d",
+                                ruleName, tpl_1(fwdInfo)? "True" : "False", tpl_3(fwdInfo), tpl_2(fwdInfo)));
+`endif
+`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
+                if (hasMultiController)
+                begin
+                    debugLog.record($format("    sourceData: %s: send response: requester=%03d, reqControllerId=%02d",
+                                    ruleName, clientId, controllerId));
+                end
+`endif
+            endaction;
+    endfunction
+
+
+    function Action sendRespFromSnoopTableToNetwork(t_REQ_INFO_ENTRY e, 
+                                                    t_CACHE_WORD val, 
+                                                    Bool retry,
+                                                    Tuple3#(Bool, COH_SCRATCH_CTRLR_PORT_NUM, COH_SCRATCH_PORT_NUM) fwdInfo, 
+                                                    String ruleName);
+        return 
+            action
+                sendRespToNetworkQ(e.reqControllerId, e.requester, val, e.meta, e.globalReadMeta, 
+                                   e.ownership, retry, fwdInfo, ruleName);
+            endaction;
+    endfunction
+
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+    
+    function Action sendRespFromForwardingTableToNetwork(t_FWD_TABLE_ENTRY f, t_CACHE_WORD val, Bool needFwd, String ruleName);
+        return 
+            action
+                sendRespToNetworkQ(f.controllerId, f.clientId, val, zeroExtendNP(f.clientMeta), f.globalReadMeta, 
+                                   f.isGetx, False, tuple3(needFwd, f.lastControllerId, f.lastClientId), ruleName); 
+            endaction;
+    endfunction
+
+`else
+
+    function t_TOTAL_NODE_IDX localIdToGlobal (COH_SCRATCH_CTRLR_PORT_NUM controllerId, COH_SCRATCH_PORT_NUM clientId);
+        let idx = (hasMultiController)? tuple2(controllerId, truncateNP(clientId-1)) : tuple2(0, truncateNP(clientId-1));
+        return pack(idx);
+    endfunction
+    
+    function Tuple2#(COH_SCRATCH_CTRLR_PORT_NUM, COH_SCRATCH_PORT_NUM) globalIdToLocal (t_TOTAL_NODE_IDX nodeId);
+        Tuple2#(Bit#(n_CONTROLLER_IDX_SZ), Bit#(n_CLIENT_IDX_SZ)) tuple_node_id = unpack(nodeId);
+        COH_SCRATCH_CTRLR_PORT_NUM controller_id = tpl_1(tuple_node_id);
+        COH_SCRATCH_PORT_NUM client_id = zeroExtendNP(tpl_2(tuple_node_id)) + 1;
+        return tuple2(controller_id, client_id);
+    endfunction
+    
+    function Action sendRespFromForwardingTableToNetwork(t_FWD_TABLE_ENTRY f, t_CACHE_META fIdx, t_CACHE_WORD val, String ruleName);
+        return 
+            action
+                let fwd_node_id = fromMaybe(?, findElem(True, f.forwardMeta));
+                match {.controller_id, .client_id} = globalIdToLocal(pack(fwd_node_id));
+                let fwd_info = forwardInfoTable.sub(pack(tuple2(fIdx, pack(fwd_node_id))));
+                let fwd_getx = f.hasGetx && (f.getxRequester == client_id) && ((f.getxReqControllerId == controller_id) || !hasMultiController);
+                
+                sendRespToNetworkQ(controller_id, client_id, val, zeroExtendNP(fwd_info.clientMeta), 
+                                   fwd_info.globalReadMeta, fwd_getx, False, ?, ruleName); 
+
+                // update forwarding table
+                let new_fwd_entry = f;
+                new_fwd_entry.forwardMeta[fwd_node_id] = False;
+                new_fwd_entry.val = val;
+                new_fwd_entry.hasGetx = fwd_getx? False : f.hasGetx;
+                forwardingTable.upd(fIdx, new_fwd_entry);  
+                debugLog.record($format("    sourceData: %s: update forwardingTable (entry=0x%x), forwardMeta=0x%x, val=0x%x, hasGetx=%s",
+                                ruleName, fIdx, pack(new_fwd_entry.forwardMeta), new_fwd_entry.val, new_fwd_entry.hasGetx? "True" : "False"));
+            endaction;
+    endfunction
+
+`endif
+
     //
     // recvNullRespFromCache --
     //     Consume the null response from the cache and free the entry in the 
     // completion table (snoopedReqTable).
     //
     (* fire_when_enabled *)
-    rule recvNullRespFromCache (respFromCacheQ.notEmpty() && tpl_4(respFromCacheQ.first()));
-        match {.idx, .val, .retry, .nullResp} = respFromCacheQ.first();
-        respFromCacheQ.deq();
-        snoopedReqTable.free(idx); 
-        debugLog.record($format("    sourceData: recvNullRespFromCache: free snoopedReqTable (entry=0x%x)", idx));
-    endrule
-    
-    //
-    // recvRealRespFromCache --
-    //     Generate the response to the ring and free the entry in the completion
-    // table (snoopedReqTable) if respToNetworkQ is not full. Otherwise, store
-    // the response info back to snoopedReqTable.
-    //
-    PulseWire recvRealRespFromCacheW <- mkPulseWire();
-    (* fire_when_enabled *)
-    rule recvRealRespFromCacheToNetwork (respFromCacheQ.notEmpty() && !tpl_4(respFromCacheQ.first()) && respToNetworkQ.notFull);
-        match {.idx, .val, .retry, .nullResp} = respFromCacheQ.first();
-        respFromCacheQ.deq();
-        let e = snoopedReqTable.sub(idx);
-        recvRealRespFromCacheW.send();
-        
-        let dest = getRespDestination(e.reqControllerId, e.requester);
-        respToNetworkQ.enq(tuple2(dest, COH_SCRATCH_RESP { val: val,
-                                                           ownership: e.ownership,
-`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
-                                                           controllerId: e.reqControllerId,
-                                                           clientId: e.requester,
+    rule recvNullRespFromCache (respFromCacheQ.first() matches tagged MSHR_NULL_RESP .r &&& !recvGetsFwdRespW);
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        // forward data to the next cache on the response chain
+        if (r.fwdEntryIdx matches tagged Valid .fwd_idx)
+        begin
+            let e = snoopedReqTable.sub(r.reqIdx);
+            let f = forwardingTable.sub(fwd_idx);
+            let g = lastGetReqTable.sub(fwd_idx);
+            if (g matches tagged Valid .g_addr &&& pack(g_addr) == pack(r.reqAddr) &&& f.getsFwd)
+            begin
+                let new_fwd_entry = f;
+                if (respToNetworkQ.notFull)
+                begin
+                    sendRespFromSnoopTableToNetwork(e, f.val, False, tuple3(True, f.lastControllerId, f.lastClientId), "recvNullRespFromCache");
+                    //reset forwarding table
+                    new_fwd_entry.getsFwd = False;
+                    // release entry
+                    releaseFwdEntryQ.enq(fwd_idx);
+                    debugLog.record($format("    sourceData: recvNullRespFromCache: done with forwarding, release entry 0x%x", fwd_idx)); 
+                end
+                else
+                begin
+                    pendingFwdEntryQ.enq(fwd_idx);
+                    new_fwd_entry.clientId = e.requester;
+                    new_fwd_entry.controllerId = e.reqControllerId;
+                    new_fwd_entry.isGetx = e.ownership;
+                    new_fwd_entry.clientMeta = truncateNP(e.meta);
+                    new_fwd_entry.globalReadMeta = e.globalReadMeta;
+                    debugLog.record($format("    sourceData: recvNullRespFromCache: response queue is full! wait in the pendingFwdEntryQ, entry=0x%x", fwd_idx));
+                end
+                forwardingTable.upd(fwd_idx, new_fwd_entry);
+            end
+        end
 `endif
-                                                           meta: e.meta, 
-                                                           globalReadMeta: e.globalReadMeta,
-                                                           isCacheable: e.isCacheable,
-                                                           retry: retry }));
-            
-        debugLog.record($format("    sourceData: recvRealRespFromCacheToNetwork: send response: dest=%d, val=0x%x, ownership=%s, %s", 
-                        dest, val, (e.ownership)? "True" : "False", (retry)? "RETRY!!!" : " "));
-        snoopedReqTable.free(idx); 
-        debugLog.record($format("    sourceData: recvRealRespFromCache: free snoopedReqTable (entry=0x%x)", idx));
+        respFromCacheQ.deq();
+        snoopedReqTable.free(r.reqIdx); 
+        debugLog.record($format("    sourceData: recvNullRespFromCache: free snoopedReqTable (entry=0x%x)", r.reqIdx));
     endrule
     
-    (* mutually_exclusive = "recvNullRespFromCache, recvRealRespFromCacheToNetwork, recvRealRespFromCacheToTable" *)
+    //
+    // recvRealRespFromCacheToNetwork --
+    //     Generate the response to the ring and free the entry in the completion
+    // table (snoopedReqTable) if respToNetworkQ is not full. 
+    //
     (* fire_when_enabled *)
-    rule recvRealRespFromCacheToTable (respFromCacheQ.notEmpty() && !tpl_4(respFromCacheQ.first()) && !respToNetworkQ.notFull);
-        match {.idx, .val, .retry, .nullResp} = respFromCacheQ.first();
+    rule recvRealRespFromCacheToNetwork (respFromCacheQ.first() matches tagged MSHR_REMOTE_RESP .r &&& respToNetworkQ.notFull);
         respFromCacheQ.deq();
-        let e = snoopedReqTable.sub(idx);
-        recvRealRespFromCacheW.send();
+        let e = snoopedReqTable.sub(r.reqIdx);
+        sendRespFromSnoopTableToNetwork(e, r.val, r.retry, tuple3(False, ?, ?), "recvRealRespFromCacheToNetwork");
+        snoopedReqTable.free(r.reqIdx); 
+        debugLog.record($format("    sourceData: recvRealRespFromCacheToNetwork: free snoopedReqTable (entry=0x%x)", r.reqIdx));
+    endrule
+    
+    //
+    // recvRealRespFromCacheToTable -- 
+    //     Store the response info back to snoopedReqTable if respToNetworkQ is full.
+    //
+    (* fire_when_enabled *)
+    rule recvRealRespFromCacheToTable (respFromCacheQ.first() matches tagged MSHR_REMOTE_RESP .r &&& !respToNetworkQ.notFull);
+        respFromCacheQ.deq();
+        let e = snoopedReqTable.sub(r.reqIdx);
         // update snoopedReqTable if not able to send response
         let new_entry = e;
-        new_entry.val = val;
-        new_entry.retry = retry;
-        snoopedReqTable.upd(idx, new_entry);
-        respReadyEntryQ.enq(idx);
-        debugLog.record($format("    sourceData: recvRealRespFromCacheToTable: resp queue is full! table entry=0x%x, wait in the respReadyEntryQ...", idx));
+        new_entry.val = r.val;
+        new_entry.retry = r.retry;
+        snoopedReqTable.upd(r.reqIdx, new_entry);
+        respReadyEntryQ.enq(r.reqIdx);
+        debugLog.record($format("    sourceData: recvRealRespFromCacheToTable: response queue is full! table entry=0x%x, wait in the respReadyEntryQ...", r.reqIdx));
     endrule
-
+    
     //
     // sendRespFromSnoopTable --
     //     Second time trying to send response to the ring. 
     //
-    (* descending_urgency = "recvNullRespFromCache, recvRealRespFromCacheToNetwork, recvRealRespFromCacheToTable, sendRespFromSnoopTable, snoopActivatedReq" *)
     rule sendRespFromSnoopTable (respReadyEntryQ.notEmpty() && respToNetworkQ.notFull());
         let idx = respReadyEntryQ.first();
         respReadyEntryQ.deq();
         let e = snoopedReqTable.sub(idx);
         // send response
-        let dest = getRespDestination(e.reqControllerId, e.requester);
-        respToNetworkQ.enq(tuple2(dest, COH_SCRATCH_RESP { val: e.val,
-                                                           ownership: e.ownership,
-`ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
-                                                           controllerId: e.reqControllerId,
-                                                           clientId: e.requester,
-`endif
-                                                           meta: e.meta, 
-                                                           globalReadMeta: e.globalReadMeta,
-                                                           isCacheable: e.isCacheable,
-                                                           retry: e.retry }));
-        
-        debugLog.record($format("    sourceData: send response from snoopedReqTable: dest=%d, val=0x%x, ownership=%s, %s", 
-                        dest, e.val, (e.ownership)? "True" : "False", (e.retry)? "RETRY!!!" : " "));
+        sendRespFromSnoopTableToNetwork(e, e.val, e.retry, tuple3(False, ?, ?), "sendRespFromSnoopTable");
         // free the entry in snoopedReqTable
         snoopedReqTable.free(idx); 
         debugLog.record($format("    sourceData: sendRespFromSnoopTable: free snoopedReqTable (entry=0x%x)", idx));
     endrule
+    
+    //
+    // recvDelayRespFromCache --
+    //     Receive a delayed response from cache. Record the forwarding 
+    // infomation in the forwarding table and release the entry in snoopedReqTable.
+    //
+    (* fire_when_enabled *)
+    rule recvDelayRespFromCache (respFromCacheQ.first() matches tagged MSHR_DELAY_RESP .r &&& !recvGetsFwdRespW );
+        respFromCacheQ.deq();
+        let e = snoopedReqTable.sub(r.reqIdx);
+        let fwd_entry = forwardingTable.sub(r.fwdEntryIdx);  
+        let new_fwd_entry = fwd_entry;
+        
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        if (r.isFirstFwd)
+        begin
+            new_fwd_entry.clientId = e.requester;
+            new_fwd_entry.controllerId = e.reqControllerId;
+            new_fwd_entry.isGetx = e.ownership;
+            new_fwd_entry.clientMeta = truncateNP(e.meta);
+            new_fwd_entry.globalReadMeta = e.globalReadMeta;
+        end
+        new_fwd_entry.multiFwd = !r.isFirstFwd;
+        if (!fwd_entry.getsFwd)
+        begin
+            new_fwd_entry.lastClientId = e.requester;
+            new_fwd_entry.lastControllerId = e.reqControllerId;
+        end
+
+        debugLog.record($format("    sourceData: recvDelayRespFromCache: update forwardingTable: (entry=0x%x), isFirstFwd=%s, clientId=%03d, controllerId=%02d, isGetx=%s, meta=0x%x, lastClientId=%03d, lastControllerId=%02d",
+                        r.fwdEntryIdx, r.isFirstFwd? "True" : "False", new_fwd_entry.clientId, new_fwd_entry.controllerId, 
+                        new_fwd_entry.isGetx? "True" : "False", new_fwd_entry.clientMeta, new_fwd_entry.lastClientId, new_fwd_entry.lastControllerId));
+`else
+        let fwd_node_idx = localIdToGlobal(e.reqControllerId, e.requester); 
+        new_fwd_entry.forwardMeta[fwd_node_idx] = True;
+        new_fwd_entry.hasGetx = e.ownership;
+        if (e.ownership)
+        begin
+            new_fwd_entry.getxRequester = e.requester;
+            new_fwd_entry.getxReqControllerId = e.reqControllerId;
+        end
+        debugLog.record($format("    sourceData: recvDelayRespFromCache: update forwardingTable: (entry=0x%x), fwdMeta=0x%x, hasGetx=%s, getxRequester=%03d, getxReqControllerId=%02d, requester=%03d, reqControllerId=%02d",
+                        r.fwdEntryIdx, pack(new_fwd_entry.forwardMeta), new_fwd_entry.hasGetx? "True" : "False", 
+                        new_fwd_entry.getxRequester, new_fwd_entry.getxReqControllerId, e.requester, e.reqControllerId));
+        
+        let info_entry = COH_SCRATCH_GET_REQ_INFO { clientMeta: truncateNP(e.meta), globalReadMeta: e.globalReadMeta };
+        forwardInfoTable.upd(pack(tuple2(r.fwdEntryIdx, fwd_node_idx)), info_entry);
+        debugLog.record($format("    sourceData: recvDelayRespFromCache: update forwardInfoTable: (entry=0x%x), meta=0x%x",
+                        pack(tuple2(r.fwdEntryIdx, fwd_node_idx)), info_entry.clientMeta));
+`endif
+        forwardingTable.upd(r.fwdEntryIdx, new_fwd_entry);
+        snoopedReqTable.free(r.reqIdx); 
+        debugLog.record($format("    sourceData: recvDelayRespFromCache: free snoopedReqTable (entry=0x%x)", r.reqIdx));
+    endrule
+
+    (* fire_when_enabled *)
+    rule recvFwdResetRespFromCache (respFromCacheQ.first() matches tagged MSHR_FWD_RESP .r &&& r.resetEntry &&& !recvGetsFwdRespW);
+        respFromCacheQ.deq();
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        // forward data to the next cache on the response chain
+        let f = forwardingTable.sub(r.fwdEntryIdx);
+        if (f.getsFwd)
+        begin
+            let new_fwd_entry = f;
+            if (respToNetworkQ.notFull)
+            begin
+                sendRespFromForwardingTableToNetwork(f, f.val, True, "recvFwdResetRespFromCache");
+                //reset forwarding table
+                new_fwd_entry.getsFwd = False;
+                // release entry
+                releaseFwdEntryQ.enq(r.fwdEntryIdx);
+                debugLog.record($format("    sourceData: recvFwdResetRespFromCache: done with forwarding, release entry 0x%x", r.fwdEntryIdx)); 
+                forwardingTable.upd(r.fwdEntryIdx, new_fwd_entry);
+            end
+            else
+            begin
+                pendingFwdEntryQ.enq(r.fwdEntryIdx);
+                debugLog.record($format("    sourceData: recvFwdResetRespFromCache: response queue is full! wait in the pendingFwdEntryQ, entry=0x%x", r.fwdEntryIdx));
+            end
+        end
+
+`else
+        // reset forwarding table
+        forwardingTable.upd( r.fwdEntryIdx, RL_COH_DM_CACHE_FWD_TABLE_ENTRY{ val: ?,
+                                                                             forwardMeta: replicate(False),
+                                                                             hasGetx: False,
+                                                                             getxRequester: ?,
+                                                                             getxReqControllerId: ? });
+        debugLog.record($format("    sourceData: recvFwdResetRespFromCache: reset forwardingTable: (entry=0x%x)", r.fwdEntryIdx));
+`endif
+    endrule
+
+    //
+    // recvFwdRespFromCacheToNetwork --
+    //     Receive a forwarding response from cache. Send response to network 
+    // according to the forwarding table. 
+    //
+    (* fire_when_enabled *)
+    rule recvFwdRespFromCacheToNetwork (respFromCacheQ.first() matches tagged MSHR_FWD_RESP .r &&& !r.resetEntry &&& respToNetworkQ.notFull &&& !recvGetsFwdRespW);
+        respFromCacheQ.deq();
+        let f = forwardingTable.sub(r.fwdEntryIdx);  
+
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        sendRespFromForwardingTableToNetwork(f, r.val, f.multiFwd, "recvFwdRespFromCacheToNetwork");
+        releaseFwdEntryQ.enq(r.fwdEntryIdx);
+        debugLog.record($format("    sourceData: recvFwdRespFromCacheToNetwork: done with forwarding, release entry 0x%x", r.fwdEntryIdx)); 
+`else
+        sendRespFromForwardingTableToNetwork(f, r.fwdEntryIdx, r.val, "recvFwdRespFromCacheToNetwork");
+        if (countElem(True, f.forwardMeta) > 1) // multiple forwarding
+        begin
+            pendingFwdEntryQ.enq(r.fwdEntryIdx);
+            debugLog.record($format("    sourceData: recvFwdRespFromCacheToNetwork: multiple forwarding occurs...")); 
+        end
+        else
+        begin
+            releaseFwdEntryQ.enq(r.fwdEntryIdx);
+            debugLog.record($format("    sourceData: recvFwdRespFromCacheToNetwork: done with forwarding, release entry 0x%x", r.fwdEntryIdx)); 
+        end
+`endif
+    endrule
+
+    //
+    // recvFwdRespFromCacheToTable --
+    //     Receive a forwarding response from cache but response queue is full. 
+    // Record response in the forwarding table. 
+    //
+    (* mutually_exclusive = "recvNullRespFromCache, recvRealRespFromCacheToNetwork, recvRealRespFromCacheToTable, recvDelayRespFromCache, recvFwdResetRespFromCache, recvFwdRespFromCacheToNetwork, recvFwdRespFromCacheToTable" *)
+    (* fire_when_enabled *)
+    rule recvFwdRespFromCacheToTable (respFromCacheQ.first() matches tagged MSHR_FWD_RESP .r &&& !r.resetEntry &&& !respToNetworkQ.notFull &&& !recvGetsFwdRespW);
+        respFromCacheQ.deq();
+        let f = forwardingTable.sub(r.fwdEntryIdx);  
+        // update forwarding table
+        let new_fwd_entry = f;
+        new_fwd_entry.val = r.val;
+        forwardingTable.upd(r.fwdEntryIdx, new_fwd_entry);  
+        debugLog.record($format("    sourceData: recvFwdRespFromCacheToTable: update forwardingTable (entry=0x%x), val=0x%x", 
+                        r.fwdEntryIdx, new_fwd_entry.val));
+        pendingFwdEntryQ.enq(r.fwdEntryIdx);
+    endrule
+
+    //
+    // sendRespFromFwdTable --
+    //     Send response from forwarding table for pending entries in the forwarding table.
+    //
+    (* descending_urgency = "recvNullRespFromCache, recvRealRespFromCacheToNetwork, recvRealRespFromCacheToTable, recvDelayRespFromCache, recvFwdResetRespFromCache, recvFwdRespFromCacheToNetwork, recvFwdRespFromCacheToTable, sendRespFromFwdTable, sendRespFromSnoopTable, snoopActivatedReq" *)
+    rule sendRespFromFwdTable (pendingFwdEntryQ.notEmpty() && respToNetworkQ.notFull() && !recvGetsFwdRespW);
+        let idx = pendingFwdEntryQ.first();
+        let f = forwardingTable.sub(idx);
+        let multi_fwd = False;
+
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        sendRespFromForwardingTableToNetwork(f, f.val, f.multiFwd || f.getsFwd, "sendRespFromFwdTable");
+        if (f.getsFwd)
+        begin
+            let new_fwd_entry = f;
+            new_fwd_entry.getsFwd = False;
+            forwardingTable.upd(idx, new_fwd_entry);
+        end
+`else
+        sendRespFromForwardingTableToNetwork(f, idx, f.val, "sendRespFromFwdTable");
+        multi_fwd = (countElem(True, f.forwardMeta) > 1); 
+`endif
+        if (!multi_fwd)
+        begin
+            releaseFwdEntryQ.enq(idx);
+            pendingFwdEntryQ.deq();
+            debugLog.record($format("    sourceData: sendRespFromFwdTable: done with forwarding, release entry 0x%x", idx)); 
+        end
+    endrule
+        
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+    (* mutually_exclusive = "recvGetsFwdResp, recvNullRespFromCache, recvDelayRespFromCache, recvFwdResetRespFromCache, recvFwdRespFromCacheToNetwork, recvFwdRespFromCacheToTable" *)
+    (* mutually_exclusive = "recvGetsFwdResp, sendRespFromFwdTable" *)
+    (* fire_when_enabled *)
+    rule recvGetsFwdResp (getsFwdResp.wget() matches tagged Valid .resp);
+        recvGetsFwdRespW.send();
+        match {.meta, .val, .client_id, .controller_id} = resp;
+        let f = forwardingTable.sub(meta);
+        let new_fwd_entry = f;
+        new_fwd_entry.getsFwd = True;
+        new_fwd_entry.val = val;
+        new_fwd_entry.lastClientId = client_id;
+        new_fwd_entry.lastControllerId = controller_id;
+        forwardingTable.upd(meta, new_fwd_entry);
+        debugLog.record($format("    sourceData: recvGetsFwdResp: update forwardingTable (entry=0x%x), val=0x%x, getsFwd=True, lastClientId=%03d, lastControllerId=%02d", 
+                        meta, val, client_id, controller_id));
+    endrule
+`endif
 
     (* fire_when_enabled *)
     rule sendRespToNetwork (True);
@@ -1313,11 +1679,15 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         // Forward the request to the coherent scratchpad controller that orders
         // all coherent scratchpad clients' requests
         unactivatedReqQ.enq(req);
-
         debugLog.record($format("    sourceData: send GETS REQ ID %0d: addr 0x%x", myPort, addr));
         
         numBufferedReq.upBy(1);
         debugLog.record($format("    sourceData: getShare: numBufferedReq=%x", numBufferedReq.value()));
+    
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        // record the request address in the lastGetReqTable
+        lastGetReqTable.upd(meta, tagged Valid addr);
+`endif    
     endmethod
     
     
@@ -1337,11 +1707,15 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         // Forward the request to the coherent scratchpad controller that orders
         // all coherent scratchpad clients' requests
         unactivatedReqQ.enq(req);
-
         debugLog.record($format("    sourceData: send GETX REQ ID %0d: addr 0x%x", myPort, addr));
 
         numBufferedReq.upBy(1);
         debugLog.record($format("    sourceData: getExclusive: numBufferedReq=%x", numBufferedReq.value()));
+
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        // record the request address in the lastGetReqTable
+        lastGetReqTable.upd(meta, tagged Valid addr);
+`endif    
     endmethod                           
 
     // Response received from other coherent scratchpad clients or the controller (memory)
@@ -1356,9 +1730,20 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         r.isCacheable = s.isCacheable;
         r.retry = s.retry;
         r.globalReadMeta = s.globalReadMeta;
-        
-        debugLog.record($format("    sourceData: read RESP: val=0x%x, meta=0x%x", s.val, r.meta));
+        r.getsFwd = False;
 
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        // GETS response forwarding happens when the received response indicates 
+        // that the cache needs to forward and the cache itself is not the last 
+        // node of the forwarding chain
+        if (!s.ownership && s.needFwd && !isOwnReq(s.lastFwdClientId, s.lastFwdControllerId))
+        begin
+            r.getsFwd = True;
+            getsFwdResp.wset(tuple4(r.meta, s.val, s.lastFwdClientId, s.lastFwdControllerId));
+        end
+`endif
+        debugLog.record($format("    sourceData: read RESP: val=0x%x, meta=0x%x", s.val, r.meta));
+        
         return r;
     endmethod
     
@@ -1404,16 +1789,19 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     // Data owner sends responses to serve other caches
     // If it is not the owner, null response is sent to clear the entry in the 
     // completion table 
-    method Action sendResp(t_REQ_IDX reqIdx,
-                           t_CACHE_WORD val,
-                           Bool retry,
-                           Bool nullResp) if (initialized);
-        
-        respFromCacheQ.enq(tuple4(reqIdx, val, retry, nullResp));
-        debugLog.record($format("    sourceData: receive response from cache: entry=0x%x, val=0x%x, retry=%s, nullResp=%s", 
-                        reqIdx, val, retry? "True" : "False", nullResp? "True" : "False"));
-    
+    method Action sendResp(t_ROUTER_RESP resp);
+        respFromCacheQ.enq(resp);
+        debugLog.record($format("    sourceData: receive a response from cache...")); 
     endmethod                       
+    
+    // Return the released forwarding entry index
+    // Cache will pass the information to MSHR in order to release the MSHR entry
+    method ActionValue#(t_CACHE_META) getReleasedFwdEntryIdx();
+        let idx = releaseFwdEntryQ.first();
+        releaseFwdEntryQ.deq();
+        debugLog.record($format("    sourceData: return released forwarding entry idx=0x%x", idx)); 
+        return idx;
+    endmethod
 
     //
     // Activated requests from the network
