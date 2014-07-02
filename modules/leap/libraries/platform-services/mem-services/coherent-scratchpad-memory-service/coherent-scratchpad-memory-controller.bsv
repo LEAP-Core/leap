@@ -813,6 +813,11 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                      controllerId: e.fwdControllerId, 
                                                                      clientId: e.forwardId,
 `endif
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+                                                                     needFwd: False,
+                                                                     lastFwdControllerId: ?,
+                                                                     lastFwdClientId: ?,
+`endif
                                                                      meta: zeroExtend(e.clientMeta), 
                                                                      globalReadMeta: e.globalReadMeta,
                                                                      isCacheable: True,
@@ -863,6 +868,11 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
                                                                      controllerId: e.fwdControllerId, 
                                                                      clientId: e.forwardId,
+`endif
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+                                                                     needFwd: False,
+                                                                     lastFwdControllerId: ?,
+                                                                     lastFwdClientId: ?,
 `endif
                                                                      meta: zeroExtend(e.clientMeta), 
                                                                      globalReadMeta: e.globalReadMeta,
@@ -962,6 +972,11 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
                                                             controllerId: r.reqControllerId,
                                                             clientId: r.requester,
+`endif
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+                                                            needFwd: False,
+                                                            lastFwdControllerId: ?,
+                                                            lastFwdClientId: ?,
 `endif
                                                             meta: zeroExtend(r.clientMeta), 
                                                             globalReadMeta: r.globalReadMeta,
@@ -1234,7 +1249,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         let req <- links_controllers_activatedReq[1].recvFromPrev();
         Bool drop_req = (req.homeControllerId == controllerPort);
         debugLog.record($format("    router: handleActivatedReqOnGlobalRing[1]: %s: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d", 
-                        drop_req? "drop activated request" : "forward activated request to global ring 1", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+                        drop_req? "drop activated request" : "forward activated request to local ring 1", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
         if (!drop_req)
         begin
             links_mem_activatedReq[1].sendToNext(req);
@@ -1246,7 +1261,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         let req <- links_controllers_activatedReq[0].recvFromPrev();
         Bool drop_req = (req.homeControllerId == controllerPort);
         debugLog.record($format("    router: handleActivatedReqOnGlobalRing[0]: %s: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d", 
-                        drop_req? "drop activated request" : "forward activated request to global ring 1", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+                        drop_req? "drop activated request" : "forward activated request to local ring 1", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
         if (!drop_req)
         begin
             links_mem_activatedReq[1].sendToNext(req);
@@ -1267,7 +1282,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
             end
             
             debugLog.record($format("    router: handleActivatedReqOnLocalRing[%01d]: %s: addr=0x%x, sender=%03d, reqControllerId=%02d, homeControllerId=%02d", 
-                            p, drop_req? "drop activated request" : "forward activated request to global ring", req.addr, req.requester, req.reqControllerId, req.homeControllerId));
+                            p, drop_req? "drop activated PUTX request" : "forward activated request to global ring", 
+                            req.addr, req.requester, req.reqControllerId, req.homeControllerId));
             
             if (!drop_req)
             begin
@@ -1441,15 +1457,19 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
     //
     // =======================================================================
     
-    Reg#(Bool)        localRespArb      <- mkReg(True);
-    Reg#(Bool)        fwdRespArb        <- mkReg(True);
-    PulseWire         writebackLocalW   <- mkPulseWire();
-    PulseWire         writebackRemoteW  <- mkPulseWire();
-    PulseWire         memoryLocalRespW  <- mkPulseWire();
-    PulseWire         memoryRemoteRespW <- mkPulseWire();
-    
+    Reg#(Bool)   localRespArb          <- mkReg(True);
+    Reg#(Bool)   fwdRespArb            <- mkReg(True);
+    Reg#(Bool)   writebackRespArb      <- mkReg(True);
+    PulseWire    writebackLocalW       <- mkPulseWire();
+    PulseWire    writebackRemoteW      <- mkPulseWire();
+    PulseWire    memoryLocalRespW      <- mkPulseWire();
+    PulseWire    memoryRemoteRespW     <- mkPulseWire();
+    PulseWire    remoteRespWritebackW  <- mkPulseWire();
+    PulseWire    remoteRespLocalW      <- mkPulseWire();
+    PulseWire    remoteWritebackRespW  <- mkPulseWire();
+
     (* fire_when_enabled *)
-    rule collectLocalClientResp (True);
+    rule checkLocalClientResp (True);
         let resp = link_mem_resp.first();
         if (resp.controllerId == controllerPort) // local write back responses
         begin
@@ -1462,14 +1482,28 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
     endrule
 
     (* fire_when_enabled *)
+    rule checkRemoteResp (True);
+        let resp = link_controllers_resp.first();
+        if (resp.clientId == 0) // is write back response
+        begin
+            remoteRespWritebackW.send();
+        end
+        else 
+        begin
+            remoteRespLocalW.send();
+        end
+    endrule
+
+
+    (* fire_when_enabled *)
     rule memoryFwdResp (localMemRespQ.first().controllerId != controllerPort && (fwdRespArb || !writebackRemoteW));
         let resp = localMemRespQ.first();
         localMemRespQ.deq();
         fwdRespArb <= False;
         link_controllers_resp.enq(resp.controllerId, resp);
         memoryRemoteRespW.send();
-        debugLog.record($format("    router: forward memory response to remote response network, val=0x%x, dest=%03d, controller=%02d",
-                        resp.val, resp.clientId, resp.controllerId));
+        debugLog.record($format("    router: forward memory response to remote response network, val=0x%x, meta=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.meta, resp.clientId, resp.controllerId));
     endrule
     
     (* mutually_exclusive = "wbFwdResp, memoryFwdResp" *)
@@ -1479,40 +1513,87 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
         link_mem_resp.deq();
         fwdRespArb <= True;
         link_controllers_resp.enq(resp.controllerId, resp);
-        debugLog.record($format("    router: forward write-back response to remote response network, val=0x%x, dest=%03d, controller=%02d",
-                        resp.val, resp.clientId, resp.controllerId));
+        debugLog.record($format("    router: forward %s response to remote response network, val=0x%x, meta=0x%x, dest=%03d, controller=%02d",
+                        (resp.clientId == 0)? "write-back" : "client", resp.val, resp.meta, resp.clientId, resp.controllerId));
     endrule
     
     (* fire_when_enabled *)
-    rule memoryLocalResp (localMemRespQ.first().controllerId == controllerPort && (localRespArb || !link_controllers_resp.notEmpty()));
+    rule memoryLocalResp (localMemRespQ.first().controllerId == controllerPort && (localRespArb || !remoteRespLocalW));
         let resp = localMemRespQ.first();
         localMemRespQ.deq();
         link_mem_resp.enq(resp.clientId, resp);
         localRespArb <= False;
         memoryLocalRespW.send();
-        debugLog.record($format("    router: send memory response to local response network, val=0x%x, dest=%03d, controller=%02d",
-                        resp.val, resp.clientId, resp.controllerId));
+        debugLog.record($format("    router: send memory response to local response network, val=0x%x, meta=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.meta, resp.clientId, resp.controllerId));
     endrule
     
     (* mutually_exclusive = "memoryLocalResp, remoteToLocalResp" *)
     (* fire_when_enabled *)
-    rule remoteToLocalResp (!memoryLocalRespW);
+    rule remoteToLocalResp (!memoryLocalRespW && remoteRespLocalW);
         let resp = link_controllers_resp.first();
         link_controllers_resp.deq();
         link_mem_resp.enq(resp.clientId, resp);
         localRespArb <= True;
-        debugLog.record($format("    router: send remote response to local response network, val=0x%x, dest=%03d, controller=%02d",
-                        resp.val, resp.clientId, resp.controllerId));
+        debugLog.record($format("    router: send remote response to local response network, val=0x%x, meta=0x%x, dest=%03d, controller=%02d",
+                        resp.val, resp.meta, resp.clientId, resp.controllerId));
+    endrule
+
+    (* mutually_exclusive = "remoteToLocalResp, remoteWritebackResp" *)
+    (* fire_when_enabled *)
+    rule remoteWritebackResp (remoteRespWritebackW && (writebackRespArb || !writebackLocalW));
+        let resp = link_controllers_resp.first();
+        link_controllers_resp.deq();
+        writebackRespQ.enq(resp);
+        writebackRespArb <= False;
+        remoteWritebackRespW.send();
+        debugLog.record($format("    router: receive a remote writeback response, val=0x%x, dest=%03d",
+                        resp.val, resp.clientId));
     endrule
 
     (* mutually_exclusive = "wbLocalResp, wbFwdResp" *)
+    (* mutually_exclusive = "wbLocalResp, remoteWritebackResp" *)
     (* fire_when_enabled *)
-    rule wbLocalResp (writebackLocalW);
+    rule wbLocalResp (writebackLocalW && !remoteWritebackRespW);
         let resp = link_mem_resp.first();
         link_mem_resp.deq();
         writebackRespQ.enq(resp);
-        debugLog.record($format("    router: receive a local writeback response from a local client"));
+        writebackRespArb <= True;
+        debugLog.record($format("    router: receive a local writeback response from a local client, val=0x%x", resp.val));
     endrule
+    
+    // ====================================================================
+    //
+    // Coherent scratchpad multi controller router debug scan for 
+    // deadlock debugging.
+    //
+    // ====================================================================
+    
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+    // Local network channels
+    dbg_list <- addDebugScanField(dbg_list, "link_mem_req notEmpty", link_mem_req.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "link_mem_req notFull", link_mem_req.notFull);
+    dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notEmpty", link_mem_resp.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notFull", link_mem_resp.notFull);
+    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq0 notEmpty", links_mem_activatedReq[0].recvNotEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq0 notFull", links_mem_activatedReq[0].sendNotFull);
+    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq1 notEmpty", links_mem_activatedReq[1].recvNotEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq1 notFull", links_mem_activatedReq[1].sendNotFull);
+    // Global network channels
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req0 notEmpty", links_controllers_req[0].recvNotEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req0 notFull", links_controllers_req[0].sendNotFull);
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req1 notEmpty", links_controllers_req[1].recvNotEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req1 notFull", links_controllers_req[1].sendNotFull);
+    dbg_list <- addDebugScanField(dbg_list, "link_controllers_resp notEmpty", link_controllers_resp.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "link_controllers_resp notFull", link_controllers_resp.notFull);
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq0 notEmpty", links_controllers_activatedReq[0].recvNotEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq0 notFull", links_controllers_activatedReq[0].sendNotFull);
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq1 notEmpty", links_controllers_activatedReq[1].recvNotEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq1 notFull", links_controllers_activatedReq[1].sendNotFull);
+
+    String debugScanName = "Coherent Scratchpad Controller " + integerToString(dataScratchpadID) + " Router in Domain " + integerToString(coherenceDomainID);
+
+    let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
 
     // =======================================================================
     //

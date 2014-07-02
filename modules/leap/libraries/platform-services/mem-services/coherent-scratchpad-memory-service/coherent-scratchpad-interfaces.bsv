@@ -39,9 +39,10 @@
 // ========================================================================
 
 //
-// The maximum number of coherent scratchpad clients in a coherence region
+// The maximum number of coherent scratchpad clients associated with each
+// coherent scratchpad controller
 //
-typedef 64 COH_SCRATCH_N_CLIENTS;
+typedef `COHERENT_SCRATCHPAD_MAX_CLIENT_NUM COH_SCRATCH_N_CLIENTS;
 
 //
 // Port 0 is reserved for the coherent scratchpad controller.  
@@ -59,9 +60,9 @@ typedef Bit#(TLog#(TAdd#(1, COH_SCRATCH_N_PORTS))) COH_SCRATCH_PORT_NUM;
 // The maximum number of coherent scratchpad controllers in a coherence region
 //
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
-    typedef 16 COH_SCRATCH_N_CONTROLLERS;
+    typedef `COHERENT_SCRATCHPAD_MAX_CONTROLLER_NUM COH_SCRATCH_N_CONTROLLERS;
 `else
-    typedef 1  COH_SCRATCH_N_CONTROLLERS;
+    typedef 1 COH_SCRATCH_N_CONTROLLERS;
 `endif
 
 typedef Bit#(TLog#(COH_SCRATCH_N_CONTROLLERS)) COH_SCRATCH_CTRLR_PORT_NUM;
@@ -261,16 +262,21 @@ COH_SCRATCH_ACTIVATED_REQ#(type t_ADDR)
 //
 typedef struct
 {
-    COH_SCRATCH_MEM_VALUE      val;
-    Bool                       ownership;
+    COH_SCRATCH_MEM_VALUE       val;
+    Bool                        ownership;
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
-    COH_SCRATCH_CTRLR_PORT_NUM controllerId;
-    COH_SCRATCH_PORT_NUM       clientId;
+    COH_SCRATCH_CTRLR_PORT_NUM  controllerId;
+    COH_SCRATCH_PORT_NUM        clientId;
 `endif    
-    COH_SCRATCH_META           meta;
-    RL_CACHE_GLOBAL_READ_META  globalReadMeta;
-    Bool                       isCacheable;
-    Bool                       retry;
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+    Bool                        needFwd;
+    COH_SCRATCH_CTRLR_PORT_NUM  lastFwdControllerId;
+    COH_SCRATCH_PORT_NUM        lastFwdClientId;
+`endif
+    COH_SCRATCH_META            meta;
+    RL_CACHE_GLOBAL_READ_META   globalReadMeta;
+    Bool                        isCacheable;
+    Bool                        retry;
 }
 COH_SCRATCH_RESP
     deriving (Eq, Bits);
