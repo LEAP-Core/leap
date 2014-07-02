@@ -62,6 +62,12 @@ class BSV():
 
         self.pipeline_debug = getBuildPipelineDebug(moduleList)
 
+        # Collect bluespec interface information for all modules.  
+        self.bluespecBuilddirs = 'iface/build/hw/.bsc/:'
+        for module in moduleList.topologicalOrderSynth():
+            self.bluespecBuilddirs += 'hw/' + module.buildPath + '/.bsc/:'
+
+
         # Should we be building in events? 
         if (getEvents(moduleList) == 0):
             bsc_events_flag = ' -D HASIM_EVENTS_ENABLED=False '
@@ -204,11 +210,7 @@ class BSV():
                                 relativeDeps = map(addBuildPath,convertedDeps)
                                 fullLIGraph.modules[module.name].putObjectCode(objectType, relativeDeps)
                              
-                    # Collect bluespec interface information for all modules.  
-                    bluespecBuilddirs = 'iface/build/hw/.bsc/:'
-                    for module in topo + [moduleList.topModule]:
-                        bluespecBuilddirs += 'hw/' + module.buildPath + '/.bsc/:'
-
+                    
                     for module in topo:
                         if(module.name in fullLIGraph.modules):
                             # annotate platform module with local mapping. 
@@ -216,14 +218,7 @@ class BSV():
                                 # The platform module is special. 
                                 fullLIGraph.modules[module.name].putAttribute('MAPPING', moduleList.localPlatformName)
                                 fullLIGraph.modules[module.name].putAttribute('PLATFORM_MODULE', True)
-                                moduleIFC = os.popen('bluetcl ./hw/model/interfaceType.tcl -p ' + bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper').read() 
-                                fullLIGraph.modules[module.name].putObjectCode('BSV_IFC', moduleIFC)
 
-
-                            modulePaths = os.popen('bluetcl ./hw/model/path.tcl  -p ' + bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper').read()
-                            moduleScheds = os.popen('bluetcl ./hw/model/sched.tcl  -p ' + bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper').read()
-                            fullLIGraph.modules[module.name].putObjectCode('BSV_PATH', modulePaths)
-                            fullLIGraph.modules[module.name].putObjectCode('BSV_SCHED', moduleScheds)
 
                     # Decorate LI modules with type
                     for module in fullLIGraph.modules.values():
@@ -527,6 +522,26 @@ class BSV():
                 wrapper_bo = env.BSC(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
                 moduleList.env.Depends(wrapper_bo, stub)
                 module.moduleDependency['BO'] = [wrapper_bo]
+                if(self.BUILD_LOGS_ONLY):
+                    # We should collect metadata about the .ba
+                    module.moduleDependency['BSV_SCHED'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.bsv.sched'),
+                                                                                   wrapper_bo,
+                                                                                   'bluetcl ./hw/model/sched.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
+                    module.moduleDependency['BSV_PATH'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.bsv.path'),
+                                                                                   wrapper_bo,
+                                                                                   'bluetcl ./hw/model/path.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
+                    moduleList.topDependency += module.moduleDependency['BSV_SCHED'] + module.moduleDependency['BSV_PATH']
+                    
+                    if(module.platformModule):
+                        module.moduleDependency['BSV_IFC'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.bsv.ifc'),
+                                                                                      wrapper_bo,
+                                                                                     'bluetcl ./hw/model/interfaceType.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
+
+                        moduleList.topDependency += module.moduleDependency['BSV_IFC']
+
+
+
+
             else:
                 ## Top level build can generate the log in a single pass since no
                 ## connections are exposed
@@ -544,7 +559,7 @@ class BSV():
                 ## In case Bluespec build is the end of the build pipeline.
                 if(not self.BUILD_LOGS_ONLY):
                     moduleList.topDependency += [logfile]
-                
+
                 ## The toplevel bo also depends on the on the synthesis of the build tree from log files.
 
             ##

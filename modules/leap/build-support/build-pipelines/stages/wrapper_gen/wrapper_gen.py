@@ -42,7 +42,8 @@ def generateBAImport(module, importHandle):
     importHandle.write("\ninterface IMP_" + module.name + ";\n")
     # Some modules may have a secondary interface.
     if('BSV_IFC' in module.objectCache):
-        bsvIfc = eval(module.objectCache['BSV_IFC'][0])
+        ifcHandle = open(module.objectCache['BSV_IFC'][0], 'r')
+        bsvIfc = eval(ifcHandle.read())
         bsvIfc.generateImportInterfaceTop(importHandle)
 
     else:
@@ -106,8 +107,11 @@ def generateBAImport(module, importHandle):
         
             
     # We cached scheduling and path information during the first pass. Use it now. 
-    importHandle.write(module.objectCache['BSV_PATH'][0] + '\n\n\n')
-    importHandle.write(module.objectCache['BSV_SCHED'][0] + '\n\n\n')
+    bsvPathHandle   = open(module.objectCache['BSV_PATH'][0], 'r')
+    bsvSchedHandle  = open(module.objectCache['BSV_SCHED'][0], 'r')
+
+    importHandle.write(bsvPathHandle.read() + '\n\n\n')
+    importHandle.write(bsvSchedHandle.read() + '\n\n\n')
 
     importHandle.write('endmodule\n\n')
 
@@ -394,7 +398,6 @@ class WrapperGen():
         moduleList.graphizeSynth()
             
         # Sprinkle more files expected by the two-pass build.  
-        print "Generating wrapper stub for platform_module.\n"
         generateWrapperStub(moduleList, platform_module)
         generateAWBCompileWrapper(moduleList, platform_module)
 
