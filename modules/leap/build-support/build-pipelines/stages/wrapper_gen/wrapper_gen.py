@@ -328,9 +328,10 @@ def generateAWBCompileWrapper(moduleList, module):
     for bsv in module.moduleDependency['GIVEN_BSVS']:
         wrapper.write('`include "' + bsv +'"\n')
     wrapper.close()
-
+ 
 # This function generates wrapper stubs so that depends-init does the right thing. 
-def generateWrapperStub(moduleList, module, suffixes=['_Wrapper.bsv','_Log.bsv']):
+def generateWrapperStub(moduleList, module):
+    suffixes=['_Wrapper.bsv','_Log.bsv']
     compileWrapperPath = get_build_path(moduleList, module)
     for suffix in suffixes:
          # check for file's existance before overwriting. 
@@ -376,7 +377,7 @@ class WrapperGen():
     platformDeps['GEN_VERILOGS'] = []
     platformDeps['GEN_BAS'] = []
     #This is sort of a hack.
-    platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh']
+    platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh', 'awb/provides/physical_platform.bsh']
     platformDeps['BA'] = []
     platformDeps['STR'] = []
     platformDeps['VERILOG'] = [topModulePath + '/' + TMP_BSC_DIR + '/mk_' + platformName + '_Wrapper.v']
@@ -415,11 +416,7 @@ class WrapperGen():
         synthHandle.write('import Clocks::*;\n')
         synthHandle.write('`include "awb/provides/virtual_platform.bsh"\n')
         synthHandle.write('`include "awb/provides/physical_platform.bsh"\n')
-        synthHandle.write('`include "awb/provides/clocks_device.bsh"\n')
-        synthHandle.write('`include "awb/provides/soft_services.bsh"\n')
-        synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')
-        synthHandle.write('`include "awb/provides/soft_services_lib.bsh"\n')
-        synthHandle.write('`include "awb/provides/librl_bsv_base.bsh"\n')
+        generateWellKnownIncludes(synthHandle)
         # May need an extra import here?
         # get the platform module from the LIGraph            
         generateBAImport(platform_module_li, synthHandle)
@@ -488,23 +485,24 @@ class WrapperGen():
           generateConnectionBSH(dummyModule, bsh_handle)
           bsh_handle.close()
 
-
-          #os.system('leap-connect --dummy --dynsize ' + module.name + ' ' + conSizePath)
-
       wrapper_bsv.write('import HList::*;\n')
       wrapper_bsv.write('import Vector::*;\n')
       wrapper_bsv.write('import ModuleContext::*;\n')
-
       # the top module is handled specially
       if (module.name == moduleList.topModule.name):
-
+        generateWellKnownIncludes(wrapper_bsv)
         wrapper_bsv.write('// These are well-known/required leap modules\n')
         wrapper_bsv.write('// import non-synthesis public files\n')
+
         # Include all subordinate synthesis boundaries for use by
         # instantiateAllSynthBoundaries() below.
-        for synth in synth_modules:
-          if synth != module:
-            wrapper_bsv.write('`include "' + synth.name + '_synth.bsv"\n')
+        # If we're doing a LIM build, there are no *_synth.bsv for use codes.
+        # Probably if we're doing a build tree they aren't necessary either, but
+        # removing those dependencies would take a little work. 
+        if(self.firstPassLIGraph is None):
+            for synth in synth_modules:
+                if synth != module:
+                    wrapper_bsv.write('`include "' + synth.name + '_synth.bsv"\n')
 
         # Provide a method that imports all subordinate synthesis
         # boundaries.  It will be invoked inside the top level model
