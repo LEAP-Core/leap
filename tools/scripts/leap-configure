@@ -602,8 +602,6 @@ sub make_dirs {
     $sys_status |= system("mkdir -p " . ${hwdir} . "/include/awb/provides");
     $sys_status |= system("ln -sfn awb " . ${hwdir} . "/include/asim");
 
-    __make_wrappers($root, $hwdir, 1);
-
     # Software (sw) tree.
     my $swdir = Leap::Util::path_append($builddir, "sw");
 
