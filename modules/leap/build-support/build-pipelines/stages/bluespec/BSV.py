@@ -442,9 +442,15 @@ class BSV():
         APM_FILE = moduleList.env['DEFS']['APM_FILE']
         BSC = moduleList.env['DEFS']['BSC']
 
-
-
         MODULE_PATH =  get_build_path(moduleList, module)       
+
+        ##
+        ## Load intra-Bluespec dependence already computed.  This information will
+        ## ultimately drive the building of Bluespec modules.
+        ##
+        env.ParseDepends(MODULE_PATH + '/' + module.dependsFile,
+                         must_exist = not moduleList.env.GetOption('clean'))
+
 
         # This function is responsible for creating build rules for
         # subdirectories.  It must be called or no subdirectory builds
@@ -454,23 +460,20 @@ class BSV():
         if not os.path.isdir(self.TMP_BSC_DIR):
             os.mkdir(self.TMP_BSC_DIR)
 
-
-
         moduleList.env.VariantDir(MODULE_PATH + '/' + self.TMP_BSC_DIR, '.', duplicate=0)
 
+        # set up builds for the various bsv of this synthesis
+        # boundary.  One wonders if we could handle this as a single
+        # global operation.
         bsc_builds = []
         for bsv in BSVS + GEN_BSVS:
             bsc_builds += env.BSC(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
+                
 
-
-        # skip submodule builds if we're importing object code. 
-
-        ##
-        ## Load intra-Bluespec dependence already computed.  This information will
-        ## ultimately drive the building of Bluespec modules.
-        ##
-        env.ParseDepends(MODULE_PATH + '/' + module.dependsFile,
-                         must_exist = not moduleList.env.GetOption('clean'))
+        # if we got object code and we're not the top level, 
+        # we can return now. 
+        if ((module.name != moduleList.topModule.name) and (not self.firstPassLIGraph is None)): 
+            return
 
         # This should not be a for loop.
         for bsv in [get_wrapper(module)]:
@@ -524,16 +527,16 @@ class BSV():
                 module.moduleDependency['BO'] = [wrapper_bo]
                 if(self.BUILD_LOGS_ONLY):
                     # We should collect metadata about the .ba
-                    module.moduleDependency['BSV_SCHED'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.bsv.sched'),
+                    module.moduleDependency['BSV_SCHED'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.sched'),
                                                                                    wrapper_bo,
                                                                                    'bluetcl ./hw/model/sched.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
-                    module.moduleDependency['BSV_PATH'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.bsv.path'),
+                    module.moduleDependency['BSV_PATH'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.path'),
                                                                                    wrapper_bo,
                                                                                    'bluetcl ./hw/model/path.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
                     moduleList.topDependency += module.moduleDependency['BSV_SCHED'] + module.moduleDependency['BSV_PATH']
                     
                     if(module.platformModule):
-                        module.moduleDependency['BSV_IFC'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.bsv.ifc'),
+                        module.moduleDependency['BSV_IFC'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.ifc'),
                                                                                       wrapper_bo,
                                                                                      'bluetcl ./hw/model/interfaceType.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
 
