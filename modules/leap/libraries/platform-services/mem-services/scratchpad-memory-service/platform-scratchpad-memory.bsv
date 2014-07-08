@@ -384,12 +384,16 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
                            mkDebugFileNull(debugLogFilename); 
 
     let my_port = scratchpadPortId(scratchpadID);
+    let platformID <- getSynthesisBoundaryPlatformID();
     
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Req", my_port);
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req", my_port);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Resp", my_port);
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp", my_port);
+
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -745,13 +749,16 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
                            mkDebugFileNull(debugLogFilename); 
 
     let my_port = scratchpadPortId(scratchpadID);
+    let platformID <- getSynthesisBoundaryPlatformID();
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Req", my_port);
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req", my_port);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Resp", my_port);
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp", my_port);
 
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 
     Reg#(Bool) initialized <- mkReg(False);
 

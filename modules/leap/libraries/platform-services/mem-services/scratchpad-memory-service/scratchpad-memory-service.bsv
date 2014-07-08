@@ -67,13 +67,17 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCa
     //
     // ====================================================================
 
+    let platformID <- getSynthesisBoundaryPlatformID();
+    
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Req", 0);
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req", 0);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnectionTokenRingNode("Scratchpad_" + `SCRATCHPAD_PLATFORM + "_Resp", 0);
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp", 0);
 
-
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req, Port: 0");
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp, Port: 0");
+    
     //
     // sendScratchpadReq --
     //     Forward a scratchpad client's request to the scratchpad
