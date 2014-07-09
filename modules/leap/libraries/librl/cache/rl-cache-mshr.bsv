@@ -209,7 +209,10 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
     
     // Release MSHR Get entry (after the router finishes forwarding)
     method Action releaseGetEntry(t_MSHR_IDX mshrIdx);
-    
+   
+    // Ask MSHR to return the forwarding response value
+    method ActionValue#(t_CACHE_WORD) getFwdRespVal(t_MSHR_IDX mshrIdx);
+
     // Return true if a read request has been processed (received activated GETS req)
     method Bool getShareProcessed();
     // Return true if a write request has been processed (received response for GETX)
@@ -401,6 +404,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     PulseWire mshrGetAllocateW   <- mkPulseWire();
     PulseWire resendGetxW        <- mkPulseWire();
     PulseWire releaseGetEntryW   <- mkPulseWire();
+    PulseWire getFwdRespValW     <- mkPulseWire();
 
     //track inflight GETX/GETS requests
     PulseWire getsProcessedW                          <- mkPulseWire();
@@ -711,7 +715,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
 
     (* mutually_exclusive = "processRespFromNetwork, resendGetX, ownPutMshrHit, ownGetMshrHit, otherGetMshrHit, otherPutMshrHit, otherMshrMiss" *)
     // process responses received from network
-    rule processRespFromNetwork (!releaseGetEntryW && !activatedReqEnW && !cacheGetReqEnW && !cachePutReqEnW && !mshrGetAllocateW && !resendGetxW);
+    rule processRespFromNetwork (!releaseGetEntryW && !getFwdRespValW && !activatedReqEnW && !cacheGetReqEnW && !cachePutReqEnW && !mshrGetAllocateW && !resendGetxW);
         let r = respFromNetworkQ.first();
         respFromNetworkQ.deq();
         numBufferedResps.down();
@@ -791,8 +795,9 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                 begin
                     mshr_release        = !r.getsFwd;
                     mshr_delay          = !mshr_release;
-                    local_resp.newState = (r.ownership)? COH_DM_CACHE_STATE_M : COH_DM_CACHE_STATE_S;
                     local_resp.val      = applyWriteMask(r.val, e.writeData, e.byteWriteMask);
+                    local_resp.newState = (r.ownership)? COH_DM_CACHE_STATE_M : COH_DM_CACHE_STATE_S;
+                    new_entry.val       = r.val;
                 end
                 COH_CACHE_STATE_IM_D_O, COH_CACHE_STATE_IM_D_I, COH_CACHE_STATE_IM_D_OI:
                 begin
@@ -804,6 +809,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                     local_resp.newState = (e.state != COH_CACHE_STATE_IM_D_O)? COH_DM_CACHE_STATE_I : 
                                           ((r.ownership)? COH_DM_CACHE_STATE_O : COH_DM_CACHE_STATE_S);
                     local_resp.val      = new_val;
+                    new_entry.val       = new_val;
 
                     // send forwarding response to router's forwarding table (in order to forward new data to remote caches)
                     // send reset forwarding response (to reset the forwarding table) if the response does not include ownership
@@ -813,9 +819,6 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                     respToNetworkQ.enq(tagged MSHR_FWD_RESP fwd_resp);
                     debugLog.record($format("        MSHR: routerResp: FWD RESP: fwdEntryIdx=0x%x, val=0x%x, resetEntry=%s", 
                                     fwd_resp.fwdEntryIdx, fwd_resp.val, (fwd_resp.resetEntry)? "True" : "False"));
-                    // reset mshr (but not release yet)
-                    new_entry.state = COH_CACHE_STATE_IM_AD;
-                    new_entry.val   = new_val;
                 end
             endcase
 
@@ -847,7 +850,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     endrule
 
     (* fire_when_enabled *)
-    rule resendGetX (!activatedReqEnW && !cacheGetReqEnW && !cachePutReqEnW && !mshrGetAllocateW && retryReqQ.notFull());
+    rule resendGetX (!getFwdRespValW && !activatedReqEnW && !cacheGetReqEnW && !cachePutReqEnW && !mshrGetAllocateW && retryReqQ.notFull());
         let meta = resendGetxQ.first();
         resendGetxQ.deq();
         let e = mshrGet.sub(meta);
@@ -968,7 +971,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                t_CACHE_ADDR addr,
                                Bool ownReq,
                                t_NW_REQ_IDX reqIdx,
-                               RL_COH_CACHE_REQ_TYPE reqType) if (!releaseGetEntryW && !getReqQ.notEmpty && !putReqQ.notEmpty && respLocalQ.notFull && respToNetworkQ.notFull);
+                               RL_COH_CACHE_REQ_TYPE reqType) if (!releaseGetEntryW && !getFwdRespValW && !getReqQ.notEmpty && !putReqQ.notEmpty && respLocalQ.notFull && respToNetworkQ.notFull);
         
         debugLog.record($format("        MSHR: %s activated request on entry=0x%x, addr=0x%x, reqType=%d", 
                                 (ownReq)? "own" : "other", mshrIdx, addr, reqType));
@@ -1038,6 +1041,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         begin
             mshrReleaseW.send();
         end
+    endmethod
+    
+    // Ask MSHR to return the forwarding response value
+    method ActionValue#(t_CACHE_WORD) getFwdRespVal(t_MSHR_IDX mshrIdx);
+        let e = mshrGet.sub(mshrIdx);
+        getFwdRespValW.send();
+        debugLog.record($format("        MSHR: getFwdRespVal: mshrGet entry (0x%x), val=0x%x", mshrIdx, e.val));
+        return e.val;
     endmethod
     
     // Return true if a read request has been processed (received activated GETS req)

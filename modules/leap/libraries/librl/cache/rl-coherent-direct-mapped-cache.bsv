@@ -295,6 +295,14 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
     // Cache will pass the information to MSHR in order to release the MSHR entry
     method ActionValue#(t_CACHE_META) getReleasedFwdEntryIdx();
 
+    // Return the pending forwarding entry
+    // Cache will pass the information to MSHR and ask MSHR to re-send the
+    // forwarding response 
+    method ActionValue#(t_CACHE_META) getPendingFwdEntryIdx();
+
+    // Resend forward response value 
+    method Action resendFwdRespVal(t_CACHE_META fwdIdx, t_CACHE_WORD val);
+
     //
     // Activated requests from the network
     // In a snoopy-based protocol, the requests may be the cache's own requests or
@@ -1709,6 +1717,18 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         debugLog.record($format("    Cache: releaseMSHRGetEntry: release MSHR entry=0x%x", idx));
     endrule
 
+    //
+    // resendFwdRespFromMSHR --
+    //     Receive request from router saying that the forwarding entry is pending for the 
+    // response value. Ask MSHR to return the forwarding value
+    //
+    (*fire_when_enabled*)
+    rule resendFwdRespFromMSHR (True);
+        let idx <- sourceData.getPendingFwdEntryIdx();
+        let val <- mshr.getFwdRespVal(idx);
+        sourceData.resendFwdRespVal(idx, val);
+    endrule
+    
     // ====================================================================
     //
     //   Debug scan state
