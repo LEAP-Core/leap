@@ -41,7 +41,6 @@ import DefaultValue::*;
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/local_mem.bsh"
-`include "awb/provides/model_params.bsh"
 `include "awb/provides/debug_scan_service.bsh"
 
 `include "awb/dict/VDEV.bsh"

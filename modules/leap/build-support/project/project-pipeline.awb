@@ -42,7 +42,6 @@
 %param LEAP_DEBUG_PATH        "leap_debug"       "Debugging output directory"
 %param LEAP_BUILD_CACHE_DIR   ""                 "Where scons should put the build cache"
 %param LEAP_LIVE_DEBUG_PATH   "leap_debug/live"  "Live files (e.g. FIFOs) debugging output directory"
-%param EXPOSE_ALL_CONNECTIONS 0 "True if we should expose all soft connections"
 %param SMART_SYNTH_BOUNDARY   0        "use smart synthesis boundaries"
 %param SYNTH_BOUNDARY          mkModel  "name of synthesis boundary"
 %param INSTANTIATE_ROUTERS 0        "use smart synthesis boundaries"

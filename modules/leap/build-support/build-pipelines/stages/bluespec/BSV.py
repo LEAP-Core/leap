@@ -708,10 +708,24 @@ class BSV():
 
     def compile_bo_bsc_base(self, target, module_path):
         bdir = os.path.dirname(str(target[0]))
+        # compile bo_bsc_base gets some bogus .bsh targets..
+        if(not os.path.exists(bdir)):
+            return ''
+        
+        # Emit an include path file.  This indirection is necessary to
+        # fool scons into thinking that our command line doesn't
+        # change.
+        libDirsFile = str(target[0]).replace('.bo','.libs')
+        libDirsFile = libDirsFile.replace('.bsh','.libs')
+        libDirsFile = libDirsFile.replace('.log','.libs')
         lib_dirs = self.__bsc_bdir_prune(module_path + ':' + self.ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
+        libDirsHandle = open(libDirsFile,'w')
+        libDirsHandle.write(lib_dirs)
+        libDirsHandle.close()
+
         return self.moduleList.env['DEFS']['BSC'] + " " +  self.BSC_FLAGS + ' -p +:' + \
                self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/awb/provides:' + \
-               lib_dirs + ':' + self.TMP_BSC_DIR + ' -bdir ' + bdir + \
+               '`cat ' + libDirsFile + '`:' + self.TMP_BSC_DIR + ' -bdir ' + bdir + \
                ' -vdir ' + bdir + ' -simdir ' + bdir + ' -info-dir ' + bdir + \
                ' -fdir ' + bdir
     
