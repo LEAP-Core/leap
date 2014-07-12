@@ -33,6 +33,7 @@
 %scons %top     SCons.top.pipeline.template
 %scons %library ModuleList.py
 %scons %library Module.py
+%scons %library PythonTidy.py
 %scons %library Utils.py
 %scons %library CommandLine.py
 %scons %library ProjectDependency.py

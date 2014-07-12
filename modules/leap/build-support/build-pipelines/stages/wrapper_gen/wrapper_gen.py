@@ -294,7 +294,9 @@ def generateConnectionBSH(liModule, bshHandle):
 
 def getSynthHandle(moduleList, module):
     compileWrapperPath = get_build_path(moduleList, module)
-    return open( compileWrapperPath + '/' + module.name + '_synth.bsv', 'w')
+    path = compileWrapperPath + '/' + module.name + '_synth.bsv'
+    print "Generating synthesis stub: " + path
+    return open(path, 'w')
 
 def generateSynthStub(moduleList, module):
     wrapper = getSynthHandle(moduleList, module)
