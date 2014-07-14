@@ -291,6 +291,7 @@ class BSV():
             # tree.  We could be clever and put this code somewhere
             # rather than replicate it.
             if self.USE_TREE_BUILD:
+
                 buildTreeDeps = {}
                 buildTreeDeps['GEN_VERILOGS'] = []
                 buildTreeDeps['GEN_BAS'] = []
@@ -301,6 +302,7 @@ class BSV():
                 buildTreeDeps['VERILOG'] = []
                 buildTreeDeps['BSV_LOG'] = []
                 buildTreeDeps['VERILOG_STUB'] = []
+
                 tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
                              moduleList.topModule.name,\
                              [], moduleList.topModule.name, [], buildTreeDeps, platformModule=True)
@@ -345,6 +347,26 @@ class BSV():
                 platform_deps = ".depends-platform"
                 deps += self.compute_dependence(moduleList, moduleList.topModule, useDerived, fileName=platform_deps, targetFiles=[platform_synth])
 
+                # If we have an LI graph, we need to construct and compile
+                # several LI wrappers.  do that here.
+                # include all the dependencies in the graph in the wrapper.         
+                li_wrappers = []
+                tree_base_path = get_build_path(moduleList, moduleList.topModule)
+                liGraph = LIGraph([])    
+                firstPassGraph = getFirstPassLIGraph()
+                # We should ignore the 'PLATFORM_MODULE'
+                liGraph.mergeModules(getUserModules(firstPassGraph))        
+                for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
+                    wrapper_import_path = tree_base_path + '/' + module.name + '_Wrapper.bsv'
+                    li_wrappers.append(module.name + '_Wrapper.bsv')
+                    wrapper_import_handle = open(wrapper_import_path, 'w')
+                    wrapper_import_handle.write('import Vector::*;\n')
+                    generateWellKnownIncludes(wrapper_import_handle)
+                    generateBAImport(module, wrapper_import_handle)
+                    wrapper_import_handle.close()
+                    platform_deps = ".depends-" + module.name
+                    deps += self.compute_dependence(moduleList, moduleList.topModule, useDerived, fileName=platform_deps, targetFiles=[wrapper_import_path])
+ 
             for module in topo + [moduleList.topModule]:                
                 # for object import builds no Wrapper code will be included. remove it. 
                 deps += self.compute_dependence(moduleList, module, useDerived, fileName=module.dependsFile)
@@ -804,20 +826,21 @@ class BSV():
         ##
         env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-build-tree',
                          must_exist = not moduleList.env.GetOption('clean'))
+        tree_base_path = get_build_path(moduleList, moduleList.topModule)
 
-        tree_file_synth = get_build_path(moduleList, moduleList.topModule) + "/build_tree_synth.bsv"
-        tree_file_synth_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR +"/build_tree_synth"
+        tree_file_synth = tree_base_path + "/build_tree_synth.bsv"
+        tree_file_synth_bo_path = tree_base_path + "/" + self.TMP_BSC_DIR +"/build_tree_synth"
 
-        tree_file_wrapper = get_build_path(moduleList, moduleList.topModule) + "/build_tree_Wrapper.bsv"
-        tree_file_wrapper_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree_Wrapper"
+        tree_file_wrapper = tree_base_path + "/build_tree_Wrapper.bsv"
+        tree_file_wrapper_bo_path = tree_base_path + "/" + self.TMP_BSC_DIR + "/build_tree_Wrapper"
 
 
-        tree_file_import = get_build_path(moduleList, moduleList.topModule) + "/build_tree_Import.bsv"
-        tree_file_import_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree_Import"
+        tree_file_import = tree_base_path + "/build_tree_Import.bsv"
+        tree_file_import_bo_path = tree_base_path + "/" + self.TMP_BSC_DIR + "/build_tree_Import"
 
         # this level of indirection is necessary to mimic the way AWB handles .bo builds
-        tree_file_bo = get_build_path(moduleList, moduleList.topModule) + "/build_tree.bsv"
-        tree_file_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree"
+        tree_file_bo = tree_base_path + "/build_tree.bsv"
+        tree_file_bo_path = tree_base_path + "/" + self.TMP_BSC_DIR + "/build_tree"
 
         if moduleList.env.GetOption('clean'):
             os.system('rm -f ' + tree_file_bo)
@@ -866,13 +889,8 @@ class BSV():
 
             # include all the dependencies in the graph in the wrapper.                 
             for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
-                if(not useBVI):                                   
-                    wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')       
+                wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')       
 
-                # If we use the BVI indirection, we should write out an import file. 
-                else:
-                    generateBAImport(module, wrapper_handle)
-         
             wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
 
             if (pipeline_debug != 0):
@@ -1345,9 +1363,35 @@ class BSV():
         ## into the list.  Although we are building it seperately, this
         ## module is an extension to the build tree.
         expected_wrapper_count = len(boundary_logs) - 2
+        importBOs = []
+
         if(not self.firstPassLIGraph is None):
             # we now have platform modules in here. 
             expected_wrapper_count = len(self.firstPassLIGraph.modules) - 2
+
+            # If we have an LI graph, we need to construct and compile
+            # LI import wrappers for the modules we received from the
+            # first pass.  Do that here.  include all the dependencies
+            # in the graph in the wrapper.
+            tree_base_path = get_build_path(moduleList, moduleList.topModule)
+            liGraph = LIGraph([])    
+            firstPassGraph = getFirstPassLIGraph()
+            # We should ignore the 'PLATFORM_MODULE'
+            liGraph.mergeModules(getUserModules(firstPassGraph))        
+            for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
+                # pull in the dependecies generate by the dependency pass. 
+                env.ParseDepends(tree_base_path + '/.depends-' + module.name,
+                         must_exist = not moduleList.env.GetOption('clean'))
+                wrapper_path = tree_base_path + '/' + module.name + '_Wrapper.bsv'
+                wrapper_bo_path = tree_base_path + "/" + self.TMP_BSC_DIR + "/" + module.name + "_Wrapper.bo"
+
+                # include commands to build the wrapper .bo/.ba
+                wrapper_command = self.compile_bo_bsc_base([wrapper_bo_path], get_build_path(moduleList, moduleList.topModule)) + ' ' + wrapper_path
+                wrapper_bo = env.Command([wrapper_bo_path],
+                                         [wrapper_path],
+                                         wrapper_command)
+                # create BO.
+                importBOs += [wrapper_bo]
 
         verilog_deps = [ "__TREE_MODULE__" + str(id) for id in range(expected_wrapper_count)] 
 
@@ -1362,9 +1406,6 @@ class BSV():
         tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
                              moduleList.topModule.name,\
                              [], moduleList.topModule.name, [], buildTreeDeps, platformModule=True)
-
-        #tree_module.dependsFile = '.depends-build-tree'
-        #env.ParseDepends( moduleList.topModule.buildPath + '/' + tree_module.dependsFile)
 
         moduleList.insertModule(tree_module)
         generateAWBCompileWrapper(moduleList, tree_module)
@@ -1382,8 +1423,9 @@ class BSV():
         # If I got an LI graph, I don't care about the boundary logs.
         # In this case, everything comes from the first pass graph.
 
+
         tree_components = env.Command([tree_file_wrapper, tree_file_synth],
-                                      boundary_logs,
+                                      boundary_logs + importBOs,
                                       cut_tree_build)
 
         ## Compiling the build tree wrapper produces several .ba
@@ -1403,10 +1445,6 @@ class BSV():
                             map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['BA'])
                         if('GEN_BAS' in module.objectCache):
                             map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_BAS'])
-                        #if('GEN_VERILOGS' in module.objectCache):
-                        #    map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_VERILOGS'])
-                        #if('GEN_WRAPPER_VERILOGS' in module.objectCache):
-                        #    map(lambda fileName: makeAWBLink(True, fileName), module.objectCache['GEN_WRAPPER_VERILOGS'])
                         if('GEN_VERILOG_STUB' in module.objectCache):
                             map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_VERILOG_STUB'])
                         if('STR' in module.objectCache):
@@ -1425,8 +1463,6 @@ class BSV():
 
         producedBAs = map(lambda path: modify_path_ba(moduleList, path), moduleList.getModuleDependenciesWithPaths(tree_module, 'GEN_BAS'))
 
-        #tree_file_wrapper = get_build_path(moduleList, moduleList.topModule) + "/build_tree_Wrapper.bsv"
-        #tree_file_wrapper_bo_path = get_build_path(moduleList, moduleList.topModule) + "/" + self.TMP_BSC_DIR + "/build_tree_Wrapper"
         tree_command = self.compile_bo_bsc_base([tree_file_wrapper_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_wrapper
         tree_file_wrapper_bo = env.Command([tree_file_wrapper_bo_path + '.bo'] + producedBAs,
                                            [tree_file_wrapper],
