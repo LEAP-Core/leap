@@ -14,6 +14,16 @@ class Verilog():
     BSC = moduleList.env['DEFS']['BSC']
     inc_paths = moduleList.swIncDir # we need to depend on libasim
 
+    # This is not correct for LIM builds and needs to be fixed. 
+    TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
+    ALL_DIRS_FROM_ROOT = moduleList.env['DEFS']['ALL_HW_DIRS']
+    ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
+    ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
+
+    LI_LINK_DIR = ""
+    if(not (getFirstPassLIGraph()) is None):
+      LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/:"
+
     bsc_version = getBluespecVersion()
 
     ldflags = ''
@@ -36,7 +46,7 @@ class Verilog():
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'
 
     vexe_gen_command = \
-        BSC + ' ' + BSC_FLAGS_VERILOG + ' -vdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + \
+        BSC + ' ' + BSC_FLAGS_VERILOG + ' -vdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] +' -p +:' + LI_LINK_DIR + ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + LI_LINK_DIR + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
         ' -o $TARGET' 
 
 
@@ -64,12 +74,8 @@ class Verilog():
         return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + '/'.join(array) + '/' + TMP_BSC_DIR + '/' + file 
 
     # Bluespec requires that source files terminate the command line.
-    vexe_gen_command += '-verilog -e ' + ROOT_WRAPPER_SYNTH_ID + \
-        ' $SOURCES ' + moduleList.env['DEFS']['BDPI_CS']
-#
-#        ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -p +:' + ALL_LIB_DIRS_FROM_ROOT +' -simdir ' + \
-#        TMP_BSC_DIR + ' ' +\
-#        ' ' + moduleList.env['DEFS']['BDPI_CS']
+    vexe_gen_command += '-verilog -e ' + ROOT_WRAPPER_SYNTH_ID + ' ' +\
+                        moduleList.env['DEFS']['BDPI_CS']
 
     if (getBuildPipelineDebug(moduleList) != 0):
         for m in moduleList.getAllDependencies('BA'):
@@ -129,7 +135,6 @@ class Verilog():
         moduleList.topDependency = moduleList.topDependency + [vexe]
 
     else:
-
         vbin = moduleList.env.Command(
             TMP_BSC_DIR + '/' + APM_NAME + '_hw.vexe',
             moduleList.getAllDependencies('VERILOG') +
