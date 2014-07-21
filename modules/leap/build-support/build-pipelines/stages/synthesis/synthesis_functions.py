@@ -74,7 +74,9 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
     verilogs = globalVerilogs + [get_temp_path(moduleList,module) + module.wrapperName() + '.v']
     verilogs +=  moduleList.getDependencies(module, 'VERILOG_STUB')
     for vlog in sorted(verilogs):
-        newPRJFile.write("verilog work " + vlog + "\n")
+        # ignore system verilog files.  XST can't compile them anyway...
+        if (not re.search('\.sv\s*$',vlog)):    
+            newPRJFile.write("verilog work " + vlog + "\n")
     for vhd in sorted(globalVHDs):
         newPRJFile.write("vhdl work " + vhd + "\n")
 
@@ -82,5 +84,79 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
     return prjPath
 
 
+# Converts SRP file into resource representation which can be used
+# by the LIM compiler to assign modules to execution platforms.
+def getSRPResourcesClosure(module):
+
+    def collect_srp_resources(target, source, env):
+
+        srpFile = str(source[0])
+        rscFile = str(target[0])
+
+        srpHandle = open(srpFile, 'r')
+        rscHandle = open(rscFile, 'w')
+        resources =  {}
+
+        attributes = {'LUT': " Number of Slice LUTs",'Reg': " Number of Slice Registers", 'BRAM': " Number of Block RAM/FIFO:"}
+
+        for line in srpHandle:
+            for attribute in attributes:
+                if (re.match(attributes[attribute],line)):
+                    match = re.search(r'\D+(\d+)\D+(\d+)', line)
+                    if(match):
+                        resources[attribute] = [match.group(1), match.group(2)]
+
+        rscHandle.write(module.name + ':')
+        rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources]) + '\n')
+                                   
+        rscHandle.close()
+        srpHandle.close()
+    return collect_srp_resources
+    
+def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf):
+    #Let's synthesize a xilinx .prj file for this synth boundary.
+    # spit out a new prj
+    generatePrj(moduleList, module, globalVerilogs, globalVHDs)
+    newXSTPath = generateXST(moduleList, module, xstTemplate)
+
+    ngcFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc'
+    srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
+    resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
 
 
+    # Sort dependencies because SCons will rebuild if the order changes.
+    sub_netlist = moduleList.env.Command(
+        [ngcFile, srpFile],
+        sorted(module.moduleDependency['VERILOG']) +
+        sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
+        sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
+        [ newXSTPath ] +
+        xilinx_xcf,
+        [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
+          SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
+          'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
+          '@echo xst ' + module.wrapperName() + ' build complete.' ])
+
+
+    module.moduleDependency['SRP'] = [srpFile]
+
+    if(not 'GEN_NGC' in module.moduleDependency):
+        module.moduleDependency['GEN_NGCS'] = [ngcFile]
+    else:
+        module.moduleDependency['GEN_NGCS'] += [ngcFile]
+
+    module.moduleDependency['RESOURCES'] = [resourceFile]
+
+    module.moduleDependency['SYNTHESIS'] = [sub_netlist]
+    SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
+
+    moduleList.env.Command(resourceFile,
+                           srpFile,
+                           getSRPResourcesClosure(module))
+
+    # If we're building for the FPGA, we'll claim that the
+    # top-level build depends on the existence of the ngc
+    # file. This allows us to do resource analysis later on.
+    if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
+        moduleList.topDependency += [resourceFile]      
+    return sub_netlist
