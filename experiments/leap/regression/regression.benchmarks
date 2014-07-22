@@ -4,7 +4,7 @@
 #
 # ***************
 
-experiments = hello traffic_light_nosynth traffic_light_synth traffic_light_vc707_synth_synplify traffic_light_vc707_synth hello_vexe 
+experiments = hello traffic_light_nosynth traffic_light_synth hello_vexe 
 
 #
 # A simple configuration
