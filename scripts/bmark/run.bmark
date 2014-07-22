@@ -73,6 +73,7 @@ my $forceLoad = 0;
 my $gdb = 0;
 my $noProgram = 0;
 my $noReserve = 0;
+my $fakeStats = 0;
 my $noshowfp = 0;
 my $printCycle = undef;
 my $showfp = undef;
@@ -84,6 +85,7 @@ my $status = GetOptions("help!" => \$help,
                         "gdb!" => \$gdb,
                         "noprogram!" => \$noProgram,
                         "noreserve!" => \$noReserve,
+                        "fakestats!" => \$fakeStats,
                         "force-load!" => \$forceLoad,
                         "noshowfp!" => \$noshowfp,
                         "onlycompare!" => \$onlyCompare,
@@ -152,6 +154,12 @@ if ($help || ! $status) {
     }
 
     exit(1);
+}
+
+# Create a stats file for null workloads to make regression.launcher happy (HACK)
+if ($fakeStats) {
+  system("touch null.stats");
+  exit(0);
 }
 
 #############################################################################
@@ -391,7 +399,7 @@ for my $pid (@pidlist) {
 }
 
 # Create a stats file for null workloads to make regression.launcher happy (HACK)
-if ( $config{workload} eq "null" ) {
+if ( $config{workload} eq "null") {
   system("touch null.stats");
 }
 
