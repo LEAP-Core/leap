@@ -78,7 +78,10 @@ def _xst_top_level(moduleList):
   xstTemplate = parseAWBFile(templateFile)
                 
 
-  [globalVerilogs, globalVHDs] = globalRTLs(moduleList)
+  [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
+  synth_deps = []
+  for module in [ mod for mod in moduleList.synthBoundaries() if mod.platformModule]:  
+      synth_deps += buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf)
 
   generatePrj(moduleList, moduleList.topModule, globalVerilogs, globalVHDs)
   topXSTPath = generateXST(moduleList, moduleList.topModule, xstTemplate)       
@@ -100,8 +103,9 @@ def _xst_top_level(moduleList):
 
   SCons.Script.Clean(top_netlist, topSRP)
 
-  return top_netlist
+  moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
 
+  return [top_netlist] + synth_deps
 
 
 class Synthesize(ProjectDependency):
@@ -115,9 +119,9 @@ class Synthesize(ProjectDependency):
         print "Env BUILD_DIR = " + moduleList.env['ENV']['BUILD_DIR']
 
     synth_deps = []
-    [globalVerilogs, globalVHDs] = globalRTLs(moduleList)
+    [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
 
-    for module in moduleList.synthBoundaries():
+    for module in [ mod for mod in moduleList.synthBoundaries() if not mod.platformModule]:  
       # need to eventually break this out into a seperate function
       # first step - modify prj options file to contain any generated wrappers
       prjFile = open('config/' + moduleList.apmName  + '.synplify.prj','r');  
@@ -153,11 +157,13 @@ class Synthesize(ProjectDependency):
       # establish an include path for synplify.  This is necessary for true text inclusion in verilog,
       # as raw text files don't always compile standalone. Ugly yes, but it is verilog....
       newPrjFile.write('set_option -include_path {')
-      newPrjFile.write(";".join(["../" + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()]))
+      newPrjFile.write(";".join(["../" + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()] + [moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()] + [moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath + '/.bsv/' for moduleDir in moduleList.synthBoundaries()]))
       newPrjFile.write('}\n')
 
       # once we get synth boundaries up, this will be needed only for top level
       newPrjFile.write('set_option -disable_io_insertion 1\n')
+      newPrjFile.write('set_option -multi_file_compilation_unit 1\n')
+
       newPrjFile.write('set_option -frequency ' + str(MODEL_CLOCK_FREQ) + '\n')
 
       newPrjFile.write('impl -add ' + module.wrapperName()  + ' -type fpga\n')
@@ -191,10 +197,10 @@ class Synthesize(ProjectDependency):
         [ newPrjPath ] +
         ['config/' + moduleList.apmName + '.synplify.prj'],
         [ SCons.Script.Delete(build_dir + '/' + module.wrapperName()  + '.srr'),
-          'synplify_pro -batch -license_wait ' + newPrjPath + '> ' + build_dir + '.log',
+          'synplify_premier -batch -license_wait ' + newPrjPath + '> ' + build_dir + '.log',
           # Files in coreip just copied from elsewhere and waste space
           SCons.Script.Delete(build_dir + '/coreip'),
-          '@echo synplify_pro ' + module.wrapperName() + ' build complete.' ])    
+          '@echo synplify_premier ' + module.wrapperName() + ' build complete.' ])    
 
       module.moduleDependency['SYNTHESIS'] = [sub_netlist]
       synth_deps += sub_netlist
@@ -202,11 +208,8 @@ class Synthesize(ProjectDependency):
       SCons.Script.Clean(sub_netlist, build_dir + '/' + module.wrapperName() + '.srr')
       SCons.Script.Clean(sub_netlist, 'config/' + module.wrapperName() + '.modified.synplify.prj')
 
-    # Build the top level using Xst
-    top_netlist = _xst_top_level(moduleList)
-
-    moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
-    synth_deps += top_netlist
+    # Build the top level/platform using Xst
+    synth_deps += _xst_top_level(moduleList)
 
     # Alias for synthesis
     moduleList.env.Alias('synth', synth_deps)

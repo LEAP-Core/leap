@@ -81,56 +81,7 @@ class Synthesize():
                     # Warn that we did not find the ngc we expected to find..
                     print "Warning: We did not find an ngc file for module " + module.name 
         else:
-            #Let's synthesize a xilinx .prj file for this synth boundary.
-            # spit out a new prj
-            generatePrj(moduleList, module, globalVerilogs, globalVHDs)
-            newXSTPath = generateXST(moduleList, module, xstTemplate)
-
-            if (self.DEBUG != 0):
-                if('VERILOG' in module.moduleDependency):
-                    print 'For ' + module.name + ' explicit vlog: ' + str(module.moduleDependency['VERILOG'])
-
-            ngcFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc'
-            srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
-            resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
-
-
-            # Sort dependencies because SCons will rebuild if the order changes.
-            sub_netlist = moduleList.env.Command(
-                [ngcFile, srpFile],
-                sorted(module.moduleDependency['VERILOG']) +
-                sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-                sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
-                [ newXSTPath ] +
-                xilinx_xcf,
-                [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
-                  SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
-                  'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
-                  '@echo xst ' + module.wrapperName() + ' build complete.' ])
-
-
-            module.moduleDependency['SRP'] = [srpFile]
-
-            if(not 'GEN_NGC' in module.moduleDependency):
-                module.moduleDependency['GEN_NGCS'] = [ngcFile]
-            else:
-                module.moduleDependency['GEN_NGCS'] += [ngcFile]
-
-            module.moduleDependency['RESOURCES'] = [resourceFile]
-
-            module.moduleDependency['SYNTHESIS'] = [sub_netlist]
-            synth_deps += sub_netlist
-            SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
-
-            moduleList.env.Command(resourceFile,
-                                   srpFile,
-                                   self.getSRPResourcesClosure(module))
-
-            # If we're building for the FPGA, we'll claim that the
-            # top-level build depends on the existence of the ngc
-            # file. This allows us to do resource analysis later on.
-            if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
-                moduleList.topDependency += [resourceFile]
+            synth_deps += buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf)
           
     if moduleList.getAWBParam('synthesis_tool', 'XST_BLUESPEC_BASICINOUT'):
         basicio_cmd = env['ENV']['BLUESPECDIR'] + '/bin/basicinout ' + 'hw/' + moduleList.topModule.buildPath + '/.bsc/' + moduleList.topModule.wrapperName() + '.v',     #patch top verilog
@@ -161,31 +112,4 @@ class Synthesize():
     moduleList.env.Alias('synth', synth_deps)
 
 
-  # Converts SRP file into resource representation which can be used
-  # by the LIM compiler to assign modules to execution platforms.
-  def getSRPResourcesClosure(self, module):
 
-    def collect_srp_resources(target, source, env):
-  
-        srpFile = str(source[0])
-        rscFile = str(target[0])
-
-        srpHandle = open(srpFile, 'r')
-        rscHandle = open(rscFile, 'w')
-        resources =  {}
-
-        attributes = {'LUT': " Number of Slice LUTs",'Reg': " Number of Slice Registers", 'BRAM': " Number of Block RAM/FIFO:"}
-
-        for line in srpHandle:
-            for attribute in attributes:
-                if (re.match(attributes[attribute],line)):
-                    match = re.search(r'\D+(\d+)\D+(\d+)', line)
-                    if(match):
-                        resources[attribute] = [match.group(1), match.group(2)]
-
-        rscHandle.write(module.name + ':')
-        rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources]) + '\n')
-                                   
-        rscHandle.close()
-        srpHandle.close()
-    return collect_srp_resources
