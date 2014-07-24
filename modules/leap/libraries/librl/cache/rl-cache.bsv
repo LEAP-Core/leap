@@ -119,6 +119,10 @@ interface RL_COH_CACHE_STATS;
 
     method Bool mshrRetry();              // Retry read/write because mshr entry is not available
     method Bool getxRetry();              // GETX retry forced by other caches
+    method Bool getsUncacheable();        // Uncacheable response for GETS
+    method Bool imUpgrade();              // automatically upgrade from I to M
+    method Bool ioUpgrade();              // automatically upgrade from I to O
+
 endinterface: RL_COH_CACHE_STATS
 
 module mkNullRLCoherentCacheStats (RL_COH_CACHE_STATS);

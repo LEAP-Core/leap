@@ -81,7 +81,9 @@ typedef struct
 {
     t_NW_REQ_IDX  reqIdx;
     t_CACHE_WORD  val;
-    Bool          retry;  // ask GETX requestor to retry
+    Bool          retry;       // ask GETX requestor to retry
+    Bool          isCacheable; 
+    Bool          isExclusive; // for write-back responses
 }
 RL_COH_DM_CACHE_MSHR_REMOTE_RESP#(type t_NW_REQ_IDX,
                                   type t_CACHE_WORD)
@@ -170,7 +172,8 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
                                t_CACHE_ADDR addr, 
                                t_CACHE_WORD val,
                                Bool needResp,
-                               Bool isCleanWB);
+                               Bool isCleanWB,
+                               Bool isExclusive);
     
     // Pass invalidate and flush requests down the hierarchy.
     // method Action invalReq(t_CACHE_ADDR addr);
@@ -262,7 +265,8 @@ typedef enum
     COH_CACHE_STATE_OM_A,    // owned, issued GETX, have not seen GETX yet
 
     COH_CACHE_STATE_IS_A,    // invalid, issued GETS, have not seen GETS, have seen data without ownership
-    COH_CACHE_STATE_IM_A,    // invalid (or shared), issued GETS/GETX, have not seen GETX, have seen data with ownership
+    COH_CACHE_STATE_IO_A,    // invalid, issued GETS, have not seen GETS, have seen data with ownership (but is not exlusive)
+    COH_CACHE_STATE_IM_A,    // invalid (or shared), issued GETS/GETX, have not seen GETS/GETX, have seen data with ownership (and is exlusive)
 
     COH_CACHE_STATE_IM_D,    // invalid (or shared), issued GETS/GETX, have seen GETS/GETX, have not seen data yet
     COH_CACHE_STATE_IM_D_O,  // invalid (or shared), issued GETS/GETX, have seen GETS/GETX, have not seen data yet, then saw other GETS
@@ -302,6 +306,7 @@ typedef struct
     t_MSHR_WORD              val;
     Bool                     needResp;    // PUTX caused by read/write misses does not need response
     Bool                     isCleanWB;
+    Bool                     isExclusive;
 }
 RL_COH_DM_CACHE_MSHR_PUT_ENTRY#(type t_MSHR_ADDR, 
                                 type t_MSHR_WORD)
@@ -336,6 +341,7 @@ typedef struct
     t_MSHR_WORD               val;
     Bool                      needResp;
     Bool                      isCleanWB;
+    Bool                      isExclusive;
 }
 RL_COH_DM_CACHE_MSHR_PUT_REQ#(type t_MSHR_IDX,
                               type t_MSHR_ADDR, 
@@ -471,13 +477,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     rule allocatePutMshr (True);
         let r = putReqQ.first();
         putReqQ.deq();
-        debugLog.record($format("        MSHR: allocate new entry (0x%x) for PUTX request (addr=0x%x), isCleanWB=%s", 
-                        r.idx, r.addr, r.isCleanWB? "True" : "False"));
+        debugLog.record($format("        MSHR: allocate new entry (0x%x) for PUTX request (addr=0x%x), isCleanWB=%s, isExclusive=%s", 
+                        r.idx, r.addr, r.isCleanWB? "True" : "False", r.isExclusive? "True" : "False"));
         
         mshrPut.upd(r.idx, RL_COH_DM_CACHE_MSHR_PUT_ENTRY{ addr: r.addr,
                                                            val: r.val,
                                                            needResp: r.needResp,
-                                                           isCleanWB: r.isCleanWB });
+                                                           isCleanWB: r.isCleanWB,
+                                                           isExclusive: r.isExclusive });
     endrule
 
     // receive own activated GETS/GETX request
@@ -521,8 +528,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             COH_CACHE_STATE_IS_A:
             begin
                 mshr_release   = !e.getsFwd;
-                resp.newState  = COH_DM_CACHE_STATE_S;
                 send_resp      = True;
+                resp.newState  = COH_DM_CACHE_STATE_S;
+            end
+            COH_CACHE_STATE_IO_A:
+            begin
+                mshr_release   = True;
+                send_resp      = True;
+                resp.newState  = COH_DM_CACHE_STATE_O;
             end
             COH_CACHE_STATE_OM_A, COH_CACHE_STATE_IM_A:
             begin
@@ -578,8 +591,8 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         
         match { .mshr_idx, .own_req, .req_idx, .req_type } = curActivatedReq;
         
-        debugLog.record($format("        MSHR: own PUT request on entry=0x%x, addr=0x%x, val=0x%x, isCleanWB=%s", 
-                        mshr_idx, e.addr, e.val, e.isCleanWB? "True" : "False"));
+        debugLog.record($format("        MSHR: own PUT request on entry=0x%x, addr=0x%x, val=0x%x, isCleanWB=%s, isExclusive=%s", 
+                        mshr_idx, e.addr, e.val, e.isCleanWB? "True" : "False", e.isExclusive? "True" : "False"));
         
         // send local response back to cache
         respLocalQ.enq( RL_COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
@@ -606,10 +619,12 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             // send write back data to network if it's not clean write-back
             let remote_resp = tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx, 
                                                                                          val: e.val, 
-                                                                                         retry: False };
+                                                                                         retry: False,
+                                                                                         isCacheable: True,
+                                                                                         isExclusive: e.isExclusive };
             respToNetworkQ.enq(remote_resp);
-            debugLog.record($format("        MSHR: routerResp: REMOTE RESP: reqIdx=0x%x, val=0x%x, retry=%s", 
-                            req_idx, e.val, "False"));
+            debugLog.record($format("        MSHR: routerResp: REMOTE RESP: reqIdx=0x%x, val=0x%x, retry=%s, isCacheable=%s", 
+                            req_idx, e.val, "False", "True"));
         end
     endrule
 
@@ -636,7 +651,9 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                 new_entry.state = (req_type == COH_CACHE_GETX)? COH_CACHE_STATE_IM_AD : e.state;
                 resp = tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx,
                                                                                   val: e.val, 
-                                                                                  retry: False };
+                                                                                  retry: False,
+                                                                                  isCacheable: True,
+                                                                                  isExclusive: False };
             end
             COH_CACHE_STATE_IM_D:
             begin
@@ -689,17 +706,27 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         
         match { .mshr_idx, .own_req, .req_idx, .req_type } = curActivatedReq;
         
-        debugLog.record($format("        MSHR: other GET request on MSHR PUT entry=0x%x, addr=0x%x, val=0x%x",
-                        mshr_idx, e.addr, e.val)); 
+        debugLog.record($format("        MSHR: other GET request on MSHR PUT entry=0x%x, addr=0x%x, val=0x%x, isCleanWB=%s, isExclusive=%s",
+                        mshr_idx, e.addr, e.val, e.isCleanWB? "True" : "False", e.isExclusive? "True" : "False")); 
         
         let remote_resp = RL_COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx,
                                                              val: e.val,
-                                                             retry: req_type == COH_CACHE_GETX };
+                                                             retry: req_type == COH_CACHE_GETX,
+                                                             isCacheable: (!e.isCleanWB || !e.isExclusive),
+                                                             isExclusive: False };
+        // update mshr put entry
+        if (req_type == COH_CACHE_GETS && !e.isCleanWB && e.isExclusive)
+        begin
+            let new_entry = e;
+            new_entry.isExclusive = False;
+            mshrPut.upd(mshr_idx, new_entry);
+            debugLog.record($format("        MSHR: mshrPut entry (0x%x) update: isExclusive=False", mshr_idx));
+        end
 
         respToNetworkQ.enq(tagged MSHR_REMOTE_RESP remote_resp);
 
-        debugLog.record($format("        MSHR: routerResp: REMOTE RESP: reqIdx=0x%x, val=0x%x, retry=%s", 
-                                remote_resp.reqIdx, remote_resp.val, (remote_resp.retry)? "True" : "False"));
+        debugLog.record($format("        MSHR: routerResp: REMOTE RESP: reqIdx=0x%x, val=0x%x, retry=%s, isCacheable=%s", 
+                                remote_resp.reqIdx, remote_resp.val, (remote_resp.retry)? "True" : "False", remote_resp.isCacheable? "True" : "False"));
     endrule
 
     // receive other activated GETS/GETX request which misses in both mshrGet and mshrPut
@@ -785,7 +812,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             case (e.state)
                 COH_CACHE_STATE_IM_AD:
                 begin
-                    new_entry.state          = (r.ownership)? COH_CACHE_STATE_IM_A : COH_CACHE_STATE_IS_A;
+                    new_entry.state          = (r.ownership)? ((r.isExclusive)? COH_CACHE_STATE_IM_A : COH_CACHE_STATE_IO_A) : COH_CACHE_STATE_IS_A;
                     new_entry.val            = r.val; 
                     new_entry.isCacheable    = r.isCacheable;
                     new_entry.globalReadMeta = r.globalReadMeta;
@@ -796,7 +823,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                     mshr_release        = !r.getsFwd;
                     mshr_delay          = !mshr_release;
                     local_resp.val      = applyWriteMask(r.val, e.writeData, e.byteWriteMask);
-                    local_resp.newState = (r.ownership)? COH_DM_CACHE_STATE_M : COH_DM_CACHE_STATE_S;
+                    local_resp.newState = (r.ownership)? ((r.isExclusive)? COH_DM_CACHE_STATE_M : COH_DM_CACHE_STATE_O) : COH_DM_CACHE_STATE_S;
                     new_entry.val       = r.val;
                 end
                 COH_CACHE_STATE_IM_D_O, COH_CACHE_STATE_IM_D_I, COH_CACHE_STATE_IM_D_OI:
@@ -946,7 +973,8 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                t_CACHE_ADDR addr, 
                                t_CACHE_WORD val,
                                Bool needResp,
-                               Bool isCleanWB) if (!releaseGetEntryW);
+                               Bool isCleanWB, 
+                               Bool isExclusive) if (!releaseGetEntryW);
 
         debugLog.record($format("        MSHR: receive PUTX request from cache to allocate a new entry (idx=0x%x, addr=0x%x)", idx, addr));
         mshrPutValidBits.upd(idx, True);
@@ -955,7 +983,8 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                                    addr: addr,
                                                    val: val,
                                                    needResp: needResp,
-                                                   isCleanWB: isCleanWB });
+                                                   isCleanWB: isCleanWB, 
+                                                   isExclusive: isExclusive });
     endmethod
     
     // Check if there is an available MSHR entry to handle a new miss

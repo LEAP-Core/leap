@@ -506,6 +506,18 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
     method Bool readPending() = mem.readPending();
 endmodule
 
+`ifndef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
+
+typedef struct
+{
+    t_MERGE_TAG               tag;
+    Vector#(n_ENTRIES, Bool)  mergeMeta;
+}
+COH_SCRATCH_MERGE_TABLE_ENTRY#(type t_MERGE_TAG, 
+                               numeric type n_ENTRIES)
+    deriving(Bits, Eq);
+
+`endif
 
 //
 // mkUnmarshalledCachedCoherentScratchpadClient --
@@ -534,6 +546,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(COH_SCRATCH_PORT_ROB_SLOTS), t_REORDER_ID),
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(TMin#(COH_SCRATCH_PORT_ROB_SLOTS, COH_SCRATCH_TEST_SET_ROB_SLOTS)), t_TS_REORDER_ID),
+              Bits#(t_REORDER_ID, t_REORDER_ID_SZ),
+`ifndef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
+              // Index for request merge table
+              NumAlias#(TMin#(t_MEM_ADDR_SZ, t_REORDER_ID_SZ), t_MERGE_IDX_SZ),
+              Alias#(Bit#(t_MERGE_IDX_SZ), t_MERGE_IDX),
+              Alias#(Bit#(TSub#(t_MEM_ADDR_SZ, t_MERGE_IDX_SZ)), t_MERGE_TAG),
+              NumAlias#(TMax#(1, TExp#(TAdd#(TLog#(n_READERS), TLog#(COH_SCRATCH_PORT_ROB_SLOTS)))), n_MERGE_META_ENTRIES),
+              Alias#(COH_SCRATCH_MERGE_TABLE_ENTRY#(t_MERGE_TAG, n_MERGE_META_ENTRIES), t_MERGE_ENTRY), 
+`endif
               // MAF for in-flight reads
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
               Bits#(t_MAF_IDX, t_MAF_IDX_SZ));
@@ -578,6 +599,36 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     Vector#(n_READERS, SCOREBOARD_FIFOF#(COH_SCRATCH_PORT_ROB_SLOTS, t_MEM_DATA)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
     SCOREBOARD_FIFOF#(COH_SCRATCH_TEST_SET_ROB_SLOTS, t_MEM_DATA) sortTestAndSetRespQ <- mkScoreboardFIFOF();
 
+    Reg#(Bool) multiRespFwd <- mkReg(False);
+    PulseWire fwdRespW <- mkPulseWire();
+
+`ifndef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
+    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY)   reqMergeTable <- mkLUTRAMU();
+    LUTRAM#(t_REORDER_ID, Maybe#(t_MAF_IDX)) reqMergeHeadInfo <- mkLUTRAM(tagged Invalid);
+    Reg#(Vector#(COH_SCRATCH_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits <- mkReg(replicate(False));
+    Reg#(Vector#(COH_SCRATCH_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits <- mkReg(replicate(True));
+    Reg#(Tuple2#(t_MERGE_IDX, t_MEM_DATA)) multiRespFwdEntry <- mkRegU();
+    PulseWire mergeTableLockedW <- mkPulseWire();
+    PulseWire forwardFenceReqW  <- mkPulseWire();
+    function Tuple2#(t_MERGE_TAG, t_MERGE_IDX) mergeEntryFromAddr(t_MEM_ADDR addr);
+        return unpack(truncateNP(pack(addr)));
+    endfunction
+    function Action initOrResetMergeEntry(t_MERGE_IDX idx, Bool isInit);
+        return 
+            action
+                let new_valid_bits = reqMergeTableValidBits;
+                new_valid_bits[idx] = isInit;
+                reqMergeTableValidBits <= new_valid_bits;
+                if (!forwardFenceReqW)
+                begin
+                    let new_end_bits = reqMergeTableEndBits;
+                    new_end_bits[idx] = !isInit;
+                    reqMergeTableEndBits <= new_end_bits;
+                end
+            endaction;
+    endfunction
+`endif
+
     // Read and write request counter
     COUNTER#(TLog#(TAdd#(TMul#(n_READERS, COH_SCRATCH_PORT_ROB_SLOTS),1))) numPendingReads  <- mkLCounter(0);
     COUNTER#(TLog#(TAdd#(COH_SCRATCH_PORT_ROB_SLOTS,1))) numPendingWrites <- mkLCounter(0);
@@ -605,10 +656,11 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     endrule
     
     (* fire_when_enabled *)
-    rule decNumReads (cache.numReadProcessed() != 0);
-        numPendingReads.downBy(zeroExtendNP(cache.numReadProcessed()));
+    rule decNumReads (cache.numReadProcessed() != 0 || fwdRespW);
+        let num_reads = (fwdRespW)? (cache.numReadProcessed() + 1) : cache.numReadProcessed();
+        numPendingReads.downBy(zeroExtendNP(num_reads));
         debugLog.record($format("%x read request being processed, numPendingReads=0x%x", 
-                        cache.numReadProcessed(), numPendingReads.value()));
+                        num_reads, numPendingReads.value()));
     endrule
 
     (* fire_when_enabled *)
@@ -627,10 +679,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         let fence_mode = pack(incomingReqQ.first());
         incomingReqQ.deq();
         cache.fence(unpack(truncate(fence_mode)));
+`ifndef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
+        forwardFenceReqW.send();
+        reqMergeTableEndBits <= replicate(True);
+        debugLog.record($format("forwardFenceReq: set reqMergeTableEndBits to True"));
+`endif
     endrule
 
     // Write requests and test&set requests
-    rule forwardWriteReq (initialized && incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS)));
+    rule forwardWriteReq (initialized && !multiRespFwd && incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS)));
         match {.addr, .idx} = incomingReqQ.first();
         incomingReqQ.deq();
         match {.val, .mask} = writeDataQ.first();
@@ -645,6 +702,21 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         begin
             cache.write(addr, val, mask);
         end
+`ifndef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
+        match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
+        if (reqMergeTableValidBits[m_idx] == True && reqMergeTableEndBits[m_idx] == False)
+        begin
+            let e = reqMergeTable.sub(m_idx);
+            if (e.tag == m_tag) // hit
+            begin
+                let new_end_bits = reqMergeTableEndBits;
+                new_end_bits[m_idx] = True;
+                reqMergeTableEndBits <= new_end_bits;
+                debugLog.record($format("forwardWriteReq: update reqMergeTableEndBits, addr=0x%x, idx=0x%x, tag=0x%x, mergeMeta=0x%x, endMerge=True",
+                                addr, m_idx, e.tag, e.mergeMeta));
+            end
+        end
+`endif
     endrule
 
     //
@@ -670,8 +742,47 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                 // port ID and the ROB index.
                 t_MAF_IDX maf_idx = tuple2(fromInteger(p), d);
 
+`ifdef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
                 // Request data from the cache
                 cache.readReq(addr, maf_idx, defaultValue());
+`else
+                debugLog.record($format("forwardReadReq: port %0d: addr=0x%x, rob_idx=%0d, maf_idx=0x%x",
+                                p, addr, d, pack(maf_idx)));
+                Bool issue_req = True;
+                if (!mergeTableLockedW)
+                begin
+                    match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
+                    if (reqMergeTableValidBits[m_idx] == True)
+                    begin
+                        let e = reqMergeTable.sub(m_idx);
+                        if (e.tag == m_tag && !reqMergeTableEndBits[m_idx]) // hit
+                        begin
+                            issue_req = False;
+                            let new_entry = e;
+                            new_entry.mergeMeta[pack(tuple2(fromInteger(p),d))] = True;
+                            reqMergeTable.upd(m_idx, new_entry); 
+                            debugLog.record($format("forwardReadReq: port %0d: update reqMergeTable, idx=0x%x, tag=0x%x, mergeMeta=0x%x",
+                                            p, m_idx, m_tag, pack(new_entry.mergeMeta)));
+                        end
+                    end
+                    else // initialize merge table
+                    begin
+                        reqMergeTable.upd(m_idx, COH_SCRATCH_MERGE_TABLE_ENTRY { tag: m_tag,
+                                                                                 mergeMeta: replicate(False) });
+                        t_REORDER_ID head_idx = zeroExtend(m_idx);
+                        reqMergeHeadInfo.upd(d, tagged Valid tuple2(fromInteger(p), head_idx));
+                        initOrResetMergeEntry(m_idx, True);
+                        debugLog.record($format("forwardReadReq: port %0d: initialize reqMergeTable, idx=0x%x, tag=0x%x", 
+                                        p, m_idx, m_tag));
+                    end
+                end
+                if (issue_req)
+                begin
+                    cache.readReq(addr, maf_idx, defaultValue());
+                    debugLog.record($format("forwardReadReq: port %0d: issue request to cache, addr=0x%x, idx=0x%x",
+                                    p, addr, maf_idx));
+                end
+`endif
             end
         endrule
 
@@ -680,7 +791,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         //     Push read responses to the reorder buffer.  They will be returned
         //     through readRsp() in order.
         //
-        rule receiveResp (tpl_1(cache.peekResp().readMeta) == fromInteger(p));
+        (* descending_urgency = "receiveResp, forwardFenceReq, forwardWriteReq" *)
+        rule receiveResp (tpl_1(cache.peekResp().readMeta) == fromInteger(p) && !multiRespFwd);
             let r <- cache.readResp();
 
             // The readUID field holds the concatenation of the port ID and
@@ -688,10 +800,62 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
             match {.port, .maf_idx} = r.readMeta;
 
             sortResponseQ[p].setValue(maf_idx, r.val);
-            debugLog.record($format("receiveResp: port %0d: resp val=0x%x, idx=%0d", p, r.val, maf_idx));
+            debugLog.record($format("receiveResp: port %0d: resp val=0x%x, rob idx=%0d", p, r.val, maf_idx));
+
+`ifndef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
+            mergeTableLockedW.send();
+            let merge_head_info = reqMergeHeadInfo.sub(maf_idx);
+            if (merge_head_info matches tagged Valid .head_info)
+            begin
+                if (tpl_1(head_info) == fromInteger(p)) // port number match
+                begin
+                    t_MERGE_IDX m_idx = truncate(tpl_2(head_info));
+                    let e = reqMergeTable.sub(m_idx);
+                    if (fold(\|| , e.mergeMeta))
+                    begin
+                        multiRespFwd <= True;
+                        multiRespFwdEntry <= tuple2(m_idx, r.val);
+                        debugLog.record($format("receiveResp: port %0d: need to forward resp, merge table idx=0x%x", p, m_idx));
+                    end
+                    else //release merge table entry
+                    begin
+                        initOrResetMergeEntry(m_idx, False);
+                        debugLog.record($format("receiveResp: port %0d: no need to forward resp, reset merge table idx=0x%x", p, m_idx));
+                    end
+                    // reset reqMergeHeadInfo
+                    reqMergeHeadInfo.upd(maf_idx, tagged Invalid);
+                    debugLog.record($format("receiveResp: port %0d: reset reqMergeHeadInfo, idx=0x%x", p, maf_idx));
+                end
+            end
+`endif
         endrule
     end
-    
+
+`ifndef COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE_Z
+    (* descending_urgency = "fwdMultiResp, forwardFenceReq" *)
+    rule fwdMultiResp (multiRespFwd);
+        mergeTableLockedW.send();
+        fwdRespW.send();
+        match {.idx, .val} = multiRespFwdEntry;
+        let e = reqMergeTable.sub(idx);
+        Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID) fwd_id = unpack(resize(pack(fromMaybe(?, findElem(True, e.mergeMeta)))));
+        let p = (valueOf(n_READERS) == 1) ? 0 : tpl_1(fwd_id);
+        sortResponseQ[p].setValue(tpl_2(fwd_id), val);
+        debugLog.record($format("fwdMultiResp: port %0d: resp val=0x%x, rob_idx=%0d", p, val, tpl_2(fwd_id)));
+        let new_entry = e;
+        new_entry.mergeMeta[pack(fwd_id)] = False;
+        reqMergeTable.upd(idx, new_entry); 
+        debugLog.record($format("fwdMultiResp: port %0d: update reqMergeTable, idx=0x%x, mergeMeta=0x%x",
+                        p, idx, pack(new_entry.mergeMeta)));
+        if (!fold(\|| , new_entry.mergeMeta))
+        begin
+            multiRespFwd <= False;
+            initOrResetMergeEntry(idx, False);
+            debugLog.record($format("fwdMultiResp: port %0d: done with forwarding, reset merge table idx=0x%x", p, idx));
+        end
+    endrule
+`endif
+
     // ====================================================================
     //
     // Coherent scratchpad client debug scan for deadlock debugging.
@@ -742,14 +906,14 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                     let idx <- sortResponseQ[p].enq();
                     incomingReqQ.ports[p].enq(tuple2(addr, tagged Valid idx));
                     readIssuedW[p].send();
-                    debugLog.record($format("read port %0d: req addr=0x%x, rob idx=%0d, numPendingReads=0x%x", 
+                    debugLog.record($format("read port %0d: req addr=0x%x, rob_idx=%0d, numPendingReads=0x%x", 
                                     p, addr, idx, numPendingReads.value()));
                 endmethod
 
                 method ActionValue#(t_MEM_DATA) readRsp();
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
-                    debugLog.record($format("read port %0d: resp val=0x%x, rob idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
+                    debugLog.record($format("read port %0d: resp val=0x%x, rob_idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
                 endmethod
 
@@ -821,6 +985,8 @@ typedef struct
     COH_SCRATCH_MEM_VALUE      val;
     Bool                       ownership;
     Bool                       retry;
+    Bool                       isCacheable;
+    Bool                       isExclusive;
     COH_SCRATCH_META           meta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
 }
@@ -1140,6 +1306,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     new_entry.requester       = req.requester;
                     new_entry.reqControllerId = req.reqControllerId;
                     new_entry.ownership       = False; 
+                    new_entry.isExclusive     = False;
                     new_entry.meta            = zeroExtendNP(gets_req.clientMeta); 
                     new_entry.globalReadMeta  = gets_req.globalReadMeta;
                     debugLog.record($format("    sourceData: check activated %s GETS request: addr=0x%x, requester=%03d, reqControllerId=%02d, meta=0x%x", 
@@ -1152,6 +1319,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     new_entry.requester       = req.requester;
                     new_entry.reqControllerId = req.reqControllerId;
                     new_entry.ownership       = True;
+                    new_entry.isExclusive     = True;
                     new_entry.meta            = zeroExtendNP(getx_req.clientMeta); 
                     new_entry.globalReadMeta  = getx_req.globalReadMeta;
                     debugLog.record($format("    sourceData: check activated %s GETX request: addr=0x%x, requester=%03d, reqControllerId=%02d, meta=0x%x", 
@@ -1164,6 +1332,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                     new_entry.requester       = 0;
                     new_entry.reqControllerId = req.homeControllerId;
                     new_entry.ownership       = True;
+                    new_entry.isExclusive     = False;
                     new_entry.meta            = zeroExtendNP(putx_req.controllerMeta); 
                     debugLog.record($format("    sourceData: check activated %s PUTX request: addr=0x%x, requester=%03d, reqControllerId=%02d, meta=0x%x", 
                                    (cache_req.ownReq)? "own" : "other", cache_req.addr, new_entry.requester, new_entry.reqControllerId, new_entry.meta));
@@ -1237,13 +1406,17 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                                        RL_CACHE_GLOBAL_READ_META globalReadMeta,
                                        Bool ownership,
                                        Bool retry,
+                                       Bool isCacheable,
+                                       Bool isExclusive, 
                                        Tuple3#(Bool, COH_SCRATCH_CTRLR_PORT_NUM, COH_SCRATCH_PORT_NUM) fwdInfo,
                                        String ruleName);
         return 
             action
                 let dest = getRespDestination(controllerId, clientId);
+                let cacheable = (`COHERENT_SCRATCHPAD_I_TO_M_ENABLE == 0)? True : isCacheable;
                 respToNetworkQ.enq(tuple2(dest, COH_SCRATCH_RESP { val: val,
                                                                    ownership: ownership,
+                                                                   isExclusive: isExclusive, 
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
                                                                    controllerId: controllerId,
                                                                    clientId: clientId,
@@ -1255,11 +1428,12 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
 `endif
                                                                    meta: meta,
                                                                    globalReadMeta: globalReadMeta,
-                                                                   isCacheable: True,
+                                                                   isCacheable: cacheable, 
                                                                    retry: retry }));
             
-                debugLog.record($format("    sourceData: %s: send response: dest=%d, val=0x%x, meta=0x%x, ownership=%s, %s", 
-                                ruleName, dest, val, meta, (ownership)? "True" : "False", (retry)? "RETRY!!!" : " "));
+                debugLog.record($format("    sourceData: %s: send response: dest=%d, val=0x%x, meta=0x%x, ownership=%s, isCacheable=%s, isExclusive=%s %s", 
+                                ruleName, dest, val, meta, (ownership)? "True" : "False", cacheable? "True" : "False", 
+                                isExclusive? "Ture" : "False", (retry)? "RETRY!!!" : " "));
 
 `ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
                 debugLog.record($format("    sourceData: %s: send response: needFwd=%s, lastFwdClientId=%03d, lastFwdControllerId=%02d",
@@ -1278,12 +1452,14 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     function Action sendRespFromSnoopTableToNetwork(t_REQ_INFO_ENTRY e, 
                                                     t_CACHE_WORD val, 
                                                     Bool retry,
+                                                    Bool isCacheable,
+                                                    Bool isExclusive,
                                                     Tuple3#(Bool, COH_SCRATCH_CTRLR_PORT_NUM, COH_SCRATCH_PORT_NUM) fwdInfo, 
                                                     String ruleName);
         return 
             action
                 sendRespToNetworkQ(e.reqControllerId, e.requester, val, e.meta, e.globalReadMeta, 
-                                   e.ownership, retry, fwdInfo, ruleName);
+                                   e.ownership, retry, isCacheable, (isExclusive||e.isExclusive), fwdInfo, ruleName);
             endaction;
     endfunction
 
@@ -1293,7 +1469,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         return 
             action
                 sendRespToNetworkQ(f.controllerId, f.clientId, val, zeroExtendNP(f.clientMeta), f.globalReadMeta, 
-                                   f.isGetx, False, tuple3(needFwd, f.lastControllerId, f.lastClientId), ruleName); 
+                                   f.isGetx, False, True, f.isGetx, tuple3(needFwd, f.lastControllerId, f.lastClientId), ruleName); 
             endaction;
     endfunction
 
@@ -1320,7 +1496,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                 let fwd_getx = f.hasGetx && (f.getxRequester == client_id) && ((f.getxReqControllerId == controller_id) || !hasMultiController);
                 
                 sendRespToNetworkQ(controller_id, client_id, val, zeroExtendNP(fwd_info.clientMeta), 
-                                   fwd_info.globalReadMeta, fwd_getx, False, ?, ruleName); 
+                                   fwd_info.globalReadMeta, fwd_getx, False, True, fwd_getx, ?, ruleName); 
 
                 // update forwarding table
                 let new_fwd_entry = f;
@@ -1378,7 +1554,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     rule recvRealRespFromCacheToNetwork (respFromCacheQ.first() matches tagged MSHR_REMOTE_RESP .r &&& respToNetworkQ.notFull &&& !resendFwdRespValW);
         respFromCacheQ.deq();
         let e = snoopedReqTable.sub(r.reqIdx);
-        sendRespFromSnoopTableToNetwork(e, r.val, r.retry, tuple3(False, ?, ?), "recvRealRespFromCacheToNetwork");
+        sendRespFromSnoopTableToNetwork(e, r.val, r.retry, r.isCacheable, r.isExclusive, tuple3(False, ?, ?), "recvRealRespFromCacheToNetwork");
         snoopedReqTable.free(r.reqIdx); 
         debugLog.record($format("    sourceData: recvRealRespFromCacheToNetwork: free snoopedReqTable (entry=0x%x)", r.reqIdx));
     endrule
@@ -1395,6 +1571,8 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         let new_entry = e;
         new_entry.val = r.val;
         new_entry.retry = r.retry;
+        new_entry.isCacheable = r.isCacheable;
+        new_entry.isExclusive = (r.isExclusive || e.isExclusive);
         snoopedReqTable.upd(r.reqIdx, new_entry);
         respReadyEntryQ.enq(r.reqIdx);
         debugLog.record($format("    sourceData: recvRealRespFromCacheToTable: response queue is full! table entry=0x%x, wait in the respReadyEntryQ...", r.reqIdx));
@@ -1409,7 +1587,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         respReadyEntryQ.deq();
         let e = snoopedReqTable.sub(idx);
         // send response
-        sendRespFromSnoopTableToNetwork(e, e.val, e.retry, tuple3(False, ?, ?), "sendRespFromSnoopTable");
+        sendRespFromSnoopTableToNetwork(e, e.val, e.retry, e.isCacheable, e.isExclusive, tuple3(False, ?, ?), "sendRespFromSnoopTable");
         // free the entry in snoopedReqTable
         snoopedReqTable.free(idx); 
         debugLog.record($format("    sourceData: sendRespFromSnoopTable: free snoopedReqTable (entry=0x%x)", idx));
@@ -1734,6 +1912,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         r.val = s.val;
         r.meta = unpack(truncateNP(s.meta));
         r.ownership = s.ownership;
+        r.isExclusive = s.isExclusive;
         r.isCacheable = s.isCacheable;
         r.retry = s.retry;
         r.globalReadMeta = s.globalReadMeta;
@@ -1761,17 +1940,25 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         r.val = s.val;
         r.meta = unpack(truncateNP(s.meta));
         r.ownership = s.ownership;
+        r.isExclusive = s.isExclusive;
         r.isCacheable = s.isCacheable;
         r.retry = s.retry;
         r.globalReadMeta = s.globalReadMeta;
-        
+        r.getsFwd = False;
+
+`ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
+        if (!s.ownership && s.needFwd && !isOwnReq(s.lastFwdClientId, s.lastFwdControllerId))
+        begin
+            r.getsFwd = True;
+        end
+`endif
         return r;
     endmethod                                  
     
     // Request for writing back data and giving up ownership 
-    method Action putExclusive(t_CACHE_ADDR addr, Bool isCleanWB) if (initialized);
+    method Action putExclusive(t_CACHE_ADDR addr, Bool isCleanWB, Bool isExclusive) if (initialized);
         
-        let req_info = COH_SCRATCH_PUT_REQ_INFO { isCleanWB: isCleanWB };
+        let req_info = COH_SCRATCH_PUT_REQ_INFO { isCleanWB: isCleanWB, isExclusive: isExclusive };
 
         let req = COH_SCRATCH_MEM_REQ { requester: myPort,
                                         reqControllerId: ?,
@@ -1782,8 +1969,8 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         // all coherent scratchpad clients' requests
         unactivatedReqQ.enq(req);
 
-        debugLog.record($format("    sourceData: send PUTX REQ ID %0d: addr 0x%x, isCleanWB=%s", 
-                        myPort, addr, isCleanWB? "True" : "False"));
+        debugLog.record($format("    sourceData: send PUTX REQ ID %0d: addr 0x%x, isCleanWB=%s, isExclusive=%s", 
+                        myPort, addr, isCleanWB? "True" : "False", isExclusive? "True" : "False"));
         
         numBufferedReq.upBy(1);
         debugLog.record($format("    sourceData: putExclusive: numBufferedReq=%x", numBufferedReq.value()));

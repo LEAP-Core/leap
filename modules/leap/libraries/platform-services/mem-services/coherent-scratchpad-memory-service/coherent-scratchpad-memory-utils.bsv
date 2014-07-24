@@ -81,7 +81,7 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
 
     String tag_prefix = "LEAP_" + tagPrefix;
 
-    STAT_ID statIDs[13] = {
+    STAT_ID statIDs[16] = {
         statName(tag_prefix + "COH_SCRATCH_LOAD_HIT",
                  descPrefix + "Coherent scratchpad load hits"),
         statName(tag_prefix + "COH_SCRATCH_LOAD_MISS",
@@ -107,10 +107,16 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
         statName(tag_prefix + "COH_SCRATCH_MSHR_RETRY",
                  descPrefix + "Coherent scratchpad cache retry due to unavailable mshr entry"),
         statName(tag_prefix + "COH_SCRATCH_GETX_RETRY",
-                 descPrefix + "Coherent scratchpad resend GETX forced by other caches")
+                 descPrefix + "Coherent scratchpad resend GETX forced by other caches"),
+        statName(tag_prefix + "COH_SCRATCH_GETS_UNCACHEABLE",
+                 descPrefix + "Coherent scratchpad receive uncacheable response for GETS"),
+        statName(tag_prefix + "COH_SCRATCH_IM_UPGRADE",
+                 descPrefix + "Coherent scratchpad automatically upgrade from I to M"), 
+        statName(tag_prefix + "COH_SCRATCH_IO_UPGRADE",
+                 descPrefix + "Coherent scratchpad automatically upgrade from I to O") 
 
     };
-    STAT_VECTOR#(13) sv <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(16) sv <- mkStatCounter_Vector(statIDs);
     
     rule readHit (stats.readHit());
         sv.incr(0);
@@ -162,6 +168,18 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
 
     rule getxRetry (stats.getxRetry());
         sv.incr(12);
+    endrule
+    
+    rule getsUncacheable (stats.getsUncacheable());
+        sv.incr(13);
+    endrule
+
+    rule imUpgrade (stats.imUpgrade());
+        sv.incr(14);
+    endrule
+
+    rule ioUpgrade (stats.ioUpgrade());
+        sv.incr(15);
     endrule
 
 endmodule
