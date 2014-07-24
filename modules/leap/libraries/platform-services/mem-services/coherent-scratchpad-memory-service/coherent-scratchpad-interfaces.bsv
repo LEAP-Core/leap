@@ -179,6 +179,7 @@ COH_SCRATCH_GET_REQ_INFO
 typedef struct
 {
     Bool                        isCleanWB;
+    Bool                        isExclusive;
 }
 COH_SCRATCH_PUT_REQ_INFO
     deriving(Bits, Eq);
@@ -264,6 +265,7 @@ typedef struct
 {
     COH_SCRATCH_MEM_VALUE       val;
     Bool                        ownership;
+    Bool                        isExclusive;
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
     COH_SCRATCH_CTRLR_PORT_NUM  controllerId;
     COH_SCRATCH_PORT_NUM        clientId;

@@ -202,6 +202,7 @@ typedef struct
     t_CACHE_WORD              val;
     t_CACHE_META              meta;
     Bool                      ownership;
+    Bool                      isExclusive;
     Bool                      isCacheable;
     Bool                      retry;
     Bool                      getsFwd;
@@ -278,7 +279,7 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
                                       t_CACHE_META) peekResp();
     
     // Write back and give up ownership
-    method Action putExclusive(t_CACHE_ADDR addr, Bool isCleanWB);
+    method Action putExclusive(t_CACHE_ADDR addr, Bool isCleanWB, Bool isExclusive);
   
     // Signal indicating an unactivated request is sent to the network
     // (One slot in the request buffer is released)
@@ -596,6 +597,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     PulseWire coherenceFlushW       <- mkPulseWire();
     // PulseWire forceInvalLineW      <- mkPulseWire();
     // PulseWire forceFlushLineW      <- mkPulseWire();
+    PulseWire getsUncacheableW      <- mkPulseWire();
+    PulseWire imUpgradeW            <- mkPulseWire();
+    PulseWire ioUpgradeW            <- mkPulseWire();
 
     //
     // Convert address to cache index and tag
@@ -1202,7 +1206,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 coherenceFlushW.send();
                 respToRouterQ.enq(tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
                                                                                             val: cur_entry.val,
-                                                                                            retry: False });
+                                                                                            retry: False,
+                                                                                            isCacheable: True,
+                                                                                            isExclusive: False });
                 resp_sent = True;
                 debugLog.record($format("    Cache: remoteLookup: REMOTE RESP: addr=0x%x, reqIdx=0x%x, val=0x%x, retry=False", 
                                 r.addr, f.reqIdx, cur_entry.val));
@@ -1218,7 +1224,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 begin
                     respToRouterQ.enq(tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
                                                                                                 val: cur_entry.val,
-                                                                                                retry: False });
+                                                                                                retry: False,
+                                                                                                isCacheable: True,
+                                                                                                isExclusive: False });
                     resp_sent = True;
                     debugLog.record($format("    Cache: remoteLookup: REMOTE RESP: addr=0x%x, reqIdx=0x%x, val=0x%x, retry=False", 
                                     r.addr, f.reqIdx, cur_entry.val));
@@ -1321,8 +1329,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                                     old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
                     // Write back old data
                     let clean_write_back = (cacheMode == RL_COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty; 
-                    sourceData.putExclusive(old_addr, clean_write_back);
-                    mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back);
+                    let is_exclusive = (cur_entry.state == COH_DM_CACHE_STATE_M);
+                    sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
+                    mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
                     need_writeback = True;
                     writebackStatusBits.upd(idx, True);
                     if (clean_write_back)
@@ -1417,8 +1426,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 debugLog.record($format("    Cache: doLocalWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x, dirty=%s", 
                                 old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
                 let clean_write_back = (cacheMode == RL_COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty;
-                sourceData.putExclusive(old_addr, clean_write_back);
-                mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back);
+                let is_exclusive = (cur_entry.state == COH_DM_CACHE_STATE_M);
+                sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
+                mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
                 need_writeback = True;
                 writebackStatusBits.upd(idx, True);
                 if (clean_write_back)
@@ -1577,6 +1587,20 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             resp.globalReadMeta = f.globalReadMeta;
             readRespQ.enq(resp);
             debugLog.record($format("    Cache: fillResp: send read response to client: addr=0x%x, val=0x%x", f.addr, f.val));
+            
+            // update stats
+            if (f.newState == COH_DM_CACHE_STATE_M)
+            begin
+                imUpgradeW.send();
+            end
+            else if (f.newState == COH_DM_CACHE_STATE_O)
+            begin
+                ioUpgradeW.send();
+            end
+            if (!f.isCacheable)
+            begin
+                getsUncacheableW.send();
+            end
         end
         else if (f.oldVal matches tagged Valid .old_val) // test and set response
         begin
@@ -1610,7 +1634,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             begin
                 coherenceInvalW.send();
             end
-            if (f.newState == COH_DM_CACHE_STATE_O)
+            if (f.msgType == COH_CACHE_GETX && f.newState == COH_DM_CACHE_STATE_O)
             begin
                 coherenceFlushW.send();
             end
@@ -1933,6 +1957,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         method Bool forceFlushlLine() = False;
         method Bool mshrRetry() = mshrRetryW;
         method Bool getxRetry() = resendGetXFromMSHRW;
+        method Bool getsUncacheable() = getsUncacheableW;
+        method Bool imUpgrade() = imUpgradeW;
+        method Bool ioUpgrade() = ioUpgradeW;
     endinterface
 
 endmodule

@@ -23,6 +23,9 @@
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE          0  "Enable scratchpad private cache prefetcher"
 
 %param --global COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE              1  "0 store full forwarding list, 1 use response chaining"
+%param --global COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE                   1  "Enables merging multiple reads accessing the same cacheline"
+%param --global COHERENT_SCRATCHPAD_DATA_MEM_CACHE_ENABLE              0  "Enables the private cache in the controller's data scratchpad"
+%param --global COHERENT_SCRATCHPAD_I_TO_M_ENABLE                      1  "0 automatic upgrade from I to O, 1 automatic upgrade from I to M/O"
 
 %param --global COHERENT_SCRATCHPAD_MAX_CLIENT_NUM                    32  "Maximum number of coherent scratchpad clients per controller"
 %param --global COHERENT_SCRATCHPAD_MAX_CONTROLLER_NUM                 4  "Maximum number of coherent scratchpad controllers in a coherence domain"
