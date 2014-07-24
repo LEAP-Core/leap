@@ -34,7 +34,6 @@
 
 `include "awb/provides/soft_connections.bsh"
 
-
 module [CONNECTED_MODULE] mkCommonServices
     // interface:
         ();
@@ -43,6 +42,7 @@ module [CONNECTED_MODULE] mkCommonServices
         `BUILD_PLATFORM_MODULES ==1)
     begin
         messageM("Building Common Services"); 
+        let starterService    <- mkStarterService();
         let assertionsService <- mkAssertionsService();
         let debugScanService  <- mkDebugScanService();
         let paramsService     <- mkDynamicParametersService();

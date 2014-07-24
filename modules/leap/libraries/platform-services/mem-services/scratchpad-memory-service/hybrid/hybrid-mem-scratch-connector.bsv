@@ -44,6 +44,7 @@ import FIFO::*;
 `include "awb/rrr/client_stub_SCRATCHPAD_MEMORY.bsh"
 `include "awb/rrr/server_stub_SCRATCHPAD_MEMORY.bsh"
 
+`include "awb/provides/common_services_params.bsh"
 
 //
 // mkScratchpadConnector --
@@ -66,7 +67,7 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(FIFO#(SCRATCHPAD_RRR_REQ) local
     begin
         // Multi-FPGA system
         let platformID <- getSynthesisBoundaryPlatformID();
-        if (platformID == 0)
+        if (`BUILD_COMMON_SERVICES == 1)
         begin
             // Master FPGA
             let c <- mkScratchpadConnectorMultiMaster(localReqQ, localRespQ);

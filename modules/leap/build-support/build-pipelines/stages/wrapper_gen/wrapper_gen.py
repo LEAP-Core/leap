@@ -44,7 +44,12 @@ def generateBAImport(module, importHandle):
     if('BSV_IFC' in module.objectCache):
         ifcHandle = open(module.objectCache['BSV_IFC'][0], 'r')
         bsvIfc = eval(ifcHandle.read())
-        bsvIfc.generateImportInterfaceTop(importHandle)
+        ifcEnv = {} # environment for module generation
+        if(module.getAttribute('PLATFORM_MODULE') is None):
+            ifcEnv['DEFAULT_CLOCK'] = 'default_clock'
+        else:
+            ifcEnv['DEFAULT_CLOCK'] = 'device_physicalDrivers_clocksDriver_clock'
+        bsvIfc.generateImportInterfaceTop(importHandle, ifcEnv)
 
     else:
 
@@ -64,9 +69,10 @@ def generateBAImport(module, importHandle):
     importHandle.write('import "BVI" module mk_' + module.name + '_Converted (IMP_' + module.name + ');\n\n')
 
     if('BSV_IFC' in module.objectCache):
-        #importHandle.write('default_clock clock(CLK);\n')
-        #importHandle.write('default_reset reset(RST_N) clocked_by(clock);\n')
-        bsvIfc.generateImport(importHandle)
+        if(module.getAttribute('PLATFORM_MODULE') is None):
+             importHandle.write('default_clock default_clock(CLK);\n')
+             importHandle.write('default_reset default_reset(RST_N) clocked_by(default_clock);\n')
+        bsvIfc.generateImport(importHandle, ifcEnv)
     else:
         for channel in module.channels:
             if(channel.isSource()):                     
@@ -127,7 +133,7 @@ def generateBAImport(module, importHandle):
         importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n")
 
         # two phases 1) interface definition.  I allow my children to define 2) interface binding I bind my children. 
-        bsvIfc.generateHierarchy(importHandle, '\t', 'm')
+        bsvIfc.generateHierarchy(importHandle, '\t', 'm', ifcEnv)
         importHandle.write('return ' + bsvIfc.getDefinition()  + ';\n')
 
     else:

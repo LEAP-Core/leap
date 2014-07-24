@@ -19,11 +19,11 @@ class LIChannel():
         self.bitwidth = int(bitwidth)
         self.matched = False
         self.module_name = module_name # this is only the name of the module
+        self.type_structure = type_structure
         self.via_idx_ingress = "unassigned"
         self.via_link_ingress = "unassigned"
         self.via_idx_egress = "unassigned"
         self.via_link_egress = "unassigned"
-        self.type_structure = type_structure
         self.activity = -1 # this is used in lane allocation
         self.module = "unassigned" # the actual module object.  Assigned at graph construction time
         self.partnerModule = "unassigned"
@@ -41,8 +41,8 @@ class LIChannel():
 
         if(not isinstance(self.partnerModule, str)):
             partnerModule = self.partnerModule.name
-
-        return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(idx)" + str(self.module_idx) + ":" + str(self.optional) + ":Module " + self.module_name + ":Platform " + self.platform() + "-> PartnerChannel " + partnerChannel + ": partnerModule " + partnerModule + " }"
+      
+        return "{" + self.name + ":" + self.raw_type + ":" + self.sc_type + ":(physical idx)" + str(self.module_idx) + ":" + str(self.optional) + ":Module " + self.module_name + ":Platform " + self.platform() + "-> PartnerChannel " + partnerChannel + ": partnerModule " + partnerModule + ": RoutingInfo:" + self.routingInfo() +" }"
 
     def unmatch(self):
         self.partnerModule = "unassigned"
@@ -109,4 +109,7 @@ class LIChannel():
 
 
 
-    
+    def routingInfo(self):
+        return  "Ingress (via idx): " + str(self.via_idx_ingress) + " (via_vc): " + str(self.via_link_ingress)  + \
+            " Egress (via idx): " + str(self.via_idx_egress) + " (via_vc): " + str(self.via_link_egress)  + \
+            "Activity: " + str(self.activity)

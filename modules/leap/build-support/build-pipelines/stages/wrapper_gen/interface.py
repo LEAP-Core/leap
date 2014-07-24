@@ -11,37 +11,37 @@ class Interface():
         self.members = members
         self.attributes = {}
 
-    def generateImportInterface(self, interfaceHandle, namePrefix):
+    def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix):
         #interfaces don't know their name. this must be propagated.
         for member in self.members:
-            self.members[member].generateImportInterface(interfaceHandle, namePrefix + '_' + str(self.members[member].name)) 
+            self.members[member].generateImportInterface(interfaceHandle, ifcEnv, namePrefix + '_' + str(self.members[member].name)) 
             self.attributes['namePrefix'] = namePrefix
 
-    def generateImportInterfaceTop(self, interfaceHandle):
+    def generateImportInterfaceTop(self, interfaceHandle, ifcEnv):
         #interfaces don't know their name. this must be propagated.
         for member in self.members:
-            self.members[member].generateImportInterface(interfaceHandle, str(self.members[member].name)) 
+            self.members[member].generateImportInterface(interfaceHandle, ifcEnv, str(self.members[member].name)) 
             self.attributes['namePrefix'] = ''
 
-    def generateImport(self, interfaceHandle):
+    def generateImport(self, interfaceHandle, ifcEnv):
         #interfaces don't know their name. this must be propagated.
         interfaceHandle.write("//begin import subinterface " + self.name + "\n")
         for member in self.members:
-            self.members[member].generateImport(interfaceHandle) 
+            self.members[member].generateImport(interfaceHandle, ifcEnv) 
 
     def generateImportTop(self, interfaceHandle):
         #interfaces don't know their name. this must be propagated.
         interfaceHandle.write("//begin import\n")
         for member in self.members:
-            self.members[member].generateImport(interfaceHandle) 
+            self.members[member].generateImport(interfaceHandle, ifcEnv) 
 
 
-    def generateHierarchy(self, interfaceHandle, ident, topModule):
+    def generateHierarchy(self, interfaceHandle, ident, topModule, ifcEnv):
         #interfaces don't know their name. this must be propagated.
         # First I let my children write down their definitions. Then I
         # bind them.
         for member in self.members:
-            self.members[member].generateHierarchy(interfaceHandle, ident + '\t', topModule)
+            self.members[member].generateHierarchy(interfaceHandle, ident + '\t', topModule, ifcEnv)
 
         # now I can create my binding.
         interfaceHandle.write(ident + "//begin import subinterface " + self.name + "\n")

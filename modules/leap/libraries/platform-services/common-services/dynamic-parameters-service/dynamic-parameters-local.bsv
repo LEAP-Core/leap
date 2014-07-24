@@ -119,6 +119,7 @@ module [CONNECTED_MODULE] mkDynamicParameterNode
             id <= new_id;
             // validParam will be set true after the param value arrives
             validParam <= False;
+            $display("%m PARAM ID: %h %h", param, new_id);
         end
 
     endrule
@@ -141,6 +142,7 @@ module [CONNECTED_MODULE] mkDynamicParameterNode
             begin
                 // High part comes first.
                 value[63:32] <= high32;
+                $display("%m PARAM HIGH32: %h %h", param, high32);
             end
 
             tagged PARAM_Low32 .low32:
@@ -149,6 +151,7 @@ module [CONNECTED_MODULE] mkDynamicParameterNode
                 value[31:0] <= low32;
                 validParam <= True;
                 receiving <= False;
+                $display("%m PARAM LOW32: %h %h", param, low32);
             end
         endcase
 

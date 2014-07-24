@@ -12,6 +12,7 @@ from verilog_tool import *
 from software_tool import *
 from wrapper_gen_tool import *
 from model import  *
+from physical_platform_defs import *
 
 class Build(ProjectDependency):
   def __init__(self, moduleList):
@@ -41,8 +42,9 @@ class Build(ProjectDependency):
     # The run script allows us to have multiple types for the same apm
     # This accomodate legacy builds.  If multiple types are assigned to the same APM, 
     # then their directory and master (soon to be deprecated) will go away. 
-    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "CPU", "directory" => "./", "master" => "0", "logicalName" => "Legacy"}')
-    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "BLUESIM", "directory" => "./", "master" => "1", "logicalName" => "Legacy"}')
+    
+    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "CPU", "directory" => "./", "master" => "0", "logicalName" => "' + moduleList.localPlatformName  +'"}')
+    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "BLUESIM", "directory" => "./", "master" => "1", "logicalName" => "' + moduleList.localPlatformName  + '"}')
 
     configFile.write('platforms=['+ ",".join(platformMetadata) +']\n')
     configFile.close()

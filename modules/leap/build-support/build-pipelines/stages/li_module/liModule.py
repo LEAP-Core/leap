@@ -68,6 +68,7 @@ class LIModule():
         channelCopy.module = self # You belong to me. 
         self.channels.append(channelCopy)
         self.channelNames[channelCopy.name] = channelCopy
+        return channelCopy
 
     # it is nonsensical to have more than one instance of the same
     # chain, so we drop extraneous chain references. 
@@ -77,8 +78,10 @@ class LIModule():
             chainCopy.module = self
             self.chains.append(chainCopy)
             self.chainNames[chainCopy.name] = chainCopy.name
+            return chainCopy
         else:
             print "Warning, dropping spurious chain: " + chain.name + " in module " + self.name + "\n"
+            return self.chainNames[chain.name]
 
     def deleteChain(self, chain):
         del self.chainNames[chain]
@@ -121,7 +124,7 @@ class LIModule():
 
     def checkUnmatchedChannels(self):
         for channel in self.channels:
-            if(not channel.matched):
+            if(not channel.matched and not channel.optional):
                 return True
         return False
 

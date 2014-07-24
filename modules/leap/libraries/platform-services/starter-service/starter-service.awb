@@ -1,5 +1,5 @@
 %name Starter Service
-%desc Wrap Starter Device in Soft Connections
+%desc Starter Service
 
 %provides starter_service
 

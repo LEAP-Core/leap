@@ -38,9 +38,6 @@ scratchpad_memory_service=Scratchpad Memory Service
 central_cache_service=Central Cache Service
 coherent_scratchpad_memory_service=Coherent Scratchpad Memory Service
 
-[Front Panel Service]
-File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
-Packagehint=leap
 
 [Starter Service]
 File=modules/leap/libraries/platform-services/starter-service/starter-service.awb
@@ -49,7 +46,6 @@ Packagehint=leap
 [Platform Services/Requires]
 common_services=Common Services
 mem_services=Standard Mem Services
-front_panel_service=Front Panel Service
 starter_service=Starter Service
 
 [Stats Service]
