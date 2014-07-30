@@ -84,6 +84,7 @@ typedef struct
     t_RSHR_IDX                  idx;
     t_RSHR_TAG                  tag;
     Bool                        isCleanWB;
+    Bool                        isExclusive;
 }
 COH_SCRATCH_CONTROLLER_RSHR_REQ#(type t_RSHR_ADDR,
                                  type t_RSHR_IDX,
@@ -98,6 +99,7 @@ typedef struct
     t_RSHR_TAG                 tag;
     COH_SCRATCH_MEM_VALUE      val;
     Bool                       needForward;
+    Bool                       isExclusive;
     COH_SCRATCH_PORT_NUM       forwardId;
     COH_SCRATCH_CTRLR_PORT_NUM fwdControllerId;
     COH_SCRATCH_CLIENT_META    clientMeta;
@@ -129,6 +131,7 @@ typedef struct
     COH_SCRATCH_CTRLR_PORT_NUM reqControllerId;
     COH_SCRATCH_CLIENT_META    clientMeta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
+    Bool                       isExclusive;
     Bool                       needCheckout;
 }
 COH_SCRATCH_CONTROLLER_OWNER_BIT_REQ#(type t_ADDR,
@@ -144,9 +147,24 @@ typedef struct
     COH_SCRATCH_CTRLR_PORT_NUM reqControllerId;
     COH_SCRATCH_CLIENT_META    clientMeta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
+    Bool                       isExclusive;
 }
 COH_SCRATCH_CONTROLLER_DATA_REQ
     deriving(Bits, Eq);
+
+`ifndef COHERENT_SCRATCHPAD_I_TO_M_ENABLE_Z
+
+// Coherence controller's ownership states
+typedef enum
+{
+    COH_MEM_STATE_E,  // Exclusive
+    COH_MEM_STATE_O,  // Owned (but not exclusive)
+    COH_MEM_STATE_I   // Invalid
+}
+COH_SCRATCH_CTRLR_OWNERSHIP_STATE
+    deriving (Eq, Bits);
+
+`endif
 
 // Number of entries in request tables that stores GETX/GETS requests 
 // that are checking out the ownership in ownerbitMem
@@ -333,11 +351,18 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     SCRATCHPAD_CONFIG dataMemConfig = defaultValue;
     SCRATCHPAD_CONFIG ownerbitMemConfig = defaultValue;
     
-    dataMemConfig.cacheMode = SCRATCHPAD_NO_PVT_CACHE;
+    dataMemConfig.cacheMode = (`COHERENT_SCRATCHPAD_DATA_MEM_CACHE_ENABLE == 1)? SCRATCHPAD_CACHED : SCRATCHPAD_NO_PVT_CACHE;
     ownerbitMemConfig.cacheMode = SCRATCHPAD_CACHED;
     
+    // dataMem
     MEMORY_IFC#(t_ADDR, COH_SCRATCH_MEM_VALUE) dataMem  <- mkScratchpad(dataScratchpadID, dataMemConfig);
+
+    // ownerbitMem
+`ifndef COHERENT_SCRATCHPAD_I_TO_M_ENABLE_Z
+    MEMORY_IFC#(t_ADDR, COH_SCRATCH_CTRLR_OWNERSHIP_STATE) ownerbitMem  <- mkScratchpad(ownerbitScratchpadID, ownerbitMemConfig);
+`else
     MEMORY_IFC#(t_ADDR, Bool) ownerbitMem  <- mkScratchpad(ownerbitScratchpadID, ownerbitMemConfig); 
+`endif
 
     // =======================================================================
     //
@@ -494,9 +519,11 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             begin
                 lookup_req.reqType        = COH_MSG_PUTX;
                 lookup_req.isCleanWB      = putx_req.isCleanWB;
+                lookup_req.isExclusive    = putx_req.isExclusive;
                 start_req                 = !putReqRetryQ.notEmpty();
-                debugLog.record($format("  collect PUTX request: sender=%03d, reqControllerId=%02d, addr=0x%x, isCleanWB=%s",  
-                                lookup_req.requester, lookup_req.reqControllerId, lookup_req.addr, lookup_req.isCleanWB? "True" : "False"));
+                debugLog.record($format("  collect PUTX request: sender=%03d, reqControllerId=%02d, addr=0x%x, isCleanWB=%s, isExclusive=%s",  
+                                lookup_req.requester, lookup_req.reqControllerId, lookup_req.addr, 
+                                lookup_req.isCleanWB? "True" : "False", lookup_req.isExclusive? "True" : "False"));
             end
         endcase
         
@@ -523,9 +550,11 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         lookup_req.reqType = COH_MSG_RESP;
         lookup_req.val = resp.val;
         lookup_req.idx = unpack(pack(truncate(resp.meta)));
+        lookup_req.isExclusive = resp.isExclusive;
         rshr.readReq(lookup_req.idx);
         rshrLookupQ.enq(lookup_req);
-        debugLog.record($format("  collectClientResp: idx=0x%x", lookup_req.idx));
+        debugLog.record($format("  collectClientResp: idx=0x%x, val=0x%x, isExclusive=%s", 
+                        lookup_req.idx, lookup_req.val, lookup_req.isExclusive? "True" : "False"));
     endrule
 
     //
@@ -598,11 +627,14 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             begin
                 let new_entry = e;
                 new_entry.needForward     = True;
+                new_entry.isExclusive     = e.isExclusive || (r.reqType == COH_MSG_GETX);
                 new_entry.forwardId       = r.requester;
                 new_entry.fwdControllerId = r.reqControllerId;
                 new_entry.clientMeta      = r.clientMeta;
                 new_entry.globalReadMeta  = r.globalReadMeta;
                 rshrWriteBypass(r.idx, tagged Valid new_entry);
+                debugLog.record($format("      rshrGetLookup HIT: update RSHR, idx=0x%x, forwardId=%03d, fwdControllerId=%02d, isExclusive=%s",
+                                r.idx, new_entry.forwardId, new_entry.fwdControllerId, (new_entry.isExclusive)? "True" : "False"));
             end
         end
         else // rshr miss
@@ -641,6 +673,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                            reqControllerId: r.reqControllerId,
                                                                            clientMeta: r.clientMeta,
                                                                            globalReadMeta: r.globalReadMeta,
+                                                                           isExclusive: (r.reqType == COH_MSG_GETX),
                                                                            needCheckout: ?} );
             ownerbitMem.readReq(r.addr);
             ownerbitReqTable.upd(req_table_idx, tagged Valid new_req_entry);
@@ -711,6 +744,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             rshrWriteBypass(r.idx, tagged Valid COH_SCRATCH_RSHR_ENTRY { tag: r.tag,
                                                                          val: ?,
                                                                          needForward: False,
+                                                                         isExclusive: False,
                                                                          forwardId: ?,
                                                                          fwdControllerId: ?,
                                                                          clientMeta: ?,
@@ -748,9 +782,16 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         let r = rshrLookupQ.first();
         rshrLookupQ.deq();
         let cur_entry <- rshrReadRespBypass(r.idx);
-        debugLog.record($format("      rshrCleanPutLookup: addr=0x%x, write back ownerbit", r.addr));
+        debugLog.record($format("      rshrCleanPutLookup: addr=0x%x, write back ownerbit, isExclusive=%s", 
+                        r.addr, r.isExclusive? "True" : "False"));
+
+`ifndef COHERENT_SCRATCHPAD_I_TO_M_ENABLE_Z
+        let ownership_state = r.isExclusive? COH_MEM_STATE_E : COH_MEM_STATE_O;
+        ownerbitMem.write(r.addr, ownership_state);
+`else
         ownerbitMem.write(r.addr, False);
-            
+`endif
+
         // If hit in the ownerbitReqTable, update the entry's writeback bit
         // The GETS/GETX request following this request needs to re-checkout the ownerbit
         let req_table_idx = unpack(truncateNP(pack(r.idx)));
@@ -794,13 +835,22 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             Bool sent_resp = False;
             // write back data and ownerbit to memory if the ownership has not 
             // been checked-out by a GETS/GETX
-            // (Here we respond GETS with ownership to enable automatically S->M upgrades)
+            // (Here we respond GETS with ownership to enable automatically S->O or S->M upgrades)
             if (!e.needForward)
             begin
                 let w_addr = rshrAddrFromEntry(e.tag, r.idx);
+                // write back ownership
+`ifndef COHERENT_SCRATCHPAD_I_TO_M_ENABLE_Z
+                let ownership_state = r.isExclusive? COH_MEM_STATE_E : COH_MEM_STATE_O;
+                ownerbitMem.write(w_addr, ownership_state);
+                debugLog.record($format("      rshrRespLookup: idx=0x%x, ownerbitMem write back, addr=0x%x, state=%0d", r.idx, w_addr, ownership_state));
+`else
                 ownerbitMem.write(w_addr, False);
+                debugLog.record($format("      rshrRespLookup: idx=0x%x, ownerbitMem write back, addr=0x%x", r.idx, w_addr));
+`endif
+                // write back data value
                 dataMem.write(w_addr, r.val);
-                debugLog.record($format("      rshrRespLookup: idx=0x%x, ownerbitMem & dataMem write back, addr=0x%x, val=0x%x", r.idx, w_addr, r.val));
+                debugLog.record($format("      rshrRespLookup: idx=0x%x, dataMem write back, addr=0x%x, val=0x%x", r.idx, w_addr, r.val));
             end
 
             // forward write-back data to a client if response queue is not full
@@ -809,6 +859,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 sent_resp = True;
                 rshrRespQ.enq(tuple2(e.forwardId, COH_SCRATCH_RESP { val: r.val,
                                                                      ownership: True,
+                                                                     isExclusive: e.isExclusive || r.isExclusive,
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
                                                                      controllerId: e.fwdControllerId, 
                                                                      clientId: e.forwardId,
@@ -823,7 +874,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                      isCacheable: True,
                                                                      retry: False }));
 
-                debugLog.record($format("      rshrRespLookup: idx=0x%x, forward response: dest=%d, val=0x%x", r.idx, e.forwardId, r.val));
+                debugLog.record($format("      rshrRespLookup: idx=0x%x, forward response: dest=%d, val=0x%x", 
+                                r.idx, e.forwardId, r.val));
             end
             
             // release rshr entry if finish forwarding
@@ -837,6 +889,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             begin
                 let new_entry = e;
                 new_entry.val = r.val;
+                new_entry.isExclusive = e.isExclusive || r.isExclusive;
                 rshrWriteBypass(r.idx, tagged Valid new_entry);
                 forwardEntries[r.idx] <= True;
                 updFowardEntry.send();
@@ -865,6 +918,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 // forward write-back data to a client 
                 rshrRespQ.enq(tuple2(e.forwardId, COH_SCRATCH_RESP { val: e.val,
                                                                      ownership: True,
+                                                                     isExclusive: e.isExclusive,
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
                                                                      controllerId: e.fwdControllerId, 
                                                                      clientId: e.forwardId,
@@ -919,11 +973,24 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     rule ownerbitMemLookup (True);
         let r = ownerbitMemLookupQ.first();
         ownerbitMemLookupQ.deq();
+        let ownership = False;
+        let is_exclusive = False;
+
+`ifndef COHERENT_SCRATCHPAD_I_TO_M_ENABLE_Z
+        let state <- ownerbitMem.readRsp();
+        ownership = (state != COH_MEM_STATE_I);
+        is_exclusive = (state == COH_MEM_STATE_E);
+`else
         let checkout <- ownerbitMem.readRsp(); // True means the ownership has been checked out
-        let ownership = !checkout;
-        debugLog.record($format("      ownerbitMemLookup: addr=0x%x, ownership=%s", r.addr, ownership? "True" : "False"));
+        ownership = !checkout;
+ `endif
+
+        debugLog.record($format("      ownerbitMemLookup: addr=0x%x, ownership=%s, isExclusive=%s", 
+                        r.addr, ownership? "True" : "False", is_exclusive? "True" : "False"));
+
         let req = r;
         req.needCheckout = ownership; 
+        req.isExclusive = r.isExclusive || is_exclusive;
         ownerbitMemCheckoutQ.enq(req);
     endrule
 
@@ -933,16 +1000,22 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         if (r.needCheckout)
         begin
             // checkout ownerbit
+`ifndef COHERENT_SCRATCHPAD_I_TO_M_ENABLE_Z
+            ownerbitMem.write(r.addr, COH_MEM_STATE_I);
+`else
             ownerbitMem.write(r.addr, True);
+`endif
             debugLog.record($format("      ownerbitMemCheckout: checkout ownerbitMem: addr=0x%x", r.addr));
             ownerbitCheckoutW.send();
             // read data memory
             dataMemLookupQ.enq( COH_SCRATCH_CONTROLLER_DATA_REQ { requester: r.requester,
                                                                   reqControllerId: r.reqControllerId,
                                                                   clientMeta: r.clientMeta,
-                                                                  globalReadMeta: r.globalReadMeta } );
+                                                                  globalReadMeta: r.globalReadMeta,
+                                                                  isExclusive: r.isExclusive } );
             dataMem.readReq(r.addr);
-            debugLog.record($format("      ownerbitMemCheckout: read dataMem: addr=0x%x, meta=0x%x", r.addr, r.clientMeta));
+            debugLog.record($format("      ownerbitMemCheckout: read dataMem: addr=0x%x, meta=0x%x, isExclusive=%s", 
+                            r.addr, r.clientMeta, r.isExclusive? "True" : "False"));
         end
         
         // Mark the writeback bit to False if there is a following recheckout request
@@ -969,6 +1042,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         let data <- dataMem.readRsp();
         memRespQ.enq(tuple2(r.requester, COH_SCRATCH_RESP { val: data,
                                                             ownership: True,
+                                                            isExclusive: r.isExclusive,
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
                                                             controllerId: r.reqControllerId,
                                                             clientId: r.requester,
@@ -982,7 +1056,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                             globalReadMeta: r.globalReadMeta,
                                                             isCacheable: True,
                                                             retry: False }));
-        debugLog.record($format("      dataMemLookup: send data response: dest=%d, val=0x%x, meta=0x%x", r.requester, data, r.clientMeta));
+        debugLog.record($format("      dataMemLookup: send data response: dest=%d, val=0x%x, meta=0x%x, isExclusive=%s", 
+                        r.requester, data, r.clientMeta, r.isExclusive? "True" : "False"));
         dataReceivedW.send();
     endrule
 

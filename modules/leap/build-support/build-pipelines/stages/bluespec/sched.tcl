@@ -43,6 +43,7 @@ set bsdir $::env(BLUESPECDIR)
 set libs [list [file join $bsdir "Prelude"] [file join $bsdir "Libraries"]]
 
 portUtil::processSwitches [list {p "+"}]
+Bluetcl::flags set -wait-for-license
 Bluetcl::flags set -verilog
 Bluetcl::flags set -p $OPT(-p):[join $libs ":"]
 
