@@ -361,9 +361,9 @@ if (defined($cpuPlatform)) {
     # Model might be a link to a binary.  Some binaries expect to find libraries
     # based on their command line name (e.g. Bluesim).
  
-    $cmd = "valgrind $config{modelDir}/${directory}/sw/obj/${platformName}_sw.exe";
+    $cmd = "$config{modelDir}/${directory}/sw/obj/${platformName}_sw.exe";
     if (-l $cmd) {
-        $cmd = "valgrind $config{modelDir}/${directory}/" . readlink($cmd);
+        $cmd = "$config{modelDir}/${directory}/" . readlink($cmd);
     }
 
 
@@ -385,10 +385,10 @@ if (defined($cpuPlatform)) {
         my $deviceDictionary = "";
 
         for my $device ( keys(%fpgaDevs)) {
-            $deviceDictionary .= "$device:\\\"$fpgaDevs{$device}\\\";";
+            $deviceDictionary .= "$device:\\\"$fpgaDevs{$device}\\\",";
         }
 
-        $cmd .= "--DEVICE_DICTIONARY=$deviceDictionary";
+        $cmd .= " --DEVICE_DICTIONARY=$deviceDictionary ";
     }
 
     # Define the global string database. These are collected with each build.

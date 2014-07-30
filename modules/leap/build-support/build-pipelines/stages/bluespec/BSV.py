@@ -557,8 +557,6 @@ class BSV():
                                                                                    'bluetcl ./hw/model/path.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
                     moduleList.topDependency += module.moduleDependency['BSV_SCHED'] + module.moduleDependency['BSV_PATH']
                     
-                    
-                    print "Command is: " 'bluetcl ./hw/model/interfaceType.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper '
                     module.moduleDependency['BSV_IFC'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.ifc'),
                                                                                  wrapper_bo,
                                                                                  'bluetcl ./hw/model/interfaceType.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper | python site_scons/model/PythonTidy.py > $TARGET')]
@@ -950,8 +948,10 @@ class BSV():
                         # Due to unmatched channel trimming, we can
                         # have mismatches between the number channels
                         # used by the underlying module and the number
-                        # of channels remaining in the representation. 
-                        # Therefore, 
+                        # of channels remaining in the representation.
+                        # Therefore, we need to put all modules
+                        # through the build_tree_code, which handles
+                        # channel reindexing, even singleton modules.
                         outgoing = 0
                         incoming = 0 
                         for channel in single_module.channels:

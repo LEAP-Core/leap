@@ -326,7 +326,7 @@ class COMMAND_SWITCH_DICTIONARY_CLASS : COMMAND_SWITCH_STRING_CLASS
 
             // We need two tokenizers, one for the parameter set list, and one
             // for the parameters themselves.
-            string separatorSemicolon(";");
+            string separatorSemicolon(",");
             string emptyEscape(""); // boost requires us to specify escape characters
             boost::escaped_list_separator<char> elSemicolon(emptyEscape, separatorSemicolon, emptyEscape);    
             typedef boost::tokenizer<boost::escaped_list_separator<char> >  tok_t;
@@ -377,7 +377,8 @@ class COMMAND_SWITCH_DICTIONARY_CLASS : COMMAND_SWITCH_STRING_CLASS
            //element found; 
          return parameterDictionary.find(key)->second;
        }
-
+        
+       // Otherwise, return a null pointer.
        return NULL;
     }
     

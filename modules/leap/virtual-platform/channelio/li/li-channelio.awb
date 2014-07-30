@@ -8,7 +8,7 @@
 
 %notes README
 
-%param DEBUG_CHANNELIO   1    "Enable Channelio Debug"
+%param DEBUG_CHANNELIO   0    "Enable Channelio Debug"
 
 %sources -t H   -v PUBLIC   li-channelio.h
 %sources -t CPP -v PRIVATE  li-channelio.cpp

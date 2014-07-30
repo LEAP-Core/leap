@@ -34,7 +34,7 @@ use Leap::RRR::Method::Base;
 # inherit from Method
 our @ISA = qw(Leap::RRR::Method::Base);
 
-my $debug = 1;
+my $debug = 0;
  
 ##
 ## constructor

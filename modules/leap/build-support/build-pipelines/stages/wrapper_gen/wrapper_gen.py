@@ -45,6 +45,10 @@ def generateBAImport(module, importHandle):
         ifcHandle = open(module.objectCache['BSV_IFC'][0], 'r')
         bsvIfc = eval(ifcHandle.read())
         ifcEnv = {} # environment for module generation
+
+        # Bluespec doesn't provide a good interface for analyzing clock 
+        # relationships.  This is a hardcoded hack to get around this 
+        # issue.
         if(module.getAttribute('PLATFORM_MODULE') is None):
             ifcEnv['DEFAULT_CLOCK'] = 'default_clock'
         else:
