@@ -352,8 +352,10 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     SCRATCHPAD_CONFIG ownerbitMemConfig = defaultValue;
     
     dataMemConfig.cacheMode = (`COHERENT_SCRATCHPAD_DATA_MEM_CACHE_ENABLE == 1)? SCRATCHPAD_CACHED : SCRATCHPAD_NO_PVT_CACHE;
+    dataMemConfig.requestMerging = False;
     ownerbitMemConfig.cacheMode = SCRATCHPAD_CACHED;
-    
+    ownerbitMemConfig.requestMerging = False;
+
     // dataMem
     MEMORY_IFC#(t_ADDR, COH_SCRATCH_MEM_VALUE) dataMem  <- mkScratchpad(dataScratchpadID, dataMemConfig);
 

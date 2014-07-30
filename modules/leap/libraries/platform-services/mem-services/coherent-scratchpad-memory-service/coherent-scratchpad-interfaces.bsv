@@ -121,6 +121,7 @@ typedef struct
 {
     COH_SCRATCH_CACHE_MODE  cacheMode;
     Bool                    multiController;
+    Bool                    requestMerging;
 }
 COH_SCRATCH_CLIENT_CONFIG
     deriving (Eq, Bits);
@@ -128,7 +129,8 @@ COH_SCRATCH_CLIENT_CONFIG
 instance DefaultValue#(COH_SCRATCH_CLIENT_CONFIG);
     defaultValue = COH_SCRATCH_CLIENT_CONFIG {
         cacheMode: COH_SCRATCH_CACHED,
-        multiController: False
+        multiController: False,
+        requestMerging: (`COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE==1)
     };
 endinstance
 
