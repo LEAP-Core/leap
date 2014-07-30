@@ -64,8 +64,10 @@ class Verilog():
 
     defs = (host_defs()).split(" ")
     for definition in defs:
-      vexe_gen_command += ' -Xc++ ' + definition + ' -Xc ' + definition
+        vexe_gen_command += ' -Xc++ ' + definition + ' -Xc ' + definition
 
+    # Hack to link against pthreads.  Really we should have a better solution.
+    vexe_gen_command += ' -Xl -lpthread '
 
     # construct full path to BAs
     def modify_path(str):
