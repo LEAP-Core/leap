@@ -367,8 +367,8 @@ proc analyzeInterface { elem ifc ports methods} {
             set inoutRep [lindex $member 1]
             #puts stderr "MEMBER: $member"
             #puts stderr "INOUT REP: $inoutRep"
-            set memberType [lindex $inoutRep 0]
-            set memberName [lindex $inoutRep 1]
+            set memberType [lindex $member 1]
+            set memberName [lindex $member 2]
             set memberPortsName  [lindex $memberPorts 1]
 
             set reset  [getWireNamed $memberPorts "reset"]
