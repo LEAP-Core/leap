@@ -121,7 +121,9 @@ class Synthesize(ProjectDependency):
     synth_deps = []
     [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
 
-    for module in [ mod for mod in moduleList.synthBoundaries() if not mod.platformModule]:  
+    netlistModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore] 
+
+    for module in [ mod for mod in netlistModules() if not mod.platformModule]:  
       # need to eventually break this out into a seperate function
       # first step - modify prj options file to contain any generated wrappers
       prjFile = open('config/' + moduleList.apmName  + '.synplify.prj','r');  

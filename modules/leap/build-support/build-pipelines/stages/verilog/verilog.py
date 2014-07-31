@@ -14,6 +14,8 @@ class Verilog():
     BSC = moduleList.env['DEFS']['BSC']
     inc_paths = moduleList.swIncDir # we need to depend on libasim
 
+    self.firstPassLIGraph = getFirstPassLIGraph()
+
     # This is not correct for LIM builds and needs to be fixed. 
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ALL_DIRS_FROM_ROOT = moduleList.env['DEFS']['ALL_HW_DIRS']
@@ -22,8 +24,34 @@ class Verilog():
 
     LI_LINK_DIR = ""
     if(not (getFirstPassLIGraph()) is None):
-      LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/:"
+        LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/"
 
+    liCodeType = ['VERILOG', 'GIVEN_VERILOG_HS', 'GEN_VPI_CS', 'GEN_VPI_HS']
+
+    # This can be refactored as a function.
+    if(not self.firstPassLIGraph is None):
+        for moduleName in self.firstPassLIGraph.modules:            
+            moduleObject = self.firstPassLIGraph.modules[moduleName]
+            for codeType in liCodeType:
+                if(codeType in moduleObject.objectCache):
+                    for verilog in moduleObject.objectCache[codeType]:
+                        linkPath = LI_LINK_DIR + '/' + os.path.basename(verilog)
+                        def linkVerilog(target, source, env):
+                            # It might be more useful if the Module contained a pointer to the LIModules...                        
+                            if(os.path.lexists(str(target[0]))):
+                                os.remove(str(target[0]))
+                            print "Linking: " + str(source[0]) + " to " + str(target[0])
+                            os.symlink(str(source[0]), str(target[0]))
+                        moduleList.env.Command(linkPath, verilog, linkVerilog)
+                        print "Setting up Link: " + verilog + " to " + linkPath
+                        if(codeType in moduleList.topModule.moduleDependency):
+                            moduleList.topModule.moduleDependency[codeType] += [linkPath]
+                        else:
+                            moduleList.topModule.moduleDependency[codeType] = [linkPath]
+                    else:
+                        # Warn that we did not find the ngc we expected to find..
+                        print "Warning: We did not find verilog for module " + moduleName 
+                
     bsc_version = getBluespecVersion()
 
     ldflags = ''
@@ -38,15 +66,19 @@ class Verilog():
     if (bsc_version >= 30006):
         BSC_FLAGS_VERILOG += '-parallel-sim-link ' + str(n_jobs) + ' '
 
-    for path in inc_paths:
-        BSC_FLAGS_VERILOG += '-I ' + path + ' '
+    for path in inc_paths + [LI_LINK_DIR]:
+        BSC_FLAGS_VERILOG += '-I ' + path + ' ' + '-Xv -I' + path + ' '
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'
 
+#    vexe_gen_command = \
+#        BSC + ' ' + BSC_FLAGS_VERILOG + ' -vdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] +' -p +:' + LI_LINK_DIR + ':' +  ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + LI_LINK_DIR + ":" + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
+#        ' -o $TARGET' 
+
     vexe_gen_command = \
-        BSC + ' ' + BSC_FLAGS_VERILOG + ' -vdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] +' -p +:' + LI_LINK_DIR + ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + LI_LINK_DIR + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
+        BSC + ' ' + BSC_FLAGS_VERILOG + ' -simdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + ' -bdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] +' -p +:' + LI_LINK_DIR + ':' +  ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + LI_LINK_DIR + ":" + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
         ' -o $TARGET' 
 
 
@@ -72,6 +104,13 @@ class Verilog():
         array = str.split('/')
         file = array.pop()
         return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + '/'.join(array) + '/' + TMP_BSC_DIR + '/' + file 
+
+
+    # Use systemverilog 2005
+    vexe_gen_command += ' -Xv -g2005-sv '
+
+    # Allow .vh/.sv file extensions etc.
+    vexe_gen_command += ' -Xv -Y.vh -Xv -Y.sv '
 
     # Bluespec requires that source files terminate the command line.
     vexe_gen_command += '-verilog -e ' + ROOT_WRAPPER_SYNTH_ID + ' ' +\
@@ -114,12 +153,21 @@ class Verilog():
     # preserves their behavior, but it is unclear why the verilog build is 
     # involved.
     if (isPrimaryBuildTarget):
+        vbinDeps = []
+        # If we got a lim graph, we'll pick up many of our dependencies from it. 
+        # These were annotated in the top module above. Really, this seems unclean.
+        # we should build a graph during the second pass and just use it.
+        if(not self.firstPassLIGraph is None):
+            vbinDeps += moduleList.getDependencies(moduleList.topModule, 'VERILOG') + moduleList.getDependencies(moduleList.topModule, 'GIVEN_VERILOG_HS') + moduleList.getDependencies(moduleList.topModule, 'GEN_VPI_H') + moduleList.getDependencies(moduleList.topModule, 'GEN_VPI_C') +moduleList.getDependencies(moduleList.topModule, 'VHDL') + moduleList.getDependencies(moduleList.topModule, 'BA') + map(modify_path_ba_local, moduleList.getModuleDependenciesWithPaths(moduleList.topModule, 'GEN_BAS'))
+        # collect dependencies from all awb modules
+        else:
+            vbinDeps += moduleList.getAllDependencies('VERILOG') + moduleList.getAllDependencies('VHDL') + moduleList.getAllDependencies('BA') + map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS'))
+          
+        print "Verilog Deps are: " + str(vbinDeps)
+
         vbin = moduleList.env.Command(
             TMP_BSC_DIR + '/' + APM_NAME + '_hw.exe',
-            moduleList.getAllDependencies('VERILOG') +
-            moduleList.getAllDependencies('VHDL') +
-            moduleList.getAllDependencies('BA') +
-            map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS')),
+            vbinDeps,
             [ vexe_gen_command,
               SCons.Script.Delete('directc.sft') ])
 
