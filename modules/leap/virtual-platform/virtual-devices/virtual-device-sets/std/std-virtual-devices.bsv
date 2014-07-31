@@ -36,6 +36,8 @@
 `include "asim/provides/local_memory_device.bsh"
 `include "awb/provides/soft_connections.bsh"
 
+`include "awb/provides/common_services_params.bsh"
+
 interface VIRTUAL_DEVICES;
 
 endinterface
@@ -44,8 +46,6 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     // interface:
         (VIRTUAL_DEVICES);
 
-    let platformID <- getSynthesisBoundaryPlatformID();
-    
     //
     // Normal (master) platform and services are on platform ID 0.  Slaves are
     // on non-zero platform IDs.  Slave (multi-FPGA) platforms need the
@@ -53,7 +53,7 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     // instantiate the services.  These are all rings, with the primary node
     // on the master FPGA.
     //
-    if (platformID == 0)
+    if (`BUILD_COMMON_SERVICES == 1)
     begin
         let fp <- mkFrontPanelDevice(llpint);
     end

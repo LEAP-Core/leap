@@ -5,6 +5,11 @@
 #include <getopt.h>
 #include <ostream>
 #include <string>
+#include<map>
+
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "asim/syntax.h"
 #include "asim/mesg.h"
@@ -269,6 +274,114 @@ class BASIC_COMMAND_SWITCH_STRING_CLASS : COMMAND_SWITCH_STRING_CLASS
   }
 
   const string * SwitchValue() { return switchValue; }
+};
+
+
+// COMMAND_SWITCH_DICTIONARY_CLASS
+
+// Permits dictionaries to be described on the command line.  
+// Format is --dictionaryName fooDict=foo1:foo1Val;foo2=foo2Val;.... <-space terminates the list. 
+
+typedef class COMMAND_SWITCH_DICTIONARY_CLASS* COMMAND_SWITCH_DICTIONARY;
+class COMMAND_SWITCH_DICTIONARY_CLASS : COMMAND_SWITCH_STRING_CLASS
+{
+  private:
+    std::map<string,string*> parameterDictionary;
+    string *switchValue;
+    string helpString;
+    string nameString;
+
+  public:
+    COMMAND_SWITCH_DICTIONARY_CLASS(const char* name, const char* help) :
+      COMMAND_SWITCH_STRING_CLASS(name),
+      helpString(help),
+      nameString(name),
+      parameterDictionary()
+    {
+        switchValue = NULL;
+    };
+
+    COMMAND_SWITCH_DICTIONARY_CLASS(const char* name) :
+      COMMAND_SWITCH_STRING_CLASS(name),
+      helpString("No help provided"),
+      nameString(name),
+      parameterDictionary()
+    {
+        switchValue = NULL;
+    };
+   
+    ~COMMAND_SWITCH_DICTIONARY_CLASS() 
+     { 
+         if(switchValue != NULL) 
+         {
+             delete switchValue; 
+         }
+     };
+
+    void ProcessSwitchString(const char *arg_val) 
+    { 
+        if(arg_val != NULL) 
+        {
+            switchValue = new std::string(arg_val);
+
+            // We need two tokenizers, one for the parameter set list, and one
+            // for the parameters themselves.
+            string separatorSemicolon(",");
+            string emptyEscape(""); // boost requires us to specify escape characters
+            boost::escaped_list_separator<char> elSemicolon(emptyEscape, separatorSemicolon, emptyEscape);    
+            typedef boost::tokenizer<boost::escaped_list_separator<char> >  tok_t;
+            
+            string separatorColon(":");
+            string separatorQuote("\"");
+            boost::escaped_list_separator<char> elColon(emptyEscape, separatorColon, separatorQuote);    
+
+                      
+            tok_t semicolonTok(*switchValue, elSemicolon);
+            for(tok_t::iterator parameterSets (semicolonTok.begin());
+                parameterSets != semicolonTok.end();
+                ++parameterSets)
+            {
+                vector<string> parameterList;            
+                std::string set(*parameterSets);
+                boost::trim(set);
+                tok_t colonTok(set, elColon);
+                
+                for(tok_t::iterator parameters (colonTok.begin());
+
+                    parameters != colonTok.end();
+                    ++parameters)
+                {
+                    std::string parameter(*parameters);
+                    boost::trim(parameter);               
+                    parameterList.push_back(parameter);
+                }
+                 
+                if(parameterList.size() == 2)
+                {                      
+                    parameterDictionary.insert(make_pair(parameterList[0], new string(parameterList[1])));
+                }
+
+            }
+        }
+    };
+
+    void ShowSwitch(std::ostream& ostr, const string& prefix)
+    {
+        ostr << prefix << "[--" << nameString << "]          " << helpString << endl;
+    }
+
+    const string *SwitchValue(string key) 
+    {  
+       if(parameterDictionary.find(key) != parameterDictionary.end());
+       {
+           //element found; 
+         return parameterDictionary.find(key)->second;
+       }
+        
+       // Otherwise, return a null pointer.
+       return NULL;
+    }
+    
 };
 
 

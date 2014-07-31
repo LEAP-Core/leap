@@ -33,7 +33,6 @@ import Vector::*;
 
 `include "awb/provides/soft_connections.bsh"
 
-`include "awb/provides/starter_service.bsh"
 `include "awb/provides/mem_services.bsh"
 `include "awb/provides/common_services.bsh"
 
@@ -47,7 +46,6 @@ module [CONNECTED_MODULE] mkPlatformServices
 
 
     // Instantiate soft interfaces to the virtual devices
-    let starterService  <- mkStarterService();
     let memServices     <- mkMemServices();
     let commonServices  <- mkCommonServices();
 

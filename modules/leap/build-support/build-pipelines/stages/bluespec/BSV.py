@@ -557,12 +557,11 @@ class BSV():
                                                                                    'bluetcl ./hw/model/path.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
                     moduleList.topDependency += module.moduleDependency['BSV_SCHED'] + module.moduleDependency['BSV_PATH']
                     
-                    if(module.platformModule):
-                        module.moduleDependency['BSV_IFC'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.ifc'),
-                                                                                      wrapper_bo,
-                                                                                     'bluetcl ./hw/model/interfaceType.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper | python site_scons/model/PythonTidy.py > $TARGET')]
+                    module.moduleDependency['BSV_IFC'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.ifc'),
+                                                                                 wrapper_bo,
+                                                                                 'bluetcl ./hw/model/interfaceType.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper | python site_scons/model/PythonTidy.py > $TARGET')]
 
-                        moduleList.topDependency += module.moduleDependency['BSV_IFC']
+                    moduleList.topDependency += module.moduleDependency['BSV_IFC']
 
 
 
@@ -899,7 +898,7 @@ class BSV():
             for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
                 wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')       
 
-            wrapper_handle.write('module mk_Empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
+            wrapper_handle.write('module mk_empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
 
             if (pipeline_debug != 0):
                 print "LIGraph: " + str(liGraph)
@@ -932,8 +931,13 @@ class BSV():
                 # trivially return the base LI module to the caller
                 if (len(subgraph.graph.nodes()) < 2):
                     if (not topModule):
-                        return subgraph.graph.nodes()[0]
-                    else:                        
+                        if(len(subgraph.graph.nodes()) == 0):
+                            return LIModule("empty", "empty")
+                        else:
+                            return subgraph.graph.nodes()[0]
+                    else: 
+                        # below here is DEAD CODE!!!
+                       
                         # If there are fewer than two modules in
                         # the program, we need to dump out a wrapper
                         # module so that the information we told SCons
@@ -943,13 +947,19 @@ class BSV():
                         # the singleton by examining its channels.
 
                         # if we have no modules, we still need something.
-                        single_module = LIModule("Empty", "Empty") 
+                        single_module = LIModule("empty", "empty") 
                         if(len(subgraph.graph.nodes()) > 0):
                             single_module = subgraph.graph.nodes()[0]
 
                         wrapper_handle.write("\n\n(*synthesize*)\n") 
                         localModule = module_names.pop()
-
+                        # Due to unmatched channel trimming, we can
+                        # have mismatches between the number channels
+                        # used by the underlying module and the number
+                        # of channels remaining in the representation.
+                        # Therefore, we need to put all modules
+                        # through the build_tree_code, which handles
+                        # channel reindexing, even singleton modules.
                         outgoing = 0
                         incoming = 0 
                         for channel in single_module.channels:
@@ -967,7 +977,7 @@ class BSV():
                         wrapper_handle.write("endmodule\n")
                         single_module.name = localModule # sort of a hack, but it does save space
                         return single_module
-
+               
                 # do a min cut on the graph
                 map = min_cut(subgraph.graph)
 
@@ -994,6 +1004,8 @@ class BSV():
                 graph0 = LIGraph(graph0Connections)        
                 graph1 = LIGraph(graph1Connections)        
 
+                
+
 
                 #Pick a name for the local module
                 localModule = module_names.pop()
@@ -1005,13 +1017,17 @@ class BSV():
                 # below the current node.  And so we recurse.  If only one 
                 # module remains in the cut graph, there is no need to recurse
                 # and we just use that module. 
-                submodule0 = graph0.modules.values()[0]
-                if (len(graph0.modules) > 1):
+                submodule0 = LIModule("empty", "empty") 
+                if(len(graph0.modules) == 1):
+                    submodule0 = graph0.modules.values()[0]
+                else:
                     submodule0 = cutRecurse(graph0, 0)
                     num_child_exported_rules += submodule0.numExportedRules
 
-                submodule1 = graph1.modules.values()[0] 
-                if (len(graph1.modules) > 1):
+                submodule1 = LIModule("empty", "empty") 
+                if(len(graph1.modules) == 1):
+                    submodule1 = graph1.modules.values()[0]
+                else:
                     submodule1 = cutRecurse(graph1, 0)
                     num_child_exported_rules += submodule1.numExportedRules
 
@@ -1246,6 +1262,14 @@ class BSV():
             # assign top_module some default.
             top_module = None
             if(self.BUILD_LOGS_ONLY == 0):
+                if (len(liGraph.graph.nodes()) == 1):
+                    # Singleton Modules still need to pass through the
+                    # trimming phase to remove references to unmatched
+                    # channels.  If there's only one module, introduce
+                    # a trivial second module. Having no LI modules is
+                    # handled correctly.
+                    liGraph.mergeModules([LIModule("empty", "empty")])                    
+
                 top_module = cutRecurse(liGraph, 1)            
 
             # In multifpga builds, we may have some leftover modules

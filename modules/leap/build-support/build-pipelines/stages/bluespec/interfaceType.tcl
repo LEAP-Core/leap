@@ -41,6 +41,7 @@ set bsdir $::env(BLUESPECDIR)
 set libs [list [file join $bsdir "Prelude"] [file join $bsdir "Libraries"]]
 
 portUtil::processSwitches [list {p "+"}]
+Bluetcl::flags set -wait-for-license
 Bluetcl::flags set -verilog
 Bluetcl::flags set -p $OPT(-p):[join $libs ":"]
 
@@ -364,10 +365,10 @@ proc analyzeInterface { elem ifc ports methods} {
         if {$compareInout == 0} { 
                  
             set inoutRep [lindex $member 1]
-            #puts stderr "MEMBER: $member\n"
-            #puts stderr "INOUT REP: $inoutRep\n"
-            set memberType [lindex $inoutRep 0]
-            set memberName [lindex $inoutRep 1]
+            #puts stderr "MEMBER: $member"
+            #puts stderr "INOUT REP: $inoutRep"
+            set memberType [lindex $member 1]
+            set memberName [lindex $member 2]
             set memberPortsName  [lindex $memberPorts 1]
 
             set reset  [getWireNamed $memberPorts "reset"]
@@ -375,7 +376,7 @@ proc analyzeInterface { elem ifc ports methods} {
             set port   [getWireNamed $memberPorts "port"]
                                     
             set memberRep "Prim_Inout('$memberType', '$memberPortsName', '$port', '$clock', '$reset')"
-            #puts stderr "INOUT Returns: $memberName:$memberRep"
+            #puts stderr "INOUT Returns: $memberName:$memberRep\n"
             lappend memberList "'$memberName': $memberRep"
         } else { 
             if {($compareType == 0) || ($comparePort == 0)} {

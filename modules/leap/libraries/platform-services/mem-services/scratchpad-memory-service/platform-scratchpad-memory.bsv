@@ -351,6 +351,17 @@ endmodule
 //
 // ========================================================================
     
+// number of entries in the merge table
+typedef 32 SCRATCHPAD_MERGE_TABLE_ENTRIES;
+
+typedef struct
+{
+    t_MERGE_TAG               tag;
+    Vector#(n_ENTRIES, Bool)  mergeMeta;
+}
+SCRATCHPAD_MERGE_TABLE_ENTRY#(type t_MERGE_TAG, 
+                              numeric type n_ENTRIES)
+    deriving(Bits, Eq);
     
 //
 // mkUnmarshalledScratchpad --
@@ -369,6 +380,13 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
 
+              // Request merge table
+              NumAlias#(TMin#(t_MEM_ADDRESS_SZ, TLog#(SCRATCHPAD_MERGE_TABLE_ENTRIES)), t_MERGE_IDX_SZ),
+              Alias#(Bit#(t_MERGE_IDX_SZ), t_MERGE_IDX),
+              Alias#(Bit#(TSub#(t_MEM_ADDRESS_SZ, t_MERGE_IDX_SZ)), t_MERGE_TAG),
+              NumAlias#(TMax#(1, TExp#(TAdd#(TLog#(n_READERS), TLog#(SCRATCHPAD_PORT_ROB_SLOTS)))), n_MERGE_META_ENTRIES),
+              Alias#(SCRATCHPAD_MERGE_TABLE_ENTRY#(t_MERGE_TAG, n_MERGE_META_ENTRIES), t_MERGE_ENTRY), 
+              
               // MAF for in-flight reads
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
               Bits#(t_MAF_IDX, t_MAF_IDX_SZ));
@@ -427,9 +445,59 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
     endrule
 
     //
+    // Request merging
+    //
+    // Merge multiple read requests accessing the same scratchpad address.
+    // Only issue the fist read request to the remote memory, and let
+    // subsequent read requests wait in the request merging table (reqMergeTable).
+    //
+    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable;
+    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits;
+    Reg#(Tuple2#(t_MERGE_IDX, SCRATCHPAD_MEM_VALUE)) multiRespFwdEntry;
+    PulseWire mergeTableLockedW;
+    PulseWire forwardFenceReqW;
+    Reg#(Bool) multiRespFwd <- mkReg(False);
+
+    // allocate merge table
+    if (conf.requestMerging)
+    begin
+        reqMergeTable <- mkLUTRAMU();
+        reqMergeHeadInfo <- mkLUTRAM(tagged Invalid);
+        reqMergeTableValidBits <- mkReg(replicate(False));
+        reqMergeTableEndBits <- mkReg(replicate(True));
+        multiRespFwdEntry <- mkRegU();
+        mergeTableLockedW <- mkPulseWire();
+        forwardFenceReqW <- mkPulseWire();
+    end
+
+    function Tuple2#(t_MERGE_TAG, t_MERGE_IDX) mergeEntryFromAddr(t_MEM_ADDRESS addr);
+        return unpack(truncateNP(pack(addr)));
+    endfunction
+    function Action initOrResetMergeEntry(t_MERGE_IDX idx, Bool isInit);
+        if (conf.requestMerging)
+        begin
+            return 
+                action
+                    let new_valid_bits = reqMergeTableValidBits;
+                    new_valid_bits[idx] = isInit;
+                    reqMergeTableValidBits <= new_valid_bits;
+                    let new_end_bits = reqMergeTableEndBits;
+                    new_end_bits[idx] = !isInit;
+                    reqMergeTableEndBits <= new_end_bits;
+                endaction;
+        end
+        else
+        begin
+            return noAction;
+        end
+    endfunction
+
+    //
     // Forward merged requests to the memory.
     //
-
+    
     // Read requests
     rule forwardReadReq (initialized && (incomingReqQ.firstPortID() < fromInteger(valueOf(n_READERS))));
         let port = incomingReqQ.firstPortID();
@@ -440,17 +508,55 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
         // port ID and the ROB index.
         t_MAF_IDX maf_idx = tuple2(truncateNP(port), rob_idx);
 
-        let req = SCRATCHPAD_READ_REQ { port: my_port,
-                                        addr: zeroExtendNP(pack(addr)),
-                                        byteReadMask: replicate(True),
-                                        readUID: zeroExtendNP(pack(maf_idx)),
-                                        globalReadMeta: defaultValue() };
-
-        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+        Bool issue_req = True;
+        
+        if (conf.requestMerging)
+        begin
+            debugLog.record($format("forwardReadReq: port %0d: addr=0x%x, rob_idx=%0d, maf_idx=0x%x",
+                            port, addr, rob_idx, pack(maf_idx)));
+            if (!mergeTableLockedW)
+            begin
+                match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
+                Bit#(TLog#(n_READERS)) p = truncateNP(port);
+                if (reqMergeTableValidBits[m_idx] == True)
+                begin
+                    let e = reqMergeTable.sub(m_idx);
+                    if (e.tag == m_tag && !reqMergeTableEndBits[m_idx]) // hit
+                    begin
+                        issue_req = False;
+                        let new_entry = e;
+                        new_entry.mergeMeta[pack(tuple2(p,rob_idx))] = True;
+                        reqMergeTable.upd(m_idx, new_entry); 
+                        debugLog.record($format("forwardReadReq: port %0d: update reqMergeTable, idx=0x%x, tag=0x%x, mergeMeta=0x%x",
+                                        port, m_idx, m_tag, pack(new_entry.mergeMeta)));
+                    end
+                end
+                else // initialize merge table
+                begin
+                    reqMergeTable.upd(m_idx, SCRATCHPAD_MERGE_TABLE_ENTRY { tag: m_tag,
+                                                                            mergeMeta: replicate(False) });
+                    reqMergeHeadInfo.upd(pack(maf_idx), tagged Valid m_idx);
+                    initOrResetMergeEntry(m_idx, True);
+                    debugLog.record($format("forwardReadReq: port %0d: initialize reqMergeTable, idx=0x%x, tag=0x%x", 
+                                    port, m_idx, m_tag));
+                    debugLog.record($format("forwardReadReq: port %0d: set reqMergeHeadInfo, idx=0x%x", port, pack(maf_idx)));
+                end
+            end
+        end
+        
+        if (issue_req)
+        begin
+            let req = SCRATCHPAD_READ_REQ { port: my_port,
+                                            addr: zeroExtendNP(pack(addr)),
+                                            byteReadMask: replicate(True),
+                                            readUID: zeroExtendNP(pack(maf_idx)),
+                                            globalReadMeta: defaultValue() };
+            link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+        end
     endrule
 
     // Write requests
-    rule forwardWriteReq (initialized && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
+    rule forwardWriteReq (initialized && !multiRespFwd && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
         let addr = tpl_1(incomingReqQ.first());
         incomingReqQ.deq();
         
@@ -462,6 +568,23 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
                                          val: val };
 
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+        
+        if (conf.requestMerging)
+        begin
+            match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
+            if (reqMergeTableValidBits[m_idx] == True && reqMergeTableEndBits[m_idx] == False)
+            begin
+                let e = reqMergeTable.sub(m_idx);
+                if (e.tag == m_tag) // hit
+                begin
+                    let new_end_bits = reqMergeTableEndBits;
+                    new_end_bits[m_idx] = True;
+                    reqMergeTableEndBits <= new_end_bits;
+                    debugLog.record($format("forwardWriteReq: update reqMergeTableEndBits, addr=0x%x, idx=0x%x, tag=0x%x, mergeMeta=0x%x, endMerge=True",
+                                    addr, m_idx, e.tag, e.mergeMeta));
+                end
+            end
+        end
     endrule
 
     //
@@ -469,6 +592,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
     //     Push unordered read responses to the reorder buffers.  Responses will
     //     be returned through readRsp() in order.
     //
+    (* descending_urgency = "receiveResp, forwardWriteReq" *)
     rule receiveResp (True);
         let s = link_mem_rsp.first();
         link_mem_rsp.deq();
@@ -479,8 +603,56 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
         match {.port, .rob_idx} = maf_idx;
 
         sortResponseQ[port].setValue(rob_idx, s.val);
+            
+        if (conf.requestMerging)
+        begin
+            debugLog.record($format("receiveResp: port %0d: resp val=0x%x, rob idx=%0d", port, s.val, rob_idx));
+            mergeTableLockedW.send();
+            let merge_head_info = reqMergeHeadInfo.sub(pack(maf_idx));
+            if (merge_head_info matches tagged Valid .m_idx)
+            begin
+                let e = reqMergeTable.sub(m_idx);
+                if (fold(\|| , e.mergeMeta))
+                begin
+                    multiRespFwd <= True;
+                    multiRespFwdEntry <= tuple2(m_idx, s.val);
+                    debugLog.record($format("receiveResp: port %0d: need to forward resp, merge table idx=0x%x", port, m_idx));
+                end
+                else //release merge table entry
+                begin
+                    initOrResetMergeEntry(m_idx, False);
+                    debugLog.record($format("receiveResp: port %0d: no need to forward resp, reset merge table idx=0x%x", port, m_idx));
+                end
+                // reset reqMergeHeadInfo
+                reqMergeHeadInfo.upd(pack(maf_idx), tagged Invalid);
+                debugLog.record($format("receiveResp: port %0d: reset reqMergeHeadInfo, idx=0x%x", port, pack(maf_idx)));
+            end
+        end
     endrule
 
+    if (conf.requestMerging)
+    begin
+        rule fwdMultiResp (multiRespFwd);
+            mergeTableLockedW.send();
+            match {.idx, .val} = multiRespFwdEntry;
+            let e = reqMergeTable.sub(idx);
+            Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID) fwd_id = unpack(resize(pack(fromMaybe(?, findElem(True, e.mergeMeta)))));
+            let p = (valueOf(n_READERS) == 1) ? 0 : tpl_1(fwd_id);
+            sortResponseQ[p].setValue(tpl_2(fwd_id), val);
+            debugLog.record($format("fwdMultiResp: port %0d: resp val=0x%x, rob_idx=%0d", p, val, tpl_2(fwd_id)));
+            let new_entry = e;
+            new_entry.mergeMeta[pack(fwd_id)] = False;
+            reqMergeTable.upd(idx, new_entry); 
+            debugLog.record($format("fwdMultiResp: port %0d: update reqMergeTable, idx=0x%x, mergeMeta=0x%x",
+                            p, idx, pack(new_entry.mergeMeta)));
+            if (!fold(\|| , new_entry.mergeMeta))
+            begin
+                multiRespFwd <= False;
+                initOrResetMergeEntry(idx, False);
+                debugLog.record($format("fwdMultiResp: port %0d: done with forwarding, reset merge table idx=0x%x", p, idx));
+            end
+        endrule
+    end
 
     //
     // Methods.  All requests are stored in the incomingReqQ to maintain their
@@ -506,7 +678,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
 
-                    debugLog.record($format("read port %0d: resp val=0x%x", p, r));
+                    debugLog.record($format("read port %0d: resp val=0x%x, rob_idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
                 endmethod
 
@@ -555,6 +727,13 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
+              
+              // Request merge table
+              NumAlias#(TMin#(t_MEM_ADDRESS_SZ, TLog#(SCRATCHPAD_MERGE_TABLE_ENTRIES)), t_MERGE_IDX_SZ),
+              Alias#(Bit#(t_MERGE_IDX_SZ), t_MERGE_IDX),
+              Alias#(Bit#(TSub#(t_MEM_ADDRESS_SZ, t_MERGE_IDX_SZ)), t_MERGE_TAG),
+              NumAlias#(TMax#(1, TExp#(TAdd#(TLog#(n_READERS), TLog#(SCRATCHPAD_PORT_ROB_SLOTS)))), n_MERGE_META_ENTRIES),
+              Alias#(SCRATCHPAD_MERGE_TABLE_ENTRY#(t_MERGE_TAG, n_MERGE_META_ENTRIES), t_MERGE_ENTRY), 
 
               // MAF for in-flight reads
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
@@ -562,14 +741,14 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
               
     String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
     DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
-                               mkDebugFile(debugLogFilename):
-                               mkDebugFileNull(debugLogFilename); 
+                           mkDebugFile(debugLogFilename):
+                           mkDebugFileNull(debugLogFilename); 
 
     // Debug file and log for the cache prefetcher
     String debugLogFilenameForPrefetcher = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_prefetch.out";
     DEBUG_FILE debugLogForPrefetcher <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
-                                            mkDebugFile(debugLogFilenameForPrefetcher):
-                                            mkDebugFileNull(debugLogFilenameForPrefetcher); 
+                                        mkDebugFile(debugLogFilenameForPrefetcher):
+                                        mkDebugFileNull(debugLogFilenameForPrefetcher); 
                            
     // Dynamic parameters
     PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
@@ -619,11 +798,61 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     endrule
 
     //
+    // Request merging
+    //
+    // Merge multiple read requests accessing the same scratchpad address.
+    // Only issue the fist read request to the memory, and let subsequent 
+    // read requests wait in the request merging table (reqMergeTable).
+    //
+    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable;
+    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits;
+    Reg#(Tuple2#(t_MERGE_IDX, SCRATCHPAD_MEM_VALUE)) multiRespFwdEntry;
+    PulseWire mergeTableLockedW;
+    PulseWire forwardFenceReqW;
+    Reg#(Bool) multiRespFwd <- mkReg(False);
+
+    // allocate merge table
+    if (conf.requestMerging)
+    begin
+        reqMergeTable <- mkLUTRAMU();
+        reqMergeHeadInfo <- mkLUTRAM(tagged Invalid);
+        reqMergeTableValidBits <- mkReg(replicate(False));
+        reqMergeTableEndBits <- mkReg(replicate(True));
+        multiRespFwdEntry <- mkRegU();
+        mergeTableLockedW <- mkPulseWire();
+        forwardFenceReqW <- mkPulseWire();
+    end
+
+    function Tuple2#(t_MERGE_TAG, t_MERGE_IDX) mergeEntryFromAddr(t_MEM_ADDRESS addr);
+        return unpack(truncateNP(pack(addr)));
+    endfunction
+    function Action initOrResetMergeEntry(t_MERGE_IDX idx, Bool isInit);
+        if (conf.requestMerging)
+        begin
+            return 
+                action
+                    let new_valid_bits = reqMergeTableValidBits;
+                    new_valid_bits[idx] = isInit;
+                    reqMergeTableValidBits <= new_valid_bits;
+                    let new_end_bits = reqMergeTableEndBits;
+                    new_end_bits[idx] = !isInit;
+                    reqMergeTableEndBits <= new_end_bits;
+                endaction;
+        end
+        else
+        begin
+            return noAction;
+        end
+    endfunction
+
+    //
     // Forward merged requests to the cache.
     //
 
     // Write requests
-    rule forwardWriteReq (initialized && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
+    rule forwardWriteReq (initialized && !multiRespFwd && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
         let addr = tpl_1(incomingReqQ.first());
         incomingReqQ.deq();
 
@@ -631,6 +860,23 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         writeDataQ.deq();
 
         cache.write(pack(addr), val);
+        
+        if (conf.requestMerging)
+        begin
+            match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
+            if (reqMergeTableValidBits[m_idx] == True && reqMergeTableEndBits[m_idx] == False)
+            begin
+                let e = reqMergeTable.sub(m_idx);
+                if (e.tag == m_tag) // hit
+                begin
+                    let new_end_bits = reqMergeTableEndBits;
+                    new_end_bits[m_idx] = True;
+                    reqMergeTableEndBits <= new_end_bits;
+                    debugLog.record($format("forwardWriteReq: update reqMergeTableEndBits, addr=0x%x, idx=0x%x, tag=0x%x, mergeMeta=0x%x, endMerge=True",
+                                    addr, m_idx, e.tag, e.mergeMeta));
+                end
+            end
+        end
     endrule
 
 
@@ -645,8 +891,49 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
             // port ID and the ROB index.
             t_MAF_IDX maf_idx = tuple2(fromInteger(p), idx);
 
-            // Request data from the cache
-            cache.readReq(pack(addr), maf_idx, defaultValue());
+            Bool issue_req = True;
+            
+            if (conf.requestMerging)
+            begin
+                let port = incomingReqQ.firstPortID();
+                debugLog.record($format("forwardReadReq: port %0d: addr=0x%x, rob_idx=%0d, maf_idx=0x%x",
+                                port, addr, idx, pack(maf_idx)));
+                if (!mergeTableLockedW)
+                begin
+                    match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
+                    Bit#(TLog#(n_READERS)) p = truncateNP(port);
+                    if (reqMergeTableValidBits[m_idx] == True)
+                    begin
+                        let e = reqMergeTable.sub(m_idx);
+                        if (e.tag == m_tag && !reqMergeTableEndBits[m_idx]) // hit
+                        begin
+                            issue_req = False;
+                            let new_entry = e;
+                            new_entry.mergeMeta[pack(tuple2(p,idx))] = True;
+                            reqMergeTable.upd(m_idx, new_entry); 
+                            debugLog.record($format("forwardReadReq: port %0d: update reqMergeTable, idx=0x%x, tag=0x%x, mergeMeta=0x%x",
+                                            port, m_idx, m_tag, pack(new_entry.mergeMeta)));
+                        end
+                    end
+                    else // initialize merge table
+                    begin
+                        reqMergeTable.upd(m_idx, SCRATCHPAD_MERGE_TABLE_ENTRY { tag: m_tag,
+                                                                                mergeMeta: replicate(False) });
+                        reqMergeHeadInfo.upd(pack(maf_idx), tagged Valid m_idx);
+                        initOrResetMergeEntry(m_idx, True);
+                        debugLog.record($format("forwardReadReq: port %0d: initialize reqMergeTable, idx=0x%x, tag=0x%x", 
+                                        port, m_idx, m_tag));
+                        debugLog.record($format("forwardReadReq: port %0d: set reqMergeHeadInfo, idx=0x%x", port, pack(maf_idx)));
+                    end
+                end
+            end
+
+            if (issue_req)
+            begin
+                // Request data from the cache
+                cache.readReq(pack(addr), maf_idx, defaultValue());
+            end
+
         endrule
 
         //
@@ -654,6 +941,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         //     Push read responses to the reorder buffer.  They will be returned
         //     through readRsp() in order.
         //
+        (* descending_urgency = "receiveResp, forwardWriteReq" *)
         rule receiveResp (tpl_1(cache.peekResp().readMeta) == fromInteger(p));
             let r <- cache.readResp();
 
@@ -662,9 +950,57 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
             match {.port, .maf_idx} = r.readMeta;
 
             sortResponseQ[p].setValue(maf_idx, r.val);
+        
+            if (conf.requestMerging)
+            begin
+                debugLog.record($format("receiveResp: port %0d: resp val=0x%x, rob idx=%0d", p, r.val, maf_idx));
+                mergeTableLockedW.send();
+                let merge_head_info = reqMergeHeadInfo.sub(pack(r.readMeta));
+                if (merge_head_info matches tagged Valid .m_idx)
+                begin
+                    let e = reqMergeTable.sub(m_idx);
+                    if (fold(\|| , e.mergeMeta))
+                    begin
+                        multiRespFwd <= True;
+                        multiRespFwdEntry <= tuple2(m_idx, r.val);
+                        debugLog.record($format("receiveResp: port %0d: need to forward resp, merge table idx=0x%x", p, m_idx));
+                    end
+                    else //release merge table entry
+                    begin
+                        initOrResetMergeEntry(m_idx, False);
+                        debugLog.record($format("receiveResp: port %0d: no need to forward resp, reset merge table idx=0x%x", p, m_idx));
+                    end
+                    // reset reqMergeHeadInfo
+                    reqMergeHeadInfo.upd(pack(r.readMeta), tagged Invalid);
+                    debugLog.record($format("receiveResp: port %0d: reset reqMergeHeadInfo, idx=0x%x", p, pack(r.readMeta)));
+                end
+            end
         endrule
     end
 
+    if (conf.requestMerging)
+    begin
+        rule fwdMultiResp (multiRespFwd);
+            mergeTableLockedW.send();
+            match {.idx, .val} = multiRespFwdEntry;
+            let e = reqMergeTable.sub(idx);
+            Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID) fwd_id = unpack(resize(pack(fromMaybe(?, findElem(True, e.mergeMeta)))));
+            let p = (valueOf(n_READERS) == 1) ? 0 : tpl_1(fwd_id);
+            sortResponseQ[p].setValue(tpl_2(fwd_id), val);
+            debugLog.record($format("fwdMultiResp: port %0d: resp val=0x%x, rob_idx=%0d", p, val, tpl_2(fwd_id)));
+            let new_entry = e;
+            new_entry.mergeMeta[pack(fwd_id)] = False;
+            reqMergeTable.upd(idx, new_entry); 
+            debugLog.record($format("fwdMultiResp: port %0d: update reqMergeTable, idx=0x%x, mergeMeta=0x%x",
+                            p, idx, pack(new_entry.mergeMeta)));
+            if (!fold(\|| , new_entry.mergeMeta))
+            begin
+                multiRespFwd <= False;
+                initOrResetMergeEntry(idx, False);
+                debugLog.record($format("fwdMultiResp: port %0d: done with forwarding, reset merge table idx=0x%x", p, idx));
+            end
+        endrule
+    end
 
     //
     // Methods.  All requests are stored in the incomingReqQ to maintain their
@@ -690,7 +1026,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
 
-                    debugLog.record($format("read port %0d: resp val=0x%x", p, r));
+                    debugLog.record($format("read port %0d: resp val=0x%x, rob_idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
                 endmethod
 

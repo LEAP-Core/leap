@@ -120,6 +120,10 @@ typedef struct
     // the path of the initialization file, which is a raw memory image.
     // If not, the scratchpad is initialized to zeros.
     Maybe#(GLOBAL_STRING_UID) initFilePath;
+
+    // Enable the request merging optimization to merge multiple read requests
+    // accessing the same scratchpad internal address
+    Bool requestMerging;
 }
 SCRATCHPAD_CONFIG
     deriving (Eq, Bits);
@@ -127,10 +131,10 @@ SCRATCHPAD_CONFIG
 instance DefaultValue#(SCRATCHPAD_CONFIG);
     defaultValue = SCRATCHPAD_CONFIG {
         cacheMode: SCRATCHPAD_CACHED,
-        initFilePath: tagged Invalid
+        initFilePath: tagged Invalid,
+        requestMerging: False
     };
 endinstance
-
 
 //
 // Scratchpad read UID.  Used for directing read responses to the right

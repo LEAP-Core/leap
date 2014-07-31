@@ -89,8 +89,16 @@ class LIGraph():
             for chain in module.chains:
                 rep += "Chain: " + chain.name + "\n"
             rep += "Names " + str(module.chainNames) +"\n"
-        return rep + '\n}'
+        rep += '\n}'
 
+        rep += 'DETAILED:\n'
+
+        for (name,module) in self.modules.items():
+            rep += name + ":\n\n" + str(module) + "\n\n"
+        
+        rep += 'ENDDETAILED\n\n'
+
+        return rep
 
     def __repr__(self):        
         rep = '{'
