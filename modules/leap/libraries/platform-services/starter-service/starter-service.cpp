@@ -40,6 +40,7 @@
 #include "awb/rrr/service_ids.h"
 #include "awb/provides/starter_service.h"
 #include "awb/provides/application_env.h"
+#include "tbb/atomic.h"
 
 #include "asim/ioformat.h"
 
@@ -49,9 +50,9 @@ using namespace std;
 std::mutex hardwareStatusMutex;
 std::condition_variable hardwareFinishedSignal;
 
-int hardwareStarted;
-int hardwareFinished;
-int hardwareExitCode;
+class tbb::atomic<int> hardwareStarted;
+class tbb::atomic<int> hardwareFinished;
+class tbb::atomic<int> hardwareExitCode;
 
 
 // ===== service instantiation =====
@@ -149,6 +150,7 @@ STARTER_SERVICE_SERVER_CLASS::WaitForHardware()
     {
         hardwareFinishedSignal.wait(lk, []{ return hardwareFinished; });
     }
+
     return exitCode;
 }
     

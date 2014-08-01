@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <condition_variable>
+#include "tbb/atomic.h"
 
 /* Variables storing the hardware status. */
 /* These variables should only be modified if this lock is held. */
@@ -14,8 +15,8 @@
 extern std::mutex hardwareStatusMutex;
 extern std::condition_variable hardwareFinishedSignal;
 
-extern int hardwareStarted;
-extern int hardwareFinished;
-extern int hardwareExitCode;
+extern class tbb::atomic<int> hardwareStarted;
+extern class tbb::atomic<int> hardwareFinished;
+extern class tbb::atomic<int> hardwareExitCode;
 
 #endif

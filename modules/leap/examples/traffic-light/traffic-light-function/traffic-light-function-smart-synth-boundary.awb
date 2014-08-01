@@ -19,5 +19,6 @@
 
 %param SYNTH_BOUNDARY mkTrafficLightFunction "name of synthesis boundary"
 %param SIGNAL_CHANGE_DELAY 100000000 "Delay between signal changes"
+%param --dynamic NUMBER_TRANSITIONS 10 "Total number of transitions before program exit"
 
 %AWB_END
