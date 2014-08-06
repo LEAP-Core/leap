@@ -1,5 +1,6 @@
 from model import  *
 from parameter_substitution import *
+from wrapper_gen_tool import *
 
 # Construct a list of all generated and given Verilog and VHDL.  These
 # can appear anywhere in the code. The generated Verilog live in the
@@ -113,6 +114,26 @@ def getSRPResourcesClosure(module):
         srpHandle.close()
     return collect_srp_resources
     
+def linkNGC(moduleList, module, firstPassLIGraph):
+    deps = []
+    moduleObject = firstPassLIGraph.modules[module.name]
+    if('GEN_NGCS' in moduleObject.objectCache):
+        for ngc in moduleObject.objectCache['GEN_NGCS']:
+            linkPath = moduleList.compileDirectory + '/' + os.path.basename(ngc)
+            def linkNGC(target, source, env):
+                # It might be more useful if the Module contained a pointer to the LIModules...                        
+                if(os.path.lexists(str(target[0]))):
+                    os.remove(str(target[0]))
+                print "Linking: " + str(source[0]) + " to " + str(target[0])
+                os.symlink(str(source[0]), str(target[0]))
+            moduleList.env.Command(linkPath, ngc, linkNGC)            
+            module.moduleDependency['SYNTHESIS'] = [linkPath]
+            deps += [linkPath]
+        else:
+            # Warn that we did not find the ngc we expected to find..
+            print "Warning: We did not find an ngc file for module " + module.name 
+    return deps
+
 def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf):
     #Let's synthesize a xilinx .prj file for this synth boundary.
     # spit out a new prj
@@ -140,7 +161,7 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
 
     module.moduleDependency['SRP'] = [srpFile]
 
-    if(not 'GEN_NGC' in module.moduleDependency):
+    if(not 'GEN_NGCS' in module.moduleDependency):
         module.moduleDependency['GEN_NGCS'] = [ngcFile]
     else:
         module.moduleDependency['GEN_NGCS'] += [ngcFile]

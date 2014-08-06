@@ -31,6 +31,7 @@ class LIChain():
         self.sinkPartnerChain = "unassigned"
         self.sourcePartnerModule = "unassigned"
         self.sinkPartnerModule = "unassigned"
+        self.attributes = {}
 
     def __repr__(self):
         # Partner objects may not be initialized.
@@ -62,7 +63,7 @@ class LIChain():
 
     def copy(self):
         newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)
-
+        newChain.attributes = dict(self.attributes)
         newChain.activity = self.activity
         return newChain
 

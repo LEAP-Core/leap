@@ -25,6 +25,8 @@ class Verilog():
     LI_LINK_DIR = ""
     if(not (getFirstPassLIGraph()) is None):
         LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/"
+        inc_paths += [LI_LINK_DIR]
+        ALL_LIB_DIRS_FROM_ROOT = LI_LINK_DIR + ':' +  ALL_LIB_DIRS_FROM_ROOT
 
     liCodeType = ['VERILOG', 'GIVEN_VERILOG_HS', 'GEN_VPI_CS', 'GEN_VPI_HS']
 
@@ -66,8 +68,8 @@ class Verilog():
     if (bsc_version >= 30006):
         BSC_FLAGS_VERILOG += '-parallel-sim-link ' + str(n_jobs) + ' '
 
-    for path in inc_paths + [LI_LINK_DIR]:
-        BSC_FLAGS_VERILOG += '-I ' + path + ' ' + '-Xv -I' + path + ' '
+    for path in inc_paths:
+        BSC_FLAGS_VERILOG += ' -I ' + path + ' ' #+ '-Xv -I' + path + ' '
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
@@ -78,7 +80,7 @@ class Verilog():
 #        ' -o $TARGET' 
 
     vexe_gen_command = \
-        BSC + ' ' + BSC_FLAGS_VERILOG + ' -simdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + ' -bdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] +' -p +:' + LI_LINK_DIR + ':' +  ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + LI_LINK_DIR + ":" + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
+        BSC + ' ' + BSC_FLAGS_VERILOG + ' -vdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + ' -simdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + ' -bdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] +' -p +:' +  ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
         ' -o $TARGET' 
 
 
@@ -109,10 +111,11 @@ class Verilog():
 
 
     # Use systemverilog 2005
-    vexe_gen_command += ' -Xv -g2005-sv '
+    if(moduleList.getAWBParam('verilog_tool', 'ENABLE_SYSTEM_VERILOG')):
+        vexe_gen_command += ' -Xv -g2005-sv '
 
     # Allow .vh/.sv file extensions etc.
-    vexe_gen_command += ' -Xv -Y.vh -Xv -Y.sv '
+    # vexe_gen_command += ' -Xv -Y.vh -Xv -Y.sv '
 
     # Bluespec requires that source files terminate the command line.
     vexe_gen_command += '-verilog -e ' + ROOT_WRAPPER_SYNTH_ID + ' ' +\

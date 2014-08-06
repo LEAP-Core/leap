@@ -13,3 +13,7 @@
 
 %scons %library verilog.py
 
+%param ENABLE_SYSTEM_VERILOG  0 "Turn on iverilog system verilog flags (Experimental)"
+
+
+

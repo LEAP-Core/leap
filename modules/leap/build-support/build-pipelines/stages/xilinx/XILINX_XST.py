@@ -65,21 +65,7 @@ class Synthesize():
         # graph give code for this module?  If both are true, then we
         # will link the old ngc in, rather than regenerate it. 
         if((not self.firstPassLIGraph is None) and (module.name in self.firstPassLIGraph.modules)):
-            moduleObject = self.firstPassLIGraph.modules[module.name]
-            if('GEN_NGCS' in moduleObject.objectCache):
-                for ngc in moduleObject.objectCache['GEN_NGCS']:
-                    linkPath = moduleList.compileDirectory + '/' + os.path.basename(ngc)
-                    def linkNGC(target, source, env):
-                        # It might be more useful if the Module contained a pointer to the LIModules...                        
-                        if(os.path.lexists(str(target[0]))):
-                            os.remove(str(target[0]))
-                        print "Linking: " + str(source[0]) + " to " + str(target[0])
-                        os.symlink(str(source[0]), str(target[0]))
-                    moduleList.env.Command(linkPath, ngc, linkNGC)
-                    module.moduleDependency['SYNTHESIS'] = [linkPath]
-                else:
-                    # Warn that we did not find the ngc we expected to find..
-                    print "Warning: We did not find an ngc file for module " + module.name 
+            synth_deps += linkNGC(moduleList, module, self.firstPassLIGraph)
         else:
             synth_deps += buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf)
           

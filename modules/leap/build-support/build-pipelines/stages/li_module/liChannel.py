@@ -17,7 +17,7 @@ class LIChannel():
         self.idx ="unassigned" # we don't care about the physical indexes yet. They get assigned during the match operation
         self.optional = optional 
         self.bitwidth = int(bitwidth)
-        self.matched = False
+        self.matched = False        
         self.module_name = module_name # this is only the name of the module
         self.type_structure = type_structure
         self.via_idx_ingress = "unassigned"
@@ -29,7 +29,7 @@ class LIChannel():
         self.partnerModule = "unassigned"
         self.partnerChannel = "unassigned"
         self.code = "" #Code() # This is used to store various definitions related to type compression
-
+        self.attributes = {}
 
     def __repr__(self):
 
@@ -52,6 +52,7 @@ class LIChannel():
     def copy(self):
         newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.type_structure)
         # Need to copy some other values as well...
+        newChannel.attributes = dict(self.attributes)
         newChannel.activity = self.activity
         return newChannel
 

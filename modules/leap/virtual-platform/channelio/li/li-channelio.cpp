@@ -143,6 +143,7 @@ template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &
         cout << endl << "Base Message length "<< dec << (UINT32) (element->GetLength()) << endl;  
         cout << "Message Credits "<< dec << messageLength << endl;
         cout << "Channel ID "<< dec << this->channelID << endl;
+        element->Print(cout);
     }
   
 
