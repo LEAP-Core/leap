@@ -16,9 +16,6 @@ RootProvides=virtual_devices
 DefaultAttributes=platforms
 model=Standard Virtual Devices
 
-[Hybrid Front Panel]
-File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid/hybrid-fp.awb
-Packagehint=leap
 
 [Standard Virtual Devices]
 File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-virtual-devices.awb
@@ -27,7 +24,6 @@ Packagehint=leap
 [Standard Virtual Devices/Requires]
 common_utility_devices=Base Common Devices
 local_memory_device=NULL Local Memory Device
-front_panel_device=Front Panel Device
 
 [Base Common Devices]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-devices.awb
@@ -37,9 +33,4 @@ Packagehint=leap
 File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/null/local-memory-device-null.awb
 Packagehint=leap
 
-[Front Panel Device/Requires]
-front_panel=Hybrid Front Panel
 
-[Front Panel Device]
-File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
-Packagehint=leap

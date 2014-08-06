@@ -106,15 +106,11 @@ Packagehint=leap
 [Standard Virtual Devices/Requires]
 local_memory_device=NULL Local Memory Device
 common_utility_devices=Base Common Devices
-front_panel_device=Front Panel Device
 
 [Base Common Devices]
 File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-devices.awb
 Packagehint=leap
 
-[Hybrid Front Panel]
-File=modules/leap/virtual-platform/virtual-devices/devices/front-panel/hybrid/hybrid-fp.awb
-Packagehint=leap
 
 [BlueNoC PCIe Bridge/Requires]
 pcie_bluenoc_device=Virtex-7 PCIE Device (BlueNoC)
@@ -200,9 +196,4 @@ RESET_ACTIVE_HIGH=1
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
 
-[Front Panel Device]
-File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
-Packagehint=leap
 
-[Front Panel Device/Requires]
-front_panel=Hybrid Front Panel
