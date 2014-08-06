@@ -45,10 +45,16 @@
 
 
 // ****** Includes of LEAP platform ******
+`include "awb/provides/common_services.bsh"
+`include "awb/provides/librl_bsv.bsh"
 
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/front_panel_device.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
 
+// ****** Application Parameters ****
+`include "awb/dict/PARAMS_TRAFFIC_LIGHT_FUNCTION.bsh"
 
 // ****** Datatype Definitions ******
 
@@ -88,18 +94,38 @@ module [CONNECTED_MODULE] mkTrafficLightFunction
     // Count down to zero before transitioning.
     Reg#(Bit#(32)) waitCount <- mkReg(`SIGNAL_CHANGE_DELAY);
 
+    // Count number of state transitions
+
+    Reg#(Bit#(32)) stateTransitionCount <- mkReg(0);
+
+    Reg#(Bool) done <- mkReg(False);
+
+    // Dynamic parameters
+    PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
+    Param#(32) numberTransitions     <- mkDynamicParameter(`PARAMS_TRAFFIC_LIGHT_FUNCTION_NUMBER_TRANSITIONS, paramNode);
+
+
+    // ****** Traffic light emulator
+    STDIO#(Bit#(32)) stdio <- mkStdIO();
+    let msg <- getGlobalStringUID("LEDS: %0x\n");
 
     // ****** Soft Connections ******
 
-    // Communication to the front panel.
-    Connection_Send#(FRONTP_MASKED_LEDS) linkLEDs <- mkConnection_Send("fpga_leds");
-
+    Connection_Send#(Bit#(8)) linkStarterFinishRun <- mkConnectionSend("vdev_starter_finish_run");
 
     // ****** Rules ******
 
-    rule waiting (waitCount != 0);
+    rule waiting (waitCount != 0 && !done);
 
         waitCount <= waitCount - 1;
+
+    endrule
+
+    rule terminate(stateTransitionCount > numberTransitions && !done);
+
+        linkStarterFinishRun.send(0);
+
+        done <= True;
 
     endrule
 
@@ -123,8 +149,9 @@ module [CONNECTED_MODULE] mkTrafficLightFunction
     rule fromRedAfterNS (state == RED_AFTER_NS && waitCount == 0);
 
         state <= GREEN_E;
-        linkLEDs.send(FRONTP_MASKED_LEDS {state: 'b0100, mask: 'b1111});
+        stdio.printf(msg, list1('b0100));
         waitCount <= `SIGNAL_CHANGE_DELAY;
+        stateTransitionCount <= stateTransitionCount + 1;
 
     endrule
 
@@ -148,8 +175,9 @@ module [CONNECTED_MODULE] mkTrafficLightFunction
     rule fromRedAfterE (state == RED_AFTER_E && waitCount == 0);
 
         state <= GREEN_W;
-        linkLEDs.send(FRONTP_MASKED_LEDS {state: 'b0001, mask: 'b1111});
+        stdio.printf(msg, list1('b0001));
         waitCount <= `SIGNAL_CHANGE_DELAY;
+        stateTransitionCount <= stateTransitionCount + 1;
 
     endrule
 
@@ -173,8 +201,9 @@ module [CONNECTED_MODULE] mkTrafficLightFunction
     rule fromRedAfterW (state == RED_AFTER_W && waitCount == 0);
 
         state <= GREEN_NS;
-        linkLEDs.send(FRONTP_MASKED_LEDS {state: 'b1010, mask: 'b1111});
+        stdio.printf(msg, list1('b1010));
         waitCount <= `SIGNAL_CHANGE_DELAY;
+        stateTransitionCount <= stateTransitionCount + 1;
 
     endrule
 

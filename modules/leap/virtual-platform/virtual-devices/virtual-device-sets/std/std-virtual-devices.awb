@@ -4,7 +4,6 @@
 
 %provides virtual_devices
 
-%requires front_panel_device
 %requires local_memory_device
 %requires common_utility_devices
 
