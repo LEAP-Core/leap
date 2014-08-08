@@ -74,7 +74,7 @@ my $gdb = 0;
 my $noProgram = 0;
 my $noReserve = 0;
 my $fakeStats = 0;
-my $noshowfp = 0;
+my $timeout = undef;
 my $printCycle = undef;
 my $showfp = undef;
 my $bluesimCmd = undef;
@@ -85,13 +85,12 @@ my $status = GetOptions("help!" => \$help,
                         "gdb!" => \$gdb,
                         "noprogram!" => \$noProgram,
                         "noreserve!" => \$noReserve,
+                        "timeout=i" => \$timeout,
                         "fakestats!" => \$fakeStats,
                         "force-load!" => \$forceLoad,
-                        "noshowfp!" => \$noshowfp,
                         "onlycompare!" => \$onlyCompare,
                         "nocompare!" => \$noCompare,
                         "pc=s" => \$printCycle,
-                        "showfp:s" => \$showfp,
                         "bluesim=s" => \$bluesimCmd,
                         "vcdstart=i" => \$vcdStart,
                         "vcdcycles=i" => \$vcdCycles,
@@ -107,6 +106,32 @@ foreach my $i ( 0 .. $#ARGV ) {
 
 if ($onlyCompare != 0) {
     exit(CompareOutput());
+}
+
+# Examine subordinte builds.
+# really we should do this for all builds.  
+my @pidlist = ();
+
+if(defined($timeout)) {
+    my $timeoutPID = fork();
+
+    if ($timeoutPID != 0) { 
+        sleep($timeout);
+        kill(10,$timeoutPID);
+        # Wait for child to die.
+        waitpid($timeoutPID, 0);
+        sleep(1);
+        exit(0);
+    }
+
+    $SIG{'USR1'} = sub {
+        for my $pid (@pidlist) {
+            #Terminate with extreme prejudice
+            kill(-9,getpgrp($pid));
+        }
+        exit(0);
+    };
+
 }
 
 my $existsFPGA = 0;
@@ -170,21 +195,6 @@ if ($fakeStats) {
 #############################################################################
 #############################################################################
 
-# Show front panel?
-if ($noshowfp) {
-    $showfp = '';
-}
-elsif (defined($showfp)) {
-    # Specified on the run command line
-    $showfp = '--showfp=gui' if ($showfp eq '');
-}
-else {
-    # Other models have heartbeats
-    $showfp = '';
-}
-
-
-
 #
 # Bluesim arguments
 #
@@ -246,9 +256,6 @@ my $fpga_dev = undef;
 #set of FPGAs
 my @FPGAs = ();
 
-# Examine subordinte builds.
-# really we should do this for all builds.  
-my @pidlist = ();
 
 my $cpuPlatform = undef;
 my $fpgaDevLegacy = undef; # keep this around as a legacy support 
@@ -367,7 +374,7 @@ if (defined($cpuPlatform)) {
     }
 
 
-    $cmd .= " --modeldir=$config{modelDir}/${directory} --workload=$config{workload} ${showfp} $config{genFlags}";
+    $cmd .= " --modeldir=$config{modelDir}/${directory} --workload=$config{workload} $config{genFlags}";
     foreach my $c (@ARGV) {
         $cmd .= " $c";
     }
@@ -404,7 +411,7 @@ if (defined($cpuPlatform)) {
     $run_status = ExecModel($cmd);
 }
 
-# and now that we are done we will tear down the subordinate modules
+# and now that we are done we will tear down the subordinate platforms
 for my $pid (@pidlist) {
     #Terminate with extreme prejudice
     kill(-9,getpgrp($pid));
