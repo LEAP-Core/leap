@@ -88,9 +88,35 @@ module [CONNECTED_MODULE] mkAssertionSimOnly#(String str,
         if (!b && (mySeverity != ASSERT_NONE))
         begin   // Failed. The system is sad. :(
             $display(str);
+
             if (mySeverity == ASSERT_ERROR)
             begin
-                $finish;
+                $finish();
+            end
+        end
+    endaction
+    endfunction
+  
+    return assert_function;
+endmodule
+
+module [CONNECTED_MODULE] mkAssertionSimOnlyWithMsg#(String str,
+                                                     ASSERTION_SEVERITY mySeverity)
+    // interface:
+    (ASSERTION_WITH_MSG);
+
+    // Check the boolean expression and enqueue a pass/fail.
+    function Action assert_function(Bool b, Fmt msg);
+    action
+        // Check the boolean expression
+        if (!b && (mySeverity != ASSERT_NONE))
+        begin   // Failed. The system is sad. :(
+            $display(str);
+            $display(msg);
+
+            if (mySeverity == ASSERT_ERROR)
+            begin
+                $finish();
             end
         end
     endaction
@@ -113,6 +139,10 @@ endinterface
 
 // A way to report to the outside world when something has gone wrong.
 typedef function Action checkAssert(Bool b) ASSERTION;
+
+// An assertion with more control simulator control.
+typedef function Action checkAssert(Bool b, Fmt msg)
+    ASSERTION_WITH_MSG;
 
 //
 // mkAssertionStrPvtChecker --
@@ -173,6 +203,43 @@ module [CONNECTED_MODULE] mkAssertionStrChecker#(String str,
     action
         if (!b) // Check the boolean expression
         begin   // Failed. The system is sad. :(
+            node.raiseAssertion(h, mySeverity);
+        end
+    endaction
+    endfunction
+  
+    return assert_function;
+endmodule
+
+
+//
+// mkAssertionStrCheckerWithMsg --
+//    The same as mkAssertionStrChecker() except that a Fmt string object
+//    is passed in.  The assertion will be raised in both simulation and on
+//    FPGAs, but the Fmt string will be printed only in simulation.
+//
+module [CONNECTED_MODULE] mkAssertionStrCheckerWithMsg#(String str,
+                                                        ASSERTION_SEVERITY mySeverity,
+                                                        ASSERTION_STR_CLIENT node)
+    // interface:
+    (ASSERTION_WITH_MSG);
+
+    let h <- getGlobalStringHandle(str);
+
+    // Check the boolean expression and enqueue a pass/fail.
+    function Action assert_function(Bool b, Fmt msg);
+    action
+        // Check the boolean expression
+        if (!b && (mySeverity != ASSERT_NONE))
+        begin   // Failed. The system is sad. :(
+            $display(str);
+            $display(msg);
+
+            if (mySeverity == ASSERT_ERROR)
+            begin
+                $finish();
+            end
+
             node.raiseAssertion(h, mySeverity);
         end
     endaction
