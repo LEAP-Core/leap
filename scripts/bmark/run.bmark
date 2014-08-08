@@ -76,7 +76,6 @@ my $noReserve = 0;
 my $fakeStats = 0;
 my $timeout = undef;
 my $printCycle = undef;
-my $showfp = undef;
 my $bluesimCmd = undef;
 my $vcdStart = undef;
 my $vcdCycles = 20000;
@@ -214,20 +213,6 @@ if (defined($vcdStart)) {
     }
     $bluesimCmd .= "-c \"$vcdCmd\"";
 }
-
-
-# Adjust the arguments for Bluesim if it is being invoked directly
-#if (! $config{isHybridModel} && ($existsBLUESIM)) {
-#    $cmd =~ s/\s--/ +--/g;
-
-    # Bluesim may expect to load a program from a well known file
-#    if (exists($config{workload}) && exists($config{ISA})) {
-#        unlink('program.vmh');
-#        link("program/$config{workload}.$config{ISA}.vmh", 'program.vmh');
-#    }
-#}
-
-
 
 #############################################################################
 #############################################################################
