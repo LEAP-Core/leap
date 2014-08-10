@@ -585,6 +585,36 @@ module [CONNECTED_MODULE] mkAssertionChecker#(ASSERTIONS_DICT_TYPE myID, ASSERTI
 
 endmodule
 
+            
+//
+// mkAssertionCheckerWithMsg --
+//    Allocate a checker for a single assertion ID, connected to an assertion node.
+//
+module [CONNECTED_MODULE] mkAssertionCheckerWithMsg#(ASSERTIONS_DICT_TYPE myID,
+                                                     ASSERTION_SEVERITY mySeverity,
+                                                     ASSERTION_NODE myNode)
+    // interface:
+    (ASSERTION_WITH_MSG);
+
+    // *********** Methods ***********
+  
+    // Check the boolean expression and enqueue a pass/fail.
+    function Action assert_function(Bool b, Fmt msg);
+    action
+        // Check the boolean expression
+        if (!b && (mySeverity != ASSERT_NONE))
+        begin   // Failed. The system is sad. :(
+            $display(msg);
+
+            myNode.raiseAssertion(myID, mySeverity);
+        end
+    endaction
+    endfunction
+  
+    return assert_function;
+
+endmodule
+
 module [CONNECTED_MODULE] mkAssertionCheckerError#(ASSERTIONS_DICT_TYPE myID, ASSERTION_NODE myNode)
     // interface:
         (ASSERTION);
