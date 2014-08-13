@@ -39,7 +39,7 @@ import List::*;
 `include "awb/provides/debug_scan_service.bsh"
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
-
+`include "awb/provides/fpga_components_params.bsh"
 
 //
 // Global strings have two parts:  a component guaranteed constant within a
@@ -66,7 +66,9 @@ module [CONNECTED_MODULE] mkSoftConnectionDebugInfo (Empty);
         // Allocate an integer tag for the name.
         GLOBAL_STRING_UID tag <- getGlobalStringUID(elem.sendName);
 
-        if(`CON_STATS_ENABLE > 0)
+        // Stats can be a little large on the FPGA.  We turn on stats by default in simulation 
+        // but off by default on the FPGA.
+        if((`CON_STATS_ENABLE > 1) || ((`CON_STATS_ENABLE > 0) && (`SYNTH == 0)))
         begin
             // Only put stats on dangling connections
             if(ctHashTableLookup(sends, elem.sendName) matches tagged Valid .sendMetadata)

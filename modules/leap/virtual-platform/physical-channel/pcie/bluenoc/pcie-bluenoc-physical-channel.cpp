@@ -127,7 +127,7 @@ PCIE_BLUENOC_PHYSICAL_CHANNEL_CLASS::Init()
     if (initialized) return;
     initialized = true;
 
-    // It is possible that the PCIE device is unbounded. If so,
+    // It is possible that the PCIE device is not bound. If so,
     // initialization will fail, and we should not spawn threads. 
     if (!pcieDev->Init())
     {
