@@ -6,6 +6,6 @@ Lock=asim-leap
 Description=Description of leap
 Name=leap
 Tag=v14.08
-Prerelease=1
+Prerelease=0
 CSN=CSN-leap-578
 Sourceurl=http://asim.csail.mit.edu/redmine/projects/leap/repository/entry/trunk/
