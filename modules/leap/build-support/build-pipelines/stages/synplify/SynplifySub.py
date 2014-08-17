@@ -125,18 +125,19 @@ def getSRRResourcesClosure(module):
         rscHandle = open(rscFile, 'w')
         resources =  {}
 
-        attributes = {'LUT': "Total  LUTs:",'Reg': "Register bits not including I/Os:", 'BRAM': " Number of Block RAM/FIFO:"}
+        attributes = {'LUT': "Total  LUTs:",'Reg': "Register bits not including I/Os:", 'BRAM': "Occupied Block RAM sites"}
 
         for line in srrHandle:
             for attribute in attributes:
                 if (re.match(attributes[attribute],line)):
-                    print "LINE: " + line
                     match = re.search(r'\D+:\D+(\d+)', line)
                     if(match):
                         resources[attribute] = [match.group(1)]
 
+        resourceString = ':'.join([resource + ':' + resources[resource][0] for resource in resources]) + '\n'
+
         rscHandle.write(module.name + ':')
-        rscHandle.write(':'.join([resource + ':' + resources[resource][0] for resource in resources]) + '\n')
+        rscHandle.write(resourceString)
                                    
         rscHandle.close()
         srrHandle.close()
