@@ -22,7 +22,7 @@ Section: devel
 
 Package: leap-bin
 Architecture: any
-Depends: leap-platforms, asim-core, asim-core-dev, awb, ${perlqt:Depends}, libterm-readline-gnu-perl, libio-pty-perl, python-pygraph, libtbb-dev, iverilog, ${misc:Depends}
+Depends: leap-platforms, asim-core, asim-core-dev, awb, ${perlqt:Depends}, libterm-readline-gnu-perl, libio-pty-perl, python-pygraph, libtbb-dev, iverilog, expect-dev, libboost-dev, ${misc:Depends}
 Replaces: leap (<= 0.6.0)
 Breaks: leap (<= 0.6.0)
 Description: Executables for the LEAP FPGA environement
