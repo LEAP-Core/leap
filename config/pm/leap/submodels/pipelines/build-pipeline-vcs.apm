@@ -1,11 +1,11 @@
 
 [Global]
 SaveParameters=0
-Description=Build Pipeline IVerilog
-File=build-pipeline-verilog
+Description=Build Pipeline VCS
+File=build-pipeline-vcs
 Version=2.2
 Type=Leap
-Name=Build Pipeline IVerilog
+Name=Build Pipeline VCS
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -33,7 +33,7 @@ File=modules/leap/build-support/build-pipelines/pipelines/verilog/verilog-build-
 Packagehint=leap
 
 [IVerilog Build Pipeline/Requires]
-verilog_tool=IVerilog Build Tool
+verilog_tool=VCS Build Tool
 software_tool=Software build tool
 iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
@@ -51,6 +51,6 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/li_module/li_module.awb
 Packagehint=leap
 
-[IVerilog Build Tool]
-File=modules/leap/build-support/build-pipelines/stages/verilog/iverilog/verilog.awb
+[VCS Build Tool]
+File=modules/leap/build-support/build-pipelines/stages/verilog/vcs/verilog.awb
 Packagehint=leap

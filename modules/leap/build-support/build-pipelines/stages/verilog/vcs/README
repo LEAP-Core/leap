@@ -1,0 +1,5 @@
+Verilog Stage
+
+This stage invokes verilog simulator compilation. Invocation is done through
+the Bluespec compiler so selection of particular verilog simulator (iverilog,
+vcs, etc) may be done through environment variables.
