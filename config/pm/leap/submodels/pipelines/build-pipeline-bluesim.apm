@@ -37,7 +37,7 @@ software_tool=Software build tool
 iface_tool=Interface builder
 bluesim_tool=BSV Bluesim Build Tool
 bsv_tool=BSV Build Tool (First Phase)
-verilog_tool=Verilog Build Tool
+verilog_tool=IVerilog Build Tool
 wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
 li_module=LEAP LI Module Handler
 
@@ -48,9 +48,6 @@ Packagehint=leap
 [BSV Build Tool (First Phase)/Params]
 BUILD_VERILOG=0
 
-[Verilog Build Tool]
-File=modules/leap/build-support/build-pipelines/stages/verilog/verilog.awb
-Packagehint=leap
 
 [Synthesis Boundary Wrapper generation tool]
 File=modules/leap/build-support/build-pipelines/stages/wrapper_gen/synthesis_boundary_wrapper_gen.awb
@@ -58,4 +55,8 @@ Packagehint=leap
 
 [LEAP LI Module Handler]
 File=modules/leap/build-support/build-pipelines/stages/li_module/li_module.awb
+Packagehint=leap
+
+[IVerilog Build Tool]
+File=modules/leap/build-support/build-pipelines/stages/verilog/iverilog/verilog.awb
 Packagehint=leap

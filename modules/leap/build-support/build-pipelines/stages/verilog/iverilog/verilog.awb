@@ -2,7 +2,7 @@
 #* Python libraries for XST synthesis tool
 #********************************************************************/
 
-%name Verilog Build Tool
+%name IVerilog Build Tool
 %desc Builds an iverilog model
 
 %attributes tool
