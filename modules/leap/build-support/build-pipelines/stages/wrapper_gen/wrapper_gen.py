@@ -383,11 +383,17 @@ class WrapperGen():
     # the second pass, we import the first pass object code.  It may
     # be that we need this code?
 
-    # Inject a synth boundary for platform build code. 
+    # Inject a synth boundary for platform build code.  we need to
+    # pick up some dependencies from the top level code.  this is a
+    # pretty major hack, in my opinion. Better would be to actually
+    # inspect the eventual .ba files for their dependencies. 
     platformName = moduleList.localPlatformName + '_platform'
     platformDeps = {}
     platformDeps['GEN_VERILOGS'] = []
-    platformDeps['GEN_BAS'] = []
+    platformDeps['GEN_BAS'] = moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_BAS')                               
+    platformDeps['GEN_VPI_HS'] = moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_VPI_HS')                               
+    platformDeps['GEN_VPI_CS'] = moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_VPI_CS')                          
+     
     #This is sort of a hack.
     platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh', 'awb/provides/physical_platform.bsh']
     platformDeps['BA'] = []
