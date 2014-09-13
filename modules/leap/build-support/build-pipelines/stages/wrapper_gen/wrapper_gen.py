@@ -390,7 +390,7 @@ class WrapperGen():
     platformName = moduleList.localPlatformName + '_platform'
     platformDeps = {}
     platformDeps['GEN_VERILOGS'] = []
-    platformDeps['GEN_BAS'] = moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_BAS')                               
+    platformDeps['GEN_BAS'] = [] #moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_BAS')                               
     platformDeps['GEN_VPI_HS'] = moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_VPI_HS')                               
     platformDeps['GEN_VPI_CS'] = moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_VPI_CS')                          
      
