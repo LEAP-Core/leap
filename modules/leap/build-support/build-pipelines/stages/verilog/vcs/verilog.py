@@ -22,7 +22,14 @@ class Verilog():
     ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
     ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
 
-    vexe_vdir = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '_vlog'
+    # Due to the bluespec linker, for LI second pass builds, the final
+    # verilog link step must occur in a different directory than the
+    # bsc object code wrapper compilation step.  However, non-LIM
+    # linker builds need to build in the original .bsc directory to
+    # pick up VPI.
+    vexe_vdir = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] 
+    if(not self.firstPassLIGraph is None):
+        vexe_vdir = vexe_vdir + '_vlog'
 
     if not os.path.isdir(vexe_vdir):
         os.mkdir(vexe_vdir)
