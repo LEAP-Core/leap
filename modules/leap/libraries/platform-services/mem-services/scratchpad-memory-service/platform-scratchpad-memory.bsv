@@ -204,7 +204,7 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
     let prefetchStatsConstructor = mkNullScratchpadPrefetchStats;
 
     NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
-    if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE != 0)
+    if(`PLATFORM_SCRATCHPAD_STATS_ENABLE != 0)
     begin
         let prefix = "Scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_";
         statsConstructor = mkBasicScratchpadCacheStats(prefix, "");
