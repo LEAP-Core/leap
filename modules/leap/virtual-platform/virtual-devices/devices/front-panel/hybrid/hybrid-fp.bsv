@@ -70,15 +70,16 @@ FRONTP_BUTTON_INFO
 
 typedef Bit#(32) FRONTP_INPUT_STATE;
 
-interface FrontPanel;
-    method FRONTP_SWITCHES readSwitches();
-    method FRONTP_BUTTONS  readButtons();
-    method Action          writeLEDs(FRONTP_LEDS state, FRONTP_LEDS mask);
-endinterface
+// Although this is a simulator, we need to retain access to llpi --
+// fpga-front panels will need to be tied to physical wires.
 
-typedef FrontPanel FRONT_PANEL;
+module [CONNECTED_MODULE] mkFrontPanel#(LowLevelPlatformInterface llpi) (Empty);
 
-module [CONNECTED_MODULE] mkFrontPanel#(LowLevelPlatformInterface llpi) (FrontPanel);
+    // Connections to user code.  Note that the connections are optional. 
+    Connection_Receive#(FRONTP_MASKED_LEDS) linkLEDs     <- mkConnectionRecvOptional("fpga_leds");
+    Connection_Send#(FRONTP_SWITCHES)       linkSwitches <- mkConnectionSendOptional("fpga_switches");
+    Connection_Send#(FRONTP_BUTTON_INFO)    linkButtons  <- mkConnectionSendOptional("fpga_buttons");
+
 
     // state
     Reg#(FRONTP_INPUT_STATE)    inputCache  <- mkReg(0);
@@ -95,23 +96,25 @@ module [CONNECTED_MODULE] mkFrontPanel#(LowLevelPlatformInterface llpi) (FrontPa
     endrule
 
     // return switch state from input cache
-    method FRONTP_SWITCHES readSwitches();
-        return inputCache[3:0];
-    endmethod
+    rule readSwitches;
+        linkSwitches.send(unpack(inputCache[3:0]));
+    endrule
 
     // return switch state from input cache
-    method FRONTP_BUTTONS readButtons();
-        return inputCache[8:4];
-    endmethod
+    rule readButtons;
+        linkButtons.send(unpack(inputCache[8:4]));
+    endrule
 
     // write to LEDs
-    method Action writeLEDs(FRONTP_LEDS state, FRONTP_LEDS mask);
-        FRONTP_LEDS new_state = (ledState & ~mask) | (state & mask);
+    rule writeLEDs;
+        let incoming_state = linkLEDs.receive();
+        linkLEDs.deq();
+        FRONTP_LEDS new_state = (ledState & ~incoming_state.mask) | (incoming_state.state & incoming_state.mask);
         if (new_state != ledState)
         begin
             ledState <= new_state;
             client_stub.makeRequest_UpdateLEDs(zeroExtend(pack(new_state)));
         end
-    endmethod
+    endrule
 
 endmodule

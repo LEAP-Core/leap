@@ -36,8 +36,6 @@
 
 interface VIRTUAL_DEVICES;
 
-    interface FRONT_PANEL frontPanel;
-
 endinterface
 
 module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
@@ -45,8 +43,5 @@ module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
         (VIRTUAL_DEVICES);
 
     let fp  <- mkFrontPanel(llpint);
-    // TODO: use the new Stats device for real stats
-
-    interface frontPanel = fp;
 
 endmodule
