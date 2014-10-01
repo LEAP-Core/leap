@@ -52,13 +52,14 @@ class MCD():
     # determine what the logfile paths will be
     self.logfiles = []
     for module in allModules:
-        self.logfiles.append('hw/' + module.buildPath + '/.bsc/' + module.name + '_Wrapper.log')
+        if(not module.platformModule):
+            self.logfiles.append('hw/' + module.buildPath + '/.bsc/' + module.name + '_Wrapper.log')
     # although we examine the log files, we depend on the 
     # verilogs which are produced in conjunction
     if('UCF' in moduleList.topModule.moduleDependency):
         mcd_ucf = moduleList.env.Command(
         self.mcdUCFFile,
-        moduleList.topModule.moduleDependency['VERILOG'],
+        moduleList.topModule.moduleDependency['VERILOG'] + self.logfiles,
         self.mcdCommand)
         moduleList.topModule.moduleDependency['UCF'] = moduleList.topModule.moduleDependency['UCF'] + mcd_ucf
         SCons.Script.Clean(moduleList.topModule.moduleDependency['UCF'] , self.mcdUCFFile)

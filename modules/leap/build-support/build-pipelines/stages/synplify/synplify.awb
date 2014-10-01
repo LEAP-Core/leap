@@ -12,4 +12,7 @@
 %notes README
 
 %scons %library Synplify.py
+%scons %library SynplifyCommon.py
 %sources -t SDC -v PRIVATE synplify.sdc
+%sources -t SDC -v PRIVATE bluespec.sdc
+

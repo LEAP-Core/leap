@@ -63,10 +63,9 @@ using namespace std;
 // ============================================
 
 // constructor: set up hardware partition
-PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
-    PLATFORMS_MODULE p,
-    PHYSICAL_DEVICES d) :
-    PLATFORMS_MODULE_CLASS(p)
+JTAG_PHYSICAL_CHANNEL_CLASS::JTAG_PHYSICAL_CHANNEL_CLASS(
+    PLATFORMS_MODULE p) :
+    PHYSICAL_CHANNEL_CLASS(p)
 {
   int     child_to_parent[2];
   int     parent_to_child[2];
@@ -120,7 +119,7 @@ PHYSICAL_CHANNEL_CLASS::PHYSICAL_CHANNEL_CLASS(
 }
 
 // destructor
-PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
+JTAG_PHYSICAL_CHANNEL_CLASS::~JTAG_PHYSICAL_CHANNEL_CLASS()
 {
   // we should probably trap the signal as well to gracefully kill our child
    kill(pid,SIGTERM);
@@ -130,7 +129,7 @@ PHYSICAL_CHANNEL_CLASS::~PHYSICAL_CHANNEL_CLASS()
 
 // blocking read
 UMF_MESSAGE
-PHYSICAL_CHANNEL_CLASS::Read(){
+JTAG_PHYSICAL_CHANNEL_CLASS::Read(){
   // blocking loop
   fprintf(errfd,"In read\n");    
   fflush(errfd);
@@ -152,7 +151,7 @@ PHYSICAL_CHANNEL_CLASS::Read(){
 
 // non-blocking read
 UMF_MESSAGE
-PHYSICAL_CHANNEL_CLASS::TryRead(){   
+JTAG_PHYSICAL_CHANNEL_CLASS::TryRead(){   
   // We must check if there's new data. This will give us more and stop if we're full.
   fd_set readFile;
   struct timeval time = {0,0};  
@@ -181,7 +180,7 @@ PHYSICAL_CHANNEL_CLASS::TryRead(){
 
 // write
 void
-PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE message){
+JTAG_PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE message){
   // construct header
   unsigned char header[UMF_CHUNK_BYTES];
   unsigned char mod_header[UMF_CHUNK_BYTES*2];
@@ -202,12 +201,9 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE message){
   write(output,(const char *)mod_header, UMF_CHUNK_BYTES*2);
 
   // write message data to pipe
-  // NOTE: hardware demarshaller expects chunk pattern to start from most
-  //       significant chunk and end at least significant chunk, so we will
-  //       send chunks in reverse order
-  message->StartReverseExtract();
-  while (message->CanReverseExtract()){
-    UMF_CHUNK chunk = message->ReverseExtractChunk();
+  message->StartExtract();
+  while (message->CanExtract()){
+    UMF_CHUNK chunk = message->ExtractChunk();
     unsigned char* chunk_bytes;;
     unsigned char mod_chunk[UMF_CHUNK_BYTES*2];
     chunk_bytes = (unsigned char*) &chunk;
@@ -230,7 +226,7 @@ PHYSICAL_CHANNEL_CLASS::Write(UMF_MESSAGE message){
 //=========================================================================================
 
 void
-PHYSICAL_CHANNEL_CLASS::readPipe(){
+JTAG_PHYSICAL_CHANNEL_CLASS::readPipe(){
   // determine if we are starting a new message
   fprintf(errfd, "entering readPipe\n");
   fflush(errfd);
