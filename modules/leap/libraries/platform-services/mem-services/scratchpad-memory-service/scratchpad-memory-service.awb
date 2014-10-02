@@ -30,6 +30,6 @@
 %param SCRATCHPAD_STD_PVT_SKEW  0      "Skew cache indices"
 %param SCRATCHPAD_PLATFORM  "Unknown"  "Where should my scratchpad requests go?"
 
-%param --global PLATFORM_SCRATCHPAD_DEBUG_ENABLE 1 "Enable Platform Scratchpad Debug Log"
+%param --global PLATFORM_SCRATCHPAD_DEBUG_ENABLE 0 "Enable Platform Scratchpad Debug Log"
 %param --global PLATFORM_SCRATCHPAD_STATS_ENABLE 0 "Enable Platform Scratchpad Statistics collection"
 
