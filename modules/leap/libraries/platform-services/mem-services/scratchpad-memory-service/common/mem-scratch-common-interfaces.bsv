@@ -124,6 +124,17 @@ typedef struct
     // Enable the request merging optimization to merge multiple read requests
     // accessing the same scratchpad internal address
     Bool requestMerging;
+
+    // String naming the scratchpad debug log.  If no string is
+    // provided, logging will be disabled. 
+    Maybe#(String) debugLogPath;
+
+    // Enables statistics collection for this scratchpad. The string
+    // argument is used as a provide a meaningful prefix name for the
+    // stats.
+
+    Maybe#(String) enableStatistics;
+
 }
 SCRATCHPAD_CONFIG
     deriving (Eq, Bits);
@@ -132,7 +143,9 @@ instance DefaultValue#(SCRATCHPAD_CONFIG);
     defaultValue = SCRATCHPAD_CONFIG {
         cacheMode: SCRATCHPAD_CACHED,
         initFilePath: tagged Invalid,
-        requestMerging: False
+        requestMerging: False,
+        debugLogPath: tagged Invalid,
+        enableStatistics: tagged Invalid
     };
 endinstance
 

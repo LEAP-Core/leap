@@ -204,7 +204,16 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
     let prefetchStatsConstructor = mkNullScratchpadPrefetchStats;
 
     NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
-    if(`PLATFORM_SCRATCHPAD_STATS_ENABLE != 0)
+
+    if(conf.enableStatistics matches tagged Valid .prefix)
+    begin
+        statsConstructor = mkBasicScratchpadCacheStats(prefix, "");
+        if (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1)
+        begin
+            prefetchStatsConstructor = mkBasicScratchpadPrefetchStats(prefix, "", n_prefetch_learners);
+        end
+    end
+    else if(`PLATFORM_SCRATCHPAD_STATS_ENABLE != 0)
     begin
         let prefix = "Scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_";
         statsConstructor = mkBasicScratchpadCacheStats(prefix, "");
@@ -218,6 +227,7 @@ module [CONNECTED_MODULE] mkMultiReadScratchpad#(Integer scratchpadID,
                                         statsConstructor,
                                         prefetchStatsConstructor);
     return m;
+
 endmodule
 
 //
@@ -396,10 +406,20 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
         error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + " address is too large: " + integerToString(valueOf(t_MEM_ADDRESS_SZ)) + " bits");
     end
 
-    String debugLogFilename = "memory_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
-    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
-                           mkDebugFile(debugLogFilename):
-                           mkDebugFileNull(debugLogFilename); 
+    DEBUG_FILE debugLog;
+    if(conf.debugLogPath matches tagged Valid .debugLogPath)
+    begin 
+        debugLog <- mkDebugFile(debugLogPath);
+    end
+    else if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)
+    begin
+        String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
+        debugLog <- mkDebugFile(debugLogFilename);   
+    end
+    else
+    begin
+        debugLog <- mkDebugFileNull(""); 
+    end
 
     let my_port = scratchpadPortId(scratchpadID);
     let platformID <- getSynthesisBoundaryPlatformID();
@@ -739,17 +759,29 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
               Bits#(t_MAF_IDX, t_MAF_IDX_SZ));
               
-    String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
-    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
-                           mkDebugFile(debugLogFilename):
-                           mkDebugFileNull(debugLogFilename); 
 
-    // Debug file and log for the cache prefetcher
-    String debugLogFilenameForPrefetcher = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_prefetch.out";
-    DEBUG_FILE debugLogForPrefetcher <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1) ?
-                                        mkDebugFile(debugLogFilenameForPrefetcher):
-                                        mkDebugFileNull(debugLogFilenameForPrefetcher); 
-                           
+    DEBUG_FILE debugLog;
+    DEBUG_FILE debugLogForPrefetcher;
+
+    if(conf.debugLogPath matches tagged Valid .debugLogPath)
+    begin 
+        debugLog           <- mkDebugFile(debugLogPath);
+        debugLogForPrefetcher <- mkDebugFile("prefetchDebug_" + debugLogPath);
+    end
+    else if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)
+    begin
+        String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
+        debugLog <- mkDebugFile(debugLogFilename);   
+
+        String debugLogPrefetcherFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_prefetcher.out";
+        debugLogForPrefetcher <- mkDebugFile(debugLogPrefetcherFilename);   
+    end
+    else
+    begin
+        debugLog <- mkDebugFileNull(""); 
+        debugLogForPrefetcher <- mkDebugFile("");
+    end
+
     // Dynamic parameters
     PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
     Param#(3) cacheMode              <- mkDynamicParameter(fromInteger(cacheModeParam), paramNode);
@@ -1079,10 +1111,21 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + " read UID is too large: " + integerToString(valueOf(t_MAF_IDX_SZ)) + " bits");
     end
 
-    String debugLogFilename = "memory_scratchpad_src_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
-    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
-                           mkDebugFile(debugLogFilename):
-                           mkDebugFileNull(debugLogFilename); 
+    DEBUG_FILE debugLog;
+    if(conf.debugLogPath matches tagged Valid .debugLogPath)
+    begin 
+        debugLog <- mkDebugFile(debugLogPath);
+    end
+    else if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)
+    begin
+        String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
+        debugLog <- mkDebugFile(debugLogFilename);   
+    end
+    else
+    begin
+        debugLog <- mkDebugFileNull(""); 
+    end
+
 
     let my_port = scratchpadPortId(scratchpadID);
     let platformID <- getSynthesisBoundaryPlatformID();
@@ -1246,10 +1289,21 @@ module [CONNECTED_MODULE] mkUncachedScratchpad#(Integer scratchpadID,
               Bits#(t_MAF_IDX, t_MAF_IDX_SZ),
               Alias#(t_NATURAL_IDX, t_MAF_DATA));
 
-    String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
-    DEBUG_FILE debugLog <- (`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)?
-                           mkDebugFile(debugLogFilename):
-                           mkDebugFileNull(debugLogFilename); 
+    DEBUG_FILE debugLog;
+    if(conf.debugLogPath matches tagged Valid .debugLogPath)
+    begin 
+        debugLog <- mkDebugFile(debugLogPath);
+    end
+    else if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)
+    begin
+        String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
+        debugLog <- mkDebugFile(debugLogFilename);   
+    end
+    else
+    begin
+        debugLog <- mkDebugFileNull(""); 
+    end
+
 
     //
     // Elaboration time checks
