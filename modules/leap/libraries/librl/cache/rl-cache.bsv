@@ -94,39 +94,3 @@ module mkNullRLCacheStats (RL_CACHE_STATS);
   return ?;
 endmodule
 
-//
-// Statistics wires for coherent caches so individual caches can have their hit rates logged.
-// When a line becomes true the coresponding statistic should be incremented.
-//
-interface RL_COH_CACHE_STATS;
-    method Bool readHit();
-    method Bool readMiss();
-    
-    method Bool writeHit();
-    method Bool writeCacheMiss();         // Write miss due to cache-line miss
-    method Bool writePermissionMissS();   // Write miss due to permission miss (cache line already exists)
-    method Bool writePermissionMissO();   // Write miss due to permission miss (cache line already exists)
-
-    method Bool invalEntry();             // Invalidate due to capacity
-    method Bool dirtyEntryFlush();        // Dirty flush due to capacity
-    method Bool cleanEntryFlush();        // Clean flush due to capacity
-
-    method Bool coherenceInval();         // Invalidate due to coherence
-    method Bool coherenceFlush();         // Flush due to coherence
-    
-    method Bool forceInvalLine();         // Invalidate forced by external request
-    method Bool forceFlushlLine();        // Flush forced by external request
-
-    method Bool mshrRetry();              // Retry read/write because mshr entry is not available
-    method Bool getxRetry();              // GETX retry forced by other caches
-    method Bool getsUncacheable();        // Uncacheable response for GETS
-    method Bool imUpgrade();              // automatically upgrade from I to M
-    method Bool ioUpgrade();              // automatically upgrade from I to O
-
-endinterface: RL_COH_CACHE_STATS
-
-module mkNullRLCoherentCacheStats (RL_COH_CACHE_STATS);
-  return ?;
-endmodule
-
-

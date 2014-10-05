@@ -1,0 +1,10 @@
+%name Coherent Cache Managers
+%desc Coherent Cache Managers 
+
+%provides coherent_cache
+
+%notes README
+
+%public  coherent-direct-mapped-cache.bsv
+%public  coherent-cache-mshr.bsv
+%public  coherent-cache-stats.bsv

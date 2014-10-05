@@ -765,8 +765,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
     if(conf.debugLogPath matches tagged Valid .debugLogPath)
     begin 
-        debugLog           <- mkDebugFile(debugLogPath);
-        debugLogForPrefetcher <- mkDebugFile("prefetchDebug_" + debugLogPath);
+        debugLog              <- mkDebugFile(debugLogPath);
+        debugLogForPrefetcher <- mkDebugFile("prefetcher_" + debugLogPath);
     end
     else if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)
     begin

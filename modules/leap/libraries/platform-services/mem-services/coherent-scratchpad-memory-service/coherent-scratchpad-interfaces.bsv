@@ -34,6 +34,206 @@
 
 // ========================================================================
 //
+// Coherent memory interface definitions. 
+//
+// ========================================================================
+
+//
+// Memory interface with memory fence supported. 
+//
+interface MEMORY_WITH_FENCE_IFC#(type t_ADDR, type t_DATA);
+    method Action readReq(t_ADDR addr);
+    method ActionValue#(t_DATA) readRsp();
+
+    // Look at the read response value without popping it
+    method t_DATA peek();
+
+    // Read response ready
+    method Bool notEmpty();
+
+    // Read request possible?
+    method Bool notFull();
+
+    method Action write(t_ADDR addr, t_DATA val);
+    
+    // Write request possible?
+    method Bool writeNotFull();
+
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+    // Test and set request 
+    method Action testAndSetReq(t_ADDR addr, t_DATA val);
+    // Test and set response
+    method ActionValue#(t_DATA) testAndSetRsp();
+`endif
+
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+    // Insert a memory fence. All requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action fence();
+    // Insert a memory wrtie fence. Write requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action writeFence();
+    // Insert a memory wrtie fence. Read requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action readFence();
+`endif
+
+    // Return true if there is at least one pending write request
+    method Bool writePending();
+    // Return true if there is at least one pending read request
+    method Bool readPending();
+endinterface
+
+//
+// Memory with one writer and multiple readers.
+// Memory fence is supported. 
+//
+interface MEMORY_MULTI_READ_WITH_FENCE_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA);
+    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
+
+    method Action write(t_ADDR addr, t_DATA val);
+    method Bool writeNotFull();
+    
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+    // Test and set request 
+    method Action testAndSetReq(t_ADDR addr, t_DATA val);
+    // Test and set response
+    method ActionValue#(t_DATA) testAndSetRsp();
+`endif
+
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+    // Insert a memory fence. All requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action fence();
+    // Insert a memory wrtie fence. Write requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action writeFence();
+    // Insert a memory wrtie fence. Read requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action readFence();
+`endif
+
+    // Return true if there is at least one pending write request
+    method Bool writePending();
+    // Return true if there is at least one pending read request
+    method Bool readPending();
+endinterface
+
+//
+// MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC
+// Memory with multiple readers and one writer with write mask.
+// Memory fence is supported. 
+//
+interface MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(numeric type n_READERS, type t_ADDR, type t_DATA, type t_MASK);
+    interface Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) readPorts;
+
+    method Action write(t_ADDR addr, t_DATA val, t_MASK mask);
+    method Bool writeNotFull();
+    
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+    // Test and set request 
+    method Action testAndSetReq(t_ADDR addr, t_DATA val, t_MASK mask);
+    // Test and set response
+    method ActionValue#(t_DATA) testAndSetRsp();
+`endif
+
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+    // Insert a memory fence. All requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action fence();
+    // Insert a memory wrtie fence. Write requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action writeFence();
+    // Insert a memory wrtie fence. Read requests issued earlier should
+    // be processed before the fence request gets processed.
+    method Action readFence();
+`endif
+
+    // Return true if there is at least one pending write request
+    method Bool writePending();
+    // Return true if there is at least one pending read request
+    method Bool readPending();
+endinterface
+
+// ========================================================================
+//
+// Memory interface conversion
+//
+// ========================================================================
+
+// 
+// mkMemFenceIfcToMemIfc -- 
+//     Interface conversion from a MEMORY_WITH_FENCE_IFC to a basic MEMORY_IFC.    
+// 
+module mkMemFenceIfcToMemIfc#(MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA) mem)
+    // interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    method Action readReq(t_ADDR addr) = mem.readReq(addr);
+
+    method ActionValue#(t_DATA) readRsp();
+        let v <- mem.readRsp();
+        return v;
+    endmethod
+
+    method t_DATA peek() = mem.peek();
+    method Bool notEmpty() = mem.notEmpty();
+    method Bool notFull() = mem.notFull();
+
+    method Action write(t_ADDR addr, t_DATA val) = mem.write(addr, val);
+    method Bool writeNotFull() = mem.writeNotFull();
+endmodule
+
+//
+// mkMultiMemFenceIfcToMemFenceIfc --
+//     Interface conversion from a MEMORY_MULTI_READ_WITH_FENCE_IFC with one port 
+//     to a MEMORY_WITH_FENCE_IFC.  Useful for implementing a memory that supports 
+//     an arbitrary number of ports without having to special case the code for 
+//     a single port.
+//
+module mkMultiMemFenceIfcToMemFenceIfc#(MEMORY_MULTI_READ_WITH_FENCE_IFC#(1, t_ADDR, t_DATA) multiMem)
+    // interface:
+    (MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    method Action readReq(t_ADDR addr) = multiMem.readPorts[0].readReq(addr);
+
+    method ActionValue#(t_DATA) readRsp();
+        let v <- multiMem.readPorts[0].readRsp();
+        return v;
+    endmethod
+
+    method t_DATA peek() = multiMem.readPorts[0].peek();
+    method Bool notEmpty() = multiMem.readPorts[0].notEmpty();
+    method Bool notFull() = multiMem.readPorts[0].notFull();
+
+    method Action write(t_ADDR addr, t_DATA val) = multiMem.write(addr, val);
+    method Bool writeNotFull() = multiMem.writeNotFull();
+
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+    method Action testAndSetReq(t_ADDR addr, t_DATA val) = multiMem.testAndSetReq(addr, val);
+    method ActionValue#(t_DATA) testAndSetRsp();
+        let resp <- multiMem.testAndSetRsp();
+        return resp;
+    endmethod
+`endif
+
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+    method Action fence() = multiMem.fence();
+    method Action writeFence() = multiMem.writeFence();
+    method Action readFence() = multiMem.readFence();
+`endif
+
+    method Bool writePending() = multiMem.writePending();
+    method Bool readPending() = multiMem.readPending();
+endmodule
+
+
+// ========================================================================
+//
 // Coherent scratchpad common definitions. 
 //
 // ========================================================================
@@ -119,9 +319,29 @@ COH_SCRATCH_CACHE_MODE
 //
 typedef struct
 {
+    // Does the coherent scratchpad client have a private cache?
     COH_SCRATCH_CACHE_MODE  cacheMode;
+
+    // Does the coherent scratchpad domain has multiple controllers?
     Bool                    multiController;
+
+    // Enable the request merging optimization to merge multiple read requests
+    // accessing the same scratchpad internal address
     Bool                    requestMerging;
+
+    // A unique string naming the scratchpad debug log file. If no string is
+    // provided, logging will be disabled. 
+    Maybe#(String)          debugLogPath;
+
+    // A unique name for the scratchpad debug scan. If no string is provided, 
+    // debug scan will be disabled. 
+    Maybe#(String)          enableDebugScan;
+    
+    // Enables statistics collection for this coherent scratchpad client. 
+    // The string argument is used to provide a unique and meaningful 
+    // prefix name for the stats.
+    Maybe#(String)          enableStatistics;
+
 }
 COH_SCRATCH_CLIENT_CONFIG
     deriving (Eq, Bits);
@@ -130,17 +350,42 @@ instance DefaultValue#(COH_SCRATCH_CLIENT_CONFIG);
     defaultValue = COH_SCRATCH_CLIENT_CONFIG {
         cacheMode: COH_SCRATCH_CACHED,
         multiController: False,
-        requestMerging: (`COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE==1)
+        requestMerging: (`COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE==1),
+        debugLogPath: tagged Invalid,
+        enableDebugScan: tagged Invalid,
+        enableStatistics: tagged Invalid
     };
 endinstance
 
 typedef struct
 {
+    // Do coherent scratchpad clients have private caches?
     COH_SCRATCH_CACHE_MODE             cacheMode;
+    
+    // Does the coherent scratchpad domain has multiple controllers?
     Bool                               multiController;
+    
     Integer                            coherenceDomainID;
     Bool                               isMaster;
     COH_SCRATCH_PARTITION_CONSTRUCTOR  partition;
+    
+    // Initialize the shared memory from a file?  If yes, the global string is
+    // the path of the initialization file, which is a raw memory image.
+    // If not, the scratchpad shared memory is initialized to zeros.
+    Maybe#(GLOBAL_STRING_UID)          initFilePath;
+    
+    // A unique string naming the scratchpad debug log.  If no string is
+    // provided, logging will be disabled. 
+    Maybe#(String)                     debugLogPath;
+
+    // A unique name for the scratchpad debug scan. If no string is provided, 
+    // debug scan will be disabled. 
+    Maybe#(String)                     enableDebugScan;
+    
+    // Enables statistics collection for this scratchpad controller. 
+    // The string argument is used to provide a unique and meaningful 
+    // prefix name for the stats.
+    Maybe#(String)                     enableStatistics;
 }
 COH_SCRATCH_CONTROLLER_CONFIG;
 
@@ -150,7 +395,11 @@ instance DefaultValue#(COH_SCRATCH_CONTROLLER_CONFIG);
         multiController: False,
         coherenceDomainID: ?,
         isMaster: False,
-        partition: mkCohScratchControllerNullPartition
+        partition: mkCohScratchControllerNullPartition,
+        initFilePath: tagged Invalid,
+        debugLogPath: tagged Invalid,
+        enableDebugScan: tagged Invalid,
+        enableStatistics: tagged Invalid
     };
 endinstance
 
