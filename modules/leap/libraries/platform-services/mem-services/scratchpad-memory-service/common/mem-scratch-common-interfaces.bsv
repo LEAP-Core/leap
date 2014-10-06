@@ -125,16 +125,13 @@ typedef struct
     // accessing the same scratchpad internal address
     Bool requestMerging;
 
-    // String naming the scratchpad debug log.  If no string is
+    // A unique string naming the scratchpad debug log.  If no string is
     // provided, logging will be disabled. 
     Maybe#(String) debugLogPath;
 
-    // Enables statistics collection for this scratchpad. The string
-    // argument is used as a provide a meaningful prefix name for the
-    // stats.
-
+    // Enables statistics collection for this scratchpad. The string argument 
+    // is used to provide a unique and meaningful prefix name for the stats.
     Maybe#(String) enableStatistics;
-
 }
 SCRATCHPAD_CONFIG
     deriving (Eq, Bits);

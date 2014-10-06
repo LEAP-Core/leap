@@ -40,12 +40,15 @@ import FIFO::*;
 import FIFOF::*;
 import SpecialFIFOs::*;
 import List::*;
+import DefaultValue::*;
 
 // Project foundation imports.
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/fpga_components.bsh"
+`include "awb/provides/coherent_scratchpad_memory_service_params.bsh"
 
 // ===================================================================
 //
@@ -54,11 +57,11 @@ import List::*;
 // ===================================================================
 
 // Number of entries in the network request completion table 
-typedef 16 RL_COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES;
+typedef 16 COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES;
 // Number of entries in the miss status handling registers (MSHR)
-typedef 64 RL_COH_DM_CACHE_MSHR_ENTRIES;
+typedef 64 COH_DM_CACHE_MSHR_ENTRIES;
 // Size of the unactivated request buffer
-typedef  8 RL_COH_DM_CACHE_NW_REQ_BUF_SIZE;
+typedef  8 COH_DM_CACHE_NW_REQ_BUF_SIZE;
 
 typedef struct
 {
@@ -67,26 +70,26 @@ typedef struct
     t_CACHE_CLIENT_META readMeta;
     RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
-RL_COH_DM_CACHE_LOAD_RESP#(type t_CACHE_WORD,
-                           type t_CACHE_CLIENT_META)
+COH_DM_CACHE_LOAD_RESP#(type t_CACHE_WORD,
+                        type t_CACHE_CLIENT_META)
     deriving (Eq, Bits);
 
 //
 // Cache mode can set the write policy.
 // Only the write back mode is implemented in the current coherent cache.
 //
-// RL_COH_DM_MODE_ALWAYS_WRITE_BACK: 
+// COH_DM_MODE_ALWAYS_WRITE_BACK: 
 // always write back data and ownership
 //
-// RL_COH_DM_MODE_CLEAN_WRITE_BACK:
+// COH_DM_MODE_CLEAN_WRITE_BACK:
 // only write back ownership if the data is clean
 //
 typedef enum
 {
-    RL_COH_DM_MODE_ALWAYS_WRITE_BACK = 0,
-    RL_COH_DM_MODE_CLEAN_WRITE_BACK = 1
+    COH_DM_MODE_ALWAYS_WRITE_BACK = 0,
+    COH_DM_MODE_CLEAN_WRITE_BACK = 1
 }
-RL_COH_DM_CACHE_MODE
+COH_DM_CACHE_MODE
     deriving (Eq, Bits);
 
 //
@@ -94,10 +97,10 @@ RL_COH_DM_CACHE_MODE
 //
 typedef enum
 {
-    RL_COH_DM_PREFETCH_DISABLE = 0,
-    RL_COH_DM_PREFETCH_ENABLE  = 1
+    COH_DM_PREFETCH_DISABLE = 0,
+    COH_DM_PREFETCH_ENABLE  = 1
 }
-RL_COH_DM_CACHE_PREFETCH_MODE
+COH_DM_CACHE_PREFETCH_MODE
     deriving (Eq, Bits);
 
 //
@@ -105,11 +108,11 @@ RL_COH_DM_CACHE_PREFETCH_MODE
 //
 typedef enum
 {
-    RL_COH_DM_ALL_FENCE = 0,
-    RL_COH_DM_WRITE_FENCE = 1,
-    RL_COH_DM_READ_FENCE = 2
+    COH_DM_ALL_FENCE = 0,
+    COH_DM_WRITE_FENCE = 1,
+    COH_DM_READ_FENCE = 2
 }
-RL_COH_DM_CACHE_FENCE_TYPE
+COH_DM_CACHE_FENCE_TYPE
     deriving (Eq, Bits);
 
 
@@ -120,10 +123,10 @@ RL_COH_DM_CACHE_FENCE_TYPE
 // returned along with a read response.  It is most often used by a clients
 // as an index into a MAF (miss address file).
 // 
-interface RL_COH_DM_CACHE#(type t_CACHE_ADDR,
-                           type t_CACHE_WORD,
-                           type t_CACHE_MASK,
-                           type t_CACHE_CLIENT_META);
+interface COH_DM_CACHE#(type t_CACHE_ADDR,
+                        type t_CACHE_WORD,
+                        type t_CACHE_MASK,
+                        type t_CACHE_CLIENT_META);
 
     // Read a word.  Read from backing store if not already cached.
     // *** Read responses are NOT guaranteed to be in the order of requests. ***
@@ -131,9 +134,9 @@ interface RL_COH_DM_CACHE#(type t_CACHE_ADDR,
                           t_CACHE_CLIENT_META readMeta,
                           RL_CACHE_GLOBAL_READ_META globalReadMeta);
 
-    method ActionValue#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) readResp();
+    method ActionValue#(COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) readResp();
     // Read the head of the response queue
-    method RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekResp();
+    method COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekResp();
     
     //
     // Write up to an entire cache line (currently a cache line contains a single word).
@@ -160,39 +163,39 @@ interface RL_COH_DM_CACHE#(type t_CACHE_ADDR,
     method Action flushReq(t_CACHE_ADDR addr);
     method Action invalOrFlushWait();
     
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     // Insert a memory fence.
-    method Action fence(RL_COH_DM_CACHE_FENCE_TYPE fenceType);
+    method Action fence(COH_DM_CACHE_FENCE_TYPE fenceType);
+`endif
+
     // Return the number of read requests being processed now (0, 1, or 2)
     method Bit#(2) numReadProcessed();
     // Return the number of write requests being processed now (0, 1, or 2)
     method Bit#(2) numWriteProcessed();
 
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     // Test&set request and response
     method Action testAndSetReq(t_CACHE_ADDR addr, 
                                 t_CACHE_WORD val, 
                                 t_CACHE_MASK mask, 
                                 t_CACHE_CLIENT_META readMeta, 
                                 RL_CACHE_GLOBAL_READ_META globalReadMeta);
-    method ActionValue#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) testAndSetResp();
-    method RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekTestAndSetResp();
+    method ActionValue#(COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) testAndSetResp();
+    method COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekTestAndSetResp();
+`endif
 
     //
     // Set cache and prefetch mode.  Mostly useful for debugging.  This may not be changed
     // in the middle of a run!
     //
-    method Action setCacheMode(RL_COH_DM_CACHE_MODE mode, RL_COH_DM_CACHE_PREFETCH_MODE en);
+    method Action setCacheMode(COH_DM_CACHE_MODE mode, COH_DM_CACHE_PREFETCH_MODE en);
     
-    //
-    // Debug scan state.  The cache can't instantiate a debug scan node because
-    // the debug scan code depends on libRL.  Instantiating a node here would
-    // create a source dependence loop.  Instead, a list of name/value pairs
-    // is available for use by a client.
-    //
+    // Debug scan state.
     method List#(Tuple2#(String, Bool)) debugScanState();
     
-    interface RL_COH_CACHE_STATS stats;
+    interface COH_CACHE_STATS stats;
 
-endinterface: RL_COH_DM_CACHE
+endinterface: COH_DM_CACHE
 
 //
 // Source data fill response
@@ -208,8 +211,8 @@ typedef struct
     Bool                      getsFwd;
     RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
-RL_COH_DM_CACHE_FILL_RESP#(type t_CACHE_WORD,
-                           type t_CACHE_META)
+COH_DM_CACHE_FILL_RESP#(type t_CACHE_WORD,
+                        type t_CACHE_META)
     deriving (Eq, Bits);
 
 //
@@ -223,35 +226,35 @@ typedef enum
     //COH_CACHE_FLUSH = 3, 
     //COH_CACHE_INV   = 4
 }
-RL_COH_CACHE_REQ_TYPE
+COH_CACHE_REQ_TYPE
     deriving (Eq, Bits);
 
 //
 // Index of the network request completion table 
 //
-typedef UInt#(TLog#(n_ENTRIES)) RL_COH_DM_CACHE_NETWORK_REQ_IDX#(numeric type n_ENTRIES);
+typedef UInt#(TLog#(n_ENTRIES)) COH_DM_CACHE_NETWORK_REQ_IDX#(numeric type n_ENTRIES);
 
 //
 // Index of the miss status handling registers (MSHR)
 //
-typedef UInt#(TLog#(n_ENTRIES)) RL_COH_DM_CACHE_MSHR_IDX#(numeric type n_ENTRIES);
+typedef UInt#(TLog#(n_ENTRIES)) COH_DM_CACHE_MSHR_IDX#(numeric type n_ENTRIES);
 
 //
 // Request from network
 //
 typedef struct
 {
-    t_CACHE_ADDR              addr;
-    Bool                      ownReq; // whether the request is sent by itself or not
-    t_NW_REQ_IDX              reqIdx;
-    RL_COH_CACHE_REQ_TYPE     reqType;
+    t_CACHE_ADDR           addr;
+    Bool                   ownReq; // whether the request is sent by itself or not
+    t_NW_REQ_IDX           reqIdx;
+    COH_CACHE_REQ_TYPE     reqType;
 }
-RL_COH_DM_CACHE_NETWORK_REQ#(type t_CACHE_ADDR,
-                             type t_NW_REQ_IDX)
+COH_DM_CACHE_NETWORK_REQ#(type t_CACHE_ADDR,
+                          type t_NW_REQ_IDX)
     deriving(Bits, Eq);
 
 //
-// The caller must provide an instance of the RL_COH_DM_CACHE_SOURCE_DATA interface
+// The caller must provide an instance of the COH_DM_CACHE_SOURCE_DATA interface
 // so the cache can read and write data from the next level in the hierarchy.
 //
 // Clients' metadata is stored in the cache's MSHR (miss status handling registers).
@@ -259,10 +262,10 @@ RL_COH_DM_CACHE_NETWORK_REQ#(type t_CACHE_ADDR,
 // t_CACHE_META is a metadata used to index into the MSHR, and it is sent to
 // the next level in the hierarchy when misses happen. 
 //
-interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
-                                       type t_CACHE_WORD,
-                                       type t_CACHE_META,
-                                       type t_REQ_IDX);
+interface COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
+                                    type t_CACHE_WORD,
+                                    type t_CACHE_META,
+                                    type t_REQ_IDX);
 
     // Request for share data
     method Action getShare(t_CACHE_ADDR addr,
@@ -273,10 +276,10 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
                                t_CACHE_META meta,
                                RL_CACHE_GLOBAL_READ_META globalReadMeta);
 
-    method ActionValue#(RL_COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD,
-                                                   t_CACHE_META)) getResp();
-    method RL_COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD,
-                                      t_CACHE_META) peekResp();
+    method ActionValue#(COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD,
+                                                t_CACHE_META)) getResp();
+    method COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD,
+                                   t_CACHE_META) peekResp();
     
     // Write back and give up ownership
     method Action putExclusive(t_CACHE_ADDR addr, Bool isCleanWB, Bool isExclusive);
@@ -288,10 +291,10 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
     // Data owner sends responses to serve other caches
     // If it is not the owner, null response is sent to clear the entry in the 
     // completion table 
-    method Action sendResp(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_REQ_IDX,
-                                                             t_CACHE_WORD,
-                                                             t_CACHE_META,
-                                                             t_CACHE_ADDR) resp);
+    method Action sendResp(COH_DM_CACHE_MSHR_ROUTER_RESP#(t_REQ_IDX,
+                                                          t_CACHE_WORD,
+                                                          t_CACHE_META,
+                                                          t_CACHE_ADDR) resp);
     // Return the released forwarding entry index
     // Cache will pass the information to MSHR in order to release the MSHR entry
     method ActionValue#(t_CACHE_META) getReleasedFwdEntryIdx();
@@ -309,10 +312,10 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
     // In a snoopy-based protocol, the requests may be the cache's own requests or
     // from other caches or next level in the hierarchy
     //
-    method ActionValue#(RL_COH_DM_CACHE_NETWORK_REQ#(t_CACHE_ADDR,
-                                                     t_REQ_IDX)) activatedReq();
-    method RL_COH_DM_CACHE_NETWORK_REQ#(t_CACHE_ADDR,
-                                        t_REQ_IDX) peekActivatedReq();
+    method ActionValue#(COH_DM_CACHE_NETWORK_REQ#(t_CACHE_ADDR,
+                                                  t_REQ_IDX)) activatedReq();
+    method COH_DM_CACHE_NETWORK_REQ#(t_CACHE_ADDR,
+                                     t_REQ_IDX) peekActivatedReq();
 
     // Pass invalidate and flush requests down the hierarchy.
     // invalOrFlushWait must block until the operation is complete.
@@ -326,7 +329,7 @@ interface RL_COH_DM_CACHE_SOURCE_DATA#(type t_CACHE_ADDR,
     // Debug scan state
     method List#(Tuple2#(String, Bool)) debugScanState();
 
-endinterface: RL_COH_DM_CACHE_SOURCE_DATA
+endinterface: COH_DM_CACHE_SOURCE_DATA
 
 
 // ===================================================================
@@ -343,7 +346,7 @@ typedef enum
     COH_DM_CACHE_INVAL,
     COH_DM_CACHE_FENCE
 }
-RL_COH_DM_CACHE_ACTION
+COH_DM_CACHE_ACTION
     deriving (Eq, Bits);
 
 typedef enum
@@ -354,7 +357,7 @@ typedef enum
     COH_DM_CACHE_REMOTE_REQ,
     COH_DM_CACHE_MSHR_RETRY_REQ
 }
-RL_COH_DM_CACHE_REQ_TYPE
+COH_DM_CACHE_REQ_TYPE
     deriving (Eq, Bits);
 
 // Cache steady states for coherent caches (MOSI)
@@ -366,25 +369,16 @@ typedef enum
     COH_DM_CACHE_STATE_O,     // Owned
     COH_DM_CACHE_STATE_TRANS  // Transient: handled by MSHR
 }
-RL_COH_DM_CACHE_COH_STATE
+COH_DM_CACHE_COH_STATE
     deriving (Eq, Bits);
    
-// Cache steady states for private caches (valid/dirty)   
-typedef struct
-{
-    Bool valid;
-    Bool dirty;
-}
-RL_COH_DM_CACHE_PVT_STATE
-    deriving (Eq, Bits);
-
 //
 // Index of the write data heap index.  To save space, write data is passed
 // through the cache pipelines as a pointer.  The heap size limits the number
 // of writes in flight.  Writes never wait for a fill, so the heap doesn't
 // have to be especially large.
 //
-typedef Bit#(2) RL_COH_DM_WRITE_DATA_HEAP_IDX;
+typedef Bit#(2) COH_DM_WRITE_DATA_HEAP_IDX;
 
 
 // Cache request info passed through the pipeline  
@@ -393,16 +387,16 @@ typedef Bit#(2) RL_COH_DM_WRITE_DATA_HEAP_IDX;
 //
 typedef struct
 {
-   RL_COH_DM_CACHE_ACTION act;
-   RL_COH_DM_CACHE_READ_META#(t_CACHE_CLIENT_META) readMeta;
+   COH_DM_CACHE_ACTION act;
+   COH_DM_CACHE_READ_META#(t_CACHE_CLIENT_META) readMeta;
    RL_CACHE_GLOBAL_READ_META globalReadMeta;
  
    // Write data index
-   RL_COH_DM_WRITE_DATA_HEAP_IDX writeDataIdx;
+   COH_DM_WRITE_DATA_HEAP_IDX writeDataIdx;
    // Test and set request flag
    Bool isTestSet; 
 }
-RL_COH_DM_CACHE_LOCAL_REQ_INFO#(type t_CACHE_CLIENT_META)
+COH_DM_CACHE_LOCAL_REQ_INFO#(type t_CACHE_CLIENT_META)
     deriving (Eq, Bits);
 
 //
@@ -410,20 +404,20 @@ RL_COH_DM_CACHE_LOCAL_REQ_INFO#(type t_CACHE_CLIENT_META)
 //
 typedef struct
 {
-   t_REQ_IDX              reqIdx;
-   Bool                   ownReq;
-   RL_COH_CACHE_REQ_TYPE  reqType;
+   t_REQ_IDX           reqIdx;
+   Bool                ownReq;
+   COH_CACHE_REQ_TYPE  reqType;
 }
-RL_COH_DM_CACHE_REMOTE_REQ_INFO#(type t_REQ_IDX)
+COH_DM_CACHE_REMOTE_REQ_INFO#(type t_REQ_IDX)
     deriving (Eq, Bits);
 
 typedef union tagged
 {
-    RL_COH_DM_CACHE_LOCAL_REQ_INFO#(t_CACHE_CLIENT_META) LocalReqInfo;
-    RL_COH_DM_CACHE_REMOTE_REQ_INFO#(t_REQ_IDX) RemoteReqInfo;
+    COH_DM_CACHE_LOCAL_REQ_INFO#(t_CACHE_CLIENT_META) LocalReqInfo;
+    COH_DM_CACHE_REMOTE_REQ_INFO#(t_REQ_IDX) RemoteReqInfo;
 }
-RL_COH_DM_CACHE_REQ_INFO#(type t_CACHE_CLIENT_META,
-                          type t_REQ_IDX)
+COH_DM_CACHE_REQ_INFO#(type t_CACHE_CLIENT_META,
+                       type t_REQ_IDX)
     deriving(Bits, Eq);
 
 
@@ -432,22 +426,22 @@ RL_COH_DM_CACHE_REQ_INFO#(type t_CACHE_CLIENT_META,
 //
 typedef struct
 {
-   RL_COH_DM_CACHE_REQ_INFO#(t_CACHE_CLIENT_META, t_REQ_IDX) reqInfo;
+   COH_DM_CACHE_REQ_INFO#(t_CACHE_CLIENT_META, t_REQ_IDX) reqInfo;
    t_CACHE_ADDR addr;
    // Hashed address and tag, passed through the pipeline instead of recomputed.
    t_CACHE_TAG tag;
    t_CACHE_IDX idx;
 }
-RL_COH_DM_CACHE_REQ#(type t_CACHE_CLIENT_META, 
-                     type t_REQ_IDX, 
-                     type t_CACHE_ADDR, 
-                     type t_CACHE_TAG,  
-                     type t_CACHE_IDX)
+COH_DM_CACHE_REQ#(type t_CACHE_CLIENT_META, 
+                  type t_REQ_IDX, 
+                  type t_CACHE_ADDR, 
+                  type t_CACHE_TAG,  
+                  type t_CACHE_IDX)
     deriving (Eq, Bits);
 
 
 // Cache index
-typedef UInt#(n_ENTRY_IDX_BITS) RL_COH_DM_CACHE_IDX#(numeric type n_ENTRY_IDX_BITS);
+typedef UInt#(n_ENTRY_IDX_BITS) COH_DM_CACHE_IDX#(numeric type n_ENTRY_IDX_BITS);
 
 // Cache entry
 typedef struct
@@ -457,9 +451,9 @@ typedef struct
     t_CACHE_STATE  state;
     Bool           dirty;
 }
-RL_COH_DM_CACHE_ENTRY#(type t_CACHE_WORD, 
-                       type t_CACHE_TAG,
-                       type t_CACHE_STATE)
+COH_DM_CACHE_ENTRY#(type t_CACHE_WORD, 
+                    type t_CACHE_TAG,
+                    type t_CACHE_STATE)
     deriving (Eq, Bits);
 
 //
@@ -470,7 +464,7 @@ typedef struct
     Bool isLocalPrefetch;
     t_CACHE_CLIENT_META clientReadMeta;
 }
-RL_COH_DM_CACHE_READ_META#(type t_CACHE_CLIENT_META)
+COH_DM_CACHE_READ_META#(type t_CACHE_CLIENT_META)
     deriving (Eq, Bits);
 
 // ===================================================================
@@ -484,13 +478,13 @@ RL_COH_DM_CACHE_READ_META#(type t_CACHE_CLIENT_META)
 //   n_ENTRIES parameter defines the number of entries in the cache.  The true
 //   number of entries will be rounded up to a power of 2.
 //
-module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, t_MSHR_IDX, t_NW_REQ_IDX) sourceData,
+module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, t_MSHR_IDX, t_NW_REQ_IDX) sourceData,
                                         CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_CLIENT_META) prefetcher,
                                         NumTypeParam#(n_ENTRIES) dummy,
                                         Bool hashAddresses,
                                         DEBUG_FILE debugLog)
     // interface:
-    (RL_COH_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META))
+    (COH_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META))
     provisos (IsModule#(m, m__),
               Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
               Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
@@ -502,47 +496,47 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
               Log#(n_ENTRIES, t_ENTRY_IDX_SZ),
               // Cache index size needs to be no larger than the memory address
               NumAlias#(TMin#(t_ENTRY_IDX_SZ, t_CACHE_ADDR_SZ), t_CACHE_IDX_SZ),
-              Alias#(RL_COH_DM_CACHE_IDX#(t_CACHE_IDX_SZ), t_CACHE_IDX),
+              Alias#(COH_DM_CACHE_IDX#(t_CACHE_IDX_SZ), t_CACHE_IDX),
 
               // Tag is the address bits other than the entry index
               Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, t_CACHE_IDX_SZ)), t_CACHE_TAG),
-              Alias#(RL_COH_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG, RL_COH_DM_CACHE_COH_STATE), t_CACHE_ENTRY),
+              Alias#(COH_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG, COH_DM_CACHE_COH_STATE), t_CACHE_ENTRY),
 
               // MSHR index
-              Alias#(UInt#(TMin#(TLog#(TDiv#(RL_COH_DM_CACHE_MSHR_ENTRIES,2)), t_CACHE_IDX_SZ)), t_MSHR_IDX),
+              Alias#(UInt#(TMin#(TLog#(TDiv#(COH_DM_CACHE_MSHR_ENTRIES,2)), t_CACHE_IDX_SZ)), t_MSHR_IDX),
               // Network request index
-              Alias#(RL_COH_DM_CACHE_NETWORK_REQ_IDX#(RL_COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES), t_NW_REQ_IDX),
+              Alias#(COH_DM_CACHE_NETWORK_REQ_IDX#(COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES), t_NW_REQ_IDX),
 
               // Coherence messages
-              Alias#(RL_COH_DM_CACHE_LOCAL_REQ_INFO#(t_CACHE_CLIENT_META), t_LOCAL_REQ_INFO),
-              Alias#(RL_COH_DM_CACHE_REQ#(t_CACHE_CLIENT_META, t_NW_REQ_IDX, t_CACHE_ADDR, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
-              Alias#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META), t_CACHE_LOAD_RESP),
-              Alias#(RL_COH_DM_CACHE_READ_META#(t_CACHE_CLIENT_META), t_CACHE_READ_META),
-              Alias#(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX, t_CACHE_WORD, t_MSHR_IDX, t_CACHE_ADDR), t_ROUTER_RESP),
+              Alias#(COH_DM_CACHE_LOCAL_REQ_INFO#(t_CACHE_CLIENT_META), t_LOCAL_REQ_INFO),
+              Alias#(COH_DM_CACHE_REQ#(t_CACHE_CLIENT_META, t_NW_REQ_IDX, t_CACHE_ADDR, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
+              Alias#(COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META), t_CACHE_LOAD_RESP),
+              Alias#(COH_DM_CACHE_READ_META#(t_CACHE_CLIENT_META), t_CACHE_READ_META),
+              Alias#(COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX, t_CACHE_WORD, t_MSHR_IDX, t_CACHE_ADDR), t_ROUTER_RESP),
               Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
 
               // Unactivated request counter bit size
-              NumAlias#(TLog#(TAdd#(RL_COH_DM_CACHE_NW_REQ_BUF_SIZE,1)), t_REQ_COUNTER_SZ),
+              NumAlias#(TLog#(TAdd#(COH_DM_CACHE_NW_REQ_BUF_SIZE,1)), t_REQ_COUNTER_SZ),
 
               // Required by the compiler:
               Bits#(t_CACHE_LOAD_RESP, t_CACHE_LOAD_RESP_SZ),
               Bits#(t_CACHE_TAG, t_CACHE_TAG_SZ));
     
-    Reg#(RL_COH_DM_CACHE_MODE) cacheMode <- mkReg(RL_COH_DM_MODE_CLEAN_WRITE_BACK);
-    Reg#(RL_COH_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(RL_COH_DM_PREFETCH_DISABLE);
+    Reg#(COH_DM_CACHE_MODE) cacheMode <- mkReg(COH_DM_MODE_CLEAN_WRITE_BACK);
+    Reg#(COH_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(COH_DM_PREFETCH_DISABLE);
     
     // Cache data and tag
-    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized( RL_COH_DM_CACHE_ENTRY{ tag: ?,
-                                                                                         val: ?,
-                                                                                         state: COH_DM_CACHE_STATE_I,
-                                                                                         dirty: False } );
+    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized(COH_DM_CACHE_ENTRY{ tag: ?,
+                                                                                     val: ?,
+                                                                                     state: COH_DM_CACHE_STATE_I,
+                                                                                     dirty: False });
     // Cache MSHR
-    RL_COH_DM_CACHE_MSHR#(t_CACHE_ADDR, 
-                          t_CACHE_WORD, 
-                          t_CACHE_MASK,
-                          Bit#(t_CACHE_READ_META_SZ),
-                          t_MSHR_IDX, 
-                          t_NW_REQ_IDX) mshr <- mkMSHRForDirectMappedCache(debugLog);
+    COH_DM_CACHE_MSHR#(t_CACHE_ADDR, 
+                       t_CACHE_WORD, 
+                       t_CACHE_MASK,
+                       Bit#(t_CACHE_READ_META_SZ),
+                       t_MSHR_IDX, 
+                       t_NW_REQ_IDX) mshr <- mkMSHRForDirectMappedCache(debugLog);
 
     // Cache writeback status bits
     // True: the current cache line has an inflight PUTX in mshr
@@ -553,7 +547,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
-    MEMORY_HEAP_IMM#(RL_COH_DM_WRITE_DATA_HEAP_IDX, Tuple2#(t_CACHE_WORD,t_CACHE_MASK)) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
+    MEMORY_HEAP_IMM#(COH_DM_WRITE_DATA_HEAP_IDX, Tuple2#(t_CACHE_WORD,t_CACHE_MASK)) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
 
     //
     // Queues to access the cache
@@ -562,14 +556,20 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     FIFOF#(t_CACHE_REQ) localReqQ <- mkFIFOF();
     // Incoming activated requests from the network.
     FIFOF#(t_CACHE_REQ) remoteReqQ <- mkFIFOF();
+
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     // Incoming fence request info
     FIFOF#(Tuple2#(Bool, Bool)) localFenceInfoQ <- mkFIFOF();
+`endif
 
     // Pipelines
     FIFO#(Tuple2#(t_CACHE_REQ, Bool)) fillReqQ <- mkFIFO();
     FIFO#(t_CACHE_LOAD_RESP) readRespQ <- mkBypassFIFO();
+
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     FIFO#(t_CACHE_LOAD_RESP) testSetRespQ <- mkBypassFIFO();
-    
+`endif
+
     // Use peekable fifo to enable accessing an arbitrary opject in the fifo
     PEEKABLE_FIFOF#(t_CACHE_REQ, 2) cacheLookupQ <- mkPeekableFIFOF();
     RWire#(t_CACHE_REQ) cacheLookupReq           <- mkRWire();
@@ -578,7 +578,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
    
     // Track the number of available slots (in the request buffer in sourceData) 
     // for inflight unacitaved requests
-    COUNTER#(t_REQ_COUNTER_SZ) numFreeReqBufSlots <- mkLCounter(fromInteger(valueOf(RL_COH_DM_CACHE_NW_REQ_BUF_SIZE)));
+    COUNTER#(t_REQ_COUNTER_SZ) numFreeReqBufSlots <- mkLCounter(fromInteger(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE)));
     RWire#(Bit#(t_REQ_COUNTER_SZ)) numFreedSlots  <- mkRWire();
     PulseWire startLocalReqW                      <- mkPulseWire();
     PulseWire resendGetXFromMSHRW                 <- mkPulseWire();
@@ -645,9 +645,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         r.addr = remote_req.addr;
         r.tag  = ?;
         r.idx  = ?;
-        r.reqInfo = tagged RemoteReqInfo RL_COH_DM_CACHE_REMOTE_REQ_INFO { reqIdx: remote_req.reqIdx, 
-                                                                           ownReq: remote_req.ownReq,
-                                                                           reqType: remote_req.reqType };
+        r.reqInfo = tagged RemoteReqInfo COH_DM_CACHE_REMOTE_REQ_INFO { reqIdx: remote_req.reqIdx, 
+                                                                        ownReq: remote_req.ownReq,
+                                                                        reqType: remote_req.reqType };
 
         debugLog.record($format("    Cache: remote request (%s): reqType=0x%x, addr=0x%x, reqIdx=0x%x", 
                                 remote_req.ownReq? "own" : "other", remote_req.reqType, 
@@ -768,12 +768,15 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     FIFOF#(t_CACHE_REQ) localRetryQ <- mkSizedFIFOF(8);
     LUTRAM#(Bit#(5), Bit#(2)) localRetryReqFilter <- mkLUTRAM(0);
 
-    Wire#(Tuple3#(RL_COH_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Bool)) pickReq <- mkWire();
-    Wire#(Tuple4#(RL_COH_DM_CACHE_REQ_TYPE, 
+    Wire#(Tuple3#(COH_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Bool)) pickReq <- mkWire();
+    Wire#(Tuple4#(COH_DM_CACHE_REQ_TYPE, 
                   t_CACHE_REQ, 
                   Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0)),
                   Bool)) curReq <- mkWire();
 
+
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+    
     PulseWire readPendingW <- mkPulseWire();
     PulseWire writePendingW <- mkPulseWire();
 
@@ -812,6 +815,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         end
     endrule
 
+`endif
 
     //
     // updateReqArb --
@@ -843,14 +847,15 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         LOCAL_ARBITER_CLIENT_MASK#(5) reqs = newVector();
         
         let req_buf_free = (numFreeReqBufSlots.value() > 2);
+        let is_fence_req = False;
         
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
         //
         // Fence request process condition:
         // All retry queues are empty and cache lookup pipeline (cacheLookupQ) 
         // does not have local requests
         //
         // Check if the first local request is a fence request
-        let is_fence_req = False;
         let has_local = False;
         if (localReqQ.notEmpty)
         begin
@@ -862,12 +867,15 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 has_local = (check_read && readPendingW) || (check_write && writePendingW);
             end
         end
-
         reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty && !mshrRetryQ.notEmpty &&
                                                    ((is_fence_req && !localRetryQ.notEmpty && !has_local) || 
                                                    (!is_fence_req && req_buf_free));
+`else
+        reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty && !mshrRetryQ.notEmpty && req_buf_free;
+`endif
+
         reqs[pack(COH_DM_CACHE_LOCAL_RETRY_REQ)] = localRetryQ.notEmpty && !mshrRetryQ.notEmpty && req_buf_free;
-        reqs[pack(COH_DM_CACHE_PREFETCH_REQ)]    = prefetchMode == RL_COH_DM_PREFETCH_ENABLE && 
+        reqs[pack(COH_DM_CACHE_PREFETCH_REQ)]    = prefetchMode == COH_DM_PREFETCH_ENABLE && 
                                                    prefetcher.hasReq() && !mshrRetryQ.notEmpty && req_buf_free;
         reqs[pack(COH_DM_CACHE_REMOTE_REQ)]      = remoteReqQ.notEmpty && !mshr.dataRespQAlmostFull();
         reqs[pack(COH_DM_CACHE_MSHR_RETRY_REQ)]  = mshrRetryQ.notEmpty && mshrReleased;
@@ -877,7 +885,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         // There is a request available and is picked to process
         if (winner_idx matches tagged Valid .req_idx)
         begin        
-            RL_COH_DM_CACHE_REQ_TYPE req_type = unpack(pack(req_idx)); 
+            COH_DM_CACHE_REQ_TYPE req_type = unpack(pack(req_idx)); 
             // debugLog.record($format("    Cache: pick req: type=%d", req_idx));
             
             t_CACHE_REQ r = ?;
@@ -889,8 +897,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                     let pref_req  = prefetcher.peekReq();
                     t_LOCAL_REQ_INFO pref_info = ?;
                     pref_info.act = COH_DM_CACHE_READ;
-                    pref_info.readMeta = RL_COH_DM_CACHE_READ_META { isLocalPrefetch: True,
-                                                                     clientReadMeta: pref_req.readMeta };
+                    pref_info.readMeta = COH_DM_CACHE_READ_META { isLocalPrefetch: True,
+                                                                  clientReadMeta: pref_req.readMeta };
                     pref_info.globalReadMeta = defaultValue();
                     pref_info.globalReadMeta.isPrefetch = True;
                     r.addr    = pref_req.addr;
@@ -965,6 +973,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     // Actually, the cache line is always busy, because the filter is already 
     // marked in the first run. 
     //
+    (* mutually_exclusive = "startRemoteReq, startMSHRRetryReq" *)
     (* fire_when_enabled *)
     rule startMSHRRetryReq (tpl_2(curReq).reqInfo matches tagged LocalReqInfo .f &&& 
                             tpl_1(curReq) == COH_DM_CACHE_MSHR_RETRY_REQ);
@@ -979,6 +988,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         updateReqArbW.send();
     endrule
 
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     //
     // startFenceReq --
     //     All local writes are cleared. Dequeue the fence request from local 
@@ -993,6 +1003,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         // update arbiter processReqArb
         updateReqArbW.send();
     endrule
+`endif
 
     //
     // startLocalReq --
@@ -1074,7 +1085,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         // Note line present in localRetryQ
         localRetryReqFilter.upd(resize(idx), localRetryReqFilter.sub(resize(idx)) + 1);
         
-        if (prefetchMode == RL_COH_DM_PREFETCH_ENABLE)
+        if (prefetchMode == COH_DM_PREFETCH_ENABLE)
         begin
             prefetcher.shuntNewCacheReq(idx, r.addr);
         end
@@ -1113,14 +1124,14 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     // inflight read requests (cacheReadInflight0, cacheReadInflight1) and updates 
     // the bypass entries if necessary (bypassCacheEntry0, bypassCacheEntry1).
     //
-    Reg#(t_CACHE_ENTRY) bypassCacheEntry0 <- mkReg(RL_COH_DM_CACHE_ENTRY{ tag: ?,
-                                                                          val: ?,
-                                                                          state: COH_DM_CACHE_STATE_I,
-                                                                          dirty: False });
-    Reg#(t_CACHE_ENTRY) bypassCacheEntry1 <- mkReg(RL_COH_DM_CACHE_ENTRY{ tag: ?,
-                                                                          val: ?,
-                                                                          state: COH_DM_CACHE_STATE_I,
-                                                                          dirty: False });
+    Reg#(t_CACHE_ENTRY) bypassCacheEntry0 <- mkReg(COH_DM_CACHE_ENTRY{ tag: ?,
+                                                                       val: ?,
+                                                                       state: COH_DM_CACHE_STATE_I,
+                                                                       dirty: False });
+    Reg#(t_CACHE_ENTRY) bypassCacheEntry1 <- mkReg(COH_DM_CACHE_ENTRY{ tag: ?,
+                                                                       val: ?,
+                                                                       state: COH_DM_CACHE_STATE_I,
+                                                                       dirty: False });
     Reg#(Bool) needBypass0 <- mkReg(False);
     Reg#(Bool) needBypass1 <- mkReg(False);
 
@@ -1204,11 +1215,11 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             begin
                 upd_entry.state = COH_DM_CACHE_STATE_O;
                 coherenceFlushW.send();
-                respToRouterQ.enq(tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
-                                                                                            val: cur_entry.val,
-                                                                                            retry: False,
-                                                                                            isCacheable: True,
-                                                                                            isExclusive: False });
+                respToRouterQ.enq(tagged MSHR_REMOTE_RESP COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
+                                                                                         val: cur_entry.val,
+                                                                                         retry: False,
+                                                                                         isCacheable: True,
+                                                                                         isExclusive: False });
                 resp_sent = True;
                 debugLog.record($format("    Cache: remoteLookup: REMOTE RESP: addr=0x%x, reqIdx=0x%x, val=0x%x, retry=False", 
                                 r.addr, f.reqIdx, cur_entry.val));
@@ -1222,11 +1233,11 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 end
                 if ((cur_entry.state == COH_DM_CACHE_STATE_M) || (cur_entry.state == COH_DM_CACHE_STATE_O))
                 begin
-                    respToRouterQ.enq(tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
-                                                                                                val: cur_entry.val,
-                                                                                                retry: False,
-                                                                                                isCacheable: True,
-                                                                                                isExclusive: False });
+                    respToRouterQ.enq(tagged MSHR_REMOTE_RESP COH_DM_CACHE_MSHR_REMOTE_RESP{ reqIdx: f.reqIdx, 
+                                                                                             val: cur_entry.val,
+                                                                                             retry: False,
+                                                                                             isCacheable: True,
+                                                                                             isExclusive: False });
                     resp_sent = True;
                     debugLog.record($format("    Cache: remoteLookup: REMOTE RESP: addr=0x%x, reqIdx=0x%x, val=0x%x, retry=False", 
                                     r.addr, f.reqIdx, cur_entry.val));
@@ -1256,9 +1267,9 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         if (!resp_sent)
         begin
             let gets_fwd = (cur_entry.state == COH_DM_CACHE_STATE_S) && (cur_entry.tag == tag);
-            let null_resp = RL_COH_DM_CACHE_MSHR_NULL_RESP { reqIdx: f.reqIdx, 
-                                                             fwdEntryIdx: gets_fwd? tagged Valid truncateNP(idx) : tagged Invalid,
-                                                             reqAddr: r.addr };
+            let null_resp = COH_DM_CACHE_MSHR_NULL_RESP { reqIdx: f.reqIdx, 
+                                                          fwdEntryIdx: gets_fwd? tagged Valid truncateNP(idx) : tagged Invalid,
+                                                          reqAddr: r.addr };
             respToRouterQ.enq(tagged MSHR_NULL_RESP null_resp);
             debugLog.record($format("    Cache: remoteLookup: NULL RESP: addr=0x%x, reqIdx=0x%x", 
                             r.addr, f.reqIdx));
@@ -1299,7 +1310,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 if (! f.readMeta.isLocalPrefetch)
                 begin
                     readHitW.send();
-                    if (prefetchMode == RL_COH_DM_PREFETCH_ENABLE)
+                    if (prefetchMode == COH_DM_PREFETCH_ENABLE)
                     begin
                         prefetcher.readHit(idx, r.addr);
                     end
@@ -1328,7 +1339,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                     debugLog.record($format("    Cache: localLookupRead: FLUSH addr=0x%x, entry=0x%x, val=0x%x, dirty=%s", 
                                     old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
                     // Write back old data
-                    let clean_write_back = (cacheMode == RL_COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty; 
+                    let clean_write_back = (cacheMode == COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty; 
                     let is_exclusive = (cur_entry.state == COH_DM_CACHE_STATE_M);
                     sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
                     mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
@@ -1353,16 +1364,16 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             begin
                 mshr.getShare(mshr_idx, r.addr, pack(f.readMeta));
                 fillReqQ.enq(tuple2(r, True));
-                if (prefetchMode == RL_COH_DM_PREFETCH_ENABLE)
+                if (prefetchMode == COH_DM_PREFETCH_ENABLE)
                 begin
                     prefetcher.readMiss(idx, r.addr,
                                         f.readMeta.isLocalPrefetch,
                                         f.readMeta.clientReadMeta);
                 end
-                upd_entry = RL_COH_DM_CACHE_ENTRY { tag: tag,
-                                                    val: ?,
-                                                    state: COH_DM_CACHE_STATE_TRANS,
-                                                    dirty: False };
+                upd_entry = COH_DM_CACHE_ENTRY { tag: tag,
+                                                 val: ?,
+                                                 state: COH_DM_CACHE_STATE_TRANS,
+                                                 dirty: False };
                 if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.idx == idx)
                 begin
                     need_bypass = True;
@@ -1425,7 +1436,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 let old_addr = cacheAddrFromEntry(cur_entry.tag, idx);
                 debugLog.record($format("    Cache: doLocalWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x, dirty=%s", 
                                 old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
-                let clean_write_back = (cacheMode == RL_COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty;
+                let clean_write_back = (cacheMode == COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty;
                 let is_exclusive = (cur_entry.state == COH_DM_CACHE_STATE_M);
                 sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
                 mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
@@ -1449,10 +1460,11 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             writeHitW.send();
             // apply write mask
             let new_data = applyWriteMask(cur_entry.val, w_data, w_mask);
-            upd_entry = RL_COH_DM_CACHE_ENTRY { tag: tag, val: new_data, state: COH_DM_CACHE_STATE_M, dirty: True };
+            upd_entry = COH_DM_CACHE_ENTRY { tag: tag, val: new_data, state: COH_DM_CACHE_STATE_M, dirty: True };
             entryFilter.remove(idx);
             reqInfo_writeData.free(f.writeDataIdx);
             numFreedSlots.wset(2);
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
             if (f.isTestSet)
             begin
                 t_CACHE_LOAD_RESP resp;
@@ -1462,6 +1474,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 resp.globalReadMeta = f.globalReadMeta;
                 testSetRespQ.enq(resp);
             end
+`endif
         end
         else // Request fill for write permission (and data)
         begin
@@ -1471,10 +1484,10 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 fillReqQ.enq(tuple2(r, False));
                 mshr.getExclusive(mshr_idx, r.addr, cur_entry.val, w_data, w_mask, old_state, pack(f.readMeta), f.isTestSet);
                 reqInfo_writeData.free(f.writeDataIdx);
-                upd_entry = RL_COH_DM_CACHE_ENTRY { tag: tag,
-                                                    val: cur_entry.val,
-                                                    state: COH_DM_CACHE_STATE_TRANS,
-                                                    dirty: False };
+                upd_entry = COH_DM_CACHE_ENTRY { tag: tag,
+                                                 val: cur_entry.val,
+                                                 state: COH_DM_CACHE_STATE_TRANS,
+                                                 dirty: False };
                 if (cur_entry.tag == tag && cur_entry.state != COH_DM_CACHE_STATE_I)
                 begin
                     debugLog.record($format("    Cache: doLocalWrite: Permission MISS addr=0x%x, entry=0x%x, state=0x%x", r.addr, idx, cur_entry.state));
@@ -1506,7 +1519,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             end
         end
 
-        if (!need_retry && prefetchMode == RL_COH_DM_PREFETCH_ENABLE)
+        if (!need_retry && prefetchMode == COH_DM_PREFETCH_ENABLE)
         begin
             prefetcher.prefetchInval(idx);
         end
@@ -1577,7 +1590,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                         f.addr, idx, f.msgType, f.isCacheable, f.newState, f.val));
         
         t_CACHE_READ_META read_meta = unpack(f.clientMeta);
-        t_CACHE_LOAD_RESP resp;
+        t_CACHE_LOAD_RESP resp = ?;
         
         if (f.msgType == COH_CACHE_GETS && !read_meta.isLocalPrefetch)
         begin
@@ -1602,6 +1615,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
                 getsUncacheableW.send();
             end
         end
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
         else if (f.oldVal matches tagged Valid .old_val) // test and set response
         begin
             resp.val = old_val;
@@ -1611,7 +1625,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
             testSetRespQ.enq(resp);
             debugLog.record($format("    Cache: fillResp: send test&set response to client: addr=0x%x, val=0x%x", f.addr, old_val));
         end
-       
+`endif
+
         if (f.msgType == COH_CACHE_PUTX && !f.isCacheable) // write backs due to cache conflicts
         begin
             writebackStatusBits.upd(idx, False);
@@ -1620,7 +1635,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         begin
             // Save value in cache
             let new_state = (f.isCacheable)? f.newState : COH_DM_CACHE_STATE_I;
-            let new_entry = RL_COH_DM_CACHE_ENTRY {tag: tag, val: f.val, state: new_state, dirty: (f.msgType == COH_CACHE_GETX) }; 
+            let new_entry = COH_DM_CACHE_ENTRY {tag: tag, val: f.val, state: new_state, dirty: (f.msgType == COH_CACHE_GETX) }; 
             
             debugLog.record($format("    Cache: fillResp: update cache: addr=0x%x, entry=0x%x, state=%d, val=0x%x, dirty=%s", 
                             f.addr, idx, new_state, f.val, (f.msgType == COH_CACHE_GETX)? "True" : "False"));
@@ -1775,7 +1790,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
     ds_data = List::cons(tuple2("Coherent Cache cacheLookupQ notFull", cacheLookupQ.notFull), ds_data);
     // Request reserved slots
     ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notEmpty", (numFreeReqBufSlots.value()>0)), ds_data);
-    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notFull", (numFreeReqBufSlots.value()<fromInteger(valueOf(RL_COH_DM_CACHE_NW_REQ_BUF_SIZE)))), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notFull", (numFreeReqBufSlots.value()<fromInteger(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE)))), ds_data);
 
     let debugScanData = ds_data;
 
@@ -1795,8 +1810,8 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         
         t_LOCAL_REQ_INFO f = ?;
         f.act = COH_DM_CACHE_READ;
-        f.readMeta = RL_COH_DM_CACHE_READ_META { isLocalPrefetch: False,
-                                                 clientReadMeta: readMeta };
+        f.readMeta = COH_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                              clientReadMeta: readMeta };
         f.globalReadMeta = globalReadMeta;
         
         r.reqInfo = tagged LocalReqInfo f;
@@ -1804,14 +1819,14 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         localReqQ.enq(r);
     endmethod
 
-    method ActionValue#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) readResp();
+    method ActionValue#(COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) readResp();
         let r = readRespQ.first();
         readRespQ.deq();
         debugLog.record($format("    Cache: send read response: val=0x%x, meta=0x%x", r.val, r.readMeta));
         return r;
     endmethod
     
-    method RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekResp();
+    method COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekResp();
         return readRespQ.first();
     endmethod
 
@@ -1823,11 +1838,11 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
 
         t_CACHE_REQ r = ?;
         r.addr = addr;
-        r.reqInfo = tagged LocalReqInfo RL_COH_DM_CACHE_LOCAL_REQ_INFO { act: COH_DM_CACHE_WRITE,
-                                                                         readMeta: ?,
-                                                                         globalReadMeta: ?,
-                                                                         writeDataIdx: data_idx,
-                                                                         isTestSet: False };
+        r.reqInfo = tagged LocalReqInfo COH_DM_CACHE_LOCAL_REQ_INFO { act: COH_DM_CACHE_WRITE,
+                                                                      readMeta: ?,
+                                                                      globalReadMeta: ?,
+                                                                      writeDataIdx: data_idx,
+                                                                      isTestSet: False };
         localReqQ.enq(r);
         debugLog.record($format("    Cache: New request: WRITE addr=0x%x, wData heap=%0d, val=0x%x, mask=0x%x", addr, data_idx, val, byteWriteMask));
     endmethod
@@ -1847,22 +1862,23 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         noAction;
     endmethod
 
-    method Action fence(RL_COH_DM_CACHE_FENCE_TYPE fenceType);
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+    method Action fence(COH_DM_CACHE_FENCE_TYPE fenceType);
         Bool check_read  = False;
         Bool check_write = False;
         case (fenceType)
-            RL_COH_DM_ALL_FENCE:
+            COH_DM_ALL_FENCE:
             begin
                 check_read  = True;
                 check_write = True;
                 debugLog.record($format("    Cache: New request: ALL FENCE request"));
             end
-            RL_COH_DM_WRITE_FENCE:
+            COH_DM_WRITE_FENCE:
             begin
                 check_write = True;
                 debugLog.record($format("    Cache: New request: WRITE FENCE request"));
             end
-            RL_COH_DM_READ_FENCE:
+            COH_DM_READ_FENCE:
             begin
                 check_read  = True;
                 debugLog.record($format("    Cache: New request: READ FENCE request"));
@@ -1876,6 +1892,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         localReqQ.enq(r);
         localFenceInfoQ.enq(tuple2(check_read, check_write));
     endmethod
+`endif
 
     method Bit#(2) numReadProcessed();
          let n = (readHitW) ? 1 : 0;
@@ -1895,6 +1912,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
          return n;
     endmethod
     
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     method Action testAndSetReq(t_CACHE_ADDR addr, 
                                 t_CACHE_WORD val, 
                                 t_CACHE_MASK byteWriteMask, 
@@ -1904,32 +1922,32 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         let data_idx <- reqInfo_writeData.malloc();
         reqInfo_writeData.upd(data_idx, tuple2(val, byteWriteMask));
 
-        let read_meta = RL_COH_DM_CACHE_READ_META { isLocalPrefetch: False,
-                                                    clientReadMeta: readMeta };
+        let read_meta = COH_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                                 clientReadMeta: readMeta };
         t_CACHE_REQ r = ?;
         r.addr = addr;
-        r.reqInfo = tagged LocalReqInfo RL_COH_DM_CACHE_LOCAL_REQ_INFO { act: COH_DM_CACHE_WRITE,
-                                                                         readMeta: read_meta,
-                                                                         globalReadMeta: globalReadMeta,
-                                                                         writeDataIdx: data_idx,
-                                                                         isTestSet: True };
+        r.reqInfo = tagged LocalReqInfo COH_DM_CACHE_LOCAL_REQ_INFO { act: COH_DM_CACHE_WRITE,
+                                                                      readMeta: read_meta,
+                                                                      globalReadMeta: globalReadMeta,
+                                                                      writeDataIdx: data_idx,
+                                                                      isTestSet: True };
 
         localReqQ.enq(r);
         debugLog.record($format("    Cache: New request: TEST & SET addr=0x%x, wData heap=%0d, val=0x%x, mask=0x%x", addr, data_idx, val, byteWriteMask));
     endmethod
     
-    method ActionValue#(RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) testAndSetResp();
+    method ActionValue#(COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META)) testAndSetResp();
         let r = testSetRespQ.first();
         testSetRespQ.deq();
         debugLog.record($format("    Cache: send test&set response: val=0x%x, meta=0x%x", r.val, r.readMeta));
         return r;
     endmethod
-    
-    method RL_COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekTestAndSetResp();
+    method COH_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_CLIENT_META) peekTestAndSetResp();
         return testSetRespQ.first();
     endmethod
+`endif
 
-    method Action setCacheMode(RL_COH_DM_CACHE_MODE mode, RL_COH_DM_CACHE_PREFETCH_MODE en);
+    method Action setCacheMode(COH_DM_CACHE_MODE mode, COH_DM_CACHE_PREFETCH_MODE en);
         cacheMode    <= mode;
         prefetchMode <= en;
     endmethod
@@ -1941,7 +1959,7 @@ module [m] mkCoherentCacheDirectMapped#(RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADD
         return List::append(debugScanData, mshr.debugScanState());
     endmethod
 
-    interface RL_COH_CACHE_STATS stats;
+    interface COH_CACHE_STATS stats;
         method Bool readHit() = readHitW;
         method Bool readMiss() = readMissW;
         method Bool writeHit() = writeHitW;

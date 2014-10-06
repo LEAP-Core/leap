@@ -318,7 +318,7 @@ FRONT_PANEL_COMMAND_SWITCHES_CLASS::ProcessSwitchVoid()
 }
 
 void
-FRONT_PANEL_COMMAND_SWITCHES_CLASS::ProcessSwitchString(char *switch_arg)
+FRONT_PANEL_COMMAND_SWITCHES_CLASS::ProcessSwitchString(const char *switch_arg)
 {
     if (strcmp(switch_arg, "gui") == 0)
     {

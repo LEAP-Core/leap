@@ -217,8 +217,13 @@ module [CONNECTED_MODULE] mkCoherentScratchpadController#(Integer dataScratchpad
     
     if (conf.cacheMode == COH_SCRATCH_CACHED)
     begin
-        let statsConstructor = mkBasicCoherentScratchpadControllerStats("Coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller_", "");
         // Each coherent scratchpad client has a private cache.
+        let statsConstructor = mkNullCoherentScratchpadControllerStats;
+        if(conf.enableStatistics matches tagged Valid .stats_name)
+        begin
+            // stats_name example: String stats_name = "Coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller_";
+            statsConstructor = mkBasicCoherentScratchpadControllerStats(stats_name, "");
+        end
         mkCachedCoherentScratchpadController(dataScratchpadID, ownerbitScratchpadID, inAddrSz, inDataSz, statsConstructor, conf);
     end
     else
@@ -283,8 +288,12 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
 
 
     String debugLogFilename = "coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller.out";
+    if (conf.debugLogPath matches tagged Valid .log_name)
+    begin
+        debugLogFilename = log_name;
+    end
 
-    DEBUG_FILE debugLog <- (`COHERENT_SCRATCHPAD_DEBUG_ENABLE == 1)?
+    DEBUG_FILE debugLog <- (isValid(conf.debugLogPath) || (`COHERENT_SCRATCHPAD_CONTROLLER_DEBUG_ENABLE == 1))?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
     //
@@ -324,16 +333,16 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
 
 `ifndef COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE_Z
 
-    router <- (!conf.multiController)? mkCachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, debugLog):
+    router <- (!conf.multiController)? mkCachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, conf.enableDebugScan, debugLog):
                                        mkCachedCoherentScratchpadMultiControllerRouter(dataScratchpadID, conf.coherenceDomainID, 
-                                                                                       partition.isLocalReq, conf.isMaster, debugLog);
+                                                                                       partition.isLocalReq, conf.isMaster, conf.enableDebugScan, debugLog);
 `else
     
     if (conf.multiController)
     begin
         error("COHERENT_SCRATCHPAD_MULTI_CONTROLLER_ENABLE is not enabled");
     end
-    router <- mkCachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, debugLog);
+    router <- mkCachedCoherentScratchpadSingleControllerRouter(dataScratchpadID, conf.enableDebugScan, debugLog);
 
 `endif
 
@@ -353,8 +362,21 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     
     dataMemConfig.cacheMode = (`COHERENT_SCRATCHPAD_DATA_MEM_CACHE_ENABLE == 1)? SCRATCHPAD_CACHED : SCRATCHPAD_NO_PVT_CACHE;
     dataMemConfig.requestMerging = False;
+    dataMemConfig.initFilePath = conf.initFilePath;
     ownerbitMemConfig.cacheMode = SCRATCHPAD_CACHED;
     ownerbitMemConfig.requestMerging = False;
+
+    if (conf.enableStatistics matches tagged Valid .stats_name)
+    begin
+        dataMemConfig.enableStatistics = tagged Valid (stats_name + "_data_mem_scratchpad_");
+        ownerbitMemConfig.enableStatistics = tagged Valid (stats_name + "_ownerbit_mem_scratchpad_");
+    end
+
+    if (isValid(conf.debugLogPath) || (`COHERENT_SCRATCHPAD_CONTROLLER_DEBUG_ENABLE == 1))
+    begin
+        dataMemConfig.debugLogPath = tagged Valid ("data_mem_scratch_for_" + debugLogFilename);
+        ownerbitMemConfig.debugLogPath = tagged Valid ("ownerbit_mem_scratch_for_" + debugLogFilename);
+    end
 
     // dataMem
     MEMORY_IFC#(t_ADDR, COH_SCRATCH_MEM_VALUE) dataMem  <- mkScratchpad(dataScratchpadID, dataMemConfig);
@@ -1121,23 +1143,30 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
     //
     // ====================================================================
     
-    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
-    dbg_list <- addDebugScanField(dbg_list, "rshrLookupQ notEmpty", rshrLookupQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "rshrLookupQ notFull", rshrLookupQ.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "outputRespQ notEmpty", outputRespQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "outputRespQ notFull", outputRespQ.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "dataMemLookupQ notEmpty", dataMemLookupQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "dataMemLookupQ notFull", dataMemLookupQ.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "ownerbitMemLookupQ notEmpty", ownerbitMemLookupQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "ownerbitMemLookupQ notFull", ownerbitMemLookupQ.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "ownerbitMemCheckoutQ notEmpty", ownerbitMemCheckoutQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "ownerbitMemCheckoutQ notFull", ownerbitMemCheckoutQ.notFull);
+    if (isValid(conf.enableDebugScan) || (`COHERENT_SCRATCHPAD_CONTROLLER_DEBUG_ENABLE == 1))
+    begin
+        DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+        dbg_list <- addDebugScanField(dbg_list, "rshrLookupQ notEmpty", rshrLookupQ.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "rshrLookupQ notFull", rshrLookupQ.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "outputRespQ notEmpty", outputRespQ.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "outputRespQ notFull", outputRespQ.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "dataMemLookupQ notEmpty", dataMemLookupQ.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "dataMemLookupQ notFull", dataMemLookupQ.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "ownerbitMemLookupQ notEmpty", ownerbitMemLookupQ.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "ownerbitMemLookupQ notFull", ownerbitMemLookupQ.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "ownerbitMemCheckoutQ notEmpty", ownerbitMemCheckoutQ.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "ownerbitMemCheckoutQ notFull", ownerbitMemCheckoutQ.notFull);
    
-    String debugScanName = (conf.multiController)? 
-                           "Coherent Scratchpad Controller " + integerToString(dataScratchpadID) + " in Domain " + integerToString(conf.coherenceDomainID): 
-                           "Coherent Scratchpad Controller in Domain " + integerToString(dataScratchpadID);
-
-    let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+        String debugScanName = (conf.multiController)? 
+                               "Coherent Scratchpad Controller " + integerToString(dataScratchpadID) + " in Domain " + integerToString(conf.coherenceDomainID): 
+                               "Coherent Scratchpad Controller in Domain " + integerToString(dataScratchpadID);
+        if (conf.enableDebugScan matches tagged Valid .debug_scan_name)
+        begin
+            debugScanName = debug_scan_name;
+        end
+        
+        let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+    end
 
 endmodule
 
@@ -1161,6 +1190,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
                                                                            Integer coherenceDomainID,  
                                                                            function Bool isLocalReq(COH_SCRATCH_MEM_ADDRESS addr),
                                                                            Bool isMaster,
+                                                                           Maybe#(String) enableDebugScan,
                                                                            DEBUG_FILE debugLog)
     // interface:
     (COH_SCRATCH_CACHED_CONTROLLER_ROUTER#(t_ADDR))
@@ -1646,32 +1676,39 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadMultiControllerRouter#(Integ
     //
     // ====================================================================
     
-    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
-    // Local network channels
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_req notEmpty", link_mem_req.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_req notFull", link_mem_req.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notEmpty", link_mem_resp.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notFull", link_mem_resp.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq0 notEmpty", links_mem_activatedReq[0].recvNotEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq0 notFull", links_mem_activatedReq[0].sendNotFull);
-    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq1 notEmpty", links_mem_activatedReq[1].recvNotEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq1 notFull", links_mem_activatedReq[1].sendNotFull);
-    // Global network channels
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req0 notEmpty", links_controllers_req[0].recvNotEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req0 notFull", links_controllers_req[0].sendNotFull);
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req1 notEmpty", links_controllers_req[1].recvNotEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_req1 notFull", links_controllers_req[1].sendNotFull);
-    dbg_list <- addDebugScanField(dbg_list, "link_controllers_resp notEmpty", link_controllers_resp.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "link_controllers_resp notFull", link_controllers_resp.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq0 notEmpty", links_controllers_activatedReq[0].recvNotEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq0 notFull", links_controllers_activatedReq[0].sendNotFull);
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq1 notEmpty", links_controllers_activatedReq[1].recvNotEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq1 notFull", links_controllers_activatedReq[1].sendNotFull);
+    if (isValid(enableDebugScan) || (`COHERENT_SCRATCHPAD_CONTROLLER_DEBUG_ENABLE == 1))
+    begin
+        DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+        // Local network channels
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_req notEmpty", link_mem_req.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_req notFull", link_mem_req.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notEmpty", link_mem_resp.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notFull", link_mem_resp.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq0 notEmpty", links_mem_activatedReq[0].recvNotEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq0 notFull", links_mem_activatedReq[0].sendNotFull);
+        dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq1 notEmpty", links_mem_activatedReq[1].recvNotEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "links_mem_activatedReq1 notFull", links_mem_activatedReq[1].sendNotFull);
+        // Global network channels
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_req0 notEmpty", links_controllers_req[0].recvNotEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_req0 notFull", links_controllers_req[0].sendNotFull);
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_req1 notEmpty", links_controllers_req[1].recvNotEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_req1 notFull", links_controllers_req[1].sendNotFull);
+        dbg_list <- addDebugScanField(dbg_list, "link_controllers_resp notEmpty", link_controllers_resp.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "link_controllers_resp notFull", link_controllers_resp.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq0 notEmpty", links_controllers_activatedReq[0].recvNotEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq0 notFull", links_controllers_activatedReq[0].sendNotFull);
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq1 notEmpty", links_controllers_activatedReq[1].recvNotEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "links_controllers_activatedReq1 notFull", links_controllers_activatedReq[1].sendNotFull);
 
-    String debugScanName = "Coherent Scratchpad Controller " + integerToString(dataScratchpadID) + " Router in Domain " + integerToString(coherenceDomainID);
+        String debugScanName = "Coherent Scratchpad Controller " + integerToString(dataScratchpadID) + " Router in Domain " + integerToString(coherenceDomainID);
+        if (enableDebugScan matches tagged Valid .debug_scan_name)
+        begin
+            debugScanName = debug_scan_name + " Router ";
+        end
 
-    let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
-
+        let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+    end    
+    
     // =======================================================================
     //
     // Methods
@@ -1727,6 +1764,7 @@ endmodule
 //     Under the snoopy-based protocol, this module serves as an ordering point.
 //
 module [CONNECTED_MODULE] mkCachedCoherentScratchpadSingleControllerRouter#(Integer dataScratchpadID,
+                                                                            Maybe#(String) enableDebugScan,
                                                                             DEBUG_FILE debugLog)
     // interface:
     (COH_SCRATCH_CACHED_CONTROLLER_ROUTER#(t_ADDR))
@@ -1831,18 +1869,24 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadSingleControllerRouter#(Inte
     //
     // ====================================================================
     
-    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
-    // Network channels
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_req notEmpty", link_mem_req.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_req notFull", link_mem_req.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notEmpty", link_mem_resp.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notFull", link_mem_resp.notFull);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_activatedReq notEmpty", link_mem_activatedReq.recvNotEmpty);
-    dbg_list <- addDebugScanField(dbg_list, "link_mem_activatedReq notFull", link_mem_activatedReq.sendNotFull);
+    if (isValid(enableDebugScan) || (`COHERENT_SCRATCHPAD_CONTROLLER_DEBUG_ENABLE == 1))
+    begin
+        DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+        // Network channels
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_req notEmpty", link_mem_req.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_req notFull", link_mem_req.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notEmpty", link_mem_resp.notEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_resp notFull", link_mem_resp.notFull);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_activatedReq notEmpty", link_mem_activatedReq.recvNotEmpty);
+        dbg_list <- addDebugScanField(dbg_list, "link_mem_activatedReq notFull", link_mem_activatedReq.sendNotFull);
    
-    String debugScanName = "Coherent Scratchpad Controller Router in Domain " + integerToString(dataScratchpadID);
-
-    let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+        String debugScanName = "Coherent Scratchpad Controller Router in Domain " + integerToString(dataScratchpadID);
+        if (enableDebugScan matches tagged Valid .debug_scan_name)
+        begin
+            debugScanName = debug_scan_name + " Router ";
+        end
+        let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+    end
 
     // =======================================================================
     //
@@ -1958,8 +2002,12 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataSc
               NumAlias#(TExp#(t_WRITE_DATA_IDX_SZ), n_WRITES));
 
     String debugLogFilename = "coherent_scratchpad_" + integerToString(dataScratchpadID) + "_controller.out";
+    if (conf.debugLogPath matches tagged Valid .log_name)
+    begin
+        debugLogFilename = log_name;
+    end
 
-    DEBUG_FILE debugLog <- (`COHERENT_SCRATCHPAD_DEBUG_ENABLE == 1)?
+    DEBUG_FILE debugLog <- (isValid(conf.debugLogPath) || (`COHERENT_SCRATCHPAD_CONTROLLER_DEBUG_ENABLE == 1))?
                            mkDebugFile(debugLogFilename):
                            mkDebugFileNull(debugLogFilename); 
     //
@@ -2010,6 +2058,7 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadController#(Integer dataSc
     
     SCRATCHPAD_CONFIG dataMemConfig = defaultValue;
     dataMemConfig.cacheMode = SCRATCHPAD_CACHED;
+    dataMemConfig.initFilePath = conf.initFilePath;
     MEMORY_IFC#(t_ADDR, t_DATA) dataMem  <- mkScratchpad(dataScratchpadID, dataMemConfig);
 
     MEMORY_HEAP_IMM#(COH_SCRATCH_CTRLR_WRITE_DATA_IDX, t_DATA) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();

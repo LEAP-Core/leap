@@ -47,6 +47,7 @@ import DefaultValue::*;
 `include "awb/provides/scratchpad_memory_service.bsh"
 `include "awb/provides/common_services.bsh"
 `include "awb/provides/fpga_components.bsh"
+`include "awb/provides/coherent_cache.bsh"
 `include "awb/dict/PARAMS_COHERENT_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 // Number of slots in a read port's reorder buffer.  The coherent scratchpad 
@@ -87,33 +88,10 @@ module [CONNECTED_MODULE] mkCoherentScratchpadClient#(Integer scratchpadID, COH_
 endmodule
 
 //
-// mkDebugCoherentScratchpadClient --
-//     This is the typical coherent scratchpad client module used for debugging. 
-// Debug file and statsID are passed in as arguments for simplicity. statsID for
-// each coherent scratchpad client needs to be unique.
-//
-module [CONNECTED_MODULE] mkDebugCoherentScratchpadClient#(Integer scratchpadID, 
-                                                           Integer statsID, 
-                                                           COH_SCRATCH_CLIENT_CONFIG conf,
-                                                           DEBUG_FILE debugLog)
-    // interface:
-    (MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA))
-    provisos (Bits#(t_ADDR, t_ADDR_SZ),
-              Bits#(t_DATA, t_DATA_SZ));
-
-    //
-    // The coherent scratchpad implementation is all in the multi-reader interface.
-    // Allocate a multi-reader coherent scratchpad client with a single reader 
-    // and convert it to MEMORY_WITH_FENCE_IFC.
-    //
-    MEMORY_MULTI_READ_WITH_FENCE_IFC#(1, t_ADDR, t_DATA) m_scratch <- mkMultiReadDebugCoherentScratchpadClient(scratchpadID, statsID, conf, debugLog);
-    MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA) scratch <- mkMultiMemFenceIfcToMemFenceIfc(m_scratch);
-    return scratch;
-endmodule
-
-//
 // mkMultiReadCoherentScratchpadClient --
-//     The same as mkMultiReadStatsCoherentScratchpadClient but we have null stats in this case
+//     The same as a normal mkCoherentScratchpadClient but with multiple read ports.
+//     Requests are processed in order, with reads being scheduled before
+//     a write requested in the same cycle.
 //
 module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpadID, COH_SCRATCH_CLIENT_CONFIG conf)
     // interface:
@@ -126,8 +104,38 @@ module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpa
     let reqRingStatsConstructor = mkNullCoherentScratchpadRingNodeStats;
     let respRingStatsConstructor = mkNullCoherentScratchpadRingNodeStats;
     let debugScanNodeConstructor = mkNullCohScratchClientDebugScanNode;
-    DEBUG_FILE debugLog <- mkDebugFileNull(""); 
     
+    String debugFileName = "";
+    if (conf.debugLogPath matches tagged Valid .log_name)
+    begin
+        debugFileName = log_name;
+    end
+    DEBUG_FILE debugLog <- (isValid(conf.debugLogPath))? mkDebugFile(debugFileName) : mkDebugFileNull(debugFileName); 
+
+    if(conf.enableStatistics matches tagged Valid .stats_name)
+    begin
+        // stats_name example: String stats_name = "Coherent_scratchpad_" + integerToString(scratchpadID) + "_client_" + integerToString(statsID) + "_";
+        statsConstructor = mkBasicCoherentScratchpadCacheStats(stats_name, "");
+
+        NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
+        prefetchStatsConstructor = (`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE == 1)?
+                                   mkBasicScratchpadPrefetchStats(stats_name, "", n_prefetch_learners):
+                                   mkNullScratchpadPrefetchStats;
+        
+        reqRingStatsConstructor = (`ADDR_RING_DEBUG_ENABLE == 1)? 
+                                  mkBasicCoherentScratchpadRingNodeStats(stats_name + "req_", ""):
+                                  mkNullCoherentScratchpadRingNodeStats;
+
+        respRingStatsConstructor = (`ADDR_RING_DEBUG_ENABLE == 1)?
+                                   mkBasicCoherentScratchpadRingNodeStats(stats_name + "resp_", ""):
+                                   mkNullCoherentScratchpadRingNodeStats; 
+    end
+    
+    if(conf.enableDebugScan matches tagged Valid .debug_scan_name)
+    begin
+        debugScanNodeConstructor = mkCohScratchClientDebugScanNode(debug_scan_name);
+    end
+
     let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID,
                                                       conf,
                                                       statsConstructor, 
@@ -140,52 +148,9 @@ module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpa
 endmodule
 
 //
-// mkMultiReadDebugCoherentScratchpadClient --
-//     The same as mkMultiReadStatsCoherentScratchpadClient with stats created by an unique statsID.
-//
-module [CONNECTED_MODULE] mkMultiReadDebugCoherentScratchpadClient#(Integer scratchpadID, 
-                                                                    Integer statsID,
-                                                                    COH_SCRATCH_CLIENT_CONFIG conf,
-                                                                    DEBUG_FILE debugLog)
-    // interface:
-    (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
-    provisos (Bits#(t_ADDR, t_ADDR_SZ),
-              Bits#(t_DATA, t_DATA_SZ));
-    
-    String statsName = "Coherent_scratchpad_" + integerToString(scratchpadID) + "_client_" + integerToString(statsID) + "_";
-    NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_prefetch_learners = ?;
-    
-    let statsConstructor = mkBasicCoherentScratchpadCacheStats(statsName, "");
-    let prefetchStatsConstructor = (`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE == 1)?
-                                   mkBasicScratchpadPrefetchStats(statsName, "", n_prefetch_learners):
-                                   mkNullScratchpadPrefetchStats;
-    
-    let reqRingStatsConstructor = (`ADDR_RING_DEBUG_ENABLE == 1)? 
-                                  mkBasicCoherentScratchpadRingNodeStats(statsName + "req_", ""):
-                                  mkNullCoherentScratchpadRingNodeStats;
-
-    let respRingStatsConstructor = (`ADDR_RING_DEBUG_ENABLE == 1)?
-                                   mkBasicCoherentScratchpadRingNodeStats(statsName + "resp_", ""):
-                                   mkNullCoherentScratchpadRingNodeStats; 
-    
-    let debugScanNodeConstructor = mkCohScratchClientDebugScanNode(scratchpadID, statsID);
-    
-    let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID, 
-                                                      conf, 
-                                                      statsConstructor, 
-                                                      prefetchStatsConstructor, 
-                                                      reqRingStatsConstructor,
-                                                      respRingStatsConstructor,
-                                                      debugScanNodeConstructor,
-                                                      debugLog);
-    return m;
-endmodule
-
-//
-// mkMultiReadStatsCoherentScratchpadClient --
-//     The same as a normal mkCoherentScratchpadClient but with multiple read ports.
-//     Requests are processed in order, with reads being scheduled before
-//     a write requested in the same cycle.
+// mkMultiReadStatsCoherentScratchpadClient
+//     Instantiate different coherent scratchpad client wrappers (marshallers) 
+// based on user's requested data size.
 //
 module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
                                                                     COH_SCRATCH_CLIENT_CONFIG conf,
@@ -199,7 +164,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scra
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ),
-              // Compute the natural size in bits.  The natural size is rounded up to
+              // Compute the natural size in bits. The natural size is rounded up to
               // a power of 2 bits that is one byte or larger.
               Max#(8, TExp#(TLog#(t_DATA_SZ)), t_NATURAL_SZ),
               Bits#(COH_SCRATCH_MEM_VALUE, t_COH_SCRATCH_MEM_VALUE_SZ));
@@ -393,7 +358,9 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
     endmethod
 
     method Bool writeNotFull() = mem.writeNotFull();
-    
+   
+   
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     method Action testAndSetReq(t_ADDR addr, t_DATA val);
         match {.c_addr, .o_idx} = addrSplit(addr);
         // Put the data at the right place in the container
@@ -411,10 +378,14 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
         t_PACKED_CONTAINER pack_data = unpack(truncateNP(pack(d)));
         return unpack(truncateNP(pack_data[o_idx]));
     endmethod
+`endif
 
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     method Action fence() = mem.fence();
     method Action writeFence() = mem.writeFence();
     method Action readFence() = mem.readFence();
+`endif
+
     method Bool writePending() = mem.writePending();
     method Bool readPending() = mem.readPending();
 
@@ -496,6 +467,7 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
 
     method Bool writeNotFull() = mem.writeNotFull();
     
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     method Action testAndSetReq(t_ADDR addr, t_DATA val);
         mem.testAndSetReq(addr, unpack(zeroExtendNP(pack(val))), unpack(pack(replicate(True))));
     endmethod
@@ -504,10 +476,14 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
         let d <- mem.testAndSetRsp();
         return unpack(truncateNP(pack(d)));
     endmethod
+`endif
 
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     method Action fence() = mem.fence();
     method Action writeFence() = mem.writeFence();
     method Action readFence() = mem.readFence();
+`endif
+
     method Bool writePending() = mem.writePending();
     method Bool readPending() = mem.readPending();
 endmodule
@@ -582,7 +558,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                       mkNullCachePrefetcher();
     
     // Coherent private cache
-    RL_COH_DM_CACHE#(t_MEM_ADDR, t_MEM_DATA, t_MEM_MASK, t_MAF_IDX) cache <- 
+    COH_DM_CACHE#(t_MEM_ADDR, t_MEM_DATA, t_MEM_MASK, t_MAF_IDX) cache <- 
         mkCoherentCacheDirectMapped(sourceData, prefetcher, nCacheEntries, True, debugLog);
 
     // Hook up stats
@@ -593,14 +569,22 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot. The write port is always second from last. The port for 
     // the fence request is always last. 
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     MERGE_FIFOF#(TAdd#(n_READERS, 2), Tuple2#(t_MEM_ADDR, Maybe#(t_REORDER_ID))) incomingReqQ <- mkMergeFIFOF();
+`else
+    MERGE_FIFOF#(TAdd#(n_READERS, 1), Tuple2#(t_MEM_ADDR, Maybe#(t_REORDER_ID))) incomingReqQ <- mkMergeFIFOF();
+`endif
 
     // Write data (and write mask) is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(Tuple2#(t_MEM_DATA, t_MEM_MASK)) writeDataQ <- mkFIFO();
 
     // Cache responses are not ordered.  Sort them with a reorder buffer.
     Vector#(n_READERS, SCOREBOARD_FIFOF#(COH_SCRATCH_PORT_ROB_SLOTS, t_MEM_DATA)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
+
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+    // Sort test&set responses in a separate reorder buffer
     SCOREBOARD_FIFOF#(COH_SCRATCH_TEST_SET_ROB_SLOTS, t_MEM_DATA) sortTestAndSetRespQ <- mkScoreboardFIFOF();
+`endif
 
     //
     // Request merging
@@ -612,13 +596,13 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     Reg#(Bool) multiRespFwd <- mkReg(False);
     PulseWire fwdRespW <- mkPulseWire();
 
-    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable;
-    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo;
-    Reg#(Vector#(COH_SCRATCH_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits;
-    Reg#(Vector#(COH_SCRATCH_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits;
-    Reg#(Tuple2#(t_MERGE_IDX, t_MEM_DATA)) multiRespFwdEntry;
-    PulseWire mergeTableLockedW;
-    PulseWire forwardFenceReqW;
+    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable = ?;
+    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo = ?;
+    Reg#(Vector#(COH_SCRATCH_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits = ?;
+    Reg#(Vector#(COH_SCRATCH_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits = ?;
+    Reg#(Tuple2#(t_MERGE_IDX, t_MEM_DATA)) multiRespFwdEntry = ?;
+    PulseWire mergeTableLockedW = ?;
+    PulseWire forwardFenceReqW = ?;
 
     // allocate merge table
     if (requestMerging)
@@ -702,6 +686,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     // Forward merged requests to the cache.
     //
 
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     // fence requests
     rule forwardFenceReq (initialized && incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS)+1));
         let fence_mode = pack(incomingReqQ.first());
@@ -714,6 +699,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
             debugLog.record($format("forwardFenceReq: set reqMergeTableEndBits to True"));
         end
     endrule
+`endif
 
     // Write requests and test&set requests
     rule forwardWriteReq (initialized && !multiRespFwd && incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS)));
@@ -722,6 +708,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         match {.val, .mask} = writeDataQ.first();
         writeDataQ.deq();
         // test&set requests
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
         if (idx matches tagged Valid .d)
         begin
             t_MAF_IDX maf_idx = tuple2(?, d);
@@ -731,6 +718,9 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         begin
             cache.write(addr, val, mask);
         end
+`else
+        cache.write(addr, val, mask);
+`endif
         if (requestMerging)
         begin
             match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
@@ -749,6 +739,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         end
     endrule
 
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     //
     // recvTestAndSetResp --
     //     Push test&set responses to the reorder buffer.  They will be returned
@@ -759,6 +750,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         t_REORDER_ID idx = tpl_2(r.readMeta);
         sortTestAndSetRespQ.setValue(unpack(truncate(pack(idx))), r.val);
     endrule
+`endif
 
     // Read requests
     for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
@@ -822,7 +814,11 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         //     Push read responses to the reorder buffer.  They will be returned
         //     through readRsp() in order.
         //
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
         (* descending_urgency = "receiveResp, forwardFenceReq, forwardWriteReq" *)
+`else
+        (* descending_urgency = "receiveResp, forwardWriteReq" *)
+`endif
         rule receiveResp (tpl_1(cache.peekResp().readMeta) == fromInteger(p) && !multiRespFwd);
             let r <- cache.readResp();
 
@@ -861,7 +857,9 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     
     if (requestMerging)
     begin
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
         (* descending_urgency = "fwdMultiResp, forwardFenceReq" *)
+`endif
         rule fwdMultiResp (multiRespFwd);
             mergeTableLockedW.send();
             fwdRespW.send();
@@ -969,6 +967,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
 
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
 
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     method Action testAndSetReq(t_MEM_ADDR addr, t_MEM_DATA val, t_MEM_MASK byteMask) if (numPendingWrites.value() != maxBound);
         // The write port is the second from last in the merge FIFO
         let idx <- sortTestAndSetRespQ.enq();
@@ -986,22 +985,25 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         debugLog.record($format("test&set: resp val=0x%x", r));
         return r;
     endmethod
+`endif
 
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     method Action fence();
-        incomingReqQ.ports[valueOf(n_READERS)+1].enq(unpack(zeroExtend(pack(RL_COH_DM_ALL_FENCE))));
+        incomingReqQ.ports[valueOf(n_READERS)+1].enq(unpack(zeroExtend(pack(COH_DM_ALL_FENCE))));
         debugLog.record($format("recive memory fence request"));
     endmethod
-    
+
     method Action writeFence();
-        incomingReqQ.ports[valueOf(n_READERS)+1].enq(unpack(zeroExtend(pack(RL_COH_DM_WRITE_FENCE))));
+        incomingReqQ.ports[valueOf(n_READERS)+1].enq(unpack(zeroExtend(pack(COH_DM_WRITE_FENCE))));
         debugLog.record($format("recive memory write fence request"));
     endmethod
     
     method Action readFence();
-        incomingReqQ.ports[valueOf(n_READERS)+1].enq(unpack(zeroExtend(pack(RL_COH_DM_READ_FENCE))));
+        incomingReqQ.ports[valueOf(n_READERS)+1].enq(unpack(zeroExtend(pack(COH_DM_READ_FENCE))));
         debugLog.record($format("recive memory read fence request"));
     endmethod
-
+`endif
+    
     method Bool writePending() = (numPendingWrites.value() != 0);
     method Bool readPending() = (numPendingReads.value() != 0);
       
@@ -1019,7 +1021,7 @@ typedef struct
     COH_SCRATCH_META           meta;
     RL_CACHE_GLOBAL_READ_META  globalReadMeta;
 }
-RL_COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY
+COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY
     deriving(Bits, Eq);
 
 
@@ -1037,7 +1039,7 @@ typedef struct
     COH_SCRATCH_CTRLR_PORT_NUM  lastControllerId;
     Bool                        getsFwd;
 }
-RL_COH_DM_CACHE_FWD_TABLE_ENTRY
+COH_DM_CACHE_FWD_TABLE_ENTRY
     deriving(Bits, Eq);
 
 `else
@@ -1049,7 +1051,7 @@ typedef struct
     COH_SCRATCH_PORT_NUM        getxRequester;
     COH_SCRATCH_CTRLR_PORT_NUM  getxReqControllerId;
 }
-RL_COH_DM_CACHE_FWD_TABLE_ENTRY#(numeric type n_ENTRIES)
+COH_DM_CACHE_FWD_TABLE_ENTRY#(numeric type n_ENTRIES)
     deriving(Bits, Eq);
 
 `endif
@@ -1078,7 +1080,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                                                                Bool hasMultiController,
                                                                DEBUG_FILE debugLog)
     // interface:
-    (RL_COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, COH_SCRATCH_MEM_VALUE, t_CACHE_META, t_REQ_IDX))
+    (COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, COH_SCRATCH_MEM_VALUE, t_CACHE_META, t_REQ_IDX))
     provisos (Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
               Bits#(t_CACHE_META, t_CACHE_META_SZ),
               Bits#(t_REQ_IDX, t_REQ_IDX_SZ),
@@ -1094,14 +1096,14 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
               // Coherence messages
               Alias#(COH_SCRATCH_MEM_REQ#(t_CACHE_ADDR), t_UNACTIVATED_REQ),
               Alias#(COH_SCRATCH_ACTIVATED_REQ#(t_CACHE_ADDR), t_ACTIVATED_REQ),
-              Alias#(RL_COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_CACHE_META), t_COH_CACHE_FILL_RESP),
-              Alias#(RL_COH_DM_CACHE_NETWORK_REQ#(t_CACHE_ADDR, t_REQ_IDX), t_CACHE_NW_REQ),
-              Alias#(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_REQ_IDX, t_CACHE_WORD, t_CACHE_META, t_CACHE_ADDR), t_ROUTER_RESP),
-              Alias#(RL_COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY, t_REQ_INFO_ENTRY),
+              Alias#(COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_CACHE_META), t_COH_CACHE_FILL_RESP),
+              Alias#(COH_DM_CACHE_NETWORK_REQ#(t_CACHE_ADDR, t_REQ_IDX), t_CACHE_NW_REQ),
+              Alias#(COH_DM_CACHE_MSHR_ROUTER_RESP#(t_REQ_IDX, t_CACHE_WORD, t_CACHE_META, t_CACHE_ADDR), t_ROUTER_RESP),
+              Alias#(COH_DM_CACHE_SNOOPED_REQ_TABLE_ENTRY, t_REQ_INFO_ENTRY),
 `ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
-              Alias#(RL_COH_DM_CACHE_FWD_TABLE_ENTRY, t_FWD_TABLE_ENTRY),
+              Alias#(COH_DM_CACHE_FWD_TABLE_ENTRY, t_FWD_TABLE_ENTRY),
 `else
-              Alias#(RL_COH_DM_CACHE_FWD_TABLE_ENTRY#(n_FWD_ENTRIES), t_FWD_TABLE_ENTRY),
+              Alias#(COH_DM_CACHE_FWD_TABLE_ENTRY#(n_FWD_ENTRIES), t_FWD_TABLE_ENTRY),
 `endif
               Bounded#(t_FWD_INFO_TABLE_IDX),
               Bounded#(t_CACHE_META),
@@ -1217,7 +1219,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     //
     // =======================================================================
 
-    FIFOF#(t_UNACTIVATED_REQ) unactivatedReqQ <- mkSizedFIFOF(valueOf(RL_COH_DM_CACHE_NW_REQ_BUF_SIZE));
+    FIFOF#(t_UNACTIVATED_REQ) unactivatedReqQ <- mkSizedFIFOF(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE));
     PulseWire unactivatedReqSentW <- mkPulseWire();
     COUNTER#(4) numBufferedReq <- mkLCounter(0);
 
@@ -1403,10 +1405,10 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     Bool fwdBusy = False;
     FIFOF#(Bool) pendingFwdGetsQ <- mkSizedFIFOF(valueOf(n_FWD_TABLE_ENTRIES));
 `else
-    LUTRAM#(t_CACHE_META, t_FWD_TABLE_ENTRY) forwardingTable <- mkLUTRAM( RL_COH_DM_CACHE_FWD_TABLE_ENTRY{ forwardMeta: replicate(False),
-                                                                                                           hasGetx: False,
-                                                                                                           getxRequester: ?,
-                                                                                                           getxReqControllerId: ? });
+    LUTRAM#(t_CACHE_META, t_FWD_TABLE_ENTRY) forwardingTable <- mkLUTRAM( COH_DM_CACHE_FWD_TABLE_ENTRY{ forwardMeta: replicate(False),
+                                                                                                        hasGetx: False,
+                                                                                                        getxRequester: ?,
+                                                                                                        getxReqControllerId: ? });
     LUTRAM#(t_FWD_INFO_TABLE_IDX, COH_SCRATCH_GET_REQ_INFO) forwardInfoTable <- mkLUTRAMU();
     Reg#(COH_SCRATCH_MEM_VALUE) curFwdValue <- mkRegU();
     Reg#(t_CACHE_META) curFwdIdx <- mkRegU();
@@ -1705,10 +1707,10 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
 
 `else
         // reset forwarding table
-        forwardingTable.upd( r.fwdEntryIdx, RL_COH_DM_CACHE_FWD_TABLE_ENTRY{ forwardMeta: replicate(False),
-                                                                             hasGetx: False,
-                                                                             getxRequester: ?,
-                                                                             getxReqControllerId: ? });
+        forwardingTable.upd( r.fwdEntryIdx, COH_DM_CACHE_FWD_TABLE_ENTRY{ forwardMeta: replicate(False),
+                                                                          hasGetx: False,
+                                                                          getxRequester: ?,
+                                                                          getxReqControllerId: ? });
         debugLog.record($format("    sourceData: recvFwdResetRespFromCache: reset forwardingTable: (entry=0x%x)", r.fwdEntryIdx));
 `endif
     endrule
@@ -2285,6 +2287,7 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadClient#(Integer scratchpad
 
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
 
+`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     method Action testAndSetReq(t_ADDR addr, t_DATA val) if (numPendingWrites.value() != maxBound);
         noAction;
     endmethod
@@ -2293,7 +2296,9 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadClient#(Integer scratchpad
         noAction;
         return ?;
     endmethod
+`endif
 
+`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     method Action fence();
         noAction;
     endmethod
@@ -2305,7 +2310,8 @@ module [CONNECTED_MODULE] mkUncachedCoherentScratchpadClient#(Integer scratchpad
     method Action readFence();
         noAction;
     endmethod
-
+`endif
+    
     method Bool writePending() = (numPendingWrites.value() != 0);
     method Bool readPending() = (numPendingReads.value() != 0);
       

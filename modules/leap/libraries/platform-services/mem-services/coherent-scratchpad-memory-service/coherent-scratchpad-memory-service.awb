@@ -2,6 +2,7 @@
 %desc Coherent Scratchpad Memory Service
 
 %provides coherent_scratchpad_memory_service
+%requires coherent_cache
 
 %notes README
 
@@ -12,7 +13,7 @@
 
 %param --dynamic COHERENT_SCRATCHPAD_PVT_CACHE_MODE                    1  "Bit 1: 0 disabled, 1 enabled prefetcher / Bit 0: 0 disabled, 1 enabled cache clean write-back"
 
-%param --global COHERENT_SCRATCHPAD_DEBUG_ENABLE                       1  "Enables the coherent scratchpad debug"
+%param --global COHERENT_SCRATCHPAD_CONTROLLER_DEBUG_ENABLE            0  "Enables the coherent scratchpad controller debugging"
 
 %param --global COHERENT_SCRATCHPAD_REQ_RESP_LINK_TYPE                 0  "0 Use non-token ring, 1 use token ring"
 
@@ -23,9 +24,11 @@
 %param --global COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE          0  "Enable scratchpad private cache prefetcher"
 
 %param --global COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE              1  "0 store full forwarding list, 1 use response chaining"
-%param --global COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE                   1  "Enables merging multiple reads accessing the same cacheline"
+%param --global COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE                   0  "Enables merging multiple reads accessing the same cacheline"
 %param --global COHERENT_SCRATCHPAD_DATA_MEM_CACHE_ENABLE              0  "Enables the private cache in the controller's data scratchpad"
 %param --global COHERENT_SCRATCHPAD_I_TO_M_ENABLE                      1  "0 automatic upgrade from I to O, 1 automatic upgrade from I to M/O"
+%param --global COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE             0  "Enables pipelined fence support"
+%param --global COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE                0  "Enables atomic testAndSet operation support"
 
 %param --global COHERENT_SCRATCHPAD_MAX_CLIENT_NUM                    32  "Maximum number of coherent scratchpad clients per controller"
 %param --global COHERENT_SCRATCHPAD_MAX_CONTROLLER_NUM                 4  "Maximum number of coherent scratchpad controllers in a coherence domain"

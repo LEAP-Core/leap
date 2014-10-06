@@ -57,18 +57,18 @@ import FIFOLevel :: * ;
 //
 typedef struct
 {
-    t_CACHE_ADDR              addr;
-    t_CACHE_WORD              val;
-    Maybe#(t_CACHE_WORD)      oldVal; // for test&set request
-    RL_COH_DM_CACHE_COH_STATE newState;
-    Bool                      isCacheable;
-    RL_COH_CACHE_REQ_TYPE     msgType;
-    t_CACHE_CLIENT_META       clientMeta;
-    RL_CACHE_GLOBAL_READ_META globalReadMeta;
+    t_CACHE_ADDR               addr;
+    t_CACHE_WORD               val;
+    Maybe#(t_CACHE_WORD)       oldVal; // for test&set request
+    COH_DM_CACHE_COH_STATE     newState;
+    Bool                       isCacheable;
+    COH_CACHE_REQ_TYPE         msgType;
+    t_CACHE_CLIENT_META        clientMeta;
+    RL_CACHE_GLOBAL_READ_META  globalReadMeta;
 }
-RL_COH_DM_CACHE_MSHR_LOCAL_RESP#(type t_CACHE_ADDR,
-                                 type t_CACHE_WORD,
-                                 type t_CACHE_CLIENT_META)
+COH_DM_CACHE_MSHR_LOCAL_RESP#(type t_CACHE_ADDR,
+                              type t_CACHE_WORD,
+                              type t_CACHE_CLIENT_META)
     deriving (Eq, Bits);
 
 
@@ -85,8 +85,8 @@ typedef struct
     Bool          isCacheable; 
     Bool          isExclusive; // for write-back responses
 }
-RL_COH_DM_CACHE_MSHR_REMOTE_RESP#(type t_NW_REQ_IDX,
-                                  type t_CACHE_WORD)
+COH_DM_CACHE_MSHR_REMOTE_RESP#(type t_NW_REQ_IDX,
+                               type t_CACHE_WORD)
     deriving (Eq, Bits);
 
 // MSHR forward response 
@@ -96,8 +96,8 @@ typedef struct
     t_CACHE_WORD val;
     Bool         resetEntry;
 }
-RL_COH_DM_CACHE_MSHR_FWD_RESP#(type t_MSHR_IDX,
-                               type t_CACHE_WORD)
+COH_DM_CACHE_MSHR_FWD_RESP#(type t_MSHR_IDX,
+                            type t_CACHE_WORD)
     deriving (Eq, Bits);
 
 // MSHR delay response
@@ -107,8 +107,8 @@ typedef struct
     t_MSHR_IDX    fwdEntryIdx;
     Bool          isFirstFwd;
 }
-RL_COH_DM_CACHE_MSHR_DELAY_RESP#(type t_NW_REQ_IDX,
-                                 type t_MSHR_IDX)
+COH_DM_CACHE_MSHR_DELAY_RESP#(type t_NW_REQ_IDX,
+                              type t_MSHR_IDX)
     deriving (Eq, Bits);
 
 // MSHR null response
@@ -118,22 +118,22 @@ typedef struct
     Maybe#(t_MSHR_IDX) fwdEntryIdx;
     t_CACHE_ADDR       reqAddr;
 }
-RL_COH_DM_CACHE_MSHR_NULL_RESP#(type t_NW_REQ_IDX,
-                                type t_MSHR_IDX, 
-                                type t_CACHE_ADDR)
+COH_DM_CACHE_MSHR_NULL_RESP#(type t_NW_REQ_IDX,
+                             type t_MSHR_IDX, 
+                             type t_CACHE_ADDR)
     deriving (Eq, Bits);
 
 typedef union tagged 
 {
-    RL_COH_DM_CACHE_MSHR_REMOTE_RESP#(t_NW_REQ_IDX, t_CACHE_WORD)           MSHR_REMOTE_RESP;
-    RL_COH_DM_CACHE_MSHR_FWD_RESP#(t_MSHR_IDX, t_CACHE_WORD)                MSHR_FWD_RESP;
-    RL_COH_DM_CACHE_MSHR_DELAY_RESP#(t_NW_REQ_IDX, t_MSHR_IDX)              MSHR_DELAY_RESP;
-    RL_COH_DM_CACHE_MSHR_NULL_RESP#(t_NW_REQ_IDX, t_MSHR_IDX, t_CACHE_ADDR) MSHR_NULL_RESP; 
+    COH_DM_CACHE_MSHR_REMOTE_RESP#(t_NW_REQ_IDX, t_CACHE_WORD)           MSHR_REMOTE_RESP;
+    COH_DM_CACHE_MSHR_FWD_RESP#(t_MSHR_IDX, t_CACHE_WORD)                MSHR_FWD_RESP;
+    COH_DM_CACHE_MSHR_DELAY_RESP#(t_NW_REQ_IDX, t_MSHR_IDX)              MSHR_DELAY_RESP;
+    COH_DM_CACHE_MSHR_NULL_RESP#(t_NW_REQ_IDX, t_MSHR_IDX, t_CACHE_ADDR) MSHR_NULL_RESP; 
 }
-RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(type t_NW_REQ_IDX,
-                                  type t_CACHE_WORD,
-                                  type t_MSHR_IDX,
-                                  type t_CACHE_ADDR)
+COH_DM_CACHE_MSHR_ROUTER_RESP#(type t_NW_REQ_IDX,
+                               type t_CACHE_WORD,
+                               type t_MSHR_IDX,
+                               type t_CACHE_ADDR)
     deriving (Eq, Bits);
 
 //
@@ -143,12 +143,12 @@ RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(type t_NW_REQ_IDX,
 // t_NW_REQ_IDX is the index of the completion table allocated in the 
 // cache's router (CACHE_SOURCE_DATA)
 //
-interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
-                                type t_CACHE_WORD,
-                                type t_CACHE_MASK,
-                                type t_CACHE_CLIENT_META,
-                                type t_MSHR_IDX,
-                                type t_NW_REQ_IDX);
+interface COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
+                             type t_CACHE_WORD,
+                             type t_CACHE_MASK,
+                             type t_CACHE_CLIENT_META,
+                             type t_MSHR_IDX,
+                             type t_NW_REQ_IDX);
     //
     // Requests that need to allocate a new MSHR entry (triggered by local requests) 
     //
@@ -163,7 +163,7 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
                                t_CACHE_WORD val,
                                t_CACHE_WORD writeData,
                                t_CACHE_MASK byteWriteMask, 
-                               RL_COH_DM_CACHE_COH_STATE oldState,
+                               COH_DM_CACHE_COH_STATE oldState,
                                t_CACHE_CLIENT_META meta,
                                Bool isTestSet);
 
@@ -190,23 +190,23 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
                                t_CACHE_ADDR addr,
                                Bool ownReq,
                                t_NW_REQ_IDX reqIdx,
-                               RL_COH_CACHE_REQ_TYPE reqType);
+                               COH_CACHE_REQ_TYPE reqType);
 
     // Responses received from the network
-    method Action recvResp(RL_COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_MSHR_IDX) resp);
+    method Action recvResp(COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_MSHR_IDX) resp);
     
     // Return true if data response queue (from network) is almost full
     method Bool dataRespQAlmostFull();
     
     // Local responses to cache 
-    method ActionValue#(RL_COH_DM_CACHE_MSHR_LOCAL_RESP#(t_CACHE_ADDR, 
-                                                         t_CACHE_WORD,
-                                                         t_CACHE_CLIENT_META)) localResp();
+    method ActionValue#(COH_DM_CACHE_MSHR_LOCAL_RESP#(t_CACHE_ADDR, 
+                                                      t_CACHE_WORD,
+                                                      t_CACHE_CLIENT_META)) localResp();
     // Remote responses to network
-    method ActionValue#(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX,
-                                                          t_CACHE_WORD,
-                                                          t_MSHR_IDX,
-                                                          t_CACHE_ADDR)) remoteResp();
+    method ActionValue#(COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX,
+                                                       t_CACHE_WORD,
+                                                       t_MSHR_IDX,
+                                                       t_CACHE_ADDR)) remoteResp();
     // Retry request to network
     method ActionValue#(Tuple2#(t_CACHE_ADDR, t_MSHR_IDX)) retryReq();
     
@@ -225,15 +225,9 @@ interface RL_COH_DM_CACHE_MSHR#(type t_CACHE_ADDR,
     // Return true if there is at least one pending write request
     method Bool getExclusivePending();
     
-    //
-    // Debug scan state.  The MSHR can't instantiate a debug scan node because
-    // the debug scan code depends on libRL.  Instantiating a node here would
-    // create a source dependence loop.  Instead, a list of name/value pairs
-    // is available for use by a client.
-    //
     method List#(Tuple2#(String, Bool)) debugScanState();
 
-endinterface: RL_COH_DM_CACHE_MSHR
+endinterface: COH_DM_CACHE_MSHR
 
 
 // ===================================================================
@@ -273,7 +267,7 @@ typedef enum
     COH_CACHE_STATE_IM_D_I,  // invalid (or shared), issued GETS/GETX, have seen GETS/GETX, have not seen data yet, then saw other GETX
     COH_CACHE_STATE_IM_D_OI  // invalid (or shared), issued GETS/GETX, have seen GETS/GETX, have not seen data yet, then saw other GETS, then saw other GETX
 }
-RL_COH_CACHE_TRANS_STATE
+COH_CACHE_TRANS_STATE
     deriving (Eq, Bits);
 
 
@@ -284,7 +278,7 @@ typedef struct
     t_MSHR_WORD               val;
     t_MSHR_WORD               writeData;
     t_MSHR_MASK               byteWriteMask;
-    RL_COH_CACHE_TRANS_STATE  state;
+    COH_CACHE_TRANS_STATE     state;
     Bool                      isRead;
     Bool                      isTestSet;
     Bool                      isCacheable; // GETS can be non-cacheable
@@ -293,10 +287,10 @@ typedef struct
     t_CLIENT_META             meta;
     RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
-RL_COH_DM_CACHE_MSHR_GET_ENTRY#(type t_MSHR_ADDR, 
-                                type t_MSHR_WORD,
-                                type t_MSHR_MASK,
-                                type t_CLIENT_META)
+COH_DM_CACHE_MSHR_GET_ENTRY#(type t_MSHR_ADDR, 
+                             type t_MSHR_WORD,
+                             type t_MSHR_MASK,
+                             type t_CLIENT_META)
     deriving (Eq, Bits);
 
 // MSHR entry for PUTX
@@ -308,29 +302,29 @@ typedef struct
     Bool                     isCleanWB;
     Bool                     isExclusive;
 }
-RL_COH_DM_CACHE_MSHR_PUT_ENTRY#(type t_MSHR_ADDR, 
-                                type t_MSHR_WORD)
+COH_DM_CACHE_MSHR_PUT_ENTRY#(type t_MSHR_ADDR, 
+                             type t_MSHR_WORD)
     deriving (Eq, Bits);
 
 
 // MSHR Get request 
 typedef struct
 {
-    t_MSHR_IDX                idx;
-    t_MSHR_ADDR               addr;
-    t_MSHR_WORD               val;
-    t_MSHR_WORD               writeData;
-    t_MSHR_MASK               byteWriteMask;
-    RL_COH_CACHE_TRANS_STATE  state;
-    t_CLIENT_META             meta;
-    Bool                      isGetX;
-    Bool                      isTestSet;
+    t_MSHR_IDX             idx;
+    t_MSHR_ADDR            addr;
+    t_MSHR_WORD            val;
+    t_MSHR_WORD            writeData;
+    t_MSHR_MASK            byteWriteMask;
+    COH_CACHE_TRANS_STATE  state;
+    t_CLIENT_META          meta;
+    Bool                   isGetX;
+    Bool                   isTestSet;
 }
-RL_COH_DM_CACHE_MSHR_GET_REQ#(type t_MSHR_IDX,
-                              type t_MSHR_ADDR, 
-                              type t_MSHR_WORD,
-                              type t_MSHR_MASK,
-                              type t_CLIENT_META)
+COH_DM_CACHE_MSHR_GET_REQ#(type t_MSHR_IDX,
+                           type t_MSHR_ADDR, 
+                           type t_MSHR_WORD,
+                           type t_MSHR_MASK,
+                           type t_CLIENT_META)
     deriving (Eq, Bits);
 
 // MSHR Put request 
@@ -343,9 +337,9 @@ typedef struct
     Bool                      isCleanWB;
     Bool                      isExclusive;
 }
-RL_COH_DM_CACHE_MSHR_PUT_REQ#(type t_MSHR_IDX,
-                              type t_MSHR_ADDR, 
-                              type t_MSHR_WORD)
+COH_DM_CACHE_MSHR_PUT_REQ#(type t_MSHR_IDX,
+                           type t_MSHR_ADDR, 
+                           type t_MSHR_WORD)
     deriving (Eq, Bits);
 
 
@@ -361,7 +355,7 @@ RL_COH_DM_CACHE_MSHR_PUT_REQ#(type t_MSHR_IDX,
 //
 module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     // interface:
-    (RL_COH_DM_CACHE_MSHR#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META, t_MSHR_IDX, t_NW_REQ_IDX))
+    (COH_DM_CACHE_MSHR#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META, t_MSHR_IDX, t_NW_REQ_IDX))
     //
     provisos (IsModule#(m, m__),
               Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
@@ -371,13 +365,13 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
               Bits#(t_MSHR_IDX, t_MSHR_IDX_SZ),
               Bits#(t_NW_REQ_IDX, t_NW_REQ_IDX_SZ),
               Div#(t_CACHE_WORD_SZ, 8, t_CACHE_MASK_SZ),
-              Alias#(RL_COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_MSHR_IDX), t_CACHE_FILL_RESP),
-              Alias#(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX, t_CACHE_WORD, t_MSHR_IDX, t_CACHE_ADDR), t_ROUTER_RESP),
-              Alias#(RL_COH_DM_CACHE_MSHR_LOCAL_RESP#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_CLIENT_META), t_LOCAL_RESP),
-              Alias#(RL_COH_DM_CACHE_MSHR_GET_ENTRY#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META), t_MSHR_GET_ENTRY),
-              Alias#(RL_COH_DM_CACHE_MSHR_PUT_ENTRY#(t_CACHE_ADDR, t_CACHE_WORD), t_MSHR_PUT_ENTRY),
-              Alias#(RL_COH_DM_CACHE_MSHR_GET_REQ#(t_MSHR_IDX, t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META), t_MSHR_GET_REQ),
-              Alias#(RL_COH_DM_CACHE_MSHR_PUT_REQ#(t_MSHR_IDX, t_CACHE_ADDR, t_CACHE_WORD), t_MSHR_PUT_REQ),
+              Alias#(COH_DM_CACHE_FILL_RESP#(t_CACHE_WORD, t_MSHR_IDX), t_CACHE_FILL_RESP),
+              Alias#(COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX, t_CACHE_WORD, t_MSHR_IDX, t_CACHE_ADDR), t_ROUTER_RESP),
+              Alias#(COH_DM_CACHE_MSHR_LOCAL_RESP#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_CLIENT_META), t_LOCAL_RESP),
+              Alias#(COH_DM_CACHE_MSHR_GET_ENTRY#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META), t_MSHR_GET_ENTRY),
+              Alias#(COH_DM_CACHE_MSHR_PUT_ENTRY#(t_CACHE_ADDR, t_CACHE_WORD), t_MSHR_PUT_ENTRY),
+              Alias#(COH_DM_CACHE_MSHR_GET_REQ#(t_MSHR_IDX, t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META), t_MSHR_GET_REQ),
+              Alias#(COH_DM_CACHE_MSHR_PUT_REQ#(t_MSHR_IDX, t_CACHE_ADDR, t_CACHE_WORD), t_MSHR_PUT_REQ),
               Bounded#(t_MSHR_IDX));
 
     LUTRAM#(t_MSHR_IDX, t_MSHR_GET_ENTRY) mshrGet <- mkLUTRAMU();
@@ -385,7 +379,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     LUTRAM#(t_MSHR_IDX, Bool) mshrGetValidBits <- mkLUTRAM(False);
     LUTRAM#(t_MSHR_IDX, Bool) mshrPutValidBits <- mkLUTRAM(False);
 
-    Wire#(Tuple4#(t_MSHR_IDX, Bool, t_NW_REQ_IDX, RL_COH_CACHE_REQ_TYPE)) curActivatedReq <- mkWire();
+    Wire#(Tuple4#(t_MSHR_IDX, Bool, t_NW_REQ_IDX, COH_CACHE_REQ_TYPE)) curActivatedReq <- mkWire();
     
     RWire#(t_MSHR_GET_ENTRY)  curGetEntry                 <- mkRWire();
     RWire#(t_MSHR_PUT_ENTRY)  curPutEntry                 <- mkRWire();
@@ -458,18 +452,18 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                         r.idx, (r.isGetX)? "GETX" : "GETS", r.addr));
         
         mshrGetAllocateW.send();
-        mshrGet.upd(r.idx, RL_COH_DM_CACHE_MSHR_GET_ENTRY{ addr: r.addr,
-                                                           val: r.val,
-                                                           writeData: r.writeData,
-                                                           byteWriteMask: r.byteWriteMask,
-                                                           state: r.state,
-                                                           isRead: !r.isGetX,
-                                                           isTestSet: r.isTestSet,
-                                                           isCacheable: (r.state == COH_CACHE_STATE_OM_A),
-                                                           doubleReqs: False,
-                                                           getsFwd: False,
-                                                           meta: r.meta,
-                                                           globalReadMeta: ?});
+        mshrGet.upd(r.idx, COH_DM_CACHE_MSHR_GET_ENTRY{ addr: r.addr,
+                                                        val: r.val,
+                                                        writeData: r.writeData,
+                                                        byteWriteMask: r.byteWriteMask,
+                                                        state: r.state,
+                                                        isRead: !r.isGetX,
+                                                        isTestSet: r.isTestSet,
+                                                        isCacheable: (r.state == COH_CACHE_STATE_OM_A),
+                                                        doubleReqs: False,
+                                                        getsFwd: False,
+                                                        meta: r.meta,
+                                                        globalReadMeta: ?});
 
     endrule
     
@@ -480,11 +474,11 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         debugLog.record($format("        MSHR: allocate new entry (0x%x) for PUTX request (addr=0x%x), isCleanWB=%s, isExclusive=%s", 
                         r.idx, r.addr, r.isCleanWB? "True" : "False", r.isExclusive? "True" : "False"));
         
-        mshrPut.upd(r.idx, RL_COH_DM_CACHE_MSHR_PUT_ENTRY{ addr: r.addr,
-                                                           val: r.val,
-                                                           needResp: r.needResp,
-                                                           isCleanWB: r.isCleanWB,
-                                                           isExclusive: r.isExclusive });
+        mshrPut.upd(r.idx, COH_DM_CACHE_MSHR_PUT_ENTRY{ addr: r.addr,
+                                                        val: r.val,
+                                                        needResp: r.needResp,
+                                                        isCleanWB: r.isCleanWB,
+                                                        isExclusive: r.isExclusive });
     endrule
 
     // receive own activated GETS/GETX request
@@ -498,14 +492,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         let new_entry     = e;
         Bool mshr_release = False;
         Bool send_resp    = False;
-        t_LOCAL_RESP resp = RL_COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
-                                                              val: e.val,
-                                                              oldVal: tagged Invalid,
-                                                              newState: ?,
-                                                              isCacheable: e.isCacheable,
-                                                              msgType: (e.isRead)? COH_CACHE_GETS : COH_CACHE_GETX,
-                                                              clientMeta: e.meta,
-                                                              globalReadMeta: e.globalReadMeta };
+        t_LOCAL_RESP resp = COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
+                                                           val: e.val,
+                                                           oldVal: tagged Invalid,
+                                                           newState: ?,
+                                                           isCacheable: e.isCacheable,
+                                                           msgType: (e.isRead)? COH_CACHE_GETS : COH_CACHE_GETX,
+                                                           clientMeta: e.meta,
+                                                           globalReadMeta: e.globalReadMeta };
         if (e.isRead)
         begin
             getsProcessedW.send();
@@ -595,14 +589,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                         mshr_idx, e.addr, e.val, e.isCleanWB? "True" : "False", e.isExclusive? "True" : "False"));
         
         // send local response back to cache
-        respLocalQ.enq( RL_COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
-                                                          val: e.val,
-                                                          oldVal: tagged Invalid,
-                                                          newState: COH_DM_CACHE_STATE_I,
-                                                          isCacheable: e.needResp,
-                                                          msgType: COH_CACHE_PUTX,
-                                                          clientMeta: ?,
-                                                          globalReadMeta: ? } );
+        respLocalQ.enq( COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
+                                                       val: e.val,
+                                                       oldVal: tagged Invalid,
+                                                       newState: COH_DM_CACHE_STATE_I,
+                                                       isCacheable: e.needResp,
+                                                       msgType: COH_CACHE_PUTX,
+                                                       clientMeta: ?,
+                                                       globalReadMeta: ? } );
         debugLog.record($format("        MSHR: localResp: addr=0x%x, val=0x%x, state=%d, isCacheable=%s", 
                         e.addr, e.val, COH_DM_CACHE_STATE_I, e.needResp? "True" : "False"));
         
@@ -617,11 +611,11 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         if (!e.isCleanWB)
         begin
             // send write back data to network if it's not clean write-back
-            let remote_resp = tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx, 
-                                                                                         val: e.val, 
-                                                                                         retry: False,
-                                                                                         isCacheable: True,
-                                                                                         isExclusive: e.isExclusive };
+            let remote_resp = tagged MSHR_REMOTE_RESP COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx, 
+                                                                                      val: e.val, 
+                                                                                      retry: False,
+                                                                                      isCacheable: True,
+                                                                                      isExclusive: e.isExclusive };
             respToNetworkQ.enq(remote_resp);
             debugLog.record($format("        MSHR: routerResp: REMOTE RESP: reqIdx=0x%x, val=0x%x, retry=%s, isCacheable=%s", 
                             req_idx, e.val, "False", "True"));
@@ -639,9 +633,9 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         debugLog.record($format("        MSHR: other GET request on GET MSHR entry=0x%x, addr=0x%x, val=0x%x, state=%d", 
                         mshr_idx, e.addr, e.val, e.state));
         
-        t_ROUTER_RESP resp = tagged MSHR_NULL_RESP RL_COH_DM_CACHE_MSHR_NULL_RESP{ reqIdx: req_idx, 
-                                                                                   fwdEntryIdx: tagged Invalid,
-                                                                                   reqAddr: ?};
+        t_ROUTER_RESP resp = tagged MSHR_NULL_RESP COH_DM_CACHE_MSHR_NULL_RESP{ reqIdx: req_idx, 
+                                                                                fwdEntryIdx: tagged Invalid,
+                                                                                reqAddr: ?};
 
         let new_entry = e;
 
@@ -649,25 +643,25 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             COH_CACHE_STATE_OM_A:
             begin
                 new_entry.state = (req_type == COH_CACHE_GETX)? COH_CACHE_STATE_IM_AD : e.state;
-                resp = tagged MSHR_REMOTE_RESP RL_COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx,
-                                                                                  val: e.val, 
-                                                                                  retry: False,
-                                                                                  isCacheable: True,
-                                                                                  isExclusive: False };
+                resp = tagged MSHR_REMOTE_RESP COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx,
+                                                                               val: e.val, 
+                                                                               retry: False,
+                                                                               isCacheable: True,
+                                                                               isExclusive: False };
             end
             COH_CACHE_STATE_IM_D:
             begin
                 new_entry.state = (req_type == COH_CACHE_GETX)? COH_CACHE_STATE_IM_D_I : COH_CACHE_STATE_IM_D_O;
-                resp = tagged MSHR_DELAY_RESP RL_COH_DM_CACHE_MSHR_DELAY_RESP { reqIdx: req_idx, 
-                                                                                fwdEntryIdx: mshr_idx,
-                                                                                isFirstFwd: True };
+                resp = tagged MSHR_DELAY_RESP COH_DM_CACHE_MSHR_DELAY_RESP { reqIdx: req_idx, 
+                                                                             fwdEntryIdx: mshr_idx,
+                                                                             isFirstFwd: True };
             end
             COH_CACHE_STATE_IM_D_O:
             begin
                 new_entry.state = (req_type == COH_CACHE_GETX)? COH_CACHE_STATE_IM_D_OI : e.state;
-                resp = tagged MSHR_DELAY_RESP RL_COH_DM_CACHE_MSHR_DELAY_RESP { reqIdx: req_idx, 
-                                                                                fwdEntryIdx: mshr_idx,
-                                                                                isFirstFwd: False };
+                resp = tagged MSHR_DELAY_RESP COH_DM_CACHE_MSHR_DELAY_RESP { reqIdx: req_idx, 
+                                                                             fwdEntryIdx: mshr_idx,
+                                                                             isFirstFwd: False };
             end 
         endcase
 
@@ -709,11 +703,11 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         debugLog.record($format("        MSHR: other GET request on MSHR PUT entry=0x%x, addr=0x%x, val=0x%x, isCleanWB=%s, isExclusive=%s",
                         mshr_idx, e.addr, e.val, e.isCleanWB? "True" : "False", e.isExclusive? "True" : "False")); 
         
-        let remote_resp = RL_COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx,
-                                                             val: e.val,
-                                                             retry: req_type == COH_CACHE_GETX,
-                                                             isCacheable: (!e.isCleanWB || !e.isExclusive),
-                                                             isExclusive: False };
+        let remote_resp = COH_DM_CACHE_MSHR_REMOTE_RESP { reqIdx: req_idx,
+                                                          val: e.val,
+                                                          retry: req_type == COH_CACHE_GETX,
+                                                          isCacheable: (!e.isCleanWB || !e.isExclusive),
+                                                          isExclusive: False };
         // update mshr put entry
         if (req_type == COH_CACHE_GETS && !e.isCleanWB && e.isExclusive)
         begin
@@ -733,9 +727,9 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     // send null response to network (router)
     (*fire_when_enabled*)
     rule otherMshrMiss (!isValid(curPutEntry.wget()) && !isValid(curGetEntry.wget()) && !tpl_2(curActivatedReq));
-        let null_resp = RL_COH_DM_CACHE_MSHR_NULL_RESP{ reqIdx: tpl_3(curActivatedReq), 
-                                                        fwdEntryIdx: tagged Invalid,
-                                                        reqAddr: ? };
+        let null_resp = COH_DM_CACHE_MSHR_NULL_RESP{ reqIdx: tpl_3(curActivatedReq), 
+                                                     fwdEntryIdx: tagged Invalid,
+                                                     reqAddr: ? };
         respToNetworkQ.enq( tagged MSHR_NULL_RESP null_resp );
         debugLog.record($format("        MSHR: MISS routerResp: NULL RESP: reqIdx=0x%x", null_resp.reqIdx)); 
     endrule
@@ -767,7 +761,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             // send response to router to reset forwarding table
             if( e.state == COH_CACHE_STATE_IM_D_O || e.state == COH_CACHE_STATE_IM_D_I || e.state == COH_CACHE_STATE_IM_D_OI )
             begin
-                let reset_resp = RL_COH_DM_CACHE_MSHR_FWD_RESP { fwdEntryIdx: r.meta, val: ?, resetEntry: True };
+                let reset_resp = COH_DM_CACHE_MSHR_FWD_RESP { fwdEntryIdx: r.meta, val: ?, resetEntry: True };
                 respToNetworkQ.enq(tagged MSHR_FWD_RESP reset_resp);
                 debugLog.record($format("        MSHR: routerResp: FWD RESP: fwdEntryIdx=0x%x, resetEntry=True", r.meta));
             end
@@ -800,14 +794,14 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             let mshr_delay          = False;
             let new_val             = ?;
 
-            t_LOCAL_RESP local_resp = RL_COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
-                                                                        val: r.val,
-                                                                        oldVal: (e.isTestSet)? tagged Valid r.val : tagged Invalid,
-                                                                        newState: ?,
-                                                                        isCacheable: r.isCacheable,
-                                                                        msgType: (e.isRead)? COH_CACHE_GETS : COH_CACHE_GETX,
-                                                                        clientMeta: e.meta,
-                                                                        globalReadMeta: r.globalReadMeta };
+            t_LOCAL_RESP local_resp = COH_DM_CACHE_MSHR_LOCAL_RESP { addr: e.addr,
+                                                                     val: r.val,
+                                                                     oldVal: (e.isTestSet)? tagged Valid r.val : tagged Invalid,
+                                                                     newState: ?,
+                                                                     isCacheable: r.isCacheable,
+                                                                     msgType: (e.isRead)? COH_CACHE_GETS : COH_CACHE_GETX,
+                                                                     clientMeta: e.meta,
+                                                                     globalReadMeta: r.globalReadMeta };
          
             case (e.state)
                 COH_CACHE_STATE_IM_AD:
@@ -840,9 +834,9 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
 
                     // send forwarding response to router's forwarding table (in order to forward new data to remote caches)
                     // send reset forwarding response (to reset the forwarding table) if the response does not include ownership
-                    let fwd_resp = RL_COH_DM_CACHE_MSHR_FWD_RESP { fwdEntryIdx: r.meta,
-                                                                   val: new_val,
-                                                                   resetEntry: !r.ownership };
+                    let fwd_resp = COH_DM_CACHE_MSHR_FWD_RESP { fwdEntryIdx: r.meta,
+                                                                val: new_val,
+                                                                resetEntry: !r.ownership };
                     respToNetworkQ.enq(tagged MSHR_FWD_RESP fwd_resp);
                     debugLog.record($format("        MSHR: routerResp: FWD RESP: fwdEntryIdx=0x%x, val=0x%x, resetEntry=%s", 
                                     fwd_resp.fwdEntryIdx, fwd_resp.val, (fwd_resp.resetEntry)? "True" : "False"));
@@ -928,15 +922,15 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         mshrGetValidBits.upd(idx, True);
         cacheGetReqEnW.send();
         numPendingGetS.up();
-        getReqQ.enq( RL_COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
-                                                   addr: addr,
-                                                   val: ?,
-                                                   writeData: ?,
-                                                   byteWriteMask: unpack(pack(replicate(False))),
-                                                   state: COH_CACHE_STATE_IM_AD,
-                                                   meta: meta,
-                                                   isGetX: False,
-                                                   isTestSet: False});
+        getReqQ.enq( COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
+                                                addr: addr,
+                                                val: ?,
+                                                writeData: ?,
+                                                byteWriteMask: unpack(pack(replicate(False))),
+                                                state: COH_CACHE_STATE_IM_AD,
+                                                meta: meta,
+                                                isGetX: False,
+                                                isTestSet: False});
     endmethod
     
     // Request for data and exlusive ownership
@@ -945,7 +939,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                t_CACHE_WORD val,
                                t_CACHE_WORD writeData,
                                t_CACHE_MASK byteWriteMask,
-                               RL_COH_DM_CACHE_COH_STATE oldState,
+                               COH_DM_CACHE_COH_STATE oldState,
                                t_CACHE_CLIENT_META meta,
                                Bool isTestSet) if (!releaseGetEntryW);
 
@@ -956,15 +950,15 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         cacheGetReqEnW.send();
         let new_state = (oldState == COH_DM_CACHE_STATE_O)? COH_CACHE_STATE_OM_A : COH_CACHE_STATE_IM_AD;
         numPendingGetX.up();
-        getReqQ.enq( RL_COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
-                                                   addr: addr,
-                                                   val: val,
-                                                   writeData: writeData,
-                                                   byteWriteMask: byteWriteMask,
-                                                   state: new_state,
-                                                   meta: meta,
-                                                   isGetX: True,
-                                                   isTestSet: isTestSet});
+        getReqQ.enq( COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
+                                                addr: addr,
+                                                val: val,
+                                                writeData: writeData,
+                                                byteWriteMask: byteWriteMask,
+                                                state: new_state,
+                                                meta: meta,
+                                                isGetX: True,
+                                                isTestSet: isTestSet});
 
     endmethod
 
@@ -979,12 +973,12 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         debugLog.record($format("        MSHR: receive PUTX request from cache to allocate a new entry (idx=0x%x, addr=0x%x)", idx, addr));
         mshrPutValidBits.upd(idx, True);
         cachePutReqEnW.send();
-        putReqQ.enq( RL_COH_DM_CACHE_MSHR_PUT_REQ{ idx: idx,
-                                                   addr: addr,
-                                                   val: val,
-                                                   needResp: needResp,
-                                                   isCleanWB: isCleanWB, 
-                                                   isExclusive: isExclusive });
+        putReqQ.enq( COH_DM_CACHE_MSHR_PUT_REQ{ idx: idx,
+                                                addr: addr,
+                                                val: val,
+                                                needResp: needResp,
+                                                isCleanWB: isCleanWB, 
+                                                isExclusive: isExclusive });
     endmethod
     
     // Check if there is an available MSHR entry to handle a new miss
@@ -1000,7 +994,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
                                t_CACHE_ADDR addr,
                                Bool ownReq,
                                t_NW_REQ_IDX reqIdx,
-                               RL_COH_CACHE_REQ_TYPE reqType) if (!releaseGetEntryW && !getFwdRespValW && !getReqQ.notEmpty && !putReqQ.notEmpty && respLocalQ.notFull && respToNetworkQ.notFull);
+                               COH_CACHE_REQ_TYPE reqType) if (!releaseGetEntryW && !getFwdRespValW && !getReqQ.notEmpty && !putReqQ.notEmpty && respLocalQ.notFull && respToNetworkQ.notFull);
         
         debugLog.record($format("        MSHR: %s activated request on entry=0x%x, addr=0x%x, reqType=%d", 
                                 (ownReq)? "own" : "other", mshrIdx, addr, reqType));
@@ -1036,19 +1030,19 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     method Bool dataRespQAlmostFull() = respAlmostFull;
 
     // Local responses to cache 
-    method ActionValue#(RL_COH_DM_CACHE_MSHR_LOCAL_RESP#(t_CACHE_ADDR, 
-                                                         t_CACHE_WORD,
-                                                         t_CACHE_CLIENT_META)) localResp();
+    method ActionValue#(COH_DM_CACHE_MSHR_LOCAL_RESP#(t_CACHE_ADDR, 
+                                                      t_CACHE_WORD,
+                                                      t_CACHE_CLIENT_META)) localResp();
         let r = respLocalQ.first();
         respLocalQ.deq();
         return r;
     endmethod
 
     // Remote responses to network
-    method ActionValue#(RL_COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX,
-                                                          t_CACHE_WORD,
-                                                          t_MSHR_IDX,
-                                                          t_CACHE_ADDR)) remoteResp();
+    method ActionValue#(COH_DM_CACHE_MSHR_ROUTER_RESP#(t_NW_REQ_IDX,
+                                                       t_CACHE_WORD,
+                                                       t_MSHR_IDX,
+                                                       t_CACHE_ADDR)) remoteResp();
         let r = respToNetworkQ.first();
         respToNetworkQ.deq();
         return r;

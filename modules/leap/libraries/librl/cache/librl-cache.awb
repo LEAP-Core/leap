@@ -12,5 +12,3 @@
 %public rl-tiny-cache.bsv
 %public rl-prefetch.bsv
 %public rl-prefetch-stats.bsv
-%public rl-coherent-direct-mapped-cache.bsv
-%public rl-cache-mshr.bsv

@@ -25,7 +25,7 @@ class FRONT_PANEL_COMMAND_SWITCHES_CLASS : public COMMAND_SWITCH_OPTIONAL_STRING
         ~FRONT_PANEL_COMMAND_SWITCHES_CLASS();
         
         void ProcessSwitchVoid();
-        void ProcessSwitchString(char *switch_arg);
+        void ProcessSwitchString(const char *switch_arg);
         void ShowSwitch(std::ostream& ostr, const string& prefix);
 
         bool ShowFrontPanel()   { return showFrontPanel; }

@@ -63,19 +63,19 @@ endmodule
 // A function to instantiate a stat tracker. Passed to the multi-cached-memory
 // modules below.
 
-typedef function CONNECTED_MODULE#(Empty) f(RL_COH_CACHE_STATS stats) COH_SCRATCH_CACHE_STATS_CONSTRUCTOR;
+typedef function CONNECTED_MODULE#(Empty) f(COH_CACHE_STATS stats) COH_SCRATCH_CACHE_STATS_CONSTRUCTOR;
 typedef function CONNECTED_MODULE#(Empty) f(COH_SCRATCH_CONTROLLER_STATS stats) COH_SCRATCH_CONTROLLER_STATS_CONSTRUCTOR;
 typedef function CONNECTED_MODULE#(Empty) f(COH_SCRATCH_RING_NODE_STATS stats) COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR;
 
 //
 // mkBasicCoherentScratchpadCacheStats --
-//     Shim between an RL_COH_CACHE_STATS interface and statistics counters.
+//     Shim between an COH_CACHE_STATS interface and statistics counters.
 //     Tag and description prefixes allow the caller to define the prefixes
 //     of the statistic.
 //
 module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
                                                                String descPrefix,
-                                                               RL_COH_CACHE_STATS stats)
+                                                               COH_CACHE_STATS stats)
     // interface:
     ();
 
@@ -184,7 +184,7 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
 
 endmodule
 
-module [CONNECTED_MODULE] mkNullCoherentScratchpadCacheStats#(RL_COH_CACHE_STATS stats)
+module [CONNECTED_MODULE] mkNullCoherentScratchpadCacheStats#(COH_CACHE_STATS stats)
     // interface:
     ();
 endmodule
@@ -328,16 +328,27 @@ endmodule
 typedef function CONNECTED_MODULE#(Empty) f(DEBUG_SCAN_FIELD_LIST dlist) COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR;
 
 //
-// mkCohScratchClientDebugScanNode --
+// mkCohScratchClientDebugScanNodeFromID --
 //     A wrapper that instantiates a debug scan node with a unique client ID and a domain ID
 //
-module [CONNECTED_MODULE] mkCohScratchClientDebugScanNode#(Integer domainId,
-                                                           Integer clientId,
-                                                           DEBUG_SCAN_FIELD_LIST dlist)
+module [CONNECTED_MODULE] mkCohScratchClientDebugScanNodeFromID#(Integer domainId,
+                                                                 Integer clientId,
+                                                                 DEBUG_SCAN_FIELD_LIST dlist)
     // interface:
     ();
     String cohScratchName = "Coherent Scratchpad Client " + integerToString(clientId) + " in Domain " + integerToString(domainId);
     let dbgNode <- mkDebugScanNode(cohScratchName + " (coherent-scratchpad-memory-client.bsv)", dlist);
+endmodule
+
+//
+// mkCohScratchClientDebugScanNode
+//     A wrapper that instantiates a debug scan node for a coherent scratchpad client with a unique string
+//
+module [CONNECTED_MODULE] mkCohScratchClientDebugScanNode#(String name,
+                                                           DEBUG_SCAN_FIELD_LIST dlist)
+    // interface:
+    ();
+    let dbgNode <- mkDebugScanNode(name + " (coherent-scratchpad-memory-client.bsv)", dlist);
 endmodule
 
 //
