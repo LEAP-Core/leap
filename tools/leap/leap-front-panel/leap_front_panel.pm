@@ -133,11 +133,9 @@ sub startButton_clicked
                 if (substr($data, $led, 1) eq '0')
                 {
                     $ledArray[$led]->show();
-                    print "inside show for led = $led\n";
                 }
                 else
                 {
-                    print "inside hide for led = $led\n";
                     $ledArray[$led]->hide();
                 }
             }
