@@ -93,7 +93,8 @@ JTAG_PHYSICAL_CHANNEL_CLASS::JTAG_PHYSICAL_CHANNEL_CLASS(
         dup2(parent_to_child[0], fileno(stdin));
         dup2(child_to_parent[1], fileno(stdout));
 
-        fprintf(errfd, "Lunaching nios2-terminal\n"); 
+        fprintf(errfd, "Launching nios2-terminal\n"); 
+        fflush(errfd);
         execlp("nios2-terminal", "nios2-terminal", NULL);
     }
     else
@@ -115,7 +116,7 @@ JTAG_PHYSICAL_CHANNEL_CLASS::JTAG_PHYSICAL_CHANNEL_CLASS(
   }
   
   fprintf(errfd, "get starting sequence\n");
-  
+  fflush(errfd);
 }
 
 // destructor

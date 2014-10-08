@@ -45,7 +45,7 @@ class Synthesize(ProjectDependency):
             # TODO: Need to fix this loop. 
             synth_deps += linkEDF(moduleList, module, self.firstPassLIGraph)
         else:
-            synth_deps += buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs)
+            synth_deps += buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, getSRRResourcesClosureAltera)
 
 
     # Synplify sometimes produces a synplify .ucf, but we should 

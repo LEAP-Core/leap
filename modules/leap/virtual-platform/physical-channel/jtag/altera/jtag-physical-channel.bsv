@@ -42,58 +42,32 @@ interface PHYSICAL_CHANNEL;
     
     method ActionValue#(UMF_CHUNK) read();
     method Action                  write(UMF_CHUNK chunk);
+
+    // this interface needed for LIM compiler.
+    method UMF_CHUNK first();
+    method Action    deq();
+    method Bool      write_ready();
         
 endinterface
 
-typedef Bit#(TLog#(TAdd#(TDiv#(SizeOf#(UMF_CHUNK),4),1))) UMF_COUNTER;
-
 // module
 module mkPhysicalChannel#(PHYSICAL_DRIVERS drivers)
-    // interface
-        (PHYSICAL_CHANNEL);
-   
-    // no. jtag words to assemble a umf chunk
-    UMF_COUNTER no_jtag_words = fromInteger(valueof(SizeOf#(UMF_CHUNK))/4);
+    // Interface
+    (PHYSICAL_CHANNEL);
 
-    Reg#(UMF_CHUNK)      jtagIncoming      <- mkReg(0);
-    Reg#(UMF_COUNTER)    jtagIncomingCount <- mkReg(0); 
-    Reg#(UMF_CHUNK)      jtagOutgoing      <- mkReg(0);
-    Reg#(UMF_COUNTER)    jtagOutgoingCount <- mkReg(0);       
-    Reg#(Bool)           init              <- mkReg(False);
+    let jtagDriver = drivers.jtagDriver;
 
-    // send the first character
-    rule sendInit (!init);
-        drivers.jtagDriver.send(zeroExtend(jtagOutgoingCount) + 65);
-        jtagOutgoingCount <= jtagOutgoingCount + 1;
-        if (jtagOutgoingCount == no_jtag_words - 1)
-        begin
-            init <= True;
-        end
-    endrule
+    method write = jtagDriver.write;
 
-    rule sendToJtag (init && jtagOutgoingCount != no_jtag_words);
-        Bit#(4) x = truncate(jtagOutgoing);
-        jtagOutgoing <= jtagOutgoing >> 4;
-        JTAGWord jtag_x = zeroExtend(x) ^ 64;
-        drivers.jtagDriver.send(jtag_x);
-        jtagOutgoingCount <= jtagOutgoingCount + 1;
-    endrule
+    method read = jtagDriver.read;
 
-    rule recvFromJtag (jtagIncomingCount != no_jtag_words);
-        JTAGWord x <- drivers.jtagDriver.receive();
-        Bit#(4) truncated_x = truncate(x);
-        jtagIncoming <= (jtagIncoming >> 4) ^ {truncated_x,0};
-        jtagIncomingCount <= jtagIncomingCount + 1;
-    endrule
+    method first = jtagDriver.first;
 
-    method Action write(UMF_CHUNK data) if (jtagOutgoingCount == no_jtag_words && init);
-        jtagOutgoing <= data;
-        jtagOutgoingCount <= 0;
-    endmethod
+    method deq = jtagDriver.deq;
 
-    method ActionValue#(UMF_CHUNK) read() if (jtagIncomingCount == no_jtag_words);
-        jtagIncomingCount <= 0;
-        return jtagIncoming;
-    endmethod
+    method write_ready = jtagDriver.write_ready;
 
 endmodule
+
+
+

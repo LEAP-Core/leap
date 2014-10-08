@@ -1,7 +1,7 @@
 
 [Global]
 SaveParameters=0
-Description=Hybrid evaluation-arriaII-JTAG FPGA Environment
+Description=Hybrid evaluation-arriaII-JTAG FPGA Environment 
 File=fpgaenv-hybrid-evaluation-arriaII-jtag
 Version=2.2
 Type=HAsim
@@ -28,10 +28,10 @@ File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices (No Memory Service) Submodel
+virtual_devices=Standard Virtual Devices (Local Memory Scratchpad) Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
-platform_services=Standard Platform Service (No Memory Service)
+platform_services=Standard Platform Services (Local Memory Scratchpad) Submodel
 
 [FPGA Environment]
 File=modules/leap/virtual-platform/fpga-environment.awb
@@ -61,16 +61,7 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
 Packagehint=leap-platforms
 
-[ArriaII GX JTAG/Requires]
-clocks_device=Single-Ended Crystal Clocks Device
-physical_platform_utils=Common Physical Platform Utilities
-led_device=General LED Device
-jtag_device=Altera JTAG
-altera_jtag_physical_mapping=ArriaII Dev Board JTAG Mapping
 
-[ArriaII GX JTAG]
-File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/altera-jtag.awb
-Packagehint=leap-platforms
 
 [Hardware FPGA Components for ArriaII]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-arriaII.awb
@@ -88,12 +79,12 @@ File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
 Packagehint=leap
 
 [Low Level Platform Interface Hybrid/Requires]
-physical_platform=ArriaII GX JTAG
+physical_platform=Generic Altera JTAG
 remote_memory=Null Remote Memory
 channelio=Basic Virtual Channel Multiplexer
 rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
-local_mem=NULL Local Memory Interface
+local_mem=Local Memory Interface using BRAM
 
 [Null Remote Memory]
 File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
@@ -105,10 +96,6 @@ Packagehint=leap
 
 [RRR Clients and Servers/Requires]
 rrr_common=RRR Common Module
-
-[NULL Local Memory Interface]
-File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
-Packagehint=leap
 
 [ArriaII Dev Board JTAG Mapping]
 File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/arriaII_dev/altera-arriaIIgx_dev-jtag.awb
@@ -122,10 +109,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/pipelines/build-pipeline-altera.apm
 Packagehint=leap
 
-[Standard Virtual Devices (No Memory Service) Submodel]
-File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-null-mem.apm
-Packagehint=leap
-
 [RL Bluespec Library Submodel]
 File=config/pm/leap/submodels/common/librl-bsv.apm
 Packagehint=leap
@@ -136,10 +119,6 @@ Packagehint=leap-platforms
 
 [Soft Services Submodel]
 File=config/pm/leap/submodels/common/soft-services.apm
-Packagehint=leap
-
-[Standard Platform Service (No Memory Service)]
-File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
 Packagehint=leap
 
 [Common Physical Platform Utilities/Requires]
@@ -187,3 +166,26 @@ Packagehint=bsv-libraries
 
 [Register Mapping Utilities/Requires]
 register_library=RegisterLibrary
+
+[Standard Platform Services (Local Memory Scratchpad) Submodel]
+File=config/pm/leap/submodels/platform-services/standard-platform-local-mem.apm
+Packagehint=leap
+
+[Standard Virtual Devices (Local Memory Scratchpad) Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-local-scratchpad.apm
+Packagehint=leap
+
+[Local Memory Interface using BRAM]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
+Packagehint=leap
+
+[Generic Altera JTAG]
+File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/altera-jtag.awb
+Packagehint=leap-platforms
+
+[Generic Altera JTAG/Requires]
+clocks_device=Single-Ended Crystal Clocks Device
+altera_jtag_physical_mapping=ArriaII Dev Board JTAG Mapping
+physical_platform_utils=Common Physical Platform Utilities
+led_device=General LED Device
+jtag_device=Altera JTAG

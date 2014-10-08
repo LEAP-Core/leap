@@ -48,9 +48,28 @@ def _filter_file_add(file, moduleList):
 
 
 
-# Converts SRR file into resource representation which can be used
+# Converts Xilinx SRR file into resource representation which can be used
 # by the LIM compiler to assign modules to execution platforms.
-def getSRRResourcesClosure(module):
+def getSRRResourcesClosureXilinx(module):
+
+    attributes = {'LUT': "Total  LUTs:",'Reg': "Register bits not including I/Os:", 'BRAM': "Occupied Block RAM sites"}
+
+    return getSRRResourcesClosureBase(module, attributes)
+
+
+# Converts Altera SRR file into resource representation which can be used
+# by the LIM compiler to assign modules to execution platforms.
+def getSRRResourcesClosureAltera(module):
+
+    attributes = {'LUT': "Total combinational functions ",'Reg': "Total registers ", 'M9Ks:': "Occupied Block RAM sites"}
+
+    return getSRRResourcesClosureBase(module, attributes)
+
+
+# General function for building an attribute collection from a synthesis report. 
+# Used by the LIM compiler to assign modules to execution platforms.
+# Also used to do automated placement for LI Modules. 
+def getSRRResourcesClosureBase(module, attributes):
 
     def collect_srr_resources(target, source, env):
 
@@ -60,8 +79,6 @@ def getSRRResourcesClosure(module):
         srrHandle = open(srrFile, 'r')
         rscHandle = open(rscFile, 'w')
         resources =  {}
-
-        attributes = {'LUT': "Total  LUTs:",'Reg': "Register bits not including I/Os:", 'BRAM': "Occupied Block RAM sites"}
 
         for line in srrHandle:
             for attribute in attributes:
@@ -79,9 +96,7 @@ def getSRRResourcesClosure(module):
         srrHandle.close()
     return collect_srr_resources
 
-
-
-def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs):
+def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCollector):
     MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
 
     # need to eventually break this out into a seperate function
@@ -176,7 +191,7 @@ def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs):
 
     moduleList.env.Command(resourceFile,
                            srrFile,
-                           getSRRResourcesClosure(module))
+                           resourceCollector(module))
 
     # we must gather resources files for the lim build. 
     if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY') or True):

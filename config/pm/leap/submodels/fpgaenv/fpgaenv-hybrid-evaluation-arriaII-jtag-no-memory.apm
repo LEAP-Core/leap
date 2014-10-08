@@ -1,11 +1,11 @@
 
 [Global]
 SaveParameters=0
-Description=Hybrid evaluation-de3-JTAG FPGA Environment
-File=fpgaenv-de3-jtag
+Description=Hybrid evaluation-arriaII-JTAG FPGA Environment (No Memory)
+File=fpgaenv-hybrid-evaluation-arriaII-jtag-no-memory
 Version=2.2
-Type=Leap
-Name=Hybrid evaluation-de3-JTAG FPGA Environment
+Type=HAsim
+Name=Hybrid evaluation-arriaII-JTAG FPGA Environment (No Memory)
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -18,7 +18,7 @@ model=FPGA Environment
 
 [FPGA Environment/Requires]
 virtual_platform=Standard Virtual Platform
-fpga_components=Hardware FPGA Components for StratixIII
+fpga_components=Hardware FPGA Components for ArriaII
 librl_bsv=RL Bluespec Library Submodel
 build_pipeline=FPGA Build Pipeline Altera
 soft_services=Soft Services Submodel
@@ -61,7 +61,9 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
 Packagehint=leap-platforms
 
-
+[Hardware FPGA Components for ArriaII]
+File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-arriaII.awb
+Packagehint=leap-platforms
 
 [Altera JTAG]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/jtag/altera/avalon_jtag.awb
@@ -97,13 +99,13 @@ rrr_common=RRR Common Module
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
 
+[ArriaII Dev Board JTAG Mapping]
+File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/arriaII_dev/altera-arriaIIgx_dev-jtag.awb
+Packagehint=leap-platforms
+
 [Altera JTAG Physical Channel]
 File=modules/leap/virtual-platform/physical-channel/jtag/altera/jtag-physical-channel.awb
 Packagehint=leap
-
-[DE3 Dev Board JTAG Mapping]
-File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/de3/altera-de3-jtag.awb
-Packagehint=leap-platforms
 
 [FPGA Build Pipeline Altera]
 File=config/pm/leap/submodels/pipelines/build-pipeline-altera.apm
@@ -175,20 +177,13 @@ Packagehint=bsv-libraries
 [Register Mapping Utilities/Requires]
 register_library=RegisterLibrary
 
-[Hardware FPGA Components for StratixIII]
-File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-stratixIII.awb
-Packagehint=leap-platforms
-
-[Single-Ended Crystal Clocks Device/Params]
-MODEL_CLOCK_FREQ=50
-
 [Generic Altera JTAG]
 File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/altera-jtag.awb
 Packagehint=leap-platforms
 
 [Generic Altera JTAG/Requires]
 clocks_device=Single-Ended Crystal Clocks Device
-altera_jtag_physical_mapping=DE3 Dev Board JTAG Mapping
+altera_jtag_physical_mapping=ArriaII Dev Board JTAG Mapping
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
 jtag_device=Altera JTAG

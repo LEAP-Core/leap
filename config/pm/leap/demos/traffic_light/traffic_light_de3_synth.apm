@@ -1,10 +1,10 @@
 
 [Global]
 SaveParameters=0
-Description=Traffic Light from Bluespec Tutorial for XUP w. synthesis boundary
-File=traffic_light_arriaII_synth
+Description=Traffic Light from Bluespec Tutorial for simulation w. synthesis boundary
+File=traffic_light_de3_synth
 Version=2.2
-Name=Traffic Light Model - XUP with synthesis boundary
+Name=Traffic Light Model - Exe with synthesis boundary
 DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
 Type=Leap
 Class=Asim::Model
@@ -13,7 +13,7 @@ RootName=HW/SW Hybrid Pipeline Build
 RootProvides=model
 
 [Model]
-DefaultAttributes=function_as_boundary traffic_light demo connected slave hybrid project xup
+DefaultAttributes=function_as_boundary traffic_light demo connected slave hybrid project exe
 model=HW/SW Hybrid Pipeline Build
 
 [Traffic Light System with Soft Connections]
@@ -34,15 +34,6 @@ hardware_system=Traffic Light System with Soft Connections
 File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function-smart-synth-boundary.awb
 Packagehint=leap
 
-[HW/SW Hybrid Pipeline Build]
-File=modules/leap/build-support/project/project-pipeline.awb
-Packagehint=leap
-
-[HW/SW Hybrid Pipeline Build/Requires]
-project_common=Default Hybrid Project Common Utilities
-fpgaenv=Hybrid evaluation-arriaII-JTAG FPGA Environment
-application_env=Soft Services Hybrid Application Environment
-
 [Soft Services Hybrid Application Environment]
 File=modules/leap/build-support/project/application-env/soft-services/application-env-hybrid-soft-service.awb
 Packagehint=leap
@@ -50,12 +41,25 @@ Packagehint=leap
 [Soft Services Hybrid Application Environment/Requires]
 connected_application=Default Software Connected Application
 
-
-[Hybrid evaluation-arriaII-JTAG FPGA Environment]
-File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-evaluation-arriaII-jtag.apm
+[HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid evaluation-de3-JTAG FPGA Environment
+application_env=Soft Services Hybrid Application Environment
+
+[Traffic light function w. synthesis boundary/Params]
+SIGNAL_CHANGE_DELAY=10000
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
 
+[Hybrid evaluation-de3-JTAG FPGA Environment]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-de3-jtag.apm
+Packagehint=leap
+
+[Hybrid evaluation-de3-JTAG FPGA Environment/Params]
+MODEL_CLOCK_FREQ=50

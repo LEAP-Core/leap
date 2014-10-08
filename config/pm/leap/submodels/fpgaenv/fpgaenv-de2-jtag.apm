@@ -61,16 +61,7 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
 Packagehint=leap-platforms
 
-[ArriaII GX JTAG/Requires]
-clocks_device=Single-Ended Crystal Clocks Device
-physical_platform_utils=Common Physical Platform Utilities
-led_device=General LED Device
-jtag_device=Altera JTAG
-altera_jtag_physical_mapping=DE2 Dev Board JTAG Mapping
 
-[ArriaII GX JTAG]
-File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/altera-jtag.awb
-Packagehint=leap-platforms
 
 [Hardware FPGA Components for ArriaII]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-arriaII.awb
@@ -88,7 +79,7 @@ File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
 Packagehint=leap
 
 [Low Level Platform Interface Hybrid/Requires]
-physical_platform=ArriaII GX JTAG
+physical_platform=Generic Altera JTAG
 remote_memory=Null Remote Memory
 channelio=Basic Virtual Channel Multiplexer
 rrr=RRR Clients and Servers
@@ -187,3 +178,14 @@ Packagehint=bsv-libraries
 [Vector Utilities]
 File=modules/bsv-libraries/bluespec/VectorUtils/vector_utils.awb
 Packagehint=bsv-libraries
+
+[Generic Altera JTAG]
+File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/altera-jtag.awb
+Packagehint=leap-platforms
+
+[Generic Altera JTAG/Requires]
+clocks_device=Single-Ended Crystal Clocks Device
+altera_jtag_physical_mapping=DE2 Dev Board JTAG Mapping
+physical_platform_utils=Common Physical Platform Utilities
+led_device=General LED Device
+jtag_device=Altera JTAG
