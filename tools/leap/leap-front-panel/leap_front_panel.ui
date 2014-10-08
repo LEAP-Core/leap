@@ -220,7 +220,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="buttonOk">
+     <widget class="QPushButton" name="buttonExit">
       <property name="text">
        <string>E&amp;xit</string>
       </property>
@@ -836,12 +836,12 @@
  <layoutdefault spacing="6" margin="11"/>
  <resources>
   <include location="leap_front_panel.qrc"/>
-  <include location="../../../../../../QT4-App/Qt-0.96.0/qtgui/examples/widgets/validators/validators.qrc"/>
-  <include location="../../../../../../../../../../QT4-App/Qt-0.96.0/qtgui/examples/widgets/validators/validators.qrc"/>
+  <include location="leap_front_panel.qrc"/>
+  <include location="leap_front_panel.qrc"/>
  </resources>
  <connections>
   <connection>
-   <sender>buttonOk</sender>
+   <sender>buttonExit</sender>
    <signal>clicked()</signal>
    <receiver>hfpanel</receiver>
    <slot>accept()</slot>
@@ -873,7 +873,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>buttonOk</sender>
+   <sender>buttonExit</sender>
    <signal>clicked()</signal>
    <receiver>hfpanel</receiver>
    <slot>buttonOk_clicked()</slot>
