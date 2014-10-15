@@ -1,0 +1,17 @@
+#/********************************************************************
+#* Generic FPGA build pipeline
+#********************************************************************/
+
+%name Area Group Tool
+%desc Area Group Tool
+%attributes tool
+
+%provides area_group_tool
+%requires area_group_parser
+
+%scons %library area_group_tool.py
+
+%param --global ENABLE_SMART_AREA_GROUPS 0 "True if we should emit/build area groups"
+
+
+

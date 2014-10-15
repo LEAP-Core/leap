@@ -24,9 +24,7 @@ class Build(ProjectDependency):
       FPGAProgram(moduleList)
       Software(moduleList)
       MCD(moduleList)
-      #moduleList.dump()
       Synthesize(moduleList)
-      #moduleList.dump()
       PostSynthesize(moduleList)
 
     # Legacy pipelines require the creation of a platform description file

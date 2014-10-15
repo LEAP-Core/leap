@@ -1,0 +1,18 @@
+#/********************************************************************
+#* Generic FPGA build pipeline
+#********************************************************************/
+
+%name Area Group Parser
+%desc Area Group Parser
+%attributes tool
+
+%provides area_group_parser
+
+%scons %library area_group_size.py
+%scons %library area_group.py
+%scons %library area_group_location.py
+%scons %library area_group_relationship.py
+%scons %library area_parser.py
+%scons %private area_lex.py
+%scons %private area_parse.py
+

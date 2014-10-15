@@ -2,6 +2,12 @@ import os
 import SCons.Script
 from model import  *
 
+try:
+    from area_group_tool import  *
+except ImportError:
+    pass # we won't be using this tool.
+
+
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
 
@@ -11,9 +17,26 @@ class NGD():
     fpga_part_xilinx = moduleList.env['DEFS']['FPGA_PART_XILINX']
     xilinx_apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
 
+
+    # If we got an area group placement data structure, now is the
+    # time to convert it into a UCF. 
+    if('AREA_GROUPS' in moduleList.topModule.moduleDependency):
+        area_group_file = moduleList.compileDirectory + '/areagroups.ucf'
+        moduleList.topModule.moduleDependency['UCF'] += [area_group_file]
+        def area_group_ucf_closure(moduleList):
+
+             def area_group_ucf(target, source, env):
+                 emitConstraintsXilinx(area_group_file, loadAreaConstraints(areaConstraintFileComplete(moduleList)))
+                                    
+             return area_group_ucf
+
+        moduleList.env.Command( 
+            [area_group_file],
+            areaConstraintFileComplete(moduleList),
+            area_group_ucf_closure(moduleList)
+            )                   
+
     # Concatenate UCF files
-    #for ucf in  moduleList.topModule.moduleDependency['UCF']:
-    #  print 'ngd found ucf: ' + ucf + '\n'
     if(len(moduleList.topModule.moduleDependency['UCF']) > 0):
         xilinx_ucf = moduleList.env.Command(
         xilinx_apm_name + '.ucf',

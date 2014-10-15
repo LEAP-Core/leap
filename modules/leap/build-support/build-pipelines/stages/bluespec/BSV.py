@@ -6,6 +6,11 @@ import cPickle as pickle
 import SCons.Script
 from model import  *
 from iface_tool import *
+try:
+    from area_group_tool import *
+except ImportError:
+    pass # we won't be using this tool.
+
 from li_module import *
 from wrapper_gen_tool import *
 import pygraph
@@ -868,6 +873,7 @@ class BSV():
         ##
         def cut_tree_build(target, source, env):
             # If we got a graph from the first pass, merge it in now.
+            areaGroups = {}
             if(self.firstPassLIGraph is None):
                 liGraph = LIGraph(parseLogfiles(boundary_logs))
             else:
@@ -877,8 +883,9 @@ class BSV():
                 firstPassGraph = getFirstPassLIGraph()
                 # We should ignore the 'PLATFORM_MODULE'
                 liGraph.mergeModules(getUserModules(firstPassGraph))
-
-            
+                # Also load up areaGroups
+                if(moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
+                    areaGroups = loadAreaConstraints(areaConstraintFileIncomplete(moduleList))
 
             synth_handle = open(tree_file_synth,'w')
             wrapper_handle = open(tree_file_wrapper,'w')
@@ -926,7 +933,7 @@ class BSV():
             # Output: LIModule repesenting the tree produced
             # by the function.  This tree may have unmatched
             # channels.
-            def cutRecurse(subgraph, topModule):
+            def cutRecurse(subgraph, topModule, verilogPath):
                 # doesn't make sense to cut up a null or size-one LIM
                 # trivially return the base LI module to the caller
                 if (len(subgraph.graph.nodes()) < 2):
@@ -1021,15 +1028,16 @@ class BSV():
                 if(len(graph0.modules) == 1):
                     submodule0 = graph0.modules.values()[0]
                 else:
-                    submodule0 = cutRecurse(graph0, 0)
+                    submodule0 = cutRecurse(graph0, 0, verilogPath +'/'+localModule)                    
                     num_child_exported_rules += submodule0.numExportedRules
 
                 submodule1 = LIModule("empty", "empty") 
                 if(len(graph1.modules) == 1):
                     submodule1 = graph1.modules.values()[0]
                 else:
-                    submodule1 = cutRecurse(graph1, 0)
+                    submodule1 = cutRecurse(graph1, 0, verilogPath +'/'+localModule)
                     num_child_exported_rules += submodule1.numExportedRules
+
 
                 # we need to build a representation of the new liModule we are about to construct.
                 treeModule = LIModule("FixMe", localModule)
@@ -1041,6 +1049,10 @@ class BSV():
 
                 # Instantiate the submodules.
                 for name in [submodule0.name, submodule1.name]:
+                    # fill in the area group data structure
+                    if(name in areaGroups):
+                        areaGroups[name].sourcePath = verilogPath + '/' + name + '_inst'
+
                     module_body += "    let " + name + "_inst <- mk_" +\
                                    name + '_Wrapper' + "();\n"                
                     module_body += "    let " + name + " = tpl_1(" +\
@@ -1269,8 +1281,14 @@ class BSV():
                     # a trivial second module. Having no LI modules is
                     # handled correctly.
                     liGraph.mergeModules([LIModule("empty", "empty")])                    
+                
+                top_module = cutRecurse(liGraph, 1, 'm_sys_sys_syn_m_mod')            
 
-                top_module = cutRecurse(liGraph, 1)            
+                # If necessary, dump out the area groups file.
+                if(not self.firstPassLIGraph is None):
+                    areaPickleHandle = open(areaConstraintFileComplete(moduleList), 'wb')
+                    pickle.dump(areaGroups, areaPickleHandle, protocol=-1)
+                    areaPickleHandle.close()                 
 
             # In multifpga builds, we may have some leftover modules
             # due to the way that the LIM compiler currently
@@ -1460,9 +1478,19 @@ class BSV():
         # If I got an LI graph, I don't care about the boundary logs.
         # In this case, everything comes from the first pass graph.
 
+        # Usually, we only need logs and BOs to build the build tree.
+        # However, during the second pass build we also need to fill
+        # in information about area group paths (changed by tree build)
+        tree_build_deps = boundary_logs + importBOs
+        tree_build_results = [tree_file_wrapper, tree_file_synth]
 
-        tree_components = env.Command([tree_file_wrapper, tree_file_synth],
-                                      boundary_logs + importBOs,
+        if(not self.firstPassLIGraph is None):
+            if(moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
+                tree_build_deps += [areaConstraintFileIncomplete(moduleList)]
+                tree_build_results += [areaConstraintFileComplete(moduleList)]
+
+        tree_components = env.Command(tree_build_results,
+                                      tree_build_deps,
                                       cut_tree_build)
 
         ## Compiling the build tree wrapper produces several .ba
