@@ -11,6 +11,7 @@ try:
 except ImportError:
     pass # we won't be using this tool.
 
+from treeModule import *
 from li_module import *
 from wrapper_gen_tool import *
 import pygraph
@@ -872,8 +873,9 @@ class BSV():
         ## invoked in the 2nd pass of SCons.
         ##
         def cut_tree_build(target, source, env):
-            # If we got a graph from the first pass, merge it in now.
             areaGroups = {}
+
+            # If we got a graph from the first pass, merge it in now.
             if(self.firstPassLIGraph is None):
                 liGraph = LIGraph(parseLogfiles(boundary_logs))
             else:
@@ -883,7 +885,6 @@ class BSV():
                 firstPassGraph = getFirstPassLIGraph()
                 # We should ignore the 'PLATFORM_MODULE'
                 liGraph.mergeModules(getUserModules(firstPassGraph))
-                # Also load up areaGroups
                 if(moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
                     areaGroups = loadAreaConstraints(areaConstraintFileIncomplete(moduleList))
 
@@ -918,6 +919,9 @@ class BSV():
 
             module_names = [ "__TREE_MODULE__" + str(id) for id in range(expected_wrapper_count)] + ["build_tree"]     
 
+            def getInstanceName(myModuleName):
+                return 'inst_' + myModuleName
+
 
             # A recursive function for partitioning a latency
             # insensitive graph into a a tree of modules so as to
@@ -939,7 +943,7 @@ class BSV():
                 if (len(subgraph.graph.nodes()) < 2):
                     if (not topModule):
                         if(len(subgraph.graph.nodes()) == 0):
-                            return LIModule("empty", "empty")
+                            return TreeModule("empty", "empty")
                         else:
                             return subgraph.graph.nodes()[0]
                     else: 
@@ -1024,14 +1028,16 @@ class BSV():
                 # below the current node.  And so we recurse.  If only one 
                 # module remains in the cut graph, there is no need to recurse
                 # and we just use that module. 
-                submodule0 = LIModule("empty", "empty") 
+                submodule0 = TreeModule("empty", "empty") 
                 if(len(graph0.modules) == 1):
                     submodule0 = graph0.modules.values()[0]
                 else:
                     submodule0 = cutRecurse(graph0, 0, verilogPath +'/'+localModule)                    
                     num_child_exported_rules += submodule0.numExportedRules
 
-                submodule1 = LIModule("empty", "empty") 
+                
+
+                submodule1 = TreeModule("empty", "empty") 
                 if(len(graph1.modules) == 1):
                     submodule1 = graph1.modules.values()[0]
                 else:
@@ -1040,7 +1046,9 @@ class BSV():
 
 
                 # we need to build a representation of the new liModule we are about to construct.
-                treeModule = LIModule("FixMe", localModule)
+                treeModule = TreeModule("FixMe", localModule)
+                
+                treeModule.children = [submodule0, submodule1]
                 
                 # In order to generate the module, we need a type, 
                 # but we can only get it after analyzing the module pair
@@ -1049,14 +1057,10 @@ class BSV():
 
                 # Instantiate the submodules.
                 for name in [submodule0.name, submodule1.name]:
-                    # fill in the area group data structure
-                    if(name in areaGroups):
-                        areaGroups[name].sourcePath = verilogPath + '/' + name + '_inst'
-
-                    module_body += "    let " + name + "_inst <- mk_" +\
+                    module_body += "    let " + getInstanceName(name) + " <- mk_" +\
                                    name + '_Wrapper' + "();\n"                
                     module_body += "    let " + name + " = tpl_1(" +\
-                                   name + "_inst.services);\n"
+                                    getInstanceName(name) + ".services);\n"
 
 
                 # At this node in the tree, we can match channels from our two children.  
@@ -1191,6 +1195,12 @@ class BSV():
                 else:
                     treeModule.setNumExportedRules(total_rules)
 
+                if(gen_synth_boundary):
+                    treeModule.seperator = '/'
+                else:
+                    treeModule.seperator = '_'
+
+
                 ##
                 ## Now we can write out our modules.
                 ##
@@ -1284,8 +1294,26 @@ class BSV():
                 
                 top_module = cutRecurse(liGraph, 1, 'm_sys_sys_syn_m_mod')            
 
+                # walk the top module to annotate area group paths
+                def annotateAreaGroups(treeModule, verilogPath):
+                    if(isinstance(treeModule,TreeModule)):
+                        for child in treeModule.children:
+                            annotateAreaGroups(child,verilogPath + getInstanceName(treeModule.name) + treeModule.seperator)                    
+                    else:
+                        # fill in the area group data structure
+                        if(treeModule.name in areaGroups):
+                            # We always have synthesis boundaries at the bottom of the tree. 
+                            areaGroups[treeModule.name].sourcePath = verilogPath + getInstanceName(treeModule.name) 
+
+
+
                 # If necessary, dump out the area groups file.
                 if(not self.firstPassLIGraph is None):
+                    # Also load up areaGroups            
+                    # top module has a funny recursive base case.  Fix it here. 
+                    for child in top_module.children:
+                        annotateAreaGroups(child, 'm_sys_sys_syn_m_mod/')
+
                     areaPickleHandle = open(areaConstraintFileComplete(moduleList), 'wb')
                     pickle.dump(areaGroups, areaPickleHandle, protocol=-1)
                     areaPickleHandle.close()                 

@@ -12,6 +12,7 @@
 %notes README
 
 %scons %library BSV.py
+%scons %library treeModule.py
 
 
 %sources -t XCF -v PRIVATE bluespec.xcf
