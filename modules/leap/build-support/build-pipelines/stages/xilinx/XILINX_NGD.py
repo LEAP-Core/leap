@@ -22,7 +22,9 @@ class NGD():
     # time to convert it into a UCF. 
     if('AREA_GROUPS' in moduleList.topModule.moduleDependency):
         area_group_file = moduleList.compileDirectory + '/areagroups.ucf'
-        moduleList.topModule.moduleDependency['UCF'] += [area_group_file]
+        # user ucf may be overridden by our area group ucf.  Put our
+        # generated ucf first.
+        moduleList.topModule.moduleDependency['UCF'].insert(0,area_group_file)
         def area_group_ucf_closure(moduleList):
 
              def area_group_ucf(target, source, env):

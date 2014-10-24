@@ -937,7 +937,7 @@ class BSV():
             # Output: LIModule repesenting the tree produced
             # by the function.  This tree may have unmatched
             # channels.
-            def cutRecurse(subgraph, topModule, verilogPath):
+            def cutRecurse(subgraph, topModule):
                 # doesn't make sense to cut up a null or size-one LIM
                 # trivially return the base LI module to the caller
                 if (len(subgraph.graph.nodes()) < 2):
@@ -1032,7 +1032,7 @@ class BSV():
                 if(len(graph0.modules) == 1):
                     submodule0 = graph0.modules.values()[0]
                 else:
-                    submodule0 = cutRecurse(graph0, 0, verilogPath +'/'+localModule)                    
+                    submodule0 = cutRecurse(graph0, 0)                    
                     num_child_exported_rules += submodule0.numExportedRules
 
                 
@@ -1041,7 +1041,7 @@ class BSV():
                 if(len(graph1.modules) == 1):
                     submodule1 = graph1.modules.values()[0]
                 else:
-                    submodule1 = cutRecurse(graph1, 0, verilogPath +'/'+localModule)
+                    submodule1 = cutRecurse(graph1, 0)
                     num_child_exported_rules += submodule1.numExportedRules
 
 
@@ -1292,7 +1292,7 @@ class BSV():
                     # handled correctly.
                     liGraph.mergeModules([LIModule("empty", "empty")])                    
                 
-                top_module = cutRecurse(liGraph, 1, 'm_sys_sys_syn_m_mod')            
+                top_module = cutRecurse(liGraph, 1)            
 
                 # walk the top module to annotate area group paths
                 def annotateAreaGroups(treeModule, verilogPath):
@@ -1313,6 +1313,9 @@ class BSV():
                     # top module has a funny recursive base case.  Fix it here. 
                     for child in top_module.children:
                         annotateAreaGroups(child, 'm_sys_sys_syn_m_mod/')
+
+                    # Annotate physical platform. This is sort of a hack.
+                    areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  "m_sys_sys_vp_m_mod"
 
                     areaPickleHandle = open(areaConstraintFileComplete(moduleList), 'wb')
                     pickle.dump(areaGroups, areaPickleHandle, protocol=-1)

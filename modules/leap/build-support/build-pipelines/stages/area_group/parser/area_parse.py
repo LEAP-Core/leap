@@ -3,17 +3,21 @@ import ply.yacc as yacc
 from area_group import *
 from area_group_location import *
 from area_group_size import *
+from area_group_path import *
+from area_group_resource import *
 from area_group_relationship import *
 
 def p_constraint_list(p):
     """
     constraint_list :
-    constraint_list : comment constraint_list
-    constraint_list : group_statement     constraint_list
-    constraint_list : in_statement        constraint_list
-    constraint_list : location_statement  constraint_list
-    constraint_list : dimension_statement constraint_list
+    constraint_list : comment                  constraint_list
+    constraint_list : group_statement          constraint_list
+    constraint_list : in_statement             constraint_list
+    constraint_list : location_statement       constraint_list
+    constraint_list : dimension_statement      constraint_list
     constraint_list : chip_dimension_statement constraint_list
+    constraint_list : path_statement           constraint_list
+    constraint_list : resource_statement       constraint_list
     """
 
     # Since we'll be generating some constraints elsewhere, that code
@@ -34,13 +38,27 @@ def p_group_statement(p):
 
     p[0] = AreaGroup(p[2], eval(p[4]))
 
+def p_path_statement(p):
+    """
+    path_statement : PATH NAME EQUAL STRING SEMICOLON
+    """
+
+    p[0] = AreaGroupPath(p[2], eval(p[4]))
+
+def p_resource_statement(p):
+    """
+    resource_statement : RESOURCE NAME NAME EQUAL INT SEMICOLON
+    """
+
+    p[0] = AreaGroupResource(p[2], p[3], eval(p[5]))
+
 
 def p_in_statement(p):
     """
     in_statement : NAME IN NAME SEMICOLON
     """
 
-    p[0] = AreaGroupRelationship(p[1], p[3])
+    p[0] = AreaGroupRelationship(p[3], p[1])
 
 def p_location_statement(p):
     """

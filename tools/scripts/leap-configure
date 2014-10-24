@@ -556,6 +556,10 @@ sub __validate_model {
 
     my $result = 1;
 
+    if (!defined($module)) {
+        print STDERR "Module of $model with path $module_tree is undefined\n";  
+    }
+
     my $provides = $module->provides();
 
     if (exists($required_modules{$provides})) {

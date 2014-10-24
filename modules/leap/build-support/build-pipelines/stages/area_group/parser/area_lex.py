@@ -3,6 +3,8 @@ reserved = {
     'location': 'LOCATION',
     'dimension': 'DIMENSION',
     'areagroup': 'AREAGROUP',
+    'resource': 'RESOURCE',
+    'path': 'PATH',
     'None': 'NONE',
     'FPGA': 'FPGA',
     }
@@ -18,6 +20,8 @@ t_SEMICOLON = r';'
 t_IN = r'in'
 t_LOCATION = r'location'
 t_DIMENSION = r'dimension'
+t_RESOURCE = r'resource'
+t_PATH = r'path'
 t_NONE = r'None'
 t_FPGA = r'FPGA'
 

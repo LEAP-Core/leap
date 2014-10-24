@@ -6,6 +6,8 @@ from model import  *
 from li_module import *
 from wrapper_gen_tool import *
 
+#from glpkpi import *
+
 def areaConstraintType():
     return 'UCF'
 
@@ -41,12 +43,12 @@ def emitConstraintsXilinx(fileName, areaGroups):
         print "Emitting Code for: " + str(areaGroupObject)
         # This is a magic conversion factor for virtex 7.  It might
         # need to change for different architectures.
-        lutToSliceRatio = 2.828 
+        lutToSliceRatio = 1
 
         #INST "m_sys_sys_syn_m_mod/common_services_inst/*" AREA_GROUP = "AG_common_services";
 #AREA_GROUP "AG_common_services"                   RANGE=SLICE_X146Y201:SLICE_X168Y223;
 #AREA_GROUP "AG_common_services"                   GROUP = CLOSED;
-        constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + '\n')
+        constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
         constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
         slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)/lutToSliceRatio)
         slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)/lutToSliceRatio)
@@ -56,6 +58,7 @@ def emitConstraintsXilinx(fileName, areaGroups):
   
         constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" RANGE=SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + ';\n')
         constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" GROUP=CLOSED;\n')
+        constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" PLACE=CLOSED;\n')
         
     constraintsFile.close()
     
@@ -70,7 +73,11 @@ class Floorplanner():
         if(not moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
                return
 
-        self.firstPassLIGraph = getFirstPassLIGraph()
+        liGraph = LIGraph([])
+        firstPassGraph = getFirstPassLIGraph()
+        # We should ignore the 'PLATFORM_MODULE'                                                                                                                    
+        liGraph.mergeModules(firstPassGraph.modules.values())
+        self.firstPassLIGraph = liGraph
 
         # We'll build a rather complex function to emit area group constraints 
         def area_group_closure(moduleList):
@@ -80,6 +87,7 @@ class Floorplanner():
                  modHandle = open(modFile,'w')
 
                  extra_area_factor = 1.3
+                 luts_per_slice = 8
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -100,30 +108,22 @@ class Floorplanner():
                      if(module in moduleResources):
                          if('LUT' in moduleResources[module]):
                              areaGroups[module] = AreaGroup(module, '')
-                             areaGroups[module].area = moduleResources[module]['LUT']
-
+ 
                  # now that we have the modules, let's apply constraints. 
 
-                 # Let's build a graph of the modules.  First, we use
-                 # the module resources to setup possible dimension
-                 # reprsentation with an affine equation. 
                  print "moduleResources " + str(moduleResources)
-                 affineCoefs = [1] # just make them all squares for now. 
-                 for areaGroup in areaGroups:
-                     areaGroupObject = areaGroups[areaGroup]
-                     areaGroupObject.xDimension = []
-                     areaGroupObject.yDimension = []
-                     moduleRoot = math.sqrt(areaGroupObject.area)
-                     for coef in affineCoefs:
-                         areaGroupObject.xDimension.append(coef*moduleRoot*extra_area_factor)
-                         areaGroupObject.yDimension.append(moduleRoot/coef*extra_area_factor)
 
-                 # Now we will read in user provided constraints and apply these. 
+                 # Grab area groups declared/defined in the agrp file supplied by the user. 
 
                  print "area sources " + str(convertDependencies(source))
                  constraints = []
                  for constraintFile in moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS'):
                      constraints += parseAreaGroupConstraints(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + constraintFile)
+
+                 # first bind new area groups. 
+                 for constraint in constraints:
+                     if(isinstance(constraint,AreaGroup)):                         
+                         areaGroups[constraint.name] = constraint
 
                  # We should have gotten a chip dimension. Find and assign chip. 
                  chipXDimension = -1
@@ -131,11 +131,6 @@ class Floorplanner():
                  
                  # a list of all variables in the ILP problem
                  variables = []
-
-                 # first bind new area groups. 
-                 for constraint in constraints:
-                     if(isinstance(constraint,AreaGroup)):                         
-                         areaGroups[constraint.name] = constraint
 
                  # Fill in any other information we obtanied about the
                  # area groups.
@@ -156,10 +151,67 @@ class Floorplanner():
                              # the previous loop.
                              areaGroups[constraint.name].xDimension = [constraint.xDimension]
                              areaGroups[constraint.name].yDimension = [constraint.yDimension]
+                    
+
+                     if(isinstance(constraint,AreaGroupResource)): 
+                         if(not constraint.name in moduleResources):
+                             moduleResources[constraint.name] = {}
+ 
+                         moduleResources[constraint.name][constraint.type] = constraint.value
+
                      if(isinstance(constraint,AreaGroupLocation)): 
                          areaGroups[constraint.name].xLoc = constraint.xLocation
                          areaGroups[constraint.name].yLoc = constraint.yLocation
                          
+                     if(isinstance(constraint,AreaGroupPath)): 
+                         areaGroups[constraint.name].sourcePath = constraint.path
+
+                     if(isinstance(constraint,AreaGroupRelationship)): 
+                         areaGroups[constraint.parent].children[constraint.child] = areaGroups[constraint.child]
+                         if(areaGroups[constraint.child].parent is None):
+                             areaGroups[constraint.child].parent = areaGroups[constraint.parent]
+                             if(len(areaGroups[constraint.child].children) != 0):
+                                 print "Area group " + constraint.child + " already has children, so it cannot have a parent.  Reconsider your area group file. Bailing."
+                                 exit(1)
+                         else:
+                             print "Area group " + constraint.child + " already had a parent.  Reconsider your area group file. Bailing."
+                             exit(1)
+
+                 # assign areas for all areagroups.
+                 for areaGroup in areaGroups.values():
+                     # EEEK I don't think I know what the paths will
+                     # be at this point. Probably need to memoize and
+                     # fill those in later?
+                     if((areaGroup.name in moduleResources) and ('LUT' in moduleResources[areaGroup.name])):
+                         # there are 8 luts in a slice.
+                         areaGroup.area = moduleResources[areaGroup.name]['LUT']/luts_per_slice
+                     else:
+                         areaGroup.area = areaGroup.xDimension[0]/luts_per_slice * areaGroup.yDimension[0]/luts_per_slice
+
+                 # We've now built a tree of parent/child
+                 # relationships, which we can use to remove area from
+                 # the parent (double counting is a problem).  
+                 for areaGroup in areaGroups.values():
+                     for child in areaGroup.children.values():
+                         print 'AREAGROUP: setting parent ' + areaGroup.name +  ' area from ' +  str(areaGroup.area) + 'to' + str(areaGroup.area - child.area) + ' due to child ' + child.name   
+                         areaGroup.area = areaGroup.area - child.area
+
+
+                 affineCoefs = [.25, .5, .75, 1, 1.33, 2, 4] # just make them all squares for now. 
+                 for areaGroup in areaGroups:
+                     areaGroupObject = areaGroups[areaGroup]
+                     # we might have gotten coefficients from the constraints.
+                     if(areaGroupObject.xDimension is None):
+                         areaGroupObject.xDimension = []
+                         areaGroupObject.yDimension = []
+                         moduleRoot = math.sqrt(areaGroupObject.area)
+                         for coef in affineCoefs:
+                             areaGroupObject.xDimension.append(coef*moduleRoot*extra_area_factor)
+                             areaGroupObject.yDimension.append(moduleRoot/coef*extra_area_factor)
+        
+
+
+
                  # let's begin setting up the ILP problem 
                  modHandle.write('var comms;\n')                         
                  modHandle.write('\n\nminimize dist: comms;\n\n')
@@ -176,14 +228,20 @@ class Floorplanner():
                          modHandle.write('var xloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xLoc) + ';\n')
                          modHandle.write('var yloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yLoc) + ';\n')
 
+                     print "group: " + str(areaGroupObject)
                      if(len(areaGroupObject.xDimension) > 1):
                          dimsX = []
                          dimsY = []
-                         for dimensionIndex in len(areaGroupObject.xDimension):
-                             aspectName = areaGroupObject.name + '_' + dimensionIndex
+                         dimSelectX = []
+                         dimSelectY = []
+                         for dimensionIndex in range(len(areaGroupObject.xDimension)):
+                             aspectName = areaGroupObject.name + '_' + str(dimensionIndex)
                              modHandle.write('var ' + aspectName + ' binary;\n')
+                             variables += [aspectName]
                              dimsX.append(str(areaGroupObject.xDimension[dimensionIndex]) + ' * ' + aspectName)
                              dimsY.append(str(areaGroupObject.yDimension[dimensionIndex]) + ' * ' + aspectName)
+                             dimSelectX.append(str(aspectName))
+                             dimSelectY.append(str(aspectName))
 
                          modHandle.write('var xdim_' + areaGroupObject.name + ';\n')
                          modHandle.write('var ydim_' + areaGroupObject.name + ';\n')
@@ -192,21 +250,31 @@ class Floorplanner():
                          modHandle.write(' + '.join(dimsX) + ' = xdim_' + areaGroupObject.name +';\n')
                          modHandle.write('subject to ydim_' + areaGroupObject.name + '_assign:\n')
                          modHandle.write(' + '.join(dimsY) + ' = ydim_' + areaGroupObject.name +';\n')
+
+                         modHandle.write('subject to xdim_select_' + areaGroupObject.name + '_assign:\n')
+                         modHandle.write(' + '.join(dimSelectX) + ' = 1;\n')
+                         modHandle.write('subject to ydim_select_' + areaGroupObject.name + '_assign:\n')
+                         modHandle.write(' + '.join(dimSelectY) + ' = 1;\n')
+
                      else:
                          # Much simpler constraints when considering single shapes. 
                          modHandle.write('var xdim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xDimension[0]) + ';\n')
                          modHandle.write('var ydim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yDimension[0]) +';\n')
 
-                     # Throw a bounding box on the location variables
-                     modHandle.write('subject to xdim_' + areaGroupObject.name + '_high_bound:\n')
-                     modHandle.write('xloc_' + areaGroupObject.name + ' <= ' + str(chipXDimension) + ' - 0.5 * xdim_' + areaGroupObject.name +';\n')
-                     modHandle.write('subject to xdim_' + areaGroupObject.name + '_low_bound:\n')
-                     modHandle.write('xloc_' + areaGroupObject.name + ' >= ' + '0.5 * xdim_' + areaGroupObject.name +';\n')           
+                     variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
 
-                     modHandle.write('subject to ydim_' + areaGroupObject.name + '_high_bound:\n')
-                     modHandle.write('yloc_' + areaGroupObject.name + ' <= ' + str(chipYDimension) + ' - 0.5 * ydim_' + areaGroupObject.name +';\n')
-                     modHandle.write('subject to ydim_' + areaGroupObject.name + '_low_bound:\n')
-                     modHandle.write('yloc_' + areaGroupObject.name + ' >= ' + '0.5 * ydim_' + areaGroupObject.name +';\n')           
+                     # Throw a bounding box on the location variables
+                     if(areaGroupObject.xLoc is None):
+                         modHandle.write('subject to xdim_' + areaGroupObject.name + '_high_bound:\n')
+                         modHandle.write('xloc_' + areaGroupObject.name + ' <= ' + str(chipXDimension) + ' - 0.5 * xdim_' + areaGroupObject.name +';\n')
+                         modHandle.write('subject to xdim_' + areaGroupObject.name + '_low_bound:\n')
+                         modHandle.write('xloc_' + areaGroupObject.name + ' >= ' + '0.5 * xdim_' + areaGroupObject.name +';\n')           
+
+                     if(areaGroupObject.yLoc is None):
+                         modHandle.write('subject to ydim_' + areaGroupObject.name + '_high_bound:\n')
+                         modHandle.write('yloc_' + areaGroupObject.name + ' <= ' + str(chipYDimension) + ' - 0.5 * ydim_' + areaGroupObject.name +';\n')
+                         modHandle.write('subject to ydim_' + areaGroupObject.name + '_low_bound:\n')
+                         modHandle.write('yloc_' + areaGroupObject.name + ' >= ' + '0.5 * ydim_' + areaGroupObject.name +';\n')           
 
                  # Now we need to lay down the non-overlap constraints
                  areaGroupNames = sorted([name for name in areaGroups])
@@ -232,13 +300,34 @@ class Floorplanner():
                          modHandle.write('var ' + aBiggerX + ' binary;\n')
                          modHandle.write('var ' + aBiggerY + ' binary;\n')
 
-                         sumTerms += [absX, absY]
+                         # Need to find out how much the two modules communicate. 
+                         commsXY = 1 # we want to force a tight grouping no matter what.
+
+                         # Area groups come in two types -- parents
+                         # and children.  Children communicate only
+                         # with parents, while parents may communicate
+                         # with other parents.
+               
+                         #Handle parents
+                         if(areaGroupA.parent is None):    
+                             moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
+                             for channel in moduleAObject.channels:
+                                 # some channels may not be assigned
+                                 if(isinstance(channel.partnerModule, LIModule)):
+                                     if(channel.partnerModule.name == areaGroupB.name):
+                                         commsXY = commsXY + 1000
+                         else:
+                             # this area group is a child.  Make it close to the parent and nothing else. 
+                             if(areaGroupA.parent == areaGroupB.name):
+                                 commsXY = commsXY * 10000
+
+
+                         #if(commsXY < 1):
+                         sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
 
                          # ensure that either X or Y distance is satisfied
                          modHandle.write('subject to sat_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
                          modHandle.write(satX + ' + ' + satY + ' <= 1;\n')
-
-
 
                          # Add in terms for abs value
 
@@ -274,10 +363,10 @@ class Floorplanner():
 
                          # the abs terms are also bound by some minimum distance
                
-                         modHandle.write('subject to min_xdim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                         modHandle.write('subject to min_ydim_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
                          modHandle.write('0.5 * ydim_' + areaGroupB.name + ' + 0.5 * ydim_'  +  areaGroupA.name + ' - ' + str(chipYDimension) + ' * ' + satX +  ' <= ' + absY + ';\n')
 
-                         modHandle.write('subject to min_xdim_2_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                         modHandle.write('subject to min_xdim_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
                          modHandle.write('0.5 * xdim_' + areaGroupB.name + ' + 0.5 * xdim_'  +  areaGroupA.name + ' - ' + str(chipXDimension) + ' * ' + satY +  ' <= ' + absX + ';\n')
           
 
@@ -290,13 +379,60 @@ class Floorplanner():
                  # now that we've written out the file, solve it. 
                  # Necessary to force ply rebuild.  Sad...
                  import glpk 
+
                  example = glpk.glpk(modFile)
+                 example._parm.tm_lim = 100 # value in milliseconds
+                 example._parm.it_lim = 1000 # value in milliseconds
+
+                 # This function is a copy of the solve function
+                 # provided by python-glpk.  However, because we need
+                 # to tweak some of the icop struct arguments, we must
+                 # expose this routine. 
+                 def solve_int(self, instantiate = True, bounds = True):
+                     #glp_term_out(GLP_OFF);                                                   
+                     if not self._ready:
+                         self.update()
+                     #glp_term_out(GLP_ON);                                                    
+                     if self._cols == None or self._rows == None:
+                         self._read_variables()
+                     if bounds:
+                         self._apply_bounds()
+                     if  glpk.glp_get_num_int(self._lp) == 0:   # problem is continuous              
+                         res = glpk.glp_simplex(self._lp, self._parm) # self._parm !!!              
+                     else:   # problem is MIP                                                  
+                         if self._tran:
+                             glpk.glp_mpl_build_prob(self._tran, self._lp);
+                         res = glpk.glp_simplex(self._lp, self._parm);  # ??? should use dual simplex ???                                                                            
+                         iocp_param = glpk.glp_iocp();
+                         glpk.glp_init_iocp(iocp_param);
+                         #iocp_param.tm_lim=600*1000
+                         iocp_param.mip_gap=0.9
+
+                         glpk.glp_intopt(self._lp, iocp_param);
+                         if self._tran:
+                             ret = glpk.glp_mpl_postsolve(self._tran, self._lp, glpk.GLP_MIP);
+                             if ret != 0:
+                                 print "Error on postsolving model"
+                                 raise AttributeError
+                     if instantiate:
+                         self._instantiate_solution()
+                     if res != 0:
+                         return None
+                     else:
+                         return glpk.glp_get_obj_val(self._lp);
+
+
+                                  
+                 print str(example._parm)
                  example.update()
-                 example.solve()
+                 solve_int(example)
 
                  # dump interesting variables
-                 for variable in variables:
-                     print variable + ' is: ' + str(eval('example.' + variable).value()) 
+                 def dumpVariables(example):
+                     for variable in variables:
+                         print variable + ' is: ' + str(eval('example.' + variable).value()) 
+
+                 dumpVariables(example)
 
                  # print out module locations 
                  for areaGroupIndex in range(len(areaGroupNames)):
@@ -304,6 +440,15 @@ class Floorplanner():
 
                      areaGroup.xLoc = eval('example.xloc_' + areaGroup.name).value()
                      areaGroup.yLoc = eval('example.yloc_' + areaGroup.name).value()
+
+                     # If problem was not satisfiable, then xloc/yloc
+                     # are set to zero.  We should really give up and
+                     # clear all area groups, since this technically
+                     # results in a correct solution.
+                     if(areaGroup.xLoc < 1 or areaGroup.yLoc < 1):
+                         print "Failed to find solution to area group placement"
+                         dumpVariables(example)
+                         exit(1)
 
                      # figure out the chose dimensions.
 
