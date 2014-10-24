@@ -1315,7 +1315,8 @@ class BSV():
                         annotateAreaGroups(child, 'm_sys_sys_syn_m_mod/')
 
                     # Annotate physical platform. This is sort of a hack.
-                    areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  "m_sys_sys_vp_m_mod"
+                    if(moduleList.localPlatformName + "_platform" in areaGroups):
+                        areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  "m_sys_sys_vp_m_mod"
 
                     areaPickleHandle = open(areaConstraintFileComplete(moduleList), 'wb')
                     pickle.dump(areaGroups, areaPickleHandle, protocol=-1)
