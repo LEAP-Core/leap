@@ -103,7 +103,7 @@ module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
     FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();
 
     // Get a handle to the DDR DRAM Controller
-    Vector#(FPGA_DDR_BANKS, DDR_DRIVER) dramDriver = drivers.ddrDriver;
+    DDR_DRIVER dramDriver = drivers.ddrDriver;
 
     //
     // ddrAddrComponents --
