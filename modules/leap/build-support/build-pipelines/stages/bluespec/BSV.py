@@ -1297,13 +1297,14 @@ class BSV():
                 # walk the top module to annotate area group paths
                 def annotateAreaGroups(treeModule, verilogPath):
                     if(isinstance(treeModule,TreeModule)):
-                        for child in treeModule.children:
-                            annotateAreaGroups(child,verilogPath + getInstanceName(treeModule.name) + treeModule.seperator)                    
+                        if (not treeModule.children is None):
+                            for child in treeModule.children:
+                                annotateAreaGroups(child,verilogPath + getInstanceName(treeModule.name) + treeModule.seperator)
                     else:
                         # fill in the area group data structure
                         if(treeModule.name in areaGroups):
                             # We always have synthesis boundaries at the bottom of the tree. 
-                            areaGroups[treeModule.name].sourcePath = verilogPath + getInstanceName(treeModule.name) 
+                            areaGroups[treeModule.name].sourcePath = verilogPath + getInstanceName(treeModule.name)
 
 
 
