@@ -58,7 +58,15 @@ sub get_scons_subclass {
 
     my @resolved_library;
     foreach my $library (@libraries) {
-      push(@resolved_library,Asim::resolve(Leap::Util::path_append($module->base_dir(),$library)));
+        my $library_path = Asim::resolve(Leap::Util::path_append($module->base_dir(),$library));
+        push(@resolved_library, $library_path);
+        # check for existence
+        unless(-e $library_path) {
+           my $module_name = $module->name; 
+           print "Failed to find python library in module ${module_name}: ${library}, does it exist?\n";
+           exit 0;
+	}
+
     }
  
     return @resolved_library;
