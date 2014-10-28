@@ -4,6 +4,6 @@ class TreeModule(LIModule):
   
     def __init__(self, type, name):
         LIModule.__init__(self, type, name)
-        self.children = None
+        self.children = []
         self.seperator = None
 

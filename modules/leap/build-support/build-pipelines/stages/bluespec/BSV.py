@@ -1310,10 +1310,15 @@ class BSV():
                 # If necessary, dump out the area groups file.
                 if(not self.firstPassLIGraph is None):
                     # Also load up areaGroups            
-                    # top module has a funny recursive base case.  Fix it here. 
-                    for child in top_module.children:
-                        annotateAreaGroups(child, 'm_sys_sys_syn_m_mod/')
+                    # top module has a funny recursive base case.  Fix it here.
 
+                    # It is possible the the top_module will be a singleton LI module. 
+                    if(isinstance(top_module,TreeModule)): 
+                        for child in top_module.children:
+                            annotateAreaGroups(child, 'm_sys_sys_syn_m_mod/')
+                    else:                        
+                        annotateAreaGroups(top_module, 'm_sys_sys_syn_m_mod/')
+                                            
                     # Annotate physical platform. This is sort of a hack.
                     if(moduleList.localPlatformName + "_platform" in areaGroups):
                         areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  "m_sys_sys_vp_m_mod"
