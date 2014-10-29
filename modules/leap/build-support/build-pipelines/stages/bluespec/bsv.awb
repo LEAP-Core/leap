@@ -12,6 +12,7 @@
 %notes README
 
 %scons %library BSV.py
+%scons %library BSVSynthTreeBuilder.py
 %scons %library treeModule.py
 
 
