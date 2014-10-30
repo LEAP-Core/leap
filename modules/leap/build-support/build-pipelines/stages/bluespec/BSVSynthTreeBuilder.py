@@ -34,20 +34,22 @@
 ## slow compilation.  Instead, a tree of modules is generated.
 ##
 
-from model import *
+import os
+import pickle
 
+import model
+from model import Module, get_build_path
 import li_module
 from li_module import LIGraph, LIModule
-
 import bsv_tool
 import wrapper_gen_tool
+from wrapper_gen_tool import getFirstPassLIGraph
 from bsv_tool.treeModule import TreeModule
 
 try:
-    from area_group_tool import *
+    import area_group_tool
 except ImportError:
     pass # we won't be using this tool.
-
 
 
 class BSVSynthTreeBuilder():
@@ -88,6 +90,17 @@ class BSVSynthTreeBuilder():
         tree_file_bo = tree_base_path + "/build_tree.bsv"
         tree_file_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR + "/build_tree"
 
+        # Area constraints
+        area_constraints_file = None
+        area_constraints_file_incomplete = None
+        try:
+            if (moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
+                area_constraints_file = area_group_tool.areaConstraintFileComplete(moduleList)
+                area_constraints_file_incomplete = area_group_tool.areaConstraintFileIncomplete(moduleList)
+        except:
+            # The area constraints code is not present.
+            pass
+
         if moduleList.env.GetOption('clean'):
             os.system('rm -f ' + tree_file_bo)
 
@@ -109,7 +122,7 @@ class BSVSynthTreeBuilder():
             areaGroups = {}
 
             # If we got a graph from the first pass, merge it in now.
-            if(self.parent.firstPassLIGraph is None):
+            if(getFirstPassLIGraph() is None):
                 liGraph = LIGraph(li_module.parseLogfiles(boundary_logs))
             else:
                 #cut_tree_build may modify the first pass graph, so we need
@@ -118,8 +131,8 @@ class BSVSynthTreeBuilder():
                 firstPassGraph = getFirstPassLIGraph()
                 # We should ignore the 'PLATFORM_MODULE'
                 liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
-                if(moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
-                    areaGroups = loadAreaConstraints(areaConstraintFileIncomplete(moduleList))
+                if (area_constraints_file_incomplete):
+                    areaGroups = area_group_tool.loadAreaConstraints(area_constraints_file_incomplete)
 
             synth_handle = open(tree_file_synth,'w')
             wrapper_handle = open(tree_file_wrapper,'w')
@@ -147,8 +160,8 @@ class BSVSynthTreeBuilder():
             # Top module has a special, well-known name for stub gen.
             # unless there is only one module in the graph.  
             expected_wrapper_count = len(boundary_logs) - 2
-            if(not self.parent.firstPassLIGraph is None):
-                expected_wrapper_count = len(self.parent.firstPassLIGraph.modules) - 2          
+            if(not getFirstPassLIGraph() is None):
+                expected_wrapper_count = len(getFirstPassLIGraph().modules) - 2          
 
             module_names = [ "__TREE_MODULE__" + str(id) for id in range(expected_wrapper_count)] + ["build_tree"]     
 
@@ -542,7 +555,7 @@ class BSVSynthTreeBuilder():
 
 
                 # If necessary, dump out the area groups file.
-                if(not self.parent.firstPassLIGraph is None):
+                if(not getFirstPassLIGraph() is None):
                     # Also load up areaGroups            
                     # top module has a funny recursive base case.  Fix it here.
 
@@ -557,9 +570,10 @@ class BSVSynthTreeBuilder():
                     if(moduleList.localPlatformName + "_platform" in areaGroups):
                         areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  "m_sys_sys_vp_m_mod"
 
-                    areaPickleHandle = open(areaConstraintFileComplete(moduleList), 'wb')
-                    pickle.dump(areaGroups, areaPickleHandle, protocol=-1)
-                    areaPickleHandle.close()                 
+                    if (area_constraints_file):
+                        areaPickleHandle = open(area_constraints_file, 'wb')
+                        pickle.dump(areaGroups, areaPickleHandle, protocol=-1)
+                        areaPickleHandle.close()                 
 
             # In multifpga builds, we may have some leftover modules
             # due to the way that the LIM compiler currently
@@ -630,7 +644,7 @@ class BSVSynthTreeBuilder():
         importStubs = []
 
 
-        if(not self.parent.firstPassLIGraph is None):
+        if(not getFirstPassLIGraph() is None):
             # Now that we have demanded bluespec builds (for
             # dependencies), we should now should downgrade synthesis boundaries for the backend.
             for module in topo:
@@ -643,7 +657,7 @@ class BSVSynthTreeBuilder():
 
             oldStubs = []
             buildPath = get_build_path(moduleList, moduleList.topModule)
-            for module in self.parent.firstPassLIGraph.modules.values():
+            for module in getFirstPassLIGraph().modules.values():
                 moduleDeps = {}
 
                 for objType in ['BA', 'GEN_BAS', 'GEN_VERILOG_STUB', 'STR']:
@@ -684,9 +698,9 @@ class BSVSynthTreeBuilder():
         expected_wrapper_count = len(boundary_logs) - 2
         importBOs = []
 
-        if(not self.parent.firstPassLIGraph is None):
+        if(not getFirstPassLIGraph() is None):
             # we now have platform modules in here. 
-            expected_wrapper_count = len(self.parent.firstPassLIGraph.modules) - 2
+            expected_wrapper_count = len(getFirstPassLIGraph().modules) - 2
 
             # If we have an LI graph, we need to construct and compile
             # LI import wrappers for the modules we received from the
@@ -725,7 +739,7 @@ class BSVSynthTreeBuilder():
         buildTreeDeps['STR'] = []
         buildTreeDeps['VERILOG'] = [top_module_path + '/' + self.parent.TMP_BSC_DIR + '/mk_build_tree_Wrapper.v']
         buildTreeDeps['GIVEN_BSVS'] = []
-        buildTreeDeps['VERILOG_STUB'] = convertDependencies(oldStubs)
+        buildTreeDeps['VERILOG_STUB'] = model.convertDependencies(oldStubs)
 
         tree_module = Module( 'build_tree', ["mkBuildTree"], moduleList.topModule.buildPath,\
                              moduleList.topModule.name,\
@@ -753,10 +767,9 @@ class BSVSynthTreeBuilder():
         tree_build_deps = boundary_logs + importBOs
         tree_build_results = [tree_file_wrapper, tree_file_synth]
 
-        if(not self.parent.firstPassLIGraph is None):
-            if(moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
-                tree_build_deps += [areaConstraintFileIncomplete(moduleList)]
-                tree_build_results += [areaConstraintFileComplete(moduleList)]
+        if (getFirstPassLIGraph() and area_constraints_file):
+            tree_build_deps += [area_constraints_file_incomplete]
+            tree_build_results += [area_constraints_file]
 
         tree_components = env.Command(tree_build_results,
                                       tree_build_deps,
@@ -771,7 +784,7 @@ class BSVSynthTreeBuilder():
 
         def linkLIMObjClosure(liModules, buildPath):
             def linkLIMObj(target, source, env):
-                if(not self.parent.firstPassLIGraph is None):
+                if(not getFirstPassLIGraph() is None):
                     # The LIM build has passed us some source and we need
                     # to patch it through.
                     for module in liModules:
@@ -803,9 +816,9 @@ class BSVSynthTreeBuilder():
                                            tree_command)
 
         # If we got a first pass LI graph, we need to link its object codes. 
-        if(not self.parent.firstPassLIGraph is None):
+        if(not getFirstPassLIGraph() is None):
             buildPath = get_build_path(moduleList, moduleList.topModule)
-            link_lim_user_objs = env.Command(limLinkUserTargets, limLinkUserSources, linkLIMObjClosure(bsv_tool.getUserModules(self.parent.firstPassLIGraph), buildPath))
+            link_lim_user_objs = env.Command(limLinkUserTargets, limLinkUserSources, linkLIMObjClosure(bsv_tool.getUserModules(getFirstPassLIGraph()), buildPath))
             env.Depends(link_lim_user_objs, tree_file_wrapper_bo)
 
 
@@ -833,7 +846,7 @@ class BSVSynthTreeBuilder():
         # vdir directory to hide the spurious verilog generated by
         # bluespec.
         importVDir = None
-        if(not self.parent.firstPassLIGraph is None):
+        if(not getFirstPassLIGraph() is None):
             importVDir = '.lim_import_verilog'
             if not os.path.isdir(importVDir):
                 os.mkdir(importVDir)
@@ -843,7 +856,7 @@ class BSVSynthTreeBuilder():
 
         platform_synth_deps = [platform_synth]
         #if we have a module graph, we don't require the compilation of the platform_wrapper_bo.
-        if(self.parent.firstPassLIGraph is None):
+        if(getFirstPassLIGraph() is None):
             platform_synth_deps.append(platform_wrapper_bo)
         platform_synth_bo = env.Command([platform_synth_bo_path + '.bo'],
                                          platform_synth_deps,
@@ -854,9 +867,9 @@ class BSVSynthTreeBuilder():
                         platform_synth_bo)
        
         # Platform synth does the same object-bypass dance as tree_module.
-        if(not self.parent.firstPassLIGraph is None):
+        if(not getFirstPassLIGraph() is None):
             buildPath = get_build_path(moduleList, moduleList.topModule)
-            link_lim_platform_objs = env.Command(limLinkPlatformTargets, limLinkPlatformSources, linkLIMObjClosure(bsv_tool.getPlatformModules(self.parent.firstPassLIGraph), buildPath))
+            link_lim_platform_objs = env.Command(limLinkPlatformTargets, limLinkPlatformSources, linkLIMObjClosure(bsv_tool.getPlatformModules(getFirstPassLIGraph()), buildPath))
             env.Depends(link_lim_platform_objs, platform_synth_bo)
 
         # need to generate a stub file for the build tree module.
@@ -868,10 +881,10 @@ class BSVSynthTreeBuilder():
         tree_module.moduleDependency['GEN_VERILOG_STUB'] = [self.parent.stubGenCommand(top_module_path, "build_tree_Wrapper.bsv", top_module_path + '/' + self.parent.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")]
         env.Depends(top_module_path + '/' + self.parent.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v", tree_file_wrapper_bo)
         # top level only depends on platform modules       
-        moduleList.topModule.moduleDependency['VERILOG_STUB'] = convertDependencies([module.moduleDependency['GEN_VERILOG_STUB'] for module in moduleList.synthBoundaries() if module.platformModule]) 
-        if(not self.parent.firstPassLIGraph is None):
+        moduleList.topModule.moduleDependency['VERILOG_STUB'] = model.convertDependencies([module.moduleDependency['GEN_VERILOG_STUB'] for module in moduleList.synthBoundaries() if module.platformModule]) 
+        if(not getFirstPassLIGraph() is None):
             #Second pass build picks up stub files from the first pass build. 
-            moduleList.topModule.moduleDependency['VERILOG_STUB'] += convertDependencies(oldStubs)
+            moduleList.topModule.moduleDependency['VERILOG_STUB'] += model.convertDependencies(oldStubs)
 
 
     ## END of setup_tree_build

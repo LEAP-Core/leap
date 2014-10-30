@@ -4,7 +4,7 @@ import cPickle as pickle
 from area_group_parser import *
 from model import  *
 from li_module import *
-from wrapper_gen_tool import *
+import wrapper_gen_tool
 
 #from glpkpi import *
 
@@ -74,7 +74,7 @@ class Floorplanner():
                return
 
         liGraph = LIGraph([])
-        firstPassGraph = getFirstPassLIGraph()
+        firstPassGraph = wrapper_gen_tool.getFirstPassLIGraph()
         # We should ignore the 'PLATFORM_MODULE'                                                                                                                    
         liGraph.mergeModules(firstPassGraph.modules.values())
         self.firstPassLIGraph = liGraph

@@ -198,10 +198,14 @@ class ModuleList:
           return self.awbParams[m][param]
         except:
           pass
-      raise Exception(param + " not in modules: " + str(moduleName))
     else:
       ## moduleName is just a string
-      return self.awbParams[moduleName][param]
+      try:
+        return self.awbParams[moduleName][param]
+      except:
+        pass
+    raise Exception(param + " not in modules: " + str(moduleName))
+
 
   def getAllDependencies(self, key):
     # we must check to see if the dependencies actually exist.

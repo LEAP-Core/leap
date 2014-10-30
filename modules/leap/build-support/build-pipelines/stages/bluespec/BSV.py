@@ -83,8 +83,6 @@ class BSV():
         moduleList.env.VariantDir(self.TMP_BSC_DIR, '.', duplicate=0)
         moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
 
-        self.firstPassLIGraph = getFirstPassLIGraph()
-
         topo = moduleList.topologicalOrderSynth()
         topo.reverse()
 
@@ -348,7 +346,8 @@ class BSV():
             deps = []
 
             useDerived = True
-            if(not self.firstPassLIGraph is None):
+            first_pass_LI_graph = wrapper_gen.getFirstPassLIGraph()
+            if(not first_pass_LI_graph is None):
                 useDerived = False
                 # we also need to parse the platform_synth file in th
                 platform_synth = get_build_path(moduleList, moduleList.topModule) + "/" +  moduleList.localPlatformName + "_platform_synth.bsv"
@@ -361,7 +360,7 @@ class BSV():
                 li_wrappers = []
                 tree_base_path = get_build_path(moduleList, moduleList.topModule)
                 liGraph = LIGraph([])    
-                firstPassGraph = getFirstPassLIGraph()
+                firstPassGraph = first_pass_LI_graph
                 # We should ignore the 'PLATFORM_MODULE'
                 liGraph.mergeModules(getUserModules(firstPassGraph))        
                 for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
@@ -502,7 +501,7 @@ class BSV():
 
         # if we got object code and we're not the top level, 
         # we can return now. 
-        if ((module.name != moduleList.topModule.name) and (not self.firstPassLIGraph is None)): 
+        if ((module.name != moduleList.topModule.name) and (not wrapper_gen.getFirstPassLIGraph() is None)): 
             return
 
         # This should not be a for loop.
