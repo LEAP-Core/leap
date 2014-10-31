@@ -114,3 +114,10 @@ Packagehint=leap-multifpga
 [Coherent Scratchpad Memory Service]
 File=modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service/coherent-scratchpad-memory-service.awb
 Packagehint=leap
+
+[Coherent Scratchpad Memory Service/Requires]
+coherent_cache=Coherent Cache Managers
+
+[Coherent Cache Managers]
+File=modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service/cache/coherent-cache.awb
+Packagehint=leap

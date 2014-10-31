@@ -362,7 +362,7 @@ endmodule
 // ========================================================================
     
 // number of entries in the merge table
-typedef 32 SCRATCHPAD_MERGE_TABLE_ENTRIES;
+typedef TMax#(128, TMul#(32, n_PORTS)) SCRATCHPAD_MERGE_TABLE_ENTRIES#(numeric type n_PORTS);
 
 typedef struct
 {
@@ -391,7 +391,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
 
               // Request merge table
-              NumAlias#(TMin#(t_MEM_ADDRESS_SZ, TLog#(SCRATCHPAD_MERGE_TABLE_ENTRIES)), t_MERGE_IDX_SZ),
+              NumAlias#(TMin#(t_MEM_ADDRESS_SZ, TLog#(SCRATCHPAD_MERGE_TABLE_ENTRIES#(n_READERS))), t_MERGE_IDX_SZ),
               Alias#(Bit#(t_MERGE_IDX_SZ), t_MERGE_IDX),
               Alias#(Bit#(TSub#(t_MEM_ADDRESS_SZ, t_MERGE_IDX_SZ)), t_MERGE_TAG),
               NumAlias#(TMax#(1, TExp#(TAdd#(TLog#(n_READERS), TLog#(SCRATCHPAD_PORT_ROB_SLOTS)))), n_MERGE_META_ENTRIES),
@@ -471,13 +471,12 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
     // Only issue the fist read request to the remote memory, and let
     // subsequent read requests wait in the request merging table (reqMergeTable).
     //
-    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable;
-    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo;
-    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits;
-    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits;
-    Reg#(Tuple2#(t_MERGE_IDX, SCRATCHPAD_MEM_VALUE)) multiRespFwdEntry;
-    PulseWire mergeTableLockedW;
-    PulseWire forwardFenceReqW;
+    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable = ?;
+    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo = ?;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits = ?;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits = ?;
+    Reg#(Tuple2#(t_MERGE_IDX, SCRATCHPAD_MEM_VALUE)) multiRespFwdEntry =?;
+    PulseWire mergeTableLockedW = ?;
     Reg#(Bool) multiRespFwd <- mkReg(False);
 
     // allocate merge table
@@ -489,7 +488,6 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(Integer scratchpadID,
         reqMergeTableEndBits <- mkReg(replicate(True));
         multiRespFwdEntry <- mkRegU();
         mergeTableLockedW <- mkPulseWire();
-        forwardFenceReqW <- mkPulseWire();
     end
 
     function Tuple2#(t_MERGE_TAG, t_MERGE_IDX) mergeEntryFromAddr(t_MEM_ADDRESS addr);
@@ -749,7 +747,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
               
               // Request merge table
-              NumAlias#(TMin#(t_MEM_ADDRESS_SZ, TLog#(SCRATCHPAD_MERGE_TABLE_ENTRIES)), t_MERGE_IDX_SZ),
+              NumAlias#(TMin#(t_MEM_ADDRESS_SZ, TLog#(SCRATCHPAD_MERGE_TABLE_ENTRIES#(n_READERS))), t_MERGE_IDX_SZ),
               Alias#(Bit#(t_MERGE_IDX_SZ), t_MERGE_IDX),
               Alias#(Bit#(TSub#(t_MEM_ADDRESS_SZ, t_MERGE_IDX_SZ)), t_MERGE_TAG),
               NumAlias#(TMax#(1, TExp#(TAdd#(TLog#(n_READERS), TLog#(SCRATCHPAD_PORT_ROB_SLOTS)))), n_MERGE_META_ENTRIES),
@@ -779,7 +777,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     else
     begin
         debugLog <- mkDebugFileNull(""); 
-        debugLogForPrefetcher <- mkDebugFile("");
+        debugLogForPrefetcher <- mkDebugFileNull("");
     end
 
     // Dynamic parameters
@@ -789,7 +787,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     Param#(4) prefetchLearnerSizeLog <- mkDynamicParameter(fromInteger(prefetchLearnerSizeLogParam), paramNode);
 
     // Connection between private cache and the scratchpad virtual device
-    let sourceData <- mkScratchpadCacheSourceData(scratchpadID, conf);
+    let sourceData <- mkScratchpadCacheSourceData(scratchpadID, conf, debugLog);
                              
     // Cache Prefetcher
     let prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1) ?
@@ -836,13 +834,12 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     // Only issue the fist read request to the memory, and let subsequent 
     // read requests wait in the request merging table (reqMergeTable).
     //
-    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable;
-    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo;
-    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits;
-    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits;
-    Reg#(Tuple2#(t_MERGE_IDX, SCRATCHPAD_MEM_VALUE)) multiRespFwdEntry;
-    PulseWire mergeTableLockedW;
-    PulseWire forwardFenceReqW;
+    LUTRAM#(t_MERGE_IDX, t_MERGE_ENTRY) reqMergeTable = ?;
+    LUTRAM#(Bit#(t_MAF_IDX_SZ), Maybe#(t_MERGE_IDX)) reqMergeHeadInfo = ?;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableValidBits = ?;
+    Reg#(Vector#(SCRATCHPAD_PORT_ROB_SLOTS, Bool)) reqMergeTableEndBits = ?;
+    Reg#(Tuple2#(t_MERGE_IDX, SCRATCHPAD_MEM_VALUE)) multiRespFwdEntry = ?;
+    PulseWire mergeTableLockedW = ?;
     Reg#(Bool) multiRespFwd <- mkReg(False);
 
     // allocate merge table
@@ -854,7 +851,6 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         reqMergeTableEndBits <- mkReg(replicate(True));
         multiRespFwdEntry <- mkRegU();
         mergeTableLockedW <- mkPulseWire();
-        forwardFenceReqW <- mkPulseWire();
     end
 
     function Tuple2#(t_MERGE_TAG, t_MERGE_IDX) mergeEntryFromAddr(t_MEM_ADDRESS addr);
@@ -974,7 +970,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         //     through readRsp() in order.
         //
         (* descending_urgency = "receiveResp, forwardWriteReq" *)
-        rule receiveResp (tpl_1(cache.peekResp().readMeta) == fromInteger(p));
+        rule receiveResp (tpl_1(cache.peekResp().readMeta) == fromInteger(p) && !multiRespFwd);
             let r <- cache.readResp();
 
             // The readUID field holds the concatenation of the port ID and
@@ -1093,7 +1089,8 @@ endmodule
 //     the main scratchpad controller.
 //
 module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
-                                                       SCRATCHPAD_CONFIG conf)
+                                                       SCRATCHPAD_CONFIG conf,
+                                                       DEBUG_FILE debugLog)
     // interface:
     (RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, SCRATCHPAD_MEM_VALUE, t_MAF_IDX))
     provisos (Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
@@ -1110,22 +1107,6 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     begin
         error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + " read UID is too large: " + integerToString(valueOf(t_MAF_IDX_SZ)) + " bits");
     end
-
-    DEBUG_FILE debugLog;
-    if(conf.debugLogPath matches tagged Valid .debugLogPath)
-    begin 
-        debugLog <- mkDebugFile(debugLogPath);
-    end
-    else if(`PLATFORM_SCRATCHPAD_DEBUG_ENABLE == 1)
-    begin
-        String debugLogFilename = "platform_scratchpad_" + integerToString(scratchpadIntPortId(scratchpadID)) + ".out";
-        debugLog <- mkDebugFile(debugLogFilename);   
-    end
-    else
-    begin
-        debugLog <- mkDebugFileNull(""); 
-    end
-
 
     let my_port = scratchpadPortId(scratchpadID);
     let platformID <- getSynthesisBoundaryPlatformID();
@@ -1155,7 +1136,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         r.initFilePath = conf.initFilePath;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
 
-        debugLog.record($format("init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
+        debugLog.record($format("sourceData: init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
     endrule
 
     //
@@ -1180,7 +1161,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         // all scratchpad backing storage I/O.
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
 
-        debugLog.record($format("read REQ ID %0d: addr 0x%x", my_port, req.addr));
+        debugLog.record($format("sourceData: read REQ ID %0d: addr 0x%x", my_port, req.addr));
     endmethod
 
     //
@@ -1200,7 +1181,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         r.readMeta = unpack(truncateNP(s.readUID));
         r.globalReadMeta = s.globalReadMeta;
 
-        debugLog.record($format("read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
+        debugLog.record($format("sourceData: read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
 
         return r;
     endmethod
@@ -1226,7 +1207,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
                                          val: val };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
 
-        debugLog.record($format("write ID %0d: addr=0x%x, val=0x%x", my_port, addr, val));
+        debugLog.record($format("sourceData: write ID %0d: addr=0x%x, val=0x%x", my_port, addr, val));
     endmethod
 
     //
