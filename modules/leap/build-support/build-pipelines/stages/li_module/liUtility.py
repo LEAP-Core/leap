@@ -57,8 +57,9 @@ def min_cut(graph):
    minimum_cut = float("inf")
    minimum_mapping = None
    # for all pairs s-t 
-   for source in sorted(graph.nodes(), key=lambda module: module.name):
-      for sink in sorted(graph.nodes(), key=lambda module: module.name):
+   nodes = sorted(graph.nodes(), key=lambda module: module.name)
+   for source in nodes:
+      for sink in nodes:
           if (source != sink):
               (flow, cut) =  pygraph.algorithms.minmax.maximum_flow(graph, source, sink)
               value = pygraph.algorithms.minmax.cut_value(graph, flow, cut)

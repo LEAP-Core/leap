@@ -189,21 +189,33 @@ def generateBAImport(module, importHandle):
     importHandle.write("endmodule\n\n")        
 
     return ifc
-         
- 
-# Load up LI graph from first pass. For now, we assume that this comes
-# from a file, but eventually this will be generated from the first
-# pass compilation.
+
+
+##
+## getFirstPassLIGraph() --
+##   Load up LI graph from first pass. For now, we assume that this comes
+##   from a file, but eventually this will be generated from the first
+##   pass compilation.
+##
+_cacheFirstPassLIGraph = None
+
 def getFirstPassLIGraph():
+    # Already computed the result?  It will be the same for every call.
+    global _cacheFirstPassLIGraph
+    if (_cacheFirstPassLIGraph != None):
+        return _cacheFirstPassLIGraph
+
     # The first pass will dump a well known file. 
     firstPassLIGraph = "lim.li"
 
-    if(os.path.isfile(firstPassLIGraph)):
+    if (os.path.isfile(firstPassLIGraph)):
         # We got a valid LI graph from the first pass.
-        pickleHandle = open(firstPassLIGraph, 'rb')
-        firstPassGraph = pickle.load(pickleHandle)
-        pickleHandle.close()
-        return firstPassGraph
+        pickle_handle = open(firstPassLIGraph, 'rb')
+        first_pass_graph = pickle.load(pickle_handle)
+        pickle_handle.close()
+        _cacheFirstPassLIGraph = first_pass_graph
+        return first_pass_graph
+
     return None
 
 
@@ -377,8 +389,6 @@ class WrapperGen():
     # The LIM compiler uniquifies synthesis boundary names  
     uidOffset = int(moduleList.getAWBParam('wrapper_gen_tool', 'MODULE_UID_OFFSET'))
 
-    self.firstPassLIGraph = getFirstPassLIGraph()
-
     # We only inject the platform wrapper in first pass builds.  In
     # the second pass, we import the first pass object code.  It may
     # be that we need this code?
@@ -410,8 +420,8 @@ class WrapperGen():
     platform_module.interfaceType = 'VIRTUAL_PLATFORM'
     platform_module.extraImports = ['virtual_platform']
 
-
-    if(self.firstPassLIGraph is None):
+    first_pass_LI_graph = getFirstPassLIGraph()
+    if(first_pass_LI_graph is None):
         moduleList.insertModule(platform_module)
         moduleList.graphize()
         moduleList.graphizeSynth()
@@ -421,7 +431,7 @@ class WrapperGen():
         generateAWBCompileWrapper(moduleList, platform_module)
 
     else:
-        platform_module_li =  self.firstPassLIGraph.modules[moduleList.localPlatformName + '_platform']
+        platform_module_li = first_pass_LI_graph.modules[moduleList.localPlatformName + '_platform']
 
         # This gives us the right path. 
         synthHandle = getSynthHandle(moduleList, platform_module)
@@ -517,7 +527,7 @@ class WrapperGen():
         # If we're doing a LIM build, there are no *_synth.bsv for use codes.
         # Probably if we're doing a build tree they aren't necessary either, but
         # removing those dependencies would take a little work. 
-        if(self.firstPassLIGraph is None):
+        if(first_pass_LI_graph is None):
             for synth in synth_modules:
                 if synth != module:
                     wrapper_bsv.write('`include "' + synth.name + '_synth.bsv"\n')
