@@ -491,6 +491,7 @@ class BSVSynthTreeBuilder():
                 # handled correctly.
                 liGraph.mergeModules([LIModule("empty", "empty")])
 
+            state['empty_count'] = 0
             top_module = self.cutRecurse(state, liGraph, 1, module_names)
 
             # walk the top module to annotate area group paths
@@ -586,10 +587,16 @@ class BSVSynthTreeBuilder():
         if (len(subgraph.graph.nodes()) < 2):
             if (not topModule):
                 if (len(subgraph.graph.nodes()) == 0):
-                    return TreeModule("empty", "empty")
+                    # Construct a dummy empty node.  Empty nodes are assigned
+                    # UIDs in case more than one is created and they wind up
+                    # in the same wrapper.  (This happens only when the tree
+                    # is completely empty.)
+                    name = "empty" + str(state['empty_count'])
+                    state['empty_count'] = state['empty_count'] + 1
+                    return TreeModule("empty", name)
                 else:
                     return subgraph.graph.nodes()[0]
-            else:
+            elif (len(subgraph.graph.nodes()) != 0):
                 # topModule is never passed in as a singleton.  This code
                 # Should never be reached.
                 raise BuildError(errstr = "Singleton topModule",
@@ -621,9 +628,6 @@ class BSVSynthTreeBuilder():
         graph0 = LIGraph(graph0Connections)
         graph1 = LIGraph(graph1Connections)
 
-
-
-
         #Pick a name for the local module
         localModule = moduleNames.pop()
 
@@ -634,7 +638,7 @@ class BSVSynthTreeBuilder():
         # below the current node.  And so we recurse.  If only one
         # module remains in the cut graph, there is no need to recurse
         # and we just use that module.
-        submodule0 = TreeModule("empty", "empty")
+        submodule0 = None
         if(len(graph0.modules) == 1):
             submodule0 = graph0.modules.values()[0]
         else:
@@ -642,8 +646,7 @@ class BSVSynthTreeBuilder():
             num_child_exported_rules += submodule0.numExportedRules
 
 
-
-        submodule1 = TreeModule("empty", "empty")
+        submodule1 = None
         if(len(graph1.modules) == 1):
             submodule1 = graph1.modules.values()[0]
         else:
@@ -662,12 +665,20 @@ class BSVSynthTreeBuilder():
         module_body = ""
 
         # Instantiate the submodules.
-        for name in [submodule0.name, submodule1.name]:
+        for m in [submodule0, submodule1]:
+            name = m.name
+            module_name = name
+
+            # Empty module types are a special case.  The name is numbered
+            # with a UID to support multiple empty modules.  The instantiated
+            # wrapper is always mk_empty_Wrapper.
+            if (m.type == "empty"):
+                module_name = "empty"
+
             module_body += "    let " + getInstanceName(name) + " <- mk_" +\
-                           name + '_Wrapper' + "();\n"
+                           module_name + '_Wrapper' + "();\n"
             module_body += "    let " + name + " = tpl_1(" +\
                             getInstanceName(name) + ".services);\n"
-
 
         # At this node in the tree, we can match channels from our two children.
         # This matching is what reduces the bluespec compiler complexity, since matched
