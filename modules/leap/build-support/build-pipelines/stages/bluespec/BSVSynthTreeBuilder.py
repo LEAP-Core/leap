@@ -492,7 +492,14 @@ class BSVSynthTreeBuilder():
                 liGraph.mergeModules([LIModule("empty", "empty")])
 
             state['empty_count'] = 0
+
+            # Cut the build into a tree of merged wrappers.  We could merge
+            # all of them in a single level, but the Bluespec compiler winds
+            # up being too slow.  A hierarchy compiles more efficiently.
             top_module = self.cutRecurse(state, liGraph, 1, module_names)
+
+            # Generate the code for the cut tree.
+            self.emitWrappersRecurse(state, top_module, 1)
 
             # walk the top module to annotate area group paths
             def annotateAreaGroups(treeModule, verilogPath):
@@ -564,28 +571,26 @@ class BSVSynthTreeBuilder():
         return None
     # END OF cutTreeBuild
 
-    # A recursive function for partitioning a latency
-    # insensitive graph into a a tree of modules so as to
-    # minimize the number of rules in the modules of the
-    # tree.  This construction reduces the complexity of the
-    # design as seen by the bluespec compiler.  The code
-    # could be reorganized as two passes: the construction
-    # of the tree representation and the generation of the
-    # tree code.
-    #
-    # Input: LIGraph representing the user program
-    #
-    # Output: LIModule repesenting the tree produced
-    # by the function.  This tree may have unmatched
-    # channels.
-    def cutRecurse(self, state, subgraph, topModule, moduleNames):
-        pipeline_debug = self.parent.pipeline_debug
-        wrapper_handle = state['wrapper_handle']
 
-        # doesn't make sense to cut up a null or size-one LIM
+    ##
+    ## cutRecurse --
+    ##   A recursive function for partitioning a latency insensitive graph
+    ##   into a a tree of modules so as to minimize the number of rules in
+    ##   the modules of the tree.  This construction reduces the complexity
+    ##   of the design as seen by the bluespec compiler.
+    ##
+    ##   Input: LIGraph representing the user program
+    ##
+    ##   Output: LIModule repesenting the tree produced by the function.
+    ##           This tree may have unmatched channels.
+    ##
+    def cutRecurse(self, state, subgraph, isTopModule, moduleNames):
+        pipeline_debug = self.parent.pipeline_debug
+
+        # Doesn't make sense to cut up a null or size-one LIM
         # trivially return the base LI module to the caller
         if (len(subgraph.graph.nodes()) < 2):
-            if (not topModule):
+            if (not isTopModule):
                 if (len(subgraph.graph.nodes()) == 0):
                     # Construct a dummy empty node.  Empty nodes are assigned
                     # UIDs in case more than one is created and they wind up
@@ -597,24 +602,22 @@ class BSVSynthTreeBuilder():
                 else:
                     return subgraph.graph.nodes()[0]
             elif (len(subgraph.graph.nodes()) != 0):
-                # topModule is never passed in as a singleton.  This code
+                # Top module is never passed in as a singleton.  This code
                 # Should never be reached.
-                raise BuildError(errstr = "Singleton topModule",
+                raise BuildError(errstr = "Singleton top module",
                                  filename = state['tree_file_wrapper'])
 
-        # do a min cut on the graph
+        # Do a min cut on the graph
         map = li_module.min_cut(subgraph.graph)
 
         if (pipeline_debug != 0):
             print "Cut map: " + str(map)
 
-        ## Now that we've got a cut, Build new li graphs from the sub components of
-        ## original graph However, we must be careful
-        ## because some modules may not have internal
-        ## channels, only external channels.  Thus for each
-        ## module we add an optional, dummy edge to ensure
-        ## that the partitioned graphs are constructed
-        ## correctly
+        ## Now that we've got a cut, Build new li graphs from the sub
+        ## components of original graph. We must be careful because some
+        ## modules may not have internal channels, only external channels.
+        ## Thus for each module we add an optional, dummy edge to ensure
+        ## that the partitioned graphs are constructed correctly.
 
         graph0Connections = []
         graph1Connections = []
@@ -628,12 +631,10 @@ class BSVSynthTreeBuilder():
         graph0 = LIGraph(graph0Connections)
         graph1 = LIGraph(graph1Connections)
 
-        #Pick a name for the local module
+        # Pick a name for the local module.
         localModule = moduleNames.pop()
 
-        num_child_exported_rules = 0
-
-        # in order to build an LI module for this node in the tree,
+        # In order to build an LI module for this node in the tree,
         # we need to have the code for the subtrees
         # below the current node.  And so we recurse.  If only one
         # module remains in the cut graph, there is no need to recurse
@@ -643,21 +644,50 @@ class BSVSynthTreeBuilder():
             submodule0 = graph0.modules.values()[0]
         else:
             submodule0 = self.cutRecurse(state, graph0, 0, moduleNames)
-            num_child_exported_rules += submodule0.numExportedRules
-
 
         submodule1 = None
         if(len(graph1.modules) == 1):
             submodule1 = graph1.modules.values()[0]
         else:
             submodule1 = self.cutRecurse(state, graph1, 0, moduleNames)
-            num_child_exported_rules += submodule1.numExportedRules
 
-
-        # we need to build a representation of the new liModule we are about to construct.
-        treeModule = TreeModule("FixMe", localModule)
-
+        # Build a representation of the new liModule we are about to construct.
+        treeModule = TreeModule("node", localModule)
         treeModule.children = [submodule0, submodule1]
+
+        return treeModule
+    # END OF cutRecurse
+
+
+    ##
+    ## emitWrappersRecurse --
+    ##   Walk the tree generated by cutRecurse and emit wrappers to merge
+    ##   all synthesis boundaries.
+    ##
+    def emitWrappersRecurse(self, state, treeModule, isTopModule):
+        pipeline_debug = self.parent.pipeline_debug
+        wrapper_handle = state['wrapper_handle']
+
+        num_child_exported_rules = 0
+
+        # Walk the tree recursively and generate wrappers for each level.
+        # Not all modules have children, hence the try/except.
+        try:
+            for submodule in treeModule.children:
+                self.emitWrappersRecurse(state, submodule, 0)
+
+                num_child_exported_rules += submodule.numExportedRules
+        except AttributeError:
+            # Nodes without children are terminal and will be merged with
+            # a sibling in their parent.  No action.
+            return
+
+        if ((treeModule.children is None) or (len(treeModule.children) == 0)):
+            return
+
+        # The tree is binary.  If this line triggers a ValueError then there
+        # is a bug in the binary tree construction.
+        submodule0, submodule1 = treeModule.children
 
         # In order to generate the module, we need a type,
         # but we can only get it after analyzing the module pair
@@ -753,7 +783,7 @@ class BSVSynthTreeBuilder():
                 # override the module_name with the local
                 # module so that our parent will refer to us
                 # correctly
-                channelCopy.module_name = localModule
+                channelCopy.module_name = treeModule.name
                 treeModule.addChannel(channelCopy)
 
         # Chains are always propagated up, but they can also
@@ -771,7 +801,7 @@ class BSVSynthTreeBuilder():
                                "].incoming, outgoing: resizeConnectOut(" + chain.module_name + ".chains[" +\
                                str(chain.module_idx) + "].outgoing, " + sizeName + ")};// " + chain.name + "\n"
                 chainCopy.module_idx =  chains
-                chainCopy.module_name = localModule
+                chainCopy.module_name = treeModule.name
                 treeModule.addChain(chainCopy)
                 chains = chains + 1
 
@@ -789,7 +819,7 @@ class BSVSynthTreeBuilder():
                                    "].incoming, outgoing: resizeConnectOut(" + chain.module_name+ ".chains[" +\
                                    str(chain.module_idx) + "].outgoing, " + sizeName + ")};// " + chain.name + "\n"
                     chainCopy.module_idx =  chains
-                    chainCopy.module_name = localModule
+                    chainCopy.module_name = treeModule.name
                     treeModule.addChain(chainCopy)
                     chains = chains + 1
 
@@ -802,7 +832,7 @@ class BSVSynthTreeBuilder():
         ##
 
         # Always generate a boundary for top level
-        gen_synth_boundary = topModule
+        gen_synth_boundary = isTopModule
 
         # Threshold for Bluespec scheduler
         total_rules = len(treeModule.channels) + num_child_exported_rules
@@ -827,7 +857,7 @@ class BSVSynthTreeBuilder():
         wrapper_handle.write("\nmodule ")
         if (not gen_synth_boundary):
             wrapper_handle.write("[Module] ")
-        wrapper_handle.write("mk_" + localModule + '_Wrapper')
+        wrapper_handle.write("mk_" + treeModule.name + '_Wrapper')
         moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
                      ", " + str(outgoing) + ", 0, 0, " + str(chains) + ", Empty)"
 
@@ -848,7 +878,7 @@ class BSVSynthTreeBuilder():
             ## that we know there is none, generate a dummy Verilog
             ## file.
             ##
-            v_path = "mk_" + localModule + '_Wrapper' + ".v"
+            v_path = "mk_" + treeModule.name + '_Wrapper' + ".v"
             wrapper_handle.write("    // Hack to generate Verilog file to simulate the possible synthesis boundary\n")
             wrapper_handle.write("    Handle hdl <- openFile(\"" + v_path + "\", WriteMode);\n")
             wrapper_handle.write("    hPutStrLn(hdl, \"// Dummy\");\n")
@@ -883,5 +913,5 @@ class BSVSynthTreeBuilder():
             for channel in treeModule.channels:
                 print "Channel in " + treeModule.name + " " + str(channel)
 
-        return treeModule
-    # END OF cutRecurse
+        return
+    # END OF emitWrappersRecurse
