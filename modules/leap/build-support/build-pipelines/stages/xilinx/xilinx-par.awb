@@ -13,4 +13,5 @@
 %scons %library XILINX_PAR.py
 
 %param DUMP_UTILIZATION   0   "Dump out post-par utilization"
+%param MEMOIZE_NCD        0   "Store NCD file in workspace-level directory"
 
