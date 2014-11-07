@@ -1,0 +1,22 @@
+#/********************************************************************
+#* Python libraries for XST synthesis tool
+#********************************************************************/
+
+%name Vivado Synthesis Tool
+%desc Vivado Synthesis Tool
+%attributes tool
+
+%provides synthesis_tool
+%requires synthesis_library
+
+%notes README
+
+%scons %library XILINX_VIVADO_SYNTHESIS.py
+
+#Probably not needed.
+
+%param --global XST_BLUESPEC_BASICINOUT  0   "Enable running Bluespec basicinout on top level Verilog"
+%param --global XST_PARALLEL_CASE        1   "Enable Xilinx XST global parallel case directive"
+%param --global XST_INSERT_IOBUF         0   "Have XST insert IOBUFs"
+
+ 

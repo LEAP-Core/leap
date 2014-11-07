@@ -1,0 +1,14 @@
+#/********************************************************************
+#* Python libraries for Quartus tool
+#********************************************************************/
+
+%name Vivado Post-synthesis Toolchain
+%desc Vivado Post-synthesis Toolchain
+%attributes tool
+
+%provides post_synthesis_tool
+
+%notes README
+
+%scons %library VIVADO_POST_SYNTH.py
+

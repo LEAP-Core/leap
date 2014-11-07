@@ -85,6 +85,33 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
     return prjPath
 
 
+# Produce Vivado Synthesis Tcl
+
+def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
+    # spit out a new top-level prj
+    prjPath = 'config/' + module.wrapperName() + '.synthesis.tcl' 
+    newPRJFile = open(prjPath, 'w') 
+ 
+    # Emit verilog source and stub references
+    verilogs = globalVerilogs + [get_temp_path(moduleList,module) + module.wrapperName() + '.v']
+    verilogs +=  moduleList.getDependencies(module, 'VERILOG_STUB')
+    for vlog in sorted(verilogs):
+        # ignore system verilog files.  XST can't compile them anyway...
+        if (not re.search('\.sv\s*$',vlog)):    
+            newPRJFile.write("read_verilog " + vlog + "\n")
+    for vhd in sorted(globalVHDs):
+        newPRJFile.write("read_vhdl -lib work " + vhd + "\n")
+
+    part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
+    # the out of context option instructs the tool not to place iobuf
+    # and friends on the external ports.
+    newPRJFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+    newPRJFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
+
+    newPRJFile.close()
+    return prjPath
+
+
 # Converts SRP file into resource representation which can be used
 # by the LIM compiler to assign modules to execution platforms.
 def getSRPResourcesClosure(module):
@@ -135,7 +162,7 @@ def linkNGC(moduleList, module, firstPassLIGraph):
     return deps
 
 def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf):
-    #Let's synthesize a xilinx .prj file for this synth boundary.
+    #Let's synthesize a xilinx .prj file for ths synth boundary.
     # spit out a new prj
     generatePrj(moduleList, module, globalVerilogs, globalVHDs)
     newXSTPath = generateXST(moduleList, module, xstTemplate)
@@ -181,3 +208,110 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
     if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
         moduleList.topDependency += [resourceFile]      
     return sub_netlist
+
+
+def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
+    #Let's synthesize a xilinx .prj file for this synth boundary.
+    # spit out a new prj
+    generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs)
+
+    edfFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.edf'
+    srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
+    resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
+
+
+    # Sort dependencies because SCons will rebuild if the order changes.
+    sub_netlist = moduleList.env.Command(
+        [edfFile, srpFile],
+        sorted(module.moduleDependency['VERILOG']) +
+        sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
+        sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
+        [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
+          SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
+          'vivado -mode batch -source config/' + module.wrapperName() + '.synthesis.tcl -log ' + srpFile,
+          '@echo vivado synthesis ' + module.wrapperName() + ' build complete.' ])
+
+
+    module.moduleDependency['SRP'] = [srpFile]
+
+    if(not 'GEN_NGCS' in module.moduleDependency):
+        module.moduleDependency['GEN_NGCS'] = [edfFile]
+    else:
+        module.moduleDependency['GEN_NGCS'] += [edfFile]
+
+    module.moduleDependency['RESOURCES'] = [resourceFile]
+
+    module.moduleDependency['SYNTHESIS'] = [sub_netlist]
+    SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
+
+    moduleList.env.Command(resourceFile,
+                           srpFile,
+                           getSRPResourcesClosure(module))
+
+    # If we're building for the FPGA, we'll claim that the
+    # top-level build depends on the existence of the ngc
+    # file. This allows us to do resource analysis later on.
+    if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
+        moduleList.topDependency += [resourceFile]      
+
+    return sub_netlist
+
+
+#
+# Configure the top-level Xst build
+#
+def buildXSTTopLevel(moduleList, firstPassGraph):
+    # string together the xcf, sort of like the ucf                                                                                                          
+    # Concatenate UCF files                                                                                                                                  
+    if('XCF' in moduleList.topModule.moduleDependency and len(moduleList.topModule.moduleDependency['XCF']) > 0):
+      xilinx_xcf = moduleList.env.Command(
+        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
+        moduleList.topModule.moduleDependency['XCF'],
+        'cat $SOURCES > $TARGET')
+    else:
+      xilinx_xcf = moduleList.env.Command(
+        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
+        [],
+        'touch $TARGET')
+
+    ## tweak top xst file                                                        
+    #Only parse the xst file once.  
+    templates = moduleList.getAllDependenciesWithPaths('GIVEN_XSTS')
+    if(len(templates) != 1):
+        print "Found more than one XST template file: " + str(templates) + ", exiting\n" 
+    templateFile = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + templates[0]
+    xstTemplate = parseAWBFile(templateFile)
+                  
+
+    [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
+    synth_deps = []
+    for module in [ mod for mod in moduleList.synthBoundaries() if mod.platformModule]:
+        if((not firstPassGraph is None) and (module.name in firstPassGraph.modules)):
+            # we link from previous.
+            synth_deps += linkNGC(moduleList, module, self.firstPassLIGraph)
+        else:
+            synth_deps += buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf)
+
+    generatePrj(moduleList, moduleList.topModule, globalVerilogs, globalVHDs)
+    topXSTPath = generateXST(moduleList, moduleList.topModule, xstTemplate)       
+
+    # Use xst to tie the world together.
+    topSRP = moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.srp'
+
+    top_netlist = moduleList.env.Command(
+      moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.ngc',
+      moduleList.topModule.moduleDependency['VERILOG'] +
+      moduleList.getAllDependencies('VERILOG_STUB') +
+      moduleList.getAllDependencies('VERILOG_LIB') +
+      [ templateFile ] +
+      [ topXSTPath ] + xilinx_xcf,
+      [ SCons.Script.Delete(topSRP),
+        SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
+        'xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
+        '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
+
+    SCons.Script.Clean(top_netlist, topSRP)
+
+    moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
+
+    return [top_netlist] + synth_deps
