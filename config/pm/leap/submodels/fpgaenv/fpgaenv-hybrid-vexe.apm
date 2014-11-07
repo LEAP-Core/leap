@@ -24,7 +24,7 @@ Packagehint=leap
 virtual_platform=Standard Virtual Platform
 fpga_components=Software FPGA Components
 librl_bsv=RL Bluespec Library Submodel
-build_pipeline=Build Pipeline Verilog
+build_pipeline=Build Pipeline IVerilog
 soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
@@ -136,9 +136,6 @@ rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
 local_mem=Local Memory using DDR DRAM (burst holds at least one line)
 
-[Build Pipeline Verilog]
-File=config/pm/leap/submodels/pipelines/build-pipeline-verilog.apm
-Packagehint=leap
 
 [Common Physical Platform Utilities/Requires]
 physical_platform_defs=Common Physical Platform Definitions
@@ -146,3 +143,7 @@ physical_platform_defs=Common Physical Platform Definitions
 [Common Physical Platform Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
+
+[Build Pipeline IVerilog]
+File=config/pm/leap/submodels/pipelines/build-pipeline-verilog.apm
+Packagehint=leap

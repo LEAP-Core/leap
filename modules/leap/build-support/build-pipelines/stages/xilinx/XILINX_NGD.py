@@ -79,7 +79,7 @@ class NGD():
         SCons.Script.Delete('xlnx_auto_0_xdb'),
         'ngdbuild -aul -aut -p ' + fpga_part_xilinx + \
           ' -sd ' + ' -sd '.join(sd_list) + \
-          ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
+          ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET | tee ' + xilinx_apm_name +'.ngdrpt',
         SCons.Script.Move(moduleList.compileDirectory + '/netlist.lst', 'netlist.lst') ])
 
     moduleList.env.Depends(xilinx_ngd,

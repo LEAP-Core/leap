@@ -26,8 +26,9 @@ def getXilinxVersion():
 class PAR():
   def __init__(self, moduleList):
 
-    self.COST_TABLE = moduleList.getAWBParam('xilinx_map', 'COST_TABLE')
+    self.COST_TABLE       = moduleList.getAWBParam('xilinx_map', 'COST_TABLE')
     self.DUMP_UTILIZATION = moduleList.getAWBParam('xilinx_par', 'DUMP_UTILIZATION')
+    self.MEMOIZE_NCD      = moduleList.getAWBParam('xilinx_par', 'MEMOIZE_NCD')
 
     xilinx_version = getXilinxVersion()
 
@@ -41,6 +42,10 @@ class PAR():
     fpga_part_xilinx = moduleList.env['DEFS']['FPGA_PART_XILINX']
     xilinx_apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
     # Place and route
+    memoize_ncd_command = []
+    if(self.MEMOIZE_NCD):
+        memoize_ncd_command = [SCons.Script.Copy(moduleList.smartguide_cache_dir + '/' + moduleList.smartguide_cache_file, '$TARGET')] 
+
     xilinx_par = moduleList.env.Command(
       xilinx_apm_name + '_par.ncd',
       moduleList.getAllDependencies('MAP'),
@@ -51,8 +56,8 @@ class PAR():
         SCons.Script.Delete(xilinx_apm_name + '_par.xpi'),
         SCons.Script.Delete(xilinx_apm_name + '_par_pad.csv'),
         SCons.Script.Delete(xilinx_apm_name + '_par_pad.txt'),
-        'par -w -ol high ' + moduleList.smartguide + placer_table + multi_thread + xilinx_apm_name + '_map.ncd $TARGET ' + xilinx_apm_name + '.pcf',
-        SCons.Script.Copy(moduleList.smartguide_cache_dir + '/' + moduleList.smartguide_cache_file, '$TARGET') ])
+        'par -w -ol high ' + moduleList.smartguide + placer_table + multi_thread + xilinx_apm_name + '_map.ncd $TARGET ' + xilinx_apm_name + '.pcf' ]
+        + memoize_ncd_command)
 
 
     utilizationFile = moduleList.compileDirectory + '/dumpUtilization.tcl'
