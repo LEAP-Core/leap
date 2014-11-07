@@ -98,7 +98,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     for vlog in sorted(verilogs):
         # ignore system verilog files.  XST can't compile them anyway...
         if (not re.search('\.sv\s*$',vlog)):    
-            newPRJFile.write("read_verilog " + vlog + "\n")
+            newPRJFile.write("read_verilog -quiet " + vlog + "\n")
     for vhd in sorted(globalVHDs):
         newPRJFile.write("read_vhdl -lib work " + vhd + "\n")
 
