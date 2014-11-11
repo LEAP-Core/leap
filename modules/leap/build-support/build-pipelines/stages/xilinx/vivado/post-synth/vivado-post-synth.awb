@@ -7,6 +7,7 @@
 %attributes tool
 
 %provides post_synthesis_tool
+%requires xilinx_loader
 
 %notes README
 

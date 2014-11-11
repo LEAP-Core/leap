@@ -1,11 +1,11 @@
 
 [Global]
 SaveParameters=0
-Description=ViCo FPGA Build Pipeline Xilinx
-File=build-pipeline-vico-xilinx
+Description=FPGA Build Pipeline Xilinx (Vivado Full)
+File=build-pipeline-xilinx-vivado-full
 Version=2.2
 Type=HAsim
-Name=ViCo FPGA Build Pipeline Xilinx
+Name=FPGA Build Pipeline Xilinx (Vivado Full)
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -20,20 +20,11 @@ model=FPGA Build Pipeline
 File=modules/leap/build-support/build-pipelines/pipelines/fpga/fpga-build-pipeline.awb
 Packagehint=leap
 
-[Xilinx BITGEN]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-bitgen.awb
-Packagehint=leap
-
-
-[Xilinx NGD]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-ngd.awb
-Packagehint=leap
-
 [FPGA Build Pipeline/Requires]
-post_synthesis_tool=Xilinx Post-synthesis Toolchain
-synthesis_tool=XST Synthesis Tool
+post_synthesis_tool=Vivado Post-synthesis Toolchain
+synthesis_tool=Vivado Synthesis Tool
 mcd_tool=MCD Tool for Xilinx
-software_tool=ViCo Software build tool
+software_tool=Software build tool
 iface_tool=Interface builder
 bsv_tool=BSV Build Tool (First Phase)
 fpga_program_tool=FPGA Programming Tool
@@ -41,27 +32,12 @@ wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
 li_module=LEAP LI Module Handler
 parameter_substitution=AWB Parameter Substitution Parser
 
-[Xilinx Post-synthesis Toolchain]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-post-synth.awb
-Packagehint=leap
-
-[Xilinx PAR]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-par.awb
-Packagehint=leap
-
-[Xilinx Post-synthesis Toolchain/Requires]
-xilinx_ngd=Xilinx NGD
-xilinx_bitgen=Xilinx BITGEN
-xilinx_par=Xilinx PAR
-xilinx_map=Xilinx MAP
-xilinx_loader=Xilinx LOADER (ISE/Impact)
-
-[Xilinx MAP]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-map.awb
-Packagehint=leap
-
 [Interface builder]
 File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
+Packagehint=leap
+
+[Software build tool]
+File=modules/leap/build-support/build-pipelines/stages/software/software.awb
 Packagehint=leap
 
 [BSV Build Tool (First Phase)]
@@ -76,19 +52,8 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/fpgaprog/fpgaprog.awb
 Packagehint=leap
 
-[XST Synthesis Tool]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-xst.awb
-Packagehint=leap
-
 [Synthesis Boundary Wrapper generation tool]
 File=modules/leap/build-support/build-pipelines/stages/wrapper_gen/synthesis_boundary_wrapper_gen.awb
-Packagehint=leap
-
-[Interface builder/Params]
-GENERATE_VICO=1
-
-[ViCo Software build tool]
-File=modules/leap/build-support/build-pipelines/stages/vico_software/vico_software.awb
 Packagehint=leap
 
 [LEAP LI Module Handler]
@@ -103,8 +68,20 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/synthesis/synthesis_library.awb
 Packagehint=leap
 
-[XST Synthesis Tool/Requires]
+[Vivado Synthesis Tool/Requires]
 synthesis_library=Synthesis library
+
+[Vivado Synthesis Tool]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/synthesis/vivado-synthesis.awb
+Packagehint=leap
+
+[Vivado Post-synthesis Toolchain]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/post-synth/vivado-post-synth.awb
+Packagehint=leap
+
+[Vivado Post-synthesis Toolchain/Requires]
+xilinx_loader=Xilinx LOADER (ISE/Impact)
+
 
 [Xilinx LOADER (ISE/Impact)]
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-loader.awb

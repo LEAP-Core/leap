@@ -2,14 +2,14 @@
 #* Python libraries for XST synthesis tool
 #********************************************************************/
 
-%name Xilinx LOADER (ISE/Impact)
-%desc Xilinx LOADER (ISE/Impact)
+%name Xilinx LOADER (Vivado)
+%desc Xilinx LOADER (Vivado)
 %attributes tool
 
 %provides xilinx_loader
 
 %notes README
 
-%scons %library XILINX_LOADER.py
+%scons %library VIVADO_LOADER.py
 
 %param DEPEND_ON_SW  0   "For legacy reasons, we depended on software.  This is deprecated and will be removed."

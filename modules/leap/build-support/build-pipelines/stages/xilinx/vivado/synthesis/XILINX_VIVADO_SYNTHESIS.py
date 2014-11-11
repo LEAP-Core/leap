@@ -58,7 +58,7 @@ class Synthesize():
           'ulimit -s unlimited; vivado -mode batch -source config/' + moduleList.topModule.wrapperName() + '.synthesis.tcl -log ' + topSRP,
           '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 
-    moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
+    moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist] + synth_deps
     synth_deps += top_netlist
     SCons.Script.Clean(top_netlist, topSRP)
 
