@@ -105,7 +105,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
     # and friends on the external ports.
-    newPRJFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+    newPRJFile.write("synth_design -nojournal -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
     newPRJFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
 
     newPRJFile.close()
