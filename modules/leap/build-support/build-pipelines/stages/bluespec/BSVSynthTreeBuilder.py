@@ -437,6 +437,8 @@ class BSVSynthTreeBuilder():
             if (state['area_constraints_file_incomplete']):
                 areaGroups = area_group_tool.loadAreaConstraints(state['area_constraints_file_incomplete'])
 
+        state['area_groups'] = areaGroups
+
         synth_handle = open(state['tree_file_synth'],'w')
         wrapper_handle = open(state['tree_file_wrapper'],'w')
         state['wrapper_handle'] = wrapper_handle
@@ -607,8 +609,19 @@ class BSVSynthTreeBuilder():
                 raise BuildError(errstr = "Singleton top module",
                                  filename = state['tree_file_wrapper'])
 
-        # Do a min cut on the graph
-        map = li_module.min_cut(subgraph.graph)
+        ##
+        ## The graph partitioning algorithm depends on whether area groups
+        ## are being generated.  When area groups are in use, partitions
+        ## seek to minimize the path around a chain by building the tree
+        ## as a representation of the physical topology.  When area groups
+        ## are not in use, the graph is cut based on connections between
+        ## synthesis boundaries.  In theory, the area group partitioning
+        ## should already have accounted for inter-module connections.
+        ##
+        if state['area_groups']:
+            map = li_module.placement_cut(subgraph.graph, state['area_groups'])
+        else:
+            map = li_module.min_cut(subgraph.graph)
 
         if (pipeline_debug != 0):
             print "Cut map: " + str(map)

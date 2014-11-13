@@ -1,6 +1,7 @@
 import math
 import cPickle as pickle
 
+import tsp
 from area_group_parser import *
 from model import  *
 from li_module import *
@@ -66,6 +67,7 @@ def emitConstraintsXilinx(fileName, areaGroups):
 class Floorplanner():
 
     def __init__(self, moduleList):
+        self.pipeline_debug = getBuildPipelineDebug(moduleList)
 
         def modify_path_hw(path):
             return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
@@ -86,7 +88,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.3
+                 extra_area_factor = 1.6
                  luts_per_slice = 8
 
                  # we should now assemble the LI Modules that we got
@@ -457,6 +459,10 @@ class Floorplanner():
 
                      print str(areaGroup)
 
+                 # Sort area groups topologically, annotating each area group
+                 # with a sortIdx field.
+                 self.sort_area_groups(areaGroups)
+
                  # Now that we've solved (to some extent) the area
                  # group mapping problem we can dump the results for 
                  # the build tree. 
@@ -480,3 +486,38 @@ class Floorplanner():
             )                   
 
         moduleList.env.AlwaysBuild(areagroup)
+
+
+    ##
+    ## sort_area_groups --
+    ##   Sort all area groups using traveling salesman to minimize the distance
+    ##   of a circuit through the groups.  This is intended to miminize the
+    ##   lengths of chains.
+    ##
+    def sort_area_groups(self, areaGroups):
+        # Get a canonical order for the set of area groups (used in loops below)
+        group_names = areaGroups.keys()
+
+        # The coordinate of each group is its midpoint
+        coords = []
+        for name in group_names:
+            group = areaGroups[name]
+            x = group.xLoc + (group.xDimension / 2)
+            y = group.yLoc + (group.yDimension / 2)
+            coords.append((x, y))
+
+        if (self.pipeline_debug):
+            print "Sorting area groups:"
+
+        # Pick a short path
+        path = tsp.travelingSalesman(coords)
+
+        # Store path as sort order in areaGroups entries
+        for i in range(len(group_names)):
+            name = group_names[i]
+            group = areaGroups[name]
+
+            group.sortIdx = path[i]
+
+            if (self.pipeline_debug):
+                print "  " + name + ": " + str(group.sortIdx)

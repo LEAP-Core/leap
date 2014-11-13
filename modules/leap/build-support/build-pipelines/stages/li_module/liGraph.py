@@ -126,22 +126,27 @@ class LIGraph():
         for module in self.modules.values():
             for partnerModule in self.modules.values():
                 # if we are the same module, skip
-                if (module.name == partnerModule.name):
+                if (module.name != partnerModule.name):
+                    self.matchChannels(module, partnerModule)
+
+    # Match channels for a pair of modules
+    def matchChannels(self, module, partnerModule):
+        for channel in module.channels:
+            # ignore previously matched channels
+            if (channel.matched):
+                continue
+            for partnerChannel in partnerModule.channels:
+                if (partnerChannel.matched):
                     continue
-                for channel in module.channels:
-                    # ignore previously matched channels
-                    if (channel.matched):
-                        continue
-                    for partnerChannel in partnerModule.channels:
-                        if (partnerChannel.matched):
-                            continue
-                        if (channel.matches(partnerChannel)): # a potential match
-                            channel.partnerChannel = partnerChannel
-                            channel.partnerModule = partnerModule                       
-                            partnerChannel.partnerChannel = channel
-                            partnerChannel.partnerModule = module                       
-                            channel.matched = True
-                            partnerChannel.matched = True
+                if (channel.matches(partnerChannel)):
+                    # a potential match
+                    channel.partnerChannel = partnerChannel
+                    channel.partnerModule = partnerModule
+                    partnerChannel.partnerChannel = channel
+                    partnerChannel.partnerModule = module
+                    channel.matched = True
+                    partnerChannel.matched = True
+
 
     # merge another LI Graph into this one.  
     def merge(self, otherGraphs):
