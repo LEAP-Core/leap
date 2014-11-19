@@ -3,7 +3,7 @@ import SCons.Script
 from model import  *
 
 try:
-    from area_group_tool import  *
+    import area_group_tool
 except ImportError:
     pass # we won't be using this tool.
 
@@ -28,13 +28,14 @@ class NGD():
         def area_group_ucf_closure(moduleList):
 
              def area_group_ucf(target, source, env):
-                 emitConstraintsXilinx(area_group_file, loadAreaConstraints(areaConstraintFileComplete(moduleList)))
+                 area_group_tool.emitConstraintsXilinx(area_group_file,
+                                                       area_group_tool.loadAreaConstraints(moduleList))
                                     
              return area_group_ucf
 
         moduleList.env.Command( 
             [area_group_file],
-            areaConstraintFileComplete(moduleList),
+            area_group_tool.areaConstraintsFile(moduleList),
             area_group_ucf_closure(moduleList)
             )                   
 

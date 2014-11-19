@@ -98,12 +98,10 @@ class BSVSynthTreeBuilder():
         tree_file_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR + "/build_tree"
 
         # Area constraints
-        area_constraints_file = None
-        area_constraints_file_incomplete = None
+        area_constraints_enabled = False
         try:
             if (moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
-                area_constraints_file = area_group_tool.areaConstraintFileComplete(moduleList)
-                area_constraints_file_incomplete = area_group_tool.areaConstraintFileIncomplete(moduleList)
+                area_constraints_enabled = True
         except:
             # The area constraints code is not present.
             pass
@@ -275,9 +273,9 @@ class BSVSynthTreeBuilder():
         tree_build_deps = boundary_logs + importBOs
         tree_build_results = [tree_file_wrapper, tree_file_synth]
 
-        if (getFirstPassLIGraph() and area_constraints_file):
-            tree_build_deps += [area_constraints_file_incomplete]
-            tree_build_results += [area_constraints_file]
+        if (getFirstPassLIGraph() and area_constraints_enabled):
+            tree_build_deps += [area_group_tool.areaConstraintsFileIncomplete(moduleList)]
+            tree_build_results += [area_group_tool.areaConstraintsFile(moduleList)]
 
         ##
         ## The cutTreeBuild builder function needs some of the local state
@@ -285,8 +283,7 @@ class BSVSynthTreeBuilder():
         ## state and partial instance of cutTreeBuild with the state applied.
         ##
         cut_tree_state = dict()
-        cut_tree_state['area_constraints_file'] = area_constraints_file
-        cut_tree_state['area_constraints_file_incomplete'] = area_constraints_file_incomplete
+        cut_tree_state['area_constraints_enabled'] = area_constraints_enabled
         cut_tree_state['boundary_logs'] = boundary_logs
         cut_tree_state['moduleList'] = moduleList
         cut_tree_state['tree_file_synth'] = tree_file_synth
@@ -434,8 +431,8 @@ class BSVSynthTreeBuilder():
             firstPassGraph = getFirstPassLIGraph()
             # We should ignore the 'PLATFORM_MODULE'
             liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
-            if (state['area_constraints_file_incomplete']):
-                areaGroups = area_group_tool.loadAreaConstraints(state['area_constraints_file_incomplete'])
+            if (state['area_constraints_enabled']):
+                areaGroups = area_group_tool.loadAreaConstraintsIncomplete(moduleList)
 
         state['area_groups'] = areaGroups
 
@@ -533,10 +530,8 @@ class BSVSynthTreeBuilder():
                 if(moduleList.localPlatformName + "_platform" in areaGroups):
                     areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  "m_sys_sys_vp_m_mod"
 
-                if (state['area_constraints_file']):
-                    areaPickleHandle = open(state['area_constraints_file'], 'wb')
-                    pickle.dump(areaGroups, areaPickleHandle, protocol=-1)
-                    areaPickleHandle.close()
+                if (state['area_constraints_enabled']):
+                    area_group_tool.storeAreaConstraints(moduleList, areaGroups)
 
         # In multifpga builds, we may have some leftover modules
         # due to the way that the LIM compiler currently
@@ -819,12 +814,16 @@ class BSVSynthTreeBuilder():
                 chains = chains + 1
 
             else:
-                # we see matched chains twice, but we should
-                # only emit code once.
+                # We see matched chains twice, but we should only emit code once.
                 if ((chain.module_name == submodule1.name)):
-                    # need to get form a chain based on the
-                    # combination of the two modules
+                    # Need to get form a chain based on the combination of the
+                    # two modules.
                     chain0 = matched[chain.name]
+
+                    # The chain is partially connected.  The exposed in/out
+                    # halves now come from different modules.
+                    chainCopy.chain_root_in = chain0.chain_root_in
+
                     sizeName = "sz_" + chain.module_name + "_" + chain.name + "_" + str(chain.module_idx)
                     module_body += "    NumTypeParam#(" + str(chain.bitwidth) + ") " + sizeName + " = ?;\n"
                     module_body += "    chainsVec[" + str(chains) +"] = PHYSICAL_CHAIN{incoming: " +\
