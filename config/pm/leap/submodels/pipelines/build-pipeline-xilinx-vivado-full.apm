@@ -80,9 +80,8 @@ File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/post-synth/
 Packagehint=leap
 
 [Vivado Post-synthesis Toolchain/Requires]
-xilinx_loader=Xilinx LOADER (ISE/Impact)
+xilinx_loader=Xilinx LOADER (Vivado)
 
-
-[Xilinx LOADER (ISE/Impact)]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-loader.awb
+[Xilinx LOADER (Vivado)]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/loader/vivado-loader.awb
 Packagehint=leap

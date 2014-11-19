@@ -41,5 +41,5 @@ Packagehint=leap
 connected_application=Hello World
 
 [Hybrid VC707 PCIE FPGA Environment - No Memory/Central Cache (Vivado)]
-File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-vc707-pcie-vivado.apm
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-vc707-pcie-no-mem-vivado.apm
 Packagehint=leap

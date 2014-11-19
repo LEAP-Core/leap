@@ -20,17 +20,9 @@ model=FPGA Build Pipeline
 File=modules/leap/build-support/build-pipelines/pipelines/fpga/fpga-build-pipeline.awb
 Packagehint=leap
 
-[Xilinx BITGEN]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-bitgen.awb
-Packagehint=leap
-
-[Xilinx NGD]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-ngd.awb
-Packagehint=leap
-
 [FPGA Build Pipeline/Requires]
-post_synthesis_tool=Xilinx Post-synthesis Toolchain
-synthesis_tool=XST/Vivado Synthesis Tool
+post_synthesis_tool=Vivado Post-synthesis Toolchain
+synthesis_tool=Vivado Synthesis Tool
 mcd_tool=MCD Tool for Xilinx
 software_tool=Software build tool
 iface_tool=Interface builder
@@ -39,25 +31,6 @@ fpga_program_tool=FPGA Programming Tool
 wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
 li_module=LEAP LI Module Handler
 parameter_substitution=AWB Parameter Substitution Parser
-
-[Xilinx Post-synthesis Toolchain]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-post-synth.awb
-Packagehint=leap
-
-[Xilinx PAR]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-par.awb
-Packagehint=leap
-
-[Xilinx Post-synthesis Toolchain/Requires]
-xilinx_ngd=Xilinx NGD
-xilinx_bitgen=Xilinx BITGEN
-xilinx_par=Xilinx PAR
-xilinx_map=Xilinx MAP
-xilinx_loader=Xilinx LOADER (ISE/Impact)
-
-[Xilinx MAP]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-map.awb
-Packagehint=leap
 
 [Interface builder]
 File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
@@ -95,13 +68,20 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/synthesis/synthesis_library.awb
 Packagehint=leap
 
-[XST/Vivado Synthesis Tool/Requires]
-synthesis_library=Synthesis library
-
-[XST/Vivado Synthesis Tool]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/synthesis/vivado-synthesis-sub.awb
+[Xilinx LOADER (Vivado)]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/loader/vivado-loader.awb
 Packagehint=leap
 
-[Xilinx LOADER (ISE/Impact)]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-loader.awb
+[Vivado Post-synthesis Toolchain/Requires]
+xilinx_loader=Xilinx LOADER (Vivado)
+
+[Vivado Post-synthesis Toolchain]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/post-synth/vivado-post-synth.awb
+Packagehint=leap
+
+[Vivado Synthesis Tool/Requires]
+synthesis_library=Synthesis library
+
+[Vivado Synthesis Tool]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/synthesis/vivado-synthesis.awb
 Packagehint=leap
