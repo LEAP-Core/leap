@@ -2,7 +2,7 @@
 [Global]
 SaveParameters=0
 Description=Hybrid VC707 PCIE FPGA Environment (Vivado)
-File=fpgaenv-hybrid-vc707-pcie-vivado-full
+File=fpgaenv-hybrid-vc707-pcie-vivado
 Version=2.2
 Type=Leap
 Name=Hybrid VC707 PCIE FPGA Environment (Vivado)
@@ -20,7 +20,7 @@ model=FPGA Environment
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 7
 librl_bsv=RL Bluespec Library Submodel
-build_pipeline=FPGA Build Pipeline Xilinx (Vivado Full)
+build_pipeline=FPGA Build Pipeline Xilinx (Vivado)
 soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
@@ -172,10 +172,10 @@ RESET_ACTIVE_HIGH=1
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
 
-[FPGA Build Pipeline Xilinx (Vivado Full)]
-File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado-full.apm
-Packagehint=leap
-
 [Virtex-7 PCIE Device v1.10 (BlueNoC)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/1_10/pcie-virtex7.awb
 Packagehint=leap-platforms
+
+[FPGA Build Pipeline Xilinx (Vivado)]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
+Packagehint=leap

@@ -2,7 +2,7 @@
 [Global]
 SaveParameters=0
 Description=Hybrid VC707 PCIE FPGA Environment - No Memory/Central Cache (Vivado)
-File=fpgaenv-hybrid-vc707-pcie-vivado
+File=fpgaenv-hybrid-vc707-pcie-no-mem-vivado
 Version=2.2
 Type=Leap
 Name=Hybrid VC707 PCIE FPGA Environment - No Memory/Central Cache (Vivado)
@@ -112,7 +112,7 @@ File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility
 Packagehint=leap
 
 [BlueNoC PCIe Bridge/Requires]
-pcie_bluenoc_device=Virtex-7 PCIE Device v1.07 (BlueNoC)
+pcie_bluenoc_device=Virtex-7 PCIE Device v1.10 (BlueNoC)
 pcie_bluenoc_ifc=BlueNoC PCIe Bridge Interfaces
 
 [BlueNoC PCIe Bridge]
@@ -181,6 +181,6 @@ Packagehint=leap-platforms
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
 Packagehint=leap
 
-[Virtex-7 PCIE Device v1.07 (BlueNoC)]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/1_7/pcie-virtex7.awb
+[Virtex-7 PCIE Device v1.10 (BlueNoC)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/1_10/pcie-virtex7.awb
 Packagehint=leap-platforms
