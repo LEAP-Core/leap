@@ -14,13 +14,21 @@ class PostSynthesize():
 
     apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
 
+    # If the TMP_XILINX_DIR doesn't exist, create it.
+    if not os.path.isdir(moduleList.env['DEFS']['TMP_XILINX_DIR']):
+        os.mkdir(moduleList.env['DEFS']['TMP_XILINX_DIR'])
+
     def modify_path_hw(path):
         return 'hw/' + path 
 
-    # Concatenate XDC files
-    xilinx_xdc = []
-    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_XDCS')) > 0):
-        xilinx_xdc = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_XDCS'))
+    # Gather Tcl files for handling constraints.
+    tcl_defs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS')) > 0):
+        tcl_defs = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS'))
+
+    tcl_algs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS')) > 0):
+        tcl_algs = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS'))
           
 
     # Construct the tcl file 
@@ -32,52 +40,71 @@ class PostSynthesize():
 
     topWrapper = moduleList.topModule.wrapperName()
 
-    newPrjFile = open(postSynthTcl,'w')
+    newTclFile = open(postSynthTcl,'w')
 
-    print "EDFS: " + str(synthDeps) + "\n"
     for netlist in convertDependencies(synthDeps):
-        newPrjFile.write('read_edif ' + netlist + '\n')
+        newTclFile.write('read_edif ' + netlist + '\n')
 
-    for xdc in xilinx_xdc:
-        newPrjFile.write('read_xdc ' + xdc + '\n')
+    given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
-    newPrjFile.write("link_design -top " + topWrapper + " -part " + part  + "\n")
+    for netlist in given_netlists:
+        newTclFile.write('read_edif ' + netlist + '\n')
 
-    newPrjFile.write("report_timing_summary -file " + apm_name + ".map.twr\n")
+    newTclFile.write("set_property SEVERITY {Warning} [get_drc_checks NSTD-1]\n")
+    newTclFile.write("set_property SEVERITY {Warning} [get_drc_checks UCIO-1]\n")
 
-    newPrjFile.write("opt_design\n")
+    newTclFile.write("link_design -top " + topWrapper + " -part " + part  + "\n")
 
-    newPrjFile.write("place_design -no_drc\n")
+    newTclFile.write("report_utilization -file " + apm_name + ".link.util\n")
 
-    newPrjFile.write("write_checkpoint -force " + apm_name + ".map.dcp\n")
+    for tcl_def in tcl_defs:
+        newTclFile.write('source ' + tcl_def + '\n')
 
-    newPrjFile.write("report_utilization -file " + apm_name + ".map.util\n")
+    for tcl_alg in tcl_algs:
+        newTclFile.write('source ' + tcl_alg + '\n')
 
-    newPrjFile.write("route_design\n")
+    newTclFile.write("report_timing_summary -file " + apm_name + ".map.twr\n")
 
-    newPrjFile.write("write_checkpoint -force " + apm_name + ".par.dcp\n")
+    newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
 
-    newPrjFile.write("report_timing_summary -file " + apm_name + ".par.twr\n")
+    newTclFile.write("opt_design\n")
 
-    newPrjFile.write("report_utilization -file " + apm_name + ".par.util\n")
+    newTclFile.write("report_utilization -file " + apm_name + ".opt.util\n")
 
-    newPrjFile.write("report_drc -file " + topWrapper + ".drc\n")
+    newTclFile.write("write_checkpoint -force " + apm_name + ".opt.dcp\n")
+
+    newTclFile.write("place_design -no_drc\n")
+
+    newTclFile.write("phys_opt_design\n")
+
+    newTclFile.write("write_checkpoint -force " + apm_name + ".map.dcp\n")
+
+    newTclFile.write("report_utilization -file " + apm_name + ".map.util\n")
+
+    newTclFile.write("route_design\n")
+
+    newTclFile.write("write_checkpoint -force " + apm_name + ".par.dcp\n")
+
+    newTclFile.write("report_timing_summary -file " + apm_name + ".par.twr\n")
+
+    newTclFile.write("report_utilization -file " + apm_name + ".par.util\n")
+
+    newTclFile.write("report_drc -file " + topWrapper + ".drc\n")
 
     # We have lots of dangling wires (Thanks, Bluespec).  Set the
     # following properties to silence the warnings. 
     
-    newPrjFile.write("set_property SEVERITY {Warning} [get_drc_checks NSTD-1]\n")
-    newPrjFile.write("set_property SEVERITY {Warning} [get_drc_checks UCIO-1]\n")
+    newTclFile.write("write_bitstream -force " + apm_name + "_par.bit\n")
 
-    newPrjFile.write("write_bitstream -force " + apm_name + "_par.bit\n")
-
-    newPrjFile.close()
+    newTclFile.close()
 
     # generate bitfile
     xilinx_bit = moduleList.env.Command(
       apm_name + '_par.bit',
-      synthDeps + [xilinx_xdc], 
+      synthDeps + tcl_algs + tcl_defs, 
       ['vivado -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
+
+    moduleList.env.AlwaysBuild(xilinx_bit)
 
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']
 

@@ -90,7 +90,7 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
 def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     # spit out a new top-level prj
     prjPath = 'config/' + module.wrapperName() + '.synthesis.tcl' 
-    newPRJFile = open(prjPath, 'w') 
+    newTclFile = open(prjPath, 'w') 
  
     # Emit verilog source and stub references
     verilogs = globalVerilogs + [get_temp_path(moduleList,module) + module.wrapperName() + '.v']
@@ -98,17 +98,30 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     for vlog in sorted(verilogs):
         # ignore system verilog files.  XST can't compile them anyway...
         if (not re.search('\.sv\s*$',vlog)):    
-            newPRJFile.write("read_verilog -quiet " + vlog + "\n")
+            newTclFile.write("read_verilog -quiet " + vlog + "\n")
     for vhd in sorted(globalVHDs):
-        newPRJFile.write("read_vhdl -lib work " + vhd + "\n")
+        newTclFile.write("read_vhdl -lib work " + vhd + "\n")
+
+    given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
+
+    for netlist in given_netlists:
+        newTclFile.write('read_edif ' + netlist + '\n')
+
+    # Eventually we will want to add some of these to the synthesis tcl
+    # From UG905 pg. 11, involving clock definition.
 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
     # and friends on the external ports.
-    newPRJFile.write("synth_design -nojournal -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
-    newPRJFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
+    newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+    newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.preopt.util\n")
 
-    newPRJFile.close()
+    # We should do opt_design here because it will be faster in parallel.  However, opt_design seems to ignore out_of_context. 
+    #newTclFile.write("opt_design -quiet\n")
+    newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.opt.util\n")
+    newTclFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
+
+    newTclFile.close()
     return prjPath
 
 
@@ -124,8 +137,8 @@ def getSRPResourcesClosure(module):
         srpHandle = open(srpFile, 'r')
         rscHandle = open(rscFile, 'w')
         resources =  {}
-
-        attributes = {'LUT': " Number of Slice LUTs",'Reg': " Number of Slice Registers", 'BRAM': " Number of Block RAM/FIFO:"}
+        #block ram seems to have floating values.
+        attributes = {'LUT': " Number of Slice LUTs",'Reg': " Slice Registers", 'BRAM': " Block RAM Tile"}
 
         for line in srpHandle:
             for attribute in attributes:
@@ -139,6 +152,42 @@ def getSRPResourcesClosure(module):
                                    
         rscHandle.close()
         srpHandle.close()
+    return collect_srp_resources
+
+
+
+# Converts SRP file into resource representation which can be used
+# by the LIM compiler to assign modules to execution platforms.
+def getVivadoUtilResourcesClosure(module):
+
+    def collect_srp_resources(target, source, env):
+
+        srpFile = str(source[0])
+        rscFile = str(target[0])
+
+        srpHandle = open(srpFile, 'r')
+        rscHandle = open(rscFile, 'w')
+        resources =  {}
+
+        attributes = {'LUT': "\| Slice LUTs ",'Reg': "\| Slice Registers", 'BRAM': "\| Block RAM Tile"}  
+
+        for line in srpHandle:
+            for attribute in attributes:
+                if (re.search(attributes[attribute],line)):
+                    match = re.search(r'\D+(\d+\.?\d*)\D+\d+\D+(\d+)\D+', line)
+                    if(match):
+                        if(attribute in resources):
+                            print "ERROR: Resource extractor found multiple pattern matches"
+                            exit(1)
+                        resources[attribute] = [match.group(1), match.group(2)]
+
+
+        rscHandle.write(module.name + ':')
+        rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources]) + '\n')
+                                   
+        rscHandle.close()
+        srpHandle.close()
+
     return collect_srp_resources
     
 def linkNGC(moduleList, module, firstPassLIGraph):
@@ -216,7 +265,8 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs)
 
     edfFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.edf'
-    srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
+    srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.synth.opt.util'
+    logFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.synth.log'
     resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
 
 
@@ -226,9 +276,9 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
         sorted(module.moduleDependency['VERILOG']) +
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
-        [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
+        [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.synth.opt.util'),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
-          'vivado -mode batch -source config/' + module.wrapperName() + '.synthesis.tcl -log ' + srpFile,
+          'vivado -nojournal -mode batch -source config/' + module.wrapperName() + '.synthesis.tcl > ' + logFile,
           '@echo vivado synthesis ' + module.wrapperName() + ' build complete.' ])
 
 
@@ -244,9 +294,12 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     module.moduleDependency['SYNTHESIS'] = [sub_netlist]
     SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
 
-    moduleList.env.Command(resourceFile,
-                           srpFile,
-                           getSRPResourcesClosure(module))
+    utilFile = moduleList.env.Command(resourceFile,
+                                      srpFile,
+                                      getVivadoUtilResourcesClosure(module))
+
+    # This debug hook should be removed.
+    moduleList.env.AlwaysBuild(utilFile)
 
     # If we're building for the FPGA, we'll claim that the
     # top-level build depends on the existence of the ngc
