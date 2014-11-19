@@ -56,7 +56,7 @@ class Synthesize():
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
           'ulimit -s unlimited; vivado -mode batch -source config/' + moduleList.topModule.wrapperName() + '.synthesis.tcl -log ' + topSRP,
-          '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
+          '@echo vivado ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 
     moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist] + synth_deps
     synth_deps += top_netlist
