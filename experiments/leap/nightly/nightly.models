@@ -1,4 +1,5 @@
 hello                               config/pm/leap/demos/hello/hello_hybrid_exe.apm
+hello_vivado                        config/pm/leap/demos/hello/hello_hybrid_vc707_vivado.apm                       --fakestats
 traffic_light_nosynth               config/pm/leap/demos/traffic_light/traffic_light_exe_nosynth.apm               
 traffic_light_synth                 config/pm/leap/demos/traffic_light/traffic_light_exe_synth.apm                 
 traffic_light_vc707_synth           config/pm/leap/demos/traffic_light/traffic_light_vc707_synth.apm               --fakestats
