@@ -104,8 +104,6 @@ class PostSynthesize():
       synthDeps + tcl_algs + tcl_defs, 
       ['vivado -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
 
-    moduleList.env.AlwaysBuild(xilinx_bit)
-
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']
 
     # We still need to generate a download script. 

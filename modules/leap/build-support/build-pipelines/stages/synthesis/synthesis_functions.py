@@ -115,9 +115,13 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     # and friends on the external ports.
     newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
     newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.preopt.util\n")
+    newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
 
-    # We should do opt_design here because it will be faster in parallel.  However, opt_design seems to ignore out_of_context. 
-    #newTclFile.write("opt_design -quiet\n")
+    # We should do opt_design here because it will be faster in
+    # parallel.  However, opt_design seems to cause downstream
+    # problems and needs more testing. 
+    # newTclFile.write("opt_design -quiet\n")
+
     newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.opt.util\n")
     newTclFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
 
@@ -297,9 +301,6 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     utilFile = moduleList.env.Command(resourceFile,
                                       srpFile,
                                       getVivadoUtilResourcesClosure(module))
-
-    # This debug hook should be removed.
-    moduleList.env.AlwaysBuild(utilFile)
 
     # If we're building for the FPGA, we'll claim that the
     # top-level build depends on the existence of the ngc
