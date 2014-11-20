@@ -32,6 +32,7 @@ def parseLogfiles(logfiles):
                                                  match.group(6),
                                                  match.group(7),
                                                  match.group(8),
+                                                 match.group(8),
                                                  type)]
                     else:
                         connections +=  [LIChannel(match.group(1), 

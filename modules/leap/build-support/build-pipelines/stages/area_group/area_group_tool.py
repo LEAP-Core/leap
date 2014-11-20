@@ -12,21 +12,40 @@ import wrapper_gen_tool
 def areaConstraintType():
     return 'UCF'
 
-def loadAreaConstraints(filename):
+##
+## Area constraints are computed and stored in a file.  There are two files
+## generated: one with early information (incomplete) and one with full closure.
+##
+## The following two functions load the area group descriptions from files.
+##
+
+def loadAreaConstraints(moduleList):
+    return _loadAreaConstraintsFromFile(areaConstraintsFile(moduleList))
+
+def loadAreaConstraintsIncomplete(moduleList):
+    return _loadAreaConstraintsFromFile(areaConstraintsFileIncomplete(moduleList))
+
+def storeAreaConstraints(moduleList, areaGroups):
+    pickle_handle = open(areaConstraintsFile(moduleList), 'wb')
+    pickle.dump(areaGroups, pickle_handle, protocol = -1)
+    pickle_handle.close()
+
+def _loadAreaConstraintsFromFile(filename):
     # The first pass will dump a well known file. 
     if(os.path.isfile(filename)):
         # We got a valid LI graph from the first pass.
-        pickleHandle = open(filename, 'rb')
-        areaGroups = pickle.load(pickleHandle)
-        pickleHandle.close()
+        pickle_handle = open(filename, 'rb')
+        areaGroups = pickle.load(pickle_handle)
+        pickle_handle.close()
         return areaGroups
     return None
 
-def areaConstraintFileIncomplete(moduleList):
+def areaConstraintsFileIncomplete(moduleList):
     return  moduleList.compileDirectory + '/areagroups.nopaths.pickle'  
 
-def areaConstraintFileComplete(moduleList):    
+def areaConstraintsFile(moduleList):
     return  moduleList.compileDirectory + '/areagroups.pickle'  
+
 
 # Backends are called by specific tool flows. Thus we can have both
 # backends here. 
@@ -467,20 +486,20 @@ class Floorplanner():
                  # group mapping problem we can dump the results for 
                  # the build tree. 
 
-                 pickleHandle = open(areaConstraintFileIncomplete(moduleList), 'wb')
-                 pickle.dump(areaGroups, pickleHandle, protocol=-1)
-                 pickleHandle.close()                 
+                 pickle_handle = open(areaConstraintsFileIncomplete(moduleList), 'wb')
+                 pickle.dump(areaGroups, pickle_handle, protocol=-1)
+                 pickle_handle.close()                 
                  
              return area_group
 
         # expose this dependency to the backend tools.
-        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [areaConstraintFileIncomplete(moduleList)]
+        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [areaConstraintsFileIncomplete(moduleList)]
 
         # We need to get the resources for all modules, except the top module, which can change. 
         resources = [dep for dep in moduleList.getAllDependencies('RESOURCES')]
 
         areagroup = moduleList.env.Command( 
-            [areaConstraintFileIncomplete(moduleList)],
+            [areaConstraintsFileIncomplete(moduleList)],
             resources + map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS')),
             area_group_closure(moduleList)
             )                   
