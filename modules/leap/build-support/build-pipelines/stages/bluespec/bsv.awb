@@ -14,6 +14,7 @@
 %scons %library BSV.py
 %scons %library BSVSynthTreeBuilder.py
 %scons %library treeModule.py
+%scons %library BSVUtils.py
 
 
 %sources -t XCF -v PRIVATE bluespec.xcf

@@ -6,11 +6,12 @@ import cPickle as pickle
 import SCons.Script
 
 from model import  *
-from iface_tool import *
+import iface_tool 
 from treeModule import *
 from li_module import *
 from wrapper_gen_tool import *
 from BSVSynthTreeBuilder import *
+import BSVUtils
 
 import pygraph
 try:
@@ -51,7 +52,7 @@ class BSV():
         synth_modules = [moduleList.topModule] + moduleList.synthBoundaries()
 
         # Ideally, the iface tool would set this value for us.
-        self.ALL_DIRS_FROM_ROOT = ':'.join([moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath for module in synth_modules]) + ":" + getIfaceIncludeDirs()
+        self.ALL_DIRS_FROM_ROOT = ':'.join([moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath for module in synth_modules]) + ":" + iface_tool.getIfaceIncludeDirs()
 
         self.USE_TREE_BUILD = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
 
@@ -59,6 +60,13 @@ class BSV():
         self.ALL_LIB_DIRS_FROM_ROOT = self.ALL_DIRS_FROM_ROOT + ':' + self.ALL_BUILD_DIRS_FROM_ROOT
 
         self.ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
+
+        # we need to annotate the module list with the
+        # bluespec-provided library files. Do so here.
+        if(not moduleList.getAWBParamSafe('synthesis_tool', 'USE_VIVADO_SOURCES') is None):
+            BSVUtils.decorateBluespecLibraryCodeVivado(moduleList)
+        else:
+            BSVUtils.decorateBluespecLibraryCodeBaseline(moduleList)
 
         self.TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
         self.BUILD_LOGS_ONLY = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')
@@ -82,6 +90,7 @@ class BSV():
 
         moduleList.env.VariantDir(self.TMP_BSC_DIR, '.', duplicate=0)
         moduleList.env['ENV']['BUILD_DIR'] = moduleList.env['DEFS']['BUILD_DIR']  # need to set the builddir for synplify
+
 
         topo = moduleList.topologicalOrderSynth()
         topo.reverse()
@@ -697,7 +706,7 @@ class BSV():
         seen = set()
         t = [e for e in t if e not in seen and not seen.add(e)]
 
-        if (getBluespecVersion() >= 15480):
+        if (BSVUtils.getBluespecVersion() >= 15480):
             try:
                 while 1:
                     i = t.index(match)
@@ -722,7 +731,7 @@ class BSV():
             dirName = os.path.dirname(str(target[0]))
             def appendDirName(fileName):
                 return dirName + '/' + fileName
-            if (getBluespecVersion() < 26572):
+            if (BSVUtils.getBluespecVersion() < 26572):
                 target.append(str(target[0]).replace('.bo', '.bi'))
 
             # Find Emitted BA/Verilog, but only for module_name.bsv (an awb module)

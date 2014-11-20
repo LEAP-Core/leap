@@ -18,5 +18,6 @@
 %param --global XST_BLUESPEC_BASICINOUT  0   "Enable running Bluespec basicinout on top level Verilog"
 %param --global XST_PARALLEL_CASE        1   "Enable Xilinx XST global parallel case directive"
 %param --global XST_INSERT_IOBUF         0   "Have XST insert IOBUFs"
+%param          USE_VIVADO_SOURCES       1   "Use Vivado sources at compilation"
 
  
