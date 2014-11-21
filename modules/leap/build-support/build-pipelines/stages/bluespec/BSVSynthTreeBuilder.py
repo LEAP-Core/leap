@@ -733,11 +733,16 @@ class BSVSynthTreeBuilder():
                     matched[channel.name] = channel
 
                     if (channel.isSource()):
-                        module_body += "    connectOutToIn(" + channel.module_name + ".outgoing[" + str(channel.module_idx) + "], " +\
-                            partnerChannel.module_name + ".incoming[" + str(partnerChannel.module_idx) + "]);// " + channel.name + "\n"
+                        c_out = channel
+                        c_in = partnerChannel
                     else:
-                        module_body += "    connectOutToIn(" + partnerChannel.module_name + ".outgoing[" + str(partnerChannel.module_idx) + "], " +\
-                            channel.module_name + ".incoming[" + str(channel.module_idx) + "]);// " + channel.name + "\n"
+                        c_out = partnerChannel
+                        c_in = channel
+
+                    module_body += "    connectOutToIn(" + c_out.module_name + ".outgoing[" + str(c_out.module_idx) + "], " +\
+                                   c_in.module_name + ".incoming[" + str(c_in.module_idx) + "], " +\
+                                   "0" +\
+                                   ");// " + c_out.name + "\n"
 
         #handle matching chains
         for chain in submodule0.chains:
@@ -749,7 +754,9 @@ class BSVSynthTreeBuilder():
                     chain.sinkPartnerChain = partnerChain
                     chain.sourcePartnerChain = chain
                     module_body += "    connectOutToIn(" + chain.module_name + ".chains[" + str(chain.module_idx) + "].outgoing, " +\
-                        partnerChain.module_name + ".chains[" + str(partnerChain.module_idx) + "].incoming);// " + chain.name + "\n"
+                                   partnerChain.module_name + ".chains[" + str(partnerChain.module_idx) + "].incoming, " +\
+                                   "0" +\
+                                   ");// " + chain.name + "\n"
 
 
         # Stick the remaining connections of child modules

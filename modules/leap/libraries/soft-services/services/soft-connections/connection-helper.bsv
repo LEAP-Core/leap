@@ -31,6 +31,9 @@
 
 import Clocks::*;
 import Connectable::*;
+import GetPut::*;
+import FIFOF::*;
+
 
 //============================================================================
 // Helper Functions
@@ -44,7 +47,7 @@ instance Connectable#(CONNECTION_OUT#(t_MSG), CONNECTION_IN#(t_MSG));
   function m#(Empty) mkConnection(CONNECTION_OUT#(t_MSG) cout, CONNECTION_IN#(t_MSG) cin)
     provisos (IsModule#(m, c));
   
-    return connectOutToIn(cout, cin);
+    return connectOutToIn(cout, cin, 0);
     
   endfunction
 
@@ -55,7 +58,7 @@ instance Connectable#(CONNECTION_IN#(t_MSG), CONNECTION_OUT#(t_MSG));
   function m#(Empty) mkConnection(CONNECTION_IN#(t_MSG) cin, CONNECTION_OUT#(t_MSG) cout)
     provisos (IsModule#(m, c));
   
-    return connectOutToIn(cout, cin);
+    return connectOutToIn(cout, cin, 0);
     
   endfunction
 
@@ -198,46 +201,155 @@ function Bool primNameDoesNotMatch(String rinfo, s sinfo)
   return !primNameMatches(rinfo, sinfo);
 endfunction
 
+
 //
-// connectOutToIn.
-// This is the module that actually performs the connection between two
-// physical endpoints. This is for 1-to-1 communication only.
+// mkBufferedConnectionOut --
+//   Transform a CONNECTION_OUT by adding some number of buffered FIFOs as
+//   intermediate stages in order to relax timing.  A new CONNECTION_OUT is
+//   returned.
 //
-module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin) ();
+module mkBufferedConnectionOut#(CONNECTION_OUT#(t_MSG_SIZE) cout,
+                                Integer bufferStages)
+    // Interface:
+    (CONNECTION_OUT#(t_MSG_SIZE));
+
+    if (bufferStages == 0)
+    begin
+        return cout;
+    end
+    else
+    begin
+        // Connect cout to first buffer.
+        FIFOF#(Bit#(t_MSG_SIZE)) b <- mkUGFIFOF(clocked_by cout.clock,
+                                                reset_by cout.reset);
+
+        rule fromCout (cout.notEmpty && b.notFull);
+            // Try to move the data
+            Bit#(t_MSG_SIZE) x = cout.first();
+            cout.deq();
+
+            b.enq(x);
+        endrule
+
+        // Insert extra buffer stages
+        for (Integer i = 1; i < bufferStages; i = i + 1)
+        begin
+            FIFOF#(Bit#(t_MSG_SIZE)) b_next <- mkUGFIFOF(clocked_by cout.clock,
+                                                         reset_by cout.reset);
+
+            rule conBuf (b.notEmpty && b_next.notFull);
+                let x = b.first();
+                b.deq();
+
+                b_next.enq(x);
+            endrule
+
+            b = b_next;
+        end
+
+        method Bool notEmpty = b.notEmpty;
+        method Bit#(t_MSG_SIZE) first = b.first;
+        method Action deq = b.deq;
+        interface Clock clock = cout.clock;
+        interface Reset reset = cout.reset;
+    end
+endmodule
+
+
+//
+// mkBufferedConnectionIn --
+//   Transform a CONNECTION_IN by adding some number of buffered FIFOs as
+//   intermediate stages in order to relax timing.  A new CONNECTION_IN is
+//   returned.
+//
+module mkBufferedConnectionIn#(CONNECTION_IN#(t_MSG_SIZE) cin,
+                                Integer bufferStages)
+    // Interface:
+    (CONNECTION_IN#(t_MSG_SIZE));
+
+    if (bufferStages == 0)
+    begin
+        return cin;
+    end
+    else
+    begin
+        // Connect cin to nearest buffer.
+        FIFOF#(Bit#(t_MSG_SIZE)) b <- mkUGFIFOF(clocked_by cin.clock,
+                                                reset_by cin.reset);
+
+        rule cinTrySend (b.notEmpty);
+            // Try to move the data
+            Bit#(t_MSG_SIZE) x = b.first();
+            cin.try(x);
+        endrule
+
+        rule cinSuccess (cin.success());
+            // We succeeded in moving the data
+            b.deq();
+        endrule
+
+        // Insert extra buffer stages
+        for (Integer i = 1; i < bufferStages; i = i + 1)
+        begin
+            FIFOF#(Bit#(t_MSG_SIZE)) b_prev <- mkUGFIFOF(clocked_by cin.clock,
+                                                         reset_by cin.reset);
+
+            rule conBuf (b_prev.notEmpty && b.notFull);
+                let x = b_prev.first();
+                b_prev.deq();
+
+                b.enq(x);
+            endrule
+
+            b = b_prev;
+        end
+
+        PulseWire enW <- mkPulseWire(clocked_by cin.clock, reset_by cin.reset);
+
+        method Action try(Bit#(t_MSG_SIZE) d);
+            if (b.notFull)
+            begin
+                b.enq(d);
+                enW.send();
+            end
+        endmethod
+
+        method Bool success() = enW;
+        method Bool dequeued() = enW;
+        interface Clock clock = cin.clock;
+        interface Reset reset = cin.reset;
+    end
+endmodule
+
+
+//
+// connectOutToIn --
+//   This is the module that actually performs the connection between two
+//   physical endpoints. This is for 1-to-1 communication only.
+//
+//   A configurable number of buffer stages may be added to relax timing
+//   between distant endpoints.
+//
+module connectOutToIn#(CONNECTION_OUT#(t_MSG_SIZE) cout,
+                       CONNECTION_IN#(t_MSG_SIZE) cin,
+                       Integer bufferStages)
+    // Interface:
+    ();
   
-    rule trySend (cout.notEmpty());
+    let buf_cout <- mkBufferedConnectionOut(cout, bufferStages);
+
+    rule trySend (buf_cout.notEmpty());
         // Try to move the data
-        Bit#(t_MSG_SIZE) x = cout.first();
+        Bit#(t_MSG_SIZE) x = buf_cout.first();
         cin.try(x);
     endrule
 
     rule success (cin.success());
         // We succeeded in moving the data
-        cout.deq();
+        buf_cout.deq();
     endrule
-    
 endmodule
 
-//
-// connectOutToInSized.
-// Exposes actual size to high-level tools.  This is necessary so that the Xilinx 
-// partition optimizers can more easily see unused code. 
-//
-module connectOutToInSized#(CONNECTION_OUT#(t_MSG_SIZE) cout, CONNECTION_IN#(t_MSG_SIZE) cin, NumTypeParam#(t_ACTUAL_SIZE) connectionSize) ();
-  
-    rule trySend (cout.notEmpty());
-        // Try to move the data
-        Bit#(t_MSG_SIZE) x = cout.first();
-        Bit#(t_ACTUAL_SIZE) xActual = truncateNP(x);
-        cin.try({?,x});
-    endrule
-
-    rule success (cin.success());
-        // We succeeded in moving the data
-        cout.deq();
-    endrule
-    
-endmodule
 
 // Smart, clock-domain aware version, of the above.
 // This version is not used presently, due to issues in 
