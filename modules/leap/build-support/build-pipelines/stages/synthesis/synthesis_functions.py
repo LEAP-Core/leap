@@ -120,7 +120,9 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     # We should do opt_design here because it will be faster in
     # parallel.  However, opt_design seems to cause downstream
     # problems and needs more testing. 
-    # newTclFile.write("opt_design -quiet\n")
+   
+    #if(not module.platformModule):
+    #    newTclFile.write("opt_design -quiet\n")
 
     newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.opt.util\n")
     newTclFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
@@ -173,21 +175,66 @@ def getVivadoUtilResourcesClosure(module):
         rscHandle = open(rscFile, 'w')
         resources =  {}
 
-        attributes = {'LUT': "\| Slice LUTs ",'Reg': "\| Slice Registers", 'BRAM': "\| Block RAM Tile"}  
+        attributes = {'LUT': "\| Slice LUTs",'Reg': "\| Slice Registers", 'BRAM': "\| Block RAM Tile"} 
+
+        primitives = {'LUT6': "\| LUT6", 'LUT5': "\| LUT5", 'LUT4': "\| LUT4",  'LUT3': "\| LUT3",  'LUT2': "\| LUT2",  'LUT1': "\| LUT1", 'SRL16E': '\| SRL16E'}
+
+        attributes.update(primitives)
 
         for line in srpHandle:
             for attribute in attributes:
                 if (re.search(attributes[attribute],line)):
-                    match = re.search(r'\D+(\d+\.?\d*)\D+\d+\D+(\d+)\D+', line)
-                    if(match):
-                        if(attribute in resources):
-                            print "ERROR: Resource extractor found multiple pattern matches"
-                            exit(1)
-                        resources[attribute] = [match.group(1), match.group(2)]
+                    match = False
+                    if(attribute in primitives):
+                        match = re.search(attributes[attribute] + '\D+(\d+)\D+', line)
+                        if(match):
+                            # Since the primitives don't really have a
+                            # total, give an arbitrarly large number
+                            # here.
+                            resources[attribute] = [match.group(1), str(10000000)]
+                    else:
+                        match = re.search(r'\D+(\d+\.?\d*)\D+\d+\D+(\d+)\D+', line)
+                        if(match):
+                            if(attribute in resources):
+                                print "ERROR: Resource extractor found multiple pattern matches"
+                                exit(1)
+                            resources[attribute] = [match.group(1), match.group(2)]
 
+        # This function figures converts the primitive resource usage
+        # to a number of slices. This function is highly device
+        # specific. Probably we will need to factor this over to a
+        # device library at some point.
+        def getResourceCount(deviceResources, resourceType):
+            if(resourceType in deviceResources):
+                return int(deviceResources[resourceType][0])
+            return 0
+
+        def convertSlicesVirtex7(deviceResources):
+            slices = 0
+            baseLUTs = getResourceCount(deviceResources, 'LUT')
+            lut6s = getResourceCount(deviceResources, 'LUT6')
+            lut5s = getResourceCount(deviceResources, 'LUT5')
+            lut4s = getResourceCount(deviceResources, 'LUT4')
+            lut3s = getResourceCount(deviceResources, 'LUT3')
+            lut2s = getResourceCount(deviceResources, 'LUT2')
+            lut1s = getResourceCount(deviceResources, 'LUT1')            
+            srl16es = getResourceCount(deviceResources, 'SRL16E')            
+
+            # Some 4/5 LUTs take a whole slice. We'll conservatively
+            # assume that they all do.  We should use 'LUT' count to
+            # figure out combinability
+            slice4LUTs = lut6s + lut5s + lut4s + srl16es
+            slice8LUTs = lut1s + lut2s + lut3s 
+            slices = slice8LUTs / 8 + slice4LUTs / 4
+
+            return slices
+
+        # we should really know how many slices we have. But I am not
+        # sure how to do that.
+        resources['SLICE'] = [str(convertSlicesVirtex7(resources)), str(10000000)]
 
         rscHandle.write(module.name + ':')
-        rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources]) + '\n')
+        rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources if resource not in primitives]) + '\n')
                                    
         rscHandle.close()
         srpHandle.close()

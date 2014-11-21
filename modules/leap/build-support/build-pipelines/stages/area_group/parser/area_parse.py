@@ -23,7 +23,6 @@ def p_constraint_list(p):
     # Since we'll be generating some constraints elsewhere, that code
     # will be building the AST. So we just pass a list back. 
 
-    print 'len p is ' + str(len(p)) 
     if(len(p) > 1):
         p[0] = [p[1]] + p[2]
     else:

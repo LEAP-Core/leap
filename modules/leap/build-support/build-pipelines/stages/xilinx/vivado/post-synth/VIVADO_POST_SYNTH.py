@@ -6,6 +6,11 @@ from model import  *
 
 import xilinx_loader
 
+try:
+    import area_group_tool
+except ImportError:
+    pass # we won't be using this tool.
+
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
 
@@ -13,6 +18,7 @@ class PostSynthesize():
   def __init__(self, moduleList):
 
     apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
+
 
     # If the TMP_XILINX_DIR doesn't exist, create it.
     if not os.path.isdir(moduleList.env['DEFS']['TMP_XILINX_DIR']):
@@ -29,7 +35,29 @@ class PostSynthesize():
     tcl_algs = []
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS')) > 0):
         tcl_algs = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS'))
-          
+
+
+    #Emit area group definitions
+    # If we got an area group placement data structure, now is the
+    # time to convert it into a new constraint tcl. 
+    if('AREA_GROUPS' in moduleList.topModule.moduleDependency):
+        area_group_file = moduleList.compileDirectory + '/areagroups.xdc'
+        # user ucf may be overridden by our area group ucf.  Put our
+        # generated ucf first.
+        tcl_defs.insert(0,area_group_file)
+        def area_group_ucf_closure(moduleList):
+
+             def area_group_ucf(target, source, env):
+                 area_group_tool.emitConstraintsVivado(area_group_file, 
+                                                       area_group_tool.loadAreaConstraints(moduleList))
+                                    
+             return area_group_ucf
+
+        moduleList.env.Command( 
+            [area_group_file],
+            area_group_tool.areaConstraintsFile(moduleList),
+            area_group_ucf_closure(moduleList)
+            )                             
 
     # Construct the tcl file 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
@@ -57,6 +85,8 @@ class PostSynthesize():
 
     newTclFile.write("report_utilization -file " + apm_name + ".link.util\n")
 
+    newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
+
     for tcl_def in tcl_defs:
         newTclFile.write('source ' + tcl_def + '\n')
 
@@ -64,8 +94,6 @@ class PostSynthesize():
         newTclFile.write('source ' + tcl_alg + '\n')
 
     newTclFile.write("report_timing_summary -file " + apm_name + ".map.twr\n")
-
-    newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
 
     newTclFile.write("opt_design\n")
 
@@ -87,7 +115,7 @@ class PostSynthesize():
 
     newTclFile.write("report_timing_summary -file " + apm_name + ".par.twr\n")
 
-    newTclFile.write("report_utilization -file " + apm_name + ".par.util\n")
+    newTclFile.write("report_utilization -hierarchical -file " + apm_name + ".par.util\n")
 
     newTclFile.write("report_drc -file " + topWrapper + ".drc\n")
 

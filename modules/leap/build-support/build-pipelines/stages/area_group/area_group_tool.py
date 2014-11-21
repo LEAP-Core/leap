@@ -60,7 +60,6 @@ def emitConstraintsXilinx(fileName, areaGroups):
         if(areaGroupObject.sourcePath is None):
             continue
 
-        print "Emitting Code for: " + str(areaGroupObject)
         # This is a magic conversion factor for virtex 7.  It might
         # need to change for different architectures.
         lutToSliceRatio = 1
@@ -81,7 +80,52 @@ def emitConstraintsXilinx(fileName, areaGroups):
         constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" PLACE=CLOSED;\n')
         
     constraintsFile.close()
-    
+
+def emitConstraintsVivado(fileName, areaGroups):
+    constraintsFile = open(fileName, 'w')
+    for areaGroupName in areaGroups:
+        areaGroupObject = areaGroups[areaGroupName]
+
+        # if area group was tagged as None, do not emit an area group
+        # for it.  This allows us to handle area groups hidden in the
+        # user UCF.
+        if(areaGroupObject.sourcePath is None):
+            continue
+
+        # This is a magic conversion factor for virtex 7.  It might
+        # need to change for different architectures.
+        lutToSliceRatio = 1
+
+        #startgroup
+        #create_pblock pblock_ddr3 
+        #resize_pblock pblock_ddr3 -add {SLICE_X134Y267:SLICE_X173Y349}
+        #add_cells_to_pblock pblock_ddr3 [get_cells -hier -filter {NAME =~ m_sys_sys_vp_m_mod/llpi_phys_plat_sdram_b_ddrSynth/*}]
+        #endgroup
+
+        constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
+        constraintsFile.write('startgroup \n')
+        constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
+
+        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)/lutToSliceRatio)
+        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+
+        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)/lutToSliceRatio)
+        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+  
+        constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
+
+        constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+
+
+
+        constraintsFile.write('set_property CONTAIN_ROUTING true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+
+        constraintsFile.write('endgroup \n')
+        
+    constraintsFile.close()
+
+
 
 class Floorplanner():
 
@@ -107,8 +151,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.6
-                 luts_per_slice = 8
+                 extra_area_factor = 1.3                
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -118,7 +161,6 @@ class Floorplanner():
                  else:
                      moduleResources = assignResources(moduleList, None, self.firstPassLIGraph)
                  
-                 print 'Module resources: ' + str(moduleResources)
 
                  areaGroups = {}
                  # We should make a bunch of AreaGroups here. 
@@ -132,11 +174,7 @@ class Floorplanner():
  
                  # now that we have the modules, let's apply constraints. 
 
-                 print "moduleResources " + str(moduleResources)
-
                  # Grab area groups declared/defined in the agrp file supplied by the user. 
-
-                 print "area sources " + str(convertDependencies(source))
                  constraints = []
                  for constraintFile in moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS'):
                      constraints += parseAreaGroupConstraints(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + constraintFile)
@@ -157,9 +195,7 @@ class Floorplanner():
                  # area groups.
                  for constraint in constraints:
                      if(isinstance(constraint,AreaGroupSize)): 
-                         print 'Constraint type Size ' + str(constraints)                             
                          if(constraint.name == 'FPGA'):
-                             print 'Constraint for chip ' + str(constraints)                             
                              if(chipXDimension > 0):
                                  print "Got too many FPGA dimension statements, bailing"
                                  exit(1)
@@ -203,28 +239,31 @@ class Floorplanner():
                      # EEEK I don't think I know what the paths will
                      # be at this point. Probably need to memoize and
                      # fill those in later?
-                     if((areaGroup.name in moduleResources) and ('LUT' in moduleResources[areaGroup.name])):
-                         # there are 8 luts in a slice.
-                         areaGroup.area = moduleResources[areaGroup.name]['LUT']/luts_per_slice
+                     if((areaGroup.name in moduleResources) and ('SLICE' in moduleResources[areaGroup.name])):
+                         areaGroup.area = moduleResources[areaGroup.name]['SLICE']
                      else:
-                         areaGroup.area = areaGroup.xDimension[0]/luts_per_slice * areaGroup.yDimension[0]/luts_per_slice
+                         areaGroup.area = areaGroup.xDimension[0] * areaGroup.yDimension[0]
 
                  # We've now built a tree of parent/child
                  # relationships, which we can use to remove area from
                  # the parent (double counting is a problem).  
                  for areaGroup in areaGroups.values():
                      for child in areaGroup.children.values():
-                         print 'AREAGROUP: setting parent ' + areaGroup.name +  ' area from ' +  str(areaGroup.area) + 'to' + str(areaGroup.area - child.area) + ' due to child ' + child.name   
-                         areaGroup.area = areaGroup.area - child.area
+                         print 'AREAGROUP: setting parent ' + areaGroup.name +  ' area from ' +  str(areaGroup.area) + 'to' + str(areaGroup.area - child.area) + ' due to child ' + child.name + '\n'
+                         # If we have a slice resource declaration,
+                         # use it else, use 1/2 the area as an estimate
+                         if('SLICE' in moduleResources[child.name]):
+                             areaGroup.area = areaGroup.area - moduleResources[child.name]['SLICE']
+                         else:
+                             areaGroup.area = areaGroup.area - child.area/2
 
-
-                 affineCoefs = [.25, .5, .75, 1, 1.33, 2, 4] # just make them all squares for now. 
+                 affineCoefs = [.5, .65, .75, 1, 1.33, 1.66, 2] # just make them all squares for now. 
                  for areaGroup in areaGroups:
                      areaGroupObject = areaGroups[areaGroup]
                      # we might have gotten coefficients from the constraints.
                      if(areaGroupObject.xDimension is None):
                          areaGroupObject.xDimension = []
-                         areaGroupObject.yDimension = []
+                         areaGroupObject.yDimension = []                       
                          moduleRoot = math.sqrt(areaGroupObject.area)
                          for coef in affineCoefs:
                              areaGroupObject.xDimension.append(coef*moduleRoot*extra_area_factor)
@@ -249,7 +288,6 @@ class Floorplanner():
                          modHandle.write('var xloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xLoc) + ';\n')
                          modHandle.write('var yloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yLoc) + ';\n')
 
-                     print "group: " + str(areaGroupObject)
                      if(len(areaGroupObject.xDimension) > 1):
                          dimsX = []
                          dimsY = []
@@ -427,7 +465,7 @@ class Floorplanner():
                          iocp_param = glpk.glp_iocp();
                          glpk.glp_init_iocp(iocp_param);
                          #iocp_param.tm_lim=600*1000
-                         iocp_param.mip_gap=0.9
+                         iocp_param.mip_gap=0.3
 
                          glpk.glp_intopt(self._lp, iocp_param);
                          if self._tran:
