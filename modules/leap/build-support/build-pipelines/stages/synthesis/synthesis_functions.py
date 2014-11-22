@@ -153,6 +153,16 @@ def getSRPResourcesClosure(module):
                     if(match):
                         resources[attribute] = [match.group(1), match.group(2)]
 
+        ## This needs to be merged with the platform-specific LUT to slice
+        ## conversion code, currently only in Vivado support code.
+        ## For now, we just use a hack.
+        if ('LUT' in resources):
+            # Assume 6 LUTs per slice
+            resources['SLICE'] = [str(int(int(resources['LUT'][0]) / 6.0)),
+                                  str(int(int(resources['LUT'][1]) / 6.0))]
+        else:
+            resources['SLICE'] = ["0", "0"]
+
         rscHandle.write(module.name + ':')
         rscHandle.write(':'.join([resource + ':' + resources[resource][0] + ':Total' + resource + ':' + resources[resource][1] for resource in resources]) + '\n')
                                    

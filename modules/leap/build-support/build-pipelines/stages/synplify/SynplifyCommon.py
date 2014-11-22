@@ -87,6 +87,15 @@ def getSRRResourcesClosureBase(module, attributes):
                     if(match):
                         resources[attribute] = [match.group(1)]
 
+        ## This needs to be merged with the platform-specific LUT to slice
+        ## conversion code, currently only in Vivado support code.
+        ## For now, we just use a hack.
+        if ('LUT' in resources):
+            # Assume 6 LUTs per slice
+            resources['SLICE'] = [str(int(int(resources['LUT'][0]) / 6.0))]
+        else:
+            resources['SLICE'] = ["0"]
+
         resourceString = ':'.join([resource + ':' + resources[resource][0] for resource in resources]) + '\n'
 
         rscHandle.write(module.name + ':')
@@ -94,6 +103,7 @@ def getSRRResourcesClosureBase(module, attributes):
                                    
         rscHandle.close()
         srrHandle.close()
+
     return collect_srr_resources
 
 def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCollector):

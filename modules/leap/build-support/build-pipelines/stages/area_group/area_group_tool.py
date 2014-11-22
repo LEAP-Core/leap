@@ -135,7 +135,7 @@ class Floorplanner():
         def modify_path_hw(path):
             return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
 
-        if(not moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
+        if (not moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
                return
 
         liGraph = LIGraph([])
@@ -252,12 +252,13 @@ class Floorplanner():
                          print 'AREAGROUP: setting parent ' + areaGroup.name +  ' area from ' +  str(areaGroup.area) + 'to' + str(areaGroup.area - child.area) + ' due to child ' + child.name + '\n'
                          # If we have a slice resource declaration,
                          # use it else, use 1/2 the area as an estimate
-                         if('SLICE' in moduleResources[child.name]):
+                         if ('SLICE' in moduleResources[child.name]):
                              areaGroup.area = areaGroup.area - moduleResources[child.name]['SLICE']
                          else:
                              areaGroup.area = areaGroup.area - child.area/2
 
                  affineCoefs = [.5, .65, .75, 1, 1.33, 1.66, 2] # just make them all squares for now. 
+
                  for areaGroup in areaGroups:
                      areaGroupObject = areaGroups[areaGroup]
                      # we might have gotten coefficients from the constraints.
@@ -491,8 +492,6 @@ class Floorplanner():
                      for variable in variables:
                          print variable + ' is: ' + str(eval('example.' + variable).value()) 
 
-                 dumpVariables(example)
-
                  # print out module locations 
                  for areaGroupIndex in range(len(areaGroupNames)):
                      areaGroup = areaGroups[areaGroupNames[areaGroupIndex]]
@@ -505,8 +504,8 @@ class Floorplanner():
                      # clear all area groups, since this technically
                      # results in a correct solution.
                      if(areaGroup.xLoc < 1 or areaGroup.yLoc < 1):
-                         print "Failed to find solution to area group placement"
                          dumpVariables(example)
+                         print "Failed to find solution to area group placement for: " + areaGroup.name
                          exit(1)
 
                      # figure out the chose dimensions.

@@ -100,7 +100,7 @@ class BSVSynthTreeBuilder():
         # Area constraints
         area_constraints_enabled = False
         try:
-            if (moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
+            if (moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
                 area_constraints_enabled = True
         except:
             # The area constraints code is not present.
