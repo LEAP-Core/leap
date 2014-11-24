@@ -62,18 +62,18 @@ def emitConstraintsXilinx(fileName, areaGroups):
 
         # This is a magic conversion factor for virtex 7.  It might
         # need to change for different architectures.
-        lutToSliceRatio = 1
+        haloCells = 1
 
         #INST "m_sys_sys_syn_m_mod/common_services_inst/*" AREA_GROUP = "AG_common_services";
 #AREA_GROUP "AG_common_services"                   RANGE=SLICE_X146Y201:SLICE_X168Y223;
 #AREA_GROUP "AG_common_services"                   GROUP = CLOSED;
         constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
         constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
-        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
+        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
 
-        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
+        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
   
         constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" RANGE=SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + ';\n')
         constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" GROUP=CLOSED;\n')
@@ -94,7 +94,7 @@ def emitConstraintsVivado(fileName, areaGroups):
 
         # This is a magic conversion factor for virtex 7.  It might
         # need to change for different architectures.
-        lutToSliceRatio = 1
+        haloCells = 1 
 
         #startgroup
         #create_pblock pblock_ddr3 
@@ -106,11 +106,11 @@ def emitConstraintsVivado(fileName, areaGroups):
         constraintsFile.write('startgroup \n')
         constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
 
-        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
+        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
 
-        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
+        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
   
         constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
 
@@ -118,7 +118,7 @@ def emitConstraintsVivado(fileName, areaGroups):
 
 
 
-        constraintsFile.write('set_property CONTAIN_ROUTING true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
         constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
         constraintsFile.write('endgroup \n')

@@ -102,13 +102,33 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     for vhd in sorted(globalVHDs):
         newTclFile.write("read_vhdl -lib work " + vhd + "\n")
 
-    given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
+    givenNetlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
-    for netlist in given_netlists:
+    for netlist in givenNetlists:
         newTclFile.write('read_edif ' + netlist + '\n')
 
     # Eventually we will want to add some of these to the synthesis tcl
     # From UG905 pg. 11, involving clock definition.
+
+    # We need to declare a top-level clock.  Unfortunately, the platform module will require special handling. 
+    clockFiles = []
+
+    print "VIVADO name - " + module.name + " platform " + str(module.platformModule)
+
+    if(not module.platformModule):        
+        MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+        clockTclPath = 'config/' + module.wrapperName() + '.clocks.tcl'  
+        clockTclFile = open(clockTclPath, 'w') 
+        clockTclFile.write('create_clock -name ' + module.name + '_CLK -period ' + str(1000.0/MODEL_CLOCK_FREQ) + ' [get_ports CLK]\n')
+        clockTclFile.close()
+        clockFiles = [clockTclPath]
+    else:
+        if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
+            clockFiles = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
+
+    for file in clockFiles:
+        newTclFile.write("add_files " + file + "\n")
+        newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf

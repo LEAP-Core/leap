@@ -148,3 +148,10 @@ def dictionary_list_create_append(dictionary, key, value):
         dictionary[key].append(value)
     else:
         dictionary[key] = value
+
+##
+## modify_path_hw -- Modifies a file path for AWB's 'hw' directory
+## path.  
+##
+def modify_path_hw(path):
+    return 'hw/' + path 

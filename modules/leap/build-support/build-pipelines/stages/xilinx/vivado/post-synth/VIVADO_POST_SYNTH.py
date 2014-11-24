@@ -24,9 +24,6 @@ class PostSynthesize():
     if not os.path.isdir(moduleList.env['DEFS']['TMP_XILINX_DIR']):
         os.mkdir(moduleList.env['DEFS']['TMP_XILINX_DIR'])
 
-    def modify_path_hw(path):
-        return 'hw/' + path 
-
     # Gather Tcl files for handling constraints.
     tcl_defs = []
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS')) > 0):
