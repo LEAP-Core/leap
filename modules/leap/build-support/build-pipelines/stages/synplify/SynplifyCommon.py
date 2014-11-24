@@ -87,12 +87,12 @@ def getSRRResourcesClosureBase(module, attributes):
                     if(match):
                         resources[attribute] = [match.group(1)]
 
-        ## This needs to be merged with the platform-specific LUT to slice
-        ## conversion code, currently only in Vivado support code.
-        ## For now, we just use a hack.
+        ## Synplify conveniently provides LUT estimates that include a
+        ## half-lut calculation. Thus dividing by 4 is correct for the 7 series. 
+        ## still need to bake this code out. 
         if ('LUT' in resources):
-            # Assume 6 LUTs per slice
-            resources['SLICE'] = [str(int(int(resources['LUT'][0]) / 6.0))]
+            # Assume 4 LUTs per slice
+            resources['SLICE'] = [str(int(int(resources['LUT'][0]) / 4.0))]
         else:
             resources['SLICE'] = ["0"]
 

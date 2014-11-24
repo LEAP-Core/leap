@@ -419,7 +419,7 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
     for module in [ mod for mod in moduleList.synthBoundaries() if mod.platformModule]:
         if((not firstPassGraph is None) and (module.name in firstPassGraph.modules)):
             # we link from previous.
-            synth_deps += linkNGC(moduleList, module, self.firstPassLIGraph)
+            synth_deps += linkNGC(moduleList, module, firstPassLIGraph)
         else:
             synth_deps += buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf)
 
@@ -446,3 +446,45 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
     moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
 
     return [top_netlist] + synth_deps
+
+
+def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
+    # We load this graph in to memory several times. 
+    # TODO: load this graph once. 
+    firstPassLIGraph = getFirstPassLIGraph()
+
+    DEBUG = getBuildPipelineDebug(moduleList) 
+
+    # string together the xcf, sort of like the ucf
+    # Concatenate XCF files
+    MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+
+    ngcModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore] 
+
+    [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
+
+    synth_deps = []
+    # drop exiting boundaries. 
+
+    for module in ngcModules:   
+        # did we get an ngc from the first pass?  If so, did the lim
+        # graph give code for this module?  If both are true, then we
+        # will link the old ngc in, rather than regenerate it. 
+        if((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
+            synth_deps += linkNGC(moduleList, module, firstPassLIGraph)
+        else:
+            # We need to build the netlist. We build platformModules
+            # with the platformModuleBuilder.  User modules get built
+            # with userModuleBuilder.
+            if(module.platformModule):
+                synth_deps += platformModuleBuilder(moduleList, module, globalVerilogs, globalVHDs)
+            else:
+                synth_deps += userModuleBuilder(moduleList, module, globalVerilogs, globalVHDs)
+
+
+    top_netlist = platformModuleBuilder(moduleList, moduleList.topModule, globalVerilogs, globalVHDs)
+    synth_deps += top_netlist
+    moduleList.topModule.moduleDependency['SYNTHESIS'] = synth_deps
+
+    # Alias for synthesis
+    moduleList.env.Alias('synth', synth_deps)
