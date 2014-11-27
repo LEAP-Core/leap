@@ -42,6 +42,7 @@ def parseLogfiles(logfiles):
                                                    eval(match.group(5)), # optional
                                                    match.group(6),
                                                    match.group(7),
+                                                   match.group(7),
                                                    type)]
                            
              
@@ -55,13 +56,14 @@ def parseLogfiles(logfiles):
 ##
 ## placement_cut --
 ##   Cut the tree based on the placement of logic in area groups.  This will
-##   cause chains to be connected with minimized paths.  The area groups
+##   cause chains to be connected with minimized paths.  The area constraints
 ##   code pre-sorts all modules.
 ##
-def placement_cut(graph, areaGroups):
+def placement_cut(graph, areaConstraints):
     # Sort the nodes according to the pre-sorted order already set by the
     # area group code.
-    nodes = sorted(graph.nodes(), key=lambda module: areaGroups[module.name].sortIdx)
+    nodes = sorted(graph.nodes(),
+                   key=lambda module: areaConstraints.constraints[module.name].sortIdx)
 
     # Map the first half of the sorted list to tree "0" and the second half
     # to tree "1".

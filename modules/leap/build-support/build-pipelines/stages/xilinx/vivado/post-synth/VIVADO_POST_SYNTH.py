@@ -37,22 +37,24 @@ class PostSynthesize():
     #Emit area group definitions
     # If we got an area group placement data structure, now is the
     # time to convert it into a new constraint tcl. 
-    if('AREA_GROUPS' in moduleList.topModule.moduleDependency):
+    if ('AREA_GROUPS' in moduleList.topModule.moduleDependency):
+        area_constraints = area_group_tool.AreaConstraints(moduleList)
         area_group_file = moduleList.compileDirectory + '/areagroups.xdc'
+
         # user ucf may be overridden by our area group ucf.  Put our
         # generated ucf first.
         tcl_defs.insert(0,area_group_file)
         def area_group_ucf_closure(moduleList):
 
              def area_group_ucf(target, source, env):
-                 area_group_tool.emitConstraintsVivado(area_group_file, 
-                                                       area_group_tool.loadAreaConstraints(moduleList))
-                                    
+                 area_constraints.loadAreaConstraints()
+                 area_constraints.emitConstraintsVivado(area_group_file)
+
              return area_group_ucf
 
         moduleList.env.Command( 
             [area_group_file],
-            area_group_tool.areaConstraintsFile(moduleList),
+            area_constraints.areaConstraintsFile(),
             area_group_ucf_closure(moduleList)
             )                             
 
