@@ -115,11 +115,11 @@ def emitConstraintsVivado(fileName, areaGroups):
         constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
 
         constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
-
+        #constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "*_inst_' + areaGroupObject.name  + '/*"}]\n')
 
 
         constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
-        constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        constraintsFile.write('set_property EXCLUDE_PLACEMENT false [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
         constraintsFile.write('endgroup \n')
         
@@ -151,7 +151,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.3                
+                 extra_area_factor = 1.4                
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -466,7 +466,7 @@ class Floorplanner():
                          iocp_param = glpk.glp_iocp();
                          glpk.glp_init_iocp(iocp_param);
                          #iocp_param.tm_lim=600*1000
-                         iocp_param.mip_gap=0.3
+                         iocp_param.mip_gap=0.1
 
                          glpk.glp_intopt(self._lp, iocp_param);
                          if self._tran:

@@ -354,6 +354,7 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     # Sort dependencies because SCons will rebuild if the order changes.
     sub_netlist = moduleList.env.Command(
         [edfFile, srpFile],
+        [get_temp_path(moduleList,module) + module.wrapperName() + '.v'] +
         sorted(module.moduleDependency['VERILOG']) +
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),

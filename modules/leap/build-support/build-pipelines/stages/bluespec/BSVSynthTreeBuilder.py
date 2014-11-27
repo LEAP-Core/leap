@@ -333,9 +333,12 @@ class BSVSynthTreeBuilder():
 
         tree_command = self.parent.compile_bo_bsc_base([tree_file_wrapper_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_wrapper
         tree_file_wrapper_bo = env.Command([tree_file_wrapper_bo_path + '.bo'] + producedBAs,
-                                           [tree_file_wrapper],
+#                                           [tree_file_wrapper],
+                                           tree_components,
                                            tree_command)
 
+        print "TREE COMPONENTS: " + str(tree_components)
+ 
         # If we got a first pass LI graph, we need to link its object codes.
         if(not getFirstPassLIGraph() is None):
             buildPath = get_build_path(moduleList, moduleList.topModule)
@@ -528,7 +531,7 @@ class BSVSynthTreeBuilder():
 
                 # Annotate physical platform. This is sort of a hack.
                 if(moduleList.localPlatformName + "_platform" in areaGroups):
-                    areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  "m_sys_sys_vp_m_mod"
+                    areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  None #"m_sys_sys_vp_m_mod"
 
                 if (state['area_constraints_enabled']):
                     area_group_tool.storeAreaConstraints(moduleList, areaGroups)
