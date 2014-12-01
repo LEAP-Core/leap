@@ -9,7 +9,16 @@ from liModule import *
 
 class LIChannel():
   
-    def __init__(self, sc_type, raw_type, module_idx, name, optional, bitwidth, module_name, type_structure):
+    def __init__(self,
+                 sc_type,
+                 raw_type,
+                 module_idx,
+                 name,
+                 optional,
+                 bitwidth,
+                 module_name,
+                 root_module_name,
+                 type_structure):
         self.sc_type = sc_type
         self.raw_type = raw_type
         self.name = name
@@ -19,6 +28,10 @@ class LIChannel():
         self.bitwidth = int(bitwidth)
         self.matched = False        
         self.module_name = module_name # this is only the name of the module
+
+        # Root module name associated with the channel endpoint
+        self.root_module_name = root_module_name
+
         self.type_structure = type_structure
         self.via_idx_ingress = "unassigned"
         self.via_link_ingress = "unassigned"
@@ -50,7 +63,15 @@ class LIChannel():
         self.matched = False
 
     def copy(self):
-        newChannel = LIChannel(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.type_structure)
+        newChannel = LIChannel(self.sc_type,
+                               self.raw_type,
+                               self.module_idx,
+                               self.name,
+                               self.optional,
+                               self.bitwidth,
+                               self.module_name,
+                               self.root_module_name,
+                               self.type_structure)
         # Need to copy some other values as well...
         newChannel.attributes = dict(self.attributes)
         newChannel.activity = self.activity

@@ -98,10 +98,10 @@ class BSVSynthTreeBuilder():
         tree_file_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR + "/build_tree"
 
         # Area constraints
-        area_constraints_enabled = False
+        area_constraints = None
         try:
             if (moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
-                area_constraints_enabled = True
+                area_constraints = area_group_tool.AreaConstraints(moduleList)
         except:
             # The area constraints code is not present.
             pass
@@ -273,9 +273,9 @@ class BSVSynthTreeBuilder():
         tree_build_deps = boundary_logs + importBOs
         tree_build_results = [tree_file_wrapper, tree_file_synth]
 
-        if (getFirstPassLIGraph() and area_constraints_enabled):
-            tree_build_deps += [area_group_tool.areaConstraintsFileIncomplete(moduleList)]
-            tree_build_results += [area_group_tool.areaConstraintsFile(moduleList)]
+        if (getFirstPassLIGraph() and area_constraints):
+            tree_build_deps += [area_constraints.areaConstraintsFileIncomplete()]
+            tree_build_results += [area_constraints.areaConstraintsFile()]
 
         ##
         ## The cutTreeBuild builder function needs some of the local state
@@ -283,7 +283,7 @@ class BSVSynthTreeBuilder():
         ## state and partial instance of cutTreeBuild with the state applied.
         ##
         cut_tree_state = dict()
-        cut_tree_state['area_constraints_enabled'] = area_constraints_enabled
+        cut_tree_state['area_constraints'] = area_constraints
         cut_tree_state['boundary_logs'] = boundary_logs
         cut_tree_state['moduleList'] = moduleList
         cut_tree_state['tree_file_synth'] = tree_file_synth
@@ -421,8 +421,7 @@ class BSVSynthTreeBuilder():
         pipeline_debug = self.parent.pipeline_debug
         boundary_logs = state['boundary_logs']
         moduleList = state['moduleList']
-
-        areaGroups = {}
+        area_constraints = state['area_constraints']
 
         # If we got a graph from the first pass, merge it in now.
         if(getFirstPassLIGraph() is None):
@@ -434,10 +433,8 @@ class BSVSynthTreeBuilder():
             firstPassGraph = getFirstPassLIGraph()
             # We should ignore the 'PLATFORM_MODULE'
             liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
-            if (state['area_constraints_enabled']):
-                areaGroups = area_group_tool.loadAreaConstraintsIncomplete(moduleList)
-
-        state['area_groups'] = areaGroups
+            if (area_constraints):
+                area_constraints.loadAreaConstraintsIncomplete()
 
         synth_handle = open(state['tree_file_synth'],'w')
         wrapper_handle = open(state['tree_file_wrapper'],'w')
@@ -503,18 +500,19 @@ class BSVSynthTreeBuilder():
             # Generate the code for the cut tree.
             self.emitWrappersRecurse(state, top_module, 1)
 
+
             # walk the top module to annotate area group paths
             def annotateAreaGroups(treeModule, verilogPath):
-                if(isinstance(treeModule,TreeModule)):
+                if (isinstance(treeModule, TreeModule)):
                     if (not treeModule.children is None):
                         for child in treeModule.children:
                             annotateAreaGroups(child,verilogPath + getInstanceName(treeModule.name) + treeModule.seperator)
                 else:
                     # fill in the area group data structure
-                    if(treeModule.name in areaGroups):
+                    if (area_constraints and (treeModule.name in area_constraints.constraints)):
                         # We always have synthesis boundaries at the bottom of the tree.
-                        areaGroups[treeModule.name].sourcePath = verilogPath + getInstanceName(treeModule.name)
-
+                        area_constraints.constraints[treeModule.name].sourcePath = \
+                            verilogPath + getInstanceName(treeModule.name)
 
 
             # If necessary, dump out the area groups file.
@@ -530,11 +528,19 @@ class BSVSynthTreeBuilder():
                     annotateAreaGroups(top_module, 'm_sys_sys_syn_m_mod/')
 
                 # Annotate physical platform. This is sort of a hack.
-                if(moduleList.localPlatformName + "_platform" in areaGroups):
-                    areaGroups[moduleList.localPlatformName + "_platform"].sourcePath =  None #"m_sys_sys_vp_m_mod"
+                if (area_constraints):
+                    n = moduleList.localPlatformName + "_platform"
+                    if (n in area_constraints.constraints):
+                        # Vivado has difficulties in placing platform
+                        # code in the presence of device driver area
+                        # groups.  We optionally disable the
+                        # generation of platform area groups here.
+                        if (moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_GROUP_PLATFORM_CODE')):
+                            area_constraints.constraints[n].sourcePath = "m_sys_sys_vp_m_mod"
+                        else:
+                            area_constraints.constraints[n].sourcePath = None
 
-                if (state['area_constraints_enabled']):
-                    area_group_tool.storeAreaConstraints(moduleList, areaGroups)
+                    area_constraints.storeAreaConstraints()
 
         # In multifpga builds, we may have some leftover modules
         # due to the way that the LIM compiler currently
@@ -562,7 +568,10 @@ class BSVSynthTreeBuilder():
             synth_handle.write("    //this space intentionally left blank\n")
             synth_handle.write("endmodule\n")
         else:
-            wrapper_gen_tool.generateSynthWrapper(top_module, synth_handle)
+            wrapper_gen_tool.generateTopSynthWrapper(top_module,
+                                                     synth_handle,
+                                                     moduleList.localPlatformName,
+                                                     areaConstraints = area_constraints)
 
         for tree_file in [synth_handle, wrapper_handle]:
             tree_file.write("`endif\n")
@@ -616,8 +625,8 @@ class BSVSynthTreeBuilder():
         ## synthesis boundaries.  In theory, the area group partitioning
         ## should already have accounted for inter-module connections.
         ##
-        if state['area_groups']:
-            map = li_module.placement_cut(subgraph.graph, state['area_groups'])
+        if state['area_constraints']:
+            map = li_module.placement_cut(subgraph.graph, state['area_constraints'])
         else:
             map = li_module.min_cut(subgraph.graph)
 
@@ -678,6 +687,8 @@ class BSVSynthTreeBuilder():
     def emitWrappersRecurse(self, state, treeModule, isTopModule):
         pipeline_debug = self.parent.pipeline_debug
         wrapper_handle = state['wrapper_handle']
+        area_constraints = state['area_constraints']
+        moduleList = state['moduleList']
 
         num_child_exported_rules = 0
 
@@ -742,9 +753,18 @@ class BSVSynthTreeBuilder():
                         c_out = partnerChannel
                         c_in = channel
 
+                    # Buffering between out and in depends on distance
+                    n_buf = 0
+                    if (area_constraints):
+                        if (pipeline_debug != 0):
+                            print "Channel (" + c_out.name + ") " + c_out.root_module_name + " -> " + c_in.root_module_name + ": " + c_out.module_name + " -> " + c_in.module_name
+                        area_groups = area_constraints.constraints
+                        n_buf = area_constraints.numIOBufs(area_groups[c_out.root_module_name],
+                                                           area_groups[c_in.root_module_name])
+
                     module_body += "    connectOutToIn(" + c_out.module_name + ".outgoing[" + str(c_out.module_idx) + "], " +\
                                    c_in.module_name + ".incoming[" + str(c_in.module_idx) + "], " +\
-                                   "0" +\
+                                   str(n_buf) +\
                                    ");// " + c_out.name + "\n"
 
         #handle matching chains
@@ -756,9 +776,20 @@ class BSVSynthTreeBuilder():
                     matched[chain.name] = chain
                     chain.sinkPartnerChain = partnerChain
                     chain.sourcePartnerChain = chain
+
+                    # Buffering between out and in depends on distance
+                    n_buf = 0
+                    if (area_constraints):
+                        if (pipeline_debug != 0):
+                            print "Chain (" + chain.name + ") " + chain.chain_root_out + " -> " + partnerChain.chain_root_in + ": " + chain.module_name + " -> " + partnerChain.module_name
+
+                        area_groups = area_constraints.constraints
+                        n_buf = area_constraints.numIOBufs(area_groups[chain.chain_root_out],
+                                                           area_groups[partnerChain.chain_root_in])
+
                     module_body += "    connectOutToIn(" + chain.module_name + ".chains[" + str(chain.module_idx) + "].outgoing, " +\
                                    partnerChain.module_name + ".chains[" + str(partnerChain.module_idx) + "].incoming, " +\
-                                   "0" +\
+                                   str(n_buf) +\
                                    ");// " + chain.name + "\n"
 
 
