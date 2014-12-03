@@ -3,6 +3,7 @@
 import os
 import sys
 import errno
+import traceback
 
 import pygraph
 try:
@@ -14,6 +15,8 @@ except ImportError:
 import pygraph.algorithms.sorting
 import Module
 import Utils
+import AWBParams
+import ProjectDependency
 from CommandLine import *
 
 # Some helper functions for navigating the build tree
@@ -71,7 +74,7 @@ class ModuleList:
     self.apmFile = env['DEFS']['APM_FILE']
     self.moduleList = []
     self.modules = {} # Convenient dictionary
-    self.awbParams = {}
+    self.awbParamsObj = AWBParams.AWBParams(self)
     self.isDependsBuild = (getCommandLineTargets(self) == [ 'depends-init' ])
     
     #We should be invoking this elsewhere?
@@ -127,7 +130,7 @@ class ModuleList:
     for module in sorted(modulePickle):
       # Loading module parameters delayed to here in order to support
       # command-line overrides.  Build a dictionary indexed by module name.
-      self.awbParams[module.name] = module.parseAWBParams()
+      self.awbParamsObj.parseModuleAWBParams(module)
 
       if self.env.GetOption('clean'):
         module.cleanAWBParams()
@@ -189,28 +192,10 @@ class ModuleList:
 
     
   def getAWBParam(self, moduleName, param):
-    if (hasattr(moduleName, '__iter__') and not isinstance(moduleName, basestring)):
-      ## moduleName is a list.  Look in each module, returning the first match.
-      for m in moduleName:
-        try:
-          return self.awbParams[m][param]
-        except:
-          pass
-    else:
-      ## moduleName is just a string
-      try:
-        return self.awbParams[moduleName][param]
-      except:
-        pass
-    raise Exception(param + " not in modules: " + str(moduleName))
+      return self.awbParamsObj.getAWBParam(moduleName, param)
 
   def getAWBParamSafe(self, moduleName, param):
-    try:
-      return self.getAWBParam(moduleName, param)
-    except:
-      return None
-
-
+      return self.awbParamsObj.getAWBParamSafe(moduleName, param)
 
   def getAllDependencies(self, key):
     # we must check to see if the dependencies actually exist.
