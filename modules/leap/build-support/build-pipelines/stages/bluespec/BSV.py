@@ -311,7 +311,8 @@ class BSV():
                 buildTreeDeps['GEN_VERILOGS'] = []
                 buildTreeDeps['GEN_BAS'] = []
                 #This is sort of a hack.
-                buildTreeDeps['GIVEN_BSVS'] = ['awb/provides/soft_services.bsh']
+                buildTreeDeps['WRAPPER_BSHS'] = ['awb/provides/soft_services.bsh']
+                buildTreeDeps['GIVEN_BSVS'] = []
                 buildTreeDeps['BA'] = []
                 buildTreeDeps['STR'] = []
                 buildTreeDeps['VERILOG'] = []
@@ -778,6 +779,7 @@ class BSV():
     def compile_bo(self, module_path):
         def compile_bo_closure(source, target, env, for_signature):
             cmd = ''
+
             if (str(source[0]) != get_build_path(self.moduleList, self.moduleList.topModule) + '/' + self.moduleList.topModule.name + '.bsv'):
                 cmd = self.compile_bo_bsc_base(target, module_path) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
             return cmd

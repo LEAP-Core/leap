@@ -464,8 +464,11 @@ def generateAWBCompileWrapper(moduleList, module):
     wrapper.write('//   AWB Compile Wrapper. This file was created by wrapper-gen\n')  
     wrapper.write('`define BUILDING_MODULE_' + module.name + '\n')
 
-    for bsv in module.moduleDependency['GIVEN_BSVS']:
-        wrapper.write('`include "' + bsv +'"\n')
+    for includeClass in ['GIVEN_BSVS', 'WRAPPER_BSHS']:
+        if(includeClass in module.moduleDependency):
+            for file in module.moduleDependency[includeClass]:
+                wrapper.write('`include "' + file +'"\n')
+
     wrapper.close()
  
 # This function generates wrapper stubs so that depends-init does the right thing. 
@@ -520,7 +523,9 @@ class WrapperGen():
     platformDeps['GEN_VPI_CS'] = moduleList.getSynthBoundaryDependencies(moduleList.topModule, 'GEN_VPI_CS')                          
      
     #This is sort of a hack.
-    platformDeps['GIVEN_BSVS'] = ['awb/provides/virtual_platform.bsh', 'awb/provides/physical_platform.bsh']
+
+    platformDeps['GIVEN_BSVS'] = []
+    platformDeps['WRAPPER_BSHS'] = ['awb/provides/virtual_platform.bsh', 'awb/provides/physical_platform.bsh']
     platformDeps['BA'] = []
     platformDeps['STR'] = []
     platformDeps['VERILOG'] = [topModulePath + '/' + TMP_BSC_DIR + '/mk_' + platformName + '_Wrapper.v']
