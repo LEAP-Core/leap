@@ -17,4 +17,4 @@
 %sources -t SDC -v PRIVATE bluespec.sdc
 
 %param --global RESOURCE_COLLECTOR        "getSRRResourcesClosureXilinx"      "Resource Utilization Parsing Script"
-%param --global PLATFORM_BUILDER          "synthesis_library.buildVivadoEDF"  "Builder for Platform Codes"
+%param --global PLATFORM_BUILDER          "functools.partial(buildSynplifyEDF, resourceCollector = RESOURCE_COLLECTOR)"  "Builder for Platform Codes"

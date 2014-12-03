@@ -18,9 +18,9 @@ class Synthesize(ProjectDependency):
     RESOURCE_COLLECTOR = eval(moduleList.getAWBParam('synthesis_tool', 'RESOURCE_COLLECTOR'))
     PLATFORM_BUILDER = eval(moduleList.getAWBParam('synthesis_tool', 'PLATFORM_BUILDER'))
 
-    buildXilinx = functools.partial(buildModuleEDF, resourceCollector = RESOURCE_COLLECTOR)
+    buildUser = functools.partial(buildSynplifyEDF, resourceCollector = RESOURCE_COLLECTOR)
 
-    synthesis_library.buildNetlists(moduleList, buildXilinx, PLATFORM_BUILDER)
+    synthesis_library.buildNetlists(moduleList, buildUser, PLATFORM_BUILDER)
 
 
 

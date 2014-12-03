@@ -28,6 +28,8 @@ def _generate_synplify_include(file):
         type = 'vhdl'
     if (re.search('\.sdc\s*$',file)):  
         type = 'constraint'
+    if (re.search('\.xdc\s*$',file)):  
+        type = 'constraint'
 
     # don't include unidentified files
     if(type == 'unknown'):
@@ -106,7 +108,7 @@ def getSRRResourcesClosureBase(module, attributes):
 
     return collect_srr_resources
 
-def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCollector):
+def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCollector):
     MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
 
     # need to eventually break this out into a seperate function
@@ -117,12 +119,25 @@ def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, resourceColle
 
     newPrjFile.write('add_file -verilog \"../hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
 
+    clockFiles = []
+
+    if(not module.platformModule):        
+        MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+        clockTclPath = 'config/' + module.wrapperName() + '.clocks.sdc'  
+        clockTclFile = open(clockTclPath, 'w') 
+        clockTclFile.write('create_clock -name ' + module.name + '_CLK -period ' + str(1000.0/MODEL_CLOCK_FREQ) + ' [get_ports CLK]\n')
+        clockTclFile.close()
+        clockFiles = [clockTclPath]
+    else:
+        if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
+            clockFiles = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
+
     # now dump all the 'VERILOG' 
     fileArray = globalVerilogs + globalVHDs + \
                 moduleList.getDependencies(module, 'VERILOG_STUB') + \
                 map(lambda x: moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + x, moduleList.getAllDependenciesWithPaths('GIVEN_SYNPLIFY_VERILOGS')) + \
                 moduleList.getAllDependencies('NGC') + \
-                moduleList.getAllDependencies('SDC')
+                moduleList.getAllDependencies('SDC') + clockFiles
 
     for file in fileArray:
         if(type(file) is str):
@@ -134,6 +149,12 @@ def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, resourceColle
 
     # Set up new implementation
     build_dir = moduleList.compileDirectory + '/' + module.wrapperName()
+
+    try:
+        os.mkdir(moduleList.compileDirectory)
+    except OSError, err:
+        if err.errno != errno.EEXIST: raise 
+
     try:
         os.mkdir(build_dir)
     except OSError, err:
@@ -185,10 +206,10 @@ def buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, resourceColle
       
     sub_netlist = moduleList.env.Command(
       [edfFile, srrFile],
-      moduleList.getAllDependencies('VERILOG') +
-      moduleList.getAllDependencies('VERILOG_STUB') +
-      moduleList.getAllDependencies('VERILOG_LIB') +
-      [ newPrjPath ] +
+      sorted(module.moduleDependency['VERILOG']) +
+      sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
+      sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
+      [ newPrjPath ] + clockFiles +
       ['config/' + moduleList.apmName + '.synplify.prj'],
       [ SCons.Script.Delete(srrFile),
         'synplify_premier -batch -license_wait ' + newPrjPath + '> ' + build_dir + '.log',
