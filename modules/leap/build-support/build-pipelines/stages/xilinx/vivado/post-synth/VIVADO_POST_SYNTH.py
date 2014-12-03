@@ -19,6 +19,7 @@ class PostSynthesize():
 
     apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
 
+    paramTclFile = moduleList.compileDirectory + '/params.xdc'
 
     # If the TMP_XILINX_DIR doesn't exist, create it.
     if not os.path.isdir(moduleList.env['DEFS']['TMP_XILINX_DIR']):
@@ -58,6 +59,18 @@ class PostSynthesize():
             area_group_ucf_closure(moduleList)
             )                             
 
+
+    def parameter_tcl_closure(moduleList, paramTclFile):
+         def parameter_tcl(target, source, env):
+             moduleList.awbParamsObj.emitParametersTCL(paramTclFile)
+         return parameter_tcl
+
+    moduleList.env.Command( 
+        [paramTclFile],
+        [],
+        parameter_tcl_closure(moduleList, paramTclFile)
+        )                             
+
     # Construct the tcl file 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
 
@@ -85,7 +98,8 @@ class PostSynthesize():
     newTclFile.write("report_utilization -file " + apm_name + ".link.util\n")
 
     newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
-
+ 
+    newTclFile.write('source ' + paramTclFile + '\n')
     for tcl_def in tcl_defs:
         newTclFile.write('source ' + tcl_def + '\n')
 
@@ -128,7 +142,7 @@ class PostSynthesize():
     # generate bitfile
     xilinx_bit = moduleList.env.Command(
       apm_name + '_par.bit',
-      synthDeps + tcl_algs + tcl_defs, 
+      synthDeps + tcl_algs + tcl_defs + [paramTclFile], 
       ['vivado -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
 
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']

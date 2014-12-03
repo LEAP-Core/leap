@@ -145,6 +145,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     #    newTclFile.write("opt_design -quiet\n")
 
     newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.opt.util\n")
+    newTclFile.write("write_checkpoint -force " + module.wrapperName() + ".synth.dcp\n")
     newTclFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
