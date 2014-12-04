@@ -11,7 +11,7 @@
 
 %scons %library area_group_tool.py
 
-%param --global ENABLE_SMART_AREA_GROUPS 0 "True if we should emit/build area groups"
+%param --global ENABLE_SMART_AREA_GROUPS 1 "True if we should emit/build area groups"
 
 
 

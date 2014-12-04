@@ -86,7 +86,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.3
+                 extra_area_factor = 1.35
                  luts_per_slice = 8
 
                  # we should now assemble the LI Modules that we got
@@ -100,8 +100,12 @@ class Floorplanner():
                  print 'Module resources: ' + str(moduleResources)
 
                  areaGroups = {}
+                 totalLUTs = 0
                  # We should make a bunch of AreaGroups here. 
                  for module in sorted(moduleResources):
+                     if('LUT' in moduleResources[module]):
+                         totalLUTs = totalLUTs + moduleResources[module]['LUT']
+
                      # EEEK I don't think I know what the paths will
                      # be at this point. Probably need to memoize and
                      # fill those in later?
@@ -112,6 +116,7 @@ class Floorplanner():
                  # now that we have the modules, let's apply constraints. 
 
                  print "moduleResources " + str(moduleResources)
+                 print "totalLUTs " + str(totalLUTs)
 
                  # Grab area groups declared/defined in the agrp file supplied by the user. 
 
@@ -134,6 +139,7 @@ class Floorplanner():
 
                  # Fill in any other information we obtanied about the
                  # area groups.
+                 print "AREAGROUP: Constraints " + str(constraints) 
                  for constraint in constraints:
                      if(isinstance(constraint,AreaGroupSize)): 
                          print 'Constraint type Size ' + str(constraints)                             
@@ -162,7 +168,19 @@ class Floorplanner():
                      if(isinstance(constraint,AreaGroupLocation)): 
                          areaGroups[constraint.name].xLoc = constraint.xLocation
                          areaGroups[constraint.name].yLoc = constraint.yLocation
+
+                     if(isinstance(constraint,AreaGroupLowerLeft)): 
+                         areaGroups[constraint.name].lowerLeft = constraint
+
+                     if(isinstance(constraint,AreaGroupUpperRight)): 
+                         areaGroups[constraint.name].upperRight = constraint
                          
+                     if(isinstance(constraint,AreaGroupAttribute)): 
+                         areaGroups[constraint.name].attributes[constraint.key] = constraint.value
+
+                         print "AREAGROUP: " + str(areaGroups[constraint.name].attributes) 
+
+
                      if(isinstance(constraint,AreaGroupPath)): 
                          areaGroups[constraint.name].sourcePath = constraint.path
 
@@ -197,7 +215,7 @@ class Floorplanner():
                          areaGroup.area = areaGroup.area - child.area
 
 
-                 affineCoefs = [.25, .5, .75, 1, 1.33, 2, 4] # just make them all squares for now. 
+                 affineCoefs = [.2,.25, .333, .5, .75, 1, 1.33, 2 , 3, 4, 5] # just make them all squares for now. 
                  for areaGroup in areaGroups:
                      areaGroupObject = areaGroups[areaGroup]
                      # we might have gotten coefficients from the constraints.
@@ -286,6 +304,13 @@ class Floorplanner():
                          if(areaGroupA.name == areaGroupB.name):
                              continue
 
+                         # None objects need not have contraints with
+                         # one another, since they represent user
+                         # constraints.  This helps with areas of the
+                         # chip that just don't have slices/CLBs.                        
+                         if(('EMPTYBOX' in areaGroupA.attributes) and ('EMPTYBOX' in areaGroupB.attributes)): 
+                             continue
+
                          absX = 'xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
                          absY = 'ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
                          satX = 'sat_xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
@@ -300,26 +325,30 @@ class Floorplanner():
                          modHandle.write('var ' + aBiggerX + ' binary;\n')
                          modHandle.write('var ' + aBiggerY + ' binary;\n')
 
-                         # Need to find out how much the two modules communicate. 
-                         commsXY = 1 # we want to force a tight grouping no matter what.
+                         # Need to find out how much the two modules communicate.                         
 
-                         # Area groups come in two types -- parents
-                         # and children.  Children communicate only
-                         # with parents, while parents may communicate
-                         # with other parents.
-               
-                         #Handle parents
-                         if(areaGroupA.parent is None):    
-                             moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
-                             for channel in moduleAObject.channels:
-                                 # some channels may not be assigned
-                                 if(isinstance(channel.partnerModule, LIModule)):
-                                     if(channel.partnerModule.name == areaGroupB.name):
-                                         commsXY = commsXY + 1000
+                         # we want to force a tight grouping no matter what, except for empty boxes which are just holes in the chip. 
+                         commsXY = 1 
+                         if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
+                            commsXY = 0 
                          else:
-                             # this area group is a child.  Make it close to the parent and nothing else. 
-                             if(areaGroupA.parent == areaGroupB.name):
-                                 commsXY = commsXY * 10000
+                             # Area groups come in two types -- parents
+                             # and children.  Children communicate only
+                             # with parents, while parents may communicate
+                             # with other parents.
+               
+                             #Handle parents
+                             if(areaGroupA.parent is None):                                 
+                                 moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
+                                 for channel in moduleAObject.channels:
+                                     # some channels may not be assigned
+                                     if(isinstance(channel.partnerModule, LIModule)):
+                                         if(channel.partnerModule.name == areaGroupB.name):
+                                             commsXY = commsXY + 10
+                             else:
+                                 # this area group is a child.  Make it close to the parent and nothing else. 
+                                 if(areaGroupA.parent == areaGroupB.name):
+                                     commsXY = commsXY * 100
 
 
                          #if(commsXY < 1):
@@ -406,7 +435,7 @@ class Floorplanner():
                          iocp_param = glpk.glp_iocp();
                          glpk.glp_init_iocp(iocp_param);
                          #iocp_param.tm_lim=600*1000
-                         iocp_param.mip_gap=0.9
+                         iocp_param.mip_gap=0.95
 
                          glpk.glp_intopt(self._lp, iocp_param);
                          if self._tran:

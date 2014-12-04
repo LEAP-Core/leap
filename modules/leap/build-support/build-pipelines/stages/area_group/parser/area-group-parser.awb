@@ -11,9 +11,12 @@
 %scons %library area_group_size.py
 %scons %library area_group.py
 %scons %library area_group_location.py
+%scons %library area_group_lower_left.py
+%scons %library area_group_upper_right.py
 %scons %library area_group_path.py
 %scons %library area_group_relationship.py
 %scons %library area_group_resource.py
+%scons %library area_group_attribute.py
 %scons %library area_parser.py
 %scons %private area_lex.py
 %scons %private area_parse.py

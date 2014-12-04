@@ -1,3 +1,5 @@
+# A data structure representing an area group. 
+
 class AreaGroup(object):
 
     def __init__(self, name, sourcePath):
@@ -15,6 +17,11 @@ class AreaGroup(object):
         self.xLoc = None
         self.yLoc = None
         
+        # Coordinates defining the bounding box for the area group. 
+        self.upperRight = None
+        self.lowerLeft = None
+
+        self.attributes = {}
 
     def __repr__(self):
         platformRepr = 'AreaGroup: ' + self.name + ' Path: ' + str(self.sourcePath) + ' Area: ' + str(self.area) + ' XLoc: ' + str(self.xLoc) +  ' YLoc: ' + str(self.yLoc) + ' xDim ' + str(self.xDimension)  + ' yDim ' + str(self.yDimension) 
