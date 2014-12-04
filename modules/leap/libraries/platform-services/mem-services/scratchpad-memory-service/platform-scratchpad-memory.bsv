@@ -237,11 +237,10 @@ endmodule
 //     Requests are processed in order, with reads being scheduled before
 //     a write requested in the same cycle.
 //
-module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
-    Integer scratchpadID,
-    SCRATCHPAD_CONFIG conf,
-    SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
-    SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor)
+module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
+                                                      SCRATCHPAD_CONFIG conf,
+                                                      SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
+                                                      SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor)
     // Interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
@@ -285,31 +284,44 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(
     end
     else
     begin
-        // Container maps requested data size to the platform's scratchpad
-        // word size.
-        NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_ENTRIES) n_cache_entries = ?;
-        NumTypeParam#(t_SCRATCHPAD_MEM_VALUE_SZ) scratchpad_data_sz = ?;
-        NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_cache_prefetch_learners = ?;
+        // Container maps requested data size to the platform's scratchpad word size.
+        NumTypeParam#(t_SCRATCHPAD_MEM_VALUE_SZ) data_sz = ?;
         NumTypeParam#(TMax#(1, TExp#(MEM_PACK_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_SCRATCHPAD_MEM_VALUE_SZ)))) n_objects = ?;
 
         if (conf.cacheMode == SCRATCHPAD_CACHED)
         begin
-            memory <- mkMemPackMultiRead(scratchpad_data_sz,
-                                         mkUnmarshalledCachedScratchpad(scratchpadID,
-                                                                        conf,
-                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE,
-                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_MECHANISM,
-                                                                        `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG,
-                                                                        n_objects, 
-                                                                        n_cache_entries,
-                                                                        n_cache_prefetch_learners,
-                                                                        statsConstructor,
-                                                                        prefetchStatsConstructor));
+            Integer e = (conf.cacheEntries == 0) ? `SCRATCHPAD_STD_PVT_CACHE_ENTRIES : conf.cacheEntries;
+            Integer mode = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE;
+            Integer mech = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_MECHANISM;
+            Integer pf_size = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG;
+            NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_learners = ?;
+            Integer id = scratchpadID;
+            SCRATCHPAD_STATS_CONSTRUCTOR stats = statsConstructor;
+            SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR pf_stats = prefetchStatsConstructor;
+
+            // Require brute-force conversion because Integer cannot be converted to a type
+            
+            if      (e <= 8)      begin NumTypeParam#(8)      n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 16)     begin NumTypeParam#(16)     n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 32)     begin NumTypeParam#(32)     n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 64)     begin NumTypeParam#(64)     n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 128)    begin NumTypeParam#(128)    n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 256)    begin NumTypeParam#(256)    n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 512)    begin NumTypeParam#(512)    n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 1024)   begin NumTypeParam#(1024)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 2048)   begin NumTypeParam#(2048)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 4096)   begin NumTypeParam#(4086)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 8192)   begin NumTypeParam#(8192)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 16384)  begin NumTypeParam#(16384)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 32768)  begin NumTypeParam#(32768)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 65536)  begin NumTypeParam#(65536)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 131072) begin NumTypeParam#(131072) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else                  begin NumTypeParam#(262144) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+       
         end
         else
         begin
-            memory <- mkMemPackMultiRead(scratchpad_data_sz,
-                                         mkUnmarshalledScratchpad(scratchpadID, n_objects, conf));
+            memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledScratchpad(scratchpadID, n_objects, conf));
         end
     end
 
@@ -829,9 +841,14 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
     let sourceData <- mkScratchpadCacheSourceData(scratchpadID, conf, debugLog);
                              
     // Cache Prefetcher
-    let prefetcher <- (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1) ?
-                          mkCachePrefetcher(nPrefetchLearners, False, True, debugLogForPrefetcher):
-                          mkNullCachePrefetcher();
+    let prefetch_enable = (`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE == 1);
+    if (conf.enablePrefetching matches tagged Valid .pf_en)
+    begin
+        prefetch_enable = pf_en;
+    end
+    
+    let prefetcher <- prefetch_enable? mkCachePrefetcher(nPrefetchLearners, False, True, debugLogForPrefetcher):
+                                       mkNullCachePrefetcher();
     
     // Private cache
     RL_DM_CACHE#(Bit#(t_MEM_ADDRESS_SZ),

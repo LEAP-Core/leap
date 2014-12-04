@@ -1,18 +1,20 @@
 import os
 import cPickle as pickle
-from li_module import *
 
-from model import  *
-from config import  *
+import model
+from model import Module, get_build_path
+import config
+from li_module import LIGraph, LIModule
 
-# import bsv interface code
+import wrapper_gen_tool
 import bsv_tool
-from vector import *
-from interface import *
-from struct import *
-from method import *
-from prim import *
 
+from wrapper_gen_tool.interface import *
+from wrapper_gen_tool.method import *
+from wrapper_gen_tool.prim import *
+from wrapper_gen_tool.struct import *
+from wrapper_gen_tool.vector import *
+ 
 try:
     import area_group_tool
 except ImportError:
@@ -600,7 +602,7 @@ class WrapperGen():
               os.system('rm -f ' + modPath + '.bsv') 
           continue
 
-      if (getBuildPipelineDebug(moduleList) != 0):
+      if (model.getBuildPipelineDebug(moduleList) != 0):
         print "Wrapper path is " + wrapperPath
       wrapper_bsv = open(wrapperPath, 'w')
 

@@ -1,11 +1,14 @@
-
 import os
 import re
 import sys
 import string
-from model import  *
-from bsv_tool import *
-from software_tool import *
+
+import SCons.Script
+
+import model
+import bsv_tool
+import software_tool
+import wrapper_gen_tool
 
 
 class Bluesim():
@@ -17,7 +20,7 @@ class Bluesim():
     BSC = moduleList.env['DEFS']['BSC']
     inc_paths = moduleList.swIncDir # we need to depend on libasim
 
-    bsc_version = getBluespecVersion()
+    bsc_version = bsv_tool.getBluespecVersion()
 
     ldflags = ''
     for ld_file in moduleList.getAllDependenciesWithPaths('GIVEN_BLUESIM_LDFLAGSS'):
@@ -40,7 +43,7 @@ class Bluesim():
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'
 
     ALL_DIRS_FROM_ROOT = moduleList.env['DEFS']['ALL_HW_DIRS']
-    ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
+    ALL_BUILD_DIRS_FROM_ROOT = model.transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
     ALL_LIB_DIRS_FROM_ROOT = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
     
     bsc_sim_command = BSC + ' ' + BSC_FLAGS_SIM + ' ' + LDFLAGS + ' ' + ldflags + ' -o $TARGET'
@@ -52,30 +55,30 @@ class Bluesim():
 
     if (bsc_version >= 13013):
         # 2008.01.A compiler allows us to pass C++ arguments.
-        if (getDebug(moduleList)):
+        if (model.getDebug(moduleList)):
             bsc_sim_command += ' -Xc++ -O0'
         else:
             bsc_sim_command += ' -Xc++ -O1'
 
         # g++ 4.5.2 is complaining about overflowing the var tracking table
 
-        if (getGccVersion() >= 40501):
+        if (model.getGccVersion() >= 40501):
              bsc_sim_command += ' -Xc++ -fno-var-tracking-assignments'
 
-    defs = (host_defs()).split(" ")
+    defs = (software_tool.host_defs()).split(" ")
     for definition in defs:
-      bsc_sim_command += ' -Xc++ ' + definition + ' -Xc ' + definition
+        bsc_sim_command += ' -Xc++ ' + definition + ' -Xc ' + definition
 
 
     def modify_path_bdpi(path):
         return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
 
     def modify_path_ba_local(path):
-        return modify_path_ba(moduleList, path)
+        return bsv_tool.modify_path_ba(moduleList, path)
 
     LI_LINK_DIR = ""
-    if(not (getFirstPassLIGraph()) is None):
-      LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/:"
+    if (not (wrapper_gen_tool.getFirstPassLIGraph()) is None):
+        LI_LINK_DIR = model.get_build_path(moduleList, moduleList.topModule) + "/.li/:"
 
     bsc_sim_command += \
         ' -sim -e ' + ROOT_WRAPPER_SYNTH_ID + ' -p +:' + LI_LINK_DIR + ALL_LIB_DIRS_FROM_ROOT +' -simdir ' + \
@@ -83,7 +86,7 @@ class Bluesim():
         ' ' + moduleList.env['DEFS']['BDPI_CS']
 
 
-    if (getBuildPipelineDebug(moduleList) != 0):
+    if (model.getBuildPipelineDebug(moduleList) != 0):
         print "BLUESIM DEPS: \n" 
         for ba in moduleList.getAllDependencies('BA'):
             print 'Bluesim BA dep: ' + str(ba) + '\n'
@@ -115,7 +118,7 @@ class Bluesim():
     #   APM_NAME must be the software side, if there is one.  If there isn't, then
     #   it must be the Bluesim image.
     #
-    if (getBuildPipelineDebug(moduleList) != 0):
+    if (model.getBuildPipelineDebug(moduleList) != 0):
         print "ModuleList desp : " + str(moduleList.swExe)
 
     exe = moduleList.env.Command(
