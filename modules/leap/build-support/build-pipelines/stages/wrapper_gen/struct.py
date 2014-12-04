@@ -1,6 +1,6 @@
 import sys
 import copy
-from interface import *
+from interface import Interface
 
 class Struct(Interface):
     def __init__(self, type, name, members):

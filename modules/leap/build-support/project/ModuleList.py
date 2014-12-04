@@ -17,7 +17,7 @@ import Module
 import Utils
 import AWBParams
 import ProjectDependency
-from CommandLine import *
+import CommandLine
 
 # Some helper functions for navigating the build tree
 
@@ -75,7 +75,7 @@ class ModuleList:
     self.moduleList = []
     self.modules = {} # Convenient dictionary
     self.awbParamsObj = AWBParams.AWBParams(self)
-    self.isDependsBuild = (getCommandLineTargets(self) == [ 'depends-init' ])
+    self.isDependsBuild = (CommandLine.getCommandLineTargets(self) == [ 'depends-init' ])
     
     #We should be invoking this elsewhere?
     #self.wrapper_v = env.SConscript([env['DEFS']['ROOT_DIR_HW_MODEL'] + '/SConscript'])
@@ -211,7 +211,7 @@ class ModuleList:
           if(allDeps.count(dep) == 0):
             allDeps.extend([dep] if isinstance(dep, str) else dep)
 
-    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
+    if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
 
     # Return a list of unique entries, in the process converting SCons
@@ -227,7 +227,7 @@ class ModuleList:
         if(allDeps.count(dep) == 0):
           allDeps.extend([dep] if isinstance(dep, str) else dep)
 
-    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
+    if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
 
     # Return a list of unique entries, in the process converting SCons                                                                                                                                                                      
@@ -254,7 +254,7 @@ class ModuleList:
     for module in self.moduleList:
       allDeps += self.getModuleDependenciesWithPaths(module,key)
 
-    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
+    if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
 
     return allDeps
@@ -274,7 +274,7 @@ class ModuleList:
           if(allDeps.count(dep) == 0):
             allDeps.extend([dep] if isinstance(dep, str) else dep)
 
-    if(len(allDeps) == 0 and getBuildPipelineDebug(self) > 1):
+    if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
     
     return allDeps
