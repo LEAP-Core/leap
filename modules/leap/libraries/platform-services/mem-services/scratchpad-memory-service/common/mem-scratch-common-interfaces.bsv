@@ -116,11 +116,17 @@ typedef struct
     // Construct/participate in cache hierarchy?
     SCRATCHPAD_CACHE_MODE cacheMode;
 
+    // The number of entries in scratchpad's private cache
+    Integer cacheEntries;
+
     // Initialize the scratchpad from a file?  If yes, the global string is
     // the path of the initialization file, which is a raw memory image.
     // If not, the scratchpad is initialized to zeros.
     Maybe#(GLOBAL_STRING_UID) initFilePath;
 
+    // Enable prefetching in scratchpad's private cache
+    Maybe#(Bool) enablePrefetching;
+    
     // Enable the request merging optimization to merge multiple read requests
     // accessing the same scratchpad internal address
     Bool requestMerging;
@@ -139,7 +145,9 @@ SCRATCHPAD_CONFIG
 instance DefaultValue#(SCRATCHPAD_CONFIG);
     defaultValue = SCRATCHPAD_CONFIG {
         cacheMode: SCRATCHPAD_CACHED,
+        cacheEntries: 0,
         initFilePath: tagged Invalid,
+        enablePrefetching: tagged Invalid,
         requestMerging: False,
         debugLogPath: tagged Invalid,
         enableStatistics: tagged Invalid

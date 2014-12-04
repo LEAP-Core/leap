@@ -321,10 +321,16 @@ typedef struct
 {
     // Does the coherent scratchpad client have a private cache?
     COH_SCRATCH_CACHE_MODE  cacheMode;
+    
+    // The number of entries in coherent scratchpad's private cache
+    Integer                 cacheEntries;
 
     // Does the coherent scratchpad domain has multiple controllers?
     Bool                    multiController;
 
+    // Enable prefetching in coherent scratchpad's private cache
+    Maybe#(Bool)            enablePrefetching;
+    
     // Enable the request merging optimization to merge multiple read requests
     // accessing the same scratchpad internal address
     Bool                    requestMerging;
@@ -349,7 +355,9 @@ COH_SCRATCH_CLIENT_CONFIG
 instance DefaultValue#(COH_SCRATCH_CLIENT_CONFIG);
     defaultValue = COH_SCRATCH_CLIENT_CONFIG {
         cacheMode: COH_SCRATCH_CACHED,
+        cacheEntries: `COHERENT_SCRATCHPAD_PVT_CACHE_ENTRIES,
         multiController: False,
+        enablePrefetching: tagged Invalid, 
         requestMerging: (`COHERENT_SCRATCHPAD_REQ_MERGE_ENABLE==1),
         debugLogPath: tagged Invalid,
         enableDebugScan: tagged Invalid,
