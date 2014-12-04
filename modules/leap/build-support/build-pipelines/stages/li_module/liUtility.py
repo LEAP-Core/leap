@@ -1,9 +1,10 @@
 import sys
 import re
 import pygraph
-from liChannel import *
-from liChain import *
-from model import *
+
+import model
+from liChannel import LIChannel
+from liChain import LIChain
 
 try:
     from pygraph.classes.digraph import digraph
@@ -106,7 +107,7 @@ def min_cut(graph):
 # also to construct area groups during single platform builds. 
 def assignResources(moduleList, environmentGraph = None, moduleGraph = None):
 
-    pipeline_debug = getBuildPipelineDebug(moduleList) or True
+    pipeline_debug = model.getBuildPipelineDebug(moduleList) or True
 
     # We require this extra 'S', but maybe this should not be the case.
     resourceFile = moduleList.getAllDependenciesWithPaths('GIVEN_RESOURCESS')    

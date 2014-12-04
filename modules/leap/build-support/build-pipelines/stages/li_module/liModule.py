@@ -1,8 +1,6 @@
 import sys
 import copy
 
-from code import *
-
 
 class LIModule():
   
