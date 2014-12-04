@@ -6,6 +6,7 @@ from model import  *
 from config import  *
 
 # import bsv interface code
+import bsv_tool
 from vector import *
 from interface import *
 from struct import *
@@ -442,7 +443,7 @@ def generateAWBCompileWrapper(moduleList, module):
     wrapper.write('`define BUILDING_MODULE_' + module.name + '\n')
 
     for includeClass in ['GIVEN_BSVS', 'WRAPPER_BSHS']:
-        if(includeClass in module.moduleDependency):
+        if (includeClass in module.moduleDependency):
             for file in module.moduleDependency[includeClass]:
                 wrapper.write('`include "' + file +'"\n')
 
@@ -468,9 +469,18 @@ def generateWrapperStub(moduleList, module):
         wrapper.write('// import non-synthesis public files\n')
         wrapper.write('`include "' + module.name + '_compile.bsv"\n')
 
-        for m in sorted(moduleList.synthBoundaries(), key=lambda m: m.name):
-            if (not m.platformModule):
-                wrapper.write('import ' + m.name + '_Wrapper::*;\n')
+        ## Import all other modules used in the build.  On the first pass this
+        ## is simply all modules.  After that import only the modules used
+        ## on the platform.
+        first_pass_LI_graph = getFirstPassLIGraph()
+        import_modules = []
+        if (first_pass_LI_graph is None):
+            import_modules = [m for m in moduleList.synthBoundaries() if not m.platformModule]
+        else:
+            import_modules = bsv_tool.getUserModules(first_pass_LI_graph)
+
+        for m in sorted(import_modules, key=lambda m: m.name):
+            wrapper.write('import ' + m.name + '_Wrapper::*;\n')
 
         wrapper.close()
 
