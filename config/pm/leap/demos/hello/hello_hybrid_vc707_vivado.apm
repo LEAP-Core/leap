@@ -1,0 +1,45 @@
+
+[Global]
+SaveParameters=0
+Description=Hello World Demo using hybrid streams
+File=hello_hybrid_vc707_vivado
+Version=2.2
+Name=Hello World
+DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
+Type=Leap
+Class=Asim::Model
+DefaultRunOpts=
+RootName=HW/SW Hybrid Pipeline Build
+RootProvides=model
+
+[Model]
+DefaultAttributes=hello unconnected hybrid project exe
+model=HW/SW Hybrid Pipeline Build
+
+[Hello World]
+File=modules/leap/examples/hello-world/hello-world.awb
+Packagehint=leap
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/leap/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid VC707 PCIE FPGA Environment - No Memory/Central Cache (Vivado)
+application_env=Soft Services Hybrid Application Environment
+
+[HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-pipeline.awb
+Packagehint=leap
+
+[Soft Services Hybrid Application Environment]
+File=modules/leap/build-support/project/application-env/soft-services/application-env-hybrid-soft-service.awb
+Packagehint=leap
+
+[Soft Services Hybrid Application Environment/Requires]
+connected_application=Hello World
+
+[Hybrid VC707 PCIE FPGA Environment - No Memory/Central Cache (Vivado)]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-vc707-pcie-no-mem-vivado.apm
+Packagehint=leap

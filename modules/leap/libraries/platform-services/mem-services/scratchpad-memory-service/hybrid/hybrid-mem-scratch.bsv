@@ -518,7 +518,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
                 storeLine(sb_mask, h_addr, sb_val);
 
                 uncachedStoreBufAddr.upd(port, tagged Invalid);
-                debugLog.record($format("port %0d: uncachedWriteReq: Flush SB entry, addr=0x%x, mask=%b", port, l_addr, pack(sb_mask)));
+                debugLog.record($format("port %0d: uncachedWriteReq: Flush SB entry, addr=0x%x, mask=%b", port, sb_addr, pack(sb_mask)));
             end
             else
             begin
@@ -720,7 +720,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         let v = line[info.wordIdx];
         uncachedReadRspQ.enq(tuple4(info.addr, v, info.readUID, info.globalReadMeta));
 
-        debugLog.record($format("port %0d: uncachedReadResp %s: val=0x%x", port, read_source, pack(v)));
+        debugLog.record($format("port %0d: uncachedReadResp %s: val=0x%x, addr=0x%x, w_idx=%d", 
+                        port, read_source, pack(v), info.addr, info.wordIdx));
     endrule
 
 

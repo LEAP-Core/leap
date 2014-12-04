@@ -8,7 +8,17 @@ from liModule import *
 
 class LIChain():
   
-    def __init__(self, sc_type, raw_type, module_idx, name, optional, bitwidth, module_name, chainroot, type_structure):
+    def __init__(self,
+                 sc_type,
+                 raw_type,
+                 module_idx,
+                 name,
+                 optional,
+                 bitwidth,
+                 module_name,
+                 chain_root_in,
+                 chain_root_out,
+                 type_structure):
         self.sc_type = sc_type
         self.raw_type = raw_type
         self.name = name
@@ -19,7 +29,14 @@ class LIChain():
         self.bitwidth = int(bitwidth)
         self.matched = False
         self.module_name = module_name
-        self.chainroot = chainroot
+
+        # Root module names associated with the input and output of the chain
+        # segment. In a hierarchical build the tree may hold partially connected
+        # chain segments where the input and output endpoints are in different
+        # root modules.
+        self.chain_root_in = chain_root_in
+        self.chain_root_out = chain_root_out
+
         self.via_idx_ingress = "unassigned"
         self.via_link_ingress = "unassigned"
         self.via_idx_egress = "unassigned"
@@ -62,7 +79,16 @@ class LIChain():
         self.sinkPartnerModule = "unassigned"
 
     def copy(self):
-        newChain = LIChain(self.sc_type, self.raw_type, self.module_idx, self.name, self.optional, self.bitwidth, self.module_name, self.chainroot, self.type_structure)
+        newChain = LIChain(self.sc_type,
+                           self.raw_type,
+                           self.module_idx,
+                           self.name,
+                           self.optional,
+                           self.bitwidth,
+                           self.module_name,
+                           self.chain_root_in,
+                           self.chain_root_out,
+                           self.type_structure)
         newChain.attributes = dict(self.attributes)
         newChain.activity = self.activity
         return newChain

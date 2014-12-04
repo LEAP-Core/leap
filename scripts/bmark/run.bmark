@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use Getopt::Long qw(:config no_auto_abbrev no_ignore_case pass_through);
 use IO::Pty;
+use File::Temp;
+use Cwd;
 
 #
 # Turn on warnings
@@ -56,7 +58,14 @@ my $platforms_ref = $config{"platforms"};
 
 my $executionDirectory = `pwd`;
 chomp($executionDirectory);
-$ENV{LEAP_EXECUTION_DIRECTORY} = $executionDirectory;
+
+# Did the user override the execution directory?
+if(defined $ENV{LEAP_EXECUTION_DIRECTORY}) {
+    my $executionDirectoryBase = $ENV{LEAP_EXECUTION_DIRECTORY};
+    $executionDirectory = File::Temp->newdir($executionDirectoryBase."\.$config{model}_XXXXXX"); # this XXXXX is used for uniquification by newdir
+}
+
+$ENV{LEAP_EXECUTION_DIRECTORY} = Cwd::abs_path($executionDirectory);
 
 #############################################################################
 #############################################################################
@@ -632,38 +641,41 @@ sub ProgramFPGA($$$) {
     my $fpga_dev_id = shift;
     $ENV{FPGA_BIT_FILE} = "$path/.xilinx/${model}_par.bit";
 
-        if (! $forceLoad && -s "$path/${model}_hw.errinfo") {
-            print STDERR "FPGA bit file has errors:\n\n";
-            system("cat $path/${model}_hw.errinfo > /dev/stderr");
-            ErrorExit("\nUse --force-load to ignore the error.\n");
+    # Check for existance of expected bitfile. 
+    if ( ! -e $ENV{FPGA_BIT_FILE} ) {
+        ErrorExit("Could not find bitfile $ENV{FPGA_BIT_FILE}");
+    }
+
+    if (! $forceLoad && -s "$path/${model}_hw.errinfo") {
+        print STDERR "FPGA bit file has errors:\n\n";
+        system("cat $path/${model}_hw.errinfo > /dev/stderr");
+        ErrorExit("\nUse --force-load to ignore the error.\n");
+    }
+
+    # Does a download script exist to program the FPGA?
+    my $needProgram = (-f "$path/config/${model}.download");
+
+    # Is the FPGA already programmed with the correct bit file and does it support soft reset?
+    if (exists($config{signature}) && $config{SOFT_RESET}) {
+        my $curSignature = ExecRead("leap-fpga-ctrl --device-id=${fpga_dev_id} --getsignature",
+                                    "Failed to read code signature");
+        if ($curSignature eq $config{signature}) {
+            print "FPGA is already programmed (signature match)...\n";
+            $needProgram = 0;
         }
+    }
 
-        # Does a download script exist to program the FPGA?
-        my $needProgram = (-f "$path/config/${model}.download");
-
-        # Is the FPGA already programmed with the correct bit file and does it support soft reset?
-        if (exists($config{signature}) && $config{SOFT_RESET}) {
-            my $curSignature = ExecRead("leap-fpga-ctrl --device-id=${fpga_dev_id} --getsignature",
-                                        "Failed to read code signature");
-            if ($curSignature eq $config{signature}) {
-                print "FPGA is already programmed (signature match)...\n";
-                $needProgram = 0;
-            }
+    if ($needProgram) {
+        $SIG{'INT'} = 'IGNORE'; # Ctrl-c during a program wrecks the Xilinx programming cable.
+        Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --program", "Failed to enter FPGA programming mode");
+        my $dir = `pwd`;
+        chomp($dir);
+        Exec("(cd $path; ./config/${model}.download --device-id=${fpga_dev_id} ${dir}/FPGA_programming.log)", "Failed to program FPGA");
+        if (exists($config{signature})) {
+            Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --setsignature=$config{signature}", "Failed to set FPGA bit image signature");
         }
-
-        if ($needProgram) {
-	    $SIG{'INT'} = 'IGNORE'; # Ctrl-c during a program wrecks the Xilinx programming cable.
-            Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --program", "Failed to enter FPGA programming mode");
-            my $dir = `pwd`;
-            chomp($dir);
-            Exec("(cd $path; ./config/${model}.download --device-id=${fpga_dev_id} ${dir}/FPGA_programming.log)", "Failed to program FPGA");
-            if (exists($config{signature})) {
-                Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --setsignature=$config{signature}", "Failed to set FPGA bit image signature");
-            }
-	    $SIG{'INT'} = 'DEFAULT'; # Ctrl-c during a program wrecks the Xilinx programming cable.
-        }
-
-
+        $SIG{'INT'} = 'DEFAULT'; # Ctrl-c during a program wrecks the Xilinx programming cable.
+    }
 }
 
 sub ReserveFPGA($) {

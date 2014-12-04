@@ -4,6 +4,8 @@ import sys
 import string
 import SCons.Script
 from model import  *
+import bsv_tool
+
 
 def getIfaceIncludeDirs():
     return 'iface/build/include:iface/build/hw'
@@ -170,7 +172,7 @@ class Iface():
     # Compile generated BSV stubs
     #
     def emitter_bo(target, source, env):
-        if (getBluespecVersion() < 26572):
+        if (bsv_tool.getBluespecVersion() < 26572):
             target.append(str(target[0]).replace('.bo', '.bi'))
         return target, source
 
@@ -179,7 +181,7 @@ class Iface():
 
         # Older compilers don't put -bdir on the search path
         maybe_bdir_tgt = ''
-        if (getBluespecVersion() < 15480):
+        if (bsv_tool.getBluespecVersion() < 15480):
             maybe_bdir_tgt = ':' + bdir
 
         cmd = BSC + ' ' + BSC_FLAGS_VERILOG + \

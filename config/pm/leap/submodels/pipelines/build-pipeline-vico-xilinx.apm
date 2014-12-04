@@ -24,9 +24,6 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-bitgen.awb
 Packagehint=leap
 
-[Xilinx LOADER]
-File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-loader.awb
-Packagehint=leap
 
 [Xilinx NGD]
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-ngd.awb
@@ -57,7 +54,7 @@ xilinx_ngd=Xilinx NGD
 xilinx_bitgen=Xilinx BITGEN
 xilinx_par=Xilinx PAR
 xilinx_map=Xilinx MAP
-xilinx_loader=Xilinx LOADER
+xilinx_loader=Xilinx LOADER (ISE/Impact)
 
 [Xilinx MAP]
 File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-map.awb
@@ -108,3 +105,7 @@ Packagehint=leap
 
 [XST Synthesis Tool/Requires]
 synthesis_library=Synthesis library
+
+[Xilinx LOADER (ISE/Impact)]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/xilinx-loader.awb
+Packagehint=leap

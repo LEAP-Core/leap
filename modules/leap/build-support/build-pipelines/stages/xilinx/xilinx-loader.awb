@@ -2,8 +2,8 @@
 #* Python libraries for XST synthesis tool
 #********************************************************************/
 
-%name Xilinx LOADER
-%desc Xilinx LOADER
+%name Xilinx LOADER (ISE/Impact)
+%desc Xilinx LOADER (ISE/Impact)
 %attributes tool
 
 %provides xilinx_loader

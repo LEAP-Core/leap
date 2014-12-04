@@ -1,7 +1,3 @@
-#/********************************************************************
-#* Generic FPGA build pipeline
-#********************************************************************/
-
 %name Area Group Tool
 %desc Area Group Tool
 %attributes tool
@@ -10,8 +6,8 @@
 %requires area_group_parser
 
 %scons %library area_group_tool.py
+%scons %library tsp.py
 
-%param --global ENABLE_SMART_AREA_GROUPS 1 "True if we should emit/build area groups"
-
-
+%param --global AREA_GROUPS_ENABLE 0 "True if we should emit/build area groups."
+%param AREA_GROUPS_CHANNEL_BUFFERING_ENABLE 1 "True if buffers should be added to inter-module LI channels to enable timing closure."
 

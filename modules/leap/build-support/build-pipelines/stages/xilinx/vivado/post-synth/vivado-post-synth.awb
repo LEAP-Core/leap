@@ -1,0 +1,16 @@
+#/********************************************************************
+#* Python libraries for Quartus tool
+#********************************************************************/
+
+%name Vivado Post-synthesis Toolchain
+%desc Vivado Post-synthesis Toolchain
+%attributes tool
+
+%provides post_synthesis_tool
+%requires xilinx_loader
+
+%notes README
+
+%scons %library VIVADO_POST_SYNTH.py
+%sources -t VIVADO_TCL_DEFINITION -v PRIVATE vivado-timing-library.xdc
+

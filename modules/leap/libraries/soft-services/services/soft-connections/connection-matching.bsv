@@ -170,7 +170,7 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         // Actually do the connection, with a new LOGICAL_CHAIN_INFO 
         // This lets us keep a single LOGICAL_CHAIN_INFO
         messageM("Adding Link to Chain: [" + new_link.logicalName + "] Module:"  + new_link.moduleNameIncoming);
-        connectOutToIn(new_link.outgoing, latest_link.incoming);
+        connectOutToIn(new_link.outgoing, latest_link.incoming, 0);
 
         // Add the new link to the list.
         putChain(LOGICAL_CHAIN_INFO{logicalName: new_link.logicalName, 
@@ -319,7 +319,7 @@ module [t_CONTEXT] connect#(LOGICAL_SEND_ENTRY sEntry, LOGICAL_RECV_ENTRY rEntry
     begin  //Actually do the connection
   
         messageM("Connecting: " + name);
-        connectOutToIn(csend.outgoing, crecv.incoming);
+        connectOutToIn(csend.outgoing, crecv.incoming, 0);
 
     end
 

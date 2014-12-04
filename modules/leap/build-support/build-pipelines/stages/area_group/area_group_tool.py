@@ -1,80 +1,208 @@
 import math
 import cPickle as pickle
 
+import tsp
 from area_group_parser import *
 from model import  *
 from li_module import *
-from wrapper_gen_tool import *
+import wrapper_gen_tool
 
-#from glpkpi import *
 
-def areaConstraintType():
-    return 'UCF'
+def _areaConstraintsFileIncomplete(moduleList):
+    return moduleList.compileDirectory + '/areagroups.nopaths.pickle'
 
-def loadAreaConstraints(filename):
-    # The first pass will dump a well known file. 
-    if(os.path.isfile(filename)):
+def _areaConstraintsFile(moduleList):
+    return moduleList.compileDirectory + '/areagroups.pickle'
+
+
+###########################################################################
+##
+## Class AreaConstraints:
+##   Operates on the area constraints dictionary built by the Floorplanner
+##   class (below).
+##
+###########################################################################
+
+class AreaConstraints():
+
+    def __init__(self, moduleList):
+        self.moduleList = moduleList
+
+        self.enabled = (moduleList.getAWBParam('area_group_tool',
+                                               'AREA_GROUPS_ENABLE') != 0)
+        self.enableBufferInsertion = \
+            (moduleList.getAWBParam('area_group_tool',
+                                    'AREA_GROUPS_CHANNEL_BUFFERING_ENABLE') != 0)
+
+        self.constraints = None
+
+
+    def areaConstraintType(self):
+        return 'UCF'
+
+    ##
+    ## Area constraints are computed and stored in a file.  There are two
+    ## files generated: one with early information (incomplete) and one
+    ## with full closure.
+    ##
+    ## The following two functions load the area group descriptions from
+    ## files.
+    ##
+
+    def loadAreaConstraints(self):
+        self._loadAreaConstraintsFromFile(self.areaConstraintsFile())
+
+    def loadAreaConstraintsIncomplete(self):
+        self._loadAreaConstraintsFromFile(self.areaConstraintsFileIncomplete())
+
+    def storeAreaConstraints(self):
+        pickle_handle = open(self.areaConstraintsFile(), 'wb')
+        pickle.dump(self.constraints, pickle_handle, protocol = -1)
+        pickle_handle.close()
+
+    def _loadAreaConstraintsFromFile(self, filename):
         # We got a valid LI graph from the first pass.
-        pickleHandle = open(filename, 'rb')
-        areaGroups = pickle.load(pickleHandle)
-        pickleHandle.close()
-        return areaGroups
-    return None
+        pickle_handle = open(filename, 'rb')
+        self.constraints = pickle.load(pickle_handle)
+        pickle_handle.close()
 
-def areaConstraintFileIncomplete(moduleList):
-    return  moduleList.compileDirectory + '/areagroups.nopaths.pickle'  
+    def areaConstraintsFileIncomplete(self):
+        return _areaConstraintsFileIncomplete(self.moduleList)
 
-def areaConstraintFileComplete(moduleList):    
-    return  moduleList.compileDirectory + '/areagroups.pickle'  
+    def areaConstraintsFile(self):
+        return _areaConstraintsFile(self.moduleList)
 
-# Backends are called by specific tool flows. Thus we can have both
-# backends here. 
-def emitConstraintsXilinx(fileName, areaGroups):
-    constraintsFile = open(fileName, 'w')
-    for areaGroupName in areaGroups:
-        areaGroupObject = areaGroups[areaGroupName]
+    ##
+    ## numIOBufs --
+    ##   Compute the number of I/O buffers required for a path between two
+    ##   area groups.
+    ##
+    def numIOBufs(self, agOut, agIn):
+        if (not self.enableBufferInsertion):
+            return 0
 
-        # if area group was tagged as None, do not emit an area group
-        # for it.  This allows us to handle area groups hidden in the
-        # user UCF.
-        if(areaGroupObject.sourcePath is None):
-            continue
+        d = self._distance(agOut, agIn)
 
-        print "Emitting Code for: " + str(areaGroupObject)
-        # This is a magic conversion factor for virtex 7.  It might
-        # need to change for different architectures.
-        lutToSliceRatio = 1
+        if (d > 0):
+            # This should call a platform-specific library...
+            return 1
+        else:
+            return 0
 
-        #INST "m_sys_sys_syn_m_mod/common_services_inst/*" AREA_GROUP = "AG_common_services";
+    ##
+    ## _distance --
+    ##    Distance between agOut and agIn.
+    ##
+    def _distance(self, agOut, agIn):
+        # Use the center
+        out_x = agOut.xLoc + (agOut.xDimension / 2)
+        out_y = agOut.yLoc + (agOut.yDimension / 2)
+        in_x = agIn.xLoc + (agIn.xDimension / 2)
+        in_y = agIn.yLoc + (agIn.yDimension / 2)
+
+        return math.sqrt((in_x - out_x)**2 + (in_y - out_y)**2)
+
+
+    # Backends are called by specific tool flows. Thus we can have both
+    # backends here.
+    def emitConstraintsXilinx(self, fileName):
+        constraintsFile = open(fileName, 'w')
+        for areaGroupName in self.constraints:
+            areaGroupObject = self.constraints[areaGroupName]
+
+            # if area group was tagged as None, do not emit an area group
+            # for it.  This allows us to handle area groups hidden in the
+            # user UCF.
+            if(areaGroupObject.sourcePath is None):
+                continue
+
+            # This is a magic conversion factor for virtex 7.  It might
+            # need to change for different architectures.
+            haloCells = 1
+
+            #INST "m_sys_sys_syn_m_mod/common_services_inst/*" AREA_GROUP = "AG_common_services";
 #AREA_GROUP "AG_common_services"                   RANGE=SLICE_X146Y201:SLICE_X168Y223;
 #AREA_GROUP "AG_common_services"                   GROUP = CLOSED;
-        constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
-        constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
-        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+            constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
+            constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
+            slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
+            slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
 
-        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)/lutToSliceRatio)
-  
-        constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" RANGE=SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + ';\n')
-        constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" GROUP=CLOSED;\n')
-        constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" PLACE=CLOSED;\n')
+            slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
+            slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
+
+            constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" RANGE=SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + ';\n')
+            constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" GROUP=CLOSED;\n')
+            constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" PLACE=CLOSED;\n')
         
-    constraintsFile.close()
-    
+        constraintsFile.close()
+
+    def emitConstraintsVivado(self, fileName):
+        constraintsFile = open(fileName, 'w')
+        for areaGroupName in self.constraints:
+            areaGroupObject = self.constraints[areaGroupName]
+
+            # if area group was tagged as None, do not emit an area group
+            # for it.  This allows us to handle area groups hidden in the
+            # user UCF.
+            if(areaGroupObject.sourcePath is None):
+                continue
+
+            # This is a magic conversion factor for virtex 7.  It might
+            # need to change for different architectures.
+            haloCells = 1
+
+            #startgroup
+            #create_pblock pblock_ddr3 
+            #resize_pblock pblock_ddr3 -add {SLICE_X134Y267:SLICE_X173Y349}
+            #add_cells_to_pblock pblock_ddr3 [get_cells -hier -filter {NAME =~ m_sys_sys_vp_m_mod/llpi_phys_plat_sdram_b_ddrSynth/*}]
+            #endgroup
+
+            constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
+            constraintsFile.write('startgroup \n')
+            constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
+
+            slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
+            slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
+
+            slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
+            slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
+  
+            constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
+
+            constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+
+            constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
+            constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+
+            constraintsFile.write('endgroup \n')
+
+        constraintsFile.close()
+
+
+
+###########################################################################
+##
+## Class Floorplanner:
+##   Invoked as part of the build flow.  The floorplanner generates an
+##   area group dictionary and stores it in a file.  The file may be
+##   loaded and used by the AreaConstraints class above.
+##
+###########################################################################
 
 class Floorplanner():
 
     def __init__(self, moduleList):
+        self.pipeline_debug = getBuildPipelineDebug(moduleList)
 
         def modify_path_hw(path):
             return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
 
-        if(not moduleList.getAWBParam('area_group_tool', 'ENABLE_SMART_AREA_GROUPS')):
-               return
+        if (not moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
+            return
 
         liGraph = LIGraph([])
-        firstPassGraph = getFirstPassLIGraph()
+        firstPassGraph = wrapper_gen_tool.getFirstPassLIGraph()
         # We should ignore the 'PLATFORM_MODULE'                                                                                                                    
         liGraph.mergeModules(firstPassGraph.modules.values())
         self.firstPassLIGraph = liGraph
@@ -86,8 +214,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.35
-                 luts_per_slice = 8
+                 extra_area_factor = 1.3
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -97,7 +224,6 @@ class Floorplanner():
                  else:
                      moduleResources = assignResources(moduleList, None, self.firstPassLIGraph)
                  
-                 print 'Module resources: ' + str(moduleResources)
 
                  areaGroups = {}
                  totalLUTs = 0
@@ -115,12 +241,7 @@ class Floorplanner():
  
                  # now that we have the modules, let's apply constraints. 
 
-                 print "moduleResources " + str(moduleResources)
-                 print "totalLUTs " + str(totalLUTs)
-
                  # Grab area groups declared/defined in the agrp file supplied by the user. 
-
-                 print "area sources " + str(convertDependencies(source))
                  constraints = []
                  for constraintFile in moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS'):
                      constraints += parseAreaGroupConstraints(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + constraintFile)
@@ -142,9 +263,7 @@ class Floorplanner():
                  print "AREAGROUP: Constraints " + str(constraints) 
                  for constraint in constraints:
                      if(isinstance(constraint,AreaGroupSize)): 
-                         print 'Constraint type Size ' + str(constraints)                             
                          if(constraint.name == 'FPGA'):
-                             print 'Constraint for chip ' + str(constraints)                             
                              if(chipXDimension > 0):
                                  print "Got too many FPGA dimension statements, bailing"
                                  exit(1)
@@ -200,28 +319,32 @@ class Floorplanner():
                      # EEEK I don't think I know what the paths will
                      # be at this point. Probably need to memoize and
                      # fill those in later?
-                     if((areaGroup.name in moduleResources) and ('LUT' in moduleResources[areaGroup.name])):
-                         # there are 8 luts in a slice.
-                         areaGroup.area = moduleResources[areaGroup.name]['LUT']/luts_per_slice
+                     if((areaGroup.name in moduleResources) and ('SLICE' in moduleResources[areaGroup.name])):
+                         areaGroup.area = moduleResources[areaGroup.name]['SLICE']
                      else:
-                         areaGroup.area = areaGroup.xDimension[0]/luts_per_slice * areaGroup.yDimension[0]/luts_per_slice
+                         areaGroup.area = areaGroup.xDimension[0] * areaGroup.yDimension[0]
 
                  # We've now built a tree of parent/child
                  # relationships, which we can use to remove area from
                  # the parent (double counting is a problem).  
                  for areaGroup in areaGroups.values():
                      for child in areaGroup.children.values():
-                         print 'AREAGROUP: setting parent ' + areaGroup.name +  ' area from ' +  str(areaGroup.area) + 'to' + str(areaGroup.area - child.area) + ' due to child ' + child.name   
-                         areaGroup.area = areaGroup.area - child.area
+                         print 'AREAGROUP: setting parent ' + areaGroup.name +  ' area from ' +  str(areaGroup.area) + 'to' + str(areaGroup.area - child.area) + ' due to child ' + child.name + '\n'
+                         # If we have a slice resource declaration,
+                         # use it else, use 1/2 the area as an estimate
+                         if ('SLICE' in moduleResources[child.name]):
+                             areaGroup.area = areaGroup.area - moduleResources[child.name]['SLICE']
+                         else:
+                             areaGroup.area = areaGroup.area - child.area/2
 
+                 affineCoefs = [.5, .65, .75, 1, 1.33, 1.66, 2] # just make them all squares for now. 
 
-                 affineCoefs = [.2,.25, .333, .5, .75, 1, 1.33, 2 , 3, 4, 5] # just make them all squares for now. 
                  for areaGroup in areaGroups:
                      areaGroupObject = areaGroups[areaGroup]
                      # we might have gotten coefficients from the constraints.
                      if(areaGroupObject.xDimension is None):
                          areaGroupObject.xDimension = []
-                         areaGroupObject.yDimension = []
+                         areaGroupObject.yDimension = []                       
                          moduleRoot = math.sqrt(areaGroupObject.area)
                          for coef in affineCoefs:
                              areaGroupObject.xDimension.append(coef*moduleRoot*extra_area_factor)
@@ -246,7 +369,6 @@ class Floorplanner():
                          modHandle.write('var xloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xLoc) + ';\n')
                          modHandle.write('var yloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yLoc) + ';\n')
 
-                     print "group: " + str(areaGroupObject)
                      if(len(areaGroupObject.xDimension) > 1):
                          dimsX = []
                          dimsY = []
@@ -461,8 +583,6 @@ class Floorplanner():
                      for variable in variables:
                          print variable + ' is: ' + str(eval('example.' + variable).value()) 
 
-                 dumpVariables(example)
-
                  # print out module locations 
                  for areaGroupIndex in range(len(areaGroupNames)):
                      areaGroup = areaGroups[areaGroupNames[areaGroupIndex]]
@@ -475,8 +595,8 @@ class Floorplanner():
                      # clear all area groups, since this technically
                      # results in a correct solution.
                      if(areaGroup.xLoc < 1 or areaGroup.yLoc < 1):
-                         print "Failed to find solution to area group placement"
                          dumpVariables(example)
+                         print "Failed to find solution to area group placement for: " + areaGroup.name
                          exit(1)
 
                      # figure out the chose dimensions.
@@ -486,26 +606,65 @@ class Floorplanner():
 
                      print str(areaGroup)
 
+                 # Sort area groups topologically, annotating each area group
+                 # with a sortIdx field.
+                 self.sort_area_groups(areaGroups)
+
                  # Now that we've solved (to some extent) the area
                  # group mapping problem we can dump the results for 
                  # the build tree. 
 
-                 pickleHandle = open(areaConstraintFileIncomplete(moduleList), 'wb')
-                 pickle.dump(areaGroups, pickleHandle, protocol=-1)
-                 pickleHandle.close()                 
+                 pickle_handle = open(_areaConstraintsFileIncomplete(moduleList), 'wb')
+                 pickle.dump(areaGroups, pickle_handle, protocol=-1)
+                 pickle_handle.close()                 
                  
              return area_group
 
         # expose this dependency to the backend tools.
-        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [areaConstraintFileIncomplete(moduleList)]
+        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [_areaConstraintsFileIncomplete(moduleList)]
 
         # We need to get the resources for all modules, except the top module, which can change. 
         resources = [dep for dep in moduleList.getAllDependencies('RESOURCES')]
 
         areagroup = moduleList.env.Command( 
-            [areaConstraintFileIncomplete(moduleList)],
+            [_areaConstraintsFileIncomplete(moduleList)],
             resources + map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS')),
             area_group_closure(moduleList)
             )                   
 
         moduleList.env.AlwaysBuild(areagroup)
+
+
+    ##
+    ## sort_area_groups --
+    ##   Sort all area groups using traveling salesman to minimize the distance
+    ##   of a circuit through the groups.  This is intended to miminize the
+    ##   lengths of chains.
+    ##
+    def sort_area_groups(self, areaGroups):
+        # Get a canonical order for the set of area groups (used in loops below)
+        group_names = areaGroups.keys()
+
+        # The coordinate of each group is its midpoint
+        coords = []
+        for name in group_names:
+            group = areaGroups[name]
+            x = group.xLoc + (group.xDimension / 2)
+            y = group.yLoc + (group.yDimension / 2)
+            coords.append((x, y))
+
+        if (self.pipeline_debug):
+            print "Sorting area groups:"
+
+        # Pick a short path
+        path = tsp.travelingSalesman(coords)
+
+        # Store path as sort order in areaGroups entries
+        for i in range(len(group_names)):
+            name = group_names[i]
+            group = areaGroups[name]
+
+            group.sortIdx = path[i]
+
+            if (self.pipeline_debug):
+                print "  " + name + ": " + str(group.sortIdx)

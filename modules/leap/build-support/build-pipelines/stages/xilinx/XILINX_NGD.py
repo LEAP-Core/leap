@@ -3,7 +3,7 @@ import SCons.Script
 from model import  *
 
 try:
-    from area_group_tool import  *
+    import area_group_tool
 except ImportError:
     pass # we won't be using this tool.
 
@@ -20,21 +20,24 @@ class NGD():
 
     # If we got an area group placement data structure, now is the
     # time to convert it into a UCF. 
-    if('AREA_GROUPS' in moduleList.topModule.moduleDependency):
+    if ('AREA_GROUPS' in moduleList.topModule.moduleDependency):
+        area_constraints = area_group_tool.AreaConstraints(moduleList)
         area_group_file = moduleList.compileDirectory + '/areagroups.ucf'
+
         # user ucf may be overridden by our area group ucf.  Put our
         # generated ucf first.
         moduleList.topModule.moduleDependency['UCF'].insert(0,area_group_file)
         def area_group_ucf_closure(moduleList):
 
              def area_group_ucf(target, source, env):
-                 emitConstraintsXilinx(area_group_file, loadAreaConstraints(areaConstraintFileComplete(moduleList)))
+                 area_constraints.loadAreaConstraints()
+                 area_constraints.emitConstraintsXilinx(area_group_file)
                                     
              return area_group_ucf
 
         moduleList.env.Command( 
             [area_group_file],
-            areaConstraintFileComplete(moduleList),
+            area_constraints.areaConstraintsFile(),
             area_group_ucf_closure(moduleList)
             )                   
 
@@ -79,7 +82,7 @@ class NGD():
         SCons.Script.Delete('xlnx_auto_0_xdb'),
         'ngdbuild -aul -aut -p ' + fpga_part_xilinx + \
           ' -sd ' + ' -sd '.join(sd_list) + \
-          ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET',
+          ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET | tee ' + xilinx_apm_name +'.ngdrpt',
         SCons.Script.Move(moduleList.compileDirectory + '/netlist.lst', 'netlist.lst') ])
 
     moduleList.env.Depends(xilinx_ngd,

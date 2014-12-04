@@ -32,6 +32,7 @@ def parseLogfiles(logfiles):
                                                  match.group(6),
                                                  match.group(7),
                                                  match.group(8),
+                                                 match.group(8),
                                                  type)]
                     else:
                         connections +=  [LIChannel(match.group(1), 
@@ -40,6 +41,7 @@ def parseLogfiles(logfiles):
                                                    match.group(4),      
                                                    eval(match.group(5)), # optional
                                                    match.group(6),
+                                                   match.group(7),
                                                    match.group(7),
                                                    type)]
                            
@@ -51,22 +53,52 @@ def parseLogfiles(logfiles):
 
     return connections
 
-#Basic S-T min-cut algorithm
-#Eventually we should swap this for Karger's algorithm
-def min_cut(graph):
-   minimum_cut = float("inf")
-   minimum_mapping = None
-   # for all pairs s-t 
-   for source in sorted(graph.nodes(), key=lambda module: module.name):
-      for sink in sorted(graph.nodes(), key=lambda module: module.name):
-          if (source != sink):
-              (flow, cut) =  pygraph.algorithms.minmax.maximum_flow(graph, source, sink)
-              value = pygraph.algorithms.minmax.cut_value(graph, flow, cut)
-              if (value < minimum_cut):
-                  minimum_cut = value
-                  minimum_mapping = cut
+##
+## placement_cut --
+##   Cut the tree based on the placement of logic in area groups.  This will
+##   cause chains to be connected with minimized paths.  The area constraints
+##   code pre-sorts all modules.
+##
+def placement_cut(graph, areaConstraints):
+    # Sort the nodes according to the pre-sorted order already set by the
+    # area group code.
+    nodes = sorted(graph.nodes(),
+                   key=lambda module: areaConstraints.constraints[module.name].sortIdx)
 
-   return minimum_mapping
+    # Map the first half of the sorted list to tree "0" and the second half
+    # to tree "1".
+    map = {}
+    cut_point = (1 + len(graph.nodes())) / 2
+    for i in range(len(nodes)):
+        n = nodes[i]
+        map[n] = int(i >= cut_point)
+
+    return map
+
+
+##
+## min_cut --
+##   When area groups aren't computed, sort the tree such that inter-module
+##   connections determine grouping.
+##
+##   The code is a basic S-T min-cut algorithm.  Eventually we should swap
+##   this for Karger's algorithm.
+##
+def min_cut(graph):
+    minimum_cut = float("inf")
+    minimum_mapping = None
+    # for all pairs s-t 
+    nodes = sorted(graph.nodes(), key=lambda module: module.name)
+    for source in nodes:
+        for sink in nodes:
+            if (source != sink):
+                (flow, cut) =  pygraph.algorithms.minmax.maximum_flow(graph, source, sink)
+                value = pygraph.algorithms.minmax.cut_value(graph, flow, cut)
+                if (value < minimum_cut):
+                    minimum_cut = value
+                    minimum_mapping = cut
+
+    return minimum_mapping
 
 
 # this function allows us to supply resource utilizations for

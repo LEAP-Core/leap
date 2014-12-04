@@ -45,9 +45,9 @@ def convertDependencies(depList):
         else:
             print "I don't know what to do with " + str(depObj) + ' type ' + str(type(depObj))
             exit(0)        
-        
-    
-    depList = map(filterRecursive, depList)
+
+
+    depList = filterRecursive(depList)        
     depList = flatten(depList)
 
     return depList

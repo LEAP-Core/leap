@@ -109,95 +109,6 @@ def getGccVersion():
 
 
 
-##
-## get_bluespec_verilog --
-##     Return a list of Verilog files from the Bluespec compiler release.
-##
-def get_bluespec_verilog(env):
-    resultArray = []
-    bluespecdir = env['ENV']['BLUESPECDIR']
-    
-    fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Verilog/'], stdout = subprocess.PIPE)
-    fileList = fileProc.stdout.read()
-    fileArray = clean_split(fileList, sep = '\n')
-    for file in fileArray:
-        if ((file[-2:] == '.v') and
-            (file != 'main.v') and
-            (file != 'ConstrainedRandom.v') and
-            # For now we exclud the Vivado versions.  Need to fix this.
-            (file[-9:] != '.vivado.v')):
-            resultArray.append(bluespecdir + '/Verilog/' + file)
-
-    fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Libraries/'], stdout = subprocess.PIPE)
-    fileList = fileProc.stdout.read()
-    fileArray = clean_split(fileList, sep = '\n')
-    for file in fileArray:
-        if ((file[-2:] == '.v') and
-            (file[:6] != 'xilinx') and
-            # For now we exclud the Vivado versions.  Need to fix this.
-            (file[-9:] != '.vivado.v')):
-            resultArray.append(bluespecdir + '/Libraries/' + file)
-
-    return resultArray
-
-
-##
-## get_bluespec_xcf --
-##     Return a list of XCF files associated with Bluespec provided libraries.
-##
-def get_bluespec_xcf(env):
-    bluespecdir = env['ENV']['BLUESPECDIR']
-
-    # Bluespec only provides board-specific XCF files, but for now they are
-    # all the same.  Find one.
-    xcf = bluespecdir + '/board_support/xilinx/XUPV5/default.xcf.template'
-    if os.path.exists(xcf):
-        return [ xcf ];
-    else:
-        return [];
-
-
-##
-## What is the Bluespec compiler version?
-##
-def getBluespecVersion():
-    if not hasattr(getBluespecVersion, 'version'):
-        bsc_ostream = os.popen('bsc -verbose')
-        ver_regexp = re.compile('^Bluespec Compiler, version.*\(build ([0-9]+),')
-        for ln in bsc_ostream.readlines():
-            m = ver_regexp.match(ln)
-            if (m):
-                getBluespecVersion.version = int(m.group(1))
-        bsc_ostream.close()
-
-        if getBluespecVersion.version == 0:
-            print "Failed to get Bluespec compiler version"
-            sys.exit(1)
-
-        ## Generate an include file as a side-effect of calling this function
-        ## that describes the compiler's capabilities.
-        bsv_cap = open('hw/include/awb/provides/bsv_version_capabilities.bsh', 'w')
-        bsv_cap.write('//\n')
-        bsv_cap.write('// Bluespec compiler version\'s capabilities.\n')
-        bsv_cap.write('// Generated at build time by Utils.py.\n\n')
-        bsv_cap.write('//\n')
-        bsv_cap.write('// Compiler version: ' + str(getBluespecVersion.version) + '\n')
-        bsv_cap.write('//\n\n')
-
-        bsv_cap.write('`ifndef INCLUDED_bsv_version_capabilities\n');
-        bsv_cap.write('`define INCLUDED_bsv_version_capabilities\n\n');
-
-        bsv_cap.write('// Char type implemented?\n')
-        if (getBluespecVersion.version < 31201):
-            bsv_cap.write('// ')
-        bsv_cap.write('`define BSV_VER_CAP_CHAR 1\n')
-
-        bsv_cap.write('\n`endif // INCLUDED_bsv_version_capabilities\n');
-        bsv_cap.close()
-
-    return getBluespecVersion.version
-
-
 # useful for reconstructing synthesis boundary dependencies
 # returns a list of elements with exactly the argument filepath 
 def checkFilePath(prefix, path):
@@ -226,3 +137,21 @@ def relpath(path, start=posixpath.curdir):
     if not rel_list:
         return posixpath.curdir
     return posixpath.join(*rel_list)
+
+##
+## dictionary_list_create_append -- Checks dictionary to see if key
+##     exists. If so, appends value to list.  Else creates a new key
+##     entry in the dictionary and sets to value.
+##
+def dictionary_list_create_append(dictionary, key, value):
+    if(key in dictionary):
+        dictionary[key].append(value)
+    else:
+        dictionary[key] = value
+
+##
+## modify_path_hw -- Modifies a file path for AWB's 'hw' directory
+## path.  
+##
+def modify_path_hw(path):
+    return 'hw/' + path 

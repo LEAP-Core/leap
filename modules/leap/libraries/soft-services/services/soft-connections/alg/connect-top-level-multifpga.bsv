@@ -136,7 +136,7 @@ module connectChains#(LOGICAL_CONNECTION_INFO info, Clock c) ();
         else
           begin
             messageM("Closing Chain: [" + chn.logicalName + "]");
-            connectOutToIn(chn.outgoing, chn.incoming);
+            connectOutToIn(chn.outgoing, chn.incoming, 0);
           end
       end
     

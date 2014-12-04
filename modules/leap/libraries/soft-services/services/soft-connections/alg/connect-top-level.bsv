@@ -115,6 +115,6 @@ module connectChains#(Clock c, List#(LOGICAL_CHAIN_INFO) chains) ();
         // Iterate through the chains.
         let chn = chains[x];
         messageM("Closing Chain: [" + chn.logicalName + "]");
-        connectOutToIn(chn.outgoing, chn.incoming);
+        connectOutToIn(chn.outgoing, chn.incoming, 0);
       end			     
 endmodule
