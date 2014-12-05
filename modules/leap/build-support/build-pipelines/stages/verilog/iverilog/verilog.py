@@ -40,7 +40,7 @@ class Verilog():
 
     LI_LINK_DIR = ""
     if (not self.firstPassLIGraph is None):
-        LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/"
+        LI_LINK_DIR = wrapper_gen_tool.get_build_path(moduleList, moduleList.topModule) + "/.li/"
         inc_paths += [LI_LINK_DIR]
         ALL_LIB_DIRS_FROM_ROOT = LI_LINK_DIR + ':' +  ALL_LIB_DIRS_FROM_ROOT
 
