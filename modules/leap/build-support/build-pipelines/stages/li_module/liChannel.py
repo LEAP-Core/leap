@@ -1,6 +1,6 @@
 import sys
-from code import *
-from liModule import *
+
+from liModule import LIModule
 
 # TODO: Some of the data in this structure would be better captured as
 # an attribute dictionary.  This would also be more modular since

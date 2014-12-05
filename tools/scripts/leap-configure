@@ -1458,7 +1458,6 @@ sub __generate_build_libraries {
 	return 0;
     }        
     
-    print "@libraries";
     foreach my $library (@libraries) {
 	# Make a symlink
         # rebase the simlink for portability

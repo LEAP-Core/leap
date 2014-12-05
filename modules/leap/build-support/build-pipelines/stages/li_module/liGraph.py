@@ -3,9 +3,8 @@ import traceback
 import pygraph
 #import gv
 
-from liModule import *
-from liChannel import *
-from liChain import *
+from liModule import LIModule
+from liChannel import LIChannel
 
 try:
     from pygraph.classes.digraph import digraph
@@ -34,7 +33,7 @@ class LIGraph():
                 self.modules[connection.module_name] = LIModule(connection.module_name,\
                                                                 connection.module_name)
        
-            if (isinstance(connection,LIChannel)):
+            if (isinstance(connection, LIChannel)):
                 self.modules[connection.module_name].addChannel(connection)
             else:
                 self.modules[connection.module_name].addChain(connection)

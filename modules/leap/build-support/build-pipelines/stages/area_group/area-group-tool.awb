@@ -8,6 +8,6 @@
 %scons %library area_group_tool.py
 %scons %library tsp.py
 
-%param --global AREA_GROUPS_ENABLE 1 "True if we should emit/build area groups."
+%param --global AREA_GROUPS_ENABLE 0 "True if we should emit/build area groups."
 %param AREA_GROUPS_CHANNEL_BUFFERING_ENABLE 1 "True if buffers should be added to inter-module LI channels to enable timing closure."
 %param AREA_GROUPS_GROUP_PLATFORM_CODE 0 "True if we should build an area group for the platform code."
