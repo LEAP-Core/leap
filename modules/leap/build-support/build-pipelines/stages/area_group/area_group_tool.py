@@ -172,6 +172,10 @@ class AreaConstraints():
 
             constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
 
+            # Optionally emit code to exclude some specific portion of code     
+            if('EXCLUSIONS' in areaGroupObject.attributes):
+                constraintsFile.write('remove_cells_from_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.attributes['EXCLUSIONS'] + '"}]\n')
+
             constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
             constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
