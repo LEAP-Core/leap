@@ -333,9 +333,12 @@ class BSVSynthTreeBuilder():
 
         tree_command = self.parent.compile_bo_bsc_base([tree_file_wrapper_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_wrapper
         tree_file_wrapper_bo = env.Command([tree_file_wrapper_bo_path + '.bo'] + producedBAs,
-                                           [tree_file_wrapper],
+#                                           [tree_file_wrapper],
+                                           tree_components,
                                            tree_command)
 
+        print "TREE COMPONENTS: " + str(tree_components)
+ 
         # If we got a first pass LI graph, we need to link its object codes.
         if(not self.getFirstPassLIGraph is None):
             buildPath = get_build_path(moduleList, moduleList.topModule)
@@ -528,7 +531,14 @@ class BSVSynthTreeBuilder():
                 if (area_constraints):
                     n = moduleList.localPlatformName + "_platform"
                     if (n in area_constraints.constraints):
-                        area_constraints.constraints[n].sourcePath = "m_sys_sys_vp_m_mod"
+                        # Vivado has difficulties in placing platform
+                        # code in the presence of device driver area
+                        # groups.  We optionally disable the
+                        # generation of platform area groups here.
+                        if (moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_GROUP_PLATFORM_CODE')):
+                            area_constraints.constraints[n].sourcePath = "m_sys_sys_vp_m_mod"
+                        else:
+                            area_constraints.constraints[n].sourcePath = None
 
                     area_constraints.storeAreaConstraints()
 

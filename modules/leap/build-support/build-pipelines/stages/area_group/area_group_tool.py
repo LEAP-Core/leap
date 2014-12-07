@@ -148,8 +148,8 @@ class AreaConstraints():
             if(areaGroupObject.sourcePath is None):
                 continue
 
-            # This is a magic conversion factor for virtex 7.  It might
-            # need to change for different architectures.
+            # We need to place halo cells around pblocks, so that they
+            # do not overlap on rounding.
             haloCells = 1
 
             #startgroup
@@ -182,6 +182,7 @@ class AreaConstraints():
             constraintsFile.write('endgroup \n')
 
         constraintsFile.close()
+
 
 
 
@@ -218,7 +219,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.3
+                 extra_area_factor = 1.4                
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -561,6 +562,7 @@ class Floorplanner():
                          iocp_param = glpk.glp_iocp();
                          glpk.glp_init_iocp(iocp_param);
                          #iocp_param.tm_lim=600*1000
+
                          iocp_param.mip_gap=0.95
 
                          glpk.glp_intopt(self._lp, iocp_param);
