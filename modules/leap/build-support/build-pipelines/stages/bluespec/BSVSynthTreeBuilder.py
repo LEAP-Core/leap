@@ -239,7 +239,11 @@ class BSVSynthTreeBuilder():
 
         verilog_deps = [ "__TREE_MODULE__" + str(id) for id in range(expected_wrapper_count)]
 
-        buildTreeDeps['GEN_VERILOGS'] = [ "mk_" + vlog + '_Wrapper' + ".v"  for vlog in verilog_deps]
+        if(self.parent.BUILD_LOGS_ONLY == 0):
+            buildTreeDeps['GEN_VERILOGS'] = [ "mk_" + vlog + '_Wrapper' + ".v"  for vlog in verilog_deps]
+        else:
+            buildTreeDeps['GEN_VERILOGS'] = []
+
         buildTreeDeps['GEN_BAS'] = [  "mk_" + vlog + '_Wrapper' + ".ba" for vlog in verilog_deps]
         buildTreeDeps['BA'] = []
         buildTreeDeps['STR'] = []
