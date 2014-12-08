@@ -3,7 +3,7 @@ import errno
 import re
 import SCons.Script  
 
-from model import  *
+import model
 
 #
 # Generate path string to add source file into the Synplify project
@@ -43,7 +43,7 @@ def _filter_file_add(file, moduleList):
   output = ''
   for line in file.readlines():
       output += re.sub('add_file.*$','',line)
-      if (getBuildPipelineDebug(moduleList) != 0):
+      if (model.getBuildPipelineDebug(moduleList) != 0):
           print 'converted ' + line + 'to ' + re.sub('add_file.*$','',line)
 
   return output;
@@ -130,7 +130,7 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
         clockFiles = [clockTclPath]
     else:
         if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
-            clockFiles = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
+            clockFiles = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
 
     # now dump all the 'VERILOG' 
     fileArray = globalVerilogs + globalVHDs + \
@@ -143,7 +143,7 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
         if(type(file) is str):
             newPrjFile.write(_generate_synplify_include(file))        
         else:
-            if(getBuildPipelineDebug(moduleList) != 0):
+            if(model.getBuildPipelineDebug(moduleList) != 0):
                 print type(file)
                 print "is not a string"
 
@@ -206,9 +206,10 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
       
     sub_netlist = moduleList.env.Command(
       [edfFile, srrFile],
+      [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'] +      
       sorted(module.moduleDependency['VERILOG']) +
       sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-      sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
+      sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
       [ newPrjPath ] + clockFiles +
       ['config/' + moduleList.apmName + '.synplify.prj'],
       [ SCons.Script.Delete(srrFile),
