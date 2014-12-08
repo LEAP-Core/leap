@@ -219,7 +219,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.4                
+                 extra_area_factor = 1.1                
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -342,7 +342,7 @@ class Floorplanner():
                          else:
                              areaGroup.area = areaGroup.area - child.area/2
 
-                 affineCoefs = [.5, .65, .75, 1, 1.33, 1.66, 2] # just make them all squares for now. 
+                 affineCoefs = [.33, .5, .65, .75, 1, 1.33, 1.66, 2, 3] # just make them all squares for now. 
 
                  for areaGroup in areaGroups:
                      areaGroupObject = areaGroups[areaGroup]
@@ -366,6 +366,7 @@ class Floorplanner():
                  # first we need to establish the options for the module area groups
                  for areaGroup in sorted(areaGroups):
                      areaGroupObject = areaGroups[areaGroup]
+                     modHandle.write('# ' + str(areaGroupObject))
                      variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
                      if(areaGroupObject.xLoc is None):
                          modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
@@ -428,8 +429,18 @@ class Floorplanner():
                      areaGroupA = areaGroups[areaGroupNames[areaGroupAIndex]]
                      for areaGroupBIndex in range(areaGroupAIndex, len(areaGroupNames)):             
                          areaGroupB = areaGroups[areaGroupNames[areaGroupBIndex]]
+                         # In some cases, we don't emit constraints: 
+                         # 1) between area group and itself
                          if(areaGroupA.name == areaGroupB.name):
                              continue
+
+                         # 2) If the area groups have been pre-placed
+                         #    by the user.  If these constraints are
+                         #    illegal, the backend tools will fail,
+                         #    but this is the user's problem.
+                         if((areaGroupA.xLoc is not None) and 
+                            (areaGroupB.xLoc is not None)):
+                             continue 
 
                          # None objects need not have contraints with
                          # one another, since they represent user
@@ -463,23 +474,35 @@ class Floorplanner():
                              # and children.  Children communicate only
                              # with parents, while parents may communicate
                              # with other parents.
-               
+                             parentChild = False
+                             if(areaGroupA.parent is not None):
+                                 if(areaGroupA.parent.name == areaGroupB.name):
+                                     parentChild = True
+                             elif(areaGroupB.parent is not None):
+                                 if(areaGroupB.parent.name == areaGroupA.name):
+                                     parentChild = True
+
+                             communicatingModules = (areaGroupA.name in self.firstPassLIGraph.modules) and (areaGroupB.name in self.firstPassLIGraph.modules)                            
+
                              #Handle parents
-                             if(areaGroupA.parent is None):                                 
+                             if((not parentChild) and communicatingModules):                                   
                                  moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
                                  for channel in moduleAObject.channels:
                                      # some channels may not be assigned
                                      if(isinstance(channel.partnerModule, LIModule)):
                                          if(channel.partnerModule.name == areaGroupB.name):
                                              commsXY = commsXY + 10
-                             else:
-                                 # this area group is a child.  Make it close to the parent and nothing else. 
-                                 if(areaGroupA.parent == areaGroupB.name):
-                                     commsXY = commsXY * 100
 
+                             if(parentChild):
+                                 commsXY = commsXY * 1000
 
-                         #if(commsXY < 1):
-                         sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
+                             print "Examining " + str(areaGroupA.name) + ' and ' + str(areaGroupB.name)
+                             print "Parent " + str(areaGroupA.parent) + ' and ' + str(areaGroupB.parent)
+                             print "parentChild " + str(parentChild) + ' communicatingModules ' + str(communicatingModules) + ' comms ' + str(commsXY)
+ 
+                         # Scrub out the EMPTYBOX constraints
+                         if(commsXY > 0):
+                             sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
 
                          # ensure that either X or Y distance is satisfied
                          modHandle.write('subject to sat_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
@@ -528,7 +551,7 @@ class Floorplanner():
 
 
                  modHandle.write('subject to  comms_total: \n')                         
-                 modHandle.write('+'.join(sumTerms) + ' = comms;\n')                 
+                 modHandle.write(' + '.join(sumTerms) + ' = comms;\n')                 
                  modHandle.write('\n\nend;')
                  modHandle.close()
 
