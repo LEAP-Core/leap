@@ -366,7 +366,7 @@ class Floorplanner():
                  # first we need to establish the options for the module area groups
                  for areaGroup in sorted(areaGroups):
                      areaGroupObject = areaGroups[areaGroup]
-                     modHandle.write('# ' + str(areaGroupObject))
+                     modHandle.write('\n# ' + str(areaGroupObject) + '\n\n')
                      variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
                      if(areaGroupObject.xLoc is None):
                          modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
