@@ -32,7 +32,7 @@ class Synthesize(ProjectDependency):
             # we link from previous.
             synth_deps += linkNGC(moduleList, module, self.firstPassLIGraph)
         else:
-            buildModuleEDF(moduleList, module, globalVerilogs, globalVHDs, getSRRResourcesClosureXilinx)
+            buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, getSRRResourcesClosureXilinx)
             
     # Build the top level/platform using Xst
     synth_deps += buildXSTTopLevel(moduleList, self.firstPassLIGraph)

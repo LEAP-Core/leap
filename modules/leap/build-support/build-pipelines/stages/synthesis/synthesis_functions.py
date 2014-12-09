@@ -1,21 +1,30 @@
-from model import  *
-from parameter_substitution import *
-from wrapper_gen_tool import *
+import os
+import functools
+import re
+
+import SCons
+
+import model
+import parameter_substitution 
+import wrapper_gen_tool 
+
 
 # Construct a list of all generated and given Verilog and VHDL.  These
 # can appear anywhere in the code. The generated Verilog live in the
 # .bsc directory.
 def globalRTLs(moduleList, rtlModules):
     globalVerilogs = moduleList.getAllDependencies('VERILOG_LIB')
+
     globalVHDs = []
     for module in rtlModules + [moduleList.topModule]:
-        MODULE_PATH =  get_build_path(moduleList, module) 
+        MODULE_PATH =  model.get_build_path(moduleList, module) 
         for v in moduleList.getDependencies(module, 'GEN_VERILOGS'):              
             globalVerilogs += [MODULE_PATH + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '/' + v]
         for v in moduleList.getDependencies(module, 'GIVEN_VERILOGS'): 
             globalVerilogs += [MODULE_PATH + '/' + v]
         for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
             globalVHDs += [MODULE_PATH + '/' + v]
+
     return [globalVerilogs, globalVHDs] 
 
 # produce an XST-consumable prj file from a global template. 
@@ -87,34 +96,57 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
 
 # Produce Vivado Synthesis Tcl
 
-def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
+def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory):
     # spit out a new top-level prj
-    prjPath = 'config/' + module.wrapperName() + '.synthesis.tcl' 
+    prjPath = vivadoCompileDirectory + '/' + module.wrapperName() + '.synthesis.tcl' 
     newTclFile = open(prjPath, 'w') 
  
     # Emit verilog source and stub references
-    verilogs = globalVerilogs + [get_temp_path(moduleList,module) + module.wrapperName() + '.v']
+    verilogs = globalVerilogs + [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v']
     verilogs +=  moduleList.getDependencies(module, 'VERILOG_STUB')
+
+    givenNetlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
+
     for vlog in sorted(verilogs):
-        # ignore system verilog files.  XST can't compile them anyway...
-        if (not re.search('\.sv\s*$',vlog)):    
-            newTclFile.write("read_verilog -quiet " + vlog + "\n")
+        relpath = model.rel_if_not_abspath(vlog, vivadoCompileDirectory)
+        newTclFile.write("read_verilog -quiet " + relpath + "\n")
+       
     for vhd in sorted(globalVHDs):
-        newTclFile.write("read_vhdl -lib work " + vhd + "\n")
+        relpath = model.rel_if_not_abspath(vhd, vivadoCompileDirectory)
+        newTclFile.write("read_vhdl -lib work " + relpath + "\n")
 
-    given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
-
-    for netlist in given_netlists:
-        newTclFile.write('read_edif ' + netlist + '\n')
+    for netlist in givenNetlists:
+        relpath = model.rel_if_not_abspath(netlist, vivadoCompileDirectory)
+        newTclFile.write('read_edif ' + relpath + '\n')
 
     # Eventually we will want to add some of these to the synthesis tcl
     # From UG905 pg. 11, involving clock definition.
+
+    # We need to declare a top-level clock.  Unfortunately, the platform module will require special handling. 
+    clockFiles = []
+
+    if(not module.platformModule):        
+        MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+        clockTclPath = vivadoCompileDirectory + '/' + module.wrapperName() + '.clocks.tcl'  
+        clockTclFile = open(clockTclPath, 'w') 
+        clockTclFile.write('create_clock -name ' + module.name + '_CLK -period ' + str(1000.0/MODEL_CLOCK_FREQ) + ' [get_ports CLK]\n')
+        clockTclFile.close()
+        clockFiles = [os.path.relpath(clockTclPath, vivadoCompileDirectory)]
+    else:
+        if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
+            clockFiles = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
+            relpathCurry = functools.partial(os.path.relpath, start = vivadoCompileDirectory)
+            clockFiles = map(relpathCurry, clockFiles)   
+
+    for file in clockFiles:
+        newTclFile.write("add_files " + file + "\n")
+        newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
     # and friends on the external ports.
     newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
-    newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.preopt.util\n")
+    newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
     newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
 
     # We should do opt_design here because it will be faster in
@@ -124,8 +156,9 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs):
     #if(not module.platformModule):
     #    newTclFile.write("opt_design -quiet\n")
 
-    newTclFile.write("report_utilization -file " + moduleList.compileDirectory + '/' + module.wrapperName() + ".synth.opt.util\n")
-    newTclFile.write("write_edif " + moduleList.compileDirectory + '/' + module.wrapperName() + ".edf\n")
+    newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.opt.util\n")
+    newTclFile.write("write_checkpoint -force " + module.wrapperName() + ".synth.dcp\n")
+    newTclFile.write("write_edif " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
     return prjPath
@@ -287,7 +320,7 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
         [ngcFile, srpFile],
         sorted(module.moduleDependency['VERILOG']) +
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-        sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
+        sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
         [ newXSTPath ] +
         xilinx_xcf,
         [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
@@ -321,25 +354,31 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
 
 
 def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
+
+    vivadoCompileDirectory = moduleList.compileDirectory + '/' + module.wrapperName() + '_synth/' 
+
+    if not os.path.isdir(vivadoCompileDirectory):
+       os.mkdir(vivadoCompileDirectory)
+
     #Let's synthesize a xilinx .prj file for this synth boundary.
     # spit out a new prj
-    generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs)
+    generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
 
-    edfFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.edf'
-    srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.synth.opt.util'
-    logFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.synth.log'
-    resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
-
+    edfFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.edf'
+    srpFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'
+    logFile = module.wrapperName() + '.synth.log'
+    resourceFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.resources'
 
     # Sort dependencies because SCons will rebuild if the order changes.
     sub_netlist = moduleList.env.Command(
         [edfFile, srpFile],
+        [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'] +
         sorted(module.moduleDependency['VERILOG']) +
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-        sorted(convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
-        [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.synth.opt.util'),
-          SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
-          'vivado -nojournal -mode batch -source config/' + module.wrapperName() + '.synthesis.tcl > ' + logFile,
+        sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
+        [ SCons.Script.Delete(vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'),
+          SCons.Script.Delete(vivadoCompileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
+          'cd ' + vivadoCompileDirectory + '; vivado -nojournal -mode batch -source ' + module.wrapperName() + '.synthesis.tcl > ' + logFile,
           '@echo vivado synthesis ' + module.wrapperName() + ' build complete.' ])
 
 
@@ -399,7 +438,7 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
     for module in [ mod for mod in moduleList.synthBoundaries() if mod.platformModule]:
         if((not firstPassGraph is None) and (module.name in firstPassGraph.modules)):
             # we link from previous.
-            synth_deps += linkNGC(moduleList, module, self.firstPassLIGraph)
+            synth_deps += linkNGC(moduleList, module, firstPassLIGraph)
         else:
             synth_deps += buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf)
 
@@ -426,3 +465,45 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
     moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
 
     return [top_netlist] + synth_deps
+
+
+def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
+    # We load this graph in to memory several times. 
+    # TODO: load this graph once. 
+    firstPassLIGraph = wrapper_gen_tool.getFirstPassLIGraph()
+
+    DEBUG = model.getBuildPipelineDebug(moduleList) 
+
+    # string together the xcf, sort of like the ucf
+    # Concatenate XCF files
+    MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+
+    ngcModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore] 
+
+    [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
+
+    synth_deps = []
+    # drop exiting boundaries. 
+
+    for module in ngcModules:   
+        # did we get an ngc from the first pass?  If so, did the lim
+        # graph give code for this module?  If both are true, then we
+        # will link the old ngc in, rather than regenerate it. 
+        if((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
+            synth_deps += linkNGC(moduleList, module, firstPassLIGraph)
+        else:
+            # We need to build the netlist. We build platformModules
+            # with the platformModuleBuilder.  User modules get built
+            # with userModuleBuilder.
+            if(module.platformModule):
+                synth_deps += platformModuleBuilder(moduleList, module, globalVerilogs, globalVHDs)
+            else:
+                synth_deps += userModuleBuilder(moduleList, module, globalVerilogs, globalVHDs)
+
+
+    top_netlist = platformModuleBuilder(moduleList, moduleList.topModule, globalVerilogs, globalVHDs)
+    synth_deps += top_netlist
+    moduleList.topModule.moduleDependency['SYNTHESIS'] = synth_deps
+
+    # Alias for synthesis
+    moduleList.env.Alias('synth', synth_deps)

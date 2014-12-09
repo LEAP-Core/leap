@@ -1,6 +1,6 @@
 import sys
 import copy
-from method import *
+import wrapper_gen_tool
 
 class Interface():
   
@@ -48,7 +48,7 @@ class Interface():
         interfaceHandle.write(ident + self.type + " " + self.getDefinition() + " = interface " + self.type + ";\n")        
         for member in self.members:
             memberObj = self.members[member]
-            if(isinstance(memberObj, Method)):
+            if(isinstance(memberObj, wrapper_gen_tool.Method)):
                 interfaceHandle.write(ident + "\tmethod " + memberObj.name + " = " + memberObj.getDefinition() + ";\n")
             else:
                 interfaceHandle.write(ident + "\tinterface " + memberObj.name + " = " + memberObj.getDefinition() + ";\n")

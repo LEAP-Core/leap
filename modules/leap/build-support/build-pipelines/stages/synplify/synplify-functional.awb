@@ -1,0 +1,20 @@
+#/********************************************************************
+#* Python libraries for Synplify synthesis tool
+#********************************************************************/
+
+%name Generic Synplify Synthesis Tool
+%desc Generic Synplify Synthesis Tool
+%attributes tool
+
+%provides synthesis_tool
+%requires synthesis_library
+
+%notes README
+
+%scons %library SynplifyFunctional.py
+%scons %library SynplifyCommon.py
+%sources -t SDC -v PRIVATE synplify.sdc
+%sources -t SDC -v PRIVATE bluespec.sdc
+
+%param --global RESOURCE_COLLECTOR        "getSRRResourcesClosureXilinx"      "Resource Utilization Parsing Script"
+%param --global PLATFORM_BUILDER          "functools.partial(buildSynplifyEDF, resourceCollector = RESOURCE_COLLECTOR)"  "Builder for Platform Codes"

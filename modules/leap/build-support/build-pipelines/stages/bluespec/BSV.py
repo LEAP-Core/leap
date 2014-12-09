@@ -5,13 +5,14 @@ import string
 import cPickle as pickle
 import SCons.Script
 
-from model import  *
+import model
+from model import Module, get_build_path
 import iface_tool 
-from treeModule import *
-from li_module import *
-from wrapper_gen_tool import *
-from BSVSynthTreeBuilder import *
-import BSVUtils
+import treeModule
+import li_module
+from li_module import LIGraph, LIModule
+import wrapper_gen_tool
+import bsv_tool
 
 import pygraph
 try:
@@ -56,7 +57,7 @@ class BSV():
 
         self.USE_TREE_BUILD = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
 
-        self.ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(self.ALL_DIRS_FROM_ROOT, ':', '', '/' + self.TMP_BSC_DIR)
+        self.ALL_BUILD_DIRS_FROM_ROOT = model.transform_string_list(self.ALL_DIRS_FROM_ROOT, ':', '', '/' + self.TMP_BSC_DIR)
         self.ALL_LIB_DIRS_FROM_ROOT = self.ALL_DIRS_FROM_ROOT + ':' + self.ALL_BUILD_DIRS_FROM_ROOT
 
         self.ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
@@ -64,15 +65,15 @@ class BSV():
         # we need to annotate the module list with the
         # bluespec-provided library files. Do so here.
         if(not moduleList.getAWBParamSafe('synthesis_tool', 'USE_VIVADO_SOURCES') is None):
-            BSVUtils.decorateBluespecLibraryCodeVivado(moduleList)
+            bsv_tool.decorateBluespecLibraryCodeVivado(moduleList)
         else:
-            BSVUtils.decorateBluespecLibraryCodeBaseline(moduleList)
+            bsv_tool.decorateBluespecLibraryCodeBaseline(moduleList)
 
         self.TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
         self.BUILD_LOGS_ONLY = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')
         self.USE_BVI = moduleList.getAWBParam('bsv_tool', 'USE_BVI')
 
-        self.pipeline_debug = getBuildPipelineDebug(moduleList)
+        self.pipeline_debug = model.getBuildPipelineDebug(moduleList)
 
         # Collect bluespec interface information for all modules.
         self.bluespecBuilddirs = 'iface/build/hw/.bsc/:'
@@ -81,7 +82,7 @@ class BSV():
 
 
         # Should we be building in events?
-        if (getEvents(moduleList) == 0):
+        if (model.getEvents(moduleList) == 0):
             bsc_events_flag = ' -D HASIM_EVENTS_ENABLED=False '
         else:
             bsc_events_flag = ' -D HASIM_EVENTS_ENABLED=True '
@@ -107,7 +108,7 @@ class BSV():
 
         ## Python module that generates a wrapper to connect the exposed
         ## wires of all synthesis boundaries.
-        tree_builder = BSVSynthTreeBuilder(self)
+        tree_builder = bsv_tool.BSVSynthTreeBuilder(self)
 
         ##
         ## Is this a normal build or a build in which only Bluespec dependence
@@ -184,7 +185,7 @@ class BSV():
                 ## function.
                 def dump_lim_graph(target, source, env):
                     # removing platform modules above allows us to use the logs directly.
-                    fullLIGraph = LIGraph(parseLogfiles(lim_logs))
+                    fullLIGraph = LIGraph(li_module.parseLogfiles(lim_logs))
 
                     # annotate modules with relevant object code (useful in
                     # LIM compilation)
@@ -221,7 +222,7 @@ class BSV():
                                 # things adding to this list so we
                                 # don't require the filtering step.
                                 depList = module.moduleDependency[objectType]
-                                convertedDeps = convertDependencies(depList)
+                                convertedDeps = model.convertDependencies(depList)
                                 relativeDeps = map(addBuildPath,convertedDeps)
                                 fullLIGraph.modules[module.name].putObjectCode(objectType, relativeDeps)
 
@@ -311,7 +312,8 @@ class BSV():
                 buildTreeDeps['GEN_VERILOGS'] = []
                 buildTreeDeps['GEN_BAS'] = []
                 #This is sort of a hack.
-                buildTreeDeps['GIVEN_BSVS'] = ['awb/provides/soft_services.bsh']
+                buildTreeDeps['WRAPPER_BSHS'] = ['awb/provides/soft_services.bsh']
+                buildTreeDeps['GIVEN_BSVS'] = []
                 buildTreeDeps['BA'] = []
                 buildTreeDeps['STR'] = []
                 buildTreeDeps['VERILOG'] = []
@@ -347,15 +349,15 @@ class BSV():
                 # may already exists, and, in the case of build_tree_Wrapper.bsv,
                 # have meaningful content.  Fortunately, generateWrapperStub
                 # will not over write existing files.
-                generateWrapperStub(moduleList, tree_module)
-                generateAWBCompileWrapper(moduleList, tree_module)
+                wrapper_gen_tool.generateWrapperStub(moduleList, tree_module)
+                wrapper_gen_tool.generateAWBCompileWrapper(moduleList, tree_module)
                 topo.append(tree_module)
 
 
             deps = []
 
             useDerived = True
-            first_pass_LI_graph = wrapper_gen.getFirstPassLIGraph()
+            first_pass_LI_graph = wrapper_gen_tool.getFirstPassLIGraph()
             if(not first_pass_LI_graph is None):
                 useDerived = False
                 # we also need to parse the platform_synth file in th
@@ -377,8 +379,8 @@ class BSV():
                     li_wrappers.append(module.name + '_Wrapper.bsv')
                     wrapper_import_handle = open(wrapper_import_path, 'w')
                     wrapper_import_handle.write('import Vector::*;\n')
-                    generateWellKnownIncludes(wrapper_import_handle)
-                    generateBAImport(module, wrapper_import_handle)
+                    wrapper_gen_tool.generateWellKnownIncludes(wrapper_import_handle)
+                    wrapper_gen_tool.generateBAImport(module, wrapper_import_handle)
                     wrapper_import_handle.close()
                     platform_deps = ".depends-" + module.name
                     deps += self.compute_dependence(moduleList, moduleList.topModule, useDerived, fileName=platform_deps, targetFiles=[wrapper_import_path])
@@ -401,9 +403,9 @@ class BSV():
         #allow caller to override dependencies.  If the caller does
         #not, then we should use the baseline
         if(len(targetFiles) == 0):
-            targetFiles = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + get_wrapper(module) ]
+            targetFiles = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + model.get_wrapper(module) ]
             if (module.name != moduleList.topModule.name):
-                targetFiles.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'+ get_log(module))
+                targetFiles.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'+ model.get_log(module))
 
         # We must depend on all sythesis boundaries. They can be instantiated anywhere.
         surrogate_children = moduleList.synthBoundaries()
@@ -510,11 +512,11 @@ class BSV():
 
         # if we got object code and we're not the top level,
         # we can return now.
-        if ((module.name != moduleList.topModule.name) and (not wrapper_gen.getFirstPassLIGraph() is None)):
+        if ((module.name != moduleList.topModule.name) and (not wrapper_gen_tool.getFirstPassLIGraph() is None)):
             return
 
         # This should not be a for loop.
-        for bsv in [get_wrapper(module)]:
+        for bsv in [model.get_wrapper(module)]:
 
             if env.GetOption('clean'):
                 os.system('rm -f ' + MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log.bsv'))
@@ -529,7 +531,7 @@ class BSV():
             ## no exposed connections and can generate the log file, needed
             ## for global strings, during the final build.
             ##
-            logfile = get_logfile(moduleList, module)
+            logfile = model.get_logfile(moduleList, module)
             module.moduleDependency['BSV_LOG'] += [logfile]
             module.moduleDependency['GEN_LOGS'] = [logfile]
             if (module.name != moduleList.topModule.name):
@@ -543,14 +545,14 @@ class BSV():
 
                 def build_con_size_bsh(logIn):
                     def build_con_size_bsh_closure(target, source, env):
-                        liGraph = LIGraph(parseLogfiles([logIn]))
+                        liGraph = LIGraph(li_module.parseLogfiles([logIn]))
                         # Should have only one module...
                         if(len(liGraph.modules) == 0):
                             bshModule = LIModule(module.name, module.name)
                         else:
                             bshModule = liGraph.modules.values()[0]
                         bsh_handle = open(str(target[0]), 'w')
-                        generateConnectionBSH(bshModule, bsh_handle)
+                        wrapper_gen_tool.generateConnectionBSH(bshModule, bsh_handle)
                         bsh_handle.close()
                     return build_con_size_bsh_closure
 
@@ -628,7 +630,7 @@ class BSV():
 
                 def build_synth_stub(logIn):
                     def build_synth_stub_closure(target, source, env):
-                        liGraph = LIGraph(parseLogfiles([logIn]))
+                        liGraph = LIGraph(li_module.parseLogfiles([logIn]))
                         # Should have only one module...
                         if(len(liGraph.modules) == 0):
                             synthModule = LIModule(module.name, module.name)
@@ -636,7 +638,10 @@ class BSV():
                             synthModule = liGraph.modules.values()[0]
 
                         synth_handle = open(str(target[0]), 'w')
-                        generateSynthWrapper(synthModule, synth_handle, moduleType=module.interfaceType, extraImports=module.extraImports)
+                        wrapper_gen_tool.generateSynthWrapper(synthModule,
+                                                              synth_handle,
+                                                              moduleType=module.interfaceType,
+                                                              extraImports=module.extraImports)
                         synth_handle.close()
                     return build_synth_stub_closure
 
@@ -700,13 +705,13 @@ class BSV():
     ## This code removes the local build target from the search path.
     ##
     def __bsc_bdir_prune(self, str_in, sep, match):
-        t = clean_split(str_in, sep)
+        t = model.clean_split(str_in, sep)
 
         # Make the list unique to avoid Bluespec complaints about duplicate paths.
         seen = set()
         t = [e for e in t if e not in seen and not seen.add(e)]
 
-        if (BSVUtils.getBluespecVersion() >= 15480):
+        if (bsv_tool.getBluespecVersion() >= 15480):
             try:
                 while 1:
                     i = t.index(match)
@@ -731,7 +736,7 @@ class BSV():
             dirName = os.path.dirname(str(target[0]))
             def appendDirName(fileName):
                 return dirName + '/' + fileName
-            if (BSVUtils.getBluespecVersion() < 26572):
+            if (bsv_tool.getBluespecVersion() < 26572):
                 target.append(str(target[0]).replace('.bo', '.bi'))
 
             # Find Emitted BA/Verilog, but only for module_name.bsv (an awb module)
@@ -778,6 +783,7 @@ class BSV():
     def compile_bo(self, module_path):
         def compile_bo_closure(source, target, env, for_signature):
             cmd = ''
+
             if (str(source[0]) != get_build_path(self.moduleList, self.moduleList.topModule) + '/' + self.moduleList.topModule.name + '.bsv'):
                 cmd = self.compile_bo_bsc_base(target, module_path) + ' -D CONNECTION_SIZES_KNOWN ' + str(source[0])
             return cmd

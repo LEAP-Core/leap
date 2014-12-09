@@ -7,125 +7,193 @@ from model import  *
 from li_module import *
 import wrapper_gen_tool
 
-#from glpkpi import *
 
-def areaConstraintType():
-    return 'UCF'
+def _areaConstraintsFileIncomplete(moduleList):
+    return moduleList.compileDirectory + '/areagroups.nopaths.pickle'
 
+def _areaConstraintsFile(moduleList):
+    return moduleList.compileDirectory + '/areagroups.pickle'
+
+
+###########################################################################
 ##
-## Area constraints are computed and stored in a file.  There are two files
-## generated: one with early information (incomplete) and one with full closure.
+## Class AreaConstraints:
+##   Operates on the area constraints dictionary built by the Floorplanner
+##   class (below).
 ##
-## The following two functions load the area group descriptions from files.
-##
+###########################################################################
 
-def loadAreaConstraints(moduleList):
-    return _loadAreaConstraintsFromFile(areaConstraintsFile(moduleList))
+class AreaConstraints():
 
-def loadAreaConstraintsIncomplete(moduleList):
-    return _loadAreaConstraintsFromFile(areaConstraintsFileIncomplete(moduleList))
+    def __init__(self, moduleList):
+        self.moduleList = moduleList
 
-def storeAreaConstraints(moduleList, areaGroups):
-    pickle_handle = open(areaConstraintsFile(moduleList), 'wb')
-    pickle.dump(areaGroups, pickle_handle, protocol = -1)
-    pickle_handle.close()
+        self.enabled = (moduleList.getAWBParam('area_group_tool',
+                                               'AREA_GROUPS_ENABLE') != 0)
+        self.enableBufferInsertion = \
+            (moduleList.getAWBParam('area_group_tool',
+                                    'AREA_GROUPS_CHANNEL_BUFFERING_ENABLE') != 0)
 
-def _loadAreaConstraintsFromFile(filename):
-    # The first pass will dump a well known file. 
-    if(os.path.isfile(filename)):
+        self.constraints = None
+
+
+    def areaConstraintType(self):
+        return 'UCF'
+
+    ##
+    ## Area constraints are computed and stored in a file.  There are two
+    ## files generated: one with early information (incomplete) and one
+    ## with full closure.
+    ##
+    ## The following two functions load the area group descriptions from
+    ## files.
+    ##
+
+    def loadAreaConstraints(self):
+        self._loadAreaConstraintsFromFile(self.areaConstraintsFile())
+
+    def loadAreaConstraintsIncomplete(self):
+        self._loadAreaConstraintsFromFile(self.areaConstraintsFileIncomplete())
+
+    def storeAreaConstraints(self):
+        pickle_handle = open(self.areaConstraintsFile(), 'wb')
+        pickle.dump(self.constraints, pickle_handle, protocol = -1)
+        pickle_handle.close()
+
+    def _loadAreaConstraintsFromFile(self, filename):
         # We got a valid LI graph from the first pass.
         pickle_handle = open(filename, 'rb')
-        areaGroups = pickle.load(pickle_handle)
+        self.constraints = pickle.load(pickle_handle)
         pickle_handle.close()
-        return areaGroups
-    return None
 
-def areaConstraintsFileIncomplete(moduleList):
-    return  moduleList.compileDirectory + '/areagroups.nopaths.pickle'  
+    def areaConstraintsFileIncomplete(self):
+        return _areaConstraintsFileIncomplete(self.moduleList)
 
-def areaConstraintsFile(moduleList):
-    return  moduleList.compileDirectory + '/areagroups.pickle'  
+    def areaConstraintsFile(self):
+        return _areaConstraintsFile(self.moduleList)
+
+    ##
+    ## numIOBufs --
+    ##   Compute the number of I/O buffers required for a path between two
+    ##   area groups.
+    ##
+    def numIOBufs(self, agOut, agIn):
+        if (not self.enableBufferInsertion):
+            return 0
+
+        d = self._distance(agOut, agIn)
+
+        if (d > 0):
+            # This should call a platform-specific library...
+            return 1
+        else:
+            return 0
+
+    ##
+    ## _distance --
+    ##    Distance between agOut and agIn.
+    ##
+    def _distance(self, agOut, agIn):
+        # Use the center
+        out_x = agOut.xLoc + (agOut.xDimension / 2)
+        out_y = agOut.yLoc + (agOut.yDimension / 2)
+        in_x = agIn.xLoc + (agIn.xDimension / 2)
+        in_y = agIn.yLoc + (agIn.yDimension / 2)
+
+        return math.sqrt((in_x - out_x)**2 + (in_y - out_y)**2)
 
 
-# Backends are called by specific tool flows. Thus we can have both
-# backends here. 
-def emitConstraintsXilinx(fileName, areaGroups):
-    constraintsFile = open(fileName, 'w')
-    for areaGroupName in areaGroups:
-        areaGroupObject = areaGroups[areaGroupName]
+    # Backends are called by specific tool flows. Thus we can have both
+    # backends here.
+    def emitConstraintsXilinx(self, fileName):
+        constraintsFile = open(fileName, 'w')
+        for areaGroupName in self.constraints:
+            areaGroupObject = self.constraints[areaGroupName]
 
-        # if area group was tagged as None, do not emit an area group
-        # for it.  This allows us to handle area groups hidden in the
-        # user UCF.
-        if(areaGroupObject.sourcePath is None):
-            continue
+            # if area group was tagged as None, do not emit an area group
+            # for it.  This allows us to handle area groups hidden in the
+            # user UCF.
+            if(areaGroupObject.sourcePath is None):
+                continue
 
-        # This is a magic conversion factor for virtex 7.  It might
-        # need to change for different architectures.
-        lutToSliceRatio = 1
+            # This is a magic conversion factor for virtex 7.  It might
+            # need to change for different architectures.
+            haloCells = 1
 
-        #INST "m_sys_sys_syn_m_mod/common_services_inst/*" AREA_GROUP = "AG_common_services";
+            #INST "m_sys_sys_syn_m_mod/common_services_inst/*" AREA_GROUP = "AG_common_services";
 #AREA_GROUP "AG_common_services"                   RANGE=SLICE_X146Y201:SLICE_X168Y223;
 #AREA_GROUP "AG_common_services"                   GROUP = CLOSED;
-        constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
-        constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
-        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+            constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
+            constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
+            slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
+            slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
 
-        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)/lutToSliceRatio)
-  
-        constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" RANGE=SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + ';\n')
-        constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" GROUP=CLOSED;\n')
-        constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" PLACE=CLOSED;\n')
+            slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
+            slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
+
+            constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" RANGE=SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + ';\n')
+            constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" GROUP=CLOSED;\n')
+            constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" PLACE=CLOSED;\n')
         
-    constraintsFile.close()
+        constraintsFile.close()
 
-def emitConstraintsVivado(fileName, areaGroups):
-    constraintsFile = open(fileName, 'w')
-    for areaGroupName in areaGroups:
-        areaGroupObject = areaGroups[areaGroupName]
+    def emitConstraintsVivado(self, fileName):
+        constraintsFile = open(fileName, 'w')
+        for areaGroupName in self.constraints:
+            areaGroupObject = self.constraints[areaGroupName]
 
-        # if area group was tagged as None, do not emit an area group
-        # for it.  This allows us to handle area groups hidden in the
-        # user UCF.
-        if(areaGroupObject.sourcePath is None):
-            continue
+            # if area group was tagged as None, do not emit an area group
+            # for it.  This allows us to handle area groups hidden in the
+            # user UCF.
+            if(areaGroupObject.sourcePath is None):
+                continue
 
-        # This is a magic conversion factor for virtex 7.  It might
-        # need to change for different architectures.
-        lutToSliceRatio = 1
+            # We need to place halo cells around pblocks, so that they
+            # do not overlap on rounding.
+            haloCells = 1
 
-        #startgroup
-        #create_pblock pblock_ddr3 
-        #resize_pblock pblock_ddr3 -add {SLICE_X134Y267:SLICE_X173Y349}
-        #add_cells_to_pblock pblock_ddr3 [get_cells -hier -filter {NAME =~ m_sys_sys_vp_m_mod/llpi_phys_plat_sdram_b_ddrSynth/*}]
-        #endgroup
+            #startgroup
+            #create_pblock pblock_ddr3 
+            #resize_pblock pblock_ddr3 -add {SLICE_X134Y267:SLICE_X173Y349}
+            #add_cells_to_pblock pblock_ddr3 [get_cells -hier -filter {NAME =~ m_sys_sys_vp_m_mod/llpi_phys_plat_sdram_b_ddrSynth/*}]
+            #endgroup
 
-        constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
-        constraintsFile.write('startgroup \n')
-        constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
+            constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
+            constraintsFile.write('startgroup \n')
+            constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
 
-        slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+            slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
+            slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
 
-        slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)/lutToSliceRatio)
-        slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)/lutToSliceRatio)
+            slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
+            slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
   
-        constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
+            constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
 
-        constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+            constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+
+            # Optionally emit code to exclude some specific portion of code     
+            if('EXCLUSIONS' in areaGroupObject.attributes):
+                constraintsFile.write('remove_cells_from_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.attributes['EXCLUSIONS'] + '"}]\n')
+
+            constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
+            constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+
+            constraintsFile.write('endgroup \n')
+
+        constraintsFile.close()
 
 
 
-        constraintsFile.write('set_property CONTAIN_ROUTING true [get_pblocks AG_' + areaGroupObject.name + ']\n')
-        constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
-        constraintsFile.write('endgroup \n')
-        
-    constraintsFile.close()
-
-
+###########################################################################
+##
+## Class Floorplanner:
+##   Invoked as part of the build flow.  The floorplanner generates an
+##   area group dictionary and stores it in a file.  The file may be
+##   loaded and used by the AreaConstraints class above.
+##
+###########################################################################
 
 class Floorplanner():
 
@@ -136,7 +204,7 @@ class Floorplanner():
             return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
 
         if (not moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
-               return
+            return
 
         liGraph = LIGraph([])
         firstPassGraph = wrapper_gen_tool.getFirstPassLIGraph()
@@ -151,7 +219,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.3                
+                 extra_area_factor = 1.1                
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -163,8 +231,12 @@ class Floorplanner():
                  
 
                  areaGroups = {}
+                 totalLUTs = 0
                  # We should make a bunch of AreaGroups here. 
                  for module in sorted(moduleResources):
+                     if('LUT' in moduleResources[module]):
+                         totalLUTs = totalLUTs + moduleResources[module]['LUT']
+
                      # EEEK I don't think I know what the paths will
                      # be at this point. Probably need to memoize and
                      # fill those in later?
@@ -193,6 +265,7 @@ class Floorplanner():
 
                  # Fill in any other information we obtanied about the
                  # area groups.
+                 print "AREAGROUP: Constraints " + str(constraints) 
                  for constraint in constraints:
                      if(isinstance(constraint,AreaGroupSize)): 
                          if(constraint.name == 'FPGA'):
@@ -219,7 +292,19 @@ class Floorplanner():
                      if(isinstance(constraint,AreaGroupLocation)): 
                          areaGroups[constraint.name].xLoc = constraint.xLocation
                          areaGroups[constraint.name].yLoc = constraint.yLocation
+
+                     if(isinstance(constraint,AreaGroupLowerLeft)): 
+                         areaGroups[constraint.name].lowerLeft = constraint
+
+                     if(isinstance(constraint,AreaGroupUpperRight)): 
+                         areaGroups[constraint.name].upperRight = constraint
                          
+                     if(isinstance(constraint,AreaGroupAttribute)): 
+                         areaGroups[constraint.name].attributes[constraint.key] = constraint.value
+
+                         print "AREAGROUP: " + str(areaGroups[constraint.name].attributes) 
+
+
                      if(isinstance(constraint,AreaGroupPath)): 
                          areaGroups[constraint.name].sourcePath = constraint.path
 
@@ -257,7 +342,7 @@ class Floorplanner():
                          else:
                              areaGroup.area = areaGroup.area - child.area/2
 
-                 affineCoefs = [.5, .65, .75, 1, 1.33, 1.66, 2] # just make them all squares for now. 
+                 affineCoefs = [.33, .5, .65, .75, 1, 1.33, 1.66, 2, 3] # just make them all squares for now. 
 
                  for areaGroup in areaGroups:
                      areaGroupObject = areaGroups[areaGroup]
@@ -281,6 +366,7 @@ class Floorplanner():
                  # first we need to establish the options for the module area groups
                  for areaGroup in sorted(areaGroups):
                      areaGroupObject = areaGroups[areaGroup]
+                     modHandle.write('\n# ' + str(areaGroupObject) + '\n\n')
                      variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
                      if(areaGroupObject.xLoc is None):
                          modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
@@ -343,7 +429,24 @@ class Floorplanner():
                      areaGroupA = areaGroups[areaGroupNames[areaGroupAIndex]]
                      for areaGroupBIndex in range(areaGroupAIndex, len(areaGroupNames)):             
                          areaGroupB = areaGroups[areaGroupNames[areaGroupBIndex]]
+                         # In some cases, we don't emit constraints: 
+                         # 1) between area group and itself
                          if(areaGroupA.name == areaGroupB.name):
+                             continue
+
+                         # 2) If the area groups have been pre-placed
+                         #    by the user.  If these constraints are
+                         #    illegal, the backend tools will fail,
+                         #    but this is the user's problem.
+                         if((areaGroupA.xLoc is not None) and 
+                            (areaGroupB.xLoc is not None)):
+                             continue 
+
+                         # None objects need not have contraints with
+                         # one another, since they represent user
+                         # constraints.  This helps with areas of the
+                         # chip that just don't have slices/CLBs.                        
+                         if(('EMPTYBOX' in areaGroupA.attributes) and ('EMPTYBOX' in areaGroupB.attributes)): 
                              continue
 
                          absX = 'xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
@@ -360,30 +463,46 @@ class Floorplanner():
                          modHandle.write('var ' + aBiggerX + ' binary;\n')
                          modHandle.write('var ' + aBiggerY + ' binary;\n')
 
-                         # Need to find out how much the two modules communicate. 
-                         commsXY = 1 # we want to force a tight grouping no matter what.
+                         # Need to find out how much the two modules communicate.                         
 
-                         # Area groups come in two types -- parents
-                         # and children.  Children communicate only
-                         # with parents, while parents may communicate
-                         # with other parents.
-               
-                         #Handle parents
-                         if(areaGroupA.parent is None):    
-                             moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
-                             for channel in moduleAObject.channels:
-                                 # some channels may not be assigned
-                                 if(isinstance(channel.partnerModule, LIModule)):
-                                     if(channel.partnerModule.name == areaGroupB.name):
-                                         commsXY = commsXY + 1000
+                         # we want to force a tight grouping no matter what, except for empty boxes which are just holes in the chip. 
+                         commsXY = 1 
+                         if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
+                            commsXY = 0 
                          else:
-                             # this area group is a child.  Make it close to the parent and nothing else. 
-                             if(areaGroupA.parent == areaGroupB.name):
-                                 commsXY = commsXY * 10000
+                             # Area groups come in two types -- parents
+                             # and children.  Children communicate only
+                             # with parents, while parents may communicate
+                             # with other parents.
+                             parentChild = False
+                             if(areaGroupA.parent is not None):
+                                 if(areaGroupA.parent.name == areaGroupB.name):
+                                     parentChild = True
+                             elif(areaGroupB.parent is not None):
+                                 if(areaGroupB.parent.name == areaGroupA.name):
+                                     parentChild = True
 
+                             communicatingModules = (areaGroupA.name in self.firstPassLIGraph.modules) and (areaGroupB.name in self.firstPassLIGraph.modules)                            
 
-                         #if(commsXY < 1):
-                         sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
+                             #Handle parents
+                             if((not parentChild) and communicatingModules):                                   
+                                 moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
+                                 for channel in moduleAObject.channels:
+                                     # some channels may not be assigned
+                                     if(isinstance(channel.partnerModule, LIModule)):
+                                         if(channel.partnerModule.name == areaGroupB.name):
+                                             commsXY = commsXY + 10
+
+                             if(parentChild):
+                                 commsXY = commsXY * 1000
+
+                             print "Examining " + str(areaGroupA.name) + ' and ' + str(areaGroupB.name)
+                             print "Parent " + str(areaGroupA.parent) + ' and ' + str(areaGroupB.parent)
+                             print "parentChild " + str(parentChild) + ' communicatingModules ' + str(communicatingModules) + ' comms ' + str(commsXY)
+ 
+                         # Scrub out the EMPTYBOX constraints
+                         if(commsXY > 0):
+                             sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
 
                          # ensure that either X or Y distance is satisfied
                          modHandle.write('subject to sat_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
@@ -432,7 +551,7 @@ class Floorplanner():
 
 
                  modHandle.write('subject to  comms_total: \n')                         
-                 modHandle.write('+'.join(sumTerms) + ' = comms;\n')                 
+                 modHandle.write(' + '.join(sumTerms) + ' = comms;\n')                 
                  modHandle.write('\n\nend;')
                  modHandle.close()
 
@@ -466,7 +585,8 @@ class Floorplanner():
                          iocp_param = glpk.glp_iocp();
                          glpk.glp_init_iocp(iocp_param);
                          #iocp_param.tm_lim=600*1000
-                         iocp_param.mip_gap=0.3
+
+                         iocp_param.mip_gap=0.95
 
                          glpk.glp_intopt(self._lp, iocp_param);
                          if self._tran:
@@ -523,20 +643,20 @@ class Floorplanner():
                  # group mapping problem we can dump the results for 
                  # the build tree. 
 
-                 pickle_handle = open(areaConstraintsFileIncomplete(moduleList), 'wb')
+                 pickle_handle = open(_areaConstraintsFileIncomplete(moduleList), 'wb')
                  pickle.dump(areaGroups, pickle_handle, protocol=-1)
                  pickle_handle.close()                 
                  
              return area_group
 
         # expose this dependency to the backend tools.
-        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [areaConstraintsFileIncomplete(moduleList)]
+        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [_areaConstraintsFileIncomplete(moduleList)]
 
         # We need to get the resources for all modules, except the top module, which can change. 
         resources = [dep for dep in moduleList.getAllDependencies('RESOURCES')]
 
         areagroup = moduleList.env.Command( 
-            [areaConstraintsFileIncomplete(moduleList)],
+            [_areaConstraintsFileIncomplete(moduleList)],
             resources + map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS')),
             area_group_closure(moduleList)
             )                   

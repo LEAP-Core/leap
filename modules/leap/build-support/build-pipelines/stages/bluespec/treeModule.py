@@ -1,4 +1,4 @@
-from li_module import *
+from li_module import LIModule
 
 class TreeModule(LIModule):
   

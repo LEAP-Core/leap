@@ -1,0 +1,87 @@
+
+[Global]
+SaveParameters=0
+Description=FPGA Build Pipeline Xilinx (Vivado) (Synplify)
+File=build-pipeline-xilinx-vivado-synplify
+Version=2.2
+Type=HAsim
+Name=FPGA Build Pipeline Xilinx (Vivado) (Synplify)
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=FPGA Build Pipeline
+RootProvides=build_pipeline
+
+[Model]
+DefaultAttributes=bluespec acp-m2c
+model=FPGA Build Pipeline
+
+[FPGA Build Pipeline]
+File=modules/leap/build-support/build-pipelines/pipelines/fpga/fpga-build-pipeline.awb
+Packagehint=leap
+
+[FPGA Build Pipeline/Requires]
+post_synthesis_tool=Vivado Post-synthesis Toolchain
+synthesis_tool=Generic Synplify Synthesis Tool
+mcd_tool=MCD Tool for Xilinx
+software_tool=Software build tool
+iface_tool=Interface builder
+bsv_tool=BSV Build Tool (First Phase)
+fpga_program_tool=FPGA Programming Tool
+wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
+li_module=LEAP LI Module Handler
+parameter_substitution=AWB Parameter Substitution Parser
+
+[Interface builder]
+File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
+Packagehint=leap
+
+[Software build tool]
+File=modules/leap/build-support/build-pipelines/stages/software/software.awb
+Packagehint=leap
+
+[BSV Build Tool (First Phase)]
+File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
+Packagehint=leap
+
+[MCD Tool for Xilinx]
+File=modules/leap/build-support/build-pipelines/stages/mcd/mcd-tcl.awb
+Packagehint=leap
+
+[FPGA Programming Tool]
+File=modules/leap/build-support/build-pipelines/stages/fpgaprog/fpgaprog.awb
+Packagehint=leap
+
+[Synthesis Boundary Wrapper generation tool]
+File=modules/leap/build-support/build-pipelines/stages/wrapper_gen/synthesis_boundary_wrapper_gen.awb
+Packagehint=leap
+
+[LEAP LI Module Handler]
+File=modules/leap/build-support/build-pipelines/stages/li_module/li_module.awb
+Packagehint=leap
+
+[AWB Parameter Substitution Parser]
+File=modules/leap/build-support/build-pipelines/stages/parameter_substitution/parameter_substitution.awb
+Packagehint=leap
+
+[Synthesis library]
+File=modules/leap/build-support/build-pipelines/stages/synthesis/synthesis_library.awb
+Packagehint=leap
+
+[Xilinx LOADER (Vivado)]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/loader/vivado-loader.awb
+Packagehint=leap
+
+[Vivado Post-synthesis Toolchain/Requires]
+xilinx_loader=Xilinx LOADER (Vivado)
+
+[Vivado Post-synthesis Toolchain]
+File=modules/leap/build-support/build-pipelines/stages/xilinx/vivado/post-synth/vivado-post-synth.awb
+Packagehint=leap
+
+[Generic Synplify Synthesis Tool/Requires]
+synthesis_library=Synthesis library
+
+[Generic Synplify Synthesis Tool]
+File=modules/leap/build-support/build-pipelines/stages/synplify/synplify-functional.awb
+Packagehint=leap

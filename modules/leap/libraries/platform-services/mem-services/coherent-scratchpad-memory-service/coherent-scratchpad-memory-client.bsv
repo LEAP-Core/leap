@@ -182,6 +182,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scra
     
     MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA) mem;
     
+
     if (conf.cacheMode == COH_SCRATCH_UNCACHED)
     begin
         mem <- mkUncachedCoherentScratchpadClient(scratchpadID, debugLog);
@@ -189,25 +190,23 @@ module [CONNECTED_MODULE] mkMultiReadStatsCoherentScratchpadClient#(Integer scra
     else if (valueOf(t_NATURAL_SZ) <= valueOf(t_COH_SCRATCH_MEM_VALUE_SZ)/2)
     begin
         mem <- mkSmallMultiReadStatsCoherentScratchpadClient(scratchpadID, 
+                                                             conf,
                                                              statsConstructor, 
                                                              prefetchStatsConstructor, 
                                                              reqStatsConstructor,
                                                              respStatsConstructor,
                                                              debugScanNodeConstructor,
-                                                             conf.multiController,
-                                                             conf.requestMerging,
                                                              debugLog);
     end
     else
     begin
         mem <- mkMediumMultiReadStatsCoherentScratchpadClient(scratchpadID, 
+                                                              conf,
                                                               statsConstructor, 
                                                               prefetchStatsConstructor,
                                                               reqStatsConstructor,
                                                               respStatsConstructor,
                                                               debugScanNodeConstructor,
-                                                              conf.multiController,
-                                                              conf.requestMerging,
                                                               debugLog);
     end
     
@@ -230,13 +229,12 @@ endmodule
 // byteMask to perform partial writes. 
 //
 module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
-                                                                         COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
-                                                                         SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
-                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
-                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
-                                                                         COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNodeConstructor,
-                                                                         Bool hasMultiController,
-                                                                         Bool requestMerging, 
+                                                                         COH_SCRATCH_CLIENT_CONFIG conf, 
+                                                                         COH_SCRATCH_CACHE_STATS_CONSTRUCTOR cacheStats,
+                                                                         SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR pfStats,
+                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStats,
+                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStats,
+                                                                         COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNode,
                                                                          DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -259,23 +257,32 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
               NumAlias#(TDiv#(t_COH_SCRATCH_MEM_VALUE_SZ, 8), t_COH_SCRATCH_BYTES_PER_WORD),
               Alias#(Vector#(t_COH_SCRATCH_BYTES_PER_WORD, Bool), t_CONTAINER_MASK));
 
-    NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_ENTRIES) n_cache_entries = ?;
-    NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_cache_prefetch_learners = ?;
+    NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_learners = ?;
+    let mode = `PARAMS_COHERENT_SCRATCHPAD_MEMORY_SERVICE_COHERENT_SCRATCHPAD_PVT_CACHE_MODE;
+    let e = conf.cacheEntries;
+    let id = scratchpadID;
 
     // Instantiate the underlying memory.
-    MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(n_READERS, t_CONTAINER_ADDR, COH_SCRATCH_MEM_VALUE, t_CONTAINER_MASK) mem <-
-        mkUnmarshalledCachedCoherentScratchpadClient(scratchpadID,
-                                                     `PARAMS_COHERENT_SCRATCHPAD_MEMORY_SERVICE_COHERENT_SCRATCHPAD_PVT_CACHE_MODE,
-                                                     n_cache_entries,
-                                                     n_cache_prefetch_learners,
-                                                     statsConstructor,
-                                                     prefetchStatsConstructor,
-                                                     reqStatsConstructor,
-                                                     respStatsConstructor,
-                                                     debugScanNodeConstructor,
-                                                     hasMultiController,
-                                                     requestMerging,
-                                                     debugLog);
+    MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(n_READERS, t_CONTAINER_ADDR, COH_SCRATCH_MEM_VALUE, t_CONTAINER_MASK) mem = ?; 
+
+    // Require brute-force conversion because Integer cannot be converted to a type
+    
+    if      (e <= 8)      begin NumTypeParam#(8)      n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 16)     begin NumTypeParam#(16)     n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 32)     begin NumTypeParam#(32)     n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 64)     begin NumTypeParam#(64)     n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 128)    begin NumTypeParam#(128)    n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 256)    begin NumTypeParam#(256)    n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 512)    begin NumTypeParam#(512)    n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 1024)   begin NumTypeParam#(1024)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 2048)   begin NumTypeParam#(2048)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 4096)   begin NumTypeParam#(4086)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 8192)   begin NumTypeParam#(8192)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 16384)  begin NumTypeParam#(16384)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 32768)  begin NumTypeParam#(32768)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 65536)  begin NumTypeParam#(65536)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 131072) begin NumTypeParam#(131072) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else                  begin NumTypeParam#(262144) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
 
     
     // Read request info holds the address of the requested data within the container.
@@ -397,13 +404,12 @@ endmodule
 //     Only one data object is stored in one coherent scratchpad container. 
 //
 module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Integer scratchpadID,
-                                                                          COH_SCRATCH_CACHE_STATS_CONSTRUCTOR statsConstructor,
-                                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
-                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
-                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
-                                                                          COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNodeConstructor,
-                                                                          Bool hasMultiController,
-                                                                          Bool requestMerging,
+                                                                          COH_SCRATCH_CLIENT_CONFIG conf, 
+                                                                          COH_SCRATCH_CACHE_STATS_CONSTRUCTOR cacheStats,
+                                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR pfStats,
+                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStats,
+                                                                          COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStats,
+                                                                          COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNode,
                                                                           DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA))
@@ -415,23 +421,34 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
               NumAlias#(TDiv#(t_COH_SCRATCH_MEM_VALUE_SZ, 8), t_COH_SCRATCH_BYTES_PER_WORD),
               Alias#(Vector#(t_COH_SCRATCH_BYTES_PER_WORD, Bool), t_CONTAINER_MASK));
 
-    NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_ENTRIES) n_cache_entries = ?;
-    NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_cache_prefetch_learners = ?;
+
+    NumTypeParam#(`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_learners = ?;
+    let mode = `PARAMS_COHERENT_SCRATCHPAD_MEMORY_SERVICE_COHERENT_SCRATCHPAD_PVT_CACHE_MODE;
+    let e = conf.cacheEntries;
+    let id = scratchpadID;
 
     // Instantiate the underlying memory.
-    MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(n_READERS, t_CONTAINER_ADDR, COH_SCRATCH_MEM_VALUE, t_CONTAINER_MASK) mem <-
-        mkUnmarshalledCachedCoherentScratchpadClient(scratchpadID,
-                                                     `PARAMS_COHERENT_SCRATCHPAD_MEMORY_SERVICE_COHERENT_SCRATCHPAD_PVT_CACHE_MODE,
-                                                     n_cache_entries,
-                                                     n_cache_prefetch_learners,
-                                                     statsConstructor,
-                                                     prefetchStatsConstructor,
-                                                     reqStatsConstructor,
-                                                     respStatsConstructor,
-                                                     debugScanNodeConstructor,
-                                                     hasMultiController,
-                                                     requestMerging,
-                                                     debugLog);
+    MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(n_READERS, t_CONTAINER_ADDR, COH_SCRATCH_MEM_VALUE, t_CONTAINER_MASK) mem = ?; 
+
+    // Require brute-force conversion because Integer cannot be converted to a type
+    
+    if      (e <= 8)      begin NumTypeParam#(8)      n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 16)     begin NumTypeParam#(16)     n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 32)     begin NumTypeParam#(32)     n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 64)     begin NumTypeParam#(64)     n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 128)    begin NumTypeParam#(128)    n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 256)    begin NumTypeParam#(256)    n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 512)    begin NumTypeParam#(512)    n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 1024)   begin NumTypeParam#(1024)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 2048)   begin NumTypeParam#(2048)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 4096)   begin NumTypeParam#(4086)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 8192)   begin NumTypeParam#(8192)   n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 16384)  begin NumTypeParam#(16384)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 32768)  begin NumTypeParam#(32768)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 65536)  begin NumTypeParam#(65536)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 131072) begin NumTypeParam#(131072) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else                  begin NumTypeParam#(262144) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+
     //
     // Methods
     //
@@ -507,6 +524,7 @@ COH_SCRATCH_MERGE_TABLE_ENTRY#(type t_MERGE_TAG,
 // of data sizes.
 //
 module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer scratchpadID, 
+                                                                        COH_SCRATCH_CLIENT_CONFIG conf, 
                                                                         Integer cacheModeParam,
                                                                         NumTypeParam#(n_CACHE_ENTRIES) nCacheEntries,
                                                                         NumTypeParam#(n_PREFETCH_LEARNER_SIZE) nPrefetchLearners,
@@ -515,8 +533,6 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR reqStatsConstructor,
                                                                         COH_SCRATCH_RING_NODE_STATS_CONSTRUCTOR respStatsConstructor,
                                                                         COH_SCRATCH_CLIENT_DEBUG_SCAN_NODE_CONSTRUCTOR debugScanNodeConstructor,
-                                                                        Bool hasMultiController,
-                                                                        Bool requestMerging,
                                                                         DEBUG_FILE debugLog)
     // interface:
     (MEMORY_MULTI_READ_MASKED_WRITE_WITH_FENCE_IFC#(n_READERS, t_MEM_ADDR, COH_SCRATCH_MEM_VALUE, t_MEM_MASK))
@@ -549,13 +565,18 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     let sourceData <- mkCoherentScratchpadCacheSourceData(scratchpadID, 
                                                           reqStatsConstructor,
                                                           respStatsConstructor,
-                                                          hasMultiController,
+                                                          conf.multiController,
                                                           debugLog);
                              
     // Cache Prefetcher
-    let prefetcher <- (`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE == 1) ?
-                      mkCachePrefetcher(nPrefetchLearners, False, True, debugLogForPrefetcher):
-                      mkNullCachePrefetcher();
+    let prefetch_enable = (`COHERENT_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE == 1);
+    if (conf.enablePrefetching matches tagged Valid .pf_en)
+    begin
+        prefetch_enable = pf_en;
+    end
+    
+    let prefetcher <- prefetch_enable? mkCachePrefetcher(nPrefetchLearners, False, True, debugLogForPrefetcher):
+                                       mkNullCachePrefetcher();
     
     // Coherent private cache
     COH_DM_CACHE#(t_MEM_ADDR, t_MEM_DATA, t_MEM_MASK, t_MAF_IDX) cache <- 
@@ -605,7 +626,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
     PulseWire forwardFenceReqW = ?;
 
     // allocate merge table
-    if (requestMerging)
+    if (conf.requestMerging)
     begin
         reqMergeTable <- mkLUTRAMU();
         reqMergeHeadInfo <- mkLUTRAM(tagged Invalid);
@@ -620,7 +641,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         return unpack(truncateNP(pack(addr)));
     endfunction
     function Action initOrResetMergeEntry(t_MERGE_IDX idx, Bool isInit);
-        if (requestMerging)
+        if (conf.requestMerging)
         begin
             return 
                 action
@@ -692,7 +713,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         let fence_mode = pack(incomingReqQ.first());
         incomingReqQ.deq();
         cache.fence(unpack(truncate(fence_mode)));
-        if (requestMerging)
+        if (conf.requestMerging)
         begin
             forwardFenceReqW.send();
             reqMergeTableEndBits <= replicate(True);
@@ -721,7 +742,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
 `else
         cache.write(addr, val, mask);
 `endif
-        if (requestMerging)
+        if (conf.requestMerging)
         begin
             match {.m_tag, .m_idx} = mergeEntryFromAddr(addr);
             if (reqMergeTableValidBits[m_idx] == True && reqMergeTableEndBits[m_idx] == False)
@@ -766,7 +787,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
                 
                 Bool issue_req = True;
                
-                if (requestMerging)
+                if (conf.requestMerging)
                 begin
                     debugLog.record($format("forwardReadReq: port %0d: addr=0x%x, rob_idx=%0d, maf_idx=0x%x",
                                     p, addr, d, pack(maf_idx)));
@@ -829,7 +850,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
             sortResponseQ[p].setValue(maf_idx, r.val);
             debugLog.record($format("receiveResp: port %0d: resp val=0x%x, rob idx=%0d", p, r.val, maf_idx));
 
-            if (requestMerging)
+            if (conf.requestMerging)
             begin
                 mergeTableLockedW.send();
                 let merge_head_info = reqMergeHeadInfo.sub(pack(r.readMeta));
@@ -855,7 +876,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
         endrule
     end
     
-    if (requestMerging)
+    if (conf.requestMerging)
     begin
 `ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
         (* descending_urgency = "fwdMultiResp, forwardFenceReq" *)

@@ -1,11 +1,14 @@
-
 import os
 import re
 import sys
 import string
-from model import  *
-from bsv_tool import *
-from software_tool import *
+
+import SCons.Script
+
+import model
+import bsv_tool
+import software_tool
+import wrapper_gen_tool
 
 class Verilog():
 
@@ -14,12 +17,12 @@ class Verilog():
     BSC = moduleList.env['DEFS']['BSC']
     inc_paths = moduleList.swIncDir # we need to depend on libasim
 
-    self.firstPassLIGraph = getFirstPassLIGraph()
+    self.firstPassLIGraph = wrapper_gen_tool.getFirstPassLIGraph()
 
     # This is not correct for LIM builds and needs to be fixed. 
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ALL_DIRS_FROM_ROOT = moduleList.env['DEFS']['ALL_HW_DIRS']
-    ALL_BUILD_DIRS_FROM_ROOT = transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
+    ALL_BUILD_DIRS_FROM_ROOT = model.transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
     ALL_INC_DIRS_FROM_ROOT   = '-Xv +incdir+' + ALL_DIRS_FROM_ROOT.replace(':','+') 
     ALL_LIB_DIRS_FROM_ROOT   = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
 
@@ -36,15 +39,15 @@ class Verilog():
         os.mkdir(vexe_vdir)
 
     LI_LINK_DIR = ""
-    if(not (getFirstPassLIGraph()) is None):        
-        LI_LINK_DIR = get_build_path(moduleList, moduleList.topModule) + "/.li/"
+    if (not self.firstPassLIGraph is None):
+        LI_LINK_DIR = model.get_build_path(moduleList, moduleList.topModule) + "/.li/"
         inc_paths += [LI_LINK_DIR]
         ALL_LIB_DIRS_FROM_ROOT = LI_LINK_DIR + ':' +  ALL_LIB_DIRS_FROM_ROOT
 
     liCodeType = ['VERILOG', 'GIVEN_VERILOG_HS', 'GEN_VPI_CS', 'GEN_VPI_HS']
 
     # This can be refactored as a function.
-    if(not self.firstPassLIGraph is None):
+    if (not self.firstPassLIGraph is None):
         for moduleName in self.firstPassLIGraph.modules:            
             moduleObject = self.firstPassLIGraph.modules[moduleName]
             for codeType in liCodeType:
@@ -66,7 +69,7 @@ class Verilog():
                         # Warn that we did not find the ngc we expected to find..
                         print "Warning: We did not find verilog for module " + moduleName 
                 
-    bsc_version = getBluespecVersion()
+    bsc_version = bsv_tool.getBluespecVersion()
 
     ldflags = ''
     for ld_file in moduleList.getAllDependenciesWithPaths('GIVEN_BLUESIM_LDFLAGSS'):
@@ -99,19 +102,25 @@ class Verilog():
 
     if (bsc_version >= 13013):
         # 2008.01.A compiler allows us to pass C++ arguments.
-        if (getDebug(moduleList)):
+        if (model.getDebug(moduleList)):
             vexe_gen_command += ' -Xc++ -O0'
         else:
             vexe_gen_command += ' -Xc++ -O1'
 
         # g++ 4.5.2 is complaining about overflowing the var tracking table
 
-        if (getGccVersion() >= 40501):
+        if (model.getGccVersion() >= 40501):
              vexe_gen_command += ' -Xc++ -fno-var-tracking-assignments'
 
-    defs = (host_defs()).split(" ")
+    defs = (software_tool.host_defs()).split(" ")
     for definition in defs:
         vexe_gen_command += ' -Xc++ ' + definition + ' -Xc ' + definition
+ 
+    # cflags to be passed into vcs compiler
+    for definition in defs:
+        vexe_gen_command += ' -Xv -CFLAGS -Xv ' + definition
+    for path in inc_paths:
+        vexe_gen_command += ' -Xv -CFLAGS -Xv -I' + path
 
     # Hack to link against pthreads.  Really we should have a better solution.
     vexe_gen_command += ' -Xl -lpthread '
@@ -138,7 +147,7 @@ class Verilog():
     vexe_gen_command += '-verilog -e ' + ROOT_WRAPPER_SYNTH_ID + ' ' +\
                         moduleList.env['DEFS']['BDPI_CS']
 
-    if (getBuildPipelineDebug(moduleList) != 0):
+    if (model.getBuildPipelineDebug(moduleList) != 0):
         for m in moduleList.getAllDependencies('BA'):
             print 'BA dep: ' + str(m)
         for m in moduleList.getAllDependencies('VERILOG'):
@@ -167,7 +176,7 @@ class Verilog():
         wrapper_handle.close()
  
     def modify_path_ba_local(path):
-        return modify_path_ba(moduleList, path)     
+        return bsv_tool.modify_path_ba(moduleList, path)
 
     # Bluesim builds apparently touch this code. This control block
     # preserves their behavior, but it is unclear why the verilog build is 
