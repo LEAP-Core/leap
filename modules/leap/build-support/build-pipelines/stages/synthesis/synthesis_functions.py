@@ -44,7 +44,7 @@ def generateXST(moduleList, module, xstTemplate):
 
     # dump the template file, substituting symbols as we find them
     for token in xstTemplate:
-        if (isinstance(token, Parameter)):
+        if (isinstance(token, parameter_substitution.Parameter)):
             # 1. local context 
             if (token.name in localContext):    
                 XSTFile.write(localContext[token.name])
@@ -81,7 +81,7 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
     newPRJFile = open(prjPath, 'w') 
  
     # Emit verilog source and stub references
-    verilogs = globalVerilogs + [get_temp_path(moduleList,module) + module.wrapperName() + '.v']
+    verilogs = globalVerilogs + [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v']
     verilogs +=  moduleList.getDependencies(module, 'VERILOG_STUB')
     for vlog in sorted(verilogs):
         # ignore system verilog files.  XST can't compile them anyway...
