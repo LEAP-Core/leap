@@ -117,8 +117,9 @@ class Verilog():
     for path in inc_paths:
         vexe_gen_command += ' -Xv -CFLAGS -Xv -I' + path
 
-    # Hack to link against pthreads.  Really we should have a better solution.
-    vexe_gen_command += ' -Xl -lpthread '
+    for lib in moduleList.swLinkLibs:
+        vexe_gen_command += ' -Xl ' + lib + ' '
+        vexe_gen_command += ' -Xv -LDFLAGS -Xv ' + lib + ' '
 
     # construct full path to BAs
     def modify_path(str):
