@@ -81,7 +81,7 @@ class Verilog():
         BSC_FLAGS_VERILOG += '-parallel-sim-link ' + str(n_jobs) + ' '
 
     for path in inc_paths:
-        BSC_FLAGS_VERILOG += ' -I ' + path + ' ' #+ '-Xv -I' + path + ' '
+        BSC_FLAGS_VERILOG += ' -I ' + path + ' ' + ' -Xv -CFLAGS -Xv -I' + path + ' '
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
