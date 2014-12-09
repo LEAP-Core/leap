@@ -84,7 +84,7 @@ class Verilog():
         BSC_FLAGS_VERILOG += '-parallel-sim-link ' + str(n_jobs) + ' '
 
     for path in inc_paths:
-        BSC_FLAGS_VERILOG += ' -I' + path + ' ' + ' -Xv -I' + path + ' '
+        BSC_FLAGS_VERILOG += ' -I ' + path + ' ' + ' -Xv -CFLAGS -Xv -I' + path + ' '
 
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
@@ -115,6 +115,12 @@ class Verilog():
     defs = (software_tool.host_defs()).split(" ")
     for definition in defs:
         vexe_gen_command += ' -Xc++ ' + definition + ' -Xc ' + definition
+ 
+    # cflags to be passed into vcs compiler
+    for definition in defs:
+        vexe_gen_command += ' -Xv -CFLAGS -Xv ' + definition
+    for path in inc_paths:
+        vexe_gen_command += ' -Xv -CFLAGS -Xv -I' + path
 
     # Hack to link against pthreads.  Really we should have a better solution.
     vexe_gen_command += ' -Xl -lpthread '
