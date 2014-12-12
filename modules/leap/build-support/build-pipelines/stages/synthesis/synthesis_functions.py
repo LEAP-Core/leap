@@ -220,7 +220,7 @@ def getVivadoUtilResourcesClosure(module):
 
         attributes = {'LUT': "\| Slice LUTs",'Reg': "\| Slice Registers", 'BRAM': "\| Block RAM Tile"} 
 
-        primitives = {'LUT6': "\| LUT6", 'LUT5': "\| LUT5", 'LUT4': "\| LUT4",  'LUT3': "\| LUT3",  'LUT2': "\| LUT2",  'LUT1': "\| LUT1", 'SRL16E': '\| SRL16E'}
+        primitives = {'LUT6': "\| LUT6", 'LUT5': "\| LUT5", 'LUT4': "\| LUT4",  'LUT3': "\| LUT3",  'LUT2': "\| LUT2",  'LUT1': "\| LUT1", 'SRL16E': '\| SRL16E', "Slice": "\| Slice      ", "RAMD32":"\RAMD32", "RAMS32":"\RAMS32", "RAMD64E":"\RAMD64E"}
 
         attributes.update(primitives)
 
@@ -261,12 +261,15 @@ def getVivadoUtilResourcesClosure(module):
             lut3s = getResourceCount(deviceResources, 'LUT3')
             lut2s = getResourceCount(deviceResources, 'LUT2')
             lut1s = getResourceCount(deviceResources, 'LUT1')            
+            ramd32s = getResourceCount(deviceResources, 'RAMD32')            
+            rams32s = getResourceCount(deviceResources, 'RAMS32')            
+            ram64es = getResourceCount(deviceResources, 'RAMD64E')            
             srl16es = getResourceCount(deviceResources, 'SRL16E')            
 
             # Some 4/5 LUTs take a whole slice. We'll conservatively
             # assume that they all do.  We should use 'LUT' count to
             # figure out combinability
-            slice4LUTs = lut6s + lut5s + lut4s + srl16es
+            slice4LUTs = lut6s + lut5s + lut4s + srl16es + rams32s + 2 * ramd32s + 2 * ram64es  
             slice8LUTs = lut1s + lut2s + lut3s 
             slices = slice8LUTs / 8 + slice4LUTs / 4
 

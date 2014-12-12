@@ -125,11 +125,11 @@ class AreaConstraints():
 #AREA_GROUP "AG_common_services"                   GROUP = CLOSED;
             constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
             constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
-            slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
-            slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
+            slice_LowerLeftX = int(areaGroupObject.xLoc) + haloCells
+            slice_LowerLeftY = int(areaGroupObject.yLoc) + haloCells
 
-            slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
-            slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
+            slice_UpperRightX = int(areaGroupObject.xLoc + areaGroupObject.xDimension) - haloCells
+            slice_UpperRightY = int(areaGroupObject.yLoc + areaGroupObject.yDimension) - haloCells
 
             constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" RANGE=SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + ';\n')
             constraintsFile.write('AREA_GROUP "AG_' + areaGroupObject.name + '" GROUP=CLOSED;\n')
@@ -153,6 +153,7 @@ class AreaConstraints():
             haloCells = 1
 
             #startgroup
+            #set_property  gridtypes {RAMB18 DSP48 SLICE} [get_pblocks AG_fpga0_platform]
             #create_pblock pblock_ddr3 
             #resize_pblock pblock_ddr3 -add {SLICE_X134Y267:SLICE_X173Y349}
             #add_cells_to_pblock pblock_ddr3 [get_cells -hier -filter {NAME =~ m_sys_sys_vp_m_mod/llpi_phys_plat_sdram_b_ddrSynth/*}]
@@ -162,11 +163,11 @@ class AreaConstraints():
             constraintsFile.write('startgroup \n')
             constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
 
-            slice_LowerLeftX = int((areaGroupObject.xLoc - .5  * areaGroupObject.xDimension)) + haloCells
-            slice_LowerLeftY = int((areaGroupObject.yLoc - .5  * areaGroupObject.yDimension)) + haloCells
+            slice_LowerLeftX = int(areaGroupObject.xLoc) + haloCells
+            slice_LowerLeftY = int(areaGroupObject.yLoc) + haloCells
 
-            slice_UpperRightX = int((areaGroupObject.xLoc + .5  * areaGroupObject.xDimension)) - haloCells
-            slice_UpperRightY = int((areaGroupObject.yLoc + .5  * areaGroupObject.yDimension)) - haloCells
+            slice_UpperRightX = int(areaGroupObject.xLoc + areaGroupObject.xDimension) - haloCells
+            slice_UpperRightY = int(areaGroupObject.yLoc + areaGroupObject.yDimension) - haloCells
   
             constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
 
@@ -206,6 +207,16 @@ class Floorplanner():
         if (not moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
             return
 
+        self.emitPlatformAreaGroups = (moduleList.getAWBParam('area_group_tool',
+                                                              'AREA_GROUPS_GROUP_PLATFORM_CODE') != 0)
+
+        self.enableParentClustering = (moduleList.getAWBParam('area_group_tool',
+                                                              'AREA_GROUPS_ENABLE_PARENT_CLUSTERING') != 0)
+
+        self.enableCommunicationClustering = (moduleList.getAWBParam('area_group_tool',
+                                                                     'AREA_GROUPS_ENABLE_COMMUNICATION_CLUSTERING') != 0)
+
+
         liGraph = LIGraph([])
         firstPassGraph = wrapper_gen_tool.getFirstPassLIGraph()
         # We should ignore the 'PLATFORM_MODULE'                                                                                                                    
@@ -219,7 +230,7 @@ class Floorplanner():
                  modFile = 'areaGroup.mod'
                  modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.1                
+                 extra_area_factor = 1.15                
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -257,23 +268,21 @@ class Floorplanner():
                          areaGroups[constraint.name] = constraint
 
                  # We should have gotten a chip dimension. Find and assign chip. 
-                 chipXDimension = -1
-                 chipYDimension = -1               
+                 self.chipXDimension = -1
+                 self.chipYDimension = -1               
                  
-                 # a list of all variables in the ILP problem
-                 variables = []
+                 self.variables = []
 
                  # Fill in any other information we obtanied about the
                  # area groups.
-                 print "AREAGROUP: Constraints " + str(constraints) 
                  for constraint in constraints:
                      if(isinstance(constraint,AreaGroupSize)): 
                          if(constraint.name == 'FPGA'):
-                             if(chipXDimension > 0):
+                             if(self.chipXDimension > 0):
                                  print "Got too many FPGA dimension statements, bailing"
                                  exit(1)
-                             chipXDimension = constraint.xDimension
-                             chipYDimension = constraint.yDimension
+                             self.chipXDimension = constraint.xDimension
+                             self.chipYDimension = constraint.yDimension
                          else:
                              # this is a dimensional constraint for an
                              # area group. This will wipe the affine
@@ -302,7 +311,6 @@ class Floorplanner():
                      if(isinstance(constraint,AreaGroupAttribute)): 
                          areaGroups[constraint.name].attributes[constraint.key] = constraint.value
 
-                         print "AREAGROUP: " + str(areaGroups[constraint.name].attributes) 
 
 
                      if(isinstance(constraint,AreaGroupPath)): 
@@ -334,7 +342,6 @@ class Floorplanner():
                  # the parent (double counting is a problem).  
                  for areaGroup in areaGroups.values():
                      for child in areaGroup.children.values():
-                         print 'AREAGROUP: setting parent ' + areaGroup.name +  ' area from ' +  str(areaGroup.area) + 'to' + str(areaGroup.area - child.area) + ' due to child ' + child.name + '\n'
                          # If we have a slice resource declaration,
                          # use it else, use 1/2 the area as an estimate
                          if ('SLICE' in moduleResources[child.name]):
@@ -342,7 +349,9 @@ class Floorplanner():
                          else:
                              areaGroup.area = areaGroup.area - child.area/2
 
-                 affineCoefs = [.33, .5, .65, .75, 1, 1.33, 1.66, 2, 3] # just make them all squares for now. 
+                 affineCoefs = [1, 2, 4, 8] # just make them all squares for now. 
+                 #affineCoefs = [ 221.0/349.0] # just make them all squares for now. 
+                 #affineCoefs = [float(self.chipXDimension)/float(self.chipYDimension)] # just make them all squares for now. 
 
                  for areaGroup in areaGroups:
                      areaGroupObject = areaGroups[areaGroup]
@@ -355,206 +364,20 @@ class Floorplanner():
                              areaGroupObject.xDimension.append(coef*moduleRoot*extra_area_factor)
                              areaGroupObject.yDimension.append(moduleRoot/coef*extra_area_factor)
         
+                 # If we've been instructed to remove the platform module, purge it here. 
+                 if(not self.emitPlatformAreaGroups):
+                     for areaGroup in sorted(areaGroups):
+                         areaGroupObject = areaGroups[areaGroup]
+                         if(areaGroupObject.name in self.firstPassLIGraph.modules):
+                             moduleObject = self.firstPassLIGraph.modules[areaGroupObject.name]
+                             if(moduleObject.getAttribute('PLATFORM_MODULE') == True):
+                                 del areaGroups[areaGroup]
 
 
+                                
+                 self.dumpILPRosen(modHandle, areaGroups)
 
-                 # let's begin setting up the ILP problem 
-                 modHandle.write('var comms;\n')                         
-                 modHandle.write('\n\nminimize dist: comms;\n\n')
-                 variables += ['comms']
-                 
-                 # first we need to establish the options for the module area groups
-                 for areaGroup in sorted(areaGroups):
-                     areaGroupObject = areaGroups[areaGroup]
-                     modHandle.write('\n# ' + str(areaGroupObject) + '\n\n')
-                     variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
-                     if(areaGroupObject.xLoc is None):
-                         modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
-                         modHandle.write('var yloc_' + areaGroupObject.name + ';\n')                         
-                     else:
-                         modHandle.write('var xloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xLoc) + ';\n')
-                         modHandle.write('var yloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yLoc) + ';\n')
-
-                     if(len(areaGroupObject.xDimension) > 1):
-                         dimsX = []
-                         dimsY = []
-                         dimSelectX = []
-                         dimSelectY = []
-                         for dimensionIndex in range(len(areaGroupObject.xDimension)):
-                             aspectName = areaGroupObject.name + '_' + str(dimensionIndex)
-                             modHandle.write('var ' + aspectName + ' binary;\n')
-                             variables += [aspectName]
-                             dimsX.append(str(areaGroupObject.xDimension[dimensionIndex]) + ' * ' + aspectName)
-                             dimsY.append(str(areaGroupObject.yDimension[dimensionIndex]) + ' * ' + aspectName)
-                             dimSelectX.append(str(aspectName))
-                             dimSelectY.append(str(aspectName))
-
-                         modHandle.write('var xdim_' + areaGroupObject.name + ';\n')
-                         modHandle.write('var ydim_' + areaGroupObject.name + ';\n')
-                             
-                         modHandle.write('subject to xdim_' + areaGroupObject.name + '_assign:\n')
-                         modHandle.write(' + '.join(dimsX) + ' = xdim_' + areaGroupObject.name +';\n')
-                         modHandle.write('subject to ydim_' + areaGroupObject.name + '_assign:\n')
-                         modHandle.write(' + '.join(dimsY) + ' = ydim_' + areaGroupObject.name +';\n')
-
-                         modHandle.write('subject to xdim_select_' + areaGroupObject.name + '_assign:\n')
-                         modHandle.write(' + '.join(dimSelectX) + ' = 1;\n')
-                         modHandle.write('subject to ydim_select_' + areaGroupObject.name + '_assign:\n')
-                         modHandle.write(' + '.join(dimSelectY) + ' = 1;\n')
-
-                     else:
-                         # Much simpler constraints when considering single shapes. 
-                         modHandle.write('var xdim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xDimension[0]) + ';\n')
-                         modHandle.write('var ydim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yDimension[0]) +';\n')
-
-                     variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
-
-                     # Throw a bounding box on the location variables
-                     if(areaGroupObject.xLoc is None):
-                         modHandle.write('subject to xdim_' + areaGroupObject.name + '_high_bound:\n')
-                         modHandle.write('xloc_' + areaGroupObject.name + ' <= ' + str(chipXDimension) + ' - 0.5 * xdim_' + areaGroupObject.name +';\n')
-                         modHandle.write('subject to xdim_' + areaGroupObject.name + '_low_bound:\n')
-                         modHandle.write('xloc_' + areaGroupObject.name + ' >= ' + '0.5 * xdim_' + areaGroupObject.name +';\n')           
-
-                     if(areaGroupObject.yLoc is None):
-                         modHandle.write('subject to ydim_' + areaGroupObject.name + '_high_bound:\n')
-                         modHandle.write('yloc_' + areaGroupObject.name + ' <= ' + str(chipYDimension) + ' - 0.5 * ydim_' + areaGroupObject.name +';\n')
-                         modHandle.write('subject to ydim_' + areaGroupObject.name + '_low_bound:\n')
-                         modHandle.write('yloc_' + areaGroupObject.name + ' >= ' + '0.5 * ydim_' + areaGroupObject.name +';\n')           
-
-                 # Now we need to lay down the non-overlap constraints
-                 areaGroupNames = sorted([name for name in areaGroups])
-                 sumTerms = []
-                 for areaGroupAIndex in range(len(areaGroupNames)):
-                     areaGroupA = areaGroups[areaGroupNames[areaGroupAIndex]]
-                     for areaGroupBIndex in range(areaGroupAIndex, len(areaGroupNames)):             
-                         areaGroupB = areaGroups[areaGroupNames[areaGroupBIndex]]
-                         # In some cases, we don't emit constraints: 
-                         # 1) between area group and itself
-                         if(areaGroupA.name == areaGroupB.name):
-                             continue
-
-                         # 2) If the area groups have been pre-placed
-                         #    by the user.  If these constraints are
-                         #    illegal, the backend tools will fail,
-                         #    but this is the user's problem.
-                         if((areaGroupA.xLoc is not None) and 
-                            (areaGroupB.xLoc is not None)):
-                             continue 
-
-                         # None objects need not have contraints with
-                         # one another, since they represent user
-                         # constraints.  This helps with areas of the
-                         # chip that just don't have slices/CLBs.                        
-                         if(('EMPTYBOX' in areaGroupA.attributes) and ('EMPTYBOX' in areaGroupB.attributes)): 
-                             continue
-
-                         absX = 'xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
-                         absY = 'ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
-                         satX = 'sat_xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
-                         satY = 'sat_ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
-                         aBiggerX = 'sat_x_abigger_' + areaGroupA.name + '_' +  areaGroupB.name 
-                         aBiggerY = 'sat_y_abigger_' + areaGroupA.name + '_' +  areaGroupB.name 
-                         variables += [absX, absY, satX, satY, aBiggerX, aBiggerY]  
-                         modHandle.write('var ' + absX + ';\n')
-                         modHandle.write('var ' + absY + ';\n')
-                         modHandle.write('var ' + satX + ' binary;\n')
-                         modHandle.write('var ' + satY + ' binary;\n')
-                         modHandle.write('var ' + aBiggerX + ' binary;\n')
-                         modHandle.write('var ' + aBiggerY + ' binary;\n')
-
-                         # Need to find out how much the two modules communicate.                         
-
-                         # we want to force a tight grouping no matter what, except for empty boxes which are just holes in the chip. 
-                         commsXY = 1 
-                         if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
-                            commsXY = 0 
-                         else:
-                             # Area groups come in two types -- parents
-                             # and children.  Children communicate only
-                             # with parents, while parents may communicate
-                             # with other parents.
-                             parentChild = False
-                             if(areaGroupA.parent is not None):
-                                 if(areaGroupA.parent.name == areaGroupB.name):
-                                     parentChild = True
-                             elif(areaGroupB.parent is not None):
-                                 if(areaGroupB.parent.name == areaGroupA.name):
-                                     parentChild = True
-
-                             communicatingModules = (areaGroupA.name in self.firstPassLIGraph.modules) and (areaGroupB.name in self.firstPassLIGraph.modules)                            
-
-                             #Handle parents
-                             if((not parentChild) and communicatingModules):                                   
-                                 moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
-                                 for channel in moduleAObject.channels:
-                                     # some channels may not be assigned
-                                     if(isinstance(channel.partnerModule, LIModule)):
-                                         if(channel.partnerModule.name == areaGroupB.name):
-                                             commsXY = commsXY + 10
-
-                             if(parentChild):
-                                 commsXY = commsXY * 1000
-
-                             print "Examining " + str(areaGroupA.name) + ' and ' + str(areaGroupB.name)
-                             print "Parent " + str(areaGroupA.parent) + ' and ' + str(areaGroupB.parent)
-                             print "parentChild " + str(parentChild) + ' communicatingModules ' + str(communicatingModules) + ' comms ' + str(commsXY)
- 
-                         # Scrub out the EMPTYBOX constraints
-                         if(commsXY > 0):
-                             sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
-
-                         # ensure that either X or Y distance is satisfied
-                         modHandle.write('subject to sat_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write(satX + ' + ' + satY + ' <= 1;\n')
-
-                         # Add in terms for abs value
-
-                         modHandle.write('subject to abs_xdim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('xloc_' + areaGroupA.name + ' - xloc_'  +  areaGroupB.name + '+' + str(2*chipXDimension) + ' - ' + str(2*chipXDimension) + '*' + aBiggerX +' >= ' + absX + ';\n')
-
-                         modHandle.write('subject to abs_xdim_2_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('xloc_' + areaGroupB.name + ' - xloc_'  +  areaGroupA.name + '+' + str(2*chipXDimension) + '*' + aBiggerX +' >= ' + absX + ';\n')
-
-
-                         modHandle.write('subject to abs_xdim_3_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('xloc_' + areaGroupA.name + ' - xloc_'  +  areaGroupB.name + ' <= ' + absX + ';\n')
-
-                         modHandle.write('subject to abs_xdim_4_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('xloc_' + areaGroupB.name + ' - xloc_'  +  areaGroupA.name + ' <= ' + absX + ';\n')
-
-
-                         modHandle.write('subject to abs_ydim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('yloc_' + areaGroupA.name + ' - yloc_'  +  areaGroupB.name + '+' + str(2*chipYDimension) + '-' + str(2*chipYDimension) + '*' + aBiggerY +' >= ' + absY + ';\n')
-
-                         modHandle.write('subject to abs_ydim_2_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('yloc_' + areaGroupB.name + ' - yloc_'  +  areaGroupA.name +  '+' + str(2*chipYDimension) + '*' + aBiggerY + ' >= ' + absY + ';\n')
-
-
-                         modHandle.write('subject to abs_ydim_3_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('yloc_' + areaGroupA.name + ' - yloc_'  +  areaGroupB.name +  ' <= ' + absY + ';\n')
-
-                         modHandle.write('subject to abs_ydim_4_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('yloc_' + areaGroupB.name + ' - yloc_'  +  areaGroupA.name +  ' <= ' + absY + ';\n')
-
-
-
-
-                         # the abs terms are also bound by some minimum distance
-               
-                         modHandle.write('subject to min_ydim_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('0.5 * ydim_' + areaGroupB.name + ' + 0.5 * ydim_'  +  areaGroupA.name + ' - ' + str(chipYDimension) + ' * ' + satX +  ' <= ' + absY + ';\n')
-
-                         modHandle.write('subject to min_xdim_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
-                         modHandle.write('0.5 * xdim_' + areaGroupB.name + ' + 0.5 * xdim_'  +  areaGroupA.name + ' - ' + str(chipXDimension) + ' * ' + satY +  ' <= ' + absX + ';\n')
-          
-
-
-                 modHandle.write('subject to  comms_total: \n')                         
-                 modHandle.write(' + '.join(sumTerms) + ' = comms;\n')                 
-                 modHandle.write('\n\nend;')
                  modHandle.close()
-
                  # now that we've written out the file, solve it. 
                  # Necessary to force ply rebuild.  Sad...
                  import glpk 
@@ -609,29 +432,44 @@ class Floorplanner():
 
                  # dump interesting variables
                  def dumpVariables(example):
-                     for variable in variables:
+                     for variable in self.variables:
                          print variable + ' is: ' + str(eval('example.' + variable).value()) 
 
+                 dumpVariables(example)
+
                  # print out module locations 
+                 areaGroupNames = sorted([name for name in areaGroups])
                  for areaGroupIndex in range(len(areaGroupNames)):
                      areaGroup = areaGroups[areaGroupNames[areaGroupIndex]]
 
                      areaGroup.xLoc = eval('example.xloc_' + areaGroup.name).value()
                      areaGroup.yLoc = eval('example.yloc_' + areaGroup.name).value()
 
-                     # If problem was not satisfiable, then xloc/yloc
+                     # figure out the chose dimensions.
+                     # unfortunately, the tools may give 'None' for
+                     # some dimensions, if they were previously
+                     # defined...
+                     
+                     xDimension = eval('example.xdim_' + areaGroup.name).value()
+                     yDimension = eval('example.ydim_' + areaGroup.name).value()
+
+                     if(xDimension is None):
+                         areaGroup.xDimension = areaGroup.xDimension[0]
+                     else:
+                         areaGroup.xDimension = xDimension
+
+                     if(yDimension is None):
+                         areaGroup.yDimension = areaGroup.yDimension[0]
+                     else:
+                         areaGroup.yDimension = yDimension
+
+                     # If problem was not satisfiable, then all variables
                      # are set to zero.  We should really give up and
                      # clear all area groups, since this technically
                      # results in a correct solution.
-                     if(areaGroup.xLoc < 1 or areaGroup.yLoc < 1):
-                         dumpVariables(example)
+                     if(areaGroup.xDimension < 1 or areaGroup.yDimension < 1):
                          print "Failed to find solution to area group placement for: " + areaGroup.name
                          exit(1)
-
-                     # figure out the chose dimensions.
-
-                     areaGroup.xDimension = eval('example.xdim_' + areaGroup.name).value()
-                     areaGroup.yDimension = eval('example.ydim_' + areaGroup.name).value()
 
                      print str(areaGroup)
 
@@ -697,3 +535,402 @@ class Floorplanner():
 
             if (self.pipeline_debug):
                 print "  " + name + ": " + str(group.sortIdx)
+
+    def dumpILPBase(self, modHandle, areaGroups):
+        # let's begin setting up the ILP problem 
+      
+        modHandle.write('var comms;\n')                         
+        modHandle.write('\n\nminimize dist: comms;\n\n')
+        self.variables += ['comms']
+
+        # first we need to establish the options for the module area groups
+        for areaGroup in sorted(areaGroups):
+            areaGroupObject = areaGroups[areaGroup]
+            modHandle.write('\n# ' + str(areaGroupObject) + '\n\n')
+            self.variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
+            if(areaGroupObject.xLoc is None):
+                modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
+                modHandle.write('var yloc_' + areaGroupObject.name + ';\n')                         
+            else:
+                modHandle.write('var xloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xLoc) + ';\n')
+                modHandle.write('var yloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yLoc) + ';\n')
+
+            if(len(areaGroupObject.xDimension) > 1):
+                dimsX = []
+                dimsY = []
+                dimSelectX = []
+                dimSelectY = []
+                for dimensionIndex in range(len(areaGroupObject.xDimension)):
+                    aspectName = areaGroupObject.name + '_' + str(dimensionIndex)
+                    modHandle.write('var ' + aspectName + ' binary;\n')
+                    self.variables += [aspectName]
+                    dimsX.append(str(areaGroupObject.xDimension[dimensionIndex]) + ' * ' + aspectName)
+                    dimsY.append(str(areaGroupObject.yDimension[dimensionIndex]) + ' * ' + aspectName)
+                    dimSelectX.append(str(aspectName))
+                    dimSelectY.append(str(aspectName))
+
+                modHandle.write('var xdim_' + areaGroupObject.name + ';\n')
+                modHandle.write('var ydim_' + areaGroupObject.name + ';\n')
+                    
+                modHandle.write('subject to xdim_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimsX) + ' = xdim_' + areaGroupObject.name +';\n')
+                modHandle.write('subject to ydim_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimsY) + ' = ydim_' + areaGroupObject.name +';\n')
+
+                modHandle.write('subject to xdim_select_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimSelectX) + ' = 1;\n')
+                modHandle.write('subject to ydim_select_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimSelectY) + ' = 1;\n')
+
+            else:
+                # Much simpler constraints when considering single shapes. 
+                modHandle.write('var xdim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xDimension[0]) + ';\n')
+                modHandle.write('var ydim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yDimension[0]) +';\n')
+
+            self.variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
+
+            # Throw a bounding box on the location self.variables
+            if(areaGroupObject.xLoc is None):
+                modHandle.write('subject to xdim_' + areaGroupObject.name + '_high_bound:\n')
+                modHandle.write('xloc_' + areaGroupObject.name + ' <= ' + str(self.chipXDimension) + ' - 0.5 * xdim_' + areaGroupObject.name +';\n')
+                modHandle.write('subject to xdim_' + areaGroupObject.name + '_low_bound:\n')
+                modHandle.write('xloc_' + areaGroupObject.name + ' >= ' + '0.5 * xdim_' + areaGroupObject.name +';\n')           
+
+            if(areaGroupObject.yLoc is None):
+                modHandle.write('subject to ydim_' + areaGroupObject.name + '_high_bound:\n')
+                modHandle.write('yloc_' + areaGroupObject.name + ' <= ' + str(self.chipYDimension) + ' - 0.5 * ydim_' + areaGroupObject.name +';\n')
+                modHandle.write('subject to ydim_' + areaGroupObject.name + '_low_bound:\n')
+                modHandle.write('yloc_' + areaGroupObject.name + ' >= ' + '0.5 * ydim_' + areaGroupObject.name +';\n')           
+
+        # Now we need to lay down the non-overlap constraints
+        areaGroupNames = sorted([name for name in areaGroups])
+        sumTerms = []
+        for areaGroupAIndex in range(len(areaGroupNames)):
+            areaGroupA = areaGroups[areaGroupNames[areaGroupAIndex]]
+            for areaGroupBIndex in range(areaGroupAIndex, len(areaGroupNames)):             
+                areaGroupB = areaGroups[areaGroupNames[areaGroupBIndex]]
+                # In some cases, we don't emit constraints: 
+                # 1) between area group and itself
+                if(areaGroupA.name == areaGroupB.name):
+                    continue
+
+                # 2) If the area groups have been pre-placed
+                #    by the user.  If these constraints are
+                #    illegal, the backend tools will fail,
+                #    but this is the user's problem.
+                if((areaGroupA.xLoc is not None) and 
+                   (areaGroupB.xLoc is not None)):
+                    continue 
+
+                # None objects need not have contraints with
+                # one another, since they represent user
+                # constraints.  This helps with areas of the
+                # chip that just don't have slices/CLBs.                        
+                if(('EMPTYBOX' in areaGroupA.attributes) and ('EMPTYBOX' in areaGroupB.attributes)): 
+                    continue
+
+                absX = 'xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
+                absY = 'ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
+                satX = 'sat_xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
+                satY = 'sat_ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
+                aBiggerX = 'sat_x_abigger_' + areaGroupA.name + '_' +  areaGroupB.name 
+                aBiggerY = 'sat_y_abigger_' + areaGroupA.name + '_' +  areaGroupB.name 
+                self.variables += [absX, absY, satX, satY, aBiggerX, aBiggerY]  
+                modHandle.write('var ' + absX + ';\n')
+                modHandle.write('var ' + absY + ';\n')
+                modHandle.write('var ' + satX + ' binary;\n')
+                modHandle.write('var ' + satY + ' binary;\n')
+                modHandle.write('var ' + aBiggerX + ' binary;\n')
+                modHandle.write('var ' + aBiggerY + ' binary;\n')
+
+                # Need to find out how much the two modules communicate.                         
+
+                # we want to force a tight grouping no matter what, except for empty boxes which are just holes in the chip. 
+                commsXY = 1 
+                if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
+                   commsXY = 0 
+                else:
+                    # Area groups come in two types -- parents
+                    # and children.  Children communicate only
+                    # with parents, while parents may communicate
+                    # with other parents.
+                    parentChild = False
+                    if(areaGroupA.parent is not None):
+                        if(areaGroupA.parent.name == areaGroupB.name):
+                            parentChild = True
+                    elif(areaGroupB.parent is not None):
+                        if(areaGroupB.parent.name == areaGroupA.name):
+                            parentChild = True
+
+                    communicatingModules = (areaGroupA.name in self.firstPassLIGraph.modules) and (areaGroupB.name in self.firstPassLIGraph.modules)                            
+
+                    #Handle parents
+                    if((not parentChild) and communicatingModules):                                   
+                        moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
+                        for channel in moduleAObject.channels:
+                            # some channels may not be assigned
+                            if(isinstance(channel.partnerModule, LIModule)):
+                                if(channel.partnerModule.name == areaGroupB.name):
+                                    commsXY = commsXY + 10
+
+                    if(parentChild):
+                        commsXY = commsXY * 1000
+
+                # Scrub out the EMPTYBOX constraints
+                if(commsXY > 0):
+                    sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
+
+                # ensure that either X or Y distance is satisfied
+                modHandle.write('subject to sat_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write(satX + ' + ' + satY + ' <= 1;\n')
+
+                # Add in terms for abs value
+
+                modHandle.write('subject to abs_xdim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('xloc_' + areaGroupA.name + ' - xloc_'  +  areaGroupB.name + '+' + str(2*self.chipXDimension) + ' - ' + str(2*self.chipXDimension) + '*' + aBiggerX +' >= ' + absX + ';\n')
+
+                modHandle.write('subject to abs_xdim_2_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('xloc_' + areaGroupB.name + ' - xloc_'  +  areaGroupA.name + '+' + str(2*self.chipXDimension) + '*' + aBiggerX +' >= ' + absX + ';\n')
+
+
+                modHandle.write('subject to abs_xdim_3_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('xloc_' + areaGroupA.name + ' - xloc_'  +  areaGroupB.name + ' <= ' + absX + ';\n')
+
+                modHandle.write('subject to abs_xdim_4_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('xloc_' + areaGroupB.name + ' - xloc_'  +  areaGroupA.name + ' <= ' + absX + ';\n')
+
+
+                modHandle.write('subject to abs_ydim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('yloc_' + areaGroupA.name + ' - yloc_'  +  areaGroupB.name + '+' + str(2*self.chipYDimension) + '-' + str(2*self.chipYDimension) + '*' + aBiggerY +' >= ' + absY + ';\n')
+
+                modHandle.write('subject to abs_ydim_2_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('yloc_' + areaGroupB.name + ' - yloc_'  +  areaGroupA.name +  '+' + str(2*self.chipYDimension) + '*' + aBiggerY + ' >= ' + absY + ';\n')
+
+
+                modHandle.write('subject to abs_ydim_3_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('yloc_' + areaGroupA.name + ' - yloc_'  +  areaGroupB.name +  ' <= ' + absY + ';\n')
+
+                modHandle.write('subject to abs_ydim_4_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('yloc_' + areaGroupB.name + ' - yloc_'  +  areaGroupA.name +  ' <= ' + absY + ';\n')
+
+
+
+
+                # the abs terms are also bound by some minimum distance
+      
+                modHandle.write('subject to min_ydim_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('0.5 * ydim_' + areaGroupB.name + ' + 0.5 * ydim_'  +  areaGroupA.name + ' - ' + str(self.chipYDimension) + ' * ' + satX +  ' <= ' + absY + ';\n')
+
+                modHandle.write('subject to min_xdim_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('0.5 * xdim_' + areaGroupB.name + ' + 0.5 * xdim_'  +  areaGroupA.name + ' - ' + str(self.chipXDimension) + ' * ' + satY +  ' <= ' + absX + ';\n')
+
+
+
+        modHandle.write('subject to  comms_total: \n')                         
+        modHandle.write(' + '.join(sumTerms) + ' = comms;\n')                 
+        modHandle.write('\n\nend;')
+
+
+    def dumpILPRosen(self, modHandle, areaGroups):
+
+        # let's begin setting up the ILP problem 
+        modHandle.write('var comms;\n')                         
+        modHandle.write('\n\nminimize dist: comms;\n\n')
+        self.variables += ['comms']
+
+        # first we need to establish the options for the module area groups
+        for areaGroup in sorted(areaGroups):
+            areaGroupObject = areaGroups[areaGroup]
+            modHandle.write('\n# ' + str(areaGroupObject) + '\n\n')
+            self.variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
+
+            if(areaGroupObject.xLoc is None):
+                modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
+                modHandle.write('var yloc_' + areaGroupObject.name + ';\n')                         
+            else:
+                modHandle.write('var xloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xLoc) + ';\n')
+                modHandle.write('var yloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yLoc) + ';\n')
+
+            if(len(areaGroupObject.xDimension) > 1):
+                dimsX = []
+                dimsY = []
+                dimSelectX = []
+                dimSelectY = []
+                for dimensionIndex in range(len(areaGroupObject.xDimension)):
+                    aspectName = areaGroupObject.name + '_' + str(dimensionIndex)
+                    modHandle.write('var ' + aspectName + ' binary;\n')
+                    self.variables += [aspectName]
+                    dimsX.append(str(areaGroupObject.xDimension[dimensionIndex]) + ' * ' + aspectName)
+                    dimsY.append(str(areaGroupObject.yDimension[dimensionIndex]) + ' * ' + aspectName)
+                    dimSelectX.append(str(aspectName))
+                    dimSelectY.append(str(aspectName))
+
+                modHandle.write('var xdim_' + areaGroupObject.name + ';\n')
+                modHandle.write('var ydim_' + areaGroupObject.name + ';\n')
+                    
+                modHandle.write('subject to xdim_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimsX) + ' = xdim_' + areaGroupObject.name +';\n')
+                modHandle.write('subject to ydim_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimsY) + ' = ydim_' + areaGroupObject.name +';\n')
+
+                modHandle.write('subject to xdim_select_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimSelectX) + ' = 1;\n')
+                modHandle.write('subject to ydim_select_' + areaGroupObject.name + '_assign:\n')
+                modHandle.write(' + '.join(dimSelectY) + ' = 1;\n')
+
+            else:
+                # Much simpler constraints when considering single shapes. 
+                modHandle.write('var xdim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xDimension[0]) + ';\n')
+                modHandle.write('var ydim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yDimension[0]) +';\n')
+
+            self.variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
+
+            # Throw a bounding box on the location self.variables
+            if(areaGroupObject.xLoc is None):
+                modHandle.write('subject to xdim_' + areaGroupObject.name + '_high_bound:\n')
+                modHandle.write('xloc_' + areaGroupObject.name + '+ xdim_' + areaGroupObject.name + ' <= ' + str(self.chipXDimension) + ';\n')
+                modHandle.write('subject to xdim_' + areaGroupObject.name + '_low_bound:\n')
+                modHandle.write('xloc_' + areaGroupObject.name + ' >= 0 ;\n')           
+
+            if(areaGroupObject.yLoc is None):
+                modHandle.write('subject to ydim_' + areaGroupObject.name + '_high_bound:\n')
+                modHandle.write('yloc_' + areaGroupObject.name + '+ ydim_' + areaGroupObject.name +' <= ' + str(self.chipYDimension) + ';\n')
+                modHandle.write('subject to ydim_' + areaGroupObject.name + '_low_bound:\n')
+                modHandle.write('yloc_' + areaGroupObject.name + ' >= 0;\n')           
+
+        # Now we need to lay down the non-overlap constraints
+        areaGroupNames = sorted([name for name in areaGroups])
+        sumTerms = []
+        for areaGroupAIndex in range(len(areaGroupNames)):
+            areaGroupA = areaGroups[areaGroupNames[areaGroupAIndex]]
+            for areaGroupBIndex in range(areaGroupAIndex, len(areaGroupNames)):             
+                areaGroupB = areaGroups[areaGroupNames[areaGroupBIndex]]
+                # In some cases, we don't emit constraints: 
+                # 1) between area group and itself
+                if(areaGroupA.name == areaGroupB.name):
+                    continue
+
+                # 2) If the area groups have been pre-placed
+                #    by the user.  If these constraints are
+                #    illegal, the backend tools will fail,
+                #    but this is the user's problem.
+                if((areaGroupA.xLoc is not None) and 
+                   (areaGroupB.xLoc is not None)):
+                    continue 
+
+                # None objects need not have contraints with
+                # one another, since they represent user
+                # constraints.  This helps with areas of the
+                # chip that just don't have slices/CLBs.                        
+                if(('EMPTYBOX' in areaGroupA.attributes) and ('EMPTYBOX' in areaGroupB.attributes)): 
+                    continue
+
+                posI = 'i_' + areaGroupA.name + '_' +  areaGroupB.name 
+                posJ = 'j_' + areaGroupA.name + '_' +  areaGroupB.name 
+
+                self.variables += [posI, posJ]
+
+                modHandle.write('var ' + posI + ' binary;\n')
+                modHandle.write('var ' + posJ + ' binary;\n')
+
+
+                # Need to find out how much the two modules communicate.                         
+
+                commsXY = 0 
+                if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
+                   commsXY = 0 
+                   print "Examining, rejected due to empty box " + str(areaGroupA.name) + ' and ' + str(areaGroupB.name)
+                else:
+                    # Area groups come in two types -- parents
+                    # and children.  Children communicate only
+                    # with parents, while parents may communicate
+                    # with other parents.
+                    parentChild = False
+                    if(areaGroupA.parent is not None):
+                        if(areaGroupA.parent.name == areaGroupB.name):
+                            parentChild = True
+                    elif(areaGroupB.parent is not None):
+                        if(areaGroupB.parent.name == areaGroupA.name):
+                            parentChild = True
+
+                    communicatingModules = (areaGroupA.name in self.firstPassLIGraph.modules) and (areaGroupB.name in self.firstPassLIGraph.modules)                            
+
+
+                    #Handle parents/children 
+                    if(self.enableCommunicationClustering):
+                        if((not parentChild) and communicatingModules):                                   
+                            moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
+                            for channel in moduleAObject.channels:
+                                # some channels may not be assigned
+                                if(isinstance(channel.partnerModule, LIModule)):
+                                    if(channel.partnerModule.name == areaGroupB.name):
+                                        commsXY = commsXY + 10
+        
+                    #Handle parents/children
+                    if(self.enableParentClustering):
+                        if(parentChild):
+                            commsXY = commsXY + 1000
+
+                # Scrub out the EMPTYBOX constraints
+                if(commsXY > 0):
+                    absX = 'xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
+                    absY = 'ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
+
+                    self.variables += [absX, absY]
+
+                    modHandle.write('var ' + absX + ';\n')
+                    modHandle.write('var ' + absY + ';\n')
+
+                    if(True):
+                        modHandle.write('subject to abs_xdim_0_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('xloc_' + areaGroupA.name + ' - xloc_'  +  areaGroupB.name + ' <= ' + absX + ';\n')
+
+                        modHandle.write('subject to abs_xdim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('xloc_' + areaGroupB.name + ' - xloc_'  +  areaGroupA.name + ' <= ' + absX + ';\n')   
+
+                        modHandle.write('subject to abs_ydim_0_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('yloc_' + areaGroupA.name + ' - yloc_'  +  areaGroupB.name + ' <= ' + absY + ';\n')
+
+                        modHandle.write('subject to abs_ydim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('yloc_' + areaGroupB.name + ' - yloc_'  +  areaGroupA.name + ' <= ' + absY + ';\n')   
+                    else:
+                        modHandle.write('subject to abs_xdim_0_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('xloc_' + areaGroupA.name + ' + .5 * xdim_' + areaGroupA.name +' - xloc_'  +  areaGroupB.name + ' - .5 * xdim_' + areaGroupB.name + ' <= ' + absX + ';\n')
+
+                        modHandle.write('subject to abs_xdim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('xloc_' + areaGroupB.name + ' + .5 * xdim_' + areaGroupB.name + ' - xloc_'  +  areaGroupA.name + ' - .5 * xdim_' + areaGroupA.name + ' <= ' + absX + ';\n')   
+
+                        modHandle.write('subject to abs_ydim_0_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('yloc_' + areaGroupA.name + ' + .5 * ydim_' + areaGroupA.name + ' - yloc_'  +  areaGroupB.name + ' - .5 * ydim_' + areaGroupB.name + ' <= ' + absY + ';\n')
+
+                        modHandle.write('subject to abs_ydim_1_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                        modHandle.write('yloc_' + areaGroupB.name + ' + .5 * ydim_' + areaGroupB.name + ' - yloc_'  +  areaGroupA.name + ' - .5 * ydim_' + areaGroupA.name + ' <= ' + absY + ';\n')                           
+
+                    sumTerms += [str(commsXY) + ' * ' + absX, str(commsXY) + ' * ' + absY]
+
+                # Add in terms for abs value
+
+                modHandle.write('subject to left_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('xloc_' + areaGroupA.name + ' + xdim_'  +  areaGroupA.name + ' <= xloc_' + areaGroupB.name + ' +  '+ str(self.chipXDimension) + ' * ' + posI + ' + ' + str(self.chipXDimension) + ' * ' + posJ + ';\n')
+
+                modHandle.write('subject to right_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('xloc_' + areaGroupA.name + ' - xdim_'  +  areaGroupB.name + ' >= xloc_' + areaGroupB.name + ' - '+ str(self.chipXDimension) + ' +  '+ str(self.chipXDimension) + ' * ' + posI + ' - ' + str(self.chipXDimension) + ' * ' + posJ + ';\n')
+
+
+                modHandle.write('subject to below_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('yloc_' + areaGroupA.name + ' + ydim_'  +  areaGroupA.name + ' <= yloc_' + areaGroupB.name + ' + '+ str(self.chipYDimension) + ' +  '+ str(self.chipYDimension) + ' * ' + posI + ' - ' + str(self.chipYDimension) + ' * ' + posJ + ';\n')
+
+
+                modHandle.write('subject to above_' + areaGroupA.name + '_' +  areaGroupB.name + ':\n')
+                modHandle.write('yloc_' + areaGroupA.name + ' - ydim_'  +  areaGroupB.name + ' >= yloc_' + areaGroupB.name + ' - '+ str(2*self.chipYDimension) + ' +  '+ str(self.chipYDimension) + ' * ' + posI + ' + ' + str(self.chipYDimension) + ' * ' + posJ + ';\n')
+
+
+        modHandle.write('subject to  comms_total: \n')                       
+        if(len(sumTerms) > 0):  
+            modHandle.write(' + '.join(sumTerms) + ' = comms;\n')                 
+        else:
+            modHandle.write('1 = comms;\n')                 
+
+        modHandle.write('\n\nend;')
+        
+

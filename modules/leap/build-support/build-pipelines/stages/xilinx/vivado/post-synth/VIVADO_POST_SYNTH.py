@@ -108,19 +108,26 @@ class PostSynthesize():
 
     newTclFile.write("report_timing_summary -file " + apm_name + ".map.twr\n")
 
+    newTclFile.write('dumpPBlockUtilization "link.util"\n')
+
     newTclFile.write("opt_design\n")
 
     newTclFile.write("report_utilization -file " + apm_name + ".opt.util\n")
 
+    newTclFile.write('dumpPBlockUtilization "opt.util"\n')
+
     newTclFile.write("write_checkpoint -force " + apm_name + ".opt.dcp\n")
 
     newTclFile.write("place_design -no_drc\n")
+
+    newTclFile.write('dumpPBlockUtilization "place.util"\n')
 
     newTclFile.write("phys_opt_design\n")
 
     newTclFile.write("write_checkpoint -force " + apm_name + ".map.dcp\n")
 
     newTclFile.write("report_utilization -file " + apm_name + ".map.util\n")
+    newTclFile.write('dumpPBlockUtilization "phyopt.util"\n')
 
     newTclFile.write("route_design\n")
 
@@ -129,6 +136,7 @@ class PostSynthesize():
     newTclFile.write("report_timing_summary -file " + apm_name + ".par.twr\n")
 
     newTclFile.write("report_utilization -hierarchical -file " + apm_name + ".par.util\n")
+    newTclFile.write('dumpPBlockUtilization "par.util"\n')
 
     newTclFile.write("report_drc -file " + topWrapper + ".drc\n")
 

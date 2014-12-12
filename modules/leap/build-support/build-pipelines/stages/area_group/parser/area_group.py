@@ -24,6 +24,10 @@ class AreaGroup(object):
         self.attributes = {}
 
     def __repr__(self):
-        platformRepr = 'AreaGroup: ' + self.name + ' Path: ' + str(self.sourcePath) + ' Area: ' + str(self.area) + ' XLoc: ' + str(self.xLoc) +  ' YLoc: ' + str(self.yLoc) + ' xDim ' + str(self.xDimension)  + ' yDim ' + str(self.yDimension) 
+        parent = 'None'
+        if(not (self.parent is None)):
+            parent = self.parent.name            
+
+        platformRepr = 'AreaGroup: ' + self.name + ' Path: ' + str(self.sourcePath) + ' Area: ' + str(self.area) + ' XLoc: ' + str(self.xLoc) +  ' YLoc: ' + str(self.yLoc) + ' xDim ' + str(self.xDimension)  + ' yDim ' + str(self.yDimension) +  ' Parent: ' + parent
         
         return platformRepr

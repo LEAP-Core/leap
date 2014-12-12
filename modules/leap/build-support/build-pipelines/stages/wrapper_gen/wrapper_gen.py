@@ -316,7 +316,10 @@ def _emitSynthModule(liModule,
     
     platform_ag = None
     if areaConstraints:
-         platform_ag = areaConstraints.constraints[localPlatformName + "_platform"]
+         # We may remove the platform module during compilation. 
+         platformAGName = localPlatformName + "_platform"
+         if(platformAGName in areaConstraints.constraints):
+             platform_ag = areaConstraints.constraints[platformAGName]
 
 
     ##
@@ -330,8 +333,8 @@ def _emitSynthModule(liModule,
         if (ch_suffix != ''):
             connection = connection + '.' + ch_suffix
 
-        # Are area groups being managed?
-        if (areaConstraints):
+        # Is the platform area group being managed?
+        if (platform_ag is not None):
             # These connections will be attached to the platform.  If the wires
             # are long then insert buffers in the path.
             n_buf = areaConstraints.numIOBufs(areaConstraints.constraints[root_name],
