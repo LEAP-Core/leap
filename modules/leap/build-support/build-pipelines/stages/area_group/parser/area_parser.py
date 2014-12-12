@@ -18,7 +18,6 @@ def parseAreaGroupConstraints(area_group_file):
         areaParser = yacc.yacc()
         areaParserCompiled = True
 
-    print "Parsing area file: " + str(area_group_file)
     areaGroupDescription = (open(area_group_file, 'r')).read()
     areaGroupConstraints = areaParser.parse(areaGroupDescription, lexer=areaLexer)
     return areaGroupConstraints

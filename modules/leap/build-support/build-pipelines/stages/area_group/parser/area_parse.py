@@ -28,7 +28,6 @@ def p_constraint_list(p):
     # will be building the AST. So we just pass a list back. 
 
     if(len(p) > 1):
-        print "AREAGROUP_PARSE: " + str(p[1]) 
         p[0] = [p[1]] + p[2]
     else:
         p[0] = []
