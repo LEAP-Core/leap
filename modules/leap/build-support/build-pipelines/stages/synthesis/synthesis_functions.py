@@ -433,7 +433,7 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
     if(len(templates) != 1):
         print "Found more than one XST template file: " + str(templates) + ", exiting\n" 
     templateFile = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + templates[0]
-    xstTemplate = parseAWBFile(templateFile)
+    xstTemplate = parameter_substitution.parseAWBFile(templateFile)
                   
 
     [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
