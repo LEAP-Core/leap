@@ -9,12 +9,12 @@ Name=Build Pipeline IVerilog
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
-RootName=IVerilog Build Pipeline
+RootName=Verilog Simulator Build Pipeline
 RootProvides=build_pipeline
 
 [Model]
 DefaultAttributes=hybrid exe
-model=IVerilog Build Pipeline
+model=Verilog Simulator Build Pipeline
 
 [Interface builder]
 File=modules/leap/build-support/build-pipelines/stages/iface/iface.awb
@@ -28,17 +28,7 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/bluespec/bsv.awb
 Packagehint=leap
 
-[IVerilog Build Pipeline]
-File=modules/leap/build-support/build-pipelines/pipelines/verilog/verilog-build-pipeline.awb
-Packagehint=leap
 
-[IVerilog Build Pipeline/Requires]
-verilog_tool=IVerilog Build Tool
-software_tool=Software build tool
-iface_tool=Interface builder
-bsv_tool=BSV Build Tool (First Phase)
-wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
-li_module=LEAP LI Module Handler
 
 [BSV Build Tool (First Phase)/Params]
 BUILD_VERILOG=0
@@ -51,6 +41,19 @@ Packagehint=leap
 File=modules/leap/build-support/build-pipelines/stages/li_module/li_module.awb
 Packagehint=leap
 
+
 [IVerilog Build Tool]
 File=modules/leap/build-support/build-pipelines/stages/verilog/iverilog/verilog.awb
 Packagehint=leap
+
+[Verilog Simulator Build Pipeline]
+File=modules/leap/build-support/build-pipelines/pipelines/verilog/verilog-build-pipeline.awb
+Packagehint=leap
+
+[Verilog Simulator Build Pipeline/Requires]
+verilog_tool=IVerilog Build Tool
+li_module=LEAP LI Module Handler
+software_tool=Software build tool
+wrapper_gen_tool=Synthesis Boundary Wrapper generation tool
+iface_tool=Interface builder
+bsv_tool=BSV Build Tool (First Phase)

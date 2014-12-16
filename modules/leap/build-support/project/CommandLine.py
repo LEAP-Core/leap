@@ -6,6 +6,7 @@ import sys
 import string
 import Utils
 
+import ModuleList
 
 ##
 ## Build targets specified on the command line.

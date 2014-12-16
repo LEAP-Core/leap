@@ -227,10 +227,9 @@ class Floorplanner():
         def area_group_closure(moduleList):
 
              def area_group(target, source, env):
-                 modFile = 'areaGroup.mod'
-                 modHandle = open(modFile,'w')
 
-                 extra_area_factor = 1.15                
+                 extra_area_factor = 1.3                
+                 extra_area_offset = 150.0
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -271,8 +270,6 @@ class Floorplanner():
                  self.chipXDimension = -1
                  self.chipYDimension = -1               
                  
-                 self.variables = []
-
                  # Fill in any other information we obtanied about the
                  # area groups.
                  for constraint in constraints:
@@ -288,8 +285,8 @@ class Floorplanner():
                              # area group. This will wipe the affine
                              # coefficients that we filled in during
                              # the previous loop.
-                             areaGroups[constraint.name].xDimension = [constraint.xDimension]
-                             areaGroups[constraint.name].yDimension = [constraint.yDimension]
+                             areaGroups[constraint.name].xDimension = constraint.xDimension
+                             areaGroups[constraint.name].yDimension = constraint.yDimension
                     
 
                      if(isinstance(constraint,AreaGroupResource)): 
@@ -335,7 +332,7 @@ class Floorplanner():
                      if((areaGroup.name in moduleResources) and ('SLICE' in moduleResources[areaGroup.name])):
                          areaGroup.area = moduleResources[areaGroup.name]['SLICE']
                      else:
-                         areaGroup.area = areaGroup.xDimension[0] * areaGroup.yDimension[0]
+                         areaGroup.area = areaGroup.xDimension * areaGroup.yDimension
 
                  # We've now built a tree of parent/child
                  # relationships, which we can use to remove area from
@@ -358,11 +355,12 @@ class Floorplanner():
                      # we might have gotten coefficients from the constraints.
                      if(areaGroupObject.xDimension is None):
                          areaGroupObject.xDimension = []
-                         areaGroupObject.yDimension = []                       
-                         moduleRoot = math.sqrt(areaGroupObject.area)
+                         areaGroupObject.yDimension = []  
+
+                         moduleRoot = math.sqrt(extra_area_factor * areaGroupObject.area+extra_area_offset)
                          for coef in affineCoefs:
-                             areaGroupObject.xDimension.append(coef*moduleRoot*extra_area_factor)
-                             areaGroupObject.yDimension.append(moduleRoot/coef*extra_area_factor)
+                             areaGroupObject.xDimension.append(coef*moduleRoot)
+                             areaGroupObject.yDimension.append(moduleRoot/coef)
         
                  # If we've been instructed to remove the platform module, purge it here. 
                  if(not self.emitPlatformAreaGroups):
@@ -374,104 +372,7 @@ class Floorplanner():
                                  del areaGroups[areaGroup]
 
 
-                                
-                 self.dumpILPRosen(modHandle, areaGroups)
-
-                 modHandle.close()
-                 # now that we've written out the file, solve it. 
-                 # Necessary to force ply rebuild.  Sad...
-                 import glpk 
-
-                 example = glpk.glpk(modFile)
-                 example._parm.tm_lim = 100 # value in milliseconds
-                 example._parm.it_lim = 1000 # value in milliseconds
-
-                 # This function is a copy of the solve function
-                 # provided by python-glpk.  However, because we need
-                 # to tweak some of the icop struct arguments, we must
-                 # expose this routine. 
-                 def solve_int(self, instantiate = True, bounds = True):
-                     #glp_term_out(GLP_OFF);                                                   
-                     if not self._ready:
-                         self.update()
-                     #glp_term_out(GLP_ON);                                                    
-                     if self._cols == None or self._rows == None:
-                         self._read_variables()
-                     if bounds:
-                         self._apply_bounds()
-                     if  glpk.glp_get_num_int(self._lp) == 0:   # problem is continuous              
-                         res = glpk.glp_simplex(self._lp, self._parm) # self._parm !!!              
-                     else:   # problem is MIP                                                  
-                         if self._tran:
-                             glpk.glp_mpl_build_prob(self._tran, self._lp);
-                         res = glpk.glp_simplex(self._lp, self._parm);  # ??? should use dual simplex ???                                                                            
-                         iocp_param = glpk.glp_iocp();
-                         glpk.glp_init_iocp(iocp_param);
-                         #iocp_param.tm_lim=600*1000
-
-                         iocp_param.mip_gap=0.95
-
-                         glpk.glp_intopt(self._lp, iocp_param);
-                         if self._tran:
-                             ret = glpk.glp_mpl_postsolve(self._tran, self._lp, glpk.GLP_MIP);
-                             if ret != 0:
-                                 print "Error on postsolving model"
-                                 raise AttributeError
-                     if instantiate:
-                         self._instantiate_solution()
-                     if res != 0:
-                         return None
-                     else:
-                         return glpk.glp_get_obj_val(self._lp);
-
-
-                                  
-                 print str(example._parm)
-                 example.update()
-                 solve_int(example)
-
-                 # dump interesting variables
-                 def dumpVariables(example):
-                     for variable in self.variables:
-                         print variable + ' is: ' + str(eval('example.' + variable).value()) 
-
-                 dumpVariables(example)
-
-                 # print out module locations 
-                 areaGroupNames = sorted([name for name in areaGroups])
-                 for areaGroupIndex in range(len(areaGroupNames)):
-                     areaGroup = areaGroups[areaGroupNames[areaGroupIndex]]
-
-                     areaGroup.xLoc = eval('example.xloc_' + areaGroup.name).value()
-                     areaGroup.yLoc = eval('example.yloc_' + areaGroup.name).value()
-
-                     # figure out the chose dimensions.
-                     # unfortunately, the tools may give 'None' for
-                     # some dimensions, if they were previously
-                     # defined...
-                     
-                     xDimension = eval('example.xdim_' + areaGroup.name).value()
-                     yDimension = eval('example.ydim_' + areaGroup.name).value()
-
-                     if(xDimension is None):
-                         areaGroup.xDimension = areaGroup.xDimension[0]
-                     else:
-                         areaGroup.xDimension = xDimension
-
-                     if(yDimension is None):
-                         areaGroup.yDimension = areaGroup.yDimension[0]
-                     else:
-                         areaGroup.yDimension = yDimension
-
-                     # If problem was not satisfiable, then all variables
-                     # are set to zero.  We should really give up and
-                     # clear all area groups, since this technically
-                     # results in a correct solution.
-                     if(areaGroup.xDimension < 1 or areaGroup.yDimension < 1):
-                         print "Failed to find solution to area group placement for: " + areaGroup.name
-                         exit(1)
-
-                     print str(areaGroup)
+                 areaGroups = self.solveILPPartial(areaGroups)
 
                  # Sort area groups topologically, annotating each area group
                  # with a sortIdx field.
@@ -541,13 +442,13 @@ class Floorplanner():
       
         modHandle.write('var comms;\n')                         
         modHandle.write('\n\nminimize dist: comms;\n\n')
-        self.variables += ['comms']
+        variables = ['comms']
 
         # first we need to establish the options for the module area groups
         for areaGroup in sorted(areaGroups):
             areaGroupObject = areaGroups[areaGroup]
             modHandle.write('\n# ' + str(areaGroupObject) + '\n\n')
-            self.variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
+            variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
             if(areaGroupObject.xLoc is None):
                 modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
                 modHandle.write('var yloc_' + areaGroupObject.name + ';\n')                         
@@ -563,7 +464,7 @@ class Floorplanner():
                 for dimensionIndex in range(len(areaGroupObject.xDimension)):
                     aspectName = areaGroupObject.name + '_' + str(dimensionIndex)
                     modHandle.write('var ' + aspectName + ' binary;\n')
-                    self.variables += [aspectName]
+                    variables += [aspectName]
                     dimsX.append(str(areaGroupObject.xDimension[dimensionIndex]) + ' * ' + aspectName)
                     dimsY.append(str(areaGroupObject.yDimension[dimensionIndex]) + ' * ' + aspectName)
                     dimSelectX.append(str(aspectName))
@@ -587,9 +488,9 @@ class Floorplanner():
                 modHandle.write('var xdim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xDimension[0]) + ';\n')
                 modHandle.write('var ydim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yDimension[0]) +';\n')
 
-            self.variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
+            variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
 
-            # Throw a bounding box on the location self.variables
+            # Throw a bounding box on the location variables
             if(areaGroupObject.xLoc is None):
                 modHandle.write('subject to xdim_' + areaGroupObject.name + '_high_bound:\n')
                 modHandle.write('xloc_' + areaGroupObject.name + ' <= ' + str(self.chipXDimension) + ' - 0.5 * xdim_' + areaGroupObject.name +';\n')
@@ -635,7 +536,7 @@ class Floorplanner():
                 satY = 'sat_ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
                 aBiggerX = 'sat_x_abigger_' + areaGroupA.name + '_' +  areaGroupB.name 
                 aBiggerY = 'sat_y_abigger_' + areaGroupA.name + '_' +  areaGroupB.name 
-                self.variables += [absX, absY, satX, satY, aBiggerX, aBiggerY]  
+                variables += [absX, absY, satX, satY, aBiggerX, aBiggerY]  
                 modHandle.write('var ' + absX + ';\n')
                 modHandle.write('var ' + absY + ';\n')
                 modHandle.write('var ' + satX + ' binary;\n')
@@ -736,13 +637,13 @@ class Floorplanner():
         # let's begin setting up the ILP problem 
         modHandle.write('var comms;\n')                         
         modHandle.write('\n\nminimize dist: comms;\n\n')
-        self.variables += ['comms']
+        variables = ['comms']
 
         # first we need to establish the options for the module area groups
         for areaGroup in sorted(areaGroups):
             areaGroupObject = areaGroups[areaGroup]
             modHandle.write('\n# ' + str(areaGroupObject) + '\n\n')
-            self.variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
+            variables += ['xloc_' + areaGroupObject.name, 'yloc_' + areaGroupObject.name]  
 
             if(areaGroupObject.xLoc is None):
                 modHandle.write('var xloc_' + areaGroupObject.name + ';\n')
@@ -751,7 +652,7 @@ class Floorplanner():
                 modHandle.write('var xloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xLoc) + ';\n')
                 modHandle.write('var yloc_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yLoc) + ';\n')
 
-            if(len(areaGroupObject.xDimension) > 1):
+            if(isinstance(areaGroupObject.xDimension, list)):
                 dimsX = []
                 dimsY = []
                 dimSelectX = []
@@ -759,7 +660,7 @@ class Floorplanner():
                 for dimensionIndex in range(len(areaGroupObject.xDimension)):
                     aspectName = areaGroupObject.name + '_' + str(dimensionIndex)
                     modHandle.write('var ' + aspectName + ' binary;\n')
-                    self.variables += [aspectName]
+                    variables += [aspectName]
                     dimsX.append(str(areaGroupObject.xDimension[dimensionIndex]) + ' * ' + aspectName)
                     dimsY.append(str(areaGroupObject.yDimension[dimensionIndex]) + ' * ' + aspectName)
                     dimSelectX.append(str(aspectName))
@@ -779,13 +680,13 @@ class Floorplanner():
                 modHandle.write(' + '.join(dimSelectY) + ' = 1;\n')
 
             else:
-                # Much simpler constraints when considering single shapes. 
-                modHandle.write('var xdim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xDimension[0]) + ';\n')
-                modHandle.write('var ydim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yDimension[0]) +';\n')
+                # Much simpler constraints when considering single shapes.                 
+                modHandle.write('var xdim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.xDimension) + ';\n')
+                modHandle.write('var ydim_' + areaGroupObject.name + ' = ' + str(areaGroupObject.yDimension) +';\n')
 
-            self.variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
+            variables += ['xdim_' + areaGroupObject.name, 'ydim_' + areaGroupObject.name]
 
-            # Throw a bounding box on the location self.variables
+            # Throw a bounding box on the location variables
             if(areaGroupObject.xLoc is None):
                 modHandle.write('subject to xdim_' + areaGroupObject.name + '_high_bound:\n')
                 modHandle.write('xloc_' + areaGroupObject.name + '+ xdim_' + areaGroupObject.name + ' <= ' + str(self.chipXDimension) + ';\n')
@@ -828,7 +729,7 @@ class Floorplanner():
                 posI = 'i_' + areaGroupA.name + '_' +  areaGroupB.name 
                 posJ = 'j_' + areaGroupA.name + '_' +  areaGroupB.name 
 
-                self.variables += [posI, posJ]
+                variables += [posI, posJ]
 
                 modHandle.write('var ' + posI + ' binary;\n')
                 modHandle.write('var ' + posJ + ' binary;\n')
@@ -839,7 +740,6 @@ class Floorplanner():
                 commsXY = 0 
                 if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
                    commsXY = 0 
-                   print "Examining, rejected due to empty box " + str(areaGroupA.name) + ' and ' + str(areaGroupB.name)
                 else:
                     # Area groups come in two types -- parents
                     # and children.  Children communicate only
@@ -876,7 +776,7 @@ class Floorplanner():
                     absX = 'xdist_' + areaGroupA.name + '_' +  areaGroupB.name 
                     absY = 'ydist_' + areaGroupA.name + '_' +  areaGroupB.name 
 
-                    self.variables += [absX, absY]
+                    variables += [absX, absY]
 
                     modHandle.write('var ' + absX + ';\n')
                     modHandle.write('var ' + absY + ';\n')
@@ -932,5 +832,139 @@ class Floorplanner():
             modHandle.write('1 = comms;\n')                 
 
         modHandle.write('\n\nend;')
-        
+        return variables
 
+    def solveILPProblem(self, modFile, areaGroups, variables):
+
+        # now that we've written out the file, solve it. 
+        # Necessary to force ply rebuild.  Sad...
+        import glpk 
+
+        example = glpk.glpk(modFile)
+        example._parm.tm_lim = 100 # value in milliseconds
+        example._parm.it_lim = 1000 # value in milliseconds
+
+        # This function is a copy of the solve function
+        # provided by python-glpk.  However, because we need
+        # to tweak some of the icop struct arguments, we must
+        # expose this routine. 
+        def solve_int(self, instantiate = True, bounds = True):
+            #glp_term_out(GLP_OFF);                                                   
+            if not self._ready:
+                self.update()
+            #glp_term_out(GLP_ON);                                                    
+            if self._cols == None or self._rows == None:
+                self._read_variables()
+            if bounds:
+                self._apply_bounds()
+            if  glpk.glp_get_num_int(self._lp) == 0:   # problem is continuous              
+                res = glpk.glp_simplex(self._lp, self._parm) # self._parm !!!              
+            else:   # problem is MIP                                                  
+                if self._tran:
+                    glpk.glp_mpl_build_prob(self._tran, self._lp);
+                res = glpk.glp_simplex(self._lp, self._parm);  # ??? should use dual simplex ???                                                                            
+                iocp_param = glpk.glp_iocp();
+                glpk.glp_init_iocp(iocp_param);
+                #iocp_param.tm_lim=600*1000
+
+                iocp_param.mip_gap=0.95
+
+                glpk.glp_intopt(self._lp, iocp_param);
+                if self._tran:
+                    ret = glpk.glp_mpl_postsolve(self._tran, self._lp, glpk.GLP_MIP);
+                    if ret != 0:
+                        print "Error on postsolving model"
+                        raise AttributeError
+            if instantiate:
+                self._instantiate_solution()
+            if res != 0:
+                return None
+            else:
+                return glpk.glp_get_obj_val(self._lp);
+
+
+                         
+        print str(example._parm)
+        example.update()
+        solve_int(example)
+
+        # dump interesting variables
+        def dumpVariables(example):
+            for variable in variables:
+                print variable + ' is: ' + str(eval('example.' + variable).value()) 
+
+        dumpVariables(example)
+
+        # print out module locations 
+        areaGroupNames = sorted([name for name in areaGroups])
+        for areaGroupIndex in range(len(areaGroupNames)):
+            areaGroup = areaGroups[areaGroupNames[areaGroupIndex]]
+
+            areaGroup.xLoc = eval('example.xloc_' + areaGroup.name).value()
+            areaGroup.yLoc = eval('example.yloc_' + areaGroup.name).value()
+
+            # figure out the chose dimensions.
+            # unfortunately, the tools may give 'None' for
+            # some dimensions, if they were previously
+            # defined...
+            
+            xDimension = eval('example.xdim_' + areaGroup.name).value()
+            yDimension = eval('example.ydim_' + areaGroup.name).value()
+
+            if(xDimension is None):
+                areaGroup.xDimension = areaGroup.xDimension[0]
+            else:
+                areaGroup.xDimension = xDimension
+
+            if(yDimension is None):
+                areaGroup.yDimension = areaGroup.yDimension[0]
+            else:
+                areaGroup.yDimension = yDimension
+
+            # If problem was not satisfiable, then all variables
+            # are set to zero.  We should really give up and
+            # clear all area groups, since this technically
+            # results in a correct solution.
+            if(areaGroup.xDimension < 1 or areaGroup.yDimension < 1):
+                print "Failed to find solution to area group placement for: " + areaGroup.name
+                exit(1)
+
+
+    def solveILPFull(areaGroups):
+         modFile = 'areaGroup.mod'
+         modHandle = open(modFile,'w')
+                        
+         variables = self.dumpILPRosen(modHandle, areaGroups)
+
+         modHandle.close()
+
+         self.solveILPProblem(modFile, areaGroups, variables)
+
+         return areaGroups
+   
+    def solveILPPartial(self, areaGroups):
+         areaGroupsPartial = {}
+         unplacedGroups = []
+         # fill in the new area group structure with previously placed area groups. 
+         for areaGroupName in areaGroups:
+             areaGroupObject = areaGroups[areaGroupName]
+             if(not areaGroupObject.xLoc is None):
+                 areaGroupsPartial[areaGroupName] = areaGroupObject
+             else:
+                 unplacedGroups += [areaGroupObject]
+             
+         # place groups in descending area order.
+         unplacedGroups.sort(key=lambda group: -1 * group.area)
+
+         for group in unplacedGroups:
+             areaGroupsPartial[group.name] = group
+             modFile = group.name + '_areaGroup.mod'
+             modHandle = open(modFile,'w')
+
+             variables = self.dumpILPRosen(modHandle, areaGroupsPartial)
+
+             modHandle.close()
+   
+             self.solveILPProblem(modFile, areaGroupsPartial, variables)
+         
+         return areaGroupsPartial

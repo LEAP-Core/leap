@@ -4,6 +4,7 @@ import re
 import SCons.Script  
 
 import model
+import synthesis_library
 
 #
 # Generate path string to add source file into the Synplify project
@@ -92,11 +93,21 @@ def getSRRResourcesClosureBase(module, attributes):
         ## Synplify conveniently provides LUT estimates that include a
         ## half-lut calculation. Thus dividing by 4 is correct for the 7 series. 
         ## still need to bake this code out. 
+        lutSlices = 0 
+        regSlices = 0 
+        resources['SLICE'] = ["0"]
+
         if ('LUT' in resources):
-            # Assume 4 LUTs per slice
-            resources['SLICE'] = [str(int(int(resources['LUT'][0]) / 4.0))]
+            lutSlices = int(int(resources['LUT'][0]) / 4.0)
+ 
+        if ('Reg' in resources):
+            regSlices = int(int(resources['Reg'][0]) / 8.0)
+
+        if(lutSlices > regSlices):
+            resources['SLICE'] = [str(lutSlices)]
         else:
-            resources['SLICE'] = ["0"]
+            resources['SLICE'] = [str(regSlices)]
+        
 
         resourceString = ':'.join([resource + ':' + resources[resource][0] for resource in resources]) + '\n'
 
@@ -204,10 +215,13 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
     else:
         module.moduleDependency['GEN_NGCS'] += [edfFile]
       
+    [moduleVerilogs, moduleVHDs] = synthesis_library.getModuleRTLs(moduleList, module)
+   
     sub_netlist = moduleList.env.Command(
       [edfFile, srrFile],
       [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'] +      
       sorted(module.moduleDependency['VERILOG']) +
+      moduleVerilogs + moduleVHDs +
       sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
       sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
       [ newPrjPath ] + clockFiles +
