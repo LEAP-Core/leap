@@ -228,7 +228,8 @@ class Floorplanner():
 
              def area_group(target, source, env):
 
-                 extra_area_factor = 1.15                
+                 extra_area_factor = 1.3                
+                 extra_area_offset = 150.0
 
                  # we should now assemble the LI Modules that we got
                  # from the synthesis run
@@ -354,11 +355,12 @@ class Floorplanner():
                      # we might have gotten coefficients from the constraints.
                      if(areaGroupObject.xDimension is None):
                          areaGroupObject.xDimension = []
-                         areaGroupObject.yDimension = []                       
-                         moduleRoot = math.sqrt(areaGroupObject.area)
+                         areaGroupObject.yDimension = []  
+
+                         moduleRoot = math.sqrt(extra_area_factor * areaGroupObject.area+extra_area_offset)
                          for coef in affineCoefs:
-                             areaGroupObject.xDimension.append(coef*moduleRoot*extra_area_factor)
-                             areaGroupObject.yDimension.append(moduleRoot/coef*extra_area_factor)
+                             areaGroupObject.xDimension.append(coef*moduleRoot)
+                             areaGroupObject.yDimension.append(moduleRoot/coef)
         
                  # If we've been instructed to remove the platform module, purge it here. 
                  if(not self.emitPlatformAreaGroups):
@@ -738,7 +740,6 @@ class Floorplanner():
                 commsXY = 0 
                 if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
                    commsXY = 0 
-                   print "Examining, rejected due to empty box " + str(areaGroupA.name) + ' and ' + str(areaGroupB.name)
                 else:
                     # Area groups come in two types -- parents
                     # and children.  Children communicate only
@@ -928,7 +929,6 @@ class Floorplanner():
                 print "Failed to find solution to area group placement for: " + areaGroup.name
                 exit(1)
 
-            print str(areaGroup)
 
     def solveILPFull(areaGroups):
          modFile = 'areaGroup.mod'
@@ -966,7 +966,5 @@ class Floorplanner():
              modHandle.close()
    
              self.solveILPProblem(modFile, areaGroupsPartial, variables)
-             print "AREAGROUP: " + group.name + " -> " + str(areaGroupsPartial)
-
          
          return areaGroupsPartial
