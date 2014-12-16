@@ -5,8 +5,10 @@ import re
 import sys
 import string
 import atexit
-from @ROOT_DIR_MODEL@ import  *
-from build_pipeline import  *
+import @ROOT_DIR_MODEL@ 
+import @ROOT_DIR_MODEL@.Module as Module 
+import @ROOT_DIR_MODEL@.ModuleList as ModuleList
+import build_pipeline
 
 SetOption('max_drift', 2)
 SetOption('implicit_cache', 1)
@@ -103,10 +105,10 @@ APM_NAME = env['DEFS']['APM_NAME']
 
 TMP_XILINX_DIR = env['DEFS']['TMP_XILINX_DIR']
 
-moduleList = ModuleList(env, defs['MODULE_LIST'], ARGUMENTS, COMMAND_LINE_TARGETS)
+moduleList = ModuleList.ModuleList(env, defs['MODULE_LIST'], ARGUMENTS, COMMAND_LINE_TARGETS)
 
 # we will build whatever the user wants us to build
-Build(moduleList)
+build_pipeline.Build(moduleList)
 
 #Set as default the aggregation of deps
 Default(moduleList.topDependency)

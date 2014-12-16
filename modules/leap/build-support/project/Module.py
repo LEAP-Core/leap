@@ -1,6 +1,7 @@
 # -*-Python-*-
 import os
 import ProjectDependency 
+import CommandLine
 
 class Module(ProjectDependency.ProjectDependency):
 
@@ -63,6 +64,19 @@ class Module(ProjectDependency.ProjectDependency):
     if not os.path.exists(empty_path):
       f = open(empty_path, 'w')
       f.close()
+
+  def getDependencies(self, key):
+    # we must check to see if the dependencies actually exist.                                                                                                                                                                              
+    # generally we have to make sure to remove duplicates                                                                                                                                                                                   
+    allDeps = []
+    if(self.moduleDependency.has_key(key)):
+      for dep in self.moduleDependency[key]:
+        if(allDeps.count(dep) == 0):
+          allDeps.extend([dep] if isinstance(dep, str) else dep)
+
+    # Return a list of unique entries, in the process converting SCons                                                                                                                                                                      
+    # dependence entries to strings.                                                                                                                                                                                                        
+    return list(set([str(dep) for dep in allDeps]))
 
 
   def wrapperName(self):
