@@ -63,6 +63,7 @@ class ModuleList:
       # do a pattern match on the synth boundary paths, which we need to build
       # the module structure
     self.env = env
+    self.rootDirectory = env.Dir('.').entry_path('')
     self.arguments = arguments
     self.cmdLineTgts = cmdLineTgts
     self.buildDirectory = env['DEFS']['BUILD_DIR']
@@ -94,8 +95,10 @@ class ModuleList:
     self.swLibs = Utils.clean_split(env['DEFS']['SW_LIBS'], sep = ' ')
     self.swLinkLibs = Utils.clean_split(env['DEFS']['SW_LINK_LIBS'], sep = ' ')
     self.m5BuildDir = env['DEFS']['M5_BUILD_DIR'] 
-    self.rootDirSw = env['DEFS']['ROOT_DIR_SW_MODEL']
-    self.rootDirInc = env['DEFS']['ROOT_DIR_SW_INC']
+    self.rootDirSw = Utils.rebase_if_not_abspath(env['DEFS']['ROOT_DIR_SW_MODEL'],
+                                                 self.rootDirectory)
+    self.rootDirInc = Utils.rebase_if_not_abspath(env['DEFS']['ROOT_DIR_SW_INC'],
+                                                  self.rootDirectory)
 
     if len(env['DEFS']['GIVEN_ELFS']) != 0:
       elf = ' -bd ' + str.join(' -bd ',Utils.clean_split(env['DEFS']['GIVEN_ELFS'], sep = ' '))
