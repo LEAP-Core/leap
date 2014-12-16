@@ -9,6 +9,19 @@ import parameter_substitution
 import wrapper_gen_tool 
 
 
+def getModuleRTLs(moduleList, module):
+    moduleVerilogs = []
+    moduleVHDs = []
+    MODULE_PATH =  model.get_build_path(moduleList, module) 
+    for v in moduleList.getDependencies(module, 'GEN_VERILOGS'):              
+        moduleVerilogs += [MODULE_PATH + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '/' + v]
+    for v in moduleList.getDependencies(module, 'GIVEN_VERILOGS'): 
+        moduleVerilogs += [MODULE_PATH + '/' + v]
+    for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
+        moduleVHDs += [MODULE_PATH + '/' + v]
+
+    return [moduleVerilogs, moduleVHDs] 
+
 # Construct a list of all generated and given Verilog and VHDL.  These
 # can appear anywhere in the code. The generated Verilog live in the
 # .bsc directory.
@@ -16,16 +29,15 @@ def globalRTLs(moduleList, rtlModules):
     globalVerilogs = moduleList.getAllDependencies('VERILOG_LIB')
 
     globalVHDs = []
+
     for module in rtlModules + [moduleList.topModule]:
-        MODULE_PATH =  model.get_build_path(moduleList, module) 
-        for v in moduleList.getDependencies(module, 'GEN_VERILOGS'):              
-            globalVerilogs += [MODULE_PATH + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '/' + v]
-        for v in moduleList.getDependencies(module, 'GIVEN_VERILOGS'): 
-            globalVerilogs += [MODULE_PATH + '/' + v]
-        for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
-            globalVHDs += [MODULE_PATH + '/' + v]
+         [moduleVerilogs, moduleVHDs] = getModuleRTLs(moduleList, module)
+         globalVerilogs += moduleVerilogs
+         globalVHDs += moduleVHDs
 
     return [globalVerilogs, globalVHDs] 
+
+
 
 # produce an XST-consumable prj file from a global template. 
 # not that the top level file is somehow different.  Each module has
