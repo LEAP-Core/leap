@@ -2,8 +2,8 @@
 #* Generic FPGA build pipeline
 #********************************************************************/
 
-%name IVerilog Build Pipeline
-%desc IVerilog Build Pipeline
+%name Verilog Simulator Build Pipeline
+%desc Verilog Simulator Build Pipeline
 %attributes tool
 
 %provides build_pipeline
