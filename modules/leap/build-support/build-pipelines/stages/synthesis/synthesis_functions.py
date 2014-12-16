@@ -19,6 +19,10 @@ def getModuleRTLs(moduleList, module):
         moduleVerilogs += [MODULE_PATH + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
         moduleVHDs += [MODULE_PATH + '/' + v]
+    for v in moduleList.getDependencies(module, 'GIVEN_VHDLS'):
+        print "VHDL:" +  str(v) 
+        moduleVHDs += [model.Source.Source(MODULE_PATH + '/' + v.file, v.attributes)]
+
 
     return [moduleVerilogs, moduleVHDs] 
 
