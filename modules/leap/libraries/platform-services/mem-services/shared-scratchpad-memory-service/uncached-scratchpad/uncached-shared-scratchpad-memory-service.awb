@@ -1,0 +1,9 @@
+%name Uncached Shared Scratchpad Memory Service
+%desc Uncached Shared Scratchpad Memory Service
+
+%provides uncached_shared_scratchpad_memory_service
+
+%public uncached-shared-scratchpad-client.bsv
+%public uncached-shared-scratchpad-controller.bsv
+%public uncached-shared-scratchpad-interfaces.bsv
+
