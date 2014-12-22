@@ -163,7 +163,7 @@ interface COH_DM_CACHE#(type t_CACHE_ADDR,
     method Action flushReq(t_CACHE_ADDR addr);
     method Action invalOrFlushWait();
     
-`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     // Insert a memory fence.
     method Action fence(COH_DM_CACHE_FENCE_TYPE fenceType);
 `endif
@@ -173,7 +173,7 @@ interface COH_DM_CACHE#(type t_CACHE_ADDR,
     // Return the number of write requests being processed now (0, 1, or 2)
     method Bit#(2) numWriteProcessed();
 
-`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     // Test&set request and response
     method Action testAndSetReq(t_CACHE_ADDR addr, 
                                 t_CACHE_WORD val, 
@@ -557,7 +557,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     // Incoming activated requests from the network.
     FIFOF#(t_CACHE_REQ) remoteReqQ <- mkFIFOF();
 
-`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     // Incoming fence request info
     FIFOF#(Tuple2#(Bool, Bool)) localFenceInfoQ <- mkFIFOF();
 `endif
@@ -566,7 +566,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     FIFO#(Tuple2#(t_CACHE_REQ, Bool)) fillReqQ <- mkFIFO();
     FIFO#(t_CACHE_LOAD_RESP) readRespQ <- mkBypassFIFO();
 
-`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     FIFO#(t_CACHE_LOAD_RESP) testSetRespQ <- mkBypassFIFO();
 `endif
 
@@ -775,7 +775,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                   Bool)) curReq <- mkWire();
 
 
-`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     
     PulseWire readPendingW <- mkPulseWire();
     PulseWire writePendingW <- mkPulseWire();
@@ -849,7 +849,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         let req_buf_free = (numFreeReqBufSlots.value() > 2);
         let is_fence_req = False;
         
-`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
         //
         // Fence request process condition:
         // All retry queues are empty and cache lookup pipeline (cacheLookupQ) 
@@ -988,7 +988,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         updateReqArbW.send();
     endrule
 
-`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     //
     // startFenceReq --
     //     All local writes are cleared. Dequeue the fence request from local 
@@ -1464,7 +1464,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
             entryFilter.remove(idx);
             reqInfo_writeData.free(f.writeDataIdx);
             numFreedSlots.wset(2);
-`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
             if (f.isTestSet)
             begin
                 t_CACHE_LOAD_RESP resp;
@@ -1615,7 +1615,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                 getsUncacheableW.send();
             end
         end
-`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
         else if (f.oldVal matches tagged Valid .old_val) // test and set response
         begin
             resp.val = old_val;
@@ -1862,7 +1862,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         noAction;
     endmethod
 
-`ifndef COHERENT_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
     method Action fence(COH_DM_CACHE_FENCE_TYPE fenceType);
         Bool check_read  = False;
         Bool check_write = False;
@@ -1912,7 +1912,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
          return n;
     endmethod
     
-`ifndef COHERENT_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
+`ifndef SHARED_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
     method Action testAndSetReq(t_CACHE_ADDR addr, 
                                 t_CACHE_WORD val, 
                                 t_CACHE_MASK byteWriteMask, 
