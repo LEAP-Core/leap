@@ -36,7 +36,13 @@ def _generate_synplify_include(file):
     if(type == 'unknown'):
         return ''
 
-    return 'add_file -' + type + prefix + ' \"'+ directoryFix + file + '\"\n'
+    # since some files may not exist, we place a check around all
+    # files.  This simplifies dependency tracking since we do not have
+    # a reliable verilog scanner.
+    fileInclude = 'if {[file exists \"'+ directoryFix + file + '\"]} {'    
+    fileInclude += 'add_file -' + type + prefix + ' \"'+ directoryFix + file + '\"}\n'
+
+    return fileInclude
 
 
 def _filter_file_add(file, moduleList):
@@ -216,7 +222,7 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
         module.moduleDependency['GEN_NGCS'] += [edfFile]
       
     [moduleVerilogs, moduleVHDs] = synthesis_library.getModuleRTLs(moduleList, module)
-   
+
     sub_netlist = moduleList.env.Command(
       [edfFile, srrFile],
       [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'] +      
