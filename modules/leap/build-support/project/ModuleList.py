@@ -18,6 +18,7 @@ import Utils
 import AWBParams
 import ProjectDependency
 import CommandLine
+import Source
 
 # Some helper functions for navigating the build tree
 
@@ -63,6 +64,30 @@ class ModuleList:
       # do a pattern match on the synth boundary paths, which we need to build
       # the module structure
     self.env = env
+
+    CommandBaseline = env.Command
+
+    # override certain scons build functions to de-sugar
+    # build-pipeline's object types.
+
+    def CommandOverride(tgts, srcs, cmds):
+        # did we get a flat object?
+        srcsSugared = srcs
+        if(not isinstance(srcs, list)):
+            srcsSugared = [srcs]
+
+        modifiedSrcs = []
+        #might want convert dependencies here.        
+        for src in srcsSugared:           
+            if(isinstance(src, Source.Source)):
+                modifiedSrcs.append(str(src))
+            else:
+                modifiedSrcs.append(src)
+
+        return CommandBaseline(tgts, modifiedSrcs, cmds)
+
+    self.env.Command = CommandOverride    
+
     self.arguments = arguments
     self.cmdLineTgts = cmdLineTgts
     self.buildDirectory = env['DEFS']['BUILD_DIR']
