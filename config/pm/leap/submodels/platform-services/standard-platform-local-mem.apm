@@ -36,7 +36,7 @@ Packagehint=leap
 shared_memory_service=Null Shared Memory Services
 scratchpad_memory_service=Scratchpad Memory Service
 central_cache_service=Central Cache Service
-coherent_scratchpad_memory_service=Coherent Scratchpad Memory Service
+shared_scratchpad_memory_service=Shared Scratchpad Memory Service
 
 [Starter Service]
 File=modules/leap/libraries/platform-services/starter-service/starter-service.awb
@@ -107,12 +107,34 @@ File=modules/leap/libraries/platform-services/common-services/stdio-service/stdi
 Packagehint=leap
 
 [Coherent Scratchpad Memory Service]
-File=modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service/coherent-scratchpad-memory-service.awb
+File=modules/leap/libraries/platform-services/mem-services/shared-scratchpad-memory-service/coherent-scratchpad/coherent-scratchpad-memory-service.awb
 Packagehint=leap
 
 [Coherent Scratchpad Memory Service/Requires]
 coherent_cache=Coherent Cache Managers
 
 [Coherent Cache Managers]
-File=modules/leap/libraries/platform-services/mem-services/coherent-scratchpad-memory-service/cache/coherent-cache.awb
+File=modules/leap/libraries/platform-services/mem-services/shared-scratchpad-memory-service/coherent-scratchpad/cache/coherent-cache.awb
+Packagehint=leap
+
+[Uncached Shared Scratchpad Memory Service]
+File=modules/leap/libraries/platform-services/mem-services/shared-scratchpad-memory-service/uncached-scratchpad/uncached-shared-scratchpad-memory-service.awb
+Packagehint=leap
+
+[Shared Scratchpad Memory Service]
+File=modules/leap/libraries/platform-services/mem-services/shared-scratchpad-memory-service/shared-scratchpad-memory-service.awb
+Packagehint=leap
+
+[Shared Scratchpad Memory Service/Requires]
+uncached_shared_scratchpad_memory_service=Uncached Shared Scratchpad Memory Service
+cached_shared_scratchpad_memory_service=Cached Shared Scratchpad Memory Service
+shared_scratchpad_memory_common=Shared Scratchpad Memory Common Definitions
+coherent_scratchpad_memory_service=Coherent Scratchpad Memory Service
+
+[Shared Scratchpad Memory Common Definitions]
+File=modules/leap/libraries/platform-services/mem-services/shared-scratchpad-memory-service/common/shared-scratchpad-common.awb
+Packagehint=leap
+
+[Cached Shared Scratchpad Memory Service]
+File=modules/leap/libraries/platform-services/mem-services/shared-scratchpad-memory-service/cached-scratchpad/cached-shared-scratchpad-memory-service.awb
 Packagehint=leap

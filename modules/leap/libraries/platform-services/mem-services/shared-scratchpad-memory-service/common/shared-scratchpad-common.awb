@@ -1,0 +1,26 @@
+%name Shared Scratchpad Memory Common Definitions
+%desc Shared Scratchpad Memory Common Definitions
+
+%provides shared_scratchpad_memory_common
+
+%public shared-memory-interfaces.bsv
+%public shared-scratchpad-common-definitions.bsv
+%public shared-scratchpad-memory-utils.bsv
+
+%param --global SHARED_SCRATCHPAD_DEBUG_ENABLE                       1 "Enables the shared scratchpad debugging"
+%param --global SHARED_SCRATCHPAD_MULTI_CONTROLLER_ENABLE            0  "0 Use single/centralized controller and central cache, 1 use multiple controllers and central caches"
+%param --global SHARED_SCRATCHPAD_REQ_RESP_LINK_TYPE                 0  "0 Use non-token ring, 1 use token ring"
+
+%param --global SHARED_SCRATCHPAD_PVT_CACHE_ENTRIES               1024  "Shared scratchpad client private cache entries (must be a power of 2)"
+%param --global SHARED_SCRATCHPAD_PVT_CACHE_PREFETCH_LEARNER_NUM    32  "Number of prefetch learners in scratchpad private cache (must be a power of 2)"
+%param --global SHARED_SCRATCHPAD_PVT_CACHE_PREFETCH_ENABLE          0  "Enable scratchpad private cache prefetcher"
+
+%param --global SHARED_SCRATCHPAD_REQ_MERGE_ENABLE                   0  "Enables merging multiple reads accessing the same cacheline"
+%param --global SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE             0  "Enables pipelined fence support"
+%param --global SHARED_SCRATCHPAD_TEST_AND_SET_ENABLE                0  "Enables atomic testAndSet operation support"
+
+%param --global SHARED_SCRATCHPAD_MAX_CLIENT_NUM                    32  "Maximum number of shared scratchpad clients per controller"
+%param --global SHARED_SCRATCHPAD_MAX_CONTROLLER_NUM                 4  "Maximum number of shared scratchpad controllers in a shared memory region"
+
+%param --global SHARED_SCRATCHPAD_MEMORY_ADDR_BITS                  40  "Word-level address bits per shared scratchpad domain"
+

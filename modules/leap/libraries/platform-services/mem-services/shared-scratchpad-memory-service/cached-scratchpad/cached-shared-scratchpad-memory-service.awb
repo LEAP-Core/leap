@@ -1,0 +1,7 @@
+%name Cached Shared Scratchpad Memory Service
+%desc Cached Shared Scratchpad Memory Service
+
+%provides cached_shared_scratchpad_memory_service
+
+%public cached-shared-scratchpad-controller.bsv
+
