@@ -63,6 +63,11 @@ def one_line_cmd(cmd, shell=True):
     return output.split('\n', 1)[0]
 
 def execute(cmd, shell=True):
+    msg = cmd
+    if (isinstance(msg, list)):
+        msg = ' '.join(msg)
+    print "Exec: " + msg
+
     return subprocess.check_call(cmd, shell=shell)
 
 ##
