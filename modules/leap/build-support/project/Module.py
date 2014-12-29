@@ -2,6 +2,7 @@
 import os
 import ProjectDependency 
 import CommandLine
+import Source
 
 class Module(ProjectDependency.ProjectDependency):
 
@@ -50,6 +51,13 @@ class Module(ProjectDependency.ProjectDependency):
     # seems to generate.  these should be inserted by
     # downstream tools 
     self.moduleDependency = sources 
+
+
+    # Annotate source objects with path information
+    for sourceType in self.moduleDependency:
+        for source in self.moduleDependency[sourceType]:
+            if(isinstance(source,Source.Source)):
+                source.attributes['buildPath'] = buildPath
           
     # Make empty EMPTY_params_override Bluespec and C files.  When a module
     # has no overrides, its override file will link to this file.  We could

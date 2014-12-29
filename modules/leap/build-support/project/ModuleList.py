@@ -229,19 +229,20 @@ class ModuleList:
     if(self.topModule.moduleDependency.has_key(key)):
       for dep in self.topModule.moduleDependency[key]:
         if(allDeps.count(dep) == 0):
-          allDeps.extend([dep] if isinstance(dep, str) else dep)
+          allDeps.extend(dep if isinstance(dep, list) else [dep])
     for module in self.moduleList:
       if(module.moduleDependency.has_key(key)):
         for dep in module.moduleDependency[key]: 
           if(allDeps.count(dep) == 0):
-            allDeps.extend([dep] if isinstance(dep, str) else dep)
+            print str(dep)
+            allDeps.extend(dep if isinstance(dep, list) else [dep])
 
     if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
 
     # Return a list of unique entries, in the process converting SCons
     # dependence entries to strings.
-    return list(set([str(dep) for dep in allDeps]))
+    return list(set(ProjectDependency.convertDependencies(allDeps)))
 
   def getDependencies(self, module, key):
     allDeps = module.getDependencies(key)

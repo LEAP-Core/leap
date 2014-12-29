@@ -6,8 +6,8 @@ import traceback
 class Source():
 
     def dump(self):
-        print "Module: " + self.file + "\n"
-        print "\tBuildPath: " + str(self.attributes) + "\n"
+        print "File: " + self.file + "\n"
+        print "\tAttributes: " + str(self.attributes) + "\n"
     
     def __init__(self, fileName, attributes):
         self.file = fileName

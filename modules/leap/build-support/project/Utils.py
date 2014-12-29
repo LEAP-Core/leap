@@ -12,6 +12,8 @@ import sys
 import string
 import subprocess
 
+import Source
+
 ##
 ## clean_split --
 ##     Split a string into a list using specified separator (default ':'),
@@ -144,4 +146,7 @@ def dictionary_list_create_append(dictionary, key, value):
 ## path.  
 ##
 def modify_path_hw(path):
-    return 'hw/' + path 
+    if(isinstance(path,str)):
+        return 'hw/' + path 
+    if(isinstance(path, Source.Source)):
+        return 'hw/' + path.attributes['buildPath'] + '/' + path.file
