@@ -95,11 +95,13 @@ class Software():
 
             # CPPPATH defines both gcc include path and dependence path for
             # SCons.  The '#' forces paths to be relative to the root of the build.
+            iface_inc = Utils.rebase_if_not_abspath('iface/build/include',
+                                                    moduleList.rootDirectory)
             sw_env = moduleList.env.Clone(CCFLAGS = copt_flags + cc_flags,
                                           LINKFLAGS = copt_flags,
                                           CPPPATH = [ '#/' + moduleList.rootDirInc,
                                                       '#/' + moduleList.rootDirSw,
-                                                      '#/iface/build/include',
+                                                      '#/' + iface_inc,
                                                       '.' ] + inc_paths)
         
             # Scons does not use the external environment. If an external environment 
@@ -117,7 +119,7 @@ class Software():
             sw_env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
             moduleList.env.Export('sw_env')
             sw_build_dir = sw_env['DEFS']['ROOT_DIR_SW'] + '/obj'
-            sw_objects = moduleList.env.SConscript([moduleList.rootDirSw + '/SConscript'],
+            sw_objects = moduleList.env.SConscript(['#' + moduleList.rootDirSw + '/SConscript'],
                                                    variant_dir = sw_build_dir,
                                                    duplicate = 0)
         
@@ -170,7 +172,7 @@ class Software():
            
             def generate_exe_wrapper(target, source, env):
                 
-                wrapper_handle = open(exe_wrapper_cpp,'w')
+                wrapper_handle = open(str(target[0]),'w')
 
                 wrapper_handle.write('#include "project-hybrid-init.h"\n')            
                 wrapper_handle.write('#include "project-utils.h"\n')            
@@ -243,7 +245,7 @@ class Software():
                 connections = []
                 # filter out build_tree connections.  These are not real                                                                                                      
 
-                for connection in parseLogfiles(all_logs):
+                for connection in parseLogfiles([str(s) for s in source]):
                     connections.append(connection)
                     # Currently, all connections come from this platform.
                     # TODO: Fix this assumption
@@ -264,7 +266,7 @@ class Software():
                     module.putObjectCode('GIVEN_LOGS',relativeLogs)
 
                 # dump graph representation. 
-                pickleHandle = open(li_graph, 'wb')
+                pickleHandle = open(str(target[0]), 'wb')
                 pickle.dump(fullLIGraph, pickleHandle, protocol=-1)
                 pickleHandle.close()
 

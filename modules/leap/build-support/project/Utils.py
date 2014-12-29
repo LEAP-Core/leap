@@ -11,6 +11,7 @@ import re
 import sys
 import string
 import subprocess
+import SCons.Errors
 
 import Source
 
@@ -20,7 +21,10 @@ import Source
 ##     dropping empty entries.
 ##
 def clean_split(list, sep=':'):
-    return [x for x in list.split(sep) if x != '' ]
+    if (sep != ''):
+        return [x for x in list.split(sep) if x != '' ]
+    else:
+        return [list]
 
 ##
 ## rebase_directory --
@@ -54,18 +58,19 @@ def transform_string_list(str, sep, prefix, suffix):
     
 ##
 ## one_line_cmd --
-##     Issue a shell command and return the first line of output
+##     Issue a command and return the first line of output
 ##
-def one_line_cmd(cmd):
-    p = os.popen(cmd)
-    r = p.read().rstrip()
-    p.close()
-    return r
+def one_line_cmd(cmd, shell=True):
+    output = subprocess.check_output(cmd, shell=shell)
+    return output.split('\n', 1)[0]
 
-def execute(cmd):
-    p = subprocess.Popen(cmd, shell=True)
-    sts = os.waitpid(p.pid, 0)[1]
-    return sts
+def execute(cmd, shell=True):
+    msg = cmd
+    if (isinstance(msg, list)):
+        msg = ' '.join(msg)
+    print "Exec: " + msg
+
+    return subprocess.check_call(cmd, shell=shell)
 
 ##
 ## awb_resolver --
@@ -123,12 +128,33 @@ def checkFilePath(prefix, path):
 ##     Returns a modified relative path according to the start 
 ##     directory, or an unmodified absolute path. 
 ##
-
 def rel_if_not_abspath(path, start=os.curdir):
-    if(path != os.path.abspath(path)):
+    if (path != os.path.abspath(path)):
         return os.path.relpath(path, start)
-    else:    
+    else:
         return path
+
+
+##
+## rebase_if_not_abspath --
+##     Returns a rebased path according to the start directory, or an
+##     unmodified absolute path.
+##
+##     If sep is not empty the treat path as a collection of paths separated
+##     by sep.
+##
+def rebase_if_not_abspath(path, start=os.curdir, sep=''):
+    paths = clean_split(path, sep)
+
+    r_paths = []
+    for p in paths:
+        if (path != os.path.abspath(path)):
+            r_paths.append(os.path.join(start, p))
+        else:
+            r_paths.append(p)
+
+    return sep.join(r_paths)
+
 
 ##
 ## dictionary_list_create_append -- Checks dictionary to see if key
@@ -136,7 +162,7 @@ def rel_if_not_abspath(path, start=os.curdir):
 ##     entry in the dictionary and sets to value.
 ##
 def dictionary_list_create_append(dictionary, key, value):
-    if(key in dictionary):
+    if (key in dictionary):
         dictionary[key].append(value)
     else:
         dictionary[key] = value

@@ -11,9 +11,6 @@ import @ROOT_DIR_MODEL@.Module as Module
 import @ROOT_DIR_MODEL@.ModuleList as ModuleList
 import build_pipeline
 
-SetOption('max_drift', 2)
-SetOption('implicit_cache', 1)
-
 defs = {
     'ALL_HW_DIRS'        : '@ALL_HW_DIRS@',
     'APM_FILE'           : '@APM_FILE@',
@@ -66,25 +63,13 @@ defs = {
 }
 
 # Propagate environment from external state
-env = Environment(ENV = os.environ, DEFS = defs)
-env['ENV']['SHELL'] = '/bin/sh'
+Import('env')
+env = env.Clone(DEFS = defs)
 
 env['DEFS']['ROOT_DIR_HW_MODEL'] = env['DEFS']['ROOT_DIR_HW'] + '/' + \
                                    env['DEFS']['ROOT_DIR_MODEL'];
 env['DEFS']['ROOT_DIR_SW_MODEL'] = env['DEFS']['ROOT_DIR_SW'] + '/' + \
                                    env['DEFS']['ROOT_DIR_MODEL'];
-
-env.Decider('MD5-timestamp')
-
-
-##
-## env.Clone() is new as of 0.97.  It used to be called Copy().
-##
-import SCons.Environment
-try:
-    SCons.Environment.Environment.Clone
-except AttributeError:
-    SCons.Environment.Environment.Clone = SCons.Environment.Environment.Copy
 
 
 ############################################################################
@@ -110,9 +95,6 @@ moduleList = ModuleList.ModuleList(env, defs['MODULE_LIST'], ARGUMENTS, COMMAND_
 
 # we will build whatever the user wants us to build
 build_pipeline.Build(moduleList)
-
-#Set as default the aggregation of deps
-Default(moduleList.topDependency)
 
 
 ##
@@ -171,3 +153,6 @@ def print_build_failures():
 
 atexit.register(print_build_failures)
 
+
+top = moduleList.topDependency
+Return('top')

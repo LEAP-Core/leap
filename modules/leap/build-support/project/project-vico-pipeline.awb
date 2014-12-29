@@ -26,6 +26,7 @@
 %library /usr/lib64/librt.so
 
 %makefile Makefile.top.template
+%scons %main    SConstruct.top.template
 %scons %top     SCons.top.pipeline.template
 %scons %library ModuleList.py
 %scons %library Module.py

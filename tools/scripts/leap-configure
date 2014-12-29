@@ -1421,9 +1421,14 @@ sub generate_makefile_top {
     }
 
     # Generate scons files
-    $template = Leap::Build::get_scons_root_template($model, 'top');
+    $template = Leap::Build::get_scons_root_template($model, 'main');
     if (defined($template)) {
         my $scons = Leap::Util::path_append($builddir, "SConstruct");
+        Leap::Templates::do_replacements($template, $scons, $replacements_r);
+    }
+    $template = Leap::Build::get_scons_root_template($model, 'top');
+    if (defined($template)) {
+        my $scons = Leap::Util::path_append($builddir, "SConscript");
         Leap::Templates::do_replacements($template, $scons, $replacements_r);
     }
 
