@@ -14,4 +14,6 @@
 %scons %library VIVADO_POST_SYNTH.py
 %sources -t VIVADO_TCL_DEFINITION -v PRIVATE vivado-timing-library.xdc
 %sources -t VIVADO_TCL_DEFINITION -v PRIVATE vivado-area-library.xdc
+%sources -t VIVADO_TCL_ALGEBRA    -v PRIVATE vivado-clock-dividers.xdc
+
 
