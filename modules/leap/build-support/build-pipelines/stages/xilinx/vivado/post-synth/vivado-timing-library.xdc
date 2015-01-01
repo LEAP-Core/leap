@@ -13,9 +13,7 @@
 proc annotateClockCrossing {src_cells dst_cells} {
 
     # check inputs -- sometimes things may have been optimized away. 
-    puts "Cells length:"
-    puts $src_cells
-    puts $dst_cells
+
     if { [llength $src_cells] && [llength $dst_cells] } {
     
         set dst_clock          [get_clocks -of_objects $dst_cells] 
