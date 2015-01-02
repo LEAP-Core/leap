@@ -1,0 +1,29 @@
+# -*-Python-*-
+
+import os
+
+SetOption('max_drift', 2)
+SetOption('implicit_cache', 1)
+
+# Propagate environment from external state
+env = Environment(ENV = os.environ)
+env['ENV']['SHELL'] = '/bin/sh'
+
+env.Decider('MD5-timestamp')
+
+##
+## env.Clone() is new as of 0.97.  It used to be called Copy().
+##
+import SCons.Environment
+try:
+    SCons.Environment.Environment.Clone
+except AttributeError:
+    SCons.Environment.Environment.Clone = SCons.Environment.Environment.Copy
+
+##
+## The real build rules are in a local SConscript file, allowing this tree
+## to be built as part of a sub-tree.
+##
+build = env.SConscript('SConscript', exports='env')
+
+Default(build)

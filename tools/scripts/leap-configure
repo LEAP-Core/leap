@@ -1235,54 +1235,77 @@ sub __make_symlinks {
 
     # for each src file, generate symlink in $my_dir
     my $base_dir = $module->base_dir();
-    my @l = ();
+    my @object_list = ();
     my @restr = ();
 
     my @types = $module->source_types();
     foreach my $t (@types) {
         if (($t =~ /$type_include_regexp/) && ! ($t =~ /$type_exclude_regexp/)) {
             if ($private) {
-                push(@l, $module->sources($t, "PRIVATE"));
+                push(@object_list, $module->sourceobjects($t, "PRIVATE"));
             }
             if ($public) {
-                push(@l, $module->sources($t, "PUBLIC"));
+                push(@object_list, $module->sourceobjects($t, "PUBLIC"));
                 if (defined($restricted_dir)) {
-                    push(@restr, $module->sources($t, "PUBLIC"));
+                    push(@restr, $module->sourceobjects($t, "PUBLIC"));
                 }
             }
         }
     }
 
-    foreach my $f (@l) {
-        my $src = Asim::resolve(Leap::Util::path_append($base_dir,$f));
-        my $tgt = Leap::Util::path_append($my_dir,$f);
+    foreach my $object (@object_list) {
+        # Objects can have their own list of files.     
+        my @sources = $object->files();
+        my $attributes = $object->getAllAttributes();
+        my $library_extension = "";
 
-        if (! defined($src) || ! -e $src) {
-          Leap::Util::WARN_AND_DIE("Module file $f does not exist in $base_dir");
+        # To deal with Xilinx VHDL, we make use of VHDL libraries. 
+        if(scalar(keys($attributes))) {
+            if(exists $attributes->{'lib'}) {
+                $library_extension = $attributes->{'lib'} . "/"
+            }
+        } 
+
+        foreach my $file (@sources) {
+            my $extended_dir = $my_dir . '/' . $library_extension;
+            my $src = Asim::resolve(Leap::Util::path_append($base_dir, $file));
+            my $tgt = Leap::Util::path_append($extended_dir, $file);
+         
+            # make directory if it doesn't exist. 
+            unless(-e $extended_dir) {
+                mkdir($extended_dir);
+            }
+
+            if (! defined($src) || ! -e $src) {
+              Leap::Util::WARN_AND_DIE("Module file $file does not exist in $base_dir");
+            }
+            
+            checkFileName($module, $src, $tgt);
+
+            # make src relative
+            my $relsrc = File::Spec->abs2rel($src, dirname($tgt));
+            $status = system("ln -f -s $relsrc $tgt");
         }
-        
-        checkFileName($module, $src, $tgt);
-
-        # make src relative
-        my $relsrc = File::Spec->abs2rel($src, dirname($tgt));
-        $status = system("ln -f -s $relsrc $tgt");
     }
 
     ##
     ## A second set of links in the "src/include/awb/restricted" directory
     ## so the public include hierarchy is simpler in C++.
     ##
-    foreach my $f (@restr) {
-        my $src = Asim::resolve(Leap::Util::path_append($base_dir,$f));
-        my $tgt = Leap::Util::path_append($restricted_dir,$f);
+    foreach my $object (@restr) {
+        my @sources = $object->files();
+        foreach my $file (@sources) {
+            my $src = Asim::resolve(Leap::Util::path_append($base_dir, $file));
+            my $tgt = Leap::Util::path_append($restricted_dir, $file);
 
-        if (! -e $src) {
-          Leap::Util::WARN_AND_DIE("Module file $f does not exist in $base_dir");
+            if (! -e $src) {
+              Leap::Util::WARN_AND_DIE("Module file $file does not exist in $base_dir");
+            }
+            
+            # make src relative
+            my $relsrc = File::Spec->abs2rel($src, dirname($tgt));
+            $status = system("ln -f -s $relsrc $tgt");
         }
-        
-        # make src relative
-        my $relsrc = File::Spec->abs2rel($src, dirname($tgt));
-        $status = system("ln -f -s $relsrc $tgt");
     }
 
     # recurse
@@ -1398,9 +1421,14 @@ sub generate_makefile_top {
     }
 
     # Generate scons files
-    $template = Leap::Build::get_scons_root_template($model, 'top');
+    $template = Leap::Build::get_scons_root_template($model, 'main');
     if (defined($template)) {
         my $scons = Leap::Util::path_append($builddir, "SConstruct");
+        Leap::Templates::do_replacements($template, $scons, $replacements_r);
+    }
+    $template = Leap::Build::get_scons_root_template($model, 'top');
+    if (defined($template)) {
+        my $scons = Leap::Util::path_append($builddir, "SConscript");
         Leap::Templates::do_replacements($template, $scons, $replacements_r);
     }
 

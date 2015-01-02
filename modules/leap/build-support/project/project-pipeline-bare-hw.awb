@@ -10,12 +10,14 @@
 %public  project-bare-hw-main.bsv
 
 %makefile Makefile.top.template
+%scons %main    SConstruct.top.template
 %scons %top     SCons.top.pipeline.template
 %scons %library ModuleList.py
 %scons %library Module.py
 %scons %library PythonTidy.py
 %scons %library AWBParams.py
 %scons %library Utils.py
+%scons %library Source.py
 %scons %library CommandLine.py
 %scons %library ProjectDependency.py
 %scons %hw      SCons.hw.pipeline.template

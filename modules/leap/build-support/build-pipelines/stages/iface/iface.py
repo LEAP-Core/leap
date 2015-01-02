@@ -3,6 +3,8 @@ import re
 import sys
 import string
 import SCons.Script
+import SCons.Util
+import model
 from model import  *
 import bsv_tool
 
@@ -122,7 +124,13 @@ class Iface():
     # received. Force this order to be lexical
     dicts.sort()
 
-    dictCommand = 'leap-dict --src-inc ' + inc_dirs + ' --tgt-inc ' + dict_inc_tgt + ' --tgt-hw ' + hw_tgt + " " + (" ".join(dicts))
+    curdir = moduleList.rootDirectory
+    r_dicts = [model.rebase_if_not_abspath(d, start=curdir) for d in dicts]
+    dictCommand = 'leap-dict --src-inc ' + \
+                  model.rebase_if_not_abspath(inc_dirs, start=curdir, sep=':') + \
+                  ' --tgt-inc ' + model.rebase_if_not_abspath(dict_inc_tgt, start=curdir, sep=':') + \
+                  ' --tgt-hw ' + model.rebase_if_not_abspath(hw_tgt, start=curdir, sep=':') + \
+                  " " + (" ".join(r_dicts))
     if(getBuildPipelineDebug(moduleList) != 0):
         print dictCommand
 
@@ -163,11 +171,16 @@ class Iface():
     generate_vico = ''
     if (moduleList.getAWBParam('iface_tool', 'GENERATE_VICO')):
         generate_vico = '--vico'
-    r_tgt = moduleList.env.Command(rrr_inc_tgt + '/service_ids.h',
-                       rrrs,
-                       'leap-rrr-stubgen ' + generate_vico + ' --incdirs ' + inc_dirs + ' --odir ' + rrr_inc_tgt + ' --mode stub --target hw --type server $SOURCES')
+
+    stubgen = 'leap-rrr-stubgen ' + generate_vico + \
+              ' --incdirs ' + model.rebase_if_not_abspath(inc_dirs, start=curdir, sep=':') + \
+              ' --odir ' + model.rebase_if_not_abspath(rrr_inc_tgt, start=curdir, sep=':') + \
+              ' --mode stub --target hw --type server $SOURCES'
+
+    r_tgt = moduleList.env.Command(rrr_inc_tgt + '/service_ids.h', rrrs, stubgen)
 
     tgt += r_tgt
+
     #
     # Compile generated BSV stubs
     #
