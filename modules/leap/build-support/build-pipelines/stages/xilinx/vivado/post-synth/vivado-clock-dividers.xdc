@@ -23,8 +23,14 @@ proc annotateClockDivider {cell divisor} {
             lappend source_pin $pin
         }
     }
-    
-    set out_pin [get_pins [subst -nocommands "$cell/Q[0]"]]    
+
+    # Bluespec produces different code for half divisors.  Handle that here
+    if { $divisor == 2 } {
+        set out_pin [get_pins [subst -nocommands "$cell/O1"]]    
+    } else {     
+        set out_pin [get_pins [subst -nocommands "$cell/Q[0]"]]    
+    }
+
     set source_pin  $source_pin
     
     create_generated_clock -name "${cell}_div_clk" -divide_by $divisor -source $source_pin $out_pin
@@ -45,6 +51,7 @@ proc annotateClockDividers {refName divisor} {
 annotateClockDividers "mkUserClock_DivideByTwo" 2
 annotateClockDividers "mkUserClock_DivideByThree" 3
 annotateClockDividers "mkUserClock_DivideByFour" 4
+
 
 
 
