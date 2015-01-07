@@ -19,6 +19,13 @@ def getModuleRTLs(moduleList, module):
         moduleVerilogs += [MODULE_PATH + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
         moduleVHDs += [MODULE_PATH + '/' + v]
+    for v in moduleList.getDependencies(module, 'GIVEN_VHDLS'):
+        print "VHDL:" +  str(v) 
+        lib = ""
+        if('lib' in v.attributes):
+            lib = v.attributes['lib'] + '/'
+        moduleVHDs += [model.Source.Source(MODULE_PATH + '/' + lib + v.file, v.attributes)]
+
 
     return [moduleVerilogs, moduleVHDs] 
 
@@ -124,8 +131,16 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write("read_verilog -quiet " + relpath + "\n")
        
     for vhd in sorted(globalVHDs):
-        relpath = model.rel_if_not_abspath(vhd, vivadoCompileDirectory)
-        newTclFile.write("read_vhdl -lib work " + relpath + "\n")
+        if(isinstance(vhd, model.Source.Source)):            
+            # Just got a string
+            relpath = model.rel_if_not_abspath(vhd.file, vivadoCompileDirectory)
+            lib = 'work'
+            if('lib' in vhd.attributes):
+                newTclFile.write("read_vhdl -lib " + vhd.attributes['lib'] + " " + relpath + "\n")
+        else:
+            # Just got a string
+            relpath = model.rel_if_not_abspath(vhd, vivadoCompileDirectory)
+            newTclFile.write("read_vhdl -lib work " + relpath + "\n")
 
     for netlist in givenNetlists:
         relpath = model.rel_if_not_abspath(netlist, vivadoCompileDirectory)

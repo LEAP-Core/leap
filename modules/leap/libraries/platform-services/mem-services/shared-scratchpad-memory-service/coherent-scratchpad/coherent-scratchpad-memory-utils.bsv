@@ -34,29 +34,6 @@
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/soft_connections.bsh"
 
-//
-// mkWriteValidatedReg --
-//     This module provides a register that can be seen as a read-only register
-// using write method to intialize its value. This register can only be read
-// after initialization. 
-//
-module mkWriteValidatedReg
-    // interface:
-    (Reg#(t_DATA))
-    provisos (Bits#(t_DATA, t_DATA_SZ));
-    
-    Reg#(t_DATA) data <- mkRegU();
-    Reg#(Bool) initialized <- mkReg(False);
-
-    method t_DATA _read() if (initialized);
-        return data;
-    endmethod
-
-    method Action _write(t_DATA val) if (!initialized);
-        initialized <= True;
-        data <= val;
-    endmethod
-endmodule
 
 // coherent scratchpad stats constructor
 
@@ -366,25 +343,14 @@ endmodule
 //
 // ====================================================================
 
-interface COH_SCRATCH_PARTITION;
-    // Check if the address lies in the local controller's address range
-    method Bool isLocalReq(COH_SCRATCH_MEM_ADDRESS addr);
-    // Convert the address from the coherent memory space to the distributed memory space
-    method COH_SCRATCH_MEM_ADDRESS globalToLocalAddr(COH_SCRATCH_MEM_ADDRESS addr);
-    // Convert the address from the distributed memory space to the coherent memory space
-    method COH_SCRATCH_MEM_ADDRESS localToGlobalAddr(COH_SCRATCH_MEM_ADDRESS addr);
-endinterface
-
-typedef function CONNECTED_MODULE#(COH_SCRATCH_PARTITION) f() COH_SCRATCH_PARTITION_CONSTRUCTOR;
-
 //
 // mkCohScratchControllerAddrPartition --
 //
-module [CONNECTED_MODULE] mkCohScratchControllerAddrPartition#(COH_SCRATCH_MEM_ADDRESS inBaseAddr, 
-                                                               COH_SCRATCH_MEM_ADDRESS inAddrRange,
+module [CONNECTED_MODULE] mkCohScratchControllerAddrPartition#(SHARED_SCRATCH_MEM_ADDRESS inBaseAddr, 
+                                                               SHARED_SCRATCH_MEM_ADDRESS inAddrRange,
                                                                NumTypeParam#(t_IN_DATA_SZ) inDataSz)
     // interface:
-    (COH_SCRATCH_PARTITION)
+    (SHARED_SCRATCH_PARTITION)
     provisos (// Compute the natural size in bits.  The natural size is rounded up to
               // a power of 2 bits that is one byte or larger.
               Max#(8, TExp#(TLog#(t_IN_DATA_SZ)), t_NATURAL_SZ),
@@ -392,33 +358,20 @@ module [CONNECTED_MODULE] mkCohScratchControllerAddrPartition#(COH_SCRATCH_MEM_A
               // Compute the container (scratchpad) index size
               NumAlias#(TLog#(TDiv#(t_COH_SCRATCH_MEM_VALUE_SZ, t_NATURAL_SZ)), t_NATURAL_IDX_SZ));
     
-    COH_SCRATCH_MEM_ADDRESS baseAddr = inBaseAddr >> fromInteger(valueOf(t_NATURAL_IDX_SZ));
-    COH_SCRATCH_MEM_ADDRESS addrRange = inAddrRange >> fromInteger(valueOf(t_NATURAL_IDX_SZ));
+    SHARED_SCRATCH_MEM_ADDRESS baseAddr = inBaseAddr >> fromInteger(valueOf(t_NATURAL_IDX_SZ));
+    SHARED_SCRATCH_MEM_ADDRESS addrRange = inAddrRange >> fromInteger(valueOf(t_NATURAL_IDX_SZ));
 
-    method Bool isLocalReq(COH_SCRATCH_MEM_ADDRESS addr);
+    method Bool isLocalReq(SHARED_SCRATCH_MEM_ADDRESS addr);
         return ((addr >= baseAddr) && (addr < (baseAddr + addrRange)));
     endmethod
 
-    method COH_SCRATCH_MEM_ADDRESS globalToLocalAddr(COH_SCRATCH_MEM_ADDRESS addr);
+    method SHARED_SCRATCH_MEM_ADDRESS globalToLocalAddr(SHARED_SCRATCH_MEM_ADDRESS addr);
         return addr - baseAddr;
     endmethod
 
-    method COH_SCRATCH_MEM_ADDRESS localToGlobalAddr(COH_SCRATCH_MEM_ADDRESS addr);
+    method SHARED_SCRATCH_MEM_ADDRESS localToGlobalAddr(SHARED_SCRATCH_MEM_ADDRESS addr);
         return addr + baseAddr;
     endmethod
         
-endmodule
-
-//
-// mkCohScratchControllerNullPartition --
-//
-module [CONNECTED_MODULE] mkCohScratchControllerNullPartition
-    // interface:
-    (COH_SCRATCH_PARTITION);
-
-    method Bool isLocalReq(COH_SCRATCH_MEM_ADDRESS addr) = True;
-    method COH_SCRATCH_MEM_ADDRESS globalToLocalAddr(COH_SCRATCH_MEM_ADDRESS addr) = addr;
-    method COH_SCRATCH_MEM_ADDRESS localToGlobalAddr(COH_SCRATCH_MEM_ADDRESS addr) = addr;
-
 endmodule
 

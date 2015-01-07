@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import SCons.Script
-from model import  *
+import model
 
 import xilinx_loader
 
@@ -28,12 +28,19 @@ class PostSynthesize():
     # Gather Tcl files for handling constraints.
     tcl_defs = []
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS')) > 0):
-        tcl_defs = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS'))
+        tcl_defs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS'))
 
     tcl_algs = []
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS')) > 0):
-        tcl_algs = map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS'))
+        tcl_algs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS'))
 
+    tcl_bmms = []
+    if(len(moduleList.getAllDependencies('GIVEN_XILINX_BMMS')) > 0):
+        tcl_bmms = moduleList.getAllDependencies('GIVEN_XILINX_BMMS')
+
+    tcl_elfs = []
+    if(len(moduleList.getAllDependencies('GIVEN_XILINX_ELFS')) > 0):
+        tcl_elfs = moduleList.getAllDependencies('GIVEN_XILINX_ELFS')
 
     #Emit area group definitions
     # If we got an area group placement data structure, now is the
@@ -81,8 +88,9 @@ class PostSynthesize():
     topWrapper = moduleList.topModule.wrapperName()
 
     newTclFile = open(postSynthTcl,'w')
+    newTclFile.write('create_project -force ' + moduleList.apmName + ' ' + moduleList.compileDirectory + ' -part ' + part + ' \n')
 
-    for netlist in convertDependencies(synthDeps):
+    for netlist in model.convertDependencies(synthDeps):
         newTclFile.write('read_edif ' + netlist + '\n')
 
     given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
@@ -90,10 +98,28 @@ class PostSynthesize():
     for netlist in given_netlists:
         newTclFile.write('read_edif ' + netlist + '\n')
 
+    # We have lots of dangling wires (Thanks, Bluespec).  Set the
+    # following properties to silence the warnings. 
+   
     newTclFile.write("set_property SEVERITY {Warning} [get_drc_checks NSTD-1]\n")
     newTclFile.write("set_property SEVERITY {Warning} [get_drc_checks UCIO-1]\n")
 
     newTclFile.write("link_design -top " + topWrapper + " -part " + part  + "\n")
+
+    for elf in tcl_elfs:
+        newTclFile.write("add_file " + model.modify_path_hw(elf) + "\n")
+        newTclFile.write("set_property MEMDATA.ADDR_MAP_CELLS {" + str(elf.attributes['ref']) + "} [get_files " + model.modify_path_hw(elf) + "]\n")
+        #newTclFile.write("set_property SCOPED_TO_REF " + str(elf.attributes['ref']) + " [get_files " + model.modify_path_hw(elf) + "]\n")
+        #newTclFile.write("set_property SCOPED_TO_CELLS [get_cells " + str(elf.attributes['cell']) + "] [get_files " + model.modify_path_hw(elf) + "]\n")
+
+
+
+    # We will now attempt to link in any bmm that we might have.
+    for bmm in tcl_bmms:
+        newTclFile.write("add_file " + model.modify_path_hw(bmm) + "\n")
+        newTclFile.write("set_property SCOPED_TO_REF " + str(bmm.attributes['ref']) + " [get_files " + model.modify_path_hw(bmm) + "]\n")
+        #newTclFile.write("set_property SCOPED_TO_CELLS [get_cells " + str(bmm.attributes['cell']) + "] [get_files " + model.modify_path_hw(bmm) + "]\n")
+
 
     newTclFile.write("report_utilization -file " + apm_name + ".link.util\n")
 
@@ -139,10 +165,7 @@ class PostSynthesize():
     newTclFile.write('dumpPBlockUtilization "par.util"\n')
 
     newTclFile.write("report_drc -file " + topWrapper + ".drc\n")
-
-    # We have lots of dangling wires (Thanks, Bluespec).  Set the
-    # following properties to silence the warnings. 
-    
+ 
     newTclFile.write("write_bitstream -force " + apm_name + "_par.bit\n")
 
     newTclFile.close()
@@ -151,7 +174,7 @@ class PostSynthesize():
     xilinx_bit = moduleList.env.Command(
       apm_name + '_par.bit',
       synthDeps + tcl_algs + tcl_defs + [paramTclFile], 
-      ['vivado -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
+      ['vivado -verbose -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
 
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']
 

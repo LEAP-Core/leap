@@ -20,7 +20,7 @@ model=FPGA Environment
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 7
 librl_bsv=RL Bluespec Library Submodel
-build_pipeline=FPGA Build Pipeline Xilinx (Synplify)
+build_pipeline=FPGA Build Pipeline Xilinx (Vivado) (Synplify)
 soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
@@ -145,7 +145,6 @@ aurora_device=Aurora Device Wrapper Null
 File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc707/vc707-v7-pcie-dma.awb
 Packagehint=leap-platforms
 
-
 [VC707 DDR3 SDRAM]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-vc707/ddr3-sdram-device.awb
 Packagehint=leap-platforms
@@ -173,10 +172,10 @@ RESET_ACTIVE_HIGH=1
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
 
-[FPGA Build Pipeline Xilinx (Synplify)]
-File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-synplify.apm
-Packagehint=leap
-
 [Virtex-7 PCIE Device v1.10 (BlueNoC)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/1_10/pcie-virtex7.awb
 Packagehint=leap-platforms
+
+[FPGA Build Pipeline Xilinx (Vivado) (Synplify)]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado-synplify.apm
+Packagehint=leap

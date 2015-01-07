@@ -18,6 +18,7 @@ import Utils
 import AWBParams
 import ProjectDependency
 import CommandLine
+import Source
 
 # Some helper functions for navigating the build tree
 
@@ -63,6 +64,31 @@ class ModuleList:
       # do a pattern match on the synth boundary paths, which we need to build
       # the module structure
     self.env = env
+
+    CommandBaseline = env.Command
+
+    # override certain scons build functions to de-sugar
+    # build-pipeline's object types.
+
+    def CommandOverride(tgts, srcs, cmds):
+        # did we get a flat object?
+        srcsSugared = srcs
+        if(not isinstance(srcs, list)):
+            srcsSugared = [srcs]
+
+        modifiedSrcs = []
+        #might want convert dependencies here.        
+        for src in srcsSugared:           
+            if(isinstance(src, Source.Source)):
+                modifiedSrcs.append(str(src))
+            else:
+                modifiedSrcs.append(src)
+
+        return CommandBaseline(tgts, modifiedSrcs, cmds)
+
+    self.env.Command = CommandOverride    
+
+    self.rootDirectory = env.Dir('.').entry_path('')
     self.arguments = arguments
     self.cmdLineTgts = cmdLineTgts
     self.buildDirectory = env['DEFS']['BUILD_DIR']
@@ -94,8 +120,10 @@ class ModuleList:
     self.swLibs = Utils.clean_split(env['DEFS']['SW_LIBS'], sep = ' ')
     self.swLinkLibs = Utils.clean_split(env['DEFS']['SW_LINK_LIBS'], sep = ' ')
     self.m5BuildDir = env['DEFS']['M5_BUILD_DIR'] 
-    self.rootDirSw = env['DEFS']['ROOT_DIR_SW_MODEL']
-    self.rootDirInc = env['DEFS']['ROOT_DIR_SW_INC']
+    self.rootDirSw = Utils.rebase_if_not_abspath(env['DEFS']['ROOT_DIR_SW_MODEL'],
+                                                 self.rootDirectory)
+    self.rootDirInc = Utils.rebase_if_not_abspath(env['DEFS']['ROOT_DIR_SW_INC'],
+                                                  self.rootDirectory)
 
     if len(env['DEFS']['GIVEN_ELFS']) != 0:
       elf = ' -bd ' + str.join(' -bd ',Utils.clean_split(env['DEFS']['GIVEN_ELFS'], sep = ' '))
@@ -204,19 +232,20 @@ class ModuleList:
     if(self.topModule.moduleDependency.has_key(key)):
       for dep in self.topModule.moduleDependency[key]:
         if(allDeps.count(dep) == 0):
-          allDeps.extend([dep] if isinstance(dep, str) else dep)
+          allDeps.extend(dep if isinstance(dep, list) else [dep])
     for module in self.moduleList:
       if(module.moduleDependency.has_key(key)):
         for dep in module.moduleDependency[key]: 
           if(allDeps.count(dep) == 0):
-            allDeps.extend([dep] if isinstance(dep, str) else dep)
+            print str(dep)
+            allDeps.extend(dep if isinstance(dep, list) else [dep])
 
     if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
       sys.stderr.write("Warning: no dependencies were found")
 
     # Return a list of unique entries, in the process converting SCons
     # dependence entries to strings.
-    return list(set([str(dep) for dep in allDeps]))
+    return list(set(ProjectDependency.convertDependencies(allDeps)))
 
   def getDependencies(self, module, key):
     allDeps = module.getDependencies(key)

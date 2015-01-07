@@ -36,6 +36,49 @@ def _generate_synplify_include(file):
     if(type == 'unknown'):
         return ''
 
+    # since some files may not exist, we place a check around all
+    # files.  This simplifies dependency tracking since we do not have
+    # a reliable verilog scanner.
+    fileInclude = 'if {[file exists \"'+ directoryFix + file + '\"]} {'    
+    fileInclude += 'add_file -' + type + prefix + ' \"'+ directoryFix + file + '\"}\n'
+
+    return fileInclude
+
+
+def _generate_synplify_include_source(fileObj):
+    file = fileObj.file
+    # Check for relative/absolute path
+    directoryFix = ''
+    if (not re.search('^\s*/',file)):  directoryFix = '../'
+
+    type = 'unknown'
+    prefix = ''
+    if (re.search('\.ngc\s*$',file)):  
+        type = 'ngc'
+    if (re.search('\.v\s*$',file)):    
+        type = 'verilog'
+    if (re.search('\.sv\s*$',file)):    
+        type = 'verilog'
+        prefix = ' -vlog_std sysv '
+    if (re.search('\.vhdl\s*$',file)):  
+        type = 'vhdl'
+        if('lib' in fileObj.attributes):
+            prefix = ' -lib ' + fileObj.attributes['lib']
+
+    if (re.search('\.vhd\s*$',file)):  
+        type = 'vhdl'
+        if('lib' in fileObj.attributes):
+            prefix = ' -lib ' + fileObj.attributes['lib']
+
+    if (re.search('\.sdc\s*$',file)):  
+        type = 'constraint'
+    if (re.search('\.xdc\s*$',file)):  
+        type = 'constraint'
+
+    # don't include unidentified files
+    if(type == 'unknown'):
+        return ''
+
     return 'add_file -' + type + prefix + ' \"'+ directoryFix + file + '\"\n'
 
 
@@ -154,6 +197,8 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
     for file in fileArray:
         if(type(file) is str):
             newPrjFile.write(_generate_synplify_include(file))        
+        elif(isinstance(file, model.Source.Source)):
+            newPrjFile.write(_generate_synplify_include_source(file))                    
         else:
             if(model.getBuildPipelineDebug(moduleList) != 0):
                 print type(file)

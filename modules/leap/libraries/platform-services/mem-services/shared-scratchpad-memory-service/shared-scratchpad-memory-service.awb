@@ -1,0 +1,14 @@
+%name Shared Scratchpad Memory Service
+%desc Shared Scratchpad Memory Service
+
+%provides shared_scratchpad_memory_service
+%requires shared_scratchpad_memory_common
+%requires coherent_scratchpad_memory_service
+%requires cached_shared_scratchpad_memory_service
+%requires uncached_shared_scratchpad_memory_service
+
+%notes README
+
+%public shared-scratchpad-memory-controller.bsv
+%public shared-scratchpad-memory-client.bsv
+

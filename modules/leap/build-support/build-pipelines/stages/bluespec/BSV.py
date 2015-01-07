@@ -6,7 +6,7 @@ import cPickle as pickle
 import SCons.Script
 
 import model
-from model import Module, get_build_path
+from model import Module, Source, get_build_path
 import iface_tool 
 import treeModule
 import li_module
@@ -197,20 +197,28 @@ class BSV():
                     for module in topo + [moduleList.topModule]:
                         modulePath = module.buildPath
 
-                        def addBuildPath(fileName):
+                        def addBuildPath(fileHandle):
+                            fileName = fileHandle
+                            if(isinstance(fileHandle, Source.Source)):
+                                fileName = fileHandle.file
+    
                             if(not os.path.isabs(fileName)):
                                 # does this file contain a partial path?
                                 if(fileName == os.path.basename(fileName)):
                                     basicPath =  os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/' + fileName)
                                     if(os.path.exists(basicPath)):
-                                        return basicPath
+                                        fileName = basicPath
                                     else:
                                         #try .bsc
-                                        return os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/.bsc/' + fileName)
+                                        fileName = os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/.bsc/' + fileName)
                                 else:
-                                    return os.path.abspath(fileName)
-                            else:
-                                return fileName
+                                    fileName = os.path.abspath(fileName)
+
+                            if(isinstance(fileHandle, Source.Source)):
+                                 fileHandle.file = fileName
+                                 return fileHandle
+
+                            return fileName
 
                         # the liGraph only knows about modules that actually
                         # have connections some modules are vestigial, andso
