@@ -169,9 +169,24 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write("add_files " + file + "\n")
         newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
 
+    # Add in other synthesis algorithms
+    tcl_funcs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) > 0):
+        tcl_funcs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) 
+
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
     # and friends on the external ports.
+ 
+    # First, elaborate the rtl design. 
+
+    newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+
+    # apply tcl synthesis functions/patches 
+    for tcl_func in tcl_funcs:
+        relpath = model.rel_if_not_abspath(tcl_func, vivadoCompileDirectory)
+        newTclFile.write('source ' + relpath + '\n')
+
     newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
     newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
@@ -188,7 +203,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     newTclFile.write("write_edif " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
-    return prjPath
+    return [prjPath] + tcl_funcs
 
 
 # Converts SRP file into resource representation which can be used
@@ -392,7 +407,7 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 
     #Let's synthesize a xilinx .prj file for this synth boundary.
     # spit out a new prj
-    generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
+    tclDeps = generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
 
     edfFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.edf'
     srpFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'
@@ -404,6 +419,7 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
         [edfFile, srpFile],
         [model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'] +
         sorted(module.moduleDependency['VERILOG']) +
+        tclDeps + 
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
         [ SCons.Script.Delete(vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'),
