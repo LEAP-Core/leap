@@ -166,7 +166,7 @@ class BSVSynthTreeBuilder():
             for module in self.getFirstPassLIGraph.modules.values():
                 moduleDeps = {}
 
-                for objType in ['BA', 'GEN_BAS', 'GEN_VERILOG_STUB', 'STR']:
+                for objType in ['BA', 'GEN_BAS', 'GEN_VERILOGS', 'GEN_VERILOG_STUB', 'STR']:
                     if(objType in module.objectCache):
                         localNames =  map(lambda fileName: makeAWBLink(False, fileName, buildPath), module.objectCache[objType])
                         # The previous passes GEN_VERILOGS are not
@@ -240,7 +240,7 @@ class BSVSynthTreeBuilder():
         verilog_deps = [ "__TREE_MODULE__" + str(id) for id in range(expected_wrapper_count)]
 
         if(self.parent.BUILD_LOGS_ONLY == 0):
-            buildTreeDeps['GEN_VERILOGS'] = [ "mk_" + vlog + '_Wrapper' + ".v"  for vlog in verilog_deps]
+            buildTreeDeps['GEN_VERILOGS'] = ["mk_" + vlog + '_Wrapper' + ".v"  for vlog in verilog_deps]
         else:
             buildTreeDeps['GEN_VERILOGS'] = []
 
@@ -317,6 +317,8 @@ class BSVSynthTreeBuilder():
                             map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['BA'])
                         if('GEN_BAS' in module.objectCache):
                             map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_BAS'])
+                        if('GEN_VERILOGS' in module.objectCache):
+                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_VERILOGS'])
                         if('GEN_VERILOG_STUB' in module.objectCache):
                             map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_VERILOG_STUB'])
                         if('STR' in module.objectCache):
@@ -334,10 +336,11 @@ class BSVSynthTreeBuilder():
         # simpler.
 
         producedBAs = map(lambda path: bsv_tool.modify_path_ba(moduleList, path), moduleList.getModuleDependenciesWithPaths(tree_module, 'GEN_BAS'))
+        producedVs = map(lambda path: bsv_tool.modify_path_ba(moduleList, path), moduleList.getModuleDependenciesWithPaths(tree_module, 'GEN_VERILOGS')) + \
+                     buildTreeDeps['VERILOG']
 
         tree_command = self.parent.compile_bo_bsc_base([tree_file_wrapper_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_wrapper
-        tree_file_wrapper_bo = env.Command([tree_file_wrapper_bo_path + '.bo'] + producedBAs,
-#                                           [tree_file_wrapper],
+        tree_file_wrapper_bo = env.Command([tree_file_wrapper_bo_path + '.bo'] + producedBAs + producedVs,
                                            tree_components,
                                            tree_command)
 
@@ -406,8 +409,10 @@ class BSVSynthTreeBuilder():
         # the build_tree module will be vestigal, but since we can't
         # predict this statically we'll have to build it anyway.
 
-        tree_module.moduleDependency['GEN_VERILOG_STUB'] = [self.parent.stubGenCommand(top_module_path, "build_tree_Wrapper.bsv", top_module_path + '/' + self.parent.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")]
-        env.Depends(top_module_path + '/' + self.parent.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v", tree_file_wrapper_bo)
+        tree_module.moduleDependency['GEN_VERILOG_STUB'] = [self.parent.stubGenCommand(top_module_path,
+                                                                                       "build_tree_Wrapper.bsv",
+                                                                                       top_module_path + '/' + self.parent.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")]
+
         # top level only depends on platform modules
         moduleList.topModule.moduleDependency['VERILOG_STUB'] = model.convertDependencies([module.moduleDependency['GEN_VERILOG_STUB'] for module in moduleList.synthBoundaries() if module.platformModule])
         if(not self.getFirstPassLIGraph is None):

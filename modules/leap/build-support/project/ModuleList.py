@@ -237,7 +237,6 @@ class ModuleList:
       if(module.moduleDependency.has_key(key)):
         for dep in module.moduleDependency[key]: 
           if(allDeps.count(dep) == 0):
-            print str(dep)
             allDeps.extend(dep if isinstance(dep, list) else [dep])
 
     if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):

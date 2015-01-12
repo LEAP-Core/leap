@@ -85,7 +85,7 @@ class AreaConstraints():
 
         if (d > 0):
             # This should call a platform-specific library...
-            return 1
+            return 0
         else:
             return 0
 

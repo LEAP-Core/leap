@@ -132,8 +132,13 @@ class BSV():
             self.isDependsBuild = False
 
             if not moduleList.env.GetOption('clean'):
-                # Convert command line ARGUMENTS dictionary to a string
-                args = ' '.join(['%s="%s"' % (k, v) for (k, v) in moduleList.arguments.items()])
+                # Convert command line ARGUMENTS dictionary to a string.
+                # The build will be done in the local tree, so get rid of
+                # the SCONSCRIPT argument.
+                cmd_args = moduleList.arguments.copy()
+                if ('SCONSCRIPT' in cmd_args):
+                    del cmd_args['SCONSCRIPT']
+                args = ' '.join(['%s="%s"' % (k, v) for (k, v) in cmd_args.items()])
                 print 'Building depends-init ' + args + '...'
                 s = os.system('scons depends-init ' + args)
                 if (s & 0xffff) != 0:

@@ -30,6 +30,10 @@ class PostSynthesize():
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS')) > 0):
         tcl_defs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS'))
 
+    tcl_funcs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) > 0):
+        tcl_funcs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS'))
+
     tcl_algs = []
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS')) > 0):
         tcl_algs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_ALGEBRAS'))
@@ -129,6 +133,9 @@ class PostSynthesize():
     for tcl_def in tcl_defs:
         newTclFile.write('source ' + tcl_def + '\n')
 
+    for tcl_func in tcl_funcs:
+        newTclFile.write('source ' + tcl_func + '\n')
+
     for tcl_alg in tcl_algs:
         newTclFile.write('source ' + tcl_alg + '\n')
 
@@ -173,7 +180,7 @@ class PostSynthesize():
     # generate bitfile
     xilinx_bit = moduleList.env.Command(
       apm_name + '_par.bit',
-      synthDeps + tcl_algs + tcl_defs + [paramTclFile], 
+      synthDeps + tcl_algs + tcl_defs + tcl_funcs + [paramTclFile], 
       ['vivado -verbose -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
 
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']
