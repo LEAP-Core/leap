@@ -264,7 +264,7 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
 
     sub_netlist = moduleList.env.Command(
       [edfFile, srrFile],
-      [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'] +      
+      [model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'] +
       sorted(module.moduleDependency['VERILOG']) +
       moduleVerilogs + moduleVHDs +
       sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
@@ -272,7 +272,7 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
       [ newPrjPath ] + clockFiles +
       ['config/' + moduleList.apmName + '.synplify.prj'],
       [ SCons.Script.Delete(srrFile),
-        'synplify_premier -batch -license_wait ' + newPrjPath + '> ' + build_dir + '.log',
+        'synplify_premier -batch -license_wait ' + newPrjPath + ' > ' + build_dir + '.log',
         # Files in coreip just copied from elsewhere and waste space
         SCons.Script.Delete(build_dir + '/coreip'),
         '@echo synplify_premier ' + module.wrapperName() + ' build complete.' ])    
