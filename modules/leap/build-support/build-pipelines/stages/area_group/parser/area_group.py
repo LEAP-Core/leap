@@ -8,6 +8,9 @@ class AreaGroup(object):
         self.children = {} # Gets filled in later. 
         self.area = None
         self.parent = None
+
+        # We'll store this. 
+        self.resources = None
         
         # Aspect ratio. Must multiply to 1. 
         self.xDimension = None
@@ -31,3 +34,6 @@ class AreaGroup(object):
         platformRepr = 'AreaGroup: ' + self.name + ' Path: ' + str(self.sourcePath) + ' Area: ' + str(self.area) + ' XLoc: ' + str(self.xLoc) +  ' YLoc: ' + str(self.yLoc) + ' xDim ' + str(self.xDimension)  + ' yDim ' + str(self.yDimension) +  ' Parent: ' + parent
         
         return platformRepr
+
+
+        
