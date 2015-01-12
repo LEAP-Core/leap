@@ -82,6 +82,15 @@ proc getInterface {ft} {
     return ""
 }
 
+proc extractInterfacePorts {ft} {
+    if {[lindex $ft 0] == "interface" } {
+        return [lindex [lindex $ft 2] 0]
+    }
+
+    # Not an interface, hand it back   
+    return $ft
+}
+
 proc getInterfaceNamed {ft name} {
     foreach elem $ft {
         #puts stderr "\n\nCheckign $ft against $name\n\n"
@@ -135,6 +144,10 @@ proc analyzePrimary { elem prim ports methods } {
     set methodsMembers [lindex $methods 1]
     set methodsName [lindex $methods 0]
 
+    # if we get a vector interface, we will have get something like
+    # interface X {ports}. Clean that up here.
+    set ports [extractInterfacePorts $ports]
+
     # get clock wires
     set osc  [getWireNamed $ports "osc"]
     set gate  [getWireNamed $ports "gate"]    
@@ -143,7 +156,10 @@ proc analyzePrimary { elem prim ports methods } {
     set port  [getWireNamed $ports "port"]
     set clock  [getWireNamed $ports "clock"]    
 
+    # XXX need to handle vectors pushdown. 
+
     #puts stderr "Analyzing Primary: $primType \n PORTS $ports METHODS $methods" 
+    #puts stderr "Analyzing Primary: port $port\n clock $clock\n " 
     switch -regexp $primType {
         "Inout" { return [list "Interface" "Interface('$elem','$methodsName',{})"] }
         "Clock"  { return [list "Primary" "Prim_Clock('$methodsName','$osc', '$gate')"] }
@@ -208,7 +224,8 @@ proc analyzeVector { elem vec ports methods} {
             #puts stderr "WARNING: anyalzeStruct $memberMethods of $methodsName has been optimized away?"
             continue
         }
-
+       
+        #puts stderr "Vector member $vType \n ports $memberPorts \n methods $memberMethods \n"
         set obj [analyzeSwitch  $vType $memberPorts $memberMethods]
 
         # did we get an interface?
