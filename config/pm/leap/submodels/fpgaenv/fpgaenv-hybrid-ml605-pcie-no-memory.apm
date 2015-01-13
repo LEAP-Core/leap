@@ -156,7 +156,7 @@ Packagehint=leap-platforms
 
 [PCIe Board with DDR/Requires]
 pcie_device=BlueNoC PCIe Bridge
-clocks_device=Differential Crystal Clocks Device from Clocks
+clocks_device=Differential Crystal Clocks Device from Wires
 physical_platform_config=ML605 Virtex-6 Platform with PCIe
 physical_platform_utils=Common Physical Platform Utilities
 ddr_sdram_device=DDR SDRAM Emulator in BRAM
@@ -165,14 +165,6 @@ aurora_device=Aurora Device Wrapper Null
 [DDR SDRAM Emulator in BRAM]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-bram/ddr-sdram-bram.awb
 Packagehint=leap-platforms
-
-[Differential Crystal Clocks Device from Clocks]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-from-clocks.awb
-Packagehint=leap-platforms
-
-[Differential Crystal Clocks Device from Clocks/Params]
-CRYSTAL_CLOCK_FREQ=200
-RESET_ACTIVE_HIGH=1
 
 [Aurora Device Wrapper Null]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora/aurora-device-null/aurora-device-null.awb
@@ -183,4 +175,12 @@ physical_platform_defs=Common Physical Platform Definitions
 
 [Common Physical Platform Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms
+
+[Differential Crystal Clocks Device from Wires/Params]
+CRYSTAL_CLOCK_FREQ=200
+RESET_ACTIVE_HIGH=1
+
+[Differential Crystal Clocks Device from Wires]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
