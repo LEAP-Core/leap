@@ -166,3 +166,10 @@ physical_platform_defs=Common Physical Platform Definitions
 [Common Physical Platform Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
+
+[XUPv2 DDR SDRAM Physical Device/Requires]
+ddr_sdram_definitions=DDR SDRAM Common Definitions
+
+[DDR SDRAM Common Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
+Packagehint=leap-platforms

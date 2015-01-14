@@ -184,3 +184,10 @@ Packagehint=leap
 [Virtex-7 PCIE Device v1.10 (BlueNoC)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/1_10/pcie-virtex7.awb
 Packagehint=leap-platforms
+
+[Null DDR SDRAM Physical Device/Requires]
+ddr_sdram_definitions=DDR SDRAM Common Definitions
+
+[DDR SDRAM Common Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
+Packagehint=leap-platforms
