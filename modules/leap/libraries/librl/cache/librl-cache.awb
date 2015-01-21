@@ -12,3 +12,6 @@
 %public rl-tiny-cache.bsv
 %public rl-prefetch.bsv
 %public rl-prefetch-stats.bsv
+
+%param --global RL_DM_CACHE_BRAM_TYPE  1  "0: Normal BRAM, 1: Multi-banked BRAM, 2: BRAM with clock divider"
+
