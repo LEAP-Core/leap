@@ -6,6 +6,7 @@ import sys
 import string
 import atexit
 import @ROOT_DIR_MODEL@ 
+import @ROOT_DIR_MODEL@.Source as Source
 import @ROOT_DIR_MODEL@.Module as Module 
 import @ROOT_DIR_MODEL@.ModuleList as ModuleList
 import build_pipeline

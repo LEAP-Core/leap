@@ -12,6 +12,11 @@
 %notes README
 
 %scons %library VIVADO_POST_SYNTH.py
+
 %sources -t VIVADO_TCL_HEADER -v PRIVATE vivado-timing-library.xdc
 %sources -t VIVADO_TCL_HEADER -v PRIVATE vivado-area-library.xdc
+%sources -t VIVADO_TCL_FUNCTION  -v PRIVATE vivado-clock-dividers.xdc
+%sources -t VIVADO_TCL_FUNCTION  -v PRIVATE vivado-reset-library.xdc
+
+
 

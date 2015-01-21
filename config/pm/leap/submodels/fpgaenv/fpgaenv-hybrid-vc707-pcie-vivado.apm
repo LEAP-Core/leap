@@ -121,6 +121,7 @@ Packagehint=leap-platforms
 
 [Xilinx DDR SDRAM Physical Device/Requires]
 ddr_sdram_xilinx_driver=VC707 DDR3 SDRAM
+ddr_sdram_definitions=DDR SDRAM Common Definitions
 
 [Local Memory using DDR DRAM (burst holds at least one line)]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-ddr-wide.awb
@@ -179,3 +180,7 @@ Packagehint=leap-platforms
 [FPGA Build Pipeline Xilinx (Vivado)]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
 Packagehint=leap
+
+[DDR SDRAM Common Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
+Packagehint=leap-platforms

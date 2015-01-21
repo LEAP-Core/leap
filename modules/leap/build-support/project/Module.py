@@ -2,6 +2,7 @@
 import os
 import ProjectDependency 
 import CommandLine
+import Source
 
 class Module(ProjectDependency.ProjectDependency):
 
@@ -24,6 +25,8 @@ class Module(ProjectDependency.ProjectDependency):
     self.dependsFile = '.depends-bsv'
     self.interfaceType = 'Empty'
     self.extraImports = []
+
+    self.attributes = {}
 
     self.isSynthBoundary = (synthBoundary != [])
     if(self.isSynthBoundary):
@@ -50,6 +53,13 @@ class Module(ProjectDependency.ProjectDependency):
     # seems to generate.  these should be inserted by
     # downstream tools 
     self.moduleDependency = sources 
+
+
+    # Annotate source objects with path information
+    for sourceType in self.moduleDependency:
+        for source in self.moduleDependency[sourceType]:
+            if(isinstance(source,Source.Source)):
+                source.attributes['buildPath'] = buildPath
           
     # Make empty EMPTY_params_override Bluespec and C files.  When a module
     # has no overrides, its override file will link to this file.  We could
@@ -72,15 +82,27 @@ class Module(ProjectDependency.ProjectDependency):
     if(self.moduleDependency.has_key(key)):
       for dep in self.moduleDependency[key]:
         if(allDeps.count(dep) == 0):
-          allDeps.extend([dep] if isinstance(dep, str) else dep)
+          allDeps.extend(dep if isinstance(dep, list) else [dep])
 
     # Return a list of unique entries, in the process converting SCons                                                                                                                                                                      
-    # dependence entries to strings.                                                                                                                                                                                                        
-    return list(set([str(dep) for dep in allDeps]))
+    # dependence entries to strings.                                                                  
+    return list(set([dep for dep in ProjectDependency.convertDependencies(allDeps)]))
 
 
   def wrapperName(self):
     return 'mk_' + self.name + '_Wrapper'
+
+
+  def putAttribute(self, key, value):
+      self.attributes[key] = value
+      
+
+  def getAttribute(self, key):
+      if(key in self.attributes):
+          return self.attributes[key]
+      else:
+          return None
+
                               
   ##
   ## parseAWBParams --
@@ -254,3 +276,5 @@ def initAWBParamParser(args, emit_override_files):
 
   global emitOverrideFiles
   emitOverrideFiles = emit_override_files
+
+

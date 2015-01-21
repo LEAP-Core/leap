@@ -17,6 +17,7 @@
 %scons %library PythonTidy.py
 %scons %library AWBParams.py
 %scons %library Utils.py
+%scons %library Source.py
 %scons %library CommandLine.py
 %scons %library ProjectDependency.py
 %scons %hw      SCons.hw.pipeline.template

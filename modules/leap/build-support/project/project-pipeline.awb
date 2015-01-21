@@ -36,6 +36,7 @@
 %scons %library Module.py
 %scons %library AWBParams.py
 %scons %library PythonTidy.py
+%scons %library Source.py
 %scons %library Utils.py
 %scons %library CommandLine.py
 %scons %library ProjectDependency.py

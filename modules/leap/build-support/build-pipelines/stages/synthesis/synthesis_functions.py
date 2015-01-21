@@ -19,6 +19,13 @@ def getModuleRTLs(moduleList, module):
         moduleVerilogs += [MODULE_PATH + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
         moduleVHDs += [MODULE_PATH + '/' + v]
+    for v in moduleList.getDependencies(module, 'GIVEN_VHDLS'):
+        print "VHDL:" +  str(v) 
+        lib = ""
+        if('lib' in v.attributes):
+            lib = v.attributes['lib'] + '/'
+        moduleVHDs += [model.Source.Source(MODULE_PATH + '/' + lib + v.file, v.attributes)]
+
 
     return [moduleVerilogs, moduleVHDs] 
 
@@ -124,8 +131,16 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write("read_verilog -quiet " + relpath + "\n")
        
     for vhd in sorted(globalVHDs):
-        relpath = model.rel_if_not_abspath(vhd, vivadoCompileDirectory)
-        newTclFile.write("read_vhdl -lib work " + relpath + "\n")
+        if(isinstance(vhd, model.Source.Source)):            
+            # Just got a string
+            relpath = model.rel_if_not_abspath(vhd.file, vivadoCompileDirectory)
+            lib = 'work'
+            if('lib' in vhd.attributes):
+                newTclFile.write("read_vhdl -lib " + vhd.attributes['lib'] + " " + relpath + "\n")
+        else:
+            # Just got a string
+            relpath = model.rel_if_not_abspath(vhd, vivadoCompileDirectory)
+            newTclFile.write("read_vhdl -lib work " + relpath + "\n")
 
     for netlist in givenNetlists:
         relpath = model.rel_if_not_abspath(netlist, vivadoCompileDirectory)
@@ -154,13 +169,36 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write("add_files " + file + "\n")
         newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
 
+    # Add in other synthesis algorithms
+    tcl_funcs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) > 0):
+        tcl_funcs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) 
+
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
     # and friends on the external ports.
-    #newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
-    newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+ 
+    # First, elaborate the rtl design. 
+
+    # For the top module, we don't use out of context.
+    if(module.getAttribute('TOP_MODULE') is None):
+        newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+    else:
+         newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part  + "\n")
+
+    # apply tcl synthesis functions/patches 
+    for tcl_func in tcl_funcs:
+        relpath = model.rel_if_not_abspath(tcl_func, vivadoCompileDirectory)
+        newTclFile.write('source ' + relpath + '\n')
+
+    if(module.getAttribute('TOP_MODULE') is None):
+        newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
+    else:
+        newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part  + "\n")
+
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
-    newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
+
 
     # We should do opt_design here because it will be faster in
     # parallel.  However, opt_design seems to cause downstream
@@ -174,7 +212,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     newTclFile.write("write_edif " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
-    return prjPath
+    return [prjPath] + tcl_funcs
 
 
 # Converts SRP file into resource representation which can be used
@@ -381,7 +419,7 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 
     #Let's synthesize a xilinx .prj file for this synth boundary.
     # spit out a new prj
-    generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
+    tclDeps = generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
 
     checkpointFile = vivadoCompileDirectory + '/' + module.wrapperName() + ".synth.dcp"
     edfFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.edf'
@@ -392,8 +430,9 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     # Sort dependencies because SCons will rebuild if the order changes.
     sub_netlist = moduleList.env.Command(
         [edfFile, srpFile, checkpointFile],
-        [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'] +
+        [model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'] +
         sorted(module.moduleDependency['VERILOG']) +
+        tclDeps + 
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
         [ SCons.Script.Delete(vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'),

@@ -13,6 +13,7 @@ package Leap::Build;
 
 use Asim;
 use Asim::Module;
+use Asim::Module::Source;
 
 use Leap::Util;
 
@@ -403,12 +404,41 @@ sub pythonize_sources {
     # good target for refactoring
     foreach my $source_type ($module->sourcetypes()) {
         $output = $output . "\'GIVEN_${source_type}S\': [";
-	my @sources = $module->sources($source_type,"*");
-        # dress up sources in quotes 
+       
+	my @sourceObjects = $module->sourceobjects($source_type,"*");
         my @sources_new = qw();
-        for my $source (@sources) {
-	    push(@sources_new, "\'".$source."\'");
+          
+        for my $sourceObject (@sourceObjects) {
+
+            my @sources = $sourceObject->files();
+   
+            # do we have any attributes? If so, we need to output them here. 
+            if(scalar(keys($sourceObject->getAllAttributes()))) {
+
+                my @attributes = qw();
+
+                while( my ($attributeKey, $attributeValue) = each $sourceObject->getAllAttributes() ) {
+                    push(@attributes, "\'$attributeKey\': \'$attributeValue\' ");
+                }
+
+                my $attributesHash = "{" . join(", ", @attributes) . "}"; 
+
+                for my $source (@sources) {
+                    push(@sources_new, "Source.Source(\'".$source."\', " . $attributesHash . ")");
+                } 
+
+            } else {
+                # No attributes, just emit an old-school file list, as
+                # opposed to a new object.
+
+                # dress up sources in quotes 
+                for my $source (@sources) {
+                    push(@sources_new, "\'".$source."\'");
+                } 
+                              
+            }
         } 
+         
         $output = $output . join(", ", @sources_new) . '],'; 
     }
 

@@ -24,6 +24,11 @@ except AttributeError:
 ## The real build rules are in a local SConscript file, allowing this tree
 ## to be built as part of a sub-tree.
 ##
-build = env.SConscript('SConscript', exports='env')
+
+# Allow the command line to specify a different SConscript file.
+if 'SCONSCRIPT' in ARGUMENTS:
+    build = env.SConscript(ARGUMENTS['SCONSCRIPT'], exports='env')
+else:
+    build = env.SConscript('SConscript', exports='env')
 
 Default(build)

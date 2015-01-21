@@ -2,6 +2,7 @@
 import SCons.Node
 from compiler.ast import flatten
 
+import Source
 
 class ProjectDependency:
 
@@ -34,6 +35,9 @@ def convertDependencies(depList):
         if(isinstance(depObj, list)):
             return map(filterRecursive, depObj)
         elif (isinstance(depObj, str)):
+            return [depObj]
+        # is it a source object?
+        elif(isinstance(depObj, Source.Source)):
             return [depObj]
         elif (isinstance(depObj, SCons.Node.NodeList)):
             return map(filterRecursive, depObj)

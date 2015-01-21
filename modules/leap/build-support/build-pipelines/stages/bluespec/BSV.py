@@ -6,7 +6,7 @@ import cPickle as pickle
 import SCons.Script
 
 import model
-from model import Module, get_build_path
+from model import Module, Source, get_build_path
 import iface_tool 
 import treeModule
 import li_module
@@ -132,8 +132,13 @@ class BSV():
             self.isDependsBuild = False
 
             if not moduleList.env.GetOption('clean'):
-                # Convert command line ARGUMENTS dictionary to a string
-                args = ' '.join(['%s="%s"' % (k, v) for (k, v) in moduleList.arguments.items()])
+                # Convert command line ARGUMENTS dictionary to a string.
+                # The build will be done in the local tree, so get rid of
+                # the SCONSCRIPT argument.
+                cmd_args = moduleList.arguments.copy()
+                if ('SCONSCRIPT' in cmd_args):
+                    del cmd_args['SCONSCRIPT']
+                args = ' '.join(['%s="%s"' % (k, v) for (k, v) in cmd_args.items()])
                 print 'Building depends-init ' + args + '...'
                 s = os.system('scons depends-init ' + args)
                 if (s & 0xffff) != 0:
@@ -197,20 +202,28 @@ class BSV():
                     for module in topo + [moduleList.topModule]:
                         modulePath = module.buildPath
 
-                        def addBuildPath(fileName):
+                        def addBuildPath(fileHandle):
+                            fileName = fileHandle
+                            if(isinstance(fileHandle, Source.Source)):
+                                fileName = fileHandle.file
+    
                             if(not os.path.isabs(fileName)):
                                 # does this file contain a partial path?
                                 if(fileName == os.path.basename(fileName)):
                                     basicPath =  os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/' + fileName)
                                     if(os.path.exists(basicPath)):
-                                        return basicPath
+                                        fileName = basicPath
                                     else:
                                         #try .bsc
-                                        return os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/.bsc/' + fileName)
+                                        fileName = os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/.bsc/' + fileName)
                                 else:
-                                    return os.path.abspath(fileName)
-                            else:
-                                return fileName
+                                    fileName = os.path.abspath(fileName)
+
+                            if(isinstance(fileHandle, Source.Source)):
+                                 fileHandle.file = fileName
+                                 return fileHandle
+
+                            return fileName
 
                         # the liGraph only knows about modules that actually
                         # have connections some modules are vestigial, andso
