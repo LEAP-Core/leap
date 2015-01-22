@@ -20,7 +20,6 @@ def getModuleRTLs(moduleList, module):
     for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
         moduleVHDs += [MODULE_PATH + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VHDLS'):
-        print "VHDL:" +  str(v) 
         lib = ""
         if('lib' in v.attributes):
             lib = v.attributes['lib'] + '/'
@@ -204,8 +203,8 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     # parallel.  However, opt_design seems to cause downstream
     # problems and needs more testing. 
    
-    #if(not module.platformModule):
-    #    newTclFile.write("opt_design -quiet\n")
+    if(not module.platformModule):
+        newTclFile.write("opt_design -quiet\n")
 
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.opt.util\n")
     newTclFile.write("write_checkpoint -force " + module.wrapperName() + ".synth.dcp\n")
@@ -353,9 +352,8 @@ def linkFirstPassObject(moduleList, module, firstPassLIGraph, sourceType, destin
             moduleList.env.Command(linkPath, src, linkSource)            
             module.moduleDependency[destinationType] = [linkPath]
             deps += [linkPath]
-        else:
-            # Warn that we did not find the ngc we expected to find..
-            print "Warning: We did not find an " + str(sourceType) + " file for module " + module.name 
+    else:
+        return None
     return deps
     
 def linkNGC(moduleList, module, firstPassLIGraph):
