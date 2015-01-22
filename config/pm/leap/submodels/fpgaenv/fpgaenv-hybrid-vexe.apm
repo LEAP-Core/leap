@@ -136,7 +136,6 @@ rrr=RRR Clients and Servers
 physical_platform_debugger=Null Physical Platform Debugger
 local_mem=Local Memory using DDR DRAM (burst holds at least one line)
 
-
 [Common Physical Platform Utilities/Requires]
 physical_platform_defs=Common Physical Platform Definitions
 
@@ -147,3 +146,10 @@ Packagehint=leap-platforms
 [Build Pipeline IVerilog]
 File=config/pm/leap/submodels/pipelines/build-pipeline-verilog.apm
 Packagehint=leap
+
+[DDR SDRAM Emulator in BRAM/Requires]
+ddr_sdram_definitions=DDR SDRAM Common Definitions
+
+[DDR SDRAM Common Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
+Packagehint=leap-platforms

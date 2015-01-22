@@ -3,8 +3,9 @@ import re
 import sys
 import SCons.Script
 import model
-
 import xilinx_loader
+import wrapper_gen_tool
+import synthesis_library
 
 try:
     import area_group_tool
@@ -17,6 +18,15 @@ except ImportError:
 class PostSynthesize():
   def __init__(self, moduleList):
 
+    # if we have a deps build, don't do anything...
+    if(moduleList.isDependsBuild):
+        return
+
+    firstPassLIGraph = wrapper_gen_tool.getFirstPassLIGraph()
+
+    # Construct the tcl file 
+    self.part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
+
     apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
 
     paramTclFile = moduleList.compileDirectory + '/params.xdc'
@@ -26,6 +36,10 @@ class PostSynthesize():
         os.mkdir(moduleList.env['DEFS']['TMP_XILINX_DIR'])
 
     # Gather Tcl files for handling constraints.
+    tcl_headers = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS')) > 0):
+        tcl_headers = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS'))
+
     tcl_defs = []
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS')) > 0):
         tcl_defs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS'))
@@ -82,20 +96,66 @@ class PostSynthesize():
         parameter_tcl_closure(moduleList, paramTclFile)
         )                             
 
-    # Construct the tcl file 
-    part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
 
-    synthDeps = moduleList.topModule.moduleDependency['SYNTHESIS']
+    synthDepsBase =  moduleList.getAllDependencies('GEN_VIVADO_DCPS')
+
+    # We got a stack of synthesis results for the LI modules.  We need
+    # to convert these to design checkpoints for the fast place and
+    # route flow.
+    ngcModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore]
+
+    for module in ngcModules + [moduleList.topModule]:   
+        # did we get a dcp from the first pass?  If so, did the lim
+        # graph give code for this module?  If both are true, then we
+        # will link the old ngc in, rather than regenerate it. 
+        if((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
+            if(synthesis_library.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
+                module.moduleDependency['GEN_VIVADO_DCPS'] = [self.edf_to_dcp(moduleList, module)]
+            
+        # it's possible that we got dcp from this compilation
+        # pass. This will happen for the platform modules.
+        elif(len(module.getDependencies('GEN_VIVADO_DCPS')) > 0):
+            continue
+
+        # we got neither. therefore, we must create a dcp out of the ngc.
+        else:            
+            module.moduleDependency['GEN_VIVADO_DCPS'] = [self.edf_to_dcp(moduleList, module)]
+
+                        
+   
+
+    synthDeps =  moduleList.getAllDependencies('GEN_VIVADO_DCPS')
 
     postSynthTcl = apm_name + '.physical.tcl'
 
     topWrapper = moduleList.topModule.wrapperName()
 
     newTclFile = open(postSynthTcl,'w')
-    newTclFile.write('create_project -force ' + moduleList.apmName + ' ' + moduleList.compileDirectory + ' -part ' + part + ' \n')
+    newTclFile.write('create_project -force ' + moduleList.apmName + ' ' + moduleList.compileDirectory + ' -part ' + self.part + ' \n')
 
-    for netlist in model.convertDependencies(synthDeps):
-        newTclFile.write('read_edif ' + netlist + '\n')
+    # To resolve black boxes, we need to load checkpoints in the
+    # following order:
+    # 1) topModule
+    # 2) platformModule
+    # 3) user program, in any order
+
+    userModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore and not module.platformModule]
+    platformModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore and module.platformModule]
+
+    for module in [moduleList.topModule] + platformModules + userModules:   
+        checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
+
+        # There should only be one checkpoint here. 
+        if(len(checkpoint) > 1):
+            print "Error too many checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+            continue
+
+        if(len(checkpoint) == 0):
+            print "No checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+            continue
+
+        newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
+
 
     given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
@@ -108,13 +168,11 @@ class PostSynthesize():
     newTclFile.write("set_property SEVERITY {Warning} [get_drc_checks NSTD-1]\n")
     newTclFile.write("set_property SEVERITY {Warning} [get_drc_checks UCIO-1]\n")
 
-    newTclFile.write("link_design -top " + topWrapper + " -part " + part  + "\n")
+    newTclFile.write("link_design -top " + topWrapper + " -part " + self.part  + "\n")
 
     for elf in tcl_elfs:
         newTclFile.write("add_file " + model.modify_path_hw(elf) + "\n")
         newTclFile.write("set_property MEMDATA.ADDR_MAP_CELLS {" + str(elf.attributes['ref']) + "} [get_files " + model.modify_path_hw(elf) + "]\n")
-        #newTclFile.write("set_property SCOPED_TO_REF " + str(elf.attributes['ref']) + " [get_files " + model.modify_path_hw(elf) + "]\n")
-        #newTclFile.write("set_property SCOPED_TO_CELLS [get_cells " + str(elf.attributes['cell']) + "] [get_files " + model.modify_path_hw(elf) + "]\n")
 
 
 
@@ -122,7 +180,6 @@ class PostSynthesize():
     for bmm in tcl_bmms:
         newTclFile.write("add_file " + model.modify_path_hw(bmm) + "\n")
         newTclFile.write("set_property SCOPED_TO_REF " + str(bmm.attributes['ref']) + " [get_files " + model.modify_path_hw(bmm) + "]\n")
-        #newTclFile.write("set_property SCOPED_TO_CELLS [get_cells " + str(bmm.attributes['cell']) + "] [get_files " + model.modify_path_hw(bmm) + "]\n")
 
 
     newTclFile.write("report_utilization -file " + apm_name + ".link.util\n")
@@ -130,8 +187,12 @@ class PostSynthesize():
     newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
  
     newTclFile.write('source ' + paramTclFile + '\n')
+
+    for tcl_header in tcl_headers:
+        newTclFile.write('source ' + tcl_header + '\n')
+
     for tcl_def in tcl_defs:
-        newTclFile.write('source ' + tcl_def + '\n')
+         newTclFile.write('source ' + tcl_def + '\n') 
 
     for tcl_func in tcl_funcs:
         newTclFile.write('source ' + tcl_func + '\n')
@@ -187,3 +248,44 @@ class PostSynthesize():
 
     # We still need to generate a download script. 
     xilinx_loader.LOADER(moduleList)
+
+
+  # If we didn't get a design checkpoint (i.e. we used synplify) we
+  # need to decorate the edif as a checkpoint.  This will eventually
+  # help on recompilation. 
+  def edf_to_dcp_name(self, moduleList, module):
+      return moduleList.compileDirectory + '/' + module.name + ".synth.dcp"
+
+  def edf_to_dcp(self, moduleList, module):
+      edfTcl = self.edf_to_dcp_name(moduleList, module) + ".tcl"
+      edfTclFile = open(edfTcl,'w')
+      gen_netlists = module.getDependencies('GEN_NGCS')
+
+      given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
+
+      for netlist in gen_netlists + given_netlists:
+          edfTclFile.write('read_edif ' + netlist + '\n')
+      
+      if(module.getAttribute('TOP_MODULE') is None):
+          edfTclFile.write("link_design -mode out_of_context -top " +  module.wrapperName() + " -part " + self.part  + "\n")
+          edfTclFile.write('write_checkpoint -force ' + self.edf_to_dcp_name(moduleList, module) + '\n')
+          edfTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
+      else:
+          edfTclFile.write("link_design -top " +  module.wrapperName() + " -part " + self.part  + "\n")
+
+
+
+      edfTclFile.write('write_checkpoint -force ' + self.edf_to_dcp_name(moduleList, module) + '\n')
+
+      edfTclFile.close()
+
+      # generate bitfile
+      return moduleList.env.Command(
+          [self.edf_to_dcp_name(moduleList, module)],
+          [gen_netlists] + [given_netlists] + [edfTcl], 
+          ['vivado -mode batch -source ' + edfTcl + ' -log ' + module.name + 'synth.dcp.log'])
+
+
+
+
+

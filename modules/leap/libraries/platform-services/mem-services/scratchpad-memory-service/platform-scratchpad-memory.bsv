@@ -266,6 +266,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
         error("Scratchpad ID " + integerToString(scratchpadIntPortId(scratchpadID)) + ": Initialized scratchpads must have power of 2 data sizes.");
     end
 
+    Integer e = (conf.cacheEntries == 0) ? `SCRATCHPAD_STD_PVT_CACHE_ENTRIES : conf.cacheEntries;
 
     if (conf.cacheMode == SCRATCHPAD_UNCACHED)
     begin
@@ -274,9 +275,10 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
         // a scratchpad base data size.
         memory <- mkUncachedScratchpad(scratchpadID, conf);
     end
-    else if ((conf.cacheMode == SCRATCHPAD_CACHED) &&
-             (valueOf(TExp#(t_CONTAINER_ADDR_SZ)) <= `SCRATCHPAD_STD_PVT_CACHE_ENTRIES))
+    else if ((conf.cacheMode == SCRATCHPAD_CACHED) && (valueOf(TExp#(t_CONTAINER_ADDR_SZ)) <= e))
     begin
+        messageM("Scratchpad ID: " + integerToString(scratchpadID) + " bram entries: " + integerToString(e) + "container address size: " + integerToString(valueOf(t_CONTAINER_ADDR_SZ)) + "user address size: " + integerToString(valueOf(t_ADDR_SZ)));
+        
         // A special case:  cached scratchpad requested but the container
         // is smaller than the cache would have been.  Just allocate a BRAM.
         memory <- mkBRAMBufferedPseudoMultiReadInitialized(True, unpack(0));
@@ -290,7 +292,6 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
 
         if (conf.cacheMode == SCRATCHPAD_CACHED)
         begin
-            Integer e = (conf.cacheEntries == 0) ? `SCRATCHPAD_STD_PVT_CACHE_ENTRIES : conf.cacheEntries;
             Integer mode = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE;
             Integer mech = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_MECHANISM;
             Integer pf_size = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG;
@@ -300,6 +301,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
             SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR pf_stats = prefetchStatsConstructor;
 
             // Require brute-force conversion because Integer cannot be converted to a type
+            messageM("Scratchpad ID: " + integerToString(scratchpadID) + " private cache entries: " + integerToString(e));
             
             if      (e <= 8)      begin NumTypeParam#(8)      n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
             else if (e <= 16)     begin NumTypeParam#(16)     n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
@@ -316,7 +318,9 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
             else if (e <= 32768)  begin NumTypeParam#(32768)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
             else if (e <= 65536)  begin NumTypeParam#(65536)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
             else if (e <= 131072) begin NumTypeParam#(131072) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else                  begin NumTypeParam#(262144) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 262144) begin NumTypeParam#(262144) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else if (e <= 524288) begin NumTypeParam#(524288) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
+            else                  begin NumTypeParam#(1048576) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
        
         end
         else

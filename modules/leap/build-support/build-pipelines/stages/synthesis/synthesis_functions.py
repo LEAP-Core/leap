@@ -20,7 +20,6 @@ def getModuleRTLs(moduleList, module):
     for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
         moduleVHDs += [MODULE_PATH + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VHDLS'):
-        print "VHDL:" +  str(v) 
         lib = ""
         if('lib' in v.attributes):
             lib = v.attributes['lib'] + '/'
@@ -169,26 +168,50 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write("add_files " + file + "\n")
         newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
 
+    # Add in other synthesis algorithms
+    tcl_funcs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) > 0):
+        tcl_funcs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) 
+
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
     # and friends on the external ports.
-    newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+ 
+    # First, elaborate the rtl design. 
+
+    # For the top module, we don't use out of context.
+    if(module.getAttribute('TOP_MODULE') is None):
+        newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+    else:
+         newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part  + "\n")
+
+    # apply tcl synthesis functions/patches 
+    for tcl_func in tcl_funcs:
+        relpath = model.rel_if_not_abspath(tcl_func, vivadoCompileDirectory)
+        newTclFile.write('source ' + relpath + '\n')
+
+    if(module.getAttribute('TOP_MODULE') is None):
+        newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
+    else:
+        newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part  + "\n")
+
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
-    newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
+
 
     # We should do opt_design here because it will be faster in
     # parallel.  However, opt_design seems to cause downstream
     # problems and needs more testing. 
    
-    #if(not module.platformModule):
-    #    newTclFile.write("opt_design -quiet\n")
+    if(not module.platformModule):
+        newTclFile.write("opt_design -quiet\n")
 
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.opt.util\n")
     newTclFile.write("write_checkpoint -force " + module.wrapperName() + ".synth.dcp\n")
     newTclFile.write("write_edif " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
-    return prjPath
+    return [prjPath] + tcl_funcs
 
 
 # Converts SRP file into resource representation which can be used
@@ -313,26 +336,28 @@ def getVivadoUtilResourcesClosure(module):
         srpHandle.close()
 
     return collect_srp_resources
-    
-def linkNGC(moduleList, module, firstPassLIGraph):
+
+def linkFirstPassObject(moduleList, module, firstPassLIGraph, sourceType, destinationType):
     deps = []
     moduleObject = firstPassLIGraph.modules[module.name]
-    if('GEN_NGCS' in moduleObject.objectCache):
-        for ngc in moduleObject.objectCache['GEN_NGCS']:
-            linkPath = moduleList.compileDirectory + '/' + os.path.basename(ngc)
-            def linkNGC(target, source, env):
+    if(sourceType in moduleObject.objectCache):
+        for src in moduleObject.objectCache[sourceType]:
+            linkPath = moduleList.compileDirectory + '/' + os.path.basename(src)
+            def linkSource(target, source, env):
                 # It might be more useful if the Module contained a pointer to the LIModules...                        
                 if(os.path.lexists(str(target[0]))):
                     os.remove(str(target[0]))
                 print "Linking: " + str(source[0]) + " to " + str(target[0])
                 os.symlink(str(source[0]), str(target[0]))
-            moduleList.env.Command(linkPath, ngc, linkNGC)            
-            module.moduleDependency['SYNTHESIS'] = [linkPath]
+            moduleList.env.Command(linkPath, src, linkSource)            
+            module.moduleDependency[destinationType] = [linkPath]
             deps += [linkPath]
-        else:
-            # Warn that we did not find the ngc we expected to find..
-            print "Warning: We did not find an ngc file for module " + module.name 
+    else:
+        return None
     return deps
+    
+def linkNGC(moduleList, module, firstPassLIGraph):
+    return linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_NGCS', 'GEN_NGCS')
 
 def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf):
     #Let's synthesize a xilinx .prj file for ths synth boundary.
@@ -392,8 +417,9 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 
     #Let's synthesize a xilinx .prj file for this synth boundary.
     # spit out a new prj
-    generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
+    tclDeps = generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
 
+    checkpointFile = vivadoCompileDirectory + '/' + module.wrapperName() + ".synth.dcp"
     edfFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.edf'
     srpFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'
     logFile = module.wrapperName() + '.synth.log'
@@ -401,9 +427,10 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 
     # Sort dependencies because SCons will rebuild if the order changes.
     sub_netlist = moduleList.env.Command(
-        [edfFile, srpFile],
+        [edfFile, srpFile, checkpointFile],
         [model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'] +
         sorted(module.moduleDependency['VERILOG']) +
+        tclDeps + 
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
         [ SCons.Script.Delete(vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'),
@@ -419,9 +446,11 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     else:
         module.moduleDependency['GEN_NGCS'] += [edfFile]
 
+    module.moduleDependency['GEN_VIVADO_DCPS'] = [checkpointFile]
+
     module.moduleDependency['RESOURCES'] = [resourceFile]
 
-    module.moduleDependency['SYNTHESIS'] = [sub_netlist]
+    module.moduleDependency['SYNTHESIS'] = [edfFile]
     SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
 
     utilFile = moduleList.env.Command(resourceFile,

@@ -26,6 +26,8 @@ class Module(ProjectDependency.ProjectDependency):
     self.interfaceType = 'Empty'
     self.extraImports = []
 
+    self.attributes = {}
+
     self.isSynthBoundary = (synthBoundary != [])
     if(self.isSynthBoundary):
       self.synthBoundaryModule = synthBoundary[0]
@@ -89,6 +91,18 @@ class Module(ProjectDependency.ProjectDependency):
 
   def wrapperName(self):
     return 'mk_' + self.name + '_Wrapper'
+
+
+  def putAttribute(self, key, value):
+      self.attributes[key] = value
+      
+
+  def getAttribute(self, key):
+      if(key in self.attributes):
+          return self.attributes[key]
+      else:
+          return None
+
                               
   ##
   ## parseAWBParams --
@@ -262,3 +276,5 @@ def initAWBParamParser(args, emit_override_files):
 
   global emitOverrideFiles
   emitOverrideFiles = emit_override_files
+
+

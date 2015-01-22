@@ -336,8 +336,22 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     Reg#(RL_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(RL_DM_PREFETCH_DISABLE);
     
     // Cache data and tag
-    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized(tagged Invalid);
-
+    // BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized(tagged Invalid);
+    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
+    
+    if (`RL_DM_CACHE_BRAM_TYPE == 0)
+    begin
+        cache <- mkBRAMInitialized(tagged Invalid);
+    end
+    else if(`RL_DM_CACHE_BRAM_TYPE == 1)
+    begin
+        cache <- mkBRAMInitializedMultiBank(tagged Invalid);
+    end
+    else
+    begin
+        cache <- mkBRAMInitializedClockDivider(tagged Invalid);
+    end
+    
     // Track busy entries
     COUNTING_FILTER#(t_CACHE_IDX, 0) entryFilter <- mkCountingFilter(debugLog);
 
