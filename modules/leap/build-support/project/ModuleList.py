@@ -165,6 +165,7 @@ class ModuleList:
 
       # check to see if this is the top module (has no parent)
       if(module.parent == ''): 
+        module.putAttribute('TOP_MODULE', True)
         self.topModule = module
       else:
         self.moduleList.append(module)

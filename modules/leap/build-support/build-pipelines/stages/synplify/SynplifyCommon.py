@@ -138,6 +138,7 @@ def getSRRResourcesClosureBase(module, attributes):
         ## still need to bake this code out. 
         lutSlices = 0 
         regSlices = 0 
+        ramSlices = 0
         resources['SLICE'] = ["0"]
 
         if ('LUT' in resources):
@@ -146,11 +147,11 @@ def getSRRResourcesClosureBase(module, attributes):
         if ('Reg' in resources):
             regSlices = int(int(resources['Reg'][0]) / 8.0)
 
-        if(lutSlices > regSlices):
-            resources['SLICE'] = [str(lutSlices)]
-        else:
-            resources['SLICE'] = [str(regSlices)]
-        
+        if ('BRAM' in resources):
+            ramSlices = int(int(resources['BRAM'][0]) * 90.0)
+           
+        resources['SLICE'] = [str(max([lutSlices, regSlices, ramSlices]))]
+                
 
         resourceString = ':'.join([resource + ':' + resources[resource][0] for resource in resources]) + '\n'
 

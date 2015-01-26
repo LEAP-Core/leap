@@ -70,7 +70,7 @@ sub _semi_deep_copy
     my $target;
 
     $target->{direction} = $source->{direction};
-    if (defined(@{ $source->{args} }))
+    if (exists($source->{args}))
     {
         push(@{ $target->{args} }, @{ $source->{args} });
     }
