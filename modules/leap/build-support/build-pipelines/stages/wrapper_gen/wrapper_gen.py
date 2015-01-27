@@ -226,6 +226,18 @@ def getFirstPassLIGraph():
 
     return None
 
+##
+## validateFirstPassLIGraph() -- Checks a moduleList against the first
+##   pass graph.  This is a helpful assertion/invariant in the backend.
+##
+
+def validateFirstPassLIGraph(moduleList):
+    firstPassGraph = getFirstPassLIGraph()
+    for module in firstPassGraph.modules.values():
+        if(not module.name in moduleList.modules):
+           print "Module " + module.name + " not found.  Is the LI Graph Corrupted?"
+           exit(1)
+    
 
 ##
 ## generateSynthWrapper --

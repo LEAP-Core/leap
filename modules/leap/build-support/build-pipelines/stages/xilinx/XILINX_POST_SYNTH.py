@@ -15,8 +15,9 @@ from xilinx_loader import *
 class PostSynthesize():
   def __init__(self, moduleList):
 
-    fpga_part_xilinx = moduleList.env['DEFS']['FPGA_PART_XILINX']
-    xilinx_apm_name = moduleList.compileDirectory + '/' + moduleList.apmName
+    # if we have a deps build, don't do anything...
+    if(moduleList.isDependsBuild):
+        return
       
     NGD(moduleList)
 

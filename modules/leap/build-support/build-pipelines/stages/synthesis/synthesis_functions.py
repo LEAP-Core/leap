@@ -203,8 +203,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     # parallel.  However, opt_design seems to cause downstream
     # problems and needs more testing. 
    
-    if(not module.platformModule):
-        newTclFile.write("opt_design -quiet\n")
+    newTclFile.write("opt_design -quiet\n")
 
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.opt.util\n")
     newTclFile.write("write_checkpoint -force " + module.wrapperName() + ".synth.dcp\n")
@@ -349,8 +348,13 @@ def linkFirstPassObject(moduleList, module, firstPassLIGraph, sourceType, destin
                     os.remove(str(target[0]))
                 print "Linking: " + str(source[0]) + " to " + str(target[0])
                 os.symlink(str(source[0]), str(target[0]))
-            moduleList.env.Command(linkPath, src, linkSource)            
-            module.moduleDependency[destinationType] = [linkPath]
+            moduleList.env.Command([linkPath], [src], linkSource)
+
+            if(destinationType in  module.moduleDependency):  
+                module.moduleDependency[destinationType] += [linkPath]
+            else:
+                module.moduleDependency[destinationType] = [linkPath]
+
             deps += [linkPath]
     else:
         return None
@@ -491,9 +495,12 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
     templateFile = moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + templates[0]
     xstTemplate = parameter_substitution.parseAWBFile(templateFile)
                   
-
     [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
     synth_deps = []
+ 
+    if(not firstPassGraph is None):
+        wrapper_gen.validateFirstPassLIGraph(moduleList)
+
     for module in [ mod for mod in moduleList.synthBoundaries() if mod.platformModule]:
         if((not firstPassGraph is None) and (module.name in firstPassGraph.modules)):
             # we link from previous.

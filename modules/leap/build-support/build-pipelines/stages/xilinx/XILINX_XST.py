@@ -16,6 +16,10 @@ from wrapper_gen_tool import *
 class Synthesize():
   def __init__(self, moduleList):
 
+    # if we have a deps build, don't do anything...                                                                                  
+    if(moduleList.isDependsBuild):
+        return
+
     # We load this graph in to memory several times. 
     # TODO: load this graph once. 
     self.firstPassLIGraph = getFirstPassLIGraph()
@@ -60,7 +64,6 @@ class Synthesize():
     # drop exiting boundaries. 
 
     for module in ngcModules:
-   
         # did we get an ngc from the first pass?  If so, did the lim
         # graph give code for this module?  If both are true, then we
         # will link the old ngc in, rather than regenerate it. 
@@ -82,7 +85,7 @@ class Synthesize():
         sorted(moduleList.topModule.moduleDependency['VERILOG']) +
         sorted(moduleList.getAllDependencies('VERILOG_STUB')) +
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
-        [ topXSTPath ] +
+        [ topXSTPath ] + 
         xilinx_xcf,
         [ SCons.Script.Delete(topSRP),
           SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
@@ -90,8 +93,9 @@ class Synthesize():
           'ulimit -s unlimited; xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
           '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 
-    moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
     synth_deps += top_netlist
+    moduleList.topModule.moduleDependency['SYNTHESIS'] = synth_deps
+
     SCons.Script.Clean(top_netlist, topSRP)
 
     # Alias for synthesis

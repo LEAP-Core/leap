@@ -1,6 +1,6 @@
 import os
 import SCons.Script
-from model import  *
+import model
 
 try:
     import area_group_tool
@@ -69,6 +69,8 @@ class NGD():
     given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
     module_ngcs = moduleList.getAllDependencies('SYNTHESIS')
 
+    # We are really depending on the top level being an .ngc Since ISE
+    # is going away, this will probably not cost us anything.  
     xilinx_ngd = moduleList.env.Command(
       xilinx_apm_name + '.ngd',
       moduleList.topModule.moduleDependency['SYNTHESIS'] + given_netlists,
@@ -82,7 +84,7 @@ class NGD():
         SCons.Script.Delete('xlnx_auto_0_xdb'),
         'ngdbuild -aul -aut -p ' + fpga_part_xilinx + \
           ' -sd ' + ' -sd '.join(sd_list) + \
-          ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + ' $SOURCE $TARGET | tee ' + xilinx_apm_name +'.ngdrpt',
+          ' -uc ' + xilinx_apm_name + '.ucf ' + bmm + moduleList.topModule.wrapperName() + '.ngc $TARGET | tee ' + xilinx_apm_name +'.ngdrpt',
         SCons.Script.Move(moduleList.compileDirectory + '/netlist.lst', 'netlist.lst') ])
 
     moduleList.env.Depends(xilinx_ngd,
