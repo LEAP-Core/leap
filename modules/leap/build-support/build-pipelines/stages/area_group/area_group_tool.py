@@ -1,12 +1,21 @@
 import math
 import cPickle as pickle
+import os
+import copy
 
 import tsp
-from area_group_parser import *
-from model import  *
-from li_module import *
+import area_group_parser 
+from area_group_parser import AreaGroup, AreaGroupSize, AreaGroupResource, AreaGroupLocation, AreaGroupLowerLeft, AreaGroupUpperRight, AreaGroupAttribute, AreaGroupPath, AreaGroupRelationship
+import model 
+import li_module 
+from li_module import LIGraph, LIModule
 import wrapper_gen_tool
 
+# we only get physical platform definitions in physical builds
+try:
+    import physical_platform_config
+except ImportError:
+    pass
 
 def _areaConstraintsFileIncomplete(moduleList):
     return moduleList.compileDirectory + '/areagroups.nopaths.pickle'
@@ -78,16 +87,12 @@ class AreaConstraints():
     ##   area groups.
     ##
     def numIOBufs(self, agOut, agIn):
-        if (not self.enableBufferInsertion):
+        if (not self.enableBufferInsertion or not self.enabled):
             return 0
 
         d = self._distance(agOut, agIn)
-
-        if (d > 0):
-            # This should call a platform-specific library...
-            return 0
-        else:
-            return 0
+        #print "Distance of " + agOut.name + "  " + agIn.name + " -> " + str(d)
+        return physical_platform_config.bufferDistance(d)
 
     ##
     ## _distance --
@@ -140,52 +145,63 @@ class AreaConstraints():
     def emitConstraintsVivado(self, fileName):
         constraintsFile = open(fileName, 'w')
         for areaGroupName in self.constraints:
-            areaGroupObject = self.constraints[areaGroupName]
-
-            # if area group was tagged as None, do not emit an area group
-            # for it.  This allows us to handle area groups hidden in the
-            # user UCF.
-            if(areaGroupObject.sourcePath is None):
-                continue
-
-            # We need to place halo cells around pblocks, so that they
-            # do not overlap on rounding.
-            haloCells = 1
-
-            #startgroup
-            #set_property  gridtypes {RAMB18 DSP48 SLICE} [get_pblocks AG_fpga0_platform]
-            #create_pblock pblock_ddr3 
-            #resize_pblock pblock_ddr3 -add {SLICE_X134Y267:SLICE_X173Y349}
-            #add_cells_to_pblock pblock_ddr3 [get_cells -hier -filter {NAME =~ m_sys_sys_vp_m_mod/llpi_phys_plat_sdram_b_ddrSynth/*}]
-            #endgroup
-
-            constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
-            constraintsFile.write('startgroup \n')
-            constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
-
-            slice_LowerLeftX = int(areaGroupObject.xLoc) + haloCells
-            slice_LowerLeftY = int(areaGroupObject.yLoc) + haloCells
-
-            slice_UpperRightX = int(areaGroupObject.xLoc + areaGroupObject.xDimension) - haloCells
-            slice_UpperRightY = int(areaGroupObject.yLoc + areaGroupObject.yDimension) - haloCells
-  
-            constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
-
-            constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
-
-            # Optionally emit code to exclude some specific portion of code     
-            if('EXCLUSIONS' in areaGroupObject.attributes):
-                constraintsFile.write('remove_cells_from_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.attributes['EXCLUSIONS'] + '"}]\n')
-
-            # include all resource in the slice area
-            constraintsFile.write('set_property   gridtypes {RAMB36 RAMB18 DSP48 SLICE} [get_pblocks AG_' + areaGroupObject.name + ']\n')
-
-            constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
-            constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
-
-            constraintsFile.write('endgroup \n')
+            self.emitModuleConstraintsVivado(constraintsFile, areaGroupName)
 
         constraintsFile.close()
+
+    def emitModuleConstraintsVivado(self, constraintsFile, areaGroupName, useSourcePath=True):
+
+        if(not areaGroupName in self.constraints):
+            return None
+
+        areaGroupObject = self.constraints[areaGroupName]
+
+        # if area group was tagged as None, do not emit an area group
+        # for it.  This allows us to handle area groups hidden in the
+        # user UCF.
+        if(areaGroupObject.sourcePath is None):
+            return None
+
+        # We need to place halo cells around pblocks, so that they
+        # do not overlap on rounding.
+        haloCells = 1
+
+        #startgroup
+        #set_property  gridtypes {RAMB18 DSP48 SLICE} [get_pblocks AG_fpga0_platform]
+        #create_pblock pblock_ddr3 
+        #resize_pblock pblock_ddr3 -add {SLICE_X134Y267:SLICE_X173Y349}
+        #add_cells_to_pblock pblock_ddr3 [get_cells -hier -filter {NAME =~ m_sys_sys_vp_m_mod/llpi_phys_plat_sdram_b_ddrSynth/*}]
+        #endgroup
+
+        constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
+        constraintsFile.write('startgroup \n')
+        constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
+
+        slice_LowerLeftX = int(areaGroupObject.xLoc) + haloCells
+        slice_LowerLeftY = int(areaGroupObject.yLoc) + haloCells
+
+        slice_UpperRightX = int(areaGroupObject.xLoc + areaGroupObject.xDimension) - haloCells
+        slice_UpperRightY = int(areaGroupObject.yLoc + areaGroupObject.yDimension) - haloCells
+
+        constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
+        if(useSourcePath):
+            constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+        else:
+            constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ *}]\n')
+
+        # Optionally emit code to exclude some specific portion of code     
+        if('EXCLUSIONS' in areaGroupObject.attributes):
+            constraintsFile.write('remove_cells_from_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.attributes['EXCLUSIONS'] + '"}]\n')
+
+        # include all resource in the slice area
+        constraintsFile.write('set_property   gridtypes {RAMB36 RAMB18 DSP48 SLICE} [get_pblocks AG_' + areaGroupObject.name + ']\n')
+
+        constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+
+        constraintsFile.write('endgroup \n')
+        return True
+
 
 
 
@@ -202,7 +218,7 @@ class AreaConstraints():
 class Floorplanner():
 
     def __init__(self, moduleList):
-        self.pipeline_debug = getBuildPipelineDebug(moduleList)
+        self.pipeline_debug = model.getBuildPipelineDebug(moduleList)
 
         def modify_path_hw(path):
             return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
@@ -250,9 +266,9 @@ class Floorplanner():
                  # from the synthesis run
                  moduleResources = {}
                  if(self.firstPassLIGraph is None):
-                     moduleResources = assignResources(moduleList)
+                     moduleResources = li_module.assignResources(moduleList)
                  else:
-                     moduleResources = assignResources(moduleList, None, self.firstPassLIGraph)
+                     moduleResources = li_module.assignResources(moduleList, None, self.firstPassLIGraph)
                  
 
                  areaGroups = {}
@@ -274,7 +290,7 @@ class Floorplanner():
                  # Grab area groups declared/defined in the agrp file supplied by the user. 
                  constraints = []
                  for constraintFile in moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS'):
-                     constraints += parseAreaGroupConstraints(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + constraintFile)
+                     constraints += area_group_parser.parseAreaGroupConstraints(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + constraintFile)
 
                  # first bind new area groups. 
                  for constraint in constraints:
@@ -442,8 +458,6 @@ class Floorplanner():
             resources + map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS')),
             area_group_closure(moduleList)
             )                   
-
-        moduleList.env.AlwaysBuild(areagroup)
 
 
     ##
@@ -823,7 +837,6 @@ class Floorplanner():
                  variables = self.dumpILPRosen(modHandle, areaGroupsPartial)
 
                  modHandle.close()
-                 print "Solving: " + str(modFile) + "\n"
        
                  solvedILP = self.solveILPProblem(modFile, areaGroupsPartial, variables)
                  if(not solvedILP):

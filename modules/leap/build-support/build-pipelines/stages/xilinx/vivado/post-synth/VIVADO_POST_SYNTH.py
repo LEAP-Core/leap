@@ -24,6 +24,11 @@ class PostSynthesize():
 
     firstPassLIGraph = wrapper_gen_tool.getFirstPassLIGraph()
 
+    print "FIRSTPASSGRAPH: " + str(firstPassLIGraph)
+
+    # A collector for all of the checkpoint objects we will gather/build in the following code. 
+    dcps = []
+
     # Construct the tcl file 
     self.part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
 
@@ -63,24 +68,24 @@ class PostSynthesize():
     #Emit area group definitions
     # If we got an area group placement data structure, now is the
     # time to convert it into a new constraint tcl. 
+    self.area_group_file = moduleList.compileDirectory + '/areagroups.xdc'
     if ('AREA_GROUPS' in moduleList.topModule.moduleDependency):
-        area_constraints = area_group_tool.AreaConstraints(moduleList)
-        area_group_file = moduleList.compileDirectory + '/areagroups.xdc'
+        self.area_constraints = area_group_tool.AreaConstraints(moduleList)
 
         # user ucf may be overridden by our area group ucf.  Put our
         # generated ucf first.
-        tcl_defs.insert(0,area_group_file)
+        #tcl_defs.insert(0,self.area_group_file)
         def area_group_ucf_closure(moduleList):
 
              def area_group_ucf(target, source, env):
-                 area_constraints.loadAreaConstraints()
-                 area_constraints.emitConstraintsVivado(area_group_file)
+                 self.area_constraints.loadAreaConstraints()
+                 self.area_constraints.emitConstraintsVivado(self.area_group_file)
 
              return area_group_ucf
 
         moduleList.env.Command( 
-            [area_group_file],
-            area_constraints.areaConstraintsFile(),
+            [self.area_group_file],
+            self.area_constraints.areaConstraintsFile(),
             area_group_ucf_closure(moduleList)
             )                             
 
@@ -142,20 +147,65 @@ class PostSynthesize():
     userModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore and not module.platformModule]
     platformModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore and module.platformModule]
 
-    for module in [moduleList.topModule] + platformModules + userModules:   
-        checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
+  
 
-        # There should only be one checkpoint here. 
-        if(len(checkpoint) > 1):
-            print "Error too many checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
-            continue
+    if(not moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
 
-        if(len(checkpoint) == 0):
-            print "No checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
-            continue
+        for module in [moduleList.topModule] + platformModules + userModules:   
+            dcps.append(module.getDependencies('GEN_VIVADO_DCPS'))
+            checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
 
-        newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
+            # There should only be one checkpoint here. 
+            if(len(checkpoint) > 1):
+                print "Error too many checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+                continue
 
+            if(len(checkpoint) == 0):
+                print "No checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+                continue
+
+            newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
+
+            
+    # We're attempting the new, parallel flow. 
+    else:
+        # we need to issue seperate place commands.  Therefore, we attempt to place each design 
+
+        for module in userModules:   
+            module.moduleDependency['GEN_VIVADO_PLACEMENT_DCPS'] = [self.place_dcp(moduleList, module)]
+            dcps.append(module.moduleDependency['GEN_VIVADO_PLACEMENT_DCPS'])
+
+        for module in [moduleList.topModule] + platformModules:   
+            checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
+            dcps.append(checkpoint)
+              
+            # There should only be one checkpoint here. 
+            if(len(checkpoint) > 1):
+                print "Error too many checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+                continue
+
+            if(len(checkpoint) == 0):
+                print "No checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+                continue
+
+            newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
+
+        for module in userModules:   
+            checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_PLACEMENT_DCPS'))
+
+            # There should only be one checkpoint here. 
+            if(len(checkpoint) > 1):
+                print "Error too many checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+                continue
+
+            if(len(checkpoint) == 0):
+                print "No checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
+                continue
+            #read in new checkoutpoint
+            #newTclFile.write('read_checkpoint -cell '+  module.wrapperName() + " " + checkpoint[0] + '\n')
+            newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
+            #newTclFile.write('lock_design -level placement ' +  module.wrapperName() + '\n')
+           
 
     given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
@@ -170,6 +220,18 @@ class PostSynthesize():
 
     newTclFile.write("link_design -top " + topWrapper + " -part " + self.part  + "\n")
 
+    newTclFile.write("report_utilization -file " + apm_name + ".link.util\n")
+
+    newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
+
+
+    if(moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
+        for module in userModules:  
+            moduleObject = firstPassLIGraph.modules[module.name]
+            if(moduleObject.getAttribute('PLATFORM_MODULE') is None):
+                newTclFile.write('lock_design -level placement [get_cells -hier -filter {REF_NAME =~ "' +  module.wrapperName() + '"}]\n') 
+
+
     for elf in tcl_elfs:
         newTclFile.write("add_file " + model.modify_path_hw(elf) + "\n")
         newTclFile.write("set_property MEMDATA.ADDR_MAP_CELLS {" + str(elf.attributes['ref']) + "} [get_files " + model.modify_path_hw(elf) + "]\n")
@@ -182,9 +244,6 @@ class PostSynthesize():
         newTclFile.write("set_property SCOPED_TO_REF " + str(bmm.attributes['ref']) + " [get_files " + model.modify_path_hw(bmm) + "]\n")
 
 
-    newTclFile.write("report_utilization -file " + apm_name + ".link.util\n")
-
-    newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
  
     newTclFile.write('source ' + paramTclFile + '\n')
 
@@ -241,7 +300,7 @@ class PostSynthesize():
     # generate bitfile
     xilinx_bit = moduleList.env.Command(
       apm_name + '_par.bit',
-      synthDeps + tcl_algs + tcl_defs + tcl_funcs + [paramTclFile], 
+      synthDeps + tcl_algs + tcl_defs + tcl_funcs + [paramTclFile] + dcps, 
       ['vivado -verbose -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
 
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']
@@ -253,37 +312,85 @@ class PostSynthesize():
   # If we didn't get a design checkpoint (i.e. we used synplify) we
   # need to decorate the edif as a checkpoint.  This will eventually
   # help on recompilation. 
-  def edf_to_dcp_name(self, moduleList, module):
-      return moduleList.compileDirectory + '/' + module.name + ".synth.dcp"
-
   def edf_to_dcp(self, moduleList, module):
-      edfTcl = self.edf_to_dcp_name(moduleList, module) + ".tcl"
+      edfCompileDirectory =  moduleList.compileDirectory + '/' + module.name + '_synth/'      
+      dcp = edfCompileDirectory + module.name + ".synth.dcp"
+      edfTcl = edfCompileDirectory + module.name + ".synth.tcl"
+
+      if not os.path.isdir(edfCompileDirectory):
+         os.mkdir(edfCompileDirectory)
+
       edfTclFile = open(edfTcl,'w')
       gen_netlists = module.getDependencies('GEN_NGCS')
 
       given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
       for netlist in gen_netlists + given_netlists:
-          edfTclFile.write('read_edif ' + netlist + '\n')
+          edfTclFile.write('read_edif ' + model.rel_if_not_abspath(netlist, edfCompileDirectory) + '\n')
       
       if(module.getAttribute('TOP_MODULE') is None):
           edfTclFile.write("link_design -mode out_of_context -top " +  module.wrapperName() + " -part " + self.part  + "\n")
-          edfTclFile.write('write_checkpoint -force ' + self.edf_to_dcp_name(moduleList, module) + '\n')
           edfTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
       else:
           edfTclFile.write("link_design -top " +  module.wrapperName() + " -part " + self.part  + "\n")
 
+      if(not module.platformModule):
+          edfTclFile.write("opt_design -quiet\n")
 
-
-      edfTclFile.write('write_checkpoint -force ' + self.edf_to_dcp_name(moduleList, module) + '\n')
+      edfTclFile.write('write_checkpoint -force ' + module.name + ".synth.dcp" + '\n')
 
       edfTclFile.close()
 
       # generate bitfile
       return moduleList.env.Command(
-          [self.edf_to_dcp_name(moduleList, module)],
+          [dcp],
           [gen_netlists] + [given_netlists] + [edfTcl], 
-          ['vivado -mode batch -source ' + edfTcl + ' -log ' + module.name + 'synth.dcp.log'])
+          ['cd ' + edfCompileDirectory + '; vivado -mode batch -source ' +  module.name + ".synth.tcl" + ' -log ' + module.name + '.synth.checkpoint.log'])
+
+
+  def place_dcp(self, moduleList, module):
+
+      # Due to area groups,  we first need a closure to generate tcl. 
+      placeCompileDirectory = moduleList.compileDirectory + '/' + module.name + '_physical/'
+      dcp = placeCompileDirectory + module.name + ".place.dcp"
+      edfTcl = placeCompileDirectory + module.name + ".place.tcl"
+      checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
+
+      if not os.path.isdir(placeCompileDirectory):
+         os.mkdir(placeCompileDirectory)
+
+      def place_dcp_tcl_closure(moduleList):
+
+           def place_dcp_tcl(target, source, env):
+               self.area_constraints.loadAreaConstraints()
+
+               edfTclFile = open(edfTcl,'w')
+               
+               edfTclFile.write('open_checkpoint ' + model.rel_if_not_abspath(checkpoint[0], placeCompileDirectory) + '\n')
+
+               # throw out area group constraints. (and maybe loc constraints too?)
+               # Some modules may not have placement information.  Ignore them for now. 
+               if(not self.area_constraints.emitModuleConstraintsVivado(edfTclFile, module.name, useSourcePath=False) is None):               
+                   edfTclFile.write("place_design -no_drc \n")
+                   edfTclFile.write("phys_opt_design \n")
+
+               edfTclFile.write('write_checkpoint -force ' + module.name + ".place.dcp" + '\n')
+
+               edfTclFile.close()
+ 
+           return place_dcp_tcl
+
+      moduleList.env.Command(
+          [edfTcl],
+          self.area_constraints.areaConstraintsFile(),
+          place_dcp_tcl_closure(moduleList)
+          )
+
+      # generate bitfile
+      return moduleList.env.Command(
+          [dcp],
+          [checkpoint] + [edfTcl] + [self.area_group_file], 
+          ['cd ' + placeCompileDirectory + ';vivado -mode batch -source ' + module.name + ".place.tcl" + ' -log ' + module.name + '.par.log'])
 
 
 
