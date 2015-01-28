@@ -24,8 +24,6 @@ class PostSynthesize():
 
     firstPassLIGraph = wrapper_gen_tool.getFirstPassLIGraph()
 
-    print "FIRSTPASSGRAPH: " + str(firstPassLIGraph)
-
     # A collector for all of the checkpoint objects we will gather/build in the following code. 
     dcps = []
 
@@ -146,10 +144,8 @@ class PostSynthesize():
 
     userModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore and not module.platformModule]
     platformModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore and module.platformModule]
-
-  
-
-    if(not moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
+ 
+    if(not moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_ENABLE')):
 
         for module in [moduleList.topModule] + platformModules + userModules:   
             dcps.append(module.getDependencies('GEN_VIVADO_DCPS'))
@@ -225,7 +221,7 @@ class PostSynthesize():
     newTclFile.write("write_checkpoint -force " + apm_name + ".link.dcp\n")
 
 
-    if(moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_ENABLE')):
+    if(moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_ENABLE')):
         for module in userModules:  
             moduleObject = firstPassLIGraph.modules[module.name]
             if(moduleObject.getAttribute('PLATFORM_MODULE') is None):
