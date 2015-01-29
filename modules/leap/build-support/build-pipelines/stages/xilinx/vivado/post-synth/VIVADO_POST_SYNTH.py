@@ -225,7 +225,7 @@ class PostSynthesize():
         for module in userModules:  
             moduleObject = firstPassLIGraph.modules[module.name]
             if(moduleObject.getAttribute('PLATFORM_MODULE') is None):
-                newTclFile.write('lock_design -level placement [get_cells -hier -filter {REF_NAME =~ "' +  module.wrapperName() + '"}]\n') 
+                newTclFile.write('lock_design -level routing [get_cells -hier -filter {REF_NAME =~ "' +  module.wrapperName() + '"}]\n') 
 
 
     for elf in tcl_elfs:
@@ -369,6 +369,7 @@ class PostSynthesize():
                if(not self.area_constraints.emitModuleConstraintsVivado(edfTclFile, module.name, useSourcePath=False) is None):               
                    edfTclFile.write("place_design -no_drc \n")
                    edfTclFile.write("phys_opt_design \n")
+                   edfTclFile.write("route_design\n")
 
                edfTclFile.write('write_checkpoint -force ' + module.name + ".place.dcp" + '\n')
 
@@ -385,7 +386,7 @@ class PostSynthesize():
       # generate bitfile
       return moduleList.env.Command(
           [dcp],
-          [checkpoint] + [edfTcl] + [self.area_group_file], 
+          [checkpoint] + [edfTcl], 
           ['cd ' + placeCompileDirectory + ';vivado -mode batch -source ' + module.name + ".place.tcl" + ' -log ' + module.name + '.par.log'])
 
 
