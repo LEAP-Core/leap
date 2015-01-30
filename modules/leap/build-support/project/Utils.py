@@ -13,6 +13,7 @@ import string
 import subprocess
 import SCons.Errors
 
+import model
 import Source
 
 ##
@@ -172,7 +173,20 @@ def dictionary_list_create_append(dictionary, key, value):
 ## path.  
 ##
 def modify_path_hw(path):
-    if(isinstance(path,str)):
+    if (isinstance(path,str)):
         return 'hw/' + path 
-    if(isinstance(path, Source.Source)):
+    if (isinstance(path, Source.Source)):
         return 'hw/' + path.attributes['buildPath'] + '/' + path.file
+
+##
+## path_to_root -- Path from primary SConscript to the root of the build tree.
+##
+def path_to_root(dir = None):
+    if (not dir): dir = model.rootDir
+
+    p = ''
+    while (dir and dir.path != '.'):
+        p = '..' + os.path.sep + p
+        dir = dir.up()
+
+    return p

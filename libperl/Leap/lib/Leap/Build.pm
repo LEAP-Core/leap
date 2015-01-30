@@ -19,6 +19,7 @@ use Leap::Util;
 
 use warnings;
 use strict;
+use File::Basename;
 
 ############################################################
 # scons file functions
@@ -410,7 +411,8 @@ sub pythonize_sources {
           
         for my $sourceObject (@sourceObjects) {
 
-            my @sources = $sourceObject->files();
+            my @sources = map { pythonize_canonical_sources($_, ${source_type}) }
+                              $sourceObject->files();
    
             # do we have any attributes? If so, we need to output them here. 
             if(scalar(keys($sourceObject->getAllAttributes()))) {
@@ -455,6 +457,18 @@ sub pythonize_sources {
     $output = $output . '}';
 
     return $output;
+}
+
+
+##
+## Some final tweaks to correct paths. 
+##
+sub pythonize_canonical_sources {
+    my $path = shift;
+    my $source_type = shift;
+
+    # For now we do nothing to the path
+    return $path;
 }
 
 sub pythonize_module {
@@ -535,7 +549,6 @@ sub pythonize_module {
     $stringRepresentation = $stringRepresentation . " ), ";
 
     return $stringRepresentation;
-
 }
 
 ####

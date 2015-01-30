@@ -111,13 +111,13 @@ class PostSynthesize():
         # did we get a dcp from the first pass?  If so, did the lim
         # graph give code for this module?  If both are true, then we
         # will link the old ngc in, rather than regenerate it. 
-        if((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
-            if(synthesis_library.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
+        if ((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
+            if (synthesis_library.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
                 module.moduleDependency['GEN_VIVADO_DCPS'] = [self.edf_to_dcp(moduleList, module)]
             
         # it's possible that we got dcp from this compilation
         # pass. This will happen for the platform modules.
-        elif(len(module.getDependencies('GEN_VIVADO_DCPS')) > 0):
+        elif (len(module.getDependencies('GEN_VIVADO_DCPS')) > 0):
             continue
 
         # we got neither. therefore, we must create a dcp out of the ngc.

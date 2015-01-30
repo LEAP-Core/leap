@@ -4,6 +4,7 @@ import re
 import string
 import cPickle as pickle
 import SCons.Script
+import SCons.Node.FS
 
 import model
 from model import Module, Source, get_build_path
@@ -49,18 +50,41 @@ class BSV():
         # some definitions used during the bsv compilation process
         env = moduleList.env
         self.moduleList = moduleList
-        self.TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
-        synth_modules = [moduleList.topModule] + moduleList.synthBoundaries()
 
-        # Ideally, the iface tool would set this value for us.
-        self.ALL_DIRS_FROM_ROOT = ':'.join([moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath for module in synth_modules]) + ":" + iface_tool.getIfaceIncludeDirs()
+        self.hw_dir = env.Dir(moduleList.env['DEFS']['ROOT_DIR_HW'])
+
+        self.TMP_BSC_DIR = env['DEFS']['TMP_BSC_DIR']
+        synth_modules = moduleList.synthBoundaries()
 
         self.USE_TREE_BUILD = moduleList.getAWBParam('wrapper_gen_tool', 'USE_BUILD_TREE')
 
-        self.ALL_BUILD_DIRS_FROM_ROOT = model.transform_string_list(self.ALL_DIRS_FROM_ROOT, ':', '', '/' + self.TMP_BSC_DIR)
-        self.ALL_LIB_DIRS_FROM_ROOT = self.ALL_DIRS_FROM_ROOT + ':' + self.ALL_BUILD_DIRS_FROM_ROOT
+        # all_module_dirs: a list of all module directories in the build tree
+        self.all_module_dirs = [self.hw_dir.Dir(moduleList.topModule.buildPath)]
+        for module in synth_modules:
+            if (module.buildPath != moduleList.topModule.buildPath):
+                self.all_module_dirs += [self.hw_dir.Dir(module.buildPath)]
 
-        self.ROOT_DIR_HW_INC = env['DEFS']['ROOT_DIR_HW_INC']
+        # all_build_dirs: the build (.bsc) sub-directory of all module directories
+        self.all_build_dirs = [d.Dir(self.TMP_BSC_DIR) for d in self.all_module_dirs]
+
+        # Include iface directories
+        self.all_module_dirs += iface_tool.getIfaceIncludeDirs(moduleList)
+        self.all_build_dirs += iface_tool.getIfaceLibDirs(moduleList)
+
+        # Add the top level build directory
+        self.all_build_dirs += [env.Dir(self.TMP_BSC_DIR)]
+
+        self.all_module_dirs += [self.hw_dir.Dir('include'),
+                                 self.hw_dir.Dir('include/awb/provides')]
+
+        # Full search path: all module and build directories
+        self.all_lib_dirs = self.all_module_dirs + self.all_build_dirs
+
+        all_build_dir_paths = [d.path for d in self.all_build_dirs]
+        self.ALL_BUILD_DIR_PATHS = ':'.join(all_build_dir_paths)
+
+        all_lib_dir_paths = [d.path for d in self.all_lib_dirs]
+        self.ALL_LIB_DIR_PATHS = ':'.join(all_lib_dir_paths)
 
         # we need to annotate the module list with the
         # bluespec-provided library files. Do so here.
@@ -74,12 +98,6 @@ class BSV():
         self.USE_BVI = moduleList.getAWBParam('bsv_tool', 'USE_BVI')
 
         self.pipeline_debug = model.getBuildPipelineDebug(moduleList)
-
-        # Collect bluespec interface information for all modules.
-        self.bluespecBuilddirs = 'iface/build/hw/.bsc/:'
-        for module in moduleList.topologicalOrderSynth():
-            self.bluespecBuilddirs += 'hw/' + module.buildPath + '/.bsc/:'
-
 
         # Should we be building in events?
         if (model.getEvents(moduleList) == 0):
@@ -119,31 +137,6 @@ class BSV():
             ##
             ## Normal build.
             ##
-            ## Invoke a separate instance of SCons to compute the Bluespec
-            ## dependence before going any farther.  We do this because the
-            ## standard trick of having the compiler emit .d files doesn't work
-            ## for us.  We can't predict the names of all Bluespec source
-            ## files that may be generated in the iface tree for dictionaries
-            ## and RRR.  SCons requires that dependence be computed on its first
-            ## pass.  If a dictionary changes and a new Bluespec file is produced
-            ## this must be discoverable before the ParseDepends call in
-            ## build_synth_boundary() below.
-            ##
-            self.isDependsBuild = False
-
-            if not moduleList.env.GetOption('clean'):
-                # Convert command line ARGUMENTS dictionary to a string.
-                # The build will be done in the local tree, so get rid of
-                # the SCONSCRIPT argument.
-                cmd_args = moduleList.arguments.copy()
-                if ('SCONSCRIPT' in cmd_args):
-                    del cmd_args['SCONSCRIPT']
-                args = ' '.join(['%s="%s"' % (k, v) for (k, v) in cmd_args.items()])
-                print 'Building depends-init ' + args + '...'
-                s = os.system('scons depends-init ' + args)
-                if (s & 0xffff) != 0:
-                    print 'Aborting due to dependence errors'
-                    sys.exit(1)
 
             ##
             ## Now that the "depends-init" build is complete we can
@@ -189,8 +182,9 @@ class BSV():
                 ## Probably this result could be acheived with the mergeGraphs
                 ## function.
                 def dump_lim_graph(target, source, env):
-                    # removing platform modules above allows us to use the logs directly.
-                    fullLIGraph = LIGraph(li_module.parseLogfiles(lim_logs))
+                    # Find the subset of sources that are log files and parse them
+                    logs = [s for s in source if (str(s)[-4:] == '.log')]
+                    fullLIGraph = LIGraph(li_module.parseLogfiles(logs))
 
                     # annotate modules with relevant object code (useful in
                     # LIM compilation)
@@ -202,28 +196,10 @@ class BSV():
                     for module in topo + [moduleList.topModule]:
                         modulePath = module.buildPath
 
-                        def addBuildPath(fileHandle):
-                            fileName = fileHandle
-                            if(isinstance(fileHandle, Source.Source)):
-                                fileName = fileHandle.file
-    
-                            if(not os.path.isabs(fileName)):
-                                # does this file contain a partial path?
-                                if(fileName == os.path.basename(fileName)):
-                                    basicPath =  os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/' + fileName)
-                                    if(os.path.exists(basicPath)):
-                                        fileName = basicPath
-                                    else:
-                                        #try .bsc
-                                        fileName = os.path.abspath(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + modulePath + '/.bsc/' + fileName)
-                                else:
-                                    fileName = os.path.abspath(fileName)
-
-                            if(isinstance(fileHandle, Source.Source)):
-                                 fileHandle.file = fileName
-                                 return fileHandle
-
-                            return fileName
+                        # Wrap the real findBuildPath() so it can be invoked
+                        # later by map().
+                        def __findBuildPath(path):
+                            return Source.findBuildPath(path, modulePath)
 
                         # the liGraph only knows about modules that actually
                         # have connections some modules are vestigial, andso
@@ -236,9 +212,8 @@ class BSV():
                                 # don't require the filtering step.
                                 depList = module.moduleDependency[objectType]
                                 convertedDeps = model.convertDependencies(depList)
-                                relativeDeps = map(addBuildPath,convertedDeps)
+                                relativeDeps = map(__findBuildPath, convertedDeps)
                                 fullLIGraph.modules[module.name].putObjectCode(objectType, relativeDeps)
-
 
                     for module in topo:
                         if(module.name in fullLIGraph.modules):
@@ -248,13 +223,12 @@ class BSV():
                                 fullLIGraph.modules[module.name].putAttribute('MAPPING', moduleList.localPlatformName)
                                 fullLIGraph.modules[module.name].putAttribute('PLATFORM_MODULE', True)
 
-
                     # Decorate LI modules with type
                     for module in fullLIGraph.modules.values():
                         module.putAttribute("EXECUTION_TYPE","RTL")
 
                     # dump graph representation.
-                    pickleHandle = open(li_graph, 'wb')
+                    pickleHandle = open(str(target[0]), 'wb')
                     pickle.dump(fullLIGraph, pickleHandle, protocol=-1)
                     pickleHandle.close()
 
@@ -269,7 +243,11 @@ class BSV():
                                         dump_lim_graph)
 
                 moduleList.topModule.moduleDependency['LIM_GRAPH'] = [li_graph]
-                moduleList.topDependency += [dumpGraph]
+
+                # dumpGraph depends on most other top level builds since it
+                # walks the set of generated files.
+                moduleList.env.Depends(dumpGraph, moduleList.topDependency)
+                moduleList.topDependency = [dumpGraph]
 
 
             ## Merge all synthesis boundaries using a tree?  The tree reduces
@@ -292,13 +270,13 @@ class BSV():
                 if('STR' in module.moduleDependency):
                     all_str_src.extend(module.moduleDependency['STR'])
 
-            if(self.BUILD_LOGS_ONLY == 0):
+            if (self.BUILD_LOGS_ONLY == 0):
                 bsc_str = moduleList.env.Command(self.TMP_BSC_DIR + '/' + moduleList.env['DEFS']['APM_NAME'] + '.str',
                                                  all_str_src,
                                                  [ 'cat $SOURCES > $TARGET'])
                 strDep = moduleList.env.Command(moduleList.env['DEFS']['APM_NAME'] + '.str',
                                                 bsc_str,
-                                                [ 'ln -fs ' + self.TMP_BSC_DIR + '/$TARGET $TARGET' ])
+                                                [ 'ln -fs ' + self.TMP_BSC_DIR + '/`basename $TARGET` $TARGET' ])
                 moduleList.topDependency += [strDep]
 
 
@@ -312,9 +290,6 @@ class BSV():
             ## Bluespec modules will be compiled in this invocation of SCons.
             ## Only .depends-bsv files will be produced.
             ##
-            self.isDependsBuild = True
-
-
 
             # We need to calculate some dependencies for the build
             # tree.  We could be clever and put this code somewhere
@@ -371,7 +346,7 @@ class BSV():
 
             useDerived = True
             first_pass_LI_graph = wrapper_gen_tool.getFirstPassLIGraph()
-            if(not first_pass_LI_graph is None):
+            if (not first_pass_LI_graph is None):
                 useDerived = False
                 # we also need to parse the platform_synth file in th
                 platform_synth = get_build_path(moduleList, moduleList.topModule) + "/" +  moduleList.localPlatformName + "_platform_synth.bsv"
@@ -402,8 +377,7 @@ class BSV():
                 # for object import builds no Wrapper code will be included. remove it.
                 deps += self.compute_dependence(moduleList, module, useDerived, fileName=module.dependsFile)
 
-
-            moduleList.env.Alias('depends-init', deps)
+            moduleList.topDependsInit += deps
 
 
     ##
@@ -415,7 +389,7 @@ class BSV():
 
         #allow caller to override dependencies.  If the caller does
         #not, then we should use the baseline
-        if(len(targetFiles) == 0):
+        if (len(targetFiles) == 0):
             targetFiles = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/' + model.get_wrapper(module) ]
             if (module.name != moduleList.topModule.name):
                 targetFiles.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + module.buildPath + '/'+ model.get_log(module))
@@ -435,7 +409,7 @@ class BSV():
 
         depends_bsv = MODULE_PATH + '/' + fileName
         moduleList.env.NoCache(depends_bsv)
-        compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + self.TMP_BSC_DIR + DERIVED + ' -p +:' + self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/awb/provides:' + self.ALL_LIB_DIRS_FROM_ROOT + ' ' + ' '.join(targetFiles) + ' > ' + depends_bsv
+        compile_deps = 'leap-bsc-mkdepend -ignore ' + MODULE_PATH + '/.ignore' + ' -bdir ' + self.TMP_BSC_DIR + DERIVED + ' -p +:' + self.ALL_LIB_DIR_PATHS + ' ' + ' '.join(targetFiles) + ' > ' + depends_bsv
 
         # Delete depends_bsv if it is empty under the assumption that something
         # went wrong when creating it.  An empty dependence file would never be
@@ -530,7 +504,6 @@ class BSV():
 
         # This should not be a for loop.
         for bsv in [model.get_wrapper(module)]:
-
             if env.GetOption('clean'):
                 os.system('rm -f ' + MODULE_PATH + '/' + bsv.replace('Wrapper.bsv', 'Log.bsv'))
                 os.system('rm -f ' + MODULE_PATH + '/' + bsv.replace('.bsv', '_con_size.bsh'))
@@ -556,20 +529,18 @@ class BSV():
 
                 stub_name = bsv.replace('.bsv', '_con_size.bsh')
 
-                def build_con_size_bsh(logIn):
-                    def build_con_size_bsh_closure(target, source, env):
-                        liGraph = LIGraph(li_module.parseLogfiles([logIn]))
-                        # Should have only one module...
-                        if(len(liGraph.modules) == 0):
-                            bshModule = LIModule(module.name, module.name)
-                        else:
-                            bshModule = liGraph.modules.values()[0]
-                        bsh_handle = open(str(target[0]), 'w')
-                        wrapper_gen_tool.generateConnectionBSH(bshModule, bsh_handle)
-                        bsh_handle.close()
-                    return build_con_size_bsh_closure
+                def build_con_size_bsh_closure(target, source, env):
+                    liGraph = LIGraph(li_module.parseLogfiles(source))
+                    # Should have only one module...
+                    if(len(liGraph.modules) == 0):
+                        bshModule = LIModule(module.name, module.name)
+                    else:
+                        bshModule = liGraph.modules.values()[0]
+                    bsh_handle = open(str(target[0]), 'w')
+                    wrapper_gen_tool.generateConnectionBSH(bshModule, bsh_handle)
+                    bsh_handle.close()
 
-                stub = env.Command(MODULE_PATH + '/' + stub_name, log, build_con_size_bsh(logfile))
+                stub = env.Command(MODULE_PATH + '/' + stub_name, log, build_con_size_bsh_closure)
 
             ##
             ## Now we are ready for the real build
@@ -578,19 +549,26 @@ class BSV():
                 wrapper_bo = env.BSC(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
                 moduleList.env.Depends(wrapper_bo, stub)
                 module.moduleDependency['BO'] = [wrapper_bo]
-                if(self.BUILD_LOGS_ONLY):
-                    # We should collect metadata about the .ba
-                    module.moduleDependency['BSV_SCHED'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.sched'),
-                                                                                   wrapper_bo,
-                                                                                   'bluetcl ./hw/model/sched.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
-                    module.moduleDependency['BSV_PATH'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.path'),
-                                                                                   wrapper_bo,
-                                                                                   'bluetcl ./hw/model/path.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
-                    moduleList.topDependency += module.moduleDependency['BSV_SCHED'] + module.moduleDependency['BSV_PATH']
+                if (self.BUILD_LOGS_ONLY):
+                    model_dir = self.hw_dir.Dir(moduleList.env['DEFS']['ROOT_DIR_MODEL'])
 
-                    module.moduleDependency['BSV_IFC'] = [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.ifc'),
-                                                                                 wrapper_bo,
-                                                                                 'bluetcl ./hw/model/interfaceType.tcl  -p ' + self.bluespecBuilddirs + ' --m mk_' + module.name + '_Wrapper | python site_scons/model/PythonTidy.py > $TARGET')]
+                    module.moduleDependency['BSV_SCHED'] = \
+                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.sched'),
+                                                wrapper_bo,
+                                                'bluetcl ' + model_dir.File('sched.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
+
+                    module.moduleDependency['BSV_PATH'] = \
+                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.path'),
+                                                wrapper_bo,
+                                                'bluetcl ' + model_dir.File('path.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
+
+                    moduleList.topDependency += \
+                        module.moduleDependency['BSV_SCHED'] + module.moduleDependency['BSV_PATH']
+
+                    module.moduleDependency['BSV_IFC'] = \
+                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.ifc'),
+                                                wrapper_bo,
+                                                'bluetcl ' + model_dir.File('interfaceType.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m mk_' + module.name + '_Wrapper | python site_scons/model/PythonTidy.py > $TARGET')]
 
                     moduleList.topDependency += module.moduleDependency['BSV_IFC']
 
@@ -603,17 +581,15 @@ class BSV():
                 wrapper_bo = env.BSC_LOG(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''),
                                          MODULE_PATH + '/' + bsv)
 
-
                 ## SCons doesn't deal well with logfile as a 2nd target to BSC_LOG rule,
                 ## failing to derive dependence correctly.
                 module.moduleDependency['BSV_BO'] = [wrapper_bo]
-                env.Command(logfile, wrapper_bo, '')
+                log = env.Command(logfile, wrapper_bo, '')
                 env.Precious(logfile)
 
-
                 ## In case Bluespec build is the end of the build pipeline.
-                if(not self.BUILD_LOGS_ONLY):
-                    moduleList.topDependency += [logfile]
+                if (not self.BUILD_LOGS_ONLY):
+                    moduleList.topDependency += [log]
 
                 ## The toplevel bo also depends on the on the synthesis of the build tree from log files.
 
@@ -641,26 +617,24 @@ class BSV():
                 module.moduleDependency['BSV_SYNTH'] = [module.name +'_synth.bsv']
                 module.moduleDependency['BSV_SYNTH_BSH'] = [module.name +'_Wrapper_con_size.bsh']
 
-                def build_synth_stub(logIn):
-                    def build_synth_stub_closure(target, source, env):
-                        liGraph = LIGraph(li_module.parseLogfiles([logIn]))
-                        # Should have only one module...
-                        if(len(liGraph.modules) == 0):
-                            synthModule = LIModule(module.name, module.name)
-                        else:
-                            synthModule = liGraph.modules.values()[0]
+                def build_synth_stub(target, source, env):
+                    liGraph = LIGraph(li_module.parseLogfiles(source))
+                    # Should have only one module...
+                    if(len(liGraph.modules) == 0):
+                        synthModule = LIModule(module.name, module.name)
+                    else:
+                        synthModule = liGraph.modules.values()[0]
 
-                        synth_handle = open(str(target[0]), 'w')
-                        wrapper_gen_tool.generateSynthWrapper(synthModule,
-                                                              synth_handle,
-                                                              moduleType=module.interfaceType,
-                                                              extraImports=module.extraImports)
-                        synth_handle.close()
-                    return build_synth_stub_closure
+                    synth_handle = open(target[0].path, 'w')
+                    wrapper_gen_tool.generateSynthWrapper(synthModule,
+                                                          synth_handle,
+                                                          moduleType=module.interfaceType,
+                                                          extraImports=module.extraImports)
+                    synth_handle.close()
 
                 env.Command(synth_stub, # target
-                            [stub, wrapper_bo, logfile],
-                            build_synth_stub(logfile))
+                            logfile,
+                            build_synth_stub)
 
             ##
             ## The mk_<wrapper>.v file is really built by the Wrapper() builder
@@ -704,7 +678,7 @@ class BSV():
 
             # Only the subordinate modules have stubs.
             # The platform module should not be enumerated here. This is a false dependency.
-            if(module.name != moduleList.topModule.name):
+            if (module.name != moduleList.topModule.name):
                 moduleList.topModule.moduleDependency['VERILOG_STUB'] += [bb]
                 module.moduleDependency['GEN_VERILOG_STUB'] = [bb]
 
@@ -764,33 +738,46 @@ class BSV():
 
 
     def compile_bo_bsc_base(self, target, module_path, vdir=None):
-        bdir = os.path.dirname(str(target[0]))
+        # When invoked as a build rule, target[] is a list of SCons File objects.
+        # When invoked just to build a string for generating a Command object
+        # target may be a string.
+        if (isinstance(target[0], basestring)):
+            target[0] = self.moduleList.env.File(target[0])
+
+        bdir = target[0].get_dir()
 
         # allows us to override vdir, useful in hacking around
         # Bluespec's automatically generated verilog search path.
-        if(vdir is None):
-            vdir = bdir
+        if (vdir):
+            vdir_path = vdir.path
+        else:
+            vdir_path = bdir.path
 
         # compile bo_bsc_base gets some bogus .bsh targets..
-        if(not os.path.exists(bdir)):
+        if (not bdir.exists()):
             return ''
+
+        # Bluespec complains if the same path is specified in both -p and -bdir
+        all_lib_dirs_list = [d for d in self.all_lib_dirs if d != bdir]
+        all_lib_dirs = ':'.join([d.path for d in all_lib_dirs_list])
 
         # Emit an include path file.  This indirection is necessary to
         # fool scons into thinking that our command line doesn't
         # change.
-        libDirsFile = str(target[0]).replace('.bo','.libs')
-        libDirsFile = libDirsFile.replace('.bsh','.libs')
-        libDirsFile = libDirsFile.replace('.log','.libs')
-        lib_dirs = self.__bsc_bdir_prune(module_path + ':' + self.ALL_LIB_DIRS_FROM_ROOT, ':', bdir)
-        libDirsHandle = open(libDirsFile,'w')
-        libDirsHandle.write(lib_dirs)
-        libDirsHandle.close()
+        lib_dirs_file = str(target[0]).replace('.bo','.libs')
+        lib_dirs_file = lib_dirs_file.replace('.bsh','.libs')
+        lib_dirs_file = lib_dirs_file.replace('.log','.libs')
+        lib_dirs_handle = open(lib_dirs_file,'w')
+        lib_dirs_handle.write(all_lib_dirs)
+        lib_dirs_handle.close()
 
-        return self.moduleList.env['DEFS']['BSC'] + " " +  self.BSC_FLAGS + ' -p +:' + \
-               self.ROOT_DIR_HW_INC + ':' + self.ROOT_DIR_HW_INC + '/awb/provides:' + \
-               '`cat ' + libDirsFile + '`:' + self.TMP_BSC_DIR + ' -bdir ' + bdir + \
-               ' -vdir ' + vdir + ' -simdir ' + bdir + ' -info-dir ' + bdir + \
-               ' -fdir ' + bdir
+        bdir_path = bdir.path
+
+        return self.moduleList.env['DEFS']['BSC'] + " " +  self.BSC_FLAGS + \
+               ' -p +:`cat ' + lib_dirs_file + '`' + \
+               ' -bdir ' + bdir_path + ' -vdir ' + vdir_path + \
+               ' -simdir ' + bdir_path + ' -info-dir ' + bdir_path + \
+               ' -fdir ' + bdir_path
 
 
     def compile_bo(self, module_path):

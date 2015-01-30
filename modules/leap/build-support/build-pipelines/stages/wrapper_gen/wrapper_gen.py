@@ -50,7 +50,7 @@ def generateBAImport(module, importHandle):
     importHandle.write("\ninterface IMP_" + module.name + ";\n")
     # Some modules may have a secondary interface.
     if('BSV_IFC' in module.objectCache):
-        ifcHandle = open(module.objectCache['BSV_IFC'][0], 'r')
+        ifcHandle = open(module.objectCache['BSV_IFC'][0].from_bld(), 'r')
         bsvIfc = eval(ifcHandle.read())
         ifcEnv = {} # environment for module generation
 
@@ -125,8 +125,8 @@ def generateBAImport(module, importHandle):
         
             
     # We cached scheduling and path information during the first pass. Use it now. 
-    bsvPathHandle   = open(module.objectCache['BSV_PATH'][0], 'r')
-    bsvSchedHandle  = open(module.objectCache['BSV_SCHED'][0], 'r')
+    bsvPathHandle   = open(module.objectCache['BSV_PATH'][0].from_bld(), 'r')
+    bsvSchedHandle  = open(module.objectCache['BSV_SCHED'][0].from_bld(), 'r')
 
     importHandle.write(bsvPathHandle.read() + '\n\n\n')
     importHandle.write(bsvSchedHandle.read() + '\n\n\n')
