@@ -11,6 +11,16 @@ import @ROOT_DIR_MODEL@.Module as Module
 import @ROOT_DIR_MODEL@.ModuleList as ModuleList
 import build_pipeline
 
+# The LIM builder invokes SCons in a series of subdirectories.
+# LIM_BUILD_DIR indicates the directory of the current sub-build.
+# This value is used in constructing source objects, an so must be
+# initialized first.
+if 'LIM_BUILD_DIR' in ARGUMENTS:
+    model.buildDir = ARGUMENTS['LIM_BUILD_DIR']
+else:
+    model.buildDir = ''
+
+
 defs = {
     'ALL_HW_DIRS'        : '@ALL_HW_DIRS@',
     'APM_FILE'           : '@APM_FILE@',
@@ -100,13 +110,6 @@ model.moduleList = moduleList
 # rootDir can be relevant when the SConscript file is in a subdirectory below
 # the SConstruct file.
 model.rootDir = env.Dir('.')
-
-# The LIM builder invokes SCons in a series of subdirectories.  LIM_BUILD_DIR
-# indicates the directory of the current sub-build.
-if 'LIM_BUILD_DIR' in ARGUMENTS:
-    model.buildDir = ARGUMENTS['LIM_BUILD_DIR']
-else:
-    model.buildDir = ''
 
 
 # we will build whatever the user wants us to build
