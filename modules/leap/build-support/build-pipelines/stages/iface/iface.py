@@ -80,7 +80,6 @@ class Iface():
         def addPathRRR(path):
             return self.dir_rrr.File(path)
 
-        print 'Starting here...'
         if moduleList.env.GetOption('clean'):
             os.system('rm -rf iface/build')
 

@@ -764,7 +764,7 @@ class BSV():
         # Emit an include path file.  This indirection is necessary to
         # fool scons into thinking that our command line doesn't
         # change.
-        lib_dirs_file = str(target[0]).replace('.bo','.libs')
+        lib_dirs_file = target[0].path.replace('.bo','.libs')
         lib_dirs_file = lib_dirs_file.replace('.bsh','.libs')
         lib_dirs_file = lib_dirs_file.replace('.log','.libs')
         lib_dirs_handle = open(lib_dirs_file,'w')
