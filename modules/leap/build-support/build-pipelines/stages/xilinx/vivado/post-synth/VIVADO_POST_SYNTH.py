@@ -146,7 +146,7 @@ class PostSynthesize():
     platformModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore and module.platformModule]
  
     if(not moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_ENABLE')):
-
+         
         for module in [moduleList.topModule] + platformModules + userModules:   
             dcps.append(module.getDependencies('GEN_VIVADO_DCPS'))
             checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
@@ -167,9 +167,26 @@ class PostSynthesize():
     else:
         # we need to issue seperate place commands.  Therefore, we attempt to place each design 
 
+        # There may be some special area groups in platforms -- handle them
+        elabAreaConstraints = area_group_tool.AreaConstraints(moduleList)
+        elabAreaConstraints.loadAreaConstraintsElaborated()
+        userAreaGroups = [elabAreaConstraints.constraints[area_constraint] for area_constraint in elabAreaConstraints.constraints if not elabAreaConstraints.constraints[area_constraint].parent is None]
+        #self.area_constraints = area_group_tool.AreaConstraints(moduleList)
+
+        print "User Area Groups: " + str(userAreaGroups)
+
+        for areaGroup in userAreaGroups:   
+            # get the parent module. 
+            parentModule = moduleList.modules[areaGroup.parent.name]
+            ag_dcp = self.place_ag_dcp(moduleList, parentModule, areaGroup)
+            model.dictionary_list_create_append(parentModule.moduleDependency, 'GEN_VIVADO_PLACEMENT_DCPS', ag_dcp)
+            dcps.append(ag_dcp)
+
+
         for module in userModules:   
-            module.moduleDependency['GEN_VIVADO_PLACEMENT_DCPS'] = [self.place_dcp(moduleList, module)]
-            dcps.append(module.moduleDependency['GEN_VIVADO_PLACEMENT_DCPS'])
+            dcp = self.place_dcp(moduleList, module)
+            model.dictionary_list_create_append(module.moduleDependency, 'GEN_VIVADO_PLACEMENT_DCPS', dcp)
+            dcps.append(dcp)
 
         for module in [moduleList.topModule] + platformModules:   
             checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
@@ -342,6 +359,53 @@ class PostSynthesize():
           [dcp],
           [gen_netlists] + [given_netlists] + [edfTcl], 
           ['cd ' + edfCompileDirectory + '; vivado -mode batch -source ' +  module.name + ".synth.tcl" + ' -log ' + module.name + '.synth.checkpoint.log'])
+
+
+  def place_ag_dcp(self, moduleList, module, areaGroup):
+
+      groupName = module.name + '_ag_' + areaGroup.name
+
+      # Due to area groups,  we first need a closure to generate tcl. 
+      placeCompileDirectory = moduleList.compileDirectory + '/' + groupName + '_physical/'
+      dcp = placeCompileDirectory + groupName + ".place.dcp"
+      edfTcl = placeCompileDirectory + groupName + ".place.tcl"
+      checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
+
+      if not os.path.isdir(placeCompileDirectory):
+         os.mkdir(placeCompileDirectory)
+
+      def place_dcp_tcl_closure(moduleList):
+
+           def place_dcp_tcl(target, source, env):
+               self.area_constraints.loadAreaConstraints()
+
+               edfTclFile = open(edfTcl,'w')
+               
+               edfTclFile.write('open_checkpoint ' + model.rel_if_not_abspath(checkpoint[0], placeCompileDirectory) + '\n')
+
+               # throw out area group constraints. (and maybe loc constraints too?)
+               # Some modules may not have placement information.  Ignore them for now. 
+               if(not self.area_constraints.emitModuleConstraintsVivado(edfTclFile, areaGroup.name, useSourcePath=False) is None):               
+                   edfTclFile.write("place_design -no_drc \n")
+                   edfTclFile.write("phys_opt_design \n")
+
+               edfTclFile.write('write_checkpoint -force ' + groupName + ".place.dcp" + '\n')
+
+               edfTclFile.close()
+ 
+           return place_dcp_tcl
+
+      moduleList.env.Command(
+          [edfTcl],
+          self.area_constraints.areaConstraintsFile(),
+          place_dcp_tcl_closure(moduleList)
+          )
+
+      # generate bitfile
+      return moduleList.env.Command(
+          [dcp],
+          [checkpoint] + [edfTcl] + [self.area_group_file], 
+          ['cd ' + placeCompileDirectory + ';vivado -mode batch -source ' + groupName + ".place.tcl" + ' -log ' + groupName + '.par.log'])
 
 
   def place_dcp(self, moduleList, module):

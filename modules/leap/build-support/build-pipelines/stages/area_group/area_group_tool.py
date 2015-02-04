@@ -17,8 +17,11 @@ try:
 except ImportError:
     pass
 
-def _areaConstraintsFileIncomplete(moduleList):
-    return moduleList.compileDirectory + '/areagroups.nopaths.pickle'
+def _areaConstraintsFileElaborated(moduleList):
+    return moduleList.compileDirectory + '/areagroups.elaborated.pickle'
+
+def _areaConstraintsFilePlaced(moduleList):
+    return moduleList.compileDirectory + '/areagroups.placed.pickle'
 
 def _areaConstraintsFile(moduleList):
     return moduleList.compileDirectory + '/areagroups.pickle'
@@ -49,6 +52,7 @@ class AreaConstraints():
     def areaConstraintType(self):
         return 'UCF'
 
+        
     ##
     ## Area constraints are computed and stored in a file.  There are two
     ## files generated: one with early information (incomplete) and one
@@ -61,8 +65,11 @@ class AreaConstraints():
     def loadAreaConstraints(self):
         self._loadAreaConstraintsFromFile(self.areaConstraintsFile())
 
-    def loadAreaConstraintsIncomplete(self):
-        self._loadAreaConstraintsFromFile(self.areaConstraintsFileIncomplete())
+    def loadAreaConstraintsPlaced(self):
+        self._loadAreaConstraintsFromFile(self.areaConstraintsFilePlaced())
+
+    def loadAreaConstraintsElaborated(self):
+        self._loadAreaConstraintsFromFile(self.areaConstraintsFileElaborated())
 
     def storeAreaConstraints(self):
         pickle_handle = open(self.areaConstraintsFile(), 'wb')
@@ -75,8 +82,11 @@ class AreaConstraints():
         self.constraints = pickle.load(pickle_handle)
         pickle_handle.close()
 
-    def areaConstraintsFileIncomplete(self):
-        return _areaConstraintsFileIncomplete(self.moduleList)
+    def areaConstraintsFileElaborated(self):
+        return _areaConstraintsFileElaborated(self.moduleList)
+
+    def areaConstraintsFilePlaced(self):
+        return _areaConstraintsFilePlaced(self.moduleList)
 
     def areaConstraintsFile(self):
         return _areaConstraintsFile(self.moduleList)
@@ -220,6 +230,10 @@ class Floorplanner():
     def __init__(self, moduleList):
         self.pipeline_debug = model.getBuildPipelineDebug(moduleList)
 
+        # if we have a deps build, don't do anything...
+        if(moduleList.isDependsBuild):
+            return
+
         def modify_path_hw(path):
             return  moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + path
 
@@ -242,6 +256,13 @@ class Floorplanner():
         liGraph.mergeModules(firstPassGraph.modules.values())
         self.firstPassLIGraph = liGraph
 
+        # elaborate area group representation. This may be used in configuring later stages. 
+        areaGroups = self.elaborateAreaConstraints(moduleList)
+
+        pickle_handle = open(_areaConstraintsFileElaborated(moduleList), 'wb')
+        pickle.dump(areaGroups, pickle_handle, protocol=-1)
+        pickle_handle.close()                 
+
         # We'll build a rather complex function to emit area group constraints 
         def area_group_closure(moduleList):
 
@@ -257,152 +278,7 @@ class Floorplanner():
                      pickle_handle = open(_areaConstraintsFile(moduleList), 'rb')
                      areaGroupsPrevious = pickle.load(pickle_handle)
                      pickle_handle.close()
-
-
-                 extraAreaFactor = 1.25               
-                 extraAreaOffset = 150.0
-
-                 # we should now assemble the LI Modules that we got
-                 # from the synthesis run
-                 moduleResources = {}
-                 if(self.firstPassLIGraph is None):
-                     moduleResources = li_module.assignResources(moduleList)
-                 else:
-                     moduleResources = li_module.assignResources(moduleList, None, self.firstPassLIGraph)
                  
-
-                 areaGroups = {}
-                 totalLUTs = 0
-                 # We should make a bunch of AreaGroups here. 
-                 for module in sorted(moduleResources):
-                     if('LUT' in moduleResources[module]):
-                         totalLUTs = totalLUTs + moduleResources[module]['LUT']
-
-                     # EEEK I don't think I know what the paths will
-                     # be at this point. Probably need to memoize and
-                     # fill those in later?
-                     if(module in moduleResources):
-                         if('LUT' in moduleResources[module]):
-                             areaGroups[module] = AreaGroup(module, '')
- 
-                 # now that we have the modules, let's apply constraints. 
-
-                 # Grab area groups declared/defined in the agrp file supplied by the user. 
-                 constraints = []
-                 for constraintFile in moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS'):
-                     constraints += area_group_parser.parseAreaGroupConstraints(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + constraintFile)
-
-                 # first bind new area groups. 
-                 for constraint in constraints:
-                     if(isinstance(constraint,AreaGroup)):                         
-                         areaGroups[constraint.name] = constraint
-
-                 # We should have gotten a chip dimension. Find and assign chip. 
-                 self.chipXDimension = -1
-                 self.chipYDimension = -1               
-                 
-                 # Fill in any other information we obtanied about the
-                 # area groups.
-                 for constraint in constraints:
-                     if(isinstance(constraint,AreaGroupSize)): 
-                         if(constraint.name == 'FPGA'):
-                             if(self.chipXDimension > 0):
-                                 print "Got too many FPGA dimension statements, bailing"
-                                 exit(1)
-                             self.chipXDimension = constraint.xDimension
-                             self.chipYDimension = constraint.yDimension
-                         else:
-                             # this is a dimensional constraint for an
-                             # area group. This will wipe the affine
-                             # coefficients that we filled in during
-                             # the previous loop.
-                             areaGroups[constraint.name].xDimension = constraint.xDimension
-                             areaGroups[constraint.name].yDimension = constraint.yDimension
-                    
-
-                     if(isinstance(constraint,AreaGroupResource)): 
-                         if(not constraint.name in moduleResources):
-                             moduleResources[constraint.name] = {}
- 
-                         moduleResources[constraint.name][constraint.type] = constraint.value
-
-                     if(isinstance(constraint,AreaGroupLocation)): 
-                         areaGroups[constraint.name].xLoc = constraint.xLocation
-                         areaGroups[constraint.name].yLoc = constraint.yLocation
-
-                     if(isinstance(constraint,AreaGroupLowerLeft)): 
-                         areaGroups[constraint.name].lowerLeft = constraint
-
-                     if(isinstance(constraint,AreaGroupUpperRight)): 
-                         areaGroups[constraint.name].upperRight = constraint
-                         
-                     if(isinstance(constraint,AreaGroupAttribute)): 
-                         areaGroups[constraint.name].attributes[constraint.key] = constraint.value
-
-
-
-                     if(isinstance(constraint,AreaGroupPath)): 
-                         areaGroups[constraint.name].sourcePath = constraint.path
-
-                     if(isinstance(constraint,AreaGroupRelationship)): 
-                         areaGroups[constraint.parent].children[constraint.child] = areaGroups[constraint.child]
-                         if(areaGroups[constraint.child].parent is None):
-                             areaGroups[constraint.child].parent = areaGroups[constraint.parent]
-                             if(len(areaGroups[constraint.child].children) != 0):
-                                 print "Area group " + constraint.child + " already has children, so it cannot have a parent.  Reconsider your area group file. Bailing."
-                                 exit(1)
-                         else:
-                             print "Area group " + constraint.child + " already had a parent.  Reconsider your area group file. Bailing."
-                             exit(1)
-
-                 # assign areas for all areagroups.
-                 for areaGroup in areaGroups.values():
-                     # EEEK I don't think I know what the paths will
-                     # be at this point. Probably need to memoize and
-                     # fill those in later?
-                     if((areaGroup.name in moduleResources) and ('SLICE' in moduleResources[areaGroup.name])):
-                         areaGroup.area = moduleResources[areaGroup.name]['SLICE']
-                     else:
-                         areaGroup.area = areaGroup.xDimension * areaGroup.yDimension
-
-                 # We've now built a tree of parent/child
-                 # relationships, which we can use to remove area from
-                 # the parent (double counting is a problem).  
-                 for areaGroup in areaGroups.values():
-                     for child in areaGroup.children.values():
-                         # If we have a slice resource declaration,
-                         # use it else, use 1/2 the area as an estimate
-                         if ('SLICE' in moduleResources[child.name]):
-                             areaGroup.area = areaGroup.area - moduleResources[child.name]['SLICE']
-                         else:
-                             areaGroup.area = areaGroup.area - child.area/2
-
-                 affineCoefs = [1, 2, 4, 8] # just make them all squares for now. 
-                 #affineCoefs = [ 221.0/349.0] # just make them all squares for now. 
-                 #affineCoefs = [float(self.chipXDimension)/float(self.chipYDimension)] # just make them all squares for now. 
-
-                 for areaGroup in areaGroups:
-                     areaGroupObject = areaGroups[areaGroup]
-                     # we might have gotten coefficients from the constraints.
-                     if(areaGroupObject.xDimension is None):
-                         areaGroupObject.xDimension = []
-                         areaGroupObject.yDimension = []  
-
-                         moduleRoot = math.sqrt(extraAreaFactor * areaGroupObject.area + extraAreaOffset)
-                         for coef in affineCoefs:
-                             areaGroupObject.xDimension.append(coef*moduleRoot)
-                             areaGroupObject.yDimension.append(moduleRoot/coef)
-        
-                 # If we've been instructed to remove the platform module, purge it here. 
-                 if(not self.emitPlatformAreaGroups):
-                     for areaGroup in sorted(areaGroups):
-                         areaGroupObject = areaGroups[areaGroup]
-                         if(areaGroupObject.name in self.firstPassLIGraph.modules):
-                             moduleObject = self.firstPassLIGraph.modules[areaGroupObject.name]
-                             if(moduleObject.getAttribute('PLATFORM_MODULE') == True):
-                                 del areaGroups[areaGroup]
-
-
                  areaGroupsFinal = None
                  # If we got a previous area group, we'll attempt to
                  # reuse its knowledge
@@ -441,20 +317,20 @@ class Floorplanner():
                  # group mapping problem we can dump the results for 
                  # the build tree. 
 
-                 pickle_handle = open(_areaConstraintsFileIncomplete(moduleList), 'wb')
+                 pickle_handle = open(_areaConstraintsFilePlaced(moduleList), 'wb')
                  pickle.dump(areaGroupsFinal, pickle_handle, protocol=-1)
                  pickle_handle.close()                 
                  
              return area_group
 
         # expose this dependency to the backend tools.
-        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [_areaConstraintsFileIncomplete(moduleList)]
+        moduleList.topModule.moduleDependency['AREA_GROUPS'] = [_areaConstraintsFilePlaced(moduleList)]
 
         # We need to get the resources for all modules, except the top module, which can change. 
         resources = [dep for dep in moduleList.getAllDependencies('RESOURCES')]
 
         areagroup = moduleList.env.Command( 
-            [_areaConstraintsFileIncomplete(moduleList)],
+            [_areaConstraintsFilePlaced(moduleList)],
             resources + map(modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS')),
             area_group_closure(moduleList)
             )                   
@@ -846,3 +722,152 @@ class Floorplanner():
                  return areaGroupsPartial
 
          return None        
+
+    ##
+    ## Elaborate Area Constraints from information in the system
+    ##
+    def elaborateAreaConstraints(self, moduleList):
+
+        extraAreaFactor = 1.25               
+        extraAreaOffset = 150.0
+
+        # we should now assemble the LI Modules that we got
+        # from the synthesis run
+        moduleResources = {}
+        if(self.firstPassLIGraph is None):
+            moduleResources = li_module.assignResources(moduleList)
+        else:
+            moduleResources = li_module.assignResources(moduleList, None, self.firstPassLIGraph)
+        
+
+        areaGroups = {}
+        totalLUTs = 0
+        # We should make a bunch of AreaGroups here. 
+        for module in sorted(moduleResources):
+            if('LUT' in moduleResources[module]):
+                totalLUTs = totalLUTs + moduleResources[module]['LUT']
+
+            # EEEK I don't think I know what the paths will
+            # be at this point. Probably need to memoize and
+            # fill those in later?
+            if(module in moduleResources):
+                if('LUT' in moduleResources[module]):
+                    areaGroups[module] = AreaGroup(module, '')
+
+        # now that we have the modules, let's apply constraints. 
+
+        # Grab area groups declared/defined in the agrp file supplied by the user. 
+        constraints = []
+        for constraintFile in moduleList.getAllDependenciesWithPaths('GIVEN_AREA_CONSTRAINTS'):
+            constraints += area_group_parser.parseAreaGroupConstraints(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + constraintFile)
+
+        # first bind new area groups. 
+        for constraint in constraints:
+            if(isinstance(constraint,AreaGroup)):                         
+                areaGroups[constraint.name] = constraint
+
+        # We should have gotten a chip dimension. Find and assign chip. 
+        self.chipXDimension = -1
+        self.chipYDimension = -1               
+        
+        # Fill in any other information we obtanied about the
+        # area groups.
+        for constraint in constraints:
+            if(isinstance(constraint,AreaGroupSize)): 
+                if(constraint.name == 'FPGA'):
+                    if(self.chipXDimension > 0):
+                        print "Got too many FPGA dimension statements, bailing"
+                        exit(1)
+                    self.chipXDimension = constraint.xDimension
+                    self.chipYDimension = constraint.yDimension
+                else:
+                    # this is a dimensional constraint for an
+                    # area group. This will wipe the affine
+                    # coefficients that we filled in during
+                    # the previous loop.
+                    areaGroups[constraint.name].xDimension = constraint.xDimension
+                    areaGroups[constraint.name].yDimension = constraint.yDimension
+           
+
+            if(isinstance(constraint,AreaGroupResource)): 
+                if(not constraint.name in moduleResources):
+                    moduleResources[constraint.name] = {}
+
+                moduleResources[constraint.name][constraint.type] = constraint.value
+
+            if(isinstance(constraint,AreaGroupLocation)): 
+                areaGroups[constraint.name].xLoc = constraint.xLocation
+                areaGroups[constraint.name].yLoc = constraint.yLocation
+
+            if(isinstance(constraint,AreaGroupLowerLeft)): 
+                areaGroups[constraint.name].lowerLeft = constraint
+
+            if(isinstance(constraint,AreaGroupUpperRight)): 
+                areaGroups[constraint.name].upperRight = constraint
+                
+            if(isinstance(constraint,AreaGroupAttribute)): 
+                areaGroups[constraint.name].attributes[constraint.key] = constraint.value
+
+
+
+            if(isinstance(constraint,AreaGroupPath)): 
+                areaGroups[constraint.name].sourcePath = constraint.path
+
+            if(isinstance(constraint,AreaGroupRelationship)): 
+                areaGroups[constraint.parent].children[constraint.child] = areaGroups[constraint.child]
+                if(areaGroups[constraint.child].parent is None):
+                    areaGroups[constraint.child].parent = areaGroups[constraint.parent]
+                    if(len(areaGroups[constraint.child].children) != 0):
+                        print "Area group " + constraint.child + " already has children, so it cannot have a parent.  Reconsider your area group file. Bailing."
+                        exit(1)
+                else:
+                    print "Area group " + constraint.child + " already had a parent.  Reconsider your area group file. Bailing."
+                    exit(1)
+
+        # assign areas for all areagroups.
+        for areaGroup in areaGroups.values():
+            # EEEK I don't think I know what the paths will
+            # be at this point. Probably need to memoize and
+            # fill those in later?
+            if((areaGroup.name in moduleResources) and ('SLICE' in moduleResources[areaGroup.name])):
+                areaGroup.area = moduleResources[areaGroup.name]['SLICE']
+            else:
+                areaGroup.area = areaGroup.xDimension * areaGroup.yDimension
+
+        # We've now built a tree of parent/child
+        # relationships, which we can use to remove area from
+        # the parent (double counting is a problem).  
+        for areaGroup in areaGroups.values():
+            for child in areaGroup.children.values():
+                # If we have a slice resource declaration,
+                # use it else, use 1/2 the area as an estimate
+                if ('SLICE' in moduleResources[child.name]):
+                    areaGroup.area = areaGroup.area - moduleResources[child.name]['SLICE']
+                else:
+                    areaGroup.area = areaGroup.area - child.area/2
+
+        affineCoefs = [1, 2, 4, 8] # just make them all squares for now. 
+
+        for areaGroup in areaGroups:
+            areaGroupObject = areaGroups[areaGroup]
+            # we might have gotten coefficients from the constraints.
+            if(areaGroupObject.xDimension is None):
+                areaGroupObject.xDimension = []
+                areaGroupObject.yDimension = []  
+
+                moduleRoot = math.sqrt(extraAreaFactor * areaGroupObject.area + extraAreaOffset)
+                for coef in affineCoefs:
+                    areaGroupObject.xDimension.append(coef*moduleRoot)
+                    areaGroupObject.yDimension.append(moduleRoot/coef)
+
+        # If we've been instructed to remove the platform module, purge it here. 
+        if(not self.emitPlatformAreaGroups):
+            for areaGroup in sorted(areaGroups):
+                areaGroupObject = areaGroups[areaGroup]
+                if(areaGroupObject.name in self.firstPassLIGraph.modules):
+                    moduleObject = self.firstPassLIGraph.modules[areaGroupObject.name]
+                    if(moduleObject.getAttribute('PLATFORM_MODULE') == True):
+                        del areaGroups[areaGroup]
+
+
+        return areaGroups

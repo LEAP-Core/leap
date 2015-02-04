@@ -278,7 +278,7 @@ class BSVSynthTreeBuilder():
         tree_build_results = [tree_file_wrapper, tree_file_synth]
 
         if (self.getFirstPassLIGraph and area_constraints):
-            tree_build_deps += [area_constraints.areaConstraintsFileIncomplete()]
+            tree_build_deps += [area_constraints.areaConstraintsFilePlaced()]
             tree_build_results += [area_constraints.areaConstraintsFile()]
 
         ##
@@ -443,7 +443,7 @@ class BSVSynthTreeBuilder():
             # We should ignore the 'PLATFORM_MODULE'
             liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
             if (area_constraints):
-                area_constraints.loadAreaConstraintsIncomplete()
+                area_constraints.loadAreaConstraintsPlaced()
 
         synth_handle = open(state['tree_file_synth'],'w')
         wrapper_handle = open(state['tree_file_wrapper'],'w')
