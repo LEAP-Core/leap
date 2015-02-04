@@ -698,6 +698,10 @@ class Floorplanner():
                  
              unplacedGroups.sort(key=lambda group: group.area)
 
+             # If all the groups have been placed, we are done..
+             if(len(unplacedGroups) == 0):
+                 return areaGroupsPartial
+
              # build groupings.
              while(len(unplacedGroups) > 0):
                  name = ""
@@ -730,16 +734,13 @@ class Floorplanner():
 
         extraAreaFactor = 1.25               
         extraAreaOffset = 150.0
-
-        # we should now assemble the LI Modules that we got
-        # from the synthesis run
+ 
         moduleResources = {}
         if(self.firstPassLIGraph is None):
             moduleResources = li_module.assignResources(moduleList)
         else:
             moduleResources = li_module.assignResources(moduleList, None, self.firstPassLIGraph)
         
-
         areaGroups = {}
         totalLUTs = 0
         # We should make a bunch of AreaGroups here. 
@@ -808,21 +809,25 @@ class Floorplanner():
             if(isinstance(constraint,AreaGroupAttribute)): 
                 areaGroups[constraint.name].attributes[constraint.key] = constraint.value
 
-
-
             if(isinstance(constraint,AreaGroupPath)): 
                 areaGroups[constraint.name].sourcePath = constraint.path
 
             if(isinstance(constraint,AreaGroupRelationship)): 
-                areaGroups[constraint.parent].children[constraint.child] = areaGroups[constraint.child]
-                if(areaGroups[constraint.child].parent is None):
-                    areaGroups[constraint.child].parent = areaGroups[constraint.parent]
-                    if(len(areaGroups[constraint.child].children) != 0):
-                        print "Area group " + constraint.child + " already has children, so it cannot have a parent.  Reconsider your area group file. Bailing."
+                # annotate parent name for future use.
+                areaGroups[constraint.child].parentName = constraint.parent
+
+                if( constraint.parent in areaGroups):
+                    areaGroups[constraint.parent].children[constraint.child] = areaGroups[constraint.child]                   
+                    if(areaGroups[constraint.child].parent is None):
+                        areaGroups[constraint.child].parent = areaGroups[constraint.parent]
+                        if(len(areaGroups[constraint.child].children) != 0):
+                            print "Area group " + constraint.child + " already has children, so it cannot have a parent.  Reconsider your area group file. Bailing."
+                            exit(1)
+                    else:
+                        print "Area group " + constraint.child + " already had a parent.  Reconsider your area group file. Bailing."
                         exit(1)
                 else:
-                    print "Area group " + constraint.child + " already had a parent.  Reconsider your area group file. Bailing."
-                    exit(1)
+                    areaGroups[constraint.child].parent = None
 
         # assign areas for all areagroups.
         for areaGroup in areaGroups.values():

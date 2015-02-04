@@ -112,6 +112,7 @@ def assignResources(moduleList, environmentGraph = None, moduleGraph = None):
 
     # We require this extra 'S', but maybe this should not be the case.
     resourceFile = moduleList.getAllDependenciesWithPaths('GIVEN_RESOURCESS')    
+
     filenames = []
     if (len(resourceFile) > 0):
         filenames.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + resourceFile[0])
@@ -132,11 +133,11 @@ def assignResources(moduleList, environmentGraph = None, moduleGraph = None):
     # need to check for file existance. returning an empty resource
     # dictionary is acceptable.
     for filename in filenames:
-        if (not os.path.exists(str(filename))):
-            print "Warning, no resources found at " + str(filename) + "...\n"
+        if (not os.path.exists(str(filename.from_bld()))):
+            print "Warning, no resources found at " + str(filename.from_bld()) + "\n"
             continue
 
-        logfile = open(str(filename), 'r')  
+        logfile = open(str(filename.from_bld()), 'r')  
         for line in logfile:
             # There are several ways that we can get resource. One way is instrumenting the router. 
             params = line.split(':')

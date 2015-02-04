@@ -17,6 +17,7 @@
 %sources -t VIVADO_TCL_HEADER -v PRIVATE vivado-area-library.xdc
 %sources -t VIVADO_TCL_FUNCTION  -v PRIVATE vivado-clock-dividers.xdc
 %sources -t VIVADO_TCL_FUNCTION  -v PRIVATE vivado-reset-library.xdc
+%sources -t VIVADO_TCL_FUNCTION  -v PRIVATE vivado-utilities.xdc
 
 
 

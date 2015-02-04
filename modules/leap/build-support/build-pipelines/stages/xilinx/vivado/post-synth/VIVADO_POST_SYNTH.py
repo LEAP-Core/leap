@@ -176,6 +176,8 @@ class PostSynthesize():
 
         print "User Area Groups: " + str(userAreaGroups)
 
+        # This code is not working yet...
+        userAreaGroups = []
         for areaGroup in userAreaGroups:   
             # get the parent module. 
             parentModule = moduleList.modules[areaGroup.parent.name]

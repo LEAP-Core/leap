@@ -34,15 +34,14 @@ class Source():
     ## uses multiple phases and multiple subdirectories.  Return
     ## the path relative to some pass of the LIM flow.
     def from_bld(self):
-        if (not self.__to_root):
-            self.__to_root = '../' * len(model.buildDir.split(os.path.sep))
+        __to_root = '../' * len(model.buildDir.split(os.path.sep))
 
         if (os.path.isabs(str(self.file))):
             return str(self.file)
-        elif (self.__to_root == ''):
+        elif (__to_root == ''):
             return str(self.file)
         else:
-            return self.__to_root + self.from_root()
+            return __to_root + self.from_root()
 
     ## The path from the top of the build tree in the LIM compiler flow.
     def from_root(self):
