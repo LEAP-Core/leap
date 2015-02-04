@@ -413,6 +413,32 @@ module mkMemWriterAndVectorMemReaderIfcToMultiReadMemIfc#(
     return multiMem;
 endmodule
 
+//
+// mkMultiReadMaskedWriteIfcToMultiReadMemIfc --
+//     Converts MEMORY_MULTI_READ_MASKED_WRITE_IFC to MEMORY_MULTI_READ_IFC.
+//
+module mkMultiReadMaskedWriteIfcToMultiReadMemIfc#(MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_Readers, t_ADDR, t_DATA, t_MASK) multiMem)
+    (MEMORY_MULTI_READ_IFC#(n_Readers, t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ), 
+              Bits#(t_MASK, t_MASK_SZ));
+    
+    MEMORY_MULTI_READ_IFC#(n_Readers, t_ADDR, t_DATA) mem = interface MEMORY_MULTI_READ_IFC
+        interface readPorts = multiMem.readPorts;
+
+        method Action write(t_ADDR addr, t_DATA data);
+            Vector#(t_MASK_SZ, Bool) mask = replicate(True);
+            multiMem.write(addr, data, unpack(pack(mask)));
+        endmethod
+        method Bool writeNotFull();
+            return multiMem.writeNotFull();
+        endmethod
+
+    endinterface;
+
+    return mem;
+
+endmodule
 
 // ========================================================================
 //
