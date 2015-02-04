@@ -149,3 +149,32 @@ def assignResources(moduleList, environmentGraph = None, moduleGraph = None):
 
     return resources
 
+
+def linkFirstPassObject(moduleList, module, firstPassLIGraph, sourceType, destinationType, linkDirectory=None):
+    if(linkDirectory is None):
+        linkDirectory = moduleList.compileDirectory
+
+    deps = []
+    moduleObject = firstPassLIGraph.modules[module.name]
+    if (sourceType in moduleObject.objectCache):
+        for src in moduleObject.objectCache[sourceType]:
+            linkPath = moduleList.env.File(linkDirectory + '/' + os.path.basename(str(src)))
+            def linkSource(target, source, env):
+                # It might be more useful if the Module contained a pointer to the LIModules...                        
+                if (os.path.lexists(str(target[0]))):
+                    os.remove(str(target[0]))
+                rel = os.path.relpath(str(source[0]), os.path.dirname(str(target[0])))
+                print "Linking: " + str(target[0]) + " -> " + rel
+                os.symlink(rel, str(target[0]))
+
+            link = moduleList.env.Command(linkPath, src.from_bld(), linkSource)
+
+            if(destinationType in  module.moduleDependency):  
+                module.moduleDependency[destinationType] += [link]
+            else:
+                module.moduleDependency[destinationType] = [link]
+
+            deps += [link]
+    else:
+        return None
+    return deps

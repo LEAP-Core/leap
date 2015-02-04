@@ -5,6 +5,7 @@ import re
 import SCons
 
 import model
+import li_module
 import parameter_substitution 
 import wrapper_gen_tool 
 
@@ -336,34 +337,9 @@ def getVivadoUtilResourcesClosure(module):
 
     return collect_srp_resources
 
-def linkFirstPassObject(moduleList, module, firstPassLIGraph, sourceType, destinationType):
-    deps = []
-    moduleObject = firstPassLIGraph.modules[module.name]
-    if (sourceType in moduleObject.objectCache):
-        for src in moduleObject.objectCache[sourceType]:
-            linkPath = moduleList.env.File(moduleList.compileDirectory + '/' + os.path.basename(str(src)))
-            def linkSource(target, source, env):
-                # It might be more useful if the Module contained a pointer to the LIModules...                        
-                if (os.path.lexists(str(target[0]))):
-                    os.remove(str(target[0]))
-                rel = os.path.relpath(str(source[0]), os.path.dirname(str(target[0])))
-                print "Linking: " + str(target[0]) + " -> " + rel
-                os.symlink(rel, str(target[0]))
-
-            link = moduleList.env.Command(linkPath, src.from_bld(), linkSource)
-
-            if(destinationType in  module.moduleDependency):  
-                module.moduleDependency[destinationType] += [link]
-            else:
-                module.moduleDependency[destinationType] = [link]
-
-            deps += [link]
-    else:
-        return None
-    return deps
     
 def linkNGC(moduleList, module, firstPassLIGraph):
-    return linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_NGCS', 'GEN_NGCS')
+    return li_module.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_NGCS', 'GEN_NGCS')
 
 def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx_xcf):
     #Let's synthesize a xilinx .prj file for ths synth boundary.

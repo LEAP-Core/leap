@@ -9,10 +9,16 @@ import model
 import bsv_tool
 import software_tool
 import wrapper_gen_tool
+import li_module
 
 class Verilog():
 
   def __init__(self, moduleList, isPrimaryBuildTarget):
+
+    # if we have a deps build, don't do anything...
+    if(moduleList.isDependsBuild):
+        return
+
     APM_NAME = moduleList.env['DEFS']['APM_NAME']
     BSC = moduleList.env['DEFS']['BSC']
     inc_paths = moduleList.swIncDir # we need to depend on libasim
@@ -47,28 +53,17 @@ class Verilog():
     liCodeType = ['VERILOG', 'GIVEN_VERILOG_HS', 'GEN_VPI_CS', 'GEN_VPI_HS']
 
     # This can be refactored as a function.
-    if (not self.firstPassLIGraph is None):
-        for moduleName in self.firstPassLIGraph.modules:            
-            moduleObject = self.firstPassLIGraph.modules[moduleName]
-            for codeType in liCodeType:
-                if(codeType in moduleObject.objectCache):
-                    for verilog in moduleObject.objectCache[codeType]:
-                        linkPath = vexe_vdir + '/' + os.path.basename(verilog)
-                        def linkVerilog(target, source, env):
-                            # It might be more useful if the Module contained a pointer to the LIModules...                        
-                            if(os.path.lexists(str(target[0]))):
-                                os.remove(str(target[0]))
-                            print "Linking: " + str(source[0]) + " to " + str(target[0])
-                            os.symlink(str(source[0]), str(target[0]))
-                        moduleList.env.Command(linkPath, verilog, linkVerilog)
 
-                        if(codeType in moduleList.topModule.moduleDependency):
-                            moduleList.topModule.moduleDependency[codeType] += [linkPath]
-                        else:
-                            moduleList.topModule.moduleDependency[codeType] = [linkPath]
-                    else:
-                        # Warn that we did not find the ngc we expected to find..
-                        print "Warning: We did not find verilog for module " + moduleName 
+    if (not self.firstPassLIGraph is None):     
+        for moduleName in self.firstPassLIGraph.modules:                       
+            moduleObject = self.firstPassLIGraph.modules[moduleName]
+            # we also need the module list object
+            moduleListObject = moduleList.modules[moduleName]
+            for codeType in liCodeType:
+                # If we're linking, clean out any previous code dependencies.  These are guaranteed not to be used. 
+                moduleListObject.moduleDependency[codeType] = []
+                li_module.linkFirstPassObject(moduleList, moduleListObject, self.firstPassLIGraph, codeType, codeType, linkDirectory=vexe_vdir)
+                 
                 
     bsc_version = bsv_tool.getBluespecVersion()
 
@@ -90,10 +85,6 @@ class Verilog():
     LDFLAGS = moduleList.env['DEFS']['LDFLAGS']
     TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
     ROOT_WRAPPER_SYNTH_ID = 'mk_' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '_Wrapper'
-
-#    vexe_gen_command = \
-#        BSC + ' ' + BSC_FLAGS_VERILOG + ' -vdir ' + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleList.env['DEFS']['ROOT_DIR_MODEL'] + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] +' -p +:' + LI_LINK_DIR + ':' +  ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + LI_LINK_DIR + ":" + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
-#        ' -o $TARGET' 
 
     vexe_gen_command = \
         BSC + ' ' + BSC_FLAGS_VERILOG + ' -vdir ' + vexe_vdir + ' -simdir ' + vexe_vdir + ' -bdir ' + vexe_vdir +' -p +:' +  ALL_LIB_DIRS_FROM_ROOT + ' -vsearch +:' + ALL_LIB_DIRS_FROM_ROOT + ' ' + \
@@ -143,7 +134,7 @@ class Verilog():
             print 'VL dep: ' + str(m)
         for m in moduleList.getAllDependencies('VHDL'):
             print 'BA dep: ' + str(m)
-        print
+
 
     # Generate a thin wrapper around the verilog executable.  This
     # wrapper is used to address a problem in iverilog in which the
@@ -173,11 +164,18 @@ class Verilog():
     # involved.
     if (isPrimaryBuildTarget):
         vbinDeps = []
+
         # If we got a lim graph, we'll pick up many of our dependencies from it. 
         # These were annotated in the top module above. Really, this seems unclean.
         # we should build a graph during the second pass and just use it.
         if(not self.firstPassLIGraph is None):
+            # Collect linked dependencies for every module
+            for moduleName in self.firstPassLIGraph.modules:
+                moduleListObject = moduleList.modules[moduleName]
+                vbinDeps += moduleList.getDependencies(moduleListObject, 'VERILOG') + moduleList.getDependencies(moduleListObject, 'GIVEN_VERILOG_HS') + moduleList.getDependencies(moduleListObject, 'GEN_VPI_HS') + moduleList.getDependencies(moduleListObject, 'GEN_VPI_CS') + moduleList.getDependencies(moduleListObject, 'VHDL') + moduleList.getDependencies(moduleListObject, 'BA') + moduleList.getDependencies(moduleListObject, 'GEN_BAS')
+
             vbinDeps += moduleList.getDependencies(moduleList.topModule, 'VERILOG') + moduleList.getDependencies(moduleList.topModule, 'GIVEN_VERILOG_HS') + moduleList.getDependencies(moduleList.topModule, 'GEN_VPI_HS') + moduleList.getDependencies(moduleList.topModule, 'GEN_VPI_CS') +moduleList.getDependencies(moduleList.topModule, 'VHDL') + moduleList.getDependencies(moduleList.topModule, 'BA') + map(modify_path_ba_local, moduleList.getModuleDependenciesWithPaths(moduleList.topModule, 'GEN_BAS'))
+
         # collect dependencies from all awb modules
         else:
             vbinDeps += moduleList.getAllDependencies('VERILOG') + moduleList.getAllDependencies('VHDL') + moduleList.getAllDependencies('BA') + map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS'))
