@@ -6,6 +6,7 @@ import model
 import xilinx_loader
 import wrapper_gen_tool
 import synthesis_library
+import li_module
 
 try:
     import area_group_tool
@@ -112,7 +113,7 @@ class PostSynthesize():
         # graph give code for this module?  If both are true, then we
         # will link the old ngc in, rather than regenerate it. 
         if ((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
-            if (synthesis_library.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
+            if (li_module.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
                 module.moduleDependency['GEN_VIVADO_DCPS'] = [self.edf_to_dcp(moduleList, module)]
             
         # it's possible that we got dcp from this compilation
