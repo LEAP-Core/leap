@@ -116,8 +116,8 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
 
 def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory):
     # spit out a new top-level prj
-    prjPath = vivadoCompileDirectory + '/' + module.wrapperName() + '.synthesis.tcl' 
-    newTclFile = open(prjPath, 'w') 
+    prjPath = vivadoCompileDirectory.File(module.wrapperName() + '.synthesis.tcl')
+    newTclFile = open(str(prjPath), 'w') 
  
     # Emit verilog source and stub references
     verilogs = globalVerilogs + [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v']
@@ -126,23 +126,23 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     givenNetlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
     for vlog in sorted(verilogs):
-        relpath = model.rel_if_not_abspath(vlog, vivadoCompileDirectory)
+        relpath = model.rel_if_not_abspath(vlog, str(vivadoCompileDirectory))
         newTclFile.write("read_verilog -quiet " + relpath + "\n")
        
     for vhd in sorted(globalVHDs):
         if(isinstance(vhd, model.Source.Source)):            
             # Just got a string
-            relpath = model.rel_if_not_abspath(vhd.file, vivadoCompileDirectory)
+            relpath = model.rel_if_not_abspath(vhd.file, str(vivadoCompileDirectory))
             lib = 'work'
             if('lib' in vhd.attributes):
                 newTclFile.write("read_vhdl -lib " + vhd.attributes['lib'] + " " + relpath + "\n")
         else:
             # Just got a string
-            relpath = model.rel_if_not_abspath(vhd, vivadoCompileDirectory)
+            relpath = model.rel_if_not_abspath(vhd, str(vivadoCompileDirectory))
             newTclFile.write("read_vhdl -lib work " + relpath + "\n")
 
     for netlist in givenNetlists:
-        relpath = model.rel_if_not_abspath(netlist, vivadoCompileDirectory)
+        relpath = model.rel_if_not_abspath(netlist, str(vivadoCompileDirectory))
         newTclFile.write('read_edif ' + relpath + '\n')
 
     # Eventually we will want to add some of these to the synthesis tcl
@@ -151,17 +151,17 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     # We need to declare a top-level clock.  Unfortunately, the platform module will require special handling. 
     clockFiles = []
 
-    if(not module.platformModule):        
+    if (not module.platformModule):        
         MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
-        clockTclPath = vivadoCompileDirectory + '/' + module.wrapperName() + '.clocks.tcl'  
-        clockTclFile = open(clockTclPath, 'w') 
+        clockTclPath = vivadoCompileDirectory.File(module.wrapperName() + '.clocks.tcl')
+        clockTclFile = open(str(clockTclPath), 'w') 
         clockTclFile.write('create_clock -name ' + module.name + '_CLK -period ' + str(1000.0/MODEL_CLOCK_FREQ) + ' [get_ports CLK]\n')
         clockTclFile.close()
-        clockFiles = [os.path.relpath(clockTclPath, vivadoCompileDirectory)]
+        clockFiles = [os.path.relpath(str(clockTclPath), str(vivadoCompileDirectory))]
     else:
         if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
             clockFiles = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
-            relpathCurry = functools.partial(os.path.relpath, start = vivadoCompileDirectory)
+            relpathCurry = functools.partial(os.path.relpath, start = str(vivadoCompileDirectory))
             clockFiles = map(relpathCurry, clockFiles)   
 
     for file in clockFiles:
@@ -187,7 +187,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
 
     # apply tcl synthesis functions/patches 
     for tcl_func in tcl_funcs:
-        relpath = model.rel_if_not_abspath(tcl_func, vivadoCompileDirectory)
+        relpath = model.rel_if_not_abspath(tcl_func, str(vivadoCompileDirectory))
         newTclFile.write('source ' + relpath + '\n')
 
     if(module.getAttribute('TOP_MODULE') is None):
@@ -339,23 +339,25 @@ def getVivadoUtilResourcesClosure(module):
 def linkFirstPassObject(moduleList, module, firstPassLIGraph, sourceType, destinationType):
     deps = []
     moduleObject = firstPassLIGraph.modules[module.name]
-    if(sourceType in moduleObject.objectCache):
+    if (sourceType in moduleObject.objectCache):
         for src in moduleObject.objectCache[sourceType]:
-            linkPath = moduleList.compileDirectory + '/' + os.path.basename(src)
+            linkPath = moduleList.env.File(moduleList.compileDirectory + '/' + os.path.basename(str(src)))
             def linkSource(target, source, env):
                 # It might be more useful if the Module contained a pointer to the LIModules...                        
-                if(os.path.lexists(str(target[0]))):
+                if (os.path.lexists(str(target[0]))):
                     os.remove(str(target[0]))
-                print "Linking: " + str(source[0]) + " to " + str(target[0])
-                os.symlink(str(source[0]), str(target[0]))
-            moduleList.env.Command([linkPath], [src], linkSource)
+                rel = os.path.relpath(str(source[0]), os.path.dirname(str(target[0])))
+                print "Linking: " + str(target[0]) + " -> " + rel
+                os.symlink(rel, str(target[0]))
+
+            link = moduleList.env.Command(linkPath, src.from_bld(), linkSource)
 
             if(destinationType in  module.moduleDependency):  
-                module.moduleDependency[destinationType] += [linkPath]
+                module.moduleDependency[destinationType] += [link]
             else:
-                module.moduleDependency[destinationType] = [linkPath]
+                module.moduleDependency[destinationType] = [link]
 
-            deps += [linkPath]
+            deps += [link]
     else:
         return None
     return deps
@@ -369,9 +371,11 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
     generatePrj(moduleList, module, globalVerilogs, globalVHDs)
     newXSTPath = generateXST(moduleList, module, xstTemplate)
 
-    ngcFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.ngc'
-    srpFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'
-    resourceFile = moduleList.compileDirectory + '/' + module.wrapperName() + '.resources'
+    compile_dir = moduleList.env.Dir(moduleList.compileDirectory)
+
+    ngcFile = compile_dir.File(module.wrapperName() + '.ngc')
+    srpFile = compile_dir.File(module.wrapperName() + '.srp')
+    resourceFile = compile_dir.File(module.wrapperName() + '.resources')
 
 
     # Sort dependencies because SCons will rebuild if the order changes.
@@ -382,9 +386,9 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
         [ newXSTPath ] +
         xilinx_xcf,
-        [ SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '.srp'),
-          SCons.Script.Delete(moduleList.compileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
-          'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + moduleList.compileDirectory + '/' + module.wrapperName() + '.srp',
+        [ SCons.Script.Delete(compile_dir.File(module.wrapperName() + '.srp')),
+          SCons.Script.Delete(compile_dir.File(module.wrapperName() + '_xst.xrpt')),
+          'xst -intstyle silent -ifn config/' + module.wrapperName() + '.modified.xst -ofn ' + compile_dir.File(module.wrapperName() + '.srp').path,
           '@echo xst ' + module.wrapperName() + ' build complete.' ])
 
 
@@ -398,7 +402,7 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
     module.moduleDependency['RESOURCES'] = [resourceFile]
 
     module.moduleDependency['SYNTHESIS'] = [sub_netlist]
-    SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
+    SCons.Script.Clean(sub_netlist, compile_dir.File(module.wrapperName() + '.srp'))
 
     moduleList.env.Command(resourceFile,
                            srpFile,
@@ -414,20 +418,21 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
 
 def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 
-    vivadoCompileDirectory = moduleList.compileDirectory + '/' + module.wrapperName() + '_synth/' 
+    compile_dir = moduleList.env.Dir(moduleList.compileDirectory)
+    vivadoCompileDirectory = compile_dir.Dir(module.wrapperName() + '_synth/')
 
-    if not os.path.isdir(vivadoCompileDirectory):
-       os.mkdir(vivadoCompileDirectory)
+    if not os.path.isdir(str(vivadoCompileDirectory)):
+       os.mkdir(str(vivadoCompileDirectory))
 
     #Let's synthesize a xilinx .prj file for this synth boundary.
     # spit out a new prj
     tclDeps = generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory)
 
-    checkpointFile = vivadoCompileDirectory + '/' + module.wrapperName() + ".synth.dcp"
-    edfFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.edf'
-    srpFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'
+    checkpointFile = vivadoCompileDirectory.File(module.wrapperName() + '.synth.dcp')
+    edfFile = vivadoCompileDirectory.File(module.wrapperName() + '.edf')
+    srpFile = vivadoCompileDirectory.File(module.wrapperName() + '.synth.opt.util')
     logFile = module.wrapperName() + '.synth.log'
-    resourceFile = vivadoCompileDirectory + '/' + module.wrapperName() + '.resources'
+    resourceFile = vivadoCompileDirectory.File(module.wrapperName() + '.resources')
 
     # Sort dependencies because SCons will rebuild if the order changes.
     sub_netlist = moduleList.env.Command(
@@ -437,35 +442,34 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
         tclDeps + 
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
-        [ SCons.Script.Delete(vivadoCompileDirectory + '/' + module.wrapperName() + '.synth.opt.util'),
-          SCons.Script.Delete(vivadoCompileDirectory + '/' + module.wrapperName() + '_xst.xrpt'),
-          'cd ' + vivadoCompileDirectory + '; vivado -nojournal -mode batch -source ' + module.wrapperName() + '.synthesis.tcl > ' + logFile,
+        [ SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '.synth.opt.util')),
+          SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '_xst.xrpt')),
+          'cd ' + vivadoCompileDirectory.path + '; vivado -nojournal -mode batch -source ' + module.wrapperName() + '.synthesis.tcl > ' + logFile,
           '@echo vivado synthesis ' + module.wrapperName() + ' build complete.' ])
 
+    utilFile = moduleList.env.Command(resourceFile,
+                                      srpFile,
+                                      getVivadoUtilResourcesClosure(module))
 
     module.moduleDependency['SRP'] = [srpFile]
 
-    if(not 'GEN_NGCS' in module.moduleDependency):
+    if (not 'GEN_NGCS' in module.moduleDependency):
         module.moduleDependency['GEN_NGCS'] = [edfFile]
     else:
         module.moduleDependency['GEN_NGCS'] += [edfFile]
 
     module.moduleDependency['GEN_VIVADO_DCPS'] = [checkpointFile]
 
-    module.moduleDependency['RESOURCES'] = [resourceFile]
+    module.moduleDependency['RESOURCES'] = [utilFile]
 
     module.moduleDependency['SYNTHESIS'] = [edfFile]
-    SCons.Script.Clean(sub_netlist,  moduleList.compileDirectory + '/' + module.wrapperName() + '.srp')
-
-    utilFile = moduleList.env.Command(resourceFile,
-                                      srpFile,
-                                      getVivadoUtilResourcesClosure(module))
+    SCons.Script.Clean(sub_netlist,  compile_dir.File(module.wrapperName() + '.srp'))
 
     # If we're building for the FPGA, we'll claim that the
     # top-level build depends on the existence of the ngc
     # file. This allows us to do resource analysis later on.
     if(moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
-        moduleList.topDependency += [resourceFile]      
+        moduleList.topDependency += [utilFile]      
 
     return sub_netlist
 
@@ -474,18 +478,20 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 # Configure the top-level Xst build
 #
 def buildXSTTopLevel(moduleList, firstPassGraph):
+    compile_dir = moduleList.env.Dir(moduleList.compileDirectory)
+
     # string together the xcf, sort of like the ucf                                                                                                          
     # Concatenate UCF files                                                                                                                                  
     if('XCF' in moduleList.topModule.moduleDependency and len(moduleList.topModule.moduleDependency['XCF']) > 0):
-      xilinx_xcf = moduleList.env.Command(
-        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
-        moduleList.topModule.moduleDependency['XCF'],
-        'cat $SOURCES > $TARGET')
+        xilinx_xcf = moduleList.env.Command(
+            compile_dir.File(moduleList.topModule.wrapperName() + '.xcf'),
+            moduleList.topModule.moduleDependency['XCF'],
+            'cat $SOURCES > $TARGET')
     else:
-      xilinx_xcf = moduleList.env.Command(
-        moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName()+ '.xcf',
-        [],
-        'touch $TARGET')
+        xilinx_xcf = moduleList.env.Command(
+            compile_dir.File(moduleList.topModule.wrapperName() + '.xcf'),
+            [],
+            'touch $TARGET')
 
     ## tweak top xst file                                                        
     #Only parse the xst file once.  
@@ -512,19 +518,19 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
     topXSTPath = generateXST(moduleList, moduleList.topModule, xstTemplate)       
 
     # Use xst to tie the world together.
-    topSRP = moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.srp'
+    topSRP = compile_dir.File(moduleList.topModule.wrapperName() + '.srp')
 
     top_netlist = moduleList.env.Command(
-      moduleList.compileDirectory + '/' + moduleList.topModule.wrapperName() + '.ngc',
-      moduleList.topModule.moduleDependency['VERILOG'] +
-      moduleList.getAllDependencies('VERILOG_STUB') +
-      moduleList.getAllDependencies('VERILOG_LIB') +
-      [ templateFile ] +
-      [ topXSTPath ] + xilinx_xcf,
-      [ SCons.Script.Delete(topSRP),
-        SCons.Script.Delete(moduleList.compileDirectory + '/' + moduleList.apmName + '_xst.xrpt'),
-        'xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
-        '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
+        compile_dir.File(moduleList.topModule.wrapperName() + '.ngc'),
+        moduleList.topModule.moduleDependency['VERILOG'] +
+        moduleList.getAllDependencies('VERILOG_STUB') +
+        moduleList.getAllDependencies('VERILOG_LIB') +
+        [ templateFile ] +
+        [ topXSTPath ] + xilinx_xcf,
+        [ SCons.Script.Delete(topSRP),
+          SCons.Script.Delete(compile_dir.File(moduleList.apmName + '_xst.xrpt')),
+          'xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
+          '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 
     SCons.Script.Clean(top_netlist, topSRP)
 

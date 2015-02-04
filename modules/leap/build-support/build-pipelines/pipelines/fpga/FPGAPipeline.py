@@ -20,7 +20,7 @@ class Build(ProjectDependency):
     WrapperGen(moduleList)
     Iface(moduleList)
     bsv = BSV(moduleList)
-    if not bsv.isDependsBuild:
+    if not moduleList.isDependsBuild:
       FPGAProgram(moduleList)
       Software(moduleList)
       MCD(moduleList)

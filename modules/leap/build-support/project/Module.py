@@ -58,7 +58,7 @@ class Module(ProjectDependency.ProjectDependency):
     # Annotate source objects with path information
     for sourceType in self.moduleDependency:
         for source in self.moduleDependency[sourceType]:
-            if(isinstance(source,Source.Source)):
+            if (isinstance(source, Source.Source)):
                 source.attributes['buildPath'] = buildPath
           
     # Make empty EMPTY_params_override Bluespec and C files.  When a module

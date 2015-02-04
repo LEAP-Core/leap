@@ -11,6 +11,16 @@ import @ROOT_DIR_MODEL@.Module as Module
 import @ROOT_DIR_MODEL@.ModuleList as ModuleList
 import build_pipeline
 
+# The LIM builder invokes SCons in a series of subdirectories.
+# LIM_BUILD_DIR indicates the directory of the current sub-build.
+# This value is used in constructing source objects, an so must be
+# initialized first.
+if 'LIM_BUILD_DIR' in ARGUMENTS:
+    model.buildDir = ARGUMENTS['LIM_BUILD_DIR']
+else:
+    model.buildDir = ''
+
+
 defs = {
     'ALL_HW_DIRS'        : '@ALL_HW_DIRS@',
     'APM_FILE'           : '@APM_FILE@',
@@ -93,6 +103,15 @@ TMP_XILINX_DIR = env['DEFS']['TMP_XILINX_DIR']
 
 moduleList = ModuleList.ModuleList(env, defs['MODULE_LIST'], ARGUMENTS, COMMAND_LINE_TARGETS)
 
+# Store some global state describing the build in model.
+model.env = env
+model.moduleList = moduleList
+
+# rootDir can be relevant when the SConscript file is in a subdirectory below
+# the SConstruct file.
+model.rootDir = env.Dir('.')
+
+
 # we will build whatever the user wants us to build
 build_pipeline.Build(moduleList)
 
@@ -153,6 +172,7 @@ def print_build_failures():
 
 atexit.register(print_build_failures)
 
+env.Alias('depends-init', moduleList.topDependsInit)
 
 top = moduleList.topDependency
 Return('top')

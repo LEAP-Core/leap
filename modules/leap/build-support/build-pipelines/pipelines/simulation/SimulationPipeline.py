@@ -21,7 +21,7 @@ class Build(ProjectDependency):
     # Build interface first 
     Iface(moduleList)
     bsv = BSV(moduleList)
-    if not bsv.isDependsBuild:
+    if not moduleList.isDependsBuild:
       Bluesim(moduleList)
       # Included to support optional Verilog build
       Verilog(moduleList, False)

@@ -29,6 +29,7 @@ class Software():
     def __init__(self, moduleList):
 
         self.pipeline_debug = getBuildPipelineDebug(moduleList)
+        self.env = moduleList.env
 
         # set up trace flags
         if (getEvents(moduleList) == 0):       
@@ -67,8 +68,8 @@ class Software():
                 inc_paths += [ os.path.join(m5_python_exec_prefix, 'include', 'python' + m5_python_ver) ]
 
                 cc_flags += ' -DTRACING_ON=1'
-                if (moduleList.env['DEFS']['SIMULATED_ISA'] != ''):
-                    cc_flags += ' -DTHE_ISA=' + moduleList.env['DEFS']['SIMULATED_ISA'] + '_ISA'
+                if (self.env['DEFS']['SIMULATED_ISA'] != ''):
+                    cc_flags += ' -DTHE_ISA=' + self.env['DEFS']['SIMULATED_ISA'] + '_ISA'
 
                 ##
                 ## The whole m5 library must be embedded in the final binary because
@@ -94,15 +95,16 @@ class Software():
                     whole_libs += [ m5_lib ]
 
             # CPPPATH defines both gcc include path and dependence path for
-            # SCons.  The '#' forces paths to be relative to the root of the build.
-            iface_inc = Utils.rebase_if_not_abspath('iface/build/include',
-                                                    moduleList.rootDirectory)
-            sw_env = moduleList.env.Clone(CCFLAGS = copt_flags + cc_flags,
-                                          LINKFLAGS = copt_flags,
-                                          CPPPATH = [ '#/' + moduleList.rootDirInc,
-                                                      '#/' + moduleList.rootDirSw,
-                                                      '#/' + iface_inc,
-                                                      '.' ] + inc_paths)
+            # SCons.
+            sw_inc = self.env.Dir(self.env['DEFS']['ROOT_DIR_SW_INC'])
+            sw_model_inc = self.env.Dir(self.env['DEFS']['ROOT_DIR_SW_MODEL'])
+            iface_inc = self.env.Dir('iface/build/include')
+            sw_env = self.env.Clone(CCFLAGS = copt_flags + cc_flags,
+                                    LINKFLAGS = copt_flags,
+                                    CPPPATH = [ sw_inc,
+                                                sw_model_inc,
+                                                iface_inc,
+                                                '.' ] + inc_paths)
         
             # Scons does not use the external environment. If an external environment 
             # variable is needed then it must be added to the $ENV construction variable
@@ -117,18 +119,18 @@ class Software():
             # understand which libraries are actually relocatable. 
 
             sw_env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
-            moduleList.env.Export('sw_env')
+            self.env.Export('sw_env')
             sw_build_dir = sw_env['DEFS']['ROOT_DIR_SW'] + '/obj'
-            sw_objects = moduleList.env.SConscript(['#' + moduleList.rootDirSw + '/SConscript'],
-                                                   variant_dir = sw_build_dir,
-                                                   duplicate = 0)
+            sw_objects = self.env.SConscript([sw_model_inc.File('SConscript')],
+                                             variant_dir = sw_build_dir,
+                                             duplicate = 0)
         
             
-            moduleList.env.Depends(sw_objects,moduleList.topModule.moduleDependency['IFACE_HEADERS'])
+            self.env.Depends(sw_objects,moduleList.topModule.moduleDependency['IFACE_HEADERS'])
             sw_libpath = [ '.' ]
             sw_link_libs = moduleList.swLinkLibs + [ 'pthread', 'rt', 'dl' ]
         
-            sw_obj_path = moduleList.env['DEFS']['ROOT_DIR_SW'] + '/obj/'
+            sw_obj_path = self.env['DEFS']['ROOT_DIR_SW'] + '/obj/'
             sw_link_tgt = sw_obj_path + moduleList.apmName + '.so'
             exe_wrapper_cpp = sw_obj_path + moduleList.apmName + '_wrapper.cpp'
             sw_exe_libpath = [sw_obj_path]  
@@ -233,11 +235,11 @@ class Software():
         # of doing this programmatically, but we do have
         # programmer-provided logfiles.
         if(moduleList.getAWBParam('software_tool', 'DUMP_LIM_GRAPH')):        
-            li_graph = moduleList.env['DEFS']['APM_NAME'] + '.li'
+            li_graph = self.env['DEFS']['APM_NAME'] + '.li'
 
             # build a list of logfiles.  Perhaps we should call these CPP logs or something?
             #all_logs = moduleList.getAllDependenciesWithPaths('GIVEN_LOGS')
-            all_logs = map(lambda path: moduleList.env['DEFS']['ROOT_DIR_HW']+ '/' + path, moduleList.getAllDependenciesWithPaths('GIVEN_LOGS'))
+            all_logs = map(lambda path: self.env['DEFS']['ROOT_DIR_HW']+ '/' + path, moduleList.getAllDependenciesWithPaths('GIVEN_LOGS'))
 
             # TODO: this code is very similar to the code in BSV.py.
             # Refactor is and put it in the LI library. 
@@ -245,7 +247,9 @@ class Software():
                 connections = []
                 # filter out build_tree connections.  These are not real                                                                                                      
 
-                for connection in parseLogfiles([str(s) for s in source]):
+                logs = [Source.Source(str(s), None) for s in source]
+
+                for connection in parseLogfiles(logs):
                     connections.append(connection)
                     # Currently, all connections come from this platform.
                     # TODO: Fix this assumption
@@ -262,8 +266,7 @@ class Software():
                     module.putAttribute('PLATFORM_MODULE', True)
                     # give module a pointer to its log files. 
                     # this works because all software logs at this time are given
-                    relativeLogs = map(lambda filename:  os.path.abspath(filename), all_logs)
-                    module.putObjectCode('GIVEN_LOGS',relativeLogs)
+                    module.putObjectCode('GIVEN_LOGS', logs)
 
                 # dump graph representation. 
                 pickleHandle = open(str(target[0]), 'wb')
@@ -274,6 +277,6 @@ class Software():
                     print "CPP Initial Graph is: " + str(fullLIGraph) + ": " + sys.version +"\n"
 
             # Setup the graph dump
-            dumpGraph = moduleList.env.Command(li_graph, all_logs, dump_lim_graph)
+            dumpGraph = self.env.Command(li_graph, all_logs, dump_lim_graph)
 
             moduleList.topDependency += [dumpGraph]

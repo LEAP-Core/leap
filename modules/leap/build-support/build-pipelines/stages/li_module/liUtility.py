@@ -18,7 +18,7 @@ import pygraph.algorithms.minmax
 def parseLogfiles(logfiles):
     connections = []
     for logfile in logfiles:
-        log = open(logfile,'r')
+        log = open(str(logfile), 'r')
              
         for line in log:
             if (re.match("Compilation message: .*: Dangling",line)):                
@@ -113,14 +113,14 @@ def assignResources(moduleList, environmentGraph = None, moduleGraph = None):
     # We require this extra 'S', but maybe this should not be the case.
     resourceFile = moduleList.getAllDependenciesWithPaths('GIVEN_RESOURCESS')    
     filenames = []
-    if(len(resourceFile) > 0):
+    if (len(resourceFile) > 0):
         filenames.append(moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + resourceFile[0])
         # let's read in a resource file
         
     # we can also get resource files from the first compilation pass.
     # pick those resource files up here.  However, we don't force the
     # caller to supply such things. 
-    if( moduleGraph is not None):
+    if (moduleGraph is not None):
         for moduleName in moduleGraph.modules:
             moduleObject = moduleGraph.modules[moduleName]   
             filenames += moduleObject.getObjectCode('RESOURCES')
@@ -132,11 +132,11 @@ def assignResources(moduleList, environmentGraph = None, moduleGraph = None):
     # need to check for file existance. returning an empty resource
     # dictionary is acceptable.
     for filename in filenames:
-        if( not os.path.exists(filename)):
-            print "Warning, no resources found at " + filename + "...\n"
+        if (not os.path.exists(str(filename))):
+            print "Warning, no resources found at " + str(filename) + "...\n"
             continue
 
-        logfile = open(filename,'r')  
+        logfile = open(str(filename), 'r')  
         for line in logfile:
             # There are several ways that we can get resource. One way is instrumenting the router. 
             params = line.split(':')
@@ -144,7 +144,7 @@ def assignResources(moduleList, environmentGraph = None, moduleGraph = None):
             resources[moduleName] = {}
             for index in range(len(params)/2):
                 resources[moduleName][params[2*index]] = float(params[2*index+1])
-    if(pipeline_debug):        
+    if (pipeline_debug):        
         print "PLACER RESOURCES: " + str(resources)
 
     return resources

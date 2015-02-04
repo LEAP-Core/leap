@@ -18,7 +18,7 @@ class Build(ProjectDependency):
     #build interface first 
     Iface(moduleList)
     bsv = BSV(moduleList)
-    if not bsv.isDependsBuild:
+    if not moduleList.isDependsBuild:
       Software(moduleList)
       Verilog(moduleList, True)
 

@@ -73,6 +73,8 @@ class BSVSynthTreeBuilder():
         useBVI = self.parent.USE_BVI
         env = moduleList.env
 
+        root_directory = model.rootDir
+
         ##
         ## Load intra-Bluespec dependence already computed.  This
         ## information will ultimately drive the building of Bluespec
@@ -81,21 +83,13 @@ class BSVSynthTreeBuilder():
         ##
         env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-build-tree',
                          must_exist = not moduleList.env.GetOption('clean'))
-        tree_base_path = get_build_path(moduleList, moduleList.topModule)
+        tree_base_path = env.Dir(get_build_path(moduleList, moduleList.topModule))
 
-        tree_file_synth = tree_base_path + "/build_tree_synth.bsv"
-        tree_file_synth_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR +"/build_tree_synth"
+        tree_file_synth = tree_base_path.File('build_tree_synth.bsv')
+        tree_file_synth_bo_path = tree_base_path.File(self.parent.TMP_BSC_DIR + '/build_tree_synth.bo')
 
-        tree_file_wrapper = tree_base_path + "/build_tree_Wrapper.bsv"
-        tree_file_wrapper_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR + "/build_tree_Wrapper"
-
-
-        tree_file_import = tree_base_path + "/build_tree_Import.bsv"
-        tree_file_import_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR + "/build_tree_Import"
-
-        # this level of indirection is necessary to mimic the way AWB handles .bo builds
-        tree_file_bo = tree_base_path + "/build_tree.bsv"
-        tree_file_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR + "/build_tree"
+        tree_file_wrapper = tree_base_path.File('build_tree_Wrapper.bsv')
+        tree_file_wrapper_bo_path = tree_base_path.File(self.parent.TMP_BSC_DIR + '/build_tree_Wrapper.bo')
 
         # Area constraints
         area_constraints = None
@@ -106,15 +100,13 @@ class BSVSynthTreeBuilder():
             # The area constraints code is not present.
             pass
 
-        if moduleList.env.GetOption('clean'):
-            os.system('rm -f ' + tree_file_bo)
-
         boundary_logs = []
         for module in topo:
             # Remove any platform modules.. These are special in that
             # they can have wired interfaces.
-            if(not module.platformModule):
-                boundary_logs.extend(module.moduleDependency['BSV_LOG'])
+            if (not module.platformModule):
+                for log in module.moduleDependency['BSV_LOG']:
+                    boundary_logs += [root_directory.File(log)]
 
         ##
         ## Back to SCons configuration (first) pass...
@@ -130,17 +122,18 @@ class BSVSynthTreeBuilder():
         # pass may be missing.  We insert these modules as objects in
         # the ModuleList.
 
-        def makeAWBLink(doLink, absPath, buildPath):
-            baseFile = os.path.basename(absPath)
-            linkPath =  buildPath + "/.li/" + baseFile
-            if(doLink):
-                if(os.path.lexists(linkPath)):
-                    os.remove(linkPath)
-                print "Linking: " + absPath + " to " + linkPath
-                os.symlink(absPath, linkPath)
+        def makeAWBLink(doLink, source, buildPath):
+            base_file = os.path.basename(str(source))
+            link_dir = buildPath + '/.li'
+            link_path =  link_dir + '/' + base_file
+            if (doLink):
+                if (os.path.lexists(link_path)):
+                    os.remove(link_path)
+                rel = os.path.relpath(str(source), link_dir)
+                print 'Linking: ' + link_path + ' -> ' + rel
+                os.symlink(rel, link_path)
 
-            return linkPath
-
+            return link_path
 
 
         limLinkUserSources = []
@@ -150,7 +143,7 @@ class BSVSynthTreeBuilder():
         importStubs = []
 
 
-        if(not self.getFirstPassLIGraph is None):
+        if (not self.getFirstPassLIGraph is None):
             # Now that we have demanded bluespec builds (for
             # dependencies), we should now should downgrade synthesis boundaries for the backend.
             for module in topo:
@@ -168,7 +161,11 @@ class BSVSynthTreeBuilder():
 
                 for objType in ['BA', 'GEN_BAS', 'GEN_VERILOGS', 'GEN_VERILOG_STUB', 'STR']:
                     if(objType in module.objectCache):
-                        localNames =  map(lambda fileName: makeAWBLink(False, fileName, buildPath), module.objectCache[objType])
+                        localNames =  map(lambda fileName: makeAWBLink(False,
+                                                                       fileName.from_bld(),
+                                                                       buildPath),
+                                          module.objectCache[objType])
+
                         # The previous passes GEN_VERILOGS are not
                         # really generated here, so we can't call them
                         # as such. Tuck them in to 'VERILOG'
@@ -204,7 +201,7 @@ class BSVSynthTreeBuilder():
         expected_wrapper_count = len(boundary_logs) - 2
         importBOs = []
 
-        if(not self.getFirstPassLIGraph is None):
+        if (not self.getFirstPassLIGraph is None):
             # we now have platform modules in here.
             expected_wrapper_count = len(self.getFirstPassLIGraph.modules) - 2
 
@@ -212,25 +209,24 @@ class BSVSynthTreeBuilder():
             # LI import wrappers for the modules we received from the
             # first pass.  Do that here.  include all the dependencies
             # in the graph in the wrapper.
-            tree_base_path = get_build_path(moduleList, moduleList.topModule)
             liGraph = LIGraph([])
             firstPassGraph = self.getFirstPassLIGraph
             # We should ignore the 'PLATFORM_MODULE'
             liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
             for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
                 # pull in the dependecies generate by the dependency pass.
-                env.ParseDepends(tree_base_path + '/.depends-' + module.name,
-                         must_exist = not moduleList.env.GetOption('clean'))
-                wrapper_path = tree_base_path + '/' + module.name + '_Wrapper.bsv'
-                wrapper_bo_path = tree_base_path + "/" + self.parent.TMP_BSC_DIR + "/" + module.name + "_Wrapper.bo"
+                env.ParseDepends(str(tree_base_path) + '/.depends-' + module.name,
+                                 must_exist = not moduleList.env.GetOption('clean'))
+                wrapper_path = tree_base_path.File(module.name + '_Wrapper.bsv')
+                wrapper_bo_path = tree_base_path.File(self.parent.TMP_BSC_DIR + '/' + module.name + '_Wrapper.bo')
 
                 # include commands to build the wrapper .bo/.ba
                 # Here, we won't be using the generated .v (it's garbage), so we intentionally  get rid of it.
-                importVDir = '.lim_import_verilog'
-                if not os.path.isdir(importVDir):
-                   os.mkdir(importVDir)
+                importVDir = env.Dir('.lim_import_verilog')
+                if not os.path.isdir(str(importVDir)):
+                   os.mkdir(str(importVDir))
 
-                wrapper_command = self.parent.compile_bo_bsc_base([wrapper_bo_path], get_build_path(moduleList, moduleList.topModule), vdir=importVDir) + ' ' + wrapper_path
+                wrapper_command = self.parent.compile_bo_bsc_base([wrapper_bo_path], get_build_path(moduleList, moduleList.topModule), vdir=importVDir) + ' $SOURCES'
                 wrapper_bo = env.Command([wrapper_bo_path],
                                          [wrapper_path],
                                          wrapper_command)
@@ -309,20 +305,29 @@ class BSVSynthTreeBuilder():
 
         def linkLIMObjClosure(liModules, buildPath):
             def linkLIMObj(target, source, env):
-                if(not self.getFirstPassLIGraph is None):
+                if (not self.getFirstPassLIGraph is None):
                     # The LIM build has passed us some source and we need
                     # to patch it through.
                     for module in liModules:
                         if('BA' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['BA'])
+                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
+                                module.objectCache['BA'])
+
                         if('GEN_BAS' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_BAS'])
+                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
+                                module.objectCache['GEN_BAS'])
+
                         if('GEN_VERILOGS' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_VERILOGS'])
+                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
+                                module.objectCache['GEN_VERILOGS'])
+
                         if('GEN_VERILOG_STUB' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['GEN_VERILOG_STUB'])
+                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
+                                module.objectCache['GEN_VERILOG_STUB'])
+
                         if('STR' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName, buildPath), module.objectCache['STR'])
+                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
+                                module.objectCache['STR'])
 
             return linkLIMObj
 
@@ -339,17 +344,20 @@ class BSVSynthTreeBuilder():
         producedVs = map(lambda path: bsv_tool.modify_path_ba(moduleList, path), moduleList.getModuleDependenciesWithPaths(tree_module, 'GEN_VERILOGS')) + \
                      buildTreeDeps['VERILOG']
 
-        tree_command = self.parent.compile_bo_bsc_base([tree_file_wrapper_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_wrapper
-        tree_file_wrapper_bo = env.Command([tree_file_wrapper_bo_path + '.bo'] + producedBAs + producedVs,
+        tree_command = self.parent.compile_bo_bsc_base([tree_file_wrapper_bo_path], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_wrapper.path
+        tree_file_wrapper_bo = env.Command([tree_file_wrapper_bo_path] + producedBAs + producedVs,
                                            tree_components,
                                            tree_command)
 
         print "TREE COMPONENTS: " + str(tree_components)
  
         # If we got a first pass LI graph, we need to link its object codes.
-        if(not self.getFirstPassLIGraph is None):
-            buildPath = get_build_path(moduleList, moduleList.topModule)
-            link_lim_user_objs = env.Command(limLinkUserTargets, limLinkUserSources, linkLIMObjClosure(bsv_tool.getUserModules(self.getFirstPassLIGraph), buildPath))
+        if (not self.getFirstPassLIGraph is None):
+            srcs = [s.from_bld() for s in limLinkUserSources]
+            link_lim_user_objs = env.Command(limLinkUserTargets,
+                                             srcs,
+                                             linkLIMObjClosure(bsv_tool.getUserModules(self.getFirstPassLIGraph),
+                                                               tree_base_path.path))
             env.Depends(link_lim_user_objs, tree_file_wrapper_bo)
 
 
@@ -360,8 +368,8 @@ class BSVSynthTreeBuilder():
 
         env.Depends(tree_file_wrapper_bo, all_bo)
 
-        tree_synth_command = self.parent.compile_bo_bsc_base([tree_file_synth_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_synth
-        tree_file_synth_bo = env.Command([tree_file_synth_bo_path + '.bo'],
+        tree_synth_command = self.parent.compile_bo_bsc_base([tree_file_synth_bo_path], get_build_path(moduleList, moduleList.topModule)) + ' ' + tree_file_synth.path
+        tree_file_synth_bo = env.Command([tree_file_synth_bo_path],
                                          [tree_file_synth, tree_file_wrapper_bo],
                                          tree_synth_command)
 
@@ -378,16 +386,16 @@ class BSVSynthTreeBuilder():
         # bluespec.
         importVDir = None
         if(not self.getFirstPassLIGraph is None):
-            importVDir = '.lim_import_verilog'
-            if not os.path.isdir(importVDir):
-                os.mkdir(importVDir)
+            importVDir = env.Dir('.lim_import_verilog')
+            if not os.path.isdir(str(importVDir)):
+                os.mkdir(str(importVDir))
 
-        platform_synth_command = self.parent.compile_bo_bsc_base([platform_synth_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule), vdir=importVDir) + ' ' + platform_synth
+        platform_synth_command = self.parent.compile_bo_bsc_base([platform_synth_bo_path + '.bo'], get_build_path(moduleList, moduleList.topModule), vdir=importVDir) + ' $SOURCE'
         platform_wrapper_bo = get_build_path(moduleList, moduleList.topModule) + "/" + self.parent.TMP_BSC_DIR + "/" +moduleList.localPlatformName + '_platform_Wrapper.bo'
 
         platform_synth_deps = [platform_synth]
         #if we have a module graph, we don't require the compilation of the platform_wrapper_bo.
-        if(self.getFirstPassLIGraph is None):
+        if (self.getFirstPassLIGraph is None):
             platform_synth_deps.append(platform_wrapper_bo)
         platform_synth_bo = env.Command([platform_synth_bo_path + '.bo'],
                                          platform_synth_deps,
@@ -399,8 +407,11 @@ class BSVSynthTreeBuilder():
 
         # Platform synth does the same object-bypass dance as tree_module.
         if(not self.getFirstPassLIGraph is None):
-            buildPath = get_build_path(moduleList, moduleList.topModule)
-            link_lim_platform_objs = env.Command(limLinkPlatformTargets, limLinkPlatformSources, linkLIMObjClosure(bsv_tool.getPlatformModules(self.getFirstPassLIGraph), buildPath))
+            srcs = [s.from_bld() for s in limLinkPlatformSources]
+            link_lim_platform_objs = env.Command(limLinkPlatformTargets,
+                                                 srcs,
+                                                 linkLIMObjClosure(bsv_tool.getPlatformModules(self.getFirstPassLIGraph),
+                                                                   tree_base_path.path))
             env.Depends(link_lim_platform_objs, platform_synth_bo)
 
         # need to generate a stub file for the build tree module.
@@ -433,7 +444,7 @@ class BSVSynthTreeBuilder():
         area_constraints = state['area_constraints']
 
         # If we got a graph from the first pass, merge it in now.
-        if(self.getFirstPassLIGraph is None):
+        if (self.getFirstPassLIGraph is None):
             liGraph = LIGraph(li_module.parseLogfiles(boundary_logs))
         else:
             #cut_tree_build may modify the first pass graph, so we need
@@ -445,8 +456,8 @@ class BSVSynthTreeBuilder():
             if (area_constraints):
                 area_constraints.loadAreaConstraintsPlaced()
 
-        synth_handle = open(state['tree_file_synth'],'w')
-        wrapper_handle = open(state['tree_file_wrapper'],'w')
+        synth_handle = open(state['tree_file_synth'].path,'w')
+        wrapper_handle = open(state['tree_file_wrapper'].path,'w')
         state['wrapper_handle'] = wrapper_handle
 
         fileID = 0
@@ -623,7 +634,7 @@ class BSVSynthTreeBuilder():
                 # Top module is never passed in as a singleton.  This code
                 # Should never be reached.
                 raise BuildError(errstr = "Singleton top module",
-                                 filename = state['tree_file_wrapper'])
+                                 filename = state['tree_file_wrapper'].path)
 
         ##
         ## The graph partitioning algorithm depends on whether area groups

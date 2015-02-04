@@ -5,6 +5,8 @@ import sys
 import errno
 import traceback
 
+from SCons.Defaults import DefaultEnvironment
+
 import pygraph
 try:
   from pygraph.classes.digraph import digraph
@@ -88,7 +90,6 @@ class ModuleList:
 
     self.env.Command = CommandOverride    
 
-    self.rootDirectory = env.Dir('.').entry_path('')
     self.arguments = arguments
     self.cmdLineTgts = cmdLineTgts
     self.buildDirectory = env['DEFS']['BUILD_DIR']
@@ -120,10 +121,6 @@ class ModuleList:
     self.swLibs = Utils.clean_split(env['DEFS']['SW_LIBS'], sep = ' ')
     self.swLinkLibs = Utils.clean_split(env['DEFS']['SW_LINK_LIBS'], sep = ' ')
     self.m5BuildDir = env['DEFS']['M5_BUILD_DIR'] 
-    self.rootDirSw = Utils.rebase_if_not_abspath(env['DEFS']['ROOT_DIR_SW_MODEL'],
-                                                 self.rootDirectory)
-    self.rootDirInc = Utils.rebase_if_not_abspath(env['DEFS']['ROOT_DIR_SW_INC'],
-                                                  self.rootDirectory)
 
     if len(env['DEFS']['GIVEN_ELFS']) != 0:
       elf = ' -bd ' + str.join(' -bd ',Utils.clean_split(env['DEFS']['GIVEN_ELFS'], sep = ' '))
@@ -200,7 +197,7 @@ class ModuleList:
     self.topModule.moduleDependency['BSV_LOG'] = []   # Synth boundary build log file
     self.topModule.moduleDependency['STR'] = []       # Global string table
 
-    if(self.getAWBParam('model', 'LEAP_BUILD_CACHE_DIR') != ""):
+    if (self.getAWBParam('model', 'LEAP_BUILD_CACHE_DIR') != ""):
       self.env.CacheDir(self.getAWBParam('model', 'LEAP_BUILD_CACHE_DIR'))
 
     try:
@@ -215,7 +212,9 @@ class ModuleList:
       self.localPlatformName = 'default'
       self.localPlatformValid = False
 
-    self.topDependency=[]
+    self.topDependency = []
+    self.topDependsInit = []
+
     self.graphize()
     self.graphizeSynth()
 

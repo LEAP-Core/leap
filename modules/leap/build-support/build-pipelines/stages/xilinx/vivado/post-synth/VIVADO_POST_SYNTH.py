@@ -111,13 +111,13 @@ class PostSynthesize():
         # did we get a dcp from the first pass?  If so, did the lim
         # graph give code for this module?  If both are true, then we
         # will link the old ngc in, rather than regenerate it. 
-        if((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
-            if(synthesis_library.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
+        if ((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
+            if (synthesis_library.linkFirstPassObject(moduleList, module, firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
                 module.moduleDependency['GEN_VIVADO_DCPS'] = [self.edf_to_dcp(moduleList, module)]
             
         # it's possible that we got dcp from this compilation
         # pass. This will happen for the platform modules.
-        elif(len(module.getDependencies('GEN_VIVADO_DCPS')) > 0):
+        elif (len(module.getDependencies('GEN_VIVADO_DCPS')) > 0):
             continue
 
         # we got neither. therefore, we must create a dcp out of the ngc.
@@ -242,7 +242,7 @@ class PostSynthesize():
         for module in userModules:  
             moduleObject = firstPassLIGraph.modules[module.name]
             if(moduleObject.getAttribute('PLATFORM_MODULE') is None):
-                newTclFile.write('lock_design -level placement [get_cells -hier -filter {REF_NAME =~ "' +  module.wrapperName() + '"}]\n') 
+                newTclFile.write('lock_design -level routing [get_cells -hier -filter {REF_NAME =~ "' +  module.wrapperName() + '"}]\n') 
 
 
     for elf in tcl_elfs:
@@ -433,6 +433,7 @@ class PostSynthesize():
                if(not self.area_constraints.emitModuleConstraintsVivado(edfTclFile, module.name, useSourcePath=False) is None):               
                    edfTclFile.write("place_design -no_drc \n")
                    edfTclFile.write("phys_opt_design \n")
+                   edfTclFile.write("route_design\n")
 
                edfTclFile.write('write_checkpoint -force ' + module.name + ".place.dcp" + '\n')
 
@@ -449,7 +450,7 @@ class PostSynthesize():
       # generate bitfile
       return moduleList.env.Command(
           [dcp],
-          [checkpoint] + [edfTcl] + [self.area_group_file], 
+          [checkpoint] + [edfTcl], 
           ['cd ' + placeCompileDirectory + ';vivado -mode batch -source ' + module.name + ".place.tcl" + ' -log ' + module.name + '.par.log'])
 
 
