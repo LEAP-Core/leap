@@ -124,8 +124,6 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     verilogs = globalVerilogs + [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v']
     verilogs +=  moduleList.getDependencies(module, 'VERILOG_STUB')
 
-    print "VERILOG_STUB: " + str(moduleList.getDependencies(module, 'VERILOG_STUB'))
-
     givenNetlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
     # Replace any known black boxes

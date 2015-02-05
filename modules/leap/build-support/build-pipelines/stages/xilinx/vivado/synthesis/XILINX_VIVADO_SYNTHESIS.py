@@ -37,7 +37,7 @@ class Synthesize():
                  # Modify parent to know about this child.               
                  parentModule = moduleList.modules[userAreaGroup.parentName]
                  # pick up deps from parent. 
-                 moduleDeps = parentModule.moduleDependencyCopy()
+                 moduleDeps ={} 
                  moduleName = userAreaGroup.attributes['MODULE_NAME']
  
                  # grab the parent module verilog and convert it. This
@@ -51,11 +51,14 @@ class Synthesize():
                      if (re.search(moduleName, dep)):
                          moduleVerilog = dep  
                       
+
                  if(moduleVerilog is None):
                      print "ERROR: failed to find verilog for area group: " + userAreaGroup.name 
                      exit(1)
             
                  moduleVerilogBlackBox = moduleVerilog.replace('.v', '_stub.v')
+
+                 moduleDeps['GEN_VERILOG_STUB'] = [moduleVerilogBlackBox]
 
                  print "BLACK_BOX: " + moduleVerilog + " -> " + moduleVerilogBlackBox
 

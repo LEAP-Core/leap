@@ -206,7 +206,20 @@ class PostSynthesize():
 
             newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
 
-        for module in userModules:   
+        # We can have parent/child relationships in the user modules.
+        # Vivado requires that checkpoints be read in topological
+        # order.
+        print "AREA_GORUPS: " + str(elabAreaConstraints.constraints)
+   
+        for module in userModules: # sorted(userModules, key=lambda module: len(elabAreaConstraints.constraints[module.name].children)):   
+            print "ATTRIBUTES " + module.name + " " + str(firstPassLIGraph.modules[module.name].attributes) 
+
+        def isBlackBox(module):
+            if(firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP')):
+                return 1
+            return 0
+
+        for module in sorted(userModules, key=isBlackBox):   
             checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_PLACEMENT_DCPS'))
 
             # There should only be one checkpoint here. 

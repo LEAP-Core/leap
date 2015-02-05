@@ -163,105 +163,6 @@ class BSV():
             self.build_synth_boundary(moduleList, moduleList.topModule)
 
 
-            # If we're doing a LIM compilation, we need to dump an LIM Graph.
-            # This must be done before the build tree attempts to reorganize the world.
-            do_dump_lim_graph = self.BUILD_LOGS_ONLY
-            if do_dump_lim_graph:
-                lim_logs = []
-                lim_stubs = []
-                for module in topo:
-                    # scrub tree build/platform, which are redundant.
-                    lim_logs.extend(module.moduleDependency['BSV_LOG'])
-                    lim_stubs.extend(module.moduleDependency['GEN_VERILOG_STUB'])
-
-                li_graph = moduleList.env['DEFS']['APM_NAME'] + '.li'
-
-                ## dump a LIM graph for use by the LIM compiler.  here
-                ## we wastefully contstruct (or reconstruct, depending on your
-                ## perspective, a LIM graph including the platform channels.
-                ## Probably this result could be acheived with the mergeGraphs
-                ## function.
-                def dump_lim_graph(target, source, env):
-                    # Find the subset of sources that are log files and parse them
-                    logs = [s for s in source if (str(s)[-4:] == '.log')]
-                    fullLIGraph = LIGraph(li_module.parseLogfiles(logs))
-
-                    # annotate modules with relevant object code (useful in
-                    # LIM compilation)
-                    # this is not technically a part of the tree cut methodology, but we need to do this
-
-                    # For the LIM compiler, we must also annotate those
-                    # channels which are coming out of the platform code.
-
-                    for module in moduleList.synthBoundaries():
-                        modulePath = module.buildPath
-  
-                        print "MODULE_LIST: " + module.name
-
-                        # Wrap the real findBuildPath() so it can be invoked
-                        # later by map().
-                        def __findBuildPath(path):
-                            return Source.findBuildPath(path, modulePath)
-
-                        # User area groups add a wrinkle. We need to
-                        # keep them around, but they don't have LI
-                        # channels
-  
-                        if(not module.getAttribute('AREA_GROUP') is None):
-                            # We now need to create and integrate an
-                            # LI Module for this module
-                            newModule = LIModule(module.name, module.name)
-                            fullLiGraph.mergeModules([newModule])
-                            print "Adding module " + module.name
-
-                        # the liGraph only knows about modules that actually
-                        # have connections some modules are vestigial, andso
-                        # we can forget about them...
-                        if (module.name in fullLIGraph.modules):
-                            for objectType in module.moduleDependency:
-                                # it appears that we need to filter
-                                # these objects.  TODO: Clean the
-                                # things adding to this list so we
-                                # don't require the filtering step.
-                                depList = module.moduleDependency[objectType]
-                                convertedDeps = model.convertDependencies(depList)
-                                relativeDeps = map(__findBuildPath, convertedDeps)
-                                fullLIGraph.modules[module.name].putObjectCode(objectType, relativeDeps)
-
-                    for module in topo:
-                        if(module.name in fullLIGraph.modules):
-                            # annotate platform module with local mapping.
-                            if(module.name == moduleList.localPlatformName + '_platform'):
-                                # The platform module is special.
-                                fullLIGraph.modules[module.name].putAttribute('MAPPING', moduleList.localPlatformName)
-                                fullLIGraph.modules[module.name].putAttribute('PLATFORM_MODULE', True)
-
-                    # Decorate LI modules with type
-                    for module in fullLIGraph.modules.values():
-                        module.putAttribute("EXECUTION_TYPE","RTL")
-
-                    # dump graph representation.
-                    pickleHandle = open(str(target[0]), 'wb')
-                    pickle.dump(fullLIGraph, pickleHandle, protocol=-1)
-                    pickleHandle.close()
-
-                    if (self.pipeline_debug != 0):
-                        print "Initial Graph is: " + str(fullLIGraph) + ": " + sys.version +"\n"
-
-                # Setup the graph dump Although the graph is built
-                # from only LI modules, the top wrapper contains
-                # sizing information. Also needs stubs.
-                dumpGraph = env.Command(li_graph,
-                                        lim_logs + lim_stubs,
-                                        dump_lim_graph)
-
-                moduleList.topModule.moduleDependency['LIM_GRAPH'] = [li_graph]
-
-                # dumpGraph depends on most other top level builds since it
-                # walks the set of generated files.
-                moduleList.env.Depends(dumpGraph, moduleList.topDependency)
-                moduleList.topDependency = [dumpGraph]
-
 
             ## Merge all synthesis boundaries using a tree?  The tree reduces
             ## the number of connections merged in a single compilation, allowing
@@ -385,7 +286,7 @@ class BSV():
                     wrapper_import_handle.close()
                     platform_deps = ".depends-" + module.name
                     deps += self.compute_dependence(moduleList, moduleList.topModule, useDerived, fileName=platform_deps, targetFiles=[wrapper_import_path])
-
+        
             for module in topo + [moduleList.topModule]:
                 # for object import builds no Wrapper code will be included. remove it.
                 deps += self.compute_dependence(moduleList, module, useDerived, fileName=module.dependsFile)

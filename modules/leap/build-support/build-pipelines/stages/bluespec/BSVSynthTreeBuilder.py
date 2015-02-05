@@ -251,7 +251,8 @@ class BSVSynthTreeBuilder():
                              moduleList.topModule.name,\
                              [], moduleList.topModule.name, [], buildTreeDeps, platformModule=True)
 
-        moduleList.insertModule(tree_module)
+        tree_module.putAttribute('LI_GRAPH_IGNORE', True)
+        moduleList.insertModule(tree_module)    
         wrapper_gen_tool.generateAWBCompileWrapper(moduleList, tree_module)
 
         ## This produces the treeNode BSV. It must wait for the
