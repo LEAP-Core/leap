@@ -3,6 +3,7 @@ import os
 import ProjectDependency 
 import CommandLine
 import Source
+import Utils
 
 class Module(ProjectDependency.ProjectDependency):
 
@@ -90,19 +91,30 @@ class Module(ProjectDependency.ProjectDependency):
 
 
   def wrapperName(self):
+    if('WRAPPER_NAME' in self.attributes):
+        return self.attributes['WRAPPER_NAME']
     return 'mk_' + self.name + '_Wrapper'
 
 
   def putAttribute(self, key, value):
       self.attributes[key] = value
-      
 
+  def appendAttribute(self, key, value):
+      Utils.dictionary_list_create_append(self.attributes,key,value)
+      
   def getAttribute(self, key):
       if(key in self.attributes):
           return self.attributes[key]
       else:
           return None
 
+  def moduleDependencyCopy(self):
+      newModuleDependency = {}
+      for depType in self.moduleDependency:
+          newModuleDependency[depType] = []
+          for dep in self.moduleDependency[depType]:
+              newModuleDependency[depType].append(dep)
+      return newModuleDependency
                               
   ##
   ## parseAWBParams --

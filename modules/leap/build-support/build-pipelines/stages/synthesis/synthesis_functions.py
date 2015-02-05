@@ -124,9 +124,19 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     verilogs = globalVerilogs + [model.get_temp_path(moduleList,module) + module.wrapperName() + '.v']
     verilogs +=  moduleList.getDependencies(module, 'VERILOG_STUB')
 
+    print "VERILOG_STUB: " + str(moduleList.getDependencies(module, 'VERILOG_STUB'))
+
     givenNetlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
+    # Replace any known black boxes
+    blackBoxDeps = []
+    blackBoxes = module.getAttribute('BLACK_BOX')
+    print "SYNTHESIS BLACK_BOXES: " + str(blackBoxes)
     for vlog in sorted(verilogs):
+        if(not blackBoxes is None):
+            if(vlog in blackBoxes):
+                vlog = blackBoxes[vlog]
+                blackBoxDeps.append(vlog)
         relpath = model.rel_if_not_abspath(vlog, str(vivadoCompileDirectory))
         newTclFile.write("read_verilog -quiet " + relpath + "\n")
        
@@ -211,7 +221,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     newTclFile.write("write_edif " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
-    return [prjPath] + tcl_funcs
+    return [prjPath] + tcl_funcs + blackBoxDeps
 
 
 # Converts SRP file into resource representation which can be used
@@ -397,6 +407,9 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     compile_dir = moduleList.env.Dir(moduleList.compileDirectory)
     vivadoCompileDirectory = compile_dir.Dir(module.wrapperName() + '_synth/')
 
+    print "Examining module " + str(module.name) 
+    print "Dependencies " + str(module.moduleDependency)
+
     if not os.path.isdir(str(vivadoCompileDirectory)):
        os.mkdir(str(vivadoCompileDirectory))
 
@@ -410,11 +423,18 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
     logFile = module.wrapperName() + '.synth.log'
     resourceFile = vivadoCompileDirectory.File(module.wrapperName() + '.resources')
 
+    # area group modules have a different base dependency than normal
+    # modules
+    wrapperVerilogDependency = model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'
+    if(not module.getAttribute('AREA_GROUP') is None):
+        # grab the parent stub?          
+        wrapperVerilogDependency = model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'
+
     # Sort dependencies because SCons will rebuild if the order changes.
     sub_netlist = moduleList.env.Command(
         [edfFile, srpFile, checkpointFile],
-        [model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'] +
-        sorted(module.moduleDependency['VERILOG']) +
+        [wrapperVerilogDependency] +
+        sorted(moduleList.getDependencies(module,'VERILOG')) +
         tclDeps + 
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
@@ -529,6 +549,8 @@ def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
     ngcModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore] 
 
     [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
+
+    print "Global VERILOG " + str(globalVerilogs)
 
     synth_deps = []
     # drop exiting boundaries. 

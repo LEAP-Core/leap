@@ -222,6 +222,7 @@ def getFirstPassLIGraph():
         first_pass_graph = pickle.load(pickle_handle)
         pickle_handle.close()
         _cacheFirstPassLIGraph = first_pass_graph
+        print "FIRST PASS GRAPH: " + str(first_pass_graph)
         return first_pass_graph
 
     return None

@@ -114,3 +114,15 @@ def p_comment(p):
     #We aren't supposed to get here.
     p[0]  = None
 
+def p_error(p):
+    # Read ahead looking for a terminating ";"    
+    print "Error at token " + str(p.value)
+    #tok = p.token()             # Get the next token
+    #print "Error at token " + str(tok.type)
+    #while True:
+    #    tok = parser.token()             # Get the next token
+    #    if not tok or tok.type == 'SEMICOLON': break
+    #parser.errok()
+
+    # Return SEMI to the parser as the next lookahead token
+    #return tok  

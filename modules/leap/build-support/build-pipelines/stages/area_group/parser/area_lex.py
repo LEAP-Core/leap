@@ -42,7 +42,7 @@ def t_NAME(t):
     return t
 
 def t_STRING(t):
-    r'".*"'
+    r'"[^"]*"'
     t.type = reserved.get(t.value,'STRING')
     return t
 

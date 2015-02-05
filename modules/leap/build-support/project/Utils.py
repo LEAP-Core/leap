@@ -166,7 +166,10 @@ def dictionary_list_create_append(dictionary, key, value):
     if (key in dictionary):
         dictionary[key].append(value)
     else:
-        dictionary[key] = value
+        if(isinstance(value,list)):
+            dictionary[key] = value
+        else:
+            dictionary[key] = [value]
 
 ##
 ## modify_path_hw -- Modifies a file path for AWB's 'hw' directory

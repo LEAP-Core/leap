@@ -193,13 +193,26 @@ class BSV():
                     # For the LIM compiler, we must also annotate those
                     # channels which are coming out of the platform code.
 
-                    for module in topo + [moduleList.topModule]:
+                    for module in moduleList.synthBoundaries():
                         modulePath = module.buildPath
+  
+                        print "MODULE_LIST: " + module.name
 
                         # Wrap the real findBuildPath() so it can be invoked
                         # later by map().
                         def __findBuildPath(path):
                             return Source.findBuildPath(path, modulePath)
+
+                        # User area groups add a wrinkle. We need to
+                        # keep them around, but they don't have LI
+                        # channels
+  
+                        if(not module.getAttribute('AREA_GROUP') is None):
+                            # We now need to create and integrate an
+                            # LI Module for this module
+                            newModule = LIModule(module.name, module.name)
+                            fullLiGraph.mergeModules([newModule])
+                            print "Adding module " + module.name
 
                         # the liGraph only knows about modules that actually
                         # have connections some modules are vestigial, andso

@@ -230,8 +230,10 @@ class Floorplanner():
     def __init__(self, moduleList):
         self.pipeline_debug = model.getBuildPipelineDebug(moduleList)
 
+        print "FLOORPLANNER: beginning" 
+
         # if we have a deps build, don't do anything...
-        if(moduleList.isDependsBuild):
+        if(moduleList.isDependsBuild):           
             return
 
         def modify_path_hw(path):
@@ -249,12 +251,17 @@ class Floorplanner():
         self.enableCommunicationClustering = (moduleList.getAWBParam('area_group_tool',
                                                                      'AREA_GROUPS_ENABLE_COMMUNICATION_CLUSTERING') != 0)
 
-
         liGraph = LIGraph([])
         firstPassGraph = wrapper_gen_tool.getFirstPassLIGraph()
         # We should ignore the 'PLATFORM_MODULE'                                                                                                                    
-        liGraph.mergeModules(firstPassGraph.modules.values())
+        # We may have a none-type graph, if we are in the first pass.
+        if(not firstPassGraph is None):
+            liGraph.mergeModules(firstPassGraph.modules.values())
+
         self.firstPassLIGraph = liGraph
+
+        print "FLOORPLANNER: LI graph: " + str(liGraph) 
+
 
         # elaborate area group representation. This may be used in configuring later stages. 
         areaGroups = self.elaborateAreaConstraints(moduleList)
@@ -262,6 +269,7 @@ class Floorplanner():
         pickle_handle = open(_areaConstraintsFileElaborated(moduleList), 'wb')
         pickle.dump(areaGroups, pickle_handle, protocol=-1)
         pickle_handle.close()                 
+
 
         # We'll build a rather complex function to emit area group constraints 
         def area_group_closure(moduleList):
@@ -741,6 +749,8 @@ class Floorplanner():
         else:
             moduleResources = li_module.assignResources(moduleList, None, self.firstPassLIGraph)
         
+        print "Elaborated: Beginning Area Group elaboration" 
+
         areaGroups = {}
         totalLUTs = 0
         # We should make a bunch of AreaGroups here. 
@@ -875,4 +885,5 @@ class Floorplanner():
                         del areaGroups[areaGroup]
 
 
+        print "Elaborated: " + str(areaGroups)
         return areaGroups
