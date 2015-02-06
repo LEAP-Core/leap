@@ -42,6 +42,7 @@ proc annotateSyncFIFO {sync_object} {
     lappend src_cells      [get_cells -hier -filter "NAME =~ $sync_cell/*fifoMem*"]
     lappend src_cells      [get_cells -hier -filter "NAME =~ $sync_cell/sSyncReg*"]
     lappend src_cells      [get_cells -hier -filter "NAME =~ $sync_cell/sNotFullReg*"]
+    lappend src_cells      [get_cells -hier -filter "NAME =~ $sync_cell/sDeqPtr*"]
 
     set dst_cells          [get_cells -hier -filter "NAME =~ $sync_cell/dDoutReg*"]
     lappend dst_cells      [get_cells -hier -filter "NAME =~ $sync_cell/dGDeqPtr*"]
