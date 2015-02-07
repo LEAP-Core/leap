@@ -162,7 +162,7 @@ File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
 
 [Differential Crystal Clocks Device from Wires/Params]
-CRYSTAL_CLOCK_FREQ=200
+CRYSTAL_CLOCK_FREQ=156
 RESET_ACTIVE_HIGH=1
 
 [Differential Crystal Clocks Device from Wires]
