@@ -26,7 +26,7 @@ Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities
-fpgaenv=Hybrid VC707 PCIE FPGA Environment
+fpgaenv=Hybrid VC707 PCIE FPGA Environment - No Memory/Central Cache
 application_env=Soft Services Hybrid Application Environment
 
 [HW/SW Hybrid Pipeline Build]
@@ -40,6 +40,7 @@ Packagehint=leap
 [Soft Services Hybrid Application Environment/Requires]
 connected_application=Hello World
 
-[Hybrid VC707 PCIE FPGA Environment]
-File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-vc707-pcie.apm
+
+[Hybrid VC707 PCIE FPGA Environment - No Memory/Central Cache]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-vc707-pcie-no-memory.apm
 Packagehint=leap
