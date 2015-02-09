@@ -363,7 +363,17 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     FIFOF#(t_CACHE_REQ) newReqQ <- mkFIFOF();
 
     // Pipelines
-    FIFO#(t_CACHE_REQ) cacheLookupQ <- mkFIFO();
+    // FIFO#(t_CACHE_REQ) cacheLookupQ <- mkFIFO();
+    FIFO#(t_CACHE_REQ) cacheLookupQ = ?;
+    if(`RL_DM_CACHE_BRAM_TYPE == 1)
+    begin
+        cacheLookupQ <- mkSizedFIFO(4);
+    end
+    else
+    begin
+        cacheLookupQ <- mkFIFO();
+    end
+    
     FIFO#(t_CACHE_REQ) fillReqQ <- mkFIFO();
     FIFO#(t_CACHE_REQ) invalQ <- mkFIFO();
 
@@ -379,7 +389,6 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     //
     // Convert address to cache index and tag
     //
-
     function Tuple2#(t_CACHE_TAG, t_CACHE_IDX) cacheEntryFromAddr(t_CACHE_ADDR addr);
         let a = hashAddresses ? hashBits(pack(addr)) : pack(addr);
 
