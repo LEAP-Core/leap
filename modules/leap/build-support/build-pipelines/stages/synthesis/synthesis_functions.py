@@ -216,7 +216,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
 
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.opt.util\n")
     newTclFile.write("write_checkpoint -force " + module.wrapperName() + ".synth.dcp\n")
-    newTclFile.write("write_edif " + module.wrapperName() + ".edf\n")
+    newTclFile.write("write_edif -force " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
     return [prjPath] + tcl_funcs + blackBoxDeps

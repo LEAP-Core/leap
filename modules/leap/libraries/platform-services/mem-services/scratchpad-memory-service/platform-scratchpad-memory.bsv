@@ -252,7 +252,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
               Alias#(MEM_PACK_CONTAINER_ADDR#(t_ADDR_SZ, t_DATA_SZ, t_SCRATCHPAD_MEM_VALUE_SZ), t_CONTAINER_ADDR),
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ));
 
-    MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) memory;
+    MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) mem;
     Bool need_init_wrapper = False;
 
     //
@@ -273,7 +273,7 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
         // No caches at any level.  This access pattern uses masked writes to
         // avoid read-modify-write loops when accessing objects smaller than
         // a scratchpad base data size.
-        memory <- mkUncachedScratchpad(scratchpadID, conf);
+        mem <- mkUncachedScratchpad(scratchpadID, conf);
     end
     else if ((conf.cacheMode == SCRATCHPAD_CACHED) && (valueOf(TExp#(t_CONTAINER_ADDR_SZ)) <= e))
     begin
@@ -281,51 +281,52 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
         
         // A special case:  cached scratchpad requested but the container
         // is smaller than the cache would have been.  Just allocate a BRAM.
-        memory <- mkBRAMBufferedPseudoMultiReadInitialized(True, unpack(0));
+        mem <- mkBRAMBufferedPseudoMultiReadInitialized(True, unpack(0));
         need_init_wrapper = True;
     end
     else
     begin
         // Container maps requested data size to the platform's scratchpad word size.
         NumTypeParam#(t_SCRATCHPAD_MEM_VALUE_SZ) data_sz = ?;
-        NumTypeParam#(TMax#(1, TExp#(MEM_PACK_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_SCRATCHPAD_MEM_VALUE_SZ)))) n_objects = ?;
+        NumTypeParam#(TMax#(1, TExp#(MEM_PACK_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_SCRATCHPAD_MEM_VALUE_SZ)))) n_obj = ?;
 
         if (conf.cacheMode == SCRATCHPAD_CACHED)
         begin
             Integer mode = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE;
             Integer mech = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_MECHANISM;
             Integer pf_size = `PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG;
-            NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) n_learners = ?;
+            NumTypeParam#(`SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM) l = ?;
             Integer id = scratchpadID;
             SCRATCHPAD_STATS_CONSTRUCTOR stats = statsConstructor;
             SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR pf_stats = prefetchStatsConstructor;
+            // check whether to enable masked write in the scratchpad's cache
+            Bool mask_w = (valueOf(MEM_PACK_MASKED_WRITE_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_SCRATCHPAD_MEM_VALUE_SZ)) != 0); 
 
             // Require brute-force conversion because Integer cannot be converted to a type
             messageM("Scratchpad ID: " + integerToString(scratchpadID) + " private cache entries: " + integerToString(e));
             
-            if      (e <= 8)      begin NumTypeParam#(8)      n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 16)     begin NumTypeParam#(16)     n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 32)     begin NumTypeParam#(32)     n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 64)     begin NumTypeParam#(64)     n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 128)    begin NumTypeParam#(128)    n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 256)    begin NumTypeParam#(256)    n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 512)    begin NumTypeParam#(512)    n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 1024)   begin NumTypeParam#(1024)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 2048)   begin NumTypeParam#(2048)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 4096)   begin NumTypeParam#(4086)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 8192)   begin NumTypeParam#(8192)   n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 16384)  begin NumTypeParam#(16384)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 32768)  begin NumTypeParam#(32768)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 65536)  begin NumTypeParam#(65536)  n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 131072) begin NumTypeParam#(131072) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 262144) begin NumTypeParam#(262144) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else if (e <= 524288) begin NumTypeParam#(524288) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-            else                  begin NumTypeParam#(1048576) n = ?; memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_objects, n, n_learners, stats, pf_stats)); end 
-       
+            if      (e <= 8)      begin NumTypeParam#(8)       n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 16)     begin NumTypeParam#(16)      n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 32)     begin NumTypeParam#(32)      n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 64)     begin NumTypeParam#(64)      n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 128)    begin NumTypeParam#(128)     n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 256)    begin NumTypeParam#(256)     n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 512)    begin NumTypeParam#(512)     n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 1024)   begin NumTypeParam#(1024)    n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 2048)   begin NumTypeParam#(2048)    n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 4096)   begin NumTypeParam#(4086)    n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 8192)   begin NumTypeParam#(8192)    n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 16384)  begin NumTypeParam#(16384)   n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 32768)  begin NumTypeParam#(32768)   n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 65536)  begin NumTypeParam#(65536)   n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 131072) begin NumTypeParam#(131072)  n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 262144) begin NumTypeParam#(262144)  n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else if (e <= 524288) begin NumTypeParam#(524288)  n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
+            else                  begin NumTypeParam#(1048576) n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
         end
         else
         begin
-            memory <- mkMemPackMultiRead(data_sz, mkUnmarshalledScratchpad(scratchpadID, n_objects, conf));
+            mem <- mkMemPackMultiRead(data_sz, mkUnmarshalledScratchpad(scratchpadID, n_obj, conf));
         end
     end
 
@@ -342,12 +343,12 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
         // Get-based stream from the initialization file
         let init_stream <- mkStdIO_GetFile(True, init_path);
         // Put-based memory initialization wrapper
-        let init_memory <- mkMultiMemInitializedWithGet(memory, init_stream);
+        let init_memory <- mkMultiMemInitializedWithGet(mem, init_stream);
 
-        memory = init_memory;
+        mem = init_memory;
     end
 
-    return memory;
+    return mem;
 endmodule
 
 
@@ -794,11 +795,13 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
                                                           NumTypeParam#(n_CACHE_ENTRIES) nCacheEntries,
                                                           NumTypeParam#(n_PREFETCH_LEARNER_SIZE) nPrefetchLearners,
                                                           SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
-                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor)
+                                                          SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
+                                                          Bool maskedWriteEn)
     // interface:
-    (MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE))
+    (MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE, t_MEM_MASK))
     provisos (Bits#(t_MEM_ADDRESS, t_MEM_ADDRESS_SZ),
               Bits#(SCRATCHPAD_MEM_VALUE, t_SCRATCHPAD_MEM_VALUE_SZ),
+              Bits#(t_MEM_MASK, t_MEM_MASK_SZ),
 
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
@@ -855,13 +858,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
                                        mkNullCachePrefetcher();
     
     // Private cache
-    RL_DM_CACHE#(Bit#(t_MEM_ADDRESS_SZ),
-                       SCRATCHPAD_MEM_VALUE,
-                       t_MAF_IDX) cache <- mkCacheDirectMapped(sourceData,
-                                                               prefetcher, 
-                                                               nCacheEntries,
-                                                               True,
-                                                               debugLog);
+    RL_DM_CACHE_WITH_MASKED_WRITE#(Bit#(t_MEM_ADDRESS_SZ),
+                                   SCRATCHPAD_MEM_VALUE,
+                                   t_MEM_MASK, 
+                                   t_MAF_IDX) cache <- mkCacheDirectMappedWithMaskedWrite(sourceData,
+                                                                                          prefetcher, 
+                                                                                          nCacheEntries,
+                                                                                          True,
+                                                                                          maskedWriteEn,
+                                                                                          debugLog);
 
     // Hook up stats
     let cacheStats <- statsConstructor(cache.stats);
@@ -875,6 +880,12 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
     // Write data is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(SCRATCHPAD_MEM_VALUE) writeDataQ <- mkFIFO();
+    
+    FIFO#(t_MEM_MASK) writeMaskQ = ?;
+    if (maskedWriteEn)
+    begin
+        writeMaskQ <- mkFIFO();
+    end
 
     // Cache responses are not ordered.  Sort them with a reorder buffer.
     Vector#(n_READERS, SCOREBOARD_FIFOF#(SCRATCHPAD_PORT_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
@@ -934,8 +945,17 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
         let val = writeDataQ.first();
         writeDataQ.deq();
 
-        cache.write(pack(addr), val);
-        
+        if (maskedWriteEn)
+        begin
+            let mask = writeMaskQ.first();
+            writeMaskQ.deq();
+            cache.writeWithMask(pack(addr), val, mask);
+        end
+        else
+        begin
+            cache.write(pack(addr), val);
+        end
+
         if (conf.requestMerging)
         begin
             if (lastReadAddr matches tagged Valid .lr_addr &&& pack(lr_addr) == pack(addr))
@@ -1179,11 +1199,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(Integer scratchpadID,
 
     interface readPorts = portsLocal;
 
-    method Action write(t_MEM_ADDRESS addr, SCRATCHPAD_MEM_VALUE val);
+    method Action write(t_MEM_ADDRESS addr, SCRATCHPAD_MEM_VALUE val, t_MEM_MASK mask);
         // The write port is last in the merge FIFO
         incomingReqQ.ports[valueOf(n_READERS)].enq(tuple2(addr, ?));
         writeDataQ.enq(val);
-        debugLog.record($format("write addr=0x%x, val=0x%x", addr, val));
+        if (maskedWriteEn)
+        begin
+            writeMaskQ.enq(mask);
+        end
+        debugLog.record($format("write addr=0x%x, val=0x%x, mask=0x%x", addr, val, mask));
     endmethod
 
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();

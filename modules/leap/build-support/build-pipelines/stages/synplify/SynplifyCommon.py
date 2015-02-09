@@ -195,12 +195,12 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
                 moduleList.getAllDependencies('SDC') + clockFiles
 
     for file in fileArray:
-        if(type(file) is str):
+        if (type(file) is str):
             newPrjFile.write(_generate_synplify_include(file))        
-        elif(isinstance(file, model.Source.Source)):
+        elif (isinstance(file, model.Source.Source)):
             newPrjFile.write(_generate_synplify_include_source(file))                    
         else:
-            if(model.getBuildPipelineDebug(moduleList) != 0):
+            if (model.getBuildPipelineDebug(moduleList) != 0):
                 print type(file)
                 print "is not a string"
 
@@ -277,6 +277,9 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
         # Files in coreip just copied from elsewhere and waste space
         SCons.Script.Delete(build_dir + '/coreip'),
         '@echo synplify_premier ' + module.wrapperName() + ' build complete.' ])    
+
+    # Make sure the build depends on all input files (e.g. XDC)
+    moduleList.env.Depends(sub_netlist, fileArray)
 
     module.moduleDependency['SYNTHESIS'] = [sub_netlist]
     module.moduleDependency['RESOURCES'] = [resourceFile]

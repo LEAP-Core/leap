@@ -80,7 +80,6 @@ typedef TMax#(TAdd#(n_READERS, MEM_PACK_SMALLER_INTERNAL_READ_PORTS#(t_DATA_SZ, 
               TMul#(n_READERS, MEM_PACK_LARGER_CHUNKS_PER_OBJ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)))
         MEM_PACK_CONTAINER_READ_PORTS#(numeric type n_READERS, numeric type t_DATA_SZ, numeric type t_CONTAINER_DATA_SZ);
 
-
 //
 // Compute the number of objects of desired type that can fit inside a container
 // type.  For a given data and container size, one of the two object index sizes
@@ -114,6 +113,30 @@ typedef Bit#(TAdd#(TSub#(t_ADDR_SZ,
         MEM_PACK_CONTAINER_ADDR#(numeric type t_ADDR_SZ, numeric type t_DATA_SZ, numeric type t_CONTAINER_DATA_SZ);
 
 
+// ************************************************************************
+//
+// Masked Write Version:
+// 
+// The object index and container address calculation is similar except 
+// that for many:1 mapping, the small object is extended to a power of 2 bits
+// that is one byte or larger. (This is because we are using byte masks.)
+//
+// ************************************************************************
+
+// For non many:1 mapping, MEM_PACK_MASKED_WRITE_SMALLER_OBJ_IDX_SZ is always 0
+typedef TMul#(TMin#(1, MEM_PACK_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)),
+        TLog#(TDiv#(t_CONTAINER_DATA_SZ, TMax#(8, TExp#(TLog#(t_DATA_SZ))))))
+        MEM_PACK_MASKED_WRITE_SMALLER_OBJ_IDX_SZ#(numeric type t_DATA_SZ, numeric type t_CONTAINER_DATA_SZ);
+
+typedef Bit#(TAdd#(TSub#(t_ADDR_SZ,
+                         MEM_PACK_MASKED_WRITE_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)),
+                   MEM_PACK_LARGER_OBJ_IDX_SZ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)))
+        MEM_PACK_MASKED_WRITE_CONTAINER_ADDR#(numeric type t_ADDR_SZ, numeric type t_DATA_SZ, numeric type t_CONTAINER_DATA_SZ);
+
+// Read ports for all mappings
+typedef TMax#(n_READERS, TMul#(n_READERS, MEM_PACK_LARGER_CHUNKS_PER_OBJ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)))
+        MEM_PACK_MASKED_WRITE_CONTAINER_READ_PORTS#(numeric type n_READERS, numeric type t_DATA_SZ, numeric type t_CONTAINER_DATA_SZ);
+
 //
 // mkMemPackMultiRead
 //     The general wrapper to use for all allocations.  Map an array indexed
@@ -136,32 +159,82 @@ module [m] mkMemPackMultiRead#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataS
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ),
               Alias#(Bit#(t_CONTAINER_DATA_SZ), t_CONTAINER_DATA));
 
+    // Instantiate the underlying memory.
+    MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) mem <- containerMem();
+    
     //
     // Pick the appropriate packed memory module depending on the relative sizes
     // of the container and the target.
     //
-
     MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) pack_mem;
     if (valueOf(t_ADDR_SZ) == valueOf(t_CONTAINER_ADDR_SZ))
     begin
         // One object per container
-        pack_mem <- mkMemPack1To1(containerDataSz, containerMem);
+        pack_mem <- mkMemPack1To1(containerDataSz, mem);
     end
     else if (valueOf(t_ADDR_SZ) > valueOf(t_CONTAINER_ADDR_SZ))
     begin
         // Multiple objects per container
-        pack_mem <- mkMemPackManyTo1(containerDataSz, containerMem);
+        pack_mem <- mkMemPackManyTo1(containerDataSz, mem);
     end
     else
     begin
         // Object bigger than one container.  Use multiple containers for
         // each object.
-        pack_mem <- mkMemPack1ToMany(containerDataSz, containerMem);
+        pack_mem <- mkMemPack1ToMany(containerDataSz, mem);
     end
 
     return pack_mem;
 endmodule
 
+
+//
+// mkMemPackMultiReadMaskWrite --
+//     This is similar to mkMemPackMultiRead but it uses masked writes for the case
+// where multiple objects share a container.  
+//
+module [m] mkMemPackMultiReadMaskWrite#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
+                                        function m#(MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA, t_CONTAINER_MASK)) containerMem)
+    // interface:
+    (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
+    provisos (IsModule#(m, a__),
+              Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              NumAlias#(MEM_PACK_MASKED_WRITE_CONTAINER_READ_PORTS#(n_READERS, t_DATA_SZ, t_CONTAINER_DATA_SZ), n_CONTAINER_READERS),
+              Alias#(MEM_PACK_MASKED_WRITE_CONTAINER_ADDR#(t_ADDR_SZ, t_DATA_SZ, t_CONTAINER_DATA_SZ), t_CONTAINER_ADDR),
+              Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ),
+              NumAlias#(TDiv#(t_CONTAINER_DATA_SZ, 8), t_CONTAINER_DATA_BYTES_PER_WORD),
+              Alias#(Vector#(t_CONTAINER_DATA_BYTES_PER_WORD, Bool), t_CONTAINER_MASK),
+              Alias#(Bit#(t_CONTAINER_DATA_SZ), t_CONTAINER_DATA));
+
+    // Instantiate the underlying memory.
+    MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA, t_CONTAINER_MASK) mem <- containerMem();
+    
+    //
+    // Pick the appropriate packed memory module depending on the relative sizes
+    // of the container and the target.
+    //
+    MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) pack_mem;
+    if (valueOf(t_ADDR_SZ) == valueOf(t_CONTAINER_ADDR_SZ))
+    begin
+        // One object per container
+        MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) m1 <- mkMultiReadMaskedWriteIfcToMultiReadMemIfc(mem);
+        pack_mem <- mkMemPack1To1(containerDataSz, m1);
+    end
+    else if (valueOf(t_ADDR_SZ) > valueOf(t_CONTAINER_ADDR_SZ))
+    begin
+        // Multiple objects per container
+        pack_mem <- mkMemPackManyTo1WithMaskedWrite(containerDataSz, mem);
+    end
+    else
+    begin
+        // Object bigger than one container.  Use multiple containers for each object.
+        MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) m2 <- mkMultiReadMaskedWriteIfcToMultiReadMemIfc(mem);
+        pack_mem <- mkMemPack1ToMany(containerDataSz, m2);
+    end
+
+    return pack_mem;
+endmodule
 
 
 // ========================================================================
@@ -176,20 +249,14 @@ endmodule
 //     is stored per container.  The address spaces of the container and
 //     and desired data are thus identical and the mapping is trivial.
 //
-module [m] mkMemPack1To1#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
-                          function m#(MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA)) containerMem)
+module mkMemPack1To1#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
+                      MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) mem)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
-    provisos (IsModule#(m, a__),
-              Bits#(t_ADDR, t_ADDR_SZ),
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ),
-              NumAlias#(MEM_PACK_CONTAINER_READ_PORTS#(n_READERS, t_DATA_SZ, t_CONTAINER_DATA_SZ), n_CONTAINER_READERS),
-              Alias#(MEM_PACK_CONTAINER_ADDR#(t_ADDR_SZ, t_DATA_SZ, t_CONTAINER_DATA_SZ), t_CONTAINER_ADDR),
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ),
               Alias#(Bit#(t_CONTAINER_DATA_SZ), t_CONTAINER_DATA));
-
-    // Instantiate the underlying memory.
-    MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) mem <- containerMem();
 
     //
     // Read ports
@@ -225,33 +292,24 @@ module [m] mkMemPack1To1#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
     method Bool writeNotFull() = mem.writeNotFull();
 endmodule
 
-
-
 //
 // mkMemPackManyTo1 --
 //     Pack multiple objects into a single container object.
 //
-module [m] mkMemPackManyTo1#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
-                             function m#(MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA)) containerMem)
+module mkMemPackManyTo1#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
+                         MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) mem)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
-    provisos (IsModule#(m, a__),
-              Bits#(t_ADDR, t_ADDR_SZ),
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ),
-              NumAlias#(MEM_PACK_CONTAINER_READ_PORTS#(n_READERS, t_DATA_SZ, t_CONTAINER_DATA_SZ), n_CONTAINER_READERS),
-              Alias#(MEM_PACK_CONTAINER_ADDR#(t_ADDR_SZ, t_DATA_SZ, t_CONTAINER_DATA_SZ), t_CONTAINER_ADDR),
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ),
               Alias#(Bit#(t_CONTAINER_DATA_SZ), t_CONTAINER_DATA),
-
               Alias#(Bit#(MEM_PACK_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)), t_OBJ_IDX),
               Bits#(t_OBJ_IDX, t_OBJ_IDX_SZ),
 
               // Arrangement of objects packed in a container.  Objects are evenly
               // spaced to make packed values easier to read while debugging.
               Alias#(Vector#(TExp#(t_OBJ_IDX_SZ), Bit#(TDiv#(t_CONTAINER_DATA_SZ, TExp#(t_OBJ_IDX_SZ)))), t_PACKED_CONTAINER));
-
-    // Instantiate the underlying memory.
-    MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) mem <- containerMem();
 
     // Write state
     FIFOF#(t_ADDR) writeAddrQ <- mkFIFOF();
@@ -366,34 +424,122 @@ module [m] mkMemPackManyTo1#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
     method Bool writeNotFull() = writeAddrQ.notFull();
 endmodule
 
+//
+// mkMemPackManyTo1WithMaskedWrite --
+//     Pack multiple objects into a single container object using masked writes.
+//
+module mkMemPackManyTo1WithMaskedWrite#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
+                                        MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA, t_CONTAINER_MASK) mem)
+    // interface:
+    (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ),
+              Alias#(Bit#(t_CONTAINER_DATA_SZ), t_CONTAINER_DATA),
+              // Compute the natural size in bits.  The natural size is rounded up to
+              // a power of 2 bits that is one byte or larger.
+              Max#(8, TExp#(TLog#(t_DATA_SZ)), t_NATURAL_SZ),
+              // Compute the object index within a container 
+              Alias#(Bit#(MEM_PACK_MASKED_WRITE_SMALLER_OBJ_IDX_SZ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)), t_OBJ_IDX),
+              Bits#(t_OBJ_IDX, t_OBJ_IDX_SZ),
+              // Arrangement of objects packed in a container.  Objects are evenly
+              // spaced to make packed values easier to read while debugging.
+              Alias#(Vector#(TExp#(t_OBJ_IDX_SZ), Bit#(TDiv#(t_CONTAINER_DATA_SZ, TExp#(t_OBJ_IDX_SZ)))), t_PACKED_CONTAINER),
+              // Container byte mask
+              NumAlias#(TDiv#(t_CONTAINER_DATA_SZ, 8), t_CONTAINER_DATA_BYTES_PER_WORD),
+              Alias#(Vector#(t_CONTAINER_DATA_BYTES_PER_WORD, Bool), t_CONTAINER_MASK));
+
+    // Read request info holds the address of the requested data within the container.
+    Vector#(n_READERS, FIFO#(t_OBJ_IDX)) readReqInfoQ <- replicateM(mkSizedFIFO(valueOf(MEM_PACK_READ_SLOTS)));
+
+    //
+    // addrSplit --
+    //     Split an incoming address into two components:  the container address
+    //     and the index of the requested object within the container.
+    //
+    function Tuple2#(t_CONTAINER_ADDR, t_OBJ_IDX) addrSplit(t_ADDR addr);
+        Bit#(t_ADDR_SZ) p_addr = pack(addr);
+        return tuple2(unpack(p_addr[valueOf(t_ADDR_SZ)-1 : valueOf(t_OBJ_IDX_SZ)]), p_addr[valueOf(t_OBJ_IDX_SZ)-1 : 0]);
+    endfunction
+    
+    //
+    // computeByteMask --
+    //     Compute the byte mask of an object within a container given the object index.
+    //
+    function t_CONTAINER_MASK computeByteMask(t_OBJ_IDX idx);
+        // Build a mask of valid bytes
+        Vector#(TExp#(t_OBJ_IDX_SZ), Bit#(TDiv#(t_NATURAL_SZ, 8))) b_mask = replicate(0);
+        b_mask[idx] = -1;
+        // Size should match.  Resize avoids a proviso.
+        return unpack(resize(pack(b_mask)));
+    endfunction
+
+    //
+    // Methods
+    //
+    Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) portsLocal = newVector();
+
+    for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        portsLocal[p] =
+            interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
+                method Action readReq(t_ADDR addr);
+                    match {.c_addr, .o_idx} = addrSplit(addr);
+                    mem.readPorts[p].readReq(c_addr);
+                    readReqInfoQ[p].enq(o_idx);
+                endmethod
+
+                method ActionValue#(t_DATA) readRsp();
+                    let o_idx = readReqInfoQ[p].first();
+                    readReqInfoQ[p].deq();
+                    // Receive the data and return the desired object from the container.
+                    let d <- mem.readPorts[p].readRsp();
+                    t_PACKED_CONTAINER pack_data = unpack(truncateNP(pack(d)));
+                    return unpack(truncateNP(pack_data[o_idx]));
+                endmethod
+
+                method t_DATA peek();
+                    let o_idx = readReqInfoQ[p].first();
+                    // Receive the data and return the desired object from the container.
+                    let d = mem.readPorts[p].peek();
+                    t_PACKED_CONTAINER pack_data = unpack(truncateNP(pack(d)));
+                    return unpack(truncateNP(pack_data[o_idx]));
+                endmethod
+
+                method Bool notEmpty() = mem.readPorts[p].notEmpty();
+                method Bool notFull() = mem.readPorts[p].notFull();
+            endinterface;
+    end
+
+    interface readPorts = portsLocal;
+
+    method Action write(t_ADDR addr, t_DATA val);
+        match {.c_addr, .o_idx} = addrSplit(addr);
+        // Put the data at the right place in the container
+        t_PACKED_CONTAINER pack_data = unpack(0);
+        pack_data[o_idx] = zeroExtendNP(pack(val));
+        mem.write(c_addr, unpack(zeroExtendNP(pack(pack_data))), computeByteMask(o_idx));
+    endmethod
+
+    method Bool writeNotFull() = mem.writeNotFull();
+endmodule
 
 //
 // mkMemPack1ToMany --
 //     Spread one object across multiple container objects.
 //
-module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
-                             function m#(MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA)) containerMem)
+module mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
+                         MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS, t_CONTAINER_ADDR, t_CONTAINER_DATA) mem)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
-    provisos (IsModule#(m, a__),
-              Bits#(t_ADDR, t_ADDR_SZ),
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ),
-              NumAlias#(MEM_PACK_CONTAINER_READ_PORTS#(n_READERS, t_DATA_SZ, t_CONTAINER_DATA_SZ), n_CONTAINER_READERS),
-              Alias#(MEM_PACK_CONTAINER_ADDR#(t_ADDR_SZ, t_DATA_SZ, t_CONTAINER_DATA_SZ), t_CONTAINER_ADDR),
               Bits#(t_CONTAINER_ADDR, t_CONTAINER_ADDR_SZ),
               Alias#(Bit#(t_CONTAINER_DATA_SZ), t_CONTAINER_DATA),
-
               Alias#(Bit#(MEM_PACK_LARGER_OBJ_IDX_SZ#(t_DATA_SZ, t_CONTAINER_DATA_SZ)), t_OBJ_IDX),
-       
               // Vector of multiple containers holding one object
               NumAlias#(MEM_PACK_LARGER_CHUNKS_PER_OBJ#(t_DATA_SZ, t_CONTAINER_DATA_SZ), n_CHUNKS_PER_OBJ),
               Alias#(Vector#(n_CHUNKS_PER_OBJ, t_CONTAINER_DATA), t_PACKED_CONTAINER));
-
-    // Instantiate the underlying memory.  Extra read ports are allocated
-    // to account for the mapping of data across multiple container elements.
-    MEMORY_MULTI_READ_IFC#(n_CONTAINER_READERS,
-                           t_CONTAINER_ADDR,
-                           t_CONTAINER_DATA) mem <- containerMem();
 
     // Write state
     FIFOF#(Tuple2#(t_ADDR, t_PACKED_CONTAINER)) writeQ <- mkBypassFIFOF();
@@ -407,8 +553,8 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
     // container objects per base object.
     //
     function t_CONTAINER_ADDR addrContainer(t_ADDR addr, t_OBJ_IDX objIdx);
-        t_CONTAINER_ADDR ext_addr = zeroExtendNP(pack(addr));
-        return ext_addr * fromInteger(chunks_per_obj) + zeroExtendNP(objIdx);
+        t_CONTAINER_ADDR ext_addr = unpack(zeroExtendNP(pack(addr)));
+        return unpack(pack(ext_addr) * fromInteger(chunks_per_obj) + zeroExtendNP(objIdx));
     endfunction
 
 
@@ -507,3 +653,4 @@ module [m] mkMemPack1ToMany#(NumTypeParam#(t_CONTAINER_DATA_SZ) containerDataSz,
 
     method Bool writeNotFull() = writeQ.notFull();
 endmodule
+

@@ -120,7 +120,7 @@ File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdra
 Packagehint=leap-platforms
 
 [Xilinx DDR SDRAM Physical Device/Requires]
-ddr_sdram_xilinx_driver=VC707 DDR3 SDRAM
+ddr_sdram_xilinx_driver=VC707 DDR3 SDRAM (v2.3)
 ddr_sdram_definitions=DDR SDRAM Common Definitions
 
 [Local Memory using DDR DRAM (burst holds at least one line)]
@@ -146,10 +146,6 @@ aurora_device=Aurora Device Wrapper Null
 File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc707/vc707-v7-pcie-dma.awb
 Packagehint=leap-platforms
 
-[VC707 DDR3 SDRAM]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-vc707/ddr3-sdram-device.awb
-Packagehint=leap-platforms
-
 [Hardware FPGA Components for Virtex 7]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex7.awb
 Packagehint=leap-platforms
@@ -166,7 +162,7 @@ File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
 
 [Differential Crystal Clocks Device from Wires/Params]
-CRYSTAL_CLOCK_FREQ=200
+CRYSTAL_CLOCK_FREQ=156
 RESET_ACTIVE_HIGH=1
 
 [Differential Crystal Clocks Device from Wires]
@@ -184,3 +180,10 @@ Packagehint=leap
 [DDR SDRAM Common Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
 Packagehint=leap-platforms
+
+[VC707 DDR3 SDRAM (v2.3)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-vc707-v2.3/ddr3-sdram-device.awb
+Packagehint=leap-platforms
+
+[PCIe Board with DDR/Params]
+DRAM_CLOCK_MECHANISM="ExternalDifferential"
