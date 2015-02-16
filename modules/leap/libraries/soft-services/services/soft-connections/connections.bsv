@@ -31,6 +31,8 @@
 
 import FIFOF::*;
 import GetPut::*;
+import DefaultValue::*;
+
 
 //-------------------- Soft Connections --------------------------//
 //                                                                //
@@ -179,7 +181,7 @@ module [t_CONTEXT] mkConnectionSend#(String name) (CONNECTION_SEND#(t_MSG))
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchSend(name, Invalid, False, True);
+    let m <- mkConnectionDispatchSend(name, Invalid, defaultValue);
     return m;
 
 endmodule
@@ -191,7 +193,26 @@ module [t_CONTEXT] mkConnectionSendOptional#(String name) (CONNECTION_SEND#(t_MS
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchSend(name, Invalid, True, True);
+    CONNECTION_SEND_PARAM param = defaultValue;
+    param.optional = True;
+
+    let m <- mkConnectionDispatchSend(name, Invalid, param);
+    return m;
+
+endmodule
+
+// Expose connection parameters to client
+module [t_CONTEXT] mkConnectionSendWithParam#(
+    String name,
+    CONNECTION_SEND_PARAM param)
+    // Interface:
+    (CONNECTION_SEND#(t_MSG))
+    provisos
+        (Bits#(t_MSG, t_MSG_SIZE),
+         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let m <- mkConnectionDispatchSend(name, Invalid, param);
     return m;
 
 endmodule
@@ -203,7 +224,7 @@ module [t_CONTEXT] mkConnectionSendShared#(String name, STATION station) (CONNEC
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchSend(name, tagged Valid station, False, True);
+    let m <- mkConnectionDispatchSend(name, tagged Valid station, defaultValue);
     return m;
 
 endmodule
@@ -219,7 +240,10 @@ module [t_CONTEXT] mkConnectionSendSharedOptional#(String name, STATION station)
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchSend(name, tagged Valid station, True, True);
+    CONNECTION_SEND_PARAM param = defaultValue;
+    param.optional = True;
+
+    let m <- mkConnectionDispatchSend(name, tagged Valid station, param);
     return m;
 
 endmodule
@@ -240,7 +264,7 @@ module [t_CONTEXT] mkConnectionSendMulti#(String name) (CONNECTION_SEND_MULTI#(t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchSendMulti(name, Invalid, True);
+    let m <- mkConnectionDispatchSendMulti(name, Invalid, defaultValue);
     return m;
 
 endmodule
@@ -255,7 +279,7 @@ module [t_CONTEXT] mkConnectionSendMultiShared#(String name, STATION station) (C
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchSendMulti(name, tagged Valid station, True);
+    let m <- mkConnectionDispatchSendMulti(name, tagged Valid station, defaultValue);
     return m;
 
 endmodule
@@ -267,7 +291,7 @@ module [t_CONTEXT] mkConnectionRecv#(String name) (CONNECTION_RECV#(t_MSG))
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchRecv(name, Invalid, False, True);
+    let m <- mkConnectionDispatchRecv(name, Invalid, defaultValue);
     return m;
 
 endmodule
@@ -279,7 +303,26 @@ module [t_CONTEXT] mkConnectionRecvOptional#(String name) (CONNECTION_RECV#(t_MS
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchRecv(name, Invalid, True, True);
+    CONNECTION_RECV_PARAM param = defaultValue;
+    param.optional = True;
+
+    let m <- mkConnectionDispatchRecv(name, Invalid, param);
+    return m;
+
+endmodule
+
+// Expose connection parameters to client
+module [t_CONTEXT] mkConnectionRecvWithParam#(
+    String name,
+    CONNECTION_RECV_PARAM param)
+    // Interface:
+    (CONNECTION_RECV#(t_MSG))
+    provisos
+        (Bits#(t_MSG, t_MSG_SIZE),
+         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    let m <- mkConnectionDispatchRecv(name, Invalid, param);
     return m;
 
 endmodule
@@ -291,7 +334,7 @@ module [t_CONTEXT] mkConnectionRecvShared#(String name, STATION station) (CONNEC
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchRecv(name, tagged Valid station, False, True);
+    let m <- mkConnectionDispatchRecv(name, tagged Valid station, defaultValue);
     return m;
 
 endmodule
@@ -305,7 +348,10 @@ module [t_CONTEXT] mkConnectionRecvSharedOptional#(String name, STATION station)
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchRecv(name, tagged Valid station, True, True);
+    CONNECTION_RECV_PARAM param = defaultValue;
+    param.optional = True;
+
+    let m <- mkConnectionDispatchRecv(name, tagged Valid station, param);
     return m;
 
 endmodule
@@ -327,7 +373,7 @@ module [t_CONTEXT] mkConnectionRecvMulti#(String name) (CONNECTION_RECV_MULTI#(t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchRecvMulti(name, Invalid, True);
+    let m <- mkConnectionDispatchRecvMulti(name, Invalid, defaultValue);
     return m;
 
 endmodule
@@ -339,7 +385,7 @@ module [t_CONTEXT] mkConnectionRecvMultiShared#(String name, STATION station) (C
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchRecvMulti(name, tagged Valid station, True);
+    let m <- mkConnectionDispatchRecvMulti(name, tagged Valid station, defaultValue);
     return m;
 
 endmodule
@@ -353,7 +399,7 @@ module [t_CONTEXT] mkConnectionClient#(String name) (CONNECTION_CLIENT#(t_REQ, t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchClient(name, Invalid, False, True);
+    let m <- mkConnectionDispatchClient(name, Invalid, defaultValue, defaultValue);
     return m;
 
 endmodule
@@ -368,7 +414,13 @@ module [t_CONTEXT] mkConnectionClientOptional#(String name) (CONNECTION_CLIENT#(
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchClient(name, Invalid, True, True);
+    CONNECTION_SEND_PARAM send_param = defaultValue;
+    send_param.optional = True;
+
+    CONNECTION_RECV_PARAM recv_param = defaultValue;
+    recv_param.optional = True;
+
+    let m <- mkConnectionDispatchClient(name, Invalid, send_param, recv_param);
     return m;
 
 endmodule
@@ -381,7 +433,7 @@ module [t_CONTEXT] mkConnectionClientShared#(String name, STATION station) (CONN
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchClient(name, tagged Valid station, False, True);
+    let m <- mkConnectionDispatchClient(name, tagged Valid station, defaultValue, defaultValue);
     return m;
 
 endmodule
@@ -398,7 +450,13 @@ module [t_CONTEXT] mkConnectionClientSharedOptional#(String name, STATION statio
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchClient(name, tagged Valid station, True, True);
+    CONNECTION_SEND_PARAM send_param = defaultValue;
+    send_param.optional = True;
+
+    CONNECTION_RECV_PARAM recv_param = defaultValue;
+    recv_param.optional = True;
+
+    let m <- mkConnectionDispatchClient(name, tagged Valid station, send_param, recv_param);
     return m;
 
 endmodule
@@ -414,7 +472,7 @@ module [t_CONTEXT] mkConnectionClientMulti#(String name) (CONNECTION_CLIENT_MULT
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchClientMulti(name, Invalid, True);
+    let m <- mkConnectionDispatchClientMulti(name, Invalid, defaultValue, defaultValue);
     return m;
 
 endmodule
@@ -431,7 +489,7 @@ module [t_CONTEXT] mkConnectionClientMultiShared#(String name, STATION station) 
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchClientMulti(name, tagged Valid station, True);
+    let m <- mkConnectionDispatchClientMulti(name, tagged Valid station, defaultValue, defaultValue);
     return m;
 
 endmodule
@@ -445,7 +503,7 @@ module [t_CONTEXT] mkConnectionServer#(String name) (CONNECTION_SERVER#(t_REQ, t
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchServer(name, Invalid, False, True);
+    let m <- mkConnectionDispatchServer(name, Invalid, defaultValue, defaultValue);
     return m;
 
 endmodule
@@ -460,7 +518,13 @@ module [t_CONTEXT] mkConnectionServerOptional#(String name) (CONNECTION_SERVER#(
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchServer(name, Invalid, True, True);
+    CONNECTION_SEND_PARAM send_param = defaultValue;
+    send_param.optional = True;
+
+    CONNECTION_RECV_PARAM recv_param = defaultValue;
+    recv_param.optional = True;
+
+    let m <- mkConnectionDispatchServer(name, Invalid, send_param, recv_param);
     return m;
 
 endmodule
@@ -473,7 +537,7 @@ module [t_CONTEXT] mkConnectionServerShared#(String name, STATION station) (CONN
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchServer(name, tagged Valid station, False, True);
+    let m <- mkConnectionDispatchServer(name, tagged Valid station, defaultValue, defaultValue);
     return m;
 
 endmodule
@@ -490,7 +554,13 @@ module [t_CONTEXT] mkConnectionServerSharedOptional#(String name, STATION statio
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchServer(name, tagged Valid station, True, True);
+    CONNECTION_SEND_PARAM send_param = defaultValue;
+    send_param.optional = True;
+
+    CONNECTION_RECV_PARAM recv_param = defaultValue;
+    recv_param.optional = True;
+
+    let m <- mkConnectionDispatchServer(name, tagged Valid station, send_param, recv_param);
     return m;
 
 endmodule
@@ -506,7 +576,7 @@ module [t_CONTEXT] mkConnectionServerMulti#(String name) (CONNECTION_SERVER_MULT
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchServerMulti(name, Invalid, True);
+    let m <- mkConnectionDispatchServerMulti(name, Invalid, defaultValue, defaultValue);
     return m;
 
 endmodule
@@ -523,7 +593,7 @@ module [t_CONTEXT] mkConnectionServerMultiShared#(String name, STATION station) 
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
-    let m <- mkConnectionDispatchServerMulti(name, tagged Valid station, True);
+    let m <- mkConnectionDispatchServerMulti(name, tagged Valid station, defaultValue, defaultValue);
     return m;
 
 endmodule

@@ -1,0 +1,201 @@
+
+[Global]
+SaveParameters=0
+Description=Hybrid VC707 PCIE FPGA Environment - No Central Cache (Vivado)
+File=fpgaenv-hybrid-vc707-pcie-no-cc-vivado
+Version=2.2
+Type=Leap
+Name=Hybrid VC707 PCIE FPGA Environment - No Centtral Cache (Vivado)
+Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
+RootName=FPGA Environment
+RootProvides=fpgaenv
+
+[Model]
+DefaultAttributes=bluespec
+model=FPGA Environment
+
+[FPGA Environment/Requires]
+virtual_platform=Standard Virtual Platform
+fpga_components=Hardware FPGA Components for Virtex 7
+librl_bsv=RL Bluespec Library Submodel
+build_pipeline=FPGA Build Pipeline Xilinx (Vivado)
+soft_services=Soft Services Submodel
+
+[Standard Virtual Platform]
+File=modules/leap/virtual-platform/std-virtual-platform.awb
+Packagehint=leap
+
+[Standard Virtual Platform/Requires]
+virtual_devices=Standard Virtual Devices
+low_level_platform_interface=Low Level Platform Interface Hybrid
+umf=Little-Endian Unified Message Format
+platform_services=Standard Platform Services Submodel
+
+[FPGA Environment]
+File=modules/leap/virtual-platform/fpga-environment.awb
+Packagehint=leap
+
+[RRR Clients and Servers]
+File=modules/leap/virtual-platform/rrr/basic/basic-rrr.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer]
+File=modules/leap/virtual-platform/channelio/basic/basic-channelio.awb
+Packagehint=leap
+
+[Basic Virtual Channel Multiplexer/Requires]
+physical_channel=BlueNoC PCIe Tunnel
+
+[Low Level Platform Interface Hybrid]
+File=modules/leap/virtual-platform/low-level-platform-interface/hybrid-llpi.awb
+Packagehint=leap
+
+[Low Level Platform Interface Hybrid/Requires]
+physical_platform=PCIe Board with DDR
+channelio=Basic Virtual Channel Multiplexer
+rrr=RRR Clients and Servers
+physical_platform_debugger=Null Physical Platform Debugger
+local_mem=NULL Local Memory Interface
+remote_memory=Null Remote Memory
+
+[Common Physical Platform Utilities]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/utils.awb
+Packagehint=leap-platforms
+
+[Null Physical Platform Debugger]
+File=modules/bluespec/common/fpgaenv/physical-platform/debuggers/null/null-debugger.awb
+Packagehint=leap-platforms
+
+[Little-Endian Unified Message Format]
+File=modules/bluespec/common/fpgaenv/virtual-platform/umf/little-endian/umf-little-endian.awb
+Packagehint=leap-platforms
+
+[RRR Common Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-common.awb
+Packagehint=leap
+
+[RRR Clients and Servers/Requires]
+rrr_common=RRR Common Module
+
+[Null Remote Memory]
+File=modules/leap/virtual-platform/low-level-platform-interface/remote-memory/null/null-remote-memory.awb
+Packagehint=leap
+
+[RL Bluespec Library Submodel]
+File=config/pm/leap/submodels/common/librl-bsv.apm
+Packagehint=leap
+
+[Standard Platform Services Submodel]
+File=config/pm/leap/submodels/platform-services/standard-platform-services.apm
+Packagehint=leap
+
+[Soft Services Submodel]
+File=config/pm/leap/submodels/common/soft-services.apm
+Packagehint=leap
+
+[Standard Virtual Devices]
+File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-virtual-devices.awb
+Packagehint=leap
+
+[NULL Local Memory Device]
+File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/null/local-memory-device-null.awb
+Packagehint=leap
+
+[Standard Virtual Devices/Requires]
+local_memory_device=NULL Local Memory Device
+common_utility_devices=Base Common Devices
+
+[Base Common Devices]
+File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-devices.awb
+Packagehint=leap
+
+[BlueNoC PCIe Bridge/Requires]
+pcie_bluenoc_device=Virtex-7 PCIE Device v1.10 (BlueNoC)
+pcie_bluenoc_ifc=BlueNoC PCIe Bridge Interfaces
+
+[BlueNoC PCIe Bridge]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc/pcie-bluenoc.awb
+Packagehint=leap-platforms
+
+[BlueNoC PCIe Bridge Interfaces]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc/pcie-bluenoc-ifc.awb
+Packagehint=leap-platforms
+
+[BlueNoC PCIe Tunnel]
+File=modules/leap/virtual-platform/physical-channel/pcie/bluenoc/pcie-bluenoc-physical-channel.awb
+Packagehint=leap
+
+[Little-Endian Unified Message Format/Params]
+UMF_CHUNK_BYTES=16
+
+[NULL Local Memory Interface]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
+Packagehint=leap
+
+[PCIe Board with DDR]
+File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/pcie-generic-platform.awb
+Packagehint=leap-platforms
+
+[PCIe Board with DDR/Requires]
+pcie_device=BlueNoC PCIe Bridge
+clocks_device=Differential Crystal Clocks Device from Wires
+physical_platform_config=VC707 Virtex-7 Platform with PCIe
+physical_platform_utils=Common Physical Platform Utilities
+ddr_sdram_device=Xilinx DDR SDRAM Physical Device
+aurora_device=Aurora Device Wrapper Null
+
+[VC707 Virtex-7 Platform with PCIe]
+File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc707/vc707-v7-pcie-dma.awb
+Packagehint=leap-platforms
+
+[Hardware FPGA Components for Virtex 7]
+File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex7.awb
+Packagehint=leap-platforms
+
+[Aurora Device Wrapper Null]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora/aurora-device-null/aurora-device-null.awb
+Packagehint=leap-platforms
+
+[Common Physical Platform Utilities/Requires]
+physical_platform_defs=Common Physical Platform Definitions
+
+[Common Physical Platform Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
+Packagehint=leap-platforms
+
+[Differential Crystal Clocks Device from Wires/Params]
+CRYSTAL_CLOCK_FREQ=156
+RESET_ACTIVE_HIGH=1
+
+[Differential Crystal Clocks Device from Wires]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
+Packagehint=leap-platforms
+
+[FPGA Build Pipeline Xilinx (Vivado)]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
+Packagehint=leap
+
+[Virtex-7 PCIE Device v1.10 (BlueNoC)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/1_10/pcie-virtex7.awb
+Packagehint=leap-platforms
+
+[DDR SDRAM Common Definitions]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
+Packagehint=leap-platforms
+
+[Xilinx DDR SDRAM Physical Device]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr-sdram-xilinx.awb
+Packagehint=leap-platforms
+
+[Xilinx DDR SDRAM Physical Device/Requires]
+ddr_sdram_definitions=DDR SDRAM Common Definitions
+ddr_sdram_xilinx_driver=VC707 DDR3 SDRAM (v2.3)
+
+[VC707 DDR3 SDRAM (v2.3)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-vc707-v2.3/ddr3-sdram-device.awb
+Packagehint=leap-platforms
+
+[PCIe Board with DDR/Params]
+DRAM_CLOCK_MECHANISM="ExternalDifferential"
