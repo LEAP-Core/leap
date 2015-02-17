@@ -111,7 +111,7 @@ COMMAND_SWITCH_PROCESSOR_CLASS::ProcessArgs(int argc, char *argv[])
             // we found an argument. Got through our switch list to elaborate 
             // all similarly named arguments. 
             for(COMMAND_SWITCH searchList = first_switch; 
-                searchList->GetNextProcessor() != NULL;  
+                searchList != NULL;  
                 searchList = searchList->GetNextProcessor())
             { 
                 if(!strcmp(searchList->GetSwitchName(),cur_switch->GetSwitchName()))
