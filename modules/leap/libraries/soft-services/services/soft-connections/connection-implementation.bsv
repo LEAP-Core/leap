@@ -29,18 +29,21 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+import SpecialFIFOs::*;
+
+
+//
 // The actual instatiation of a physical send. For efficiency contains an 
 // unguarded FIFO, which makes the scheduler's life much easier.
 // The dispatcher which invokes this may guard the FIFO as appropriate.
-
+//
 module [t_CONTEXT] mkPhysicalConnectionSend#(
     String send_name,
     Maybe#(STATION) m_station,
-    Bool optional,
     String original_type,
-    Bool enableDebug)
-    // interface:
-        (PHYSICAL_SEND#(t_MSG))
+    CONNECTION_SEND_PARAM param)
+    // Interface:
+    (PHYSICAL_SEND#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SIZE),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -54,15 +57,18 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
  
     SCFIFOF#(t_MSG) sc_buffer = ?; 
     FIFOF#(t_MSG) q = ?; 
-    if(`CON_LATENCY_ENABLE > 0)
+    if (param.enableLatency)
     begin
         sc_buffer <- mkSCFIFOFUG(); 
         q = sc_buffer.fifo;  
     end
+    else if (param.nBufferSlots == 0)
+    begin
+        q <- mkBypassFIFOF();
+    end
     else 
     begin
-        sc_buffer = ?; 
-        q <-  mkUGSizedFIFOF(`CON_BUFFERING);  
+        q <- mkUGSizedFIFOF(param.nBufferSlots);
     end
   
     // some wiring needed in the multi-FPGA implementations
@@ -103,35 +109,39 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
             logicalType: original_type, 
             moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
-            optional: optional, 
+            optional: param.optional, 
             outgoing: outg
         };
 
     // Is this a shared connection?
     if (m_station matches tagged Valid .station)
     begin
-
         // Yes, so register ourselves with that station.
         registerSendToStation(info, station.name);
-
     end
     else
     begin
-
         // Nope, so just register and try to find a match.
         registerSend(send_name, info);
-
     end
 
 
     // ****** Register debug state ****** //
 
-    if (enableDebug)
+    if (param.enableDebug)
     begin
+        Bool not_empty = q.notEmpty();
+        if (param.nBufferSlots == 0)
+        begin
+            // With a bypass FIFO, reading both notFull and notEmpty leads to
+            // a cycle.
+            not_empty = False;
+        end
+
         let dbg_state = (
             interface PHYSICAL_CONNECTION_DEBUG_STATE;
-                method Bool notEmpty() = q.notEmpty();
-                method Bool notFull() = q.notFull();
+                method Bool notEmpty() = not_empty;
+                method Bool notFull() = q.notFull;
                 method Bool dequeued() = sendDequeued;
             endinterface);
 
@@ -143,7 +153,6 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
             };
 
         addConnectionDebugInfo(dbg_info);
-
     end
 
     if(`CON_LATENCY_ENABLE > 0)
@@ -156,23 +165,24 @@ module [t_CONTEXT] mkPhysicalConnectionSend#(
     // This just accesses the internal queue.
 
     method Action send(t_MSG data);
-
         q.enq(data);
-
     endmethod
 
     method Bool notFull() = q.notFull();
 
     method Bool dequeued() = sendDequeued;
-
 endmodule
 
 
 // The actual instantation of the physical receive. Just contains wires.
 
-module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m_station, Bool optional, String original_type)
-    // interface:
-        (CONNECTION_RECV#(t_MSG))
+module [t_CONTEXT] mkPhysicalConnectionRecv#(
+    String recv_name,
+    Maybe#(STATION) m_station,
+    String original_type,
+    CONNECTION_RECV_PARAM param)
+    // Interface:
+    (CONNECTION_RECV#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SIZE),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -220,7 +230,7 @@ module [t_CONTEXT] mkPhysicalConnectionRecv#(String recv_name, Maybe#(STATION) m
             logicalType: original_type, 
             moduleName: moduleName,
             bitWidth: valueof(SizeOf#(t_MSG)), 
-            optional: optional, 
+            optional: param.optional, 
             incoming: inc
         };
 
@@ -270,9 +280,9 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
     String send_name,
     Maybe#(STATION) m_station,
     String original_type,
-    Bool enableDebug)
-    //interface:
-        (PHYSICAL_SEND_MULTI#(t_MSG))
+    CONNECTION_SEND_PARAM param)
+    // Interface:
+    (PHYSICAL_SEND_MULTI#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SIZE),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -345,7 +355,7 @@ module [t_CONTEXT] mkPhysicalConnectionSendMulti#(
 
     // ****** Register debug state ****** //
 
-    if (enableDebug)
+    if (param.enableDebug)
     begin
         let dbg_state = (
             interface PHYSICAL_CONNECTION_DEBUG_STATE;
@@ -389,9 +399,13 @@ endmodule
 
 
 // The actual instantation of the physical many-to-one receive. Just contains wires.
-module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(String recv_name, Maybe#(STATION) m_station, String original_type)
-    // interface:
-        (CONNECTION_RECV_MULTI#(t_MSG))
+module [t_CONTEXT] mkPhysicalConnectionRecvMulti#(
+    String recv_name,
+    Maybe#(STATION) m_station,
+    String original_type,
+    CONNECTION_RECV_PARAM param)
+    // Interface:
+    (CONNECTION_RECV_MULTI#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SIZE),
          Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),

@@ -29,6 +29,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections.bsh"
 
 //
 // platformHasLocalMem --
@@ -109,3 +111,64 @@ typedef union tagged
 }
 LOCAL_MEM_REQ
     deriving (Bits, Eq);
+
+
+//
+// DRAM is accessed via soft connections.  Wrap the soft connections in a
+// method interface.  The methods simply forward requests to the corresponding
+// soft connections.
+//
+interface LOCAL_MEM_DDR_BANK;
+    method Action readReq(FPGA_DDR_ADDRESS addr);
+    method ActionValue#(FPGA_DDR_DUALEDGE_BEAT) readRsp();
+
+    method Action writeReq(FPGA_DDR_ADDRESS addr);
+    method Action writeData(FPGA_DDR_DUALEDGE_BEAT data, FPGA_DDR_DUALEDGE_BEAT_MASK mask);
+endinterface
+
+typedef Vector#(FPGA_DDR_BANKS, LOCAL_MEM_DDR_BANK) LOCAL_MEM_DDR;
+
+
+module [CONNECTED_MODULE] mkLocalMemDDRConnection
+    // Interface:
+    (LOCAL_MEM_DDR);
+
+    LOCAL_MEM_DDR banks <- genWithM(mkLocalMemDDRBankConnection);
+    return banks;
+endmodule
+
+
+module [CONNECTED_MODULE] mkLocalMemDDRBankConnection#(Integer bankIdx)
+    // Interface:
+    (LOCAL_MEM_DDR_BANK);
+
+    String ddrName = "DRAM_Bank" + integerToString(bankIdx) + "_";
+
+    CONNECTION_SEND#(FPGA_DDR_REQUEST) commandQ <-
+        mkConnectionSend(ddrName + "command");
+
+    CONNECTION_RECV#(FPGA_DDR_DUALEDGE_BEAT) readRspQ <-
+        mkConnectionRecv(ddrName + "readResponse");
+
+    CONNECTION_SEND#(Tuple2#(FPGA_DDR_DUALEDGE_BEAT, FPGA_DDR_DUALEDGE_BEAT_MASK)) writeDataQ <-
+        mkConnectionSend(ddrName + "writeData");
+
+    method Action readReq(FPGA_DDR_ADDRESS addr);
+        commandQ.send(tagged DRAM_READ addr);
+    endmethod
+
+    method ActionValue#(FPGA_DDR_DUALEDGE_BEAT) readRsp();
+        let d = readRspQ.receive();
+        readRspQ.deq();
+
+        return d;
+    endmethod
+
+    method Action writeReq(FPGA_DDR_ADDRESS addr);
+        commandQ.send(tagged DRAM_WRITE addr);
+    endmethod
+
+    method Action writeData(FPGA_DDR_DUALEDGE_BEAT data, FPGA_DDR_DUALEDGE_BEAT_MASK mask);
+        writeDataQ.send(tuple2(data, mask));
+    endmethod
+endmodule

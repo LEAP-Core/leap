@@ -37,7 +37,11 @@
 // It may be more efficient to build more "packetizing" into the Station and
 // thus keep its routing table smaller.
 //
-module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_station, Bool optional, String origtype)
+module [t_CONTEXT] mkConnectionSendVector#(
+    String portname,
+    Maybe#(STATION) m_station,
+    String origtype,
+    CONNECTION_SEND_PARAM param)
     // interface:
         (PHYSICAL_SEND#(t_MSG))
     provisos
@@ -50,15 +54,16 @@ module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_st
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
-      v[x] <- mkPhysicalConnectionSend(portname + "_chunk_" + integerToString(x),
-                                       m_station,
-                                       optional,
-                                       origtype,
-                                       x == 0);
+        let c_param = param;
+        c_param.enableDebug = param.enableDebug && (x == 0);
+
+        v[x] <- mkPhysicalConnectionSend(portname + "_chunk_" + integerToString(x),
+                                         m_station,
+                                         origtype,
+                                         c_param);
     end
 
     method Action send(t_MSG data);
-
         // This chunking is a bit ugly.
         Bit#(t_MSG_SZ) p = pack(data);
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p2 = zeroExtendNP(p);
@@ -68,11 +73,9 @@ module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_st
         begin
           v[x].send(tmp[x]);
         end
-
     endmethod
 
     method Bool notFull();
-
         Bool res = True;
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
@@ -80,11 +83,9 @@ module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_st
         end
 
         return res;
-
     endmethod
 
     method Bool dequeued();
-
         Bool res = True;
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
@@ -92,15 +93,17 @@ module [t_CONTEXT] mkConnectionSendVector#(String portname, Maybe#(STATION) m_st
         end
 
         return res;
-
     endmethod
-
 endmodule
 
 
-module [t_CONTEXT] mkConnectionRecvVector#(String portname, Maybe#(STATION) m_station, Bool optional, String origtype)
-    //interface:
-        (CONNECTION_RECV#(t_MSG))
+module [t_CONTEXT] mkConnectionRecvVector#(
+    String portname,
+    Maybe#(STATION) m_station,
+    String origtype,
+    CONNECTION_RECV_PARAM param)
+    // Interface:
+    (CONNECTION_RECV#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SZ),
          Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
@@ -111,28 +114,25 @@ module [t_CONTEXT] mkConnectionRecvVector#(String portname, Maybe#(STATION) m_st
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
-      v[x] <- mkPhysicalConnectionRecv(portname + "_chunk_" + integerToString(x), m_station, optional, origtype);
+        v[x] <- mkPhysicalConnectionRecv(portname + "_chunk_" + integerToString(x), m_station, origtype, param);
     end
 
     // Reassemble the message.
 
     method t_MSG receive();
-
         Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = newVector();
 
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
-          tmp[x] = v[x].receive();
+            tmp[x] = v[x].receive();
         end
 
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p = pack(tmp);
         Bit#(t_MSG_SZ) p2 = truncateNP(p);
         return unpack(p2);
-
     endmethod
 
     method Bool notEmpty();
-        
         Bool res = True;
         
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
@@ -141,25 +141,26 @@ module [t_CONTEXT] mkConnectionRecvVector#(String portname, Maybe#(STATION) m_st
         end
         
         return res;
-
     endmethod
 
     method Action deq();
-
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           v[x].deq();
         end
-
     endmethod
-
 endmodule
+
 
 // Vectors of multicast connections incur additional overhead because of tag duplication.
 
-module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION) m_station, String origtype)
-    // interface:
-        (PHYSICAL_SEND_MULTI#(t_MSG))
+module [t_CONTEXT] mkConnectionSendMultiVector#(
+    String portname,
+    Maybe#(STATION) m_station,
+    String origtype,
+    CONNECTION_SEND_PARAM param)
+    // Interface:
+    (PHYSICAL_SEND_MULTI#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SZ),
          Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
@@ -170,14 +171,16 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION)
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
+        let c_param = param;
+        c_param.enableDebug = param.enableDebug && (x == 0);
+
         v[x] <- mkPhysicalConnectionSendMulti(portname + "_chunk_" + integerToString(x),
                                               m_station,
                                               origtype,
-                                              x == 0);
+                                              c_param);
     end
 
     method Action broadcast(t_MSG data);
-
         // This chunking is a bit ugly.
         Bit#(t_MSG_SZ) p = pack(data);
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p2 = zeroExtendNP(p);
@@ -187,11 +190,9 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION)
         begin
           v[x].broadcast(tmp[x]);
         end
-
     endmethod
 
     method Action sendTo(CONNECTION_IDX dst, t_MSG data);
-
         // This chunking is a bit ugly.
         Bit#(t_MSG_SZ) p = pack(data);
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p2 = zeroExtendNP(p);
@@ -201,11 +202,9 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION)
         begin
           v[x].sendTo(dst, tmp[x]);
         end
-
     endmethod
 
     method Bool notFull();
-
         Bool res = True;
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
@@ -213,11 +212,9 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION)
         end
 
         return res;
-
     endmethod
 
     method Bool dequeued();
-
         Bool res = True;
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
@@ -225,17 +222,18 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(String portname, Maybe#(STATION)
         end
 
         return res;
-
     endmethod
-
-
 endmodule
 
 
 
-module [t_CONTEXT] mkConnectionRecvMultiVector#(String portname, Maybe#(STATION) m_station, String origtype)
-    // interface:
-        (CONNECTION_RECV_MULTI#(t_MSG))
+module [t_CONTEXT] mkConnectionRecvMultiVector#(
+    String portname,
+    Maybe#(STATION) m_station,
+    String origtype,
+    CONNECTION_RECV_PARAM param)
+    // Interface:
+    (CONNECTION_RECV_MULTI#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SZ),
          Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
@@ -246,13 +244,12 @@ module [t_CONTEXT] mkConnectionRecvMultiVector#(String portname, Maybe#(STATION)
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
-      v[x] <- mkPhysicalConnectionRecvMulti(portname + "_chunk_" + integerToString(x), m_station, origtype);
+        v[x] <- mkPhysicalConnectionRecvMulti(portname + "_chunk_" + integerToString(x), m_station, origtype, param);
     end
 
     // Reassemble the message.
 
     method Tuple2#(CONNECTION_IDX, t_MSG) receive();
-
         Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = newVector();
 
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
@@ -266,11 +263,9 @@ module [t_CONTEXT] mkConnectionRecvMultiVector#(String portname, Maybe#(STATION)
         // Note that this just blindly returns the idx from connection zero.
         // It may be useful to add a sanity check that all indices are equal.
         return tuple2(tpl_1(v[0].receive()), unpack(p2));
-
     endmethod
 
     method Bool notEmpty();
-        
         Bool res = True;
         
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
@@ -279,19 +274,16 @@ module [t_CONTEXT] mkConnectionRecvMultiVector#(String portname, Maybe#(STATION)
         end
         
         return res;
-
     endmethod
 
     method Action deq();
-
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           v[x].deq();
         end
-
     endmethod
-
 endmodule
+
 
 module [t_CONTEXT] mkConnectionChainVector#(String portname, String origtype)
     // interface:

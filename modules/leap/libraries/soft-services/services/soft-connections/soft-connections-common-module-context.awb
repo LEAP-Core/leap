@@ -15,7 +15,11 @@
 
 %notes README
 
-%public connected-common.bsv connection-helper.bsv with-connections.bsv latency-fifo.bsv
+%public connected-common.bsv
+%public connection-params.bsv
+%public connection-helper.bsv
+%public with-connections.bsv
+%public latency-fifo.bsv
 
 %param --global CON_CWIDTH 700 "Phyisical Connection Bit Width after splitting."
 %param --global CON_CHAIN_CWIDTH 700 "Phyisical Chain Connection Bit Width, which is not split."
