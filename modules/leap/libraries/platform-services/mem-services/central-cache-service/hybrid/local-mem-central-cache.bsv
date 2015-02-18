@@ -44,7 +44,6 @@ import DefaultValue::*;
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/common_services.bsh"
 `include "awb/provides/soft_connections.bsh"
-`include "awb/provides/local_memory_device.bsh"
 `include "awb/provides/central_cache_service_params.bsh"
 
 `include "awb/dict/PARAMS_CENTRAL_CACHE.bsh"
@@ -521,14 +520,10 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
               Add#(t_SET_METADATA_SZ, t_UNUSED_META_BIT_SZ, LOCAL_MEM_LINE_SZ),
               Bits#(Vector#(LOCAL_MEM_WORDS_PER_LINE, t_CACHE_WORD), LOCAL_MEM_LINE_SZ));
 
-    // Local memory is available as a soft connected device.  This is
-    // the command channel.
-    CONNECTION_CLIENT#(LOCAL_MEM_CMD, LOCAL_MEM_READ_DATA) lms
-        <- mkConnectionClient("local_memory_device");
-
-    // Write data channel.
-    CONNECTION_SEND#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) lmWriteData
-        <- mkConnectionSend("local_memory_device_wdata");
+    //
+    // Instantiate the shim to local memory.
+    //
+    LOCAL_MEM localMem <- mkLocalMem();
 
     PulseWire didWrite <- mkPulseWire();
 
@@ -570,10 +565,8 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     Reg#(RL_SA_CACHE_SET_IDX#(nSets)) initIdx <- mkReg(0);
     
     rule initMetaData (! initialized);
-        lms.makeReq(tagged LM_WRITE_LINE getMetadataIdx(initIdx));
-
         t_SET_METADATA m_init = defaultValue;
-        lmWriteData.send(tuple2(zeroExtend(pack(m_init)), ?));
+        localMem.writeLine(getMetadataIdx(initIdx), zeroExtend(pack(m_init)));
 
         if (initIdx == maxBound)
         begin
@@ -621,7 +614,7 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
 
         // Read a way (or metadata if setReqWayIdx is 0)
         LOCAL_MEM_ADDR addr = localMemLineAddrToAddr({ pack(set), pack(setReqWayIdx) });
-        lms.makeReq(tagged LM_READ_LINE addr);
+        localMem.readLineReq(addr);
         readIsMetaQ.enq(setReqWayIdx == 0);
 
         // Prefetch the entire set
@@ -641,10 +634,9 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     // fwdMetaReadRsp --
     //   Forward metadata read from local memory to the response queue.
     //
-    rule fwdMetaReadRsp (readIsMetaQ.first() &&&
-                         lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
+    rule fwdMetaReadRsp (readIsMetaQ.first());
+        let val <- localMem.readLineRsp();
         readIsMetaQ.deq();
-        lms.deq();
 
         metaRspQ.enq(unpack(truncate(val)));
     endrule
@@ -653,10 +645,9 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     // fwdMemReadRsp --
     //   Forward prefetched ways to an intermediate queue.
     //
-    rule fwdMemReadRsp (! readIsMetaQ.first() &&&
-                        lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
+    rule fwdMemReadRsp (! readIsMetaQ.first());
+        let val <- localMem.readLineRsp();
         readIsMetaQ.deq();
-        lms.deq();
 
         let set_val = shiftInAtN(prefetchSetBuf, unpack(val));
         prefetchSetBuf <= set_val;
@@ -750,8 +741,7 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
 
     method Action metaWrite(RL_SA_CACHE_SET_IDX#(nSets) set,
                             RL_SA_CACHE_SET_METADATA#(t_CACHE_ADDR_SZ, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays) metaUpd) if (initialized);
-        lms.makeReq(tagged LM_WRITE_LINE getMetadataIdx(set));
-        lmWriteData.send(tuple2(zeroExtend(pack(metaUpd)), ?));
+        localMem.writeLine(getMetadataIdx(set), zeroExtend(pack(metaUpd)));
         didWrite.send();
     endmethod    
 
@@ -768,8 +758,9 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
             byte_mask[w] = replicate(wordMask[w]);
         end
 
-        lms.makeReq(tagged LM_WRITE_LINE_MASKED getDataIdx(set, way));
-        lmWriteData.send(tuple2(zeroExtend(pack(val)), byte_mask));
+        localMem.writeLineMasked(getDataIdx(set, way),
+                                 zeroExtend(pack(val)),
+                                 byte_mask);
         didWrite.send();
     endmethod
 
@@ -778,8 +769,7 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
                                 Bit#(TLog#(LOCAL_MEM_WORDS_PER_LINE)) wordIdx,
                                 t_CACHE_WORD val) if (initialized);
         LOCAL_MEM_ADDR addr = getDataIdx(set, way) | zeroExtendNP(wordIdx);
-        lms.makeReq(tagged LM_WRITE_WORD addr);
-        lmWriteData.send(tuple2(zeroExtend(pack(val)), ?));
+        localMem.writeWord(addr, zeroExtend(pack(val)));
         didWrite.send();
     endmethod
 

@@ -77,7 +77,7 @@ import Vector::*;
 //   a burst from the DDR memory.  Multiple DDR bursts are combined to form
 //   a local memory line.
 //
-module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
+module [CONNECTED_MODULE] mkLocalMem
     // interface:
     (LOCAL_MEM)
     provisos (Add#(a_, DDR_BURST_DATA_SZ, LOCAL_MEM_LINE_SZ),

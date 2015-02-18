@@ -74,7 +74,7 @@ import List::*;
 //   Implement local memory using DDR memory.  The DDR memory has line sizes
 //   large enough to hold a single local memory line.
 //
-module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
+module [CONNECTED_MODULE] mkLocalMem
     // interface:
     (LOCAL_MEM)
     provisos (Add#(a_, LOCAL_MEM_LINE_SZ, DDR_BURST_DATA_SZ),

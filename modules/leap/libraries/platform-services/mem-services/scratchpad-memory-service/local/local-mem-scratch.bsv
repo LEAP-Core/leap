@@ -55,7 +55,6 @@ import Vector::*;
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
-`include "awb/provides/local_memory_device.bsh"
 
 
 //
@@ -94,17 +93,9 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
                            mkDebugFileNull("memory_scratchpad.out");
 
     //
-    // Commands requesting local memory operations.  Response only for loads.
+    // Instantiate the shim to local memory.
     //
-    CONNECTION_CLIENT#(LOCAL_MEM_CMD, LOCAL_MEM_READ_DATA) lms
-        <- mkConnectionClient("local_memory_device");
-
-    //
-    // Write data side channel.  Word writes use the low bits of the line
-    // value and index 0 of the mask.
-    //
-    CONNECTION_SEND#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) lmWriteData
-        <- mkConnectionSend("local_memory_device_wdata");
+    LOCAL_MEM localMem <- mkLocalMem();
 
     // Total memory allocated
     Reg#(SCRATCHPAD_MEM_ADDRESS) totalAlloc <- mkReg(0);
@@ -154,11 +145,10 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     rule doInit (initBusy);
 `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
-        lms.makeReq(tagged LM_WRITE_WORD initAddr);
+        localMem.writeWord(initAddr, 0);
 `else
-        lms.makeReq(tagged LM_WRITE_LINE localMemLineAddrToAddr(initAddr));
+        localMem.writeLine(localMemLineAddrToAddr(initAddr), 0);
 `endif
-        lmWriteData.send(tuple2(0, ?));
 
         // Done?
         if (initCnt == 0)
@@ -195,9 +185,9 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             readQ.enq(tuple3(addr, readUID, globalReadMeta));
 
 `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
-            lms.makeReq(tagged LM_READ_WORD p_addr);
+            localMem.readWordReq(p_addr);
 `else
-            lms.makeReq(tagged LM_READ_LINE localMemLineAddrToAddr(p_addr));
+            localMem.readLineReq(localMemLineAddrToAddr(p_addr));
 `endif
         end
         else
@@ -207,16 +197,14 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     endmethod
 
     method ActionValue#(SCRATCHPAD_READ_RESP#(SCRATCHPAD_MEM_ADDRESS,
-                                              SCRATCHPAD_MEM_VALUE)) readRsp()
+                                              SCRATCHPAD_MEM_VALUE)) readRsp();
 `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
-                             if (lms.getRsp() matches tagged LM_READ_WORD_DATA .val);
+        let val <- localMem.readWordRsp();
 `else
-                             if (lms.getRsp() matches tagged LM_READ_LINE_DATA .val);
+        let val <- localMem.readLineRsp();
 `endif
-
         match {.addr, .read_uid, .global_read_meta} = readQ.first();
         readQ.deq();
-        lms.deq();
 
         debugLog.record($format("readRsp port %0d: 0x%x", read_uid.portNum, val));
 
@@ -244,13 +232,9 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             debugLog.record($format("write port %0d: addr 0x%x, p_addr 0x%x, 0x%x", portNum, addr, p_addr, val));
 
 `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
-            lms.makeReq(tagged LM_WRITE_WORD p_addr);
-            // High bits of value and mask don't matter
-            lmWriteData.send(tuple2({?, val}, ?));
+            localMem.writeWord(p_addr, val);
 `else
-            lms.makeReq(tagged LM_WRITE_LINE localMemLineAddrToAddr(p_addr));
-            // Mask doesn't matter
-            lmWriteData.send(tuple2(val, ?));
+            localMem.writeLine(localMemLineAddrToAddr(p_addr), val);
 `endif
         end
     endmethod
@@ -270,15 +254,10 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             debugLog.record($format("write masked port %0d: addr 0x%x, p_addr 0x%x, val 0x%x, mask %b", portNum, addr, p_addr, val, pack(byteWriteMask)));
 
 `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
-            lms.makeReq(tagged LM_WRITE_WORD p_addr);
-
-            // High bits of value and mask don't matter
-            LOCAL_MEM_LINE_MASK line_mask = ?;
-            line_mask[0] = byteWriteMask;
-            lmWriteData.send(tuple2({?, val}, line_mask));
+            localMem.writeWordMasked(p_addr, val, byteWriteMask);
 `else
-            lms.makeReq(tagged LM_WRITE_LINE localMemLineAddrToAddr(p_addr));
-            lmWriteData.send(tuple2(val, byteWriteMask));
+            localMem.writeLineMasked(localMemLineAddrToAddr(p_addr),
+                                     val, byteWriteMask);
 `endif
         end
     endmethod

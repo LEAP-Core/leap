@@ -31,7 +31,6 @@
 
 `include "asim/provides/rrr.bsh"
 `include "asim/provides/channelio.bsh"
-`include "asim/provides/local_mem.bsh"
 `include "asim/provides/remote_memory.bsh"
 `include "asim/provides/physical_platform.bsh"
 `include "asim/provides/physical_platform_debugger.bsh"
@@ -46,15 +45,12 @@
 // A convenient bundle of all ways to interact with the outside world.
 
 interface LowLevelPlatformInterface;
-
     interface RRR_CLIENT                                rrrClient;
     interface RRR_SERVER                              rrrServer;
     interface CHANNEL_IO#(UMF_PACKET)   channelIO;
-    interface LOCAL_MEM                                localMem;
     interface REMOTE_MEMORY                     remoteMemory;
     interface PHYSICAL_DRIVERS                   physicalDrivers;
     interface TOP_LEVEL_WIRES                     topLevelWires;
-
 endinterface
 
 // mkLowLevelPlatformInterface
@@ -83,7 +79,6 @@ module mkLowLevelPlatformInterface
     PHYSICAL_DRIVERS  drivers   <- mkPhysicalPlatformDebugger(phys_plat.physicalDrivers, clocked_by pcie_clk,reset_by pcie_rst);
     
     // interfaces to the physical platform
-    LOCAL_MEM     locMem <- mkLocalMem(drivers, clocked_by clk, reset_by rst);
     REMOTE_MEMORY remMem <- mkRemoteMemory(drivers, clocked_by clk, reset_by rst);
     CHANNEL_IO#(UMF_PACKET)     cio    <- mkChannelIO(drivers, clk, rst, clocked_by pcie_clk, reset_by pcie_rst);
 
@@ -96,9 +91,7 @@ module mkLowLevelPlatformInterface
     interface rrrClient        = rrrc;
     interface rrrServer        = rrrs;
     interface channelIO        = cio;
-    interface localMem         = locMem;
     interface remoteMemory     = remMem;
     interface physicalDrivers  = drivers;
     interface topLevelWires    = phys_plat.topLevelWires;
-
 endmodule

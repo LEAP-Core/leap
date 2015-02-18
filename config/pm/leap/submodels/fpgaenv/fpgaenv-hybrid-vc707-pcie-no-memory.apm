@@ -28,7 +28,7 @@ File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices
+virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 platform_services=Standard Platform Services Submodel
@@ -95,21 +95,9 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-[Standard Virtual Devices]
-File=modules/leap/virtual-platform/virtual-devices/virtual-device-sets/std/std-virtual-devices.awb
-Packagehint=leap
 
-[NULL Local Memory Device]
-File=modules/leap/virtual-platform/virtual-devices/devices/local-memory/null/local-memory-device-null.awb
-Packagehint=leap
 
-[Standard Virtual Devices/Requires]
-local_memory_device=NULL Local Memory Device
-common_utility_devices=Base Common Devices
 
-[Base Common Devices]
-File=modules/leap/virtual-platform/virtual-devices/devices/common/common-utility-devices.awb
-Packagehint=leap
 
 [BlueNoC PCIe Bridge/Requires]
 pcie_bluenoc_device=Virtex-7 PCIE Device v1.10 (BlueNoC)
@@ -191,3 +179,7 @@ ddr_sdram_definitions=DDR SDRAM Common Definitions
 [DDR SDRAM Common Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
 Packagehint=leap-platforms
+
+[Standard Virtual Devices Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
+Packagehint=leap

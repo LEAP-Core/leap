@@ -54,7 +54,7 @@ function Bool platformHasLocalMem() = False;
 
 typedef `LOCAL_MEM_ADDR_BITS LOCAL_MEM_ADDR_SZ;
 
-module mkLocalMem#(PHYSICAL_DRIVERS drivers)
+module mkLocalMem
     // interface:
     (LOCAL_MEM);
 

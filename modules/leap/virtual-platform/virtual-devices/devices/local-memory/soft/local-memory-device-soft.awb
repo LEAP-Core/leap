@@ -1,8 +1,0 @@
-%name Soft Connection Local Memory Device
-%desc Soft Connection Local Memory Device
-
-%provides local_memory_device
-
-%notes README
-
-%public local-memory-device-soft.bsv

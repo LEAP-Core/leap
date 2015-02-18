@@ -1,2 +1,0 @@
-The local memory device provides a shim between the low-level platform
-implementation of local memory and soft-connection-based clients.
