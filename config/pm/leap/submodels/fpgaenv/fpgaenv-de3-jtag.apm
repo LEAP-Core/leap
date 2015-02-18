@@ -107,7 +107,6 @@ Packagehint=leap-platforms
 File=config/pm/leap/submodels/pipelines/build-pipeline-altera.apm
 Packagehint=leap
 
-
 [RL Bluespec Library Submodel]
 File=config/pm/leap/submodels/common/librl-bsv.apm
 Packagehint=leap
@@ -131,15 +130,6 @@ physical_platform_defs=Common Physical Platform Definitions
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
 
-
-
-
-
-
-
-
-
-
 [Hardware FPGA Components for StratixIII]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-stratixIII.awb
 Packagehint=leap-platforms
@@ -161,3 +151,42 @@ jtag_device=Altera JTAG
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
+
+[Register Mapping Utilities]
+File=modules/bsv-libraries/bluespec/RegisterMapper/src/register_mapper.awb
+Packagehint=bsv-libraries
+
+[FIFO Utility]
+File=modules/bsv-libraries/bluespec/FIFOUtility/fifo_utility.awb
+Packagehint=bsv-libraries
+
+[Vector Utilities]
+File=modules/bsv-libraries/bluespec/VectorUtils/vector_utils.awb
+Packagehint=bsv-libraries
+
+[Debug Utilities]
+File=modules/bsv-libraries/bluespec/Debug/debug_utils.awb
+Packagehint=bsv-libraries
+
+[Altera JTAG/Requires]
+c_bus_utils=CBus Utilities
+fifo_utils=FIFO Utility
+vector_utils=Vector Utilities
+avalon=Avalon Bus Intefaces
+debug_utils=Debug Utilities
+register_mapper=Register Mapping Utilities
+
+[Avalon Bus Intefaces]
+File=modules/bsv-libraries/bluespec/Avalon/src/avalon.awb
+Packagehint=bsv-libraries
+
+[RegisterLibrary]
+File=modules/bsv-libraries/bluespec/Register/src/register_library.awb
+Packagehint=bsv-libraries
+
+[CBus Utilities]
+File=modules/bsv-libraries/bluespec/CBusUtils/c_bus_utils.awb
+Packagehint=bsv-libraries
+
+[Register Mapping Utilities/Requires]
+register_library=RegisterLibrary
