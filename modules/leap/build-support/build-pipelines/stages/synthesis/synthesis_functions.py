@@ -159,25 +159,39 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
 
     # We need to declare a top-level clock.  Unfortunately, the platform module will require special handling. 
     clockFiles = []
+    
+    newTclFile.write('set SYNTH_OBJECT ' + module.name + '\n')
 
-    if (not module.platformModule):        
-        MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
-        clockTclPath = vivadoCompileDirectory.File(module.wrapperName() + '.clocks.tcl')
-        clockTclFile = open(str(clockTclPath), 'w') 
-        clockTclFile.write('create_clock -name ' + module.name + '_CLK -period ' + str(1000.0/MODEL_CLOCK_FREQ) + ' [get_ports CLK]\n')
-        clockTclFile.close()
-        clockFiles = [os.path.relpath(str(clockTclPath), str(vivadoCompileDirectory))]
-    else:
+    print "SYNTH_MODULE: " + module.name + " -> " + str(module.attributes)
+
+    # Physical devices require special handling, since they have
+    # complicated clocking mechanisms which must be exposed at
+    # synthesis.
+
+    MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+    synthAnnotationsTclPath = vivadoCompileDirectory.File(module.wrapperName() + '.annotations.tcl')
+    synthAnnotationsTclFile = open(str(synthAnnotationsTclPath), 'w') 
+
+    annotationsFiles = [os.path.relpath(str(synthAnnotationsTclPath), str(vivadoCompileDirectory))]
+    clockDeps = [synthAnnotationsTclPath]
+
+    tcl_synth = []
+    if (module.platformModule or 'AREA_GROUP' not in module.attributes):        
         if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
-            clockFiles = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
+            tcl_synth = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
+            clockDeps += tcl_synth
             relpathCurry = functools.partial(os.path.relpath, start = str(vivadoCompileDirectory))
-            clockFiles = map(relpathCurry, clockFiles)   
+            tcl_synth = map(relpathCurry, tcl_synth)   
 
-    for file in clockFiles:
-        newTclFile.write("add_files " + file + "\n")
-        newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
+    tcl_params= []
+    if(len(moduleList.getAllDependencies('PARAM_TCL')) > 0):
+        tcl_params = moduleList.getAllDependencies('PARAM_TCL')
 
     # Add in other synthesis algorithms
+    tcl_headers = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS')) > 0):
+        tcl_headers = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS'))
+
     tcl_funcs = []
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) > 0):
         tcl_funcs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) 
@@ -188,16 +202,33 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
  
     # First, elaborate the rtl design. 
 
-    # For the top module, we don't use out of context.
+    # For the top module, we don't use out of context.b
     if(module.getAttribute('TOP_MODULE') is None):
         newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
     else:
-         newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part  + "\n")
+
+    for tcl_param in tcl_params:
+         #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_param, str(vivadoCompileDirectory)) + '\n')
+         synthAnnotationsTclFile.write('source ' + model.rel_if_not_abspath(tcl_param, str(vivadoCompileDirectory)) + '\n')
+
+    for tcl_header in tcl_headers:
+         #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_header, str(vivadoCompileDirectory)) + '\n')
+         synthAnnotationsTclFile.write('source ' + model.rel_if_not_abspath(tcl_header, str(vivadoCompileDirectory)) + '\n')
 
     # apply tcl synthesis functions/patches 
     for tcl_func in tcl_funcs:
         relpath = model.rel_if_not_abspath(tcl_func, str(vivadoCompileDirectory))
-        newTclFile.write('source ' + relpath + '\n')
+        synthAnnotationsTclFile.write('source ' + relpath + '\n')
+
+
+    for file in tcl_synth:
+        synthAnnotationsTclFile.write("source " + file + "\n")
+
+    for file in annotationsFiles:
+        newTclFile.write("add_files " + file + "\n")
+        newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
+
 
     if(module.getAttribute('TOP_MODULE') is None):
         newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
@@ -205,6 +236,10 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     else:
         newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part  + "\n")
 
+    synthAnnotationsTclFile.write('annotateModelClock\n')
+    synthAnnotationsTclFile.close()
+
+    newTclFile.write("all_clocks\n")
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
 
 
@@ -219,7 +254,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     newTclFile.write("write_edif -force " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
-    return [prjPath] + tcl_funcs + blackBoxDeps
+    return [prjPath] + tcl_funcs + tcl_headers + tcl_params + blackBoxDeps + clockDeps
 
 
 # Converts SRP file into resource representation which can be used

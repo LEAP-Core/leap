@@ -20,7 +20,7 @@ model=FPGA Environment
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for Virtex 7
 librl_bsv=RL Bluespec Library Submodel
-build_pipeline=FPGA Build Pipeline Xilinx
+build_pipeline=FPGA Build Pipeline Xilinx (Vivado)
 soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
@@ -158,10 +158,6 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/aurora/aurora-device-null/aurora-device-null.awb
 Packagehint=leap-platforms
 
-[FPGA Build Pipeline Xilinx]
-File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx.apm
-Packagehint=leap
-
 [Common Physical Platform Utilities/Requires]
 physical_platform_defs=Common Physical Platform Definitions
 
@@ -191,3 +187,7 @@ ddr_sdram_definitions=DDR SDRAM Common Definitions
 [DDR SDRAM Common Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
 Packagehint=leap-platforms
+
+[FPGA Build Pipeline Xilinx (Vivado)]
+File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
+Packagehint=leap

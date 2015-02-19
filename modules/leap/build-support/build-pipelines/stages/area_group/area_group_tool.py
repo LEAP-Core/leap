@@ -42,6 +42,10 @@ class AreaConstraints():
 
         self.enabled = (moduleList.getAWBParam('area_group_tool',
                                                'AREA_GROUPS_ENABLE') != 0)
+
+        self.routeAG = (moduleList.getAWBParam('area_group_tool',
+                                               'AREA_GROUPS_ROUTE_AG') != 0)
+
         self.enableBufferInsertion = \
             (moduleList.getAWBParam('area_group_tool',
                                     'AREA_GROUPS_CHANNEL_BUFFERING_ENABLE') != 0)
@@ -101,7 +105,7 @@ class AreaConstraints():
             return 0
 
         d = self._distance(agOut, agIn)
-        #print "Distance of " + agOut.name + "  " + agIn.name + " -> " + str(d)
+        print "Distance of " + agOut.name + "  " + agIn.name + " -> " + str(d) + " -> " + str(physical_platform_config.bufferDistance(d)) + " buffers"
         return physical_platform_config.bufferDistance(d)
 
     ##
@@ -162,6 +166,7 @@ class AreaConstraints():
     def emitModuleConstraintsVivado(self, constraintsFile, areaGroupName, useSourcePath=True):
 
         if(not areaGroupName in self.constraints):
+            "CONSTRAINTS: did not find " + areaGroupName
             return None
 
         areaGroupObject = self.constraints[areaGroupName]
@@ -170,6 +175,7 @@ class AreaConstraints():
         # for it.  This allows us to handle area groups hidden in the
         # user UCF.
         if(areaGroupObject.sourcePath is None):
+            "CONSTRAINTS: path was None " + areaGroupName
             return None
 
         # We need to place halo cells around pblocks, so that they
@@ -206,8 +212,12 @@ class AreaConstraints():
         # include all resource in the slice area
         constraintsFile.write('set_property   gridtypes {RAMB36 RAMB18 DSP48 SLICE} [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
-        constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
-        constraintsFile.write('set_property EXCLUDE_PLACEMENT true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+       
+        if(self.routeAG):
+            constraintsFile.write('set_property CONTAIN_ROUTING true [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        else:
+            constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        constraintsFile.write('set_property EXCLUDE_PLACEMENT true   [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
         constraintsFile.write('endgroup \n')
         return True
@@ -740,7 +750,7 @@ class Floorplanner():
     ##
     def elaborateAreaConstraints(self, moduleList):
 
-        extraAreaFactor = 1.25               
+        extraAreaFactor = 1.3               
         extraAreaOffset = 150.0
  
         moduleResources = {}
@@ -750,7 +760,8 @@ class Floorplanner():
             moduleResources = li_module.assignResources(moduleList, None, self.firstPassLIGraph)
         
         print "Elaborated: Beginning Area Group elaboration" 
-
+        
+        print "Resources are : " + str(moduleResources)  
         areaGroups = {}
         totalLUTs = 0
         # We should make a bunch of AreaGroups here. 
@@ -765,6 +776,8 @@ class Floorplanner():
                 if('LUT' in moduleResources[module]):
                     areaGroups[module] = AreaGroup(module, '')
 
+        print "Post LI Graph Area Groups: " + str(areaGroups)
+
         # now that we have the modules, let's apply constraints. 
 
         # Grab area groups declared/defined in the agrp file supplied by the user. 
@@ -774,8 +787,13 @@ class Floorplanner():
 
         # first bind new area groups. 
         for constraint in constraints:
-            if(isinstance(constraint,AreaGroup)):                         
-                areaGroups[constraint.name] = constraint
+            if(isinstance(constraint,AreaGroup)):
+                # It is possible that we already saw this group. If we have, we should ignore it.                        
+                if(constraint.name in areaGroups):   
+                    print "Warning: ignoring user area group constraint, area group already exists: " + constraint.name
+                else:
+                    areaGroups[constraint.name] = constraint
+
 
         # We should have gotten a chip dimension. Find and assign chip. 
         self.chipXDimension = -1
@@ -851,11 +869,18 @@ class Floorplanner():
 
         # We've now built a tree of parent/child
         # relationships, which we can use to remove area from
-        # the parent (double counting is a problem).  
+        # the parent (double counting is a problem).
+        print "Resources are : " + str(moduleResources)  
         for areaGroup in areaGroups.values():
             for child in areaGroup.children.values():
+
+                # if the child was split into its own synthesis
+                # object, ignore its resource use.
+                if('SYNTH_BOUNDARY' in child.attributes):
+                    continue
+
                 # If we have a slice resource declaration,
-                # use it else, use 1/2 the area as an estimate
+                # use it else, use 1/2 the area as an estimate                  
                 if ('SLICE' in moduleResources[child.name]):
                     areaGroup.area = areaGroup.area - moduleResources[child.name]['SLICE']
                 else:
@@ -882,8 +907,11 @@ class Floorplanner():
                 if(areaGroupObject.name in self.firstPassLIGraph.modules):
                     moduleObject = self.firstPassLIGraph.modules[areaGroupObject.name]
                     if(moduleObject.getAttribute('PLATFORM_MODULE') == True):
-                        del areaGroups[areaGroup]
-
+                        if(not 'SYNTH_BOUNDARY' in areaGroupObject.attributes): 
+                            print "Pruning area group: " + str(moduleObject.name) 
+                            print "Attributes: " + str(moduleObject.attributes)
+                            del areaGroups[areaGroup]
+        
 
         print "Elaborated: " + str(areaGroups)
         return areaGroups

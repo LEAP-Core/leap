@@ -6,12 +6,18 @@ import functools
 import copy
 import bsv_tool
 
-from model import  *
+import model
+from model import Module
 # need to pick up clock frequencies for xcf
 import synthesis_library 
-from parameter_substitution import *
+import parameter_substitution
 import wrapper_gen_tool
-import area_group_tool
+
+try:
+    import area_group_tool
+except ImportError:
+    pass # we won't be using this tool.
+
 
    
 #this might be better implemented as a 'Node' in scons, but 
@@ -23,9 +29,27 @@ class Synthesize():
     if(moduleList.isDependsBuild):           
         return
 
+    # build tcl representation of parameters. 
+    def parameter_tcl_closure(moduleList, paramTclFile):
+         def parameter_tcl(target, source, env):
+             moduleList.awbParamsObj.emitParametersTCL(paramTclFile)
+         return parameter_tcl
+
+    paramTclFile = moduleList.compileDirectory + '/params.xdc'
+
+    moduleList.topModule.moduleDependency['PARAM_TCL'] = [paramTclFile]
+
+    moduleList.env.Command( 
+        [paramTclFile],
+        [],
+        parameter_tcl_closure(moduleList, paramTclFile)
+        )                             
+
+
+
     # Here we add user-defined area groups into the build.  These area
     # groups have a parent, and are explictly not already in the module list. 
-    if(moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_ENABLE')):
+    if(moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_ENABLE') and (wrapper_gen_tool.getFirstPassLIGraph() is None)):
         elabAreaConstraints = area_group_tool.AreaConstraints(moduleList)
         elabAreaConstraints.loadAreaConstraintsElaborated()
 
@@ -76,6 +100,7 @@ class Synthesize():
                              [], parentModule.name, [], moduleDeps)
                  m.putAttribute("WRAPPER_NAME", moduleName)
                  m.putAttribute("AREA_GROUP", 1)
+                 
                  moduleList.insertModule(m)
             
     synthesis_library.buildNetlists(moduleList, synthesis_library.buildVivadoEDF, synthesis_library.buildVivadoEDF)
