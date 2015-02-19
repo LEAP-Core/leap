@@ -32,7 +32,7 @@ File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices (No Memory Service) Submodel
+virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 platform_services=Standard Platform Service (No Memory Service)
@@ -121,9 +121,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-[Standard Virtual Devices (No Memory Service) Submodel]
-File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-null-mem.apm
-Packagehint=leap
 
 [Standard Platform Service (No Memory Service)]
 File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
@@ -150,3 +147,7 @@ ddr_sdram_definitions=DDR SDRAM Common Definitions
 [DDR SDRAM Common Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
 Packagehint=leap-platforms
+
+[Standard Virtual Devices Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
+Packagehint=leap

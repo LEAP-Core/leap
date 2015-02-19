@@ -71,6 +71,21 @@ endinterface: MERGE_FIFOF
 
 
 //
+// Support toPut() to a MERGE_FIFOF port.
+//
+instance ToPut#(MERGE_FIFOF_IN_PORT#(n_INPUTS, t_DATA), t_DATA);
+    function Put#(t_DATA) toPut(MERGE_FIFOF_IN_PORT#(n_INPUTS, t_DATA) port);
+        let put = interface Put;
+                      method Action put(t_DATA value) if (port.notFull);
+                          port.enq(value);
+                      endmethod
+                  endinterface; 
+        return put; 
+    endfunction
+endinstance
+
+
+//
 // Standard merge FIFOF
 //
 module mkMergeFIFOF

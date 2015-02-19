@@ -32,7 +32,6 @@
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/physical_platform_utils.bsh"
 
-`include "asim/provides/local_memory_device.bsh"
 `include "awb/provides/soft_connections.bsh"
 
 `include "awb/provides/common_services_params.bsh"
@@ -43,11 +42,6 @@ endinterface
 
 module [CONNECTED_MODULE] mkVirtualDevices#(LowLevelPlatformInterface llpint)
     // interface:
-        (VIRTUAL_DEVICES);
-
-    // mkLocalMemory() exports only soft connections, so will not be returned
-    // as part of the VIRTUAL_DEVICES interface.
-    let lm  <- mkLocalMemory(llpint);
-
+    (VIRTUAL_DEVICES);
 
 endmodule

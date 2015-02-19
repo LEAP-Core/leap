@@ -28,7 +28,7 @@ File=modules/leap/virtual-platform/std-virtual-platform.awb
 Packagehint=leap
 
 [Standard Virtual Platform/Requires]
-virtual_devices=Standard Virtual Devices (No Memory Service) Submodel
+virtual_devices=Standard Virtual Devices Submodel
 low_level_platform_interface=Low Level Platform Interface Hybrid
 umf=Little-Endian Unified Message Format
 platform_services=Standard Platform Service (No Memory Service)
@@ -111,9 +111,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/pipelines/build-pipeline-altera.apm
 Packagehint=leap
 
-[Standard Virtual Devices (No Memory Service) Submodel]
-File=config/pm/leap/submodels/virtual-devices/std-virtual-devices-null-mem.apm
-Packagehint=leap
 
 [RL Bluespec Library Submodel]
 File=config/pm/leap/submodels/common/librl-bsv.apm
@@ -138,44 +135,14 @@ physical_platform_defs=Common Physical Platform Definitions
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
 
-[Register Mapping Utilities]
-File=modules/bsv-libraries/bluespec/RegisterMapper/src/register_mapper.awb
-Packagehint=bsv-libraries
 
-[FIFO Utility]
-File=modules/bsv-libraries/bluespec/FIFOUtility/fifo_utility.awb
-Packagehint=bsv-libraries
 
-[Vector Utilities]
-File=modules/bsv-libraries/bluespec/VectorUtils/vector_utils.awb
-Packagehint=bsv-libraries
 
-[Debug Utilities]
-File=modules/bsv-libraries/bluespec/Debug/debug_utils.awb
-Packagehint=bsv-libraries
 
-[Altera JTAG/Requires]
-c_bus_utils=CBus Utilities
-fifo_utils=FIFO Utility
-vector_utils=Vector Utilities
-avalon=Avalon Bus Intefaces
-debug_utils=Debug Utilities
-register_mapper=Register Mapping Utilities
 
-[Avalon Bus Intefaces]
-File=modules/bsv-libraries/bluespec/Avalon/src/avalon.awb
-Packagehint=bsv-libraries
 
-[RegisterLibrary]
-File=modules/bsv-libraries/bluespec/Register/src/register_library.awb
-Packagehint=bsv-libraries
 
-[CBus Utilities]
-File=modules/bsv-libraries/bluespec/CBusUtils/c_bus_utils.awb
-Packagehint=bsv-libraries
 
-[Register Mapping Utilities/Requires]
-register_library=RegisterLibrary
 
 [Generic Altera JTAG]
 File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/altera-jtag.awb
@@ -187,3 +154,7 @@ altera_jtag_physical_mapping=ArriaII Dev Board JTAG Mapping
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
 jtag_device=Altera JTAG
+
+[Standard Virtual Devices Submodel]
+File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
+Packagehint=leap

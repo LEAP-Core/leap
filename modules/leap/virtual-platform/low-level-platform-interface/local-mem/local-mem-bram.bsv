@@ -90,7 +90,7 @@ READ_REQ
     deriving (Bits, Eq);
 
 
-module mkLocalMem#(PHYSICAL_DRIVERS drivers)
+module mkLocalMem
     // interface:
     (LOCAL_MEM);
 

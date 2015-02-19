@@ -74,7 +74,7 @@ import List::*;
 //   Implement local memory using DDR memory.  The DDR memory has line sizes
 //   large enough to hold a single local memory line.
 //
-module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
+module [CONNECTED_MODULE] mkLocalMem
     // interface:
     (LOCAL_MEM)
     provisos (Add#(a_, LOCAL_MEM_LINE_SZ, DDR_BURST_DATA_SZ),
@@ -102,8 +102,8 @@ module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
     FIFOF#(LOCAL_MEM_LINE) lineResponseQ <- mkBypassFIFOF();
     FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();
 
-    // Get a handle to the DDR DRAM Controller
-    DDR_DRIVER dramDriver = drivers.ddrDriver;
+    // Get a connection to the DDR DRAM Controller
+    LOCAL_MEM_DDR dramDriver <- mkLocalMemDDRConnection();
 
     //
     // ddrAddrComponents --
@@ -303,7 +303,7 @@ module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
 
     Vector#(FPGA_DDR_BANKS,
             FIFO#(Tuple2#(t_LOCAL_MEM_LINES,
-                          t_LOCAL_MEM_MASKS))) burstWriteQ <- replicateM(mkLFIFO());
+                          t_LOCAL_MEM_MASKS))) burstWriteQ <- replicateM(mkBypassFIFO());
 
     rule startWriteLine (mergeReqQ.firstPortID == 1 &&&
                          mergeReqQ.first() matches tagged MEM_REQ_LINE .addr);
@@ -397,25 +397,13 @@ module [CONNECTED_MODULE] mkLocalMem#(PHYSICAL_DRIVERS drivers)
     //
     // ====================================================================
 
-    //
-    // Soft connections for a debug scan node are not allowed in the platform.
-    // Export debug scan state.  A node will be created by the local memory
-    // platform interface.
-    //
     DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
-
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty);
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide activeReadQ not full", activeReadQ.notFull);
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide lineResponseQ not full", lineResponseQ.notFull);
-    dbg_list <- addDebugScanField(dbg_list,"LM DDR Wide wordResponseQ not full", wordResponseQ.notFull);
-
-    // Collect debug scan state for physical memory controllers
-    //for (Integer b = 0; b < valueOf(FPGA_DDR_BANKS); b = b + 1)
-    /// begin
-    //    ds_data = List::append(ds_data, dramDriver[b].debugScanState());
-    //end
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide activeReadQ not full", activeReadQ.notFull);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide lineResponseQ not full", lineResponseQ.notFull);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide wordResponseQ not full", wordResponseQ.notFull);
 
     let dbgNode <- mkDebugScanNode("Local Memory (local-mem-ddr-wide.bsv)", dbg_list);
 

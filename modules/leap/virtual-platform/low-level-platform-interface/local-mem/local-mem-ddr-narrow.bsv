@@ -60,7 +60,11 @@ import FIFOF::*;
 import SpecialFIFOs::*;
 import Vector::*;
 
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/debug_scan_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/ddr_sdram_device.bsh"
 
@@ -73,7 +77,7 @@ import Vector::*;
 //   a burst from the DDR memory.  Multiple DDR bursts are combined to form
 //   a local memory line.
 //
-module mkLocalMem#(PHYSICAL_DRIVERS drivers)
+module [CONNECTED_MODULE] mkLocalMem
     // interface:
     (LOCAL_MEM)
     provisos (Add#(a_, DDR_BURST_DATA_SZ, LOCAL_MEM_LINE_SZ),
@@ -115,7 +119,7 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();
 
     // Get a handle to the DDR DRAM Controller
-    Vector#(FPGA_DDR_BANKS, DDR_DRIVER) dramDriver = drivers.ddrDriver;
+    LOCAL_MEM_DDR dramDriver <- mkLocalMemDDRConnection();
 
     //
     // ddrAddrComponents --
@@ -341,7 +345,7 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     Vector#(FPGA_DDR_BANKS,
             FIFO#(Tuple2#(Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT),
                           Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT_MASK))))
-        burstWriteQ <- replicateM(mkLFIFO());
+        burstWriteQ <- replicateM(mkBypassFIFO());
 
     Reg#(t_DDR_BURST_IDX) writeBurstIdx <- mkReg(0);
 
@@ -468,24 +472,16 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
     //
     // ====================================================================
 
-    List#(Tuple2#(String, Bool)) ds_data = List::nil;
-    ds_data = List::cons(tuple2("LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide writeDataQ not full", writeDataQ.notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide writeWordDataQ not empty", writeWordDataQ.notEmpty), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide writeWordDataQ not full", writeWordDataQ.notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide activeReadQ not full", activeReadQ.notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide lineResponseQ not full", lineResponseQ.notFull), ds_data);
-    ds_data = List::cons(tuple2("LM DDR Wide wordResponseQ not full", wordResponseQ.notFull), ds_data);
+    DEBUG_SCAN_FIELD_LIST dbg_list = List::nil;
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide mergeReqQ not empty", mergeReqQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide writeDataQ not empty", writeDataQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide writeWordDataQ not empty", writeWordDataQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide activeReadQ not empty", activeReadQ.notEmpty);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide activeReadQ not full", activeReadQ.notFull);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide lineResponseQ not full", lineResponseQ.notFull);
+    dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide wordResponseQ not full", wordResponseQ.notFull);
 
-    // Collect debug scan state for physical memory controllers
-    for (Integer b = 0; b < valueOf(FPGA_DDR_BANKS); b = b + 1)
-    begin
-        ds_data = List::append(ds_data, dramDriver[b].debugScanState());
-    end
-
-    let debugScanData = ds_data;
+    let dbgNode <- mkDebugScanNode("Local Memory (local-mem-ddr-wide.bsv)", dbg_list);
 
 
     // ====================================================================
@@ -541,7 +537,4 @@ module mkLocalMem#(PHYSICAL_DRIVERS drivers)
         writeDataQ.enq(tuple2(data, mask));
     endmethod
 
-    method List#(Tuple2#(String, Bool)) debugScanState();
-        return debugScanData;
-    endmethod
 endmodule
