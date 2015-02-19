@@ -13,3 +13,5 @@
 
 %public mem-services-standard.bsh
 %public mem-services-standard.bsv
+
+%param SYNTH_BOUNDARY mkMemServices "Name of synthesis boundary"
