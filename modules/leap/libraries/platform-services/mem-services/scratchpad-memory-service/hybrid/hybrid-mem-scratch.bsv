@@ -50,6 +50,7 @@ import Vector::*;
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/central_cache_service.bsh"
+`include "awb/provides/central_cache.bsh"
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
@@ -134,7 +135,7 @@ SCRATCHPAD_HYBRID_READ_INFO
 // mkMemoryVirtualDevice --
 //     Build a device interface with the requested number of ports.
 //
-module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
+module [CONNECTED_MODULE] mkScratchpadMemory
     // interface:
     (SCRATCHPAD_MEMORY_VDEV)
     provisos (Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
@@ -165,7 +166,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     // Scratchpad's central cache port
     //
-    let centralCachePort = centralCache.clientPorts[`VDEV_CACHE_SCRATCH - `VDEV_CACHE__BASE];
+    CONNECTION_CLIENT#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)
+        centralCachePort <- mkConnectionClient(cachePortName(`VDEV_CACHE_SCRATCH));
 
     // Meta-data for outstanding reads from the host
     FIFOF#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedSlowBRAMFIFOF(1024);
@@ -376,11 +378,14 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     //
     // ====================================================================
 
-    let centralCacheBackingPort = centralCache.backingPorts[`VDEV_CACHE_SCRATCH - `VDEV_CACHE__BASE];
+    CONNECTION_SERVER#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)
+        centralCacheBackingPort <- mkConnectionServer(backingPortName(`VDEV_CACHE_SCRATCH));
 
 
-    rule backingReadReq (! initQ.notEmpty());
-        let r <- centralCacheBackingPort.getReadReq();
+    rule backingReadReq (! initQ.notEmpty() &&&
+                         centralCacheBackingPort.getReq() matches tagged CENTRAL_CACHE_BACK_READ .r);
+        centralCacheBackingPort.deq();
+
         let h_addr = hostAddrFromCacheAddr(r.addr);
         debugLog.record($format("backingReadReq: addr=0x%x", h_addr));
 
@@ -408,7 +413,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         let v = readRespMar.first();
         readRespMar.deq();
 
-        centralCacheBackingPort.sendReadResp(v, True);
+        let r = CENTRAL_CACHE_BACK_READ_RSP { wordVal: v, isCacheable: True };
+        centralCacheBackingPort.makeRsp(tagged CENTRAL_CACHE_BACK_READ r);
     endrule
 
     //
@@ -419,16 +425,18 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
     Reg#(t_SCRATCHPAD_LINE) writeData <- mkRegU();
     Reg#(Bit#(TLog#(SCRATCHPAD_WORDS_PER_LINE))) writeWordIdx <- mkReg(0);
 
-    rule backingWriteCtrlReq (True);
-        let r <- centralCacheBackingPort.getWriteReq();
+    rule backingWriteCtrlReq (centralCacheBackingPort.getReq() matches tagged CENTRAL_CACHE_BACK_WREQ .r);
+        centralCacheBackingPort.deq();
+
         let h_addr = hostAddrFromCacheAddr(r.addr);
         debugLog.record($format("backingWriteReq: addr=0x%x, wMask=0x%x", h_addr, r.wordValidMask));
 
         writeCtrlQ.enq(r);
     endrule
 
-    rule backingWriteDataReq (! initQ.notEmpty());
-        let v <- centralCacheBackingPort.getWriteData();
+    rule backingWriteDataReq (! initQ.notEmpty() &&&
+                              centralCacheBackingPort.getReq() matches tagged CENTRAL_CACHE_BACK_WDATA .v);
+        centralCacheBackingPort.deq();
         debugLog.record($format("backingWriteData: val=0x%x", v));
 
         let wd = shiftInAtN(writeData, v);
@@ -801,7 +809,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
                                                wordIdx: word_idx,
                                                readMeta: zeroExtend(pack(readUID)),
                                                globalReadMeta: globalReadMeta };
-            centralCachePort.newReq(tagged CENTRAL_CACHE_READ req);
+            centralCachePort.makeReq(tagged CENTRAL_CACHE_READ req);
         end
     endmethod
 
@@ -838,7 +846,20 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
             //
             // Central cache response.
             //
-            let d <- centralCachePort.readResp();
+            let rsp = centralCachePort.getRsp();
+            centralCachePort.deq();
+
+            // Only read responses are expected, despite the interface
+            // supporting other messages.
+            CENTRAL_CACHE_READ_RESP d = ?;
+            if (rsp matches tagged CENTRAL_CACHE_READ .rd)
+            begin
+                d = rd;
+            end
+            else
+            begin
+                $display("ERROR: unexpected central cache read response");
+            end
 
             // Extract the base reference info and the word index stored by readReq.
             SCRATCHPAD_READ_UID read_uid = unpack(truncate(d.readMeta));
@@ -871,7 +892,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
         let req = CENTRAL_CACHE_WRITE_REQ { addr: line_addr,
                                             wordIdx: word_idx,
                                             val: val };
-        centralCachePort.newReq(tagged CENTRAL_CACHE_WRITE req);
+        centralCachePort.makeReq(tagged CENTRAL_CACHE_WRITE req);
     endmethod
 
 

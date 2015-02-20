@@ -54,6 +54,12 @@ import Vector::*;
 `define VDEV_CACHE__NENTRIES 0
 `endif
 
+`ifdef VDEV_CACHE__BASE
+`define CACHE_BASE `VDEV_CACHE__BASE
+`else
+`define CACHE_BASE 0
+`endif
+
 typedef `VDEV_CACHE__NENTRIES CENTRAL_CACHE_N_CLIENTS;
 
 //
@@ -250,3 +256,71 @@ interface CENTRAL_CACHE_IFC;
                       CENTRAL_CACHE_BACKING_PORT) backingPorts;
 
 endinterface: CENTRAL_CACHE_IFC
+
+
+// ========================================================================
+//
+// Internal data structures.  Messages passed in soft connections between
+// central cache modules and platform components.
+//
+// ========================================================================
+
+//
+// The request messages are already defined in the standard virtual device
+// file (CENTRAL_CACHE_REQ).
+//
+
+//
+// Union of all possible messages returning from the central cache.
+//
+typedef union tagged
+{
+    CENTRAL_CACHE_READ_RESP CENTRAL_CACHE_READ;
+    Bool                    CENTRAL_CACHE_FLUSH_ACK;
+}
+CENTRAL_CACHE_RESP
+    deriving (Eq, Bits);
+
+
+//
+// Backing storage channel
+//
+
+// Requests from cache to client
+typedef union tagged
+{
+    CENTRAL_CACHE_BACKING_READ_REQ  CENTRAL_CACHE_BACK_READ;
+
+    CENTRAL_CACHE_BACKING_WRITE_REQ CENTRAL_CACHE_BACK_WREQ;
+    CENTRAL_CACHE_WORD              CENTRAL_CACHE_BACK_WDATA;
+}
+CENTRAL_CACHE_BACKING_REQ
+    deriving (Eq, Bits);
+
+
+typedef struct
+{
+    CENTRAL_CACHE_WORD wordVal;
+    Bool isCacheable;
+}
+CENTRAL_CACHE_BACK_READ_RSP
+    deriving (Eq, Bits);
+
+
+// Responses from client to cache
+typedef union tagged
+{
+    CENTRAL_CACHE_BACK_READ_RSP CENTRAL_CACHE_BACK_READ;
+    Bool                        CENTRAL_CACHE_BACK_WACK;
+}
+CENTRAL_CACHE_BACKING_RESP
+    deriving (Eq, Bits);
+
+
+//
+// Construct the name of the soft connection to a central cache port.
+// Ports are created dynamically using dictionaries in the VDEV.CACHE
+// name space.
+//
+function String cachePortName(Integer n) = "vdev_cache_" + integerToString(n - `CACHE_BASE);
+function String backingPortName(Integer n) = "vdev_cache_backing_" + integerToString(n - `CACHE_BASE);

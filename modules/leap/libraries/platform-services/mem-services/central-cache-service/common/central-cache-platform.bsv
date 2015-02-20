@@ -39,7 +39,6 @@ import SpecialFIFOs::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
-`include "awb/provides/central_cache.bsh"
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/common_services.bsh"
@@ -103,74 +102,6 @@ interface CENTRAL_CACHE_CLIENT_BACKING#(type t_ADDR, type t_DATA, type t_READ_ME
     // Ack from write request when sendAck is True
     method Action writeAckWait();
 endinterface: CENTRAL_CACHE_CLIENT_BACKING
-
-
-// ========================================================================
-//
-// Internal data structures.  Messages passed in soft connections between
-// modules here and the platform interface.
-//
-// ========================================================================
-
-//
-// The request messages are already defined in the standard virtual device
-// file (CENTRAL_CACHE_REQ).
-//
-
-//
-// Union of all possible messages returning from the central cache.
-//
-typedef union tagged
-{
-    CENTRAL_CACHE_READ_RESP CENTRAL_CACHE_READ;
-    Bool                    CENTRAL_CACHE_FLUSH_ACK;
-}
-CENTRAL_CACHE_RESP
-    deriving (Eq, Bits);
-
-
-//
-// Backing storage channel
-//
-
-// Requests from cache to client
-typedef union tagged
-{
-    CENTRAL_CACHE_BACKING_READ_REQ  CENTRAL_CACHE_BACK_READ;
-
-    CENTRAL_CACHE_BACKING_WRITE_REQ CENTRAL_CACHE_BACK_WREQ;
-    CENTRAL_CACHE_WORD              CENTRAL_CACHE_BACK_WDATA;
-}
-CENTRAL_CACHE_BACKING_REQ
-    deriving (Eq, Bits);
-
-
-typedef struct
-{
-    CENTRAL_CACHE_WORD wordVal;
-    Bool isCacheable;
-}
-CENTRAL_CACHE_BACK_READ_RSP
-    deriving (Eq, Bits);
-
-
-// Responses from client to cache
-typedef union tagged
-{
-    CENTRAL_CACHE_BACK_READ_RSP CENTRAL_CACHE_BACK_READ;
-    Bool                        CENTRAL_CACHE_BACK_WACK;
-}
-CENTRAL_CACHE_BACKING_RESP
-    deriving (Eq, Bits);
-
-
-//
-// Construct the name of the soft connection to a central cache port.
-// Ports are created dynamically using dictionaries in the VDEV.CACHE
-// name space.
-//
-function String cachePortName(Integer n) = "vdev_cache_" + integerToString(n - `CACHE_BASE);
-function String backingPortName(Integer n) = "vdev_cache_backing_" + integerToString(n - `CACHE_BASE);
 
 
 // ========================================================================
