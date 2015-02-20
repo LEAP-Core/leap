@@ -6,6 +6,7 @@
 %public central-cache-interfaces.bsv
 %public central-cache-backing-store.bsv
 %public central-cache-bypass.bsv
+%public central-cache-platform.bsv
 
 %param --global CENTRAL_CACHE_LINE_ADDR_BITS     64 "Address size of entries in the central cache.  Must be at least as large as the largest client."
 %param --global CENTRAL_CACHE_READ_META_BITS     18 "Metadata size for tagging read requests.  Must be large enough for the largest client's metadata."

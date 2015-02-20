@@ -9,10 +9,9 @@
 
 module [CONNECTED_MODULE] mkMemServices
     // interface:
-        ();
-    
+    ();
+
     let centralCacheService     <- mkCentralCacheService();
-    let scratchpadMemoryService <- mkScratchpadMemoryService(centralCacheService);
+    let scratchpadMemoryService <- mkScratchpadMemoryService();
     let sharedMemoryService     <- mkSharedMemoryService();
-    
 endmodule

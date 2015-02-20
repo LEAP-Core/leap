@@ -42,14 +42,14 @@ import Arbiter::*;
 `include "awb/dict/ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 
 
-module [CONNECTED_MODULE] mkScratchpadMemoryService#(CENTRAL_CACHE_IFC centralCache)
+module [CONNECTED_MODULE] mkScratchpadMemoryService
     // interface:
     ();
     
     //
     // Instantiate a scratchpad implementation.
     //
-    let memory <- mkScratchpadMemory(centralCache);
+    let memory <- mkScratchpadMemory();
 
     // ***** Assertion Checkers *****
     ASSERTION_NODE assertNode <- mkAssertionNode(`ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE__BASE);

@@ -10,5 +10,6 @@
 %notes README
 
 %public central-cache-service.bsh
-%public platform-central-cache.bsv
 %public central-cache-service.bsv
+
+%param SYNTH_BOUNDARY mkCentralCacheService "Name of synthesis boundary"

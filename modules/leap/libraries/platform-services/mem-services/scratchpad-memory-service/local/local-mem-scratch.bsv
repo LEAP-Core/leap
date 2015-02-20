@@ -51,7 +51,6 @@ import Vector::*;
 `include "awb/provides/low_level_platform_interface.bsh"
 `include "awb/provides/local_mem.bsh"
 `include "awb/provides/physical_platform.bsh"
-`include "awb/provides/central_cache_service.bsh"
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/scratchpad_memory_common.bsh"
@@ -83,7 +82,7 @@ typedef SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(SCRATCHPAD_MEM_ADDRESS,
 // mkScratchpadMemory --
 //     Build a scratchpad memory with the requested number of ports.
 //
-module [CONNECTED_MODULE] mkScratchpadMemory#(CENTRAL_CACHE_IFC centralCache)
+module [CONNECTED_MODULE] mkScratchpadMemory
     // interface:
     (SCRATCHPAD_MEMORY_VDEV)
     provisos (Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ));
