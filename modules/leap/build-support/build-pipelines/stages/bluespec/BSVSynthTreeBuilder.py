@@ -160,7 +160,13 @@ class BSVSynthTreeBuilder():
             # collisions amoung similarly-typed LI
             # Modules.  We fix it by uniquifying the links.
 
-            linkthroughMap = {'BA': '', 'GEN_BAS': '', 'GEN_VERILOGS': '', 'GEN_VERILOG_STUB': '', 'STR': module.name + '_'}
+            def getModuleName(module):
+                return module.name
+
+            def getEmpty(module):
+                return ''
+
+            linkthroughMap = {'BA': getEmpty, 'GEN_BAS': getEmpty, 'GEN_VERILOGS': getEmpty, 'GEN_VERILOG_STUB': getEmpty, 'STR': getModuleName}
 
             oldStubs = []
             buildPath = get_build_path(moduleList, moduleList.topModule)
@@ -172,7 +178,7 @@ class BSVSynthTreeBuilder():
                         localNames =  map(lambda fileName: makeAWBLink(False,
                                                                        fileName.from_bld(),
                                                                        buildPath, 
-                                                                       uniquifier=linkthroughMap[objType]),
+                                                                       uniquifier=linkthroughMap[objType](module)),
                                           module.objectCache[objType])
 
                         # The previous passes GEN_VERILOGS are not
@@ -320,7 +326,7 @@ class BSVSynthTreeBuilder():
                     for module in liModules:
                         for objType in linkthroughMap:
                             if(objType in module.objectCache):                
-                                map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath, uniquifier=linkthroughMap[objType]),
+                                map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath, uniquifier=linkthroughMap[objType](module)),
                                     module.objectCache[objType])
 
             return linkLIMObj
