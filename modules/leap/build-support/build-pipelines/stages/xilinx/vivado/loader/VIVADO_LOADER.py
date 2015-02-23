@@ -45,6 +45,12 @@ class LOADER():
           lf.write('my $dev_id = undef;\n')
           lf.write('GetOptions(\'device-id=i\', \$dev_id);\n')
           lf.write('\n')
+
+          lf.write('# Check for existance of expected bitfile.\n') 
+          lf.write('if ( ! -e  "' + xilinx_apm_name + '_par.bit" ) {\n')
+          lf.write('  die "Could not find bitfile ' + xilinx_apm_name + '_par.bit";\n')
+          lf.write('}\n')
+
           lf.write('# Specify specific cable if device database includes a cable ID\n')
           lf.write('my $setCable = \'setCable -p auto\';\n')
           lf.write('if (defined($dev_id)) {\n')

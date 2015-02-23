@@ -653,12 +653,6 @@ sub ProgramFPGA($$$) {
     my $path = shift; 
     my $model = shift; 
     my $fpga_dev_id = shift;
-    $ENV{FPGA_BIT_FILE} = "$path/.xilinx/${model}_par.bit";
-
-    # Check for existance of expected bitfile. 
-    if ( ! -e $ENV{FPGA_BIT_FILE} ) {
-        ErrorExit("Could not find bitfile $ENV{FPGA_BIT_FILE}");
-    }
 
     if (! $forceLoad && -s "$path/${model}_hw.errinfo") {
         print STDERR "FPGA bit file has errors:\n\n";
