@@ -153,7 +153,7 @@ Packagehint=leap
 avalon=Avalon Bus Intefaces
 
 [Avalon Bus Intefaces]
-File=modules/leap-altera/bluespec/Avalon/src/avalon.awb
+File=modules/leap-platforms-altera/bluespec/Avalon/src/avalon.awb
 Packagehint=leap-altera
 
 [Single-Ended Crystal Clocks Device/Params]
