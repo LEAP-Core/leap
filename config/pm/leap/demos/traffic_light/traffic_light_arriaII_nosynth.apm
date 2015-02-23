@@ -48,14 +48,8 @@ File=modules/leap/build-support/project/application-env/soft-services/applicatio
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
-platform_services=Standard Platform Service (No Memory Service)
-soft_services=Soft Services Submodel
 connected_application=Default Software Connected Application
 
-
-[Standard Platform Service (No Memory Service)]
-File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
-Packagehint=leap
 
 [Hybrid evaluation-arriaII-JTAG FPGA Environment]
 File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-evaluation-arriaII-jtag.apm
@@ -65,6 +59,3 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/project-common-default.apm
 Packagehint=leap
 
-[Soft Services Submodel]
-File=config/pm/leap/submodels/common/soft-services.apm
-Packagehint=leap

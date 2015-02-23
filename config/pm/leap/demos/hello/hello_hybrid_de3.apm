@@ -16,8 +16,6 @@ RootProvides=model
 DefaultAttributes=hello unconnected hybrid project xup
 model=HW/SW Hybrid Pipeline Build
 
-
-
 [Hello World]
 File=modules/leap/examples/hello-world/hello-world.awb
 Packagehint=leap
@@ -38,7 +36,6 @@ Packagehint=leap
 [Hybrid evaluation-de3-JTAG FPGA Environment]
 File=config/pm/leap/submodels/fpgaenv/fpgaenv-de3-jtag.apm
 Packagehint=leap
-
 
 [Soft Services Hybrid Application Environment]
 File=modules/leap/build-support/project/application-env/soft-services/application-env-hybrid-soft-service.awb
