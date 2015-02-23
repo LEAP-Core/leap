@@ -16,7 +16,7 @@ class Module(ProjectDependency.ProjectDependency):
     ProjectDependency.ProjectDependency.dump(self)
  
   
-  def __init__(self, name, synthBoundary, buildPath, parent, childArray, synthParent, synthChildArray, sources, platformModule=False):
+  def __init__(self, name, synthBoundary, buildPath, parent, childArray, synthParent, synthChildArray, sources, platformModule=False, boundaryName=None):
     self.name = name
     self.buildPath = buildPath
     self.parent = parent
@@ -26,6 +26,12 @@ class Module(ProjectDependency.ProjectDependency):
     self.dependsFile = '.depends-bsv'
     self.interfaceType = 'Empty'
     self.extraImports = []
+
+    # Old-style synthesis boundaries do not have a boundaryName, so we just their type.
+    if(boundaryName is None):
+        self.boundaryName = self.name   
+    else:
+        self.boundaryName = boundaryName  
 
     self.attributes = {}
 
@@ -91,9 +97,12 @@ class Module(ProjectDependency.ProjectDependency):
 
 
   def wrapperName(self):
-    if('WRAPPER_NAME' in self.attributes):
-        return self.attributes['WRAPPER_NAME']
-    return 'mk_' + self.name + '_Wrapper'
+#    if('WRAPPER_NAME' in self.attributes):
+#        return self.attributes['WRAPPER_NAME']
+#    return 'mk_' + self.name + '_Wrapper'
+    return 'mk_' + self.boundaryName + '_Wrapper'    
+
+
 
 
   def putAttribute(self, key, value):

@@ -139,6 +139,7 @@ def generateBAImport(module, importHandle):
 
     if('BSV_IFC' in module.objectCache):        
         ifc = bsvIfc.type
+
         importHandle.write('module mk_' + module.name + '_Wrapper (' + ifc + ');\n')
 
         # This code is very similar to module code below.  We should refactor.
@@ -151,7 +152,7 @@ def generateBAImport(module, importHandle):
     else:
         ifc = 'SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + ', Empty)'
 
-        importHandle.write('module mk_' + module.name + '_Wrapper (' + ifc + ');\n')
+        importHandle.write('module ' + module.wrapperName() + ' (' + ifc + ');\n')
 
         # This code is very similar to module code below.  We should refactor.
         importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n") 
@@ -295,7 +296,9 @@ def _emitSynthWrapper(liModule,
     for importStm in extraImports:
             synthHandle.write('import ' + importStm + '::*;\n')
     synthHandle.write('`include "awb/provides/smart_synth_boundaries.bsh"\n')
-    synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')    
+    synthHandle.write('`include "awb/provides/soft_connections.bsh"\n')  
+
+    # Fix me -- if we have boundary renaming, this will not correspond to the module.  
     synthHandle.write('import ' + liModule.name + '_Wrapper::*;\n')      
 
     _emitSynthModule(liModule, synthHandle, moduleType,
@@ -324,7 +327,7 @@ def _emitSynthModule(liModule,
         synthHandle.write("endmodule\n")
         return
 
-    synthHandle.write("    let mod <- liftModule(mk_" + liModule.name + '_Wrapper' + "());\n")
+    synthHandle.write("    let mod <- liftModule(mk_" + liModule.name + "_Wrapper());\n")
     synthHandle.write("    let connections = tpl_1(mod.services);\n")
     
     platform_ag = None
@@ -752,17 +755,17 @@ class WrapperGen():
             wrapper.write('\n\n')
             
         log_bsv.write('// First pass to see how large the vectors should be\n')
-        log_bsv.write('`define CON_RECV_' + module.name + ' 100\n')
-        log_bsv.write('`define CON_SEND_' + module.name + ' 100\n')
-        log_bsv.write('`define CON_RECV_MULTI_' + module.name + ' 50\n')
-        log_bsv.write('`define CON_SEND_MULTI_' + module.name + ' 50\n')
-        log_bsv.write('`define CHAINS_' + module.name + ' 50\n')
+        log_bsv.write('`define CON_RECV_' + module.boundaryName + ' 100\n')
+        log_bsv.write('`define CON_SEND_' + module.boundaryName + ' 100\n')
+        log_bsv.write('`define CON_RECV_MULTI_' + module.boundaryName + ' 50\n')
+        log_bsv.write('`define CON_SEND_MULTI_' + module.boundaryName + ' 50\n')
+        log_bsv.write('`define CHAINS_' + module.boundaryName + ' 50\n')
         wrapper_bsv.write('// Real build pass.  Include file built dynamically.\n')
         wrapper_bsv.write('`include "' + module.name + '_Wrapper_con_size.bsh"\n')
 
         for wrapper in [wrapper_bsv, log_bsv]:      
             wrapper.write('(* synthesize *)\n')
-            wrapper.write('module [Module] mk_' + module.name + '_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.name + ', `CON_SEND_' + module.name + ', `CON_RECV_MULTI_' + module.name + ', `CON_SEND_MULTI_' + module.name +', `CHAINS_' + module.name +', ' + module.interfaceType + '));\n')
+            wrapper.write('module [Module] ' + module.wrapperName() + ' (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.boundaryName + ', `CON_SEND_' + module.boundaryName + ', `CON_RECV_MULTI_' + module.boundaryName + ', `CON_SEND_MULTI_' + module.boundaryName +', `CHAINS_' + module.boundaryName +', ' + module.interfaceType + '));\n')
             wrapper.write('  \n')
             # we need to insert the fpga platform here
             # get my parameters 
@@ -772,7 +775,7 @@ class WrapperGen():
             wrapper.write('    match {.int_ctx1, .int_name1} <- runWithContext(int_ctx0, putSynthesisBoundaryID(fpgaNumPlatforms() + ' + str(module.synthBoundaryUID + uidOffset)  + '));\n');
             wrapper.write('    match {.int_ctx2, .int_name2} <- runWithContext(int_ctx1, putSynthesisBoundaryPlatform("' + moduleList.localPlatformName + '"));\n')
             wrapper.write('    match {.int_ctx3, .int_name3} <- runWithContext(int_ctx2, putSynthesisBoundaryPlatformID(' + str(moduleList.localPlatformUID) + '));\n')
-            wrapper.write('    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryName("' + str(module.name) + '"));\n')
+            wrapper.write('    match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryName("' + str(module.boundaryName) + '"));\n')
             wrapper.write('    // By convention, global string ID 0 (the first string) is the module name\n');
             wrapper.write('    match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, getGlobalStringUID("' + moduleList.localPlatformName + ':' + module.name + '"));\n');
             wrapper.write('    match {.int_ctx6, .module_ifc} <- runWithContext(int_ctx5, ' + module.synthBoundaryModule + ');\n')

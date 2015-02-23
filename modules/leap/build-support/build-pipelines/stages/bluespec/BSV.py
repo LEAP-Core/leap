@@ -162,8 +162,6 @@ class BSV():
             ## the top module.
             self.build_synth_boundary(moduleList, moduleList.topModule)
 
-
-
             ## Merge all synthesis boundaries using a tree?  The tree reduces
             ## the number of connections merged in a single compilation, allowing
             ## us to support larger systems.
@@ -192,6 +190,7 @@ class BSV():
                                                 bsc_str,
                                                 [ 'ln -fs ' + self.TMP_BSC_DIR + '/`basename $TARGET` $TARGET' ])
                 moduleList.topDependency += [strDep]
+
 
 
             if moduleList.env.GetOption('clean'):
@@ -467,22 +466,22 @@ class BSV():
                     model_dir = self.hw_dir.Dir(moduleList.env['DEFS']['ROOT_DIR_MODEL'])
 
                     module.moduleDependency['BSV_SCHED'] = \
-                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.sched'),
+                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + module.wrapperName() + '.ba.sched',
                                                 wrapper_bo,
-                                                'bluetcl ' + model_dir.File('sched.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
+                                                'bluetcl ' + model_dir.File('sched.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m ' + module.wrapperName() + ' > $TARGET')]
 
                     module.moduleDependency['BSV_PATH'] = \
-                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.path'),
+                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + module.wrapperName() + '.ba.path',
                                                 wrapper_bo,
-                                                'bluetcl ' + model_dir.File('path.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m mk_' + module.name + '_Wrapper > $TARGET')]
+                                                'bluetcl ' + model_dir.File('path.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m ' + module.wrapperName() + ' > $TARGET')]
 
                     moduleList.topDependency += \
                         module.moduleDependency['BSV_SCHED'] + module.moduleDependency['BSV_PATH']
 
                     module.moduleDependency['BSV_IFC'] = \
-                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba.ifc'),
+                        [moduleList.env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + module.wrapperName() + '.ba.ifc',
                                                 wrapper_bo,
-                                                'bluetcl ' + model_dir.File('interfaceType.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m mk_' + module.name + '_Wrapper | python site_scons/model/PythonTidy.py > $TARGET')]
+                                                'bluetcl ' + model_dir.File('interfaceType.tcl').path + ' -p ' + self.ALL_BUILD_DIR_PATHS + ' --m ' + module.wrapperName() + ' | python site_scons/model/PythonTidy.py > $TARGET')]
 
                     moduleList.topDependency += module.moduleDependency['BSV_IFC']
 
@@ -513,8 +512,9 @@ class BSV():
             glob_str = env.Command(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.str'),
                                    wrapper_bo,
                                    '')
+
             env.Precious(glob_str)
-            module.moduleDependency['STR'] += [glob_str]
+            module.moduleDependency['STR'] = [glob_str]
 
             ## All but the top level build need the log build pass to compute
             ## the size of the external soft connection vector.  The top level has
@@ -564,7 +564,7 @@ class BSV():
 
 
             # Add the dependence for all Verilog noted above
-            bld_v = env.Command([MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.v')] + ext_gen_v,
+            bld_v = env.Command([MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + module.wrapperName() + '.v'] + ext_gen_v,
                                 MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
                                 '')
             env.Precious(bld_v)
@@ -572,13 +572,13 @@ class BSV():
             if (moduleList.getAWBParam('bsv_tool', 'BUILD_VERILOG') == 1):
                 module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
-                module.moduleDependency['GEN_WRAPPER_VERILOGS'] = [os.path.basename('mk_' + bsv.replace('.bsv', '.v'))]
+                module.moduleDependency['GEN_WRAPPER_VERILOGS'] = [os.path.basename(module.wrapperName() + '.v')]
 
             if (self.pipeline_debug != 0):
                 print "Name: " + module.name
 
             # each synth boundary will produce a ba
-            bld_ba = [env.Command([MODULE_PATH + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '.ba')],
+            bld_ba = [env.Command([MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' +  module.wrapperName() + '.ba'],
                                   MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', '.bo'),
                                   '')]
 
@@ -586,9 +586,9 @@ class BSV():
             env.Precious(bld_ba)
 
             ##
-            ## Build the Xst black-box stub.
+            ## Build the Verilog black-box stub.
             ##
-            bb = self.stubGenCommand(MODULE_PATH, bsv, bld_v)
+            bb = self.stubGenCommand(MODULE_PATH, module.boundaryName, bld_v)
 
             # Only the subordinate modules have stubs.
             # The platform module should not be enumerated here. This is a false dependency.
@@ -727,10 +727,11 @@ class BSV():
         return compile_bo_log_closure
 
 
-    def stubGenCommand(self, module_path, bsv, deps):
-        return self.moduleList.env.Command(module_path + '/' + self.TMP_BSC_DIR + '/mk_' + bsv.replace('.bsv', '_stub.v'),
+    def stubGenCommand(self, module_path, boundaryName, deps):
+        wrapperBase = module_path + '/' + self.TMP_BSC_DIR + '/mk_' + boundaryName + '_Wrapper'
+        return self.moduleList.env.Command(wrapperBase + '_stub.v',
                                            deps,
-                                           'leap-gen-black-box -nohash $SOURCE > $TARGET')
+                                           'leap-gen-black-box -nohash ' + wrapperBase + '.v > ' + wrapperBase + '_stub.v')
 
 
     ## This function binds the Builder objects for a given module and inserts them into the

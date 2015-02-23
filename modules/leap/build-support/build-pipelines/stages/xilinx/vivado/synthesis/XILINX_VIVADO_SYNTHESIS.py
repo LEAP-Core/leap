@@ -29,24 +29,6 @@ class Synthesize():
     if(moduleList.isDependsBuild):           
         return
 
-    # build tcl representation of parameters. 
-    def parameter_tcl_closure(moduleList, paramTclFile):
-         def parameter_tcl(target, source, env):
-             moduleList.awbParamsObj.emitParametersTCL(paramTclFile)
-         return parameter_tcl
-
-    paramTclFile = moduleList.compileDirectory + '/params.xdc'
-
-    moduleList.topModule.moduleDependency['PARAM_TCL'] = [paramTclFile]
-
-    moduleList.env.Command( 
-        [paramTclFile],
-        [],
-        parameter_tcl_closure(moduleList, paramTclFile)
-        )                             
-
-
-
     # Here we add user-defined area groups into the build.  These area
     # groups have a parent, and are explictly not already in the module list. 
     if(moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_ENABLE') and (wrapper_gen_tool.getFirstPassLIGraph() is None)):

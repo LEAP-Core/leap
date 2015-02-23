@@ -322,5 +322,5 @@ CENTRAL_CACHE_BACKING_RESP
 // Ports are created dynamically using dictionaries in the VDEV.CACHE
 // name space.
 //
-function String cachePortName(Integer n) = "vdev_cache_" + integerToString(n - `CACHE_BASE);
-function String backingPortName(Integer n) = "vdev_cache_backing_" + integerToString(n - `CACHE_BASE);
+function String cachePortName(Integer n , String platformName) = "vdev_cache_" + platformName + "_" + integerToString(n - `CACHE_BASE);
+function String backingPortName(Integer n, String platformName) = "vdev_cache_backing_" + platformName + "_" + integerToString(n - `CACHE_BASE);

@@ -13,3 +13,5 @@
 %public central-cache-service.bsv
 
 %param SYNTH_BOUNDARY mkCentralCacheService "Name of synthesis boundary"
+%param --global central_cache_service_PROVIDES central_cache_service "central_cache_service"
+

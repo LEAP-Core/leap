@@ -167,7 +167,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
     // Scratchpad's central cache port
     //
     CONNECTION_CLIENT#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)
-        centralCachePort <- mkConnectionClient(cachePortName(`VDEV_CACHE_SCRATCH));
+        centralCachePort <- mkConnectionClient(cachePortName(`VDEV_CACHE_SCRATCH, platformName));
 
     // Meta-data for outstanding reads from the host
     FIFOF#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedSlowBRAMFIFOF(1024);
@@ -379,7 +379,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
     // ====================================================================
 
     CONNECTION_SERVER#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)
-        centralCacheBackingPort <- mkConnectionServer(backingPortName(`VDEV_CACHE_SCRATCH));
+        centralCacheBackingPort <- mkConnectionServer(backingPortName(`VDEV_CACHE_SCRATCH, platformName));
 
 
     rule backingReadReq (! initQ.notEmpty() &&&

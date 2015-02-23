@@ -113,6 +113,70 @@ def generatePrj(moduleList, module, globalVerilogs, globalVHDs):
     return prjPath
 
 
+def generateSynthesisTcl(moduleList, module, compileDirectory):
+
+    # Eventually we will want to add some of these to the synthesis tcl
+    # From UG905 pg. 11, involving clock definition.
+
+    # We need to declare a top-level clock.  Unfortunately, the platform module will require special handling. 
+    clockFiles = []
+    
+    # Physical devices require special handling, since they have
+    # complicated clocking mechanisms which must be exposed at
+    # synthesis.
+
+    MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+    synthAnnotationsTclPath = compileDirectory.File(module.wrapperName() + '.annotations.tcl')
+    synthAnnotationsTclFile = open(str(synthAnnotationsTclPath), 'w') 
+
+    annotationFiles = [os.path.relpath(str(synthAnnotationsTclPath), str(compileDirectory))]
+    clockDeps = [synthAnnotationsTclPath]
+
+    synthAnnotationsTclFile.write('set SYNTH_OBJECT ' + module.name + '\n')
+
+    tclSynth = []
+    if (module.platformModule or 'AREA_GROUP' not in module.attributes):        
+        if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLSYNTHESISS')) > 0):
+            tclSynth = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLSYNTHESISS'))
+            clockDeps += tclSynth
+            relpathCurry = functools.partial(os.path.relpath, start = str(compileDirectory))
+            tclSynth = map(relpathCurry, tclSynth)   
+
+    tclParams= []
+    if(len(moduleList.getAllDependencies('PARAM_TCL')) > 0):
+        tclParams = moduleList.getAllDependencies('PARAM_TCL')
+
+    # Add in other synthesis algorithms
+    tclHeaders = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLHEADERS')) > 0):
+        tclHeaders = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLHEADERS'))
+
+    tclFuncs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLFUNCTIONS')) > 0):
+        tclFuncs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLFUNCTIONS')) 
+
+    for tclParam in tclParams:
+         #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_param, str(vivadoCompileDirectory)) + '\n')
+         synthAnnotationsTclFile.write('source ' + model.rel_if_not_abspath(tclParam, str(compileDirectory)) + '\n')
+
+    for tclHeader in tclHeaders:
+         #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_header, str(vivadoCompileDirectory)) + '\n')
+         synthAnnotationsTclFile.write('source ' + model.rel_if_not_abspath(tclHeader, str(compileDirectory)) + '\n')
+
+    # apply tcl synthesis functions/patches 
+    for tclFunc in tclFuncs:
+        relpath = model.rel_if_not_abspath(tclFunc, str(compileDirectory))
+        synthAnnotationsTclFile.write('source ' + relpath + '\n')
+
+
+    for file in tclSynth:
+        synthAnnotationsTclFile.write("source " + file + "\n")
+
+    synthAnnotationsTclFile.write('annotateModelClock\n')
+    synthAnnotationsTclFile.close()
+
+    return annotationFiles, tclFuncs + tclHeaders + tclParams + clockDeps
+
 # Produce Vivado Synthesis Tcl
 
 def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoCompileDirectory):
@@ -154,47 +218,10 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         relpath = model.rel_if_not_abspath(netlist, str(vivadoCompileDirectory))
         newTclFile.write('read_edif ' + relpath + '\n')
 
-    # Eventually we will want to add some of these to the synthesis tcl
-    # From UG905 pg. 11, involving clock definition.
+    annotationFiles, annotationDeps = generateSynthesisTcl(moduleList, module, vivadoCompileDirectory)
 
-    # We need to declare a top-level clock.  Unfortunately, the platform module will require special handling. 
-    clockFiles = []
-    
-    newTclFile.write('set SYNTH_OBJECT ' + module.name + '\n')
-
-    print "SYNTH_MODULE: " + module.name + " -> " + str(module.attributes)
-
-    # Physical devices require special handling, since they have
-    # complicated clocking mechanisms which must be exposed at
-    # synthesis.
-
-    MODEL_CLOCK_FREQ = moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
-    synthAnnotationsTclPath = vivadoCompileDirectory.File(module.wrapperName() + '.annotations.tcl')
-    synthAnnotationsTclFile = open(str(synthAnnotationsTclPath), 'w') 
-
-    annotationsFiles = [os.path.relpath(str(synthAnnotationsTclPath), str(vivadoCompileDirectory))]
-    clockDeps = [synthAnnotationsTclPath]
-
-    tcl_synth = []
-    if (module.platformModule or 'AREA_GROUP' not in module.attributes):        
-        if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
-            tcl_synth = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
-            clockDeps += tcl_synth
-            relpathCurry = functools.partial(os.path.relpath, start = str(vivadoCompileDirectory))
-            tcl_synth = map(relpathCurry, tcl_synth)   
-
-    tcl_params= []
-    if(len(moduleList.getAllDependencies('PARAM_TCL')) > 0):
-        tcl_params = moduleList.getAllDependencies('PARAM_TCL')
-
-    # Add in other synthesis algorithms
-    tcl_headers = []
-    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS')) > 0):
-        tcl_headers = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS'))
-
-    tcl_funcs = []
-    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) > 0):
-        tcl_funcs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) 
+    print "Annotation Deps: " + str(annotationDeps)
+    print "Annotation Files: " + str(map(str,annotationFiles))
 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
@@ -208,24 +235,8 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     else:
         newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part  + "\n")
 
-    for tcl_param in tcl_params:
-         #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_param, str(vivadoCompileDirectory)) + '\n')
-         synthAnnotationsTclFile.write('source ' + model.rel_if_not_abspath(tcl_param, str(vivadoCompileDirectory)) + '\n')
 
-    for tcl_header in tcl_headers:
-         #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_header, str(vivadoCompileDirectory)) + '\n')
-         synthAnnotationsTclFile.write('source ' + model.rel_if_not_abspath(tcl_header, str(vivadoCompileDirectory)) + '\n')
-
-    # apply tcl synthesis functions/patches 
-    for tcl_func in tcl_funcs:
-        relpath = model.rel_if_not_abspath(tcl_func, str(vivadoCompileDirectory))
-        synthAnnotationsTclFile.write('source ' + relpath + '\n')
-
-
-    for file in tcl_synth:
-        synthAnnotationsTclFile.write("source " + file + "\n")
-
-    for file in annotationsFiles:
+    for file in annotationFiles:
         newTclFile.write("add_files " + file + "\n")
         newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
 
@@ -235,9 +246,6 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
     else:
         newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part  + "\n")
-
-    synthAnnotationsTclFile.write('annotateModelClock\n')
-    synthAnnotationsTclFile.close()
 
     newTclFile.write("all_clocks\n")
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
@@ -254,7 +262,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     newTclFile.write("write_edif -force " + module.wrapperName() + ".edf\n")
 
     newTclFile.close()
-    return [prjPath] + tcl_funcs + tcl_headers + tcl_params + blackBoxDeps + clockDeps
+    return [prjPath] + blackBoxDeps + annotationDeps
 
 
 # Converts SRP file into resource representation which can be used

@@ -122,10 +122,10 @@ class BSVSynthTreeBuilder():
         # pass may be missing.  We insert these modules as objects in
         # the ModuleList.
 
-        def makeAWBLink(doLink, source, buildPath):
+        def makeAWBLink(doLink, source, buildPath, uniquifier=''):
             base_file = os.path.basename(str(source))
             link_dir = buildPath + '/.li'
-            link_path =  link_dir + '/' + base_file
+            link_path =  link_dir + '/' + uniquifier + base_file
             if (doLink):
                 if (os.path.lexists(link_path)):
                     os.remove(link_path)
@@ -154,16 +154,31 @@ class BSVSynthTreeBuilder():
             env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-platform',
                              must_exist = not moduleList.env.GetOption('clean'))
 
+            # Due to the way that string files are
+            # generated, they are difficult to rename in
+            # the front-end compilation. This leads to
+            # collisions amoung similarly-typed LI
+            # Modules.  We fix it by uniquifying the links.
+
+            def getModuleName(module):
+                return module.name
+
+            def getEmpty(module):
+                return ''
+
+            linkthroughMap = {'BA': getEmpty, 'GEN_BAS': getEmpty, 'GEN_VERILOGS': getEmpty, 'GEN_VERILOG_STUB': getEmpty, 'STR': getModuleName}
+
             oldStubs = []
             buildPath = get_build_path(moduleList, moduleList.topModule)
             for module in self.getFirstPassLIGraph.modules.values():
                 moduleDeps = {}
 
-                for objType in ['BA', 'GEN_BAS', 'GEN_VERILOGS', 'GEN_VERILOG_STUB', 'STR']:
+                for objType in linkthroughMap:
                     if(objType in module.objectCache):
                         localNames =  map(lambda fileName: makeAWBLink(False,
                                                                        fileName.from_bld(),
-                                                                       buildPath),
+                                                                       buildPath, 
+                                                                       uniquifier=linkthroughMap[objType](module)),
                                           module.objectCache[objType])
 
                         # The previous passes GEN_VERILOGS are not
@@ -310,25 +325,10 @@ class BSVSynthTreeBuilder():
                     # The LIM build has passed us some source and we need
                     # to patch it through.
                     for module in liModules:
-                        if('BA' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
-                                module.objectCache['BA'])
-
-                        if('GEN_BAS' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
-                                module.objectCache['GEN_BAS'])
-
-                        if('GEN_VERILOGS' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
-                                module.objectCache['GEN_VERILOGS'])
-
-                        if('GEN_VERILOG_STUB' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
-                                module.objectCache['GEN_VERILOG_STUB'])
-
-                        if('STR' in module.objectCache):
-                            map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath),
-                                module.objectCache['STR'])
+                        for objType in linkthroughMap:
+                            if(objType in module.objectCache):                
+                                map(lambda fileName: makeAWBLink(True, fileName.from_bld(), buildPath, uniquifier=linkthroughMap[objType](module)),
+                                    module.objectCache[objType])
 
             return linkLIMObj
 
@@ -422,7 +422,7 @@ class BSVSynthTreeBuilder():
         # predict this statically we'll have to build it anyway.
 
         tree_module.moduleDependency['GEN_VERILOG_STUB'] = [self.parent.stubGenCommand(top_module_path,
-                                                                                       "build_tree_Wrapper.bsv",
+                                                                                       "build_tree",
                                                                                        top_module_path + '/' + self.parent.TMP_BSC_DIR + "/mk_build_tree_Wrapper.v")]
 
         # top level only depends on platform modules

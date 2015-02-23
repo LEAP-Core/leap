@@ -386,7 +386,26 @@ sub get_synthesis_boundary_name {
 	    return $param{'default'};
 	}
     }
+
     Leap::Util::WARN_AND_DIE("get_synthesis_boundary_name called on non-synthesis boundary module\n");
+}
+
+sub get_synthesis_boundary_provides {
+    my $module = shift;
+    foreach my $param_r ($module->parameters()) {
+	my %param = %{$param_r};
+        my $name = $param{'name'};
+        my $provides = $module->provides();
+
+	if ($param{'name'} eq "${provides}_PROVIDES") {
+            my $value = $param_r->value();
+            my $info = "Checking $name against ${provides}_PROVIDES: $value\n";
+            print STDERR $info;
+	    return $value;
+	}
+    }
+
+    return $module->provides();
 }
 
 
@@ -477,8 +496,13 @@ sub pythonize_module {
     my $stringRepresentation = "Module( ";
   
     # dump name
-   
-    $stringRepresentation = $stringRepresentation . "\'" . $module->provides() ."\', ";
+    $stringRepresentation = $stringRepresentation . "\'" . $module->provides() ."\', ";   
+
+    #if( is_synthesis_boundary($module)) {
+    #    $stringRepresentation = $stringRepresentation . "\'" . get_synthesis_boundary_provides($module) ."\', ";
+    #} else {
+    #    $stringRepresentation = $stringRepresentation . "\'" . $module->provides() ."\', ";
+    #}
 
     # Is it a synthesis boundary?
 
@@ -545,6 +569,11 @@ sub pythonize_module {
     # now for the hard part  we must represent the source and generated files for the 
     # given module.  
     $stringRepresentation = $stringRepresentation . ", " . pythonize_sources($module);
+
+
+    if( is_synthesis_boundary($module)) {
+        $stringRepresentation = $stringRepresentation . ", boundaryName=\'" . get_synthesis_boundary_provides($module) ."\' ";
+    } 
 
     $stringRepresentation = $stringRepresentation . " ), ";
 

@@ -103,6 +103,8 @@ class ModuleList:
     self.modules = {} # Convenient dictionary
     self.awbParamsObj = AWBParams.AWBParams(self)
     self.isDependsBuild = (CommandLine.getCommandLineTargets(self) == [ 'depends-init' ])
+
+
     
     #We should be invoking this elsewhere?
     #self.wrapper_v = env.SConscript([env['DEFS']['ROOT_DIR_HW_MODEL'] + '/SConscript'])
@@ -217,6 +219,24 @@ class ModuleList:
 
     self.graphize()
     self.graphizeSynth()
+
+    # set up build target for various views of the AWB Parameters.
+    def parameter_tcl_closure(moduleList, paramTclFile):
+         def parameter_tcl(target, source, env):
+             self.awbParamsObj.emitParametersTCL(paramTclFile)
+         return parameter_tcl
+
+    paramTclFile = self.compileDirectory + '/params.xdc'
+
+    self.topModule.moduleDependency['PARAM_TCL'] = [paramTclFile]
+
+    self.env.Command( 
+        [paramTclFile],
+        [],
+        parameter_tcl_closure(self, paramTclFile)
+        )                             
+
+
 
     
   def getAWBParam(self, moduleName, param):

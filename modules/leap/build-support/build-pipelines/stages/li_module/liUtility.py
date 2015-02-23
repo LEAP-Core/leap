@@ -251,7 +251,7 @@ def dump_lim_graph(moduleList):
             # the liGraph only knows about modules that actually
             # have connections some modules are vestigial, andso
             # we can forget about them...
-            if (module.name in fullLIGraph.modules):
+            if (module.boundaryName in fullLIGraph.modules):
                 for objectType in module.moduleDependency:
                     # it appears that we need to filter
                     # these objects.  TODO: Clean the
@@ -260,15 +260,15 @@ def dump_lim_graph(moduleList):
                     depList = module.moduleDependency[objectType]
                     convertedDeps = model.convertDependencies(depList)
                     relativeDeps = map(__findBuildPath, convertedDeps)
-                    fullLIGraph.modules[module.name].putObjectCode(objectType, relativeDeps)
+                    fullLIGraph.modules[module.boundaryName].putObjectCode(objectType, relativeDeps)
 
         for module in moduleList.synthBoundaries():
-            if(module.name in fullLIGraph.modules):
+            if(module.boundaryName in fullLIGraph.modules):
                 # annotate platform module with local mapping.
                 if(module.name == moduleList.localPlatformName + '_platform'):
                     # The platform module is special.
-                    fullLIGraph.modules[module.name].putAttribute('MAPPING', moduleList.localPlatformName)
-                    fullLIGraph.modules[module.name].putAttribute('PLATFORM_MODULE', True)
+                    fullLIGraph.modules[module.boundaryName].putAttribute('MAPPING', moduleList.localPlatformName)
+                    fullLIGraph.modules[module.boundaryName].putAttribute('PLATFORM_MODULE', True)
 
         # Decorate LI modules with type
         for module in fullLIGraph.modules.values():
