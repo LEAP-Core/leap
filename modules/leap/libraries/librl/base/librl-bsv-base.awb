@@ -12,6 +12,7 @@
 %public compress.bsv
 %public counters.bsv
 %public debug-file.bsv
+%public debug-sim.bsv
 %public extends.bsv
 %public fifo-delay.bsv
 %public fifo-functions.bsv
