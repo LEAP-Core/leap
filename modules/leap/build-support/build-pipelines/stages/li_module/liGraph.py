@@ -29,7 +29,7 @@ class LIGraph():
             if (not connection.module_name in self.modules):
                 # for now, type and name are the same
                 if(DUMP_GRAPH_DEBUG):
-                    print "Found channel " + connection.name + " with module " + connection.module_name
+                    print "Adding module, Found channel " + connection.name + " with module " + connection.module_name
                 self.modules[connection.module_name] = LIModule(connection.module_name,\
                                                                 connection.module_name)
        
@@ -161,6 +161,13 @@ class LIGraph():
         
         for module in otherModules:
             module.unmatch()
+            # have we seen this module before? If so, this might be an error. 
+            while (module.name in self.modules):
+                #bail?
+                print "Error: Merging platform modules.  We already have a module named " + module.name 
+                exit(0)               
+
+
             self.modules[module.name] = module
 
         # let's match up all those connections

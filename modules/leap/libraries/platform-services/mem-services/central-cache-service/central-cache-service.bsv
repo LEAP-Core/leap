@@ -45,6 +45,9 @@ module [CONNECTED_MODULE] mkCentralCacheService
     // interface:
     ();
 
+
+    let platformName <- getSynthesisBoundaryPlatform();
+
     //
     // The central cache service is just a wrapper.  Instantiate the central
     // cache implementation.
@@ -70,7 +73,7 @@ module [CONNECTED_MODULE] mkCentralCacheService
     for (Integer p = 0; p < valueOf(CENTRAL_CACHE_N_CLIENTS); p = p + 1)
     begin
 `ifdef VDEV_CACHE__BASE
-        link_cache[p] <- mkConnectionServerOptional("vdev_cache_" + integerToString(p));
+        link_cache[p] <- mkConnectionServerOptional("vdev_cache_" + platformName + "_" + integerToString(p));
 
         //
         // Forward requests to the central cache.
@@ -112,7 +115,7 @@ module [CONNECTED_MODULE] mkCentralCacheService
         // back to the client.
         //
 
-        link_cache_backing[p] <- mkConnectionClientOptional("vdev_cache_backing_" + integerToString(p));
+        link_cache_backing[p] <- mkConnectionClientOptional("vdev_cache_backing_" + platformName + "_" + integerToString(p));
 
         //
         // Forward requests to the central cache.
