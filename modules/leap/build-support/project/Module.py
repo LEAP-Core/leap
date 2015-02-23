@@ -95,12 +95,11 @@ class Module(ProjectDependency.ProjectDependency):
     # dependence entries to strings.                                                                  
     return list(set([dep for dep in ProjectDependency.convertDependencies(allDeps)]))
 
-
+  # it would be nice to fix this so that we don't need Wrapper name.
   def wrapperName(self):
-#    if('WRAPPER_NAME' in self.attributes):
-#        return self.attributes['WRAPPER_NAME']
-#    return 'mk_' + self.name + '_Wrapper'
-    return 'mk_' + self.boundaryName + '_Wrapper'    
+     if('WRAPPER_NAME' in self.attributes):
+         return self.attributes['WRAPPER_NAME']
+     return 'mk_' + self.boundaryName + '_Wrapper'    
 
 
 
