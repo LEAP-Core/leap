@@ -153,4 +153,9 @@ File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
 
 
+[Altera JTAG/Requires]
+avalon=Avalon Bus Intefaces
 
+[Avalon Bus Intefaces]
+File=modules/leap-platforms-altera/bluespec/Avalon/src/avalon.awb
+Packagehint=leap-altera
