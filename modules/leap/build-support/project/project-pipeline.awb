@@ -24,10 +24,11 @@
 %private project-utils.cpp
 
 %library lib/libasim/libasim.a
-%library libpthread.so
-%library libdl.so
-%library libz.so
-%library librt.so
+%syslibrary pthread
+%syslibrary dl
+%syslibrary z
+%syslibrary rt
+%syslibrary gmp
 
 %makefile Makefile.top.template
 %scons %main    SConstruct.top.template

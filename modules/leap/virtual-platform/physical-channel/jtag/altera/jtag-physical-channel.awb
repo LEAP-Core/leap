@@ -10,5 +10,5 @@
 %sources -t H   -v PUBLIC   jtag-physical-channel.h
 %sources -t CPP -v PUBLIC   jtag-physical-channel.cpp
 
-%library libtbb.so
+%syslibrary tbb
 
