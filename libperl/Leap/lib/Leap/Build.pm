@@ -399,8 +399,6 @@ sub get_synthesis_boundary_provides {
 
 	if ($param{'name'} eq "${provides}_PROVIDES") {
             my $value = $param_r->value();
-            my $info = "Checking $name against ${provides}_PROVIDES: $value\n";
-            print STDERR $info;
 	    return $value;
 	}
     }
