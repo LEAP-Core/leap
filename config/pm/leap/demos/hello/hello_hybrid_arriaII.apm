@@ -1,10 +1,10 @@
 
 [Global]
 SaveParameters=0
-Description=Hello World Demo using hybrid streams for HTG v5 PCIe
+Description=Hello World Demo using hybrid streams for Arria II development board
 File=hello_hybrid_arriaII
 Version=2.2
-Name=Hello World for HTG v5 PCIe
+Name=Hello World for Arria II development board
 DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
 Type=Leap
 Class=Asim::Model
@@ -15,8 +15,6 @@ RootProvides=model
 [Model]
 DefaultAttributes=hello unconnected hybrid project xup
 model=HW/SW Hybrid Pipeline Build
-
-
 
 [Hello World]
 File=modules/leap/examples/hello-world/hello-world.awb
