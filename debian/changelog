@@ -1,3 +1,9 @@
+leap (15.02~git9e1d9a360c48116f0629d269454bc42177a01528+trusty) trusty; urgency=medium
+
+  * Updated release metadata
+
+ -- Kermin E Fleming <kfleming@leap.csail.mit.edu>  Fri, 27 Feb 2015 14:05:32 -0500
+
 leap (15.02~git5234a6648e5991cc5d80b327efd58615667fc654+trusty) trusty; urgency=low
 
   * Move to version 15.02
