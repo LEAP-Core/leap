@@ -28,7 +28,6 @@
 %syslibrary dl
 %syslibrary z
 %syslibrary rt
-%syslibrary gmp
 
 %makefile Makefile.top.template
 %scons %main    SConstruct.top.template
