@@ -195,7 +195,13 @@ if ($help || ! $status) {
 	    my $directory = $platform->{"directory"};
    	    my $platformName = $platform->{"name"};
             my $cmd = "$config{modelDir}/${directory}/sw/obj/${platformName}_sw.exe --help-run-append";
-            $ENV{LD_LIBRARY_PATH} = "$ENV{LD_LIBRARY_PATH}:$config{modelDir}/${directory}/sw/obj/"; 
+            # Sometimes LD_LIBRARY_PATH is not defined.   
+            if(defined($ENV{LD_LIBRARY_PATH})) {
+                $ENV{LD_LIBRARY_PATH} = "$ENV{LD_LIBRARY_PATH}:$config{modelDir}/${directory}/sw/obj/"; 
+	    } else {
+                $ENV{LD_LIBRARY_PATH} = "$config{modelDir}/${directory}/sw/obj/"; 
+            }
+  
             system($cmd);
 	}
     }
@@ -368,7 +374,11 @@ if (defined($cpuPlatform)) {
     my $directory = $cpuPlatform->{"directory"};
 
     # Set library path to ensure that we pick up our shared library.
-    $ENV{LD_LIBRARY_PATH} = "$ENV{LD_LIBRARY_PATH}:$config{modelDir}/${directory}/sw/obj/"; 
+    if(defined($ENV{LD_LIBRARY_PATH})) {
+        $ENV{LD_LIBRARY_PATH} = "$ENV{LD_LIBRARY_PATH}:$config{modelDir}/${directory}/sw/obj/"; 
+    } else {
+        $ENV{LD_LIBRARY_PATH} = "$config{modelDir}/${directory}/sw/obj/"; 
+    }
 
     # build up a commandline for the main model executable.
     my $cmd;
@@ -653,12 +663,6 @@ sub ProgramFPGA($$$) {
     my $path = shift; 
     my $model = shift; 
     my $fpga_dev_id = shift;
-    $ENV{FPGA_BIT_FILE} = "$path/.xilinx/${model}_par.bit";
-
-    # Check for existance of expected bitfile. 
-    if ( ! -e $ENV{FPGA_BIT_FILE} ) {
-        ErrorExit("Could not find bitfile $ENV{FPGA_BIT_FILE}");
-    }
 
     if (! $forceLoad && -s "$path/${model}_hw.errinfo") {
         print STDERR "FPGA bit file has errors:\n\n";

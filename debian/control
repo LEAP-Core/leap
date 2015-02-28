@@ -1,19 +1,19 @@
 Source: leap
 Section: devel
 Priority: optional
-Maintainer: Joel Emer <emer@csail.mit.edu>
+Maintainer: Kermin Fleming <kermin.fleming@gmail.com>
 Build-Depends: debhelper (>= 7), autotools-dev, libqt4-dev
 Standards-Version: 3.7.2
 
 Package: leap
 Architecture: all
-Depends: leap-14.08
-Recommends: leap-13.06
+Depends: leap-15.02
+Recommends: leap-14.08
 Description: Dependency package for Leap FPGA environment
  Dependency package for the Leap FPGA environment
 Section: devel
 
-Package: leap-14.08
+Package: leap-15.02
 Architecture: any
 Depends: leap-bin, ${misc:Depends}
 Description: Sharable package for the LEAP
@@ -22,7 +22,7 @@ Section: devel
 
 Package: leap-bin
 Architecture: any
-Depends: leap-platforms, asim-core, asim-core-dev, awb, ${perlqt:Depends}, libterm-readline-gnu-perl, libio-pty-perl, python-pygraph, libtbb-dev, iverilog, expect-dev, libboost-dev, ${misc:Depends}
+Depends: leap-platforms, asim-core, asim-core-dev, awb, ${perlqt:Depends}, libterm-readline-gnu-perl, libio-pty-perl, python-ply, python-pygraph, python-glpk, libtbb-dev, iverilog, expect-dev, scons, libboost-dev, ${misc:Depends}
 Replaces: leap (<= 0.6.0)
 Breaks: leap (<= 0.6.0)
 Description: Executables for the LEAP FPGA environement

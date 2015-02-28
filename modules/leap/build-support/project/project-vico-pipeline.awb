@@ -20,10 +20,10 @@
 %public  hardware-done.h
 
 %library lib/libasim/libasim.a
-%library /usr/lib64/libpthread.so
-%library /usr/lib64/libdl.so
-%library /usr/lib64/libz.so
-%library /usr/lib64/librt.so
+%syslibrary pthread
+%syslibrary dl
+%syslibrary z
+%syslibrary rt
 
 %makefile Makefile.top.template
 %scons %main    SConstruct.top.template

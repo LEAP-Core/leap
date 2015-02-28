@@ -35,6 +35,19 @@ import Vector::*;
 import Connectable::*;
 import Arbiter::*;
 
+// ========================================================================
+//
+// Memory type definition
+//
+// ========================================================================
+
+//
+//  A common type for identifying memory commands for legacy codes, including busses.
+//
+typedef enum {
+    Read,
+    Write
+} MEMORY_COMMAND deriving (Bits,Eq);
 
 // ========================================================================
 //

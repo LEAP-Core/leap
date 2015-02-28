@@ -126,19 +126,9 @@ physical_platform_defs=Common Physical Platform Definitions
 File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
 
-
-
-
-
-
-
-
-
-
 [Standard Platform Services (Local Memory Scratchpad) Submodel]
 File=config/pm/leap/submodels/platform-services/standard-platform-local-mem.apm
 Packagehint=leap
-
 
 [Local Memory Interface using BRAM]
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-bram.awb
@@ -158,3 +148,11 @@ jtag_device=Altera JTAG
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
+
+[Altera JTAG/Requires]
+avalon=Avalon Bus Intefaces
+
+[Avalon Bus Intefaces]
+File=modules/leap-altera/bluespec/Avalon/src/avalon.awb
+Packagehint=leap-altera
+

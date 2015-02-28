@@ -1,7 +1,6 @@
-leap (14.08~git1406859977r2a75bf054eda243ed9f010275bdb3eb99c2b794e+precise) precise; urgency=low
+leap (15.02~git5234a6648e5991cc5d80b327efd58615667fc654+trusty) trusty; urgency=low
 
-  [ Joel Emer ]
+  * Move to version 15.02
 
-  * Move to version v14.08.
+ -- Kermin E Fleming <kfleming@leap.csail.mit.edu>  Mon, 23 Feb 2015 18:50:30 -0500
 
- -- Joel Emer <emer@csail.mit.edu>  Tue, 05 Aug 2014 13:34:17 -0400

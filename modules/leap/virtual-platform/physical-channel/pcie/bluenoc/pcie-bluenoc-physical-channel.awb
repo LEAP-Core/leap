@@ -12,7 +12,7 @@
 
 %sources -t LOG     -v PUBLIC   pcie-bluenoc-physical-channel.log
 
-%library libtbb.so
+%syslibrary libtbb
 
 %param SOFT_RESET 1 "Does this channel support soft reset?"
 

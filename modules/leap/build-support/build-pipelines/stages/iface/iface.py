@@ -23,6 +23,10 @@ class Iface():
 
     def __init__(self, moduleList):
 
+        # This function has the side effect of generating a header
+        # file, which is needed by various dependency calculations. 
+        bsv_tool.getBluespecVersion()
+
         ## Invoke a separate instance of SCons to compute both dependence
         ## (Bluespec needs a separate pass) and generate interface
         ## dictionaries.
