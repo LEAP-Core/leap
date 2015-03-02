@@ -207,7 +207,7 @@ class BSV():
             # We need to calculate some dependencies for the build
             # tree.  We could be clever and put this code somewhere
             # rather than replicate it.
-            if self.USE_TREE_BUILD and not self.BUILD_LOGS_ONLY: 
+            if self.USE_TREE_BUILD: 
 
                 buildTreeDeps = {}
                 buildTreeDeps['GEN_VERILOGS'] = []

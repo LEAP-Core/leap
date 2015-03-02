@@ -83,9 +83,8 @@ class BSVSynthTreeBuilder():
         ##
 
         ## If we aren't building the build tree, don't bother with its dependencies
-        if not self.parent.BUILD_LOGS_ONLY: 
-            env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-build-tree',
-                             must_exist = not moduleList.env.GetOption('clean'))
+        env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-build-tree',
+                         must_exist = not moduleList.env.GetOption('clean'))
         tree_base_path = env.Dir(get_build_path(moduleList, moduleList.topModule))
 
         tree_file_synth = tree_base_path.File('build_tree_synth.bsv')
@@ -484,7 +483,13 @@ class BSVSynthTreeBuilder():
             wrapper_handle.write("    return m;\n")
             wrapper_handle.write("endmodule\n")
 
+            synth_handle.write("module build_tree (Reg#(Bit#(1)));\n")
+            synth_handle.write("    let m <- mkRegU();\n")
+            synth_handle.write("    return m;\n")
+            synth_handle.write("endmodule\n")
+
             for tree_file in [wrapper_handle, synth_handle]:
+
                 tree_file.write("// Log build only.  This space intentionally left blank.\n")
                 tree_file.write("`endif\n")
                 tree_file.close()
