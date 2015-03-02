@@ -1,11 +1,11 @@
 
 [Global]
 SaveParameters=0
-Description=Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment
-File=fpgaenv-cycloneiii-jtag
+Description=Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment (Synplify)
+File=fpgaenv-cycloneiii-jtag-synplify
 Version=2.2
 Type=HAsim
-Name=Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment
+Name=Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment (Synplify)
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -20,7 +20,7 @@ model=FPGA Environment
 virtual_platform=Standard Virtual Platform
 fpga_components=Hardware FPGA Components for ArriaII
 librl_bsv=RL Bluespec Library Submodel
-build_pipeline=FPGA Build Pipeline Altera
+build_pipeline=FPGA Build Pipeline Altera (Synplify)
 soft_services=Soft Services Submodel
 
 [Standard Virtual Platform]
@@ -107,10 +107,6 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/physical-platform/airblue_cycloneiii/airblue_cycloneiii-jtag.awb
 Packagehint=leap-platforms
 
-[FPGA Build Pipeline Altera]
-File=config/pm/leap/submodels/pipelines/build-pipeline-altera.apm
-Packagehint=leap
-
 [RL Bluespec Library Submodel]
 File=config/pm/leap/submodels/common/librl-bsv.apm
 Packagehint=leap
@@ -156,3 +152,6 @@ avalon=Avalon Bus Intefaces
 File=modules/leap-altera/bluespec/Avalon/src/avalon.awb
 Packagehint=leap-altera
 
+[FPGA Build Pipeline Altera (Synplify)]
+File=config/pm/leap/submodels/pipelines/build-pipeline-altera-synplify.apm
+Packagehint=leap
