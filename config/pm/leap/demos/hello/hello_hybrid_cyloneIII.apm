@@ -26,12 +26,9 @@ Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities
-fpgaenv=Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment
+fpgaenv=Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment (Synplify)
 application_env=Soft Services Hybrid Application Environment
 
-[Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment]
-File=config/pm/leap/submodels/fpgaenv/fpgaenv-cycloneiii-jtag.apm
-Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/leap/submodels/common/project-common-default.apm
@@ -43,3 +40,7 @@ Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 connected_application=Hello World
+
+[Hybrid Airblue 1.0 Cyclone III JTAG FPGA Environment (Synplify)]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-cycloneiii-jtag-synplify.apm
+Packagehint=leap
