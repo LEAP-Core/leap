@@ -188,11 +188,6 @@ class PostSynthesize():
         # We can have parent/child relationships in the user modules.
         # Vivado requires that checkpoints be read in topological
         # order.
-        print "AREA_GORUPS: " + str(elabAreaConstraints.constraints)
-        print "First Pass Graph: " + str (self.firstPassLIGraph)
-        for module in userModules: # sorted(userModules, key=lambda module: len(elabAreaConstraints.constraints[module.name].children)):   
-            print "ATTRIBUTES " + module.name + " " + str(self.firstPassLIGraph.modules[module.name].attributes) 
-
         def isBlackBox(module):
             if(self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP')):
                 return 1
@@ -211,14 +206,8 @@ class PostSynthesize():
                 print "No checkpoints for " + str(module.name) + ":  " + str(checkpoint)  
                 continue
             #read in new checkoutpoint
-            #newTclFile.write('read_checkpoint -cell '+  module.wrapperName() + " " + checkpoint[0] + '\n')
-            newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
-            #newTclFile.write('lock_design -level placement ' +  module.wrapperName() + '\n')
 
-            print 'AREA_GROUP: ' + module.name 
-            print 'AREA_GROUP ATTRIBUTES: ' + str(module.getAttribute('AREA_GROUP'))
-            print 'AREA_GROUPS_PAR_DEVICE: ' + str(moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_PAR_DEVICE_AG'))
-            print 'LI ATTRIBUTES: ' + str(self.firstPassLIGraph.modules[module.name].attributes)                  
+            newTclFile.write('read_checkpoint ' + checkpoint[0] + '\n')
 
             emitPlatformAreaGroups = (moduleList.getAWBParam('area_group_tool',
                                                              'AREA_GROUPS_GROUP_PLATFORM_CODE') != 0)
@@ -234,7 +223,6 @@ class PostSynthesize():
             allowAGDevice = (self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None) or emitDeviceGroups
 
             if (allowAGPlatform and allowAGDevice):               
-                    print "Setting lock for " + module.name
                     refName = module.wrapperName()
                     lockPlacement = True
                     lockRoute = self.routeAG
@@ -410,9 +398,6 @@ class PostSynthesize():
 
                self.area_constraints.loadAreaConstraints()
 
-               print "Generating Tcl for : " + module.name 
-               print "Constraints: " + str(self.area_constraints.constraints) 
-
                edfTclFile = open(edfTcl,'w')
                constraintsTclFile = open(constraintsTcl,'w')
                
@@ -420,10 +405,6 @@ class PostSynthesize():
 
                # throw out area group constraints. (and maybe loc constraints too?)
                # Some modules may not have placement information.  Ignore them for now.
-               print 'AREA_GROUP: ' + module.name 
-               print 'AREA_GROUP ATTRIBUTES: ' + str(module.getAttribute('AREA_GROUP'))
-               print 'AREA_GROUPS_PAR_DEVICE: ' + str(moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_PAR_DEVICE_AG'))
-               print 'LI ATTRIBUTES: ' + str(self.firstPassLIGraph.modules[module.name].attributes)     
                  
                needToLink = True
                refName = module.wrapperName()
@@ -434,9 +415,7 @@ class PostSynthesize():
                if((self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None) or moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_PAR_DEVICE_AG')):               
                    if(not self.area_constraints.emitModuleConstraintsVivado(constraintsTclFile, module.name, useSourcePath=False) is None):
                        # for platform modules, we need to insert the tcl environment.  
-                       #print "Generating AG for: " + module.name
-                       #if((not (self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None)) and moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_PAR_DEVICE_AG')):
-                       print "Including constraints for: " + module.name
+
                        constraintsTclFile.write('set IS_TOP_BUILD 0\n')
                        constraintsTclFile.write('set AG_OBJECT ' + module.name + '\n')
                        constraintsTclFile.write('set IS_AREA_GROUP_BUILD 1\n')

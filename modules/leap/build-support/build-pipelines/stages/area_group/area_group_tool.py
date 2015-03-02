@@ -105,7 +105,6 @@ class AreaConstraints():
             return 0
 
         d = self._distance(agOut, agIn)
-        print "Distance of " + agOut.name + "  " + agIn.name + " -> " + str(d) + " -> " + str(physical_platform_config.bufferDistance(d)) + " buffers"
         return physical_platform_config.bufferDistance(d)
 
     ##
@@ -240,8 +239,6 @@ class Floorplanner():
     def __init__(self, moduleList):
         self.pipeline_debug = model.getBuildPipelineDebug(moduleList)
 
-        print "FLOORPLANNER: beginning" 
-
         # if we have a deps build, don't do anything...
         if(moduleList.isDependsBuild):           
             return
@@ -269,8 +266,6 @@ class Floorplanner():
             liGraph.mergeModules(firstPassGraph.modules.values())
 
         self.firstPassLIGraph = liGraph
-
-        print "FLOORPLANNER: LI graph: " + str(liGraph) 
 
 
         # elaborate area group representation. This may be used in configuring later stages. 
@@ -759,9 +754,7 @@ class Floorplanner():
         else:
             moduleResources = li_module.assignResources(moduleList, None, self.firstPassLIGraph)
         
-        print "Elaborated: Beginning Area Group elaboration" 
-        
-        print "Resources are : " + str(moduleResources)  
+
         areaGroups = {}
         totalLUTs = 0
         # We should make a bunch of AreaGroups here. 
@@ -775,8 +768,6 @@ class Floorplanner():
             if(module in moduleResources):
                 if('LUT' in moduleResources[module]):
                     areaGroups[module] = AreaGroup(module, '')
-
-        print "Post LI Graph Area Groups: " + str(areaGroups)
 
         # now that we have the modules, let's apply constraints. 
 
@@ -870,7 +861,7 @@ class Floorplanner():
         # We've now built a tree of parent/child
         # relationships, which we can use to remove area from
         # the parent (double counting is a problem).
-        print "Resources are : " + str(moduleResources)  
+
         for areaGroup in areaGroups.values():
             for child in areaGroup.children.values():
 
@@ -908,10 +899,7 @@ class Floorplanner():
                     moduleObject = self.firstPassLIGraph.modules[areaGroupObject.name]
                     if(moduleObject.getAttribute('PLATFORM_MODULE') == True):
                         if(not 'SYNTH_BOUNDARY' in areaGroupObject.attributes): 
-                            print "Pruning area group: " + str(moduleObject.name) 
-                            print "Attributes: " + str(moduleObject.attributes)
                             del areaGroups[areaGroup]
         
 
-        print "Elaborated: " + str(areaGroups)
         return areaGroups

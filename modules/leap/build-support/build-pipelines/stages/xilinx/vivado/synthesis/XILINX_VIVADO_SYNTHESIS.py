@@ -35,8 +35,6 @@ class Synthesize():
         elabAreaConstraints = area_group_tool.AreaConstraints(moduleList)
         elabAreaConstraints.loadAreaConstraintsElaborated()
 
-        print "SYNTH: " + str(elabAreaConstraints)
-
         for userAreaGroup in elabAreaConstraints.constraints.values():
       
             if('SYNTH_BOUNDARY' in userAreaGroup.attributes):  
@@ -53,7 +51,6 @@ class Synthesize():
                  # flow earlier.
                  moduleVerilog = None
                  for dep in map(functools.partial(bsv_tool.modify_path_ba, moduleList), model.convertDependencies(moduleList.getAllDependenciesWithPaths('GEN_VERILOGS'))):
-                     print "Examining dep: " + dep
                      if (re.search(moduleName, dep)):
                          moduleVerilog = dep  
                       
@@ -65,8 +62,6 @@ class Synthesize():
                  moduleVerilogBlackBox = moduleVerilog.replace('.v', '_stub.v')
 
                  moduleDeps['GEN_VERILOG_STUB'] = [moduleVerilogBlackBox]
-
-                 print "BLACK_BOX: " + moduleVerilog + " -> " + moduleVerilogBlackBox
 
                  moduleList.env.Command([moduleVerilogBlackBox], [moduleVerilog],
                                         'leap-gen-black-box -nohash $SOURCE > $TARGET')

@@ -197,7 +197,6 @@ def dump_lim_graph(moduleList):
         if(module.getAttribute('LI_GRAPH_IGNORE')):
             continue
 
-        print "DUMP LOG: " + module.name
         # scrub tree build/platform, which are redundant.
         lim_logs.extend(module.getDependencies('BSV_LOG'))
         lim_stubs.extend(module.getDependencies('GEN_VERILOG_STUB'))
@@ -228,7 +227,6 @@ def dump_lim_graph(moduleList):
         for module in moduleList.synthBoundaries():
             modulePath = module.buildPath
 
-            print "MODULE_LIST: " + module.name
 
             # Wrap the real findBuildPath() so it can be invoked
             # later by map().
@@ -246,7 +244,6 @@ def dump_lim_graph(moduleList):
                 newModule.putAttribute('PLATFORM_MODULE', True)
                 newModule.putAttribute('BLACK_BOX_AREA_GROUP', True)
                 fullLIGraph.mergeModules([newModule])
-                print "Adding module " + module.name
 
             # the liGraph only knows about modules that actually
             # have connections some modules are vestigial, andso
