@@ -146,7 +146,6 @@ aurora_device=Aurora Device Wrapper Null
 File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc707/vc707-v7-pcie-dma.awb
 Packagehint=leap-platforms
 
-
 [Hardware FPGA Components for Virtex 7]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex7.awb
 Packagehint=leap-platforms
@@ -185,3 +184,6 @@ Packagehint=leap-platforms
 [VC707 DDR3 SDRAM (v1.7)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-vc707/ddr3-sdram-device.awb
 Packagehint=leap-platforms
+
+[BlueNoC PCIe Bridge/Params]
+BLUENOC_INSERT_IBUF=1
