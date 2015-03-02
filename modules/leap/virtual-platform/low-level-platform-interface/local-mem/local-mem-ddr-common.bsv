@@ -142,7 +142,8 @@ module [CONNECTED_MODULE] mkLocalMemDDRBankConnection#(Integer bankIdx)
     // Interface:
     (LOCAL_MEM_DDR_BANK);
 
-    String ddrName = "DRAM_Bank" + integerToString(bankIdx) + "_";
+    String platformName <- getSynthesisBoundaryPlatform();
+    String ddrName = "DRAM_Bank" + integerToString(bankIdx) + "_" + platformName + "_";
 
     CONNECTION_SEND#(FPGA_DDR_REQUEST) commandQ <-
         mkConnectionSend(ddrName + "command");
