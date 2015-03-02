@@ -193,7 +193,6 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     # Replace any known black boxes
     blackBoxDeps = []
     blackBoxes = module.getAttribute('BLACK_BOX')
-    print "SYNTHESIS BLACK_BOXES: " + str(blackBoxes)
     for vlog in sorted(verilogs):
         if(not blackBoxes is None):
             if(vlog in blackBoxes):
@@ -219,9 +218,6 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write('read_edif ' + relpath + '\n')
 
     annotationFiles, annotationDeps = generateSynthesisTcl(moduleList, module, vivadoCompileDirectory)
-
-    print "Annotation Deps: " + str(annotationDeps)
-    print "Annotation Files: " + str(map(str,annotationFiles))
 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
     # the out of context option instructs the tool not to place iobuf
@@ -404,6 +400,7 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
     srpFile = compile_dir.File(module.wrapperName() + '.srp')
     resourceFile = compile_dir.File(module.wrapperName() + '.resources')
 
+    # sorted(moduleList.getAllDependencies('VERILOG_LIB')) + sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))))))
 
     # Sort dependencies because SCons will rebuild if the order changes.
     sub_netlist = moduleList.env.Command(
@@ -447,9 +444,6 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 
     compile_dir = moduleList.env.Dir(moduleList.compileDirectory)
     vivadoCompileDirectory = compile_dir.Dir(module.wrapperName() + '_synth/')
-
-    print "Examining module " + str(module.name) 
-    print "Dependencies " + str(module.moduleDependency)
 
     if not os.path.isdir(str(vivadoCompileDirectory)):
        os.mkdir(str(vivadoCompileDirectory))
@@ -517,8 +511,11 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
 def buildXSTTopLevel(moduleList, firstPassGraph):
     compile_dir = moduleList.env.Dir(moduleList.compileDirectory)
 
+    BUILD_LOGS_ONLY = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')
+    
     # string together the xcf, sort of like the ucf                                                                                                          
-    # Concatenate UCF files                                                                                                                                  
+    # Concatenate UCF files     
+                                                                                                                             
     if('XCF' in moduleList.topModule.moduleDependency and len(moduleList.topModule.moduleDependency['XCF']) > 0):
         xilinx_xcf = moduleList.env.Command(
             compile_dir.File(moduleList.topModule.wrapperName() + '.xcf'),
@@ -571,10 +568,12 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
 
     SCons.Script.Clean(top_netlist, topSRP)
 
-    moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
-
-    return [top_netlist] + synth_deps
-
+    if(not BUILD_LOGS_ONLY):
+        moduleList.topModule.moduleDependency['SYNTHESIS'] = [top_netlist]
+        return [top_netlist] + synth_deps
+    else:
+        moduleList.topModule.moduleDependency['SYNTHESIS'] = synth_deps
+        return synth_deps
 
 def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
     # We load this graph in to memory several times. 
@@ -590,8 +589,6 @@ def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
     ngcModules = [module for module in moduleList.synthBoundaries() if not module.liIgnore] 
 
     [globalVerilogs, globalVHDs] = globalRTLs(moduleList, moduleList.moduleList)
-
-    print "Global VERILOG " + str(globalVerilogs)
 
     synth_deps = []
     # drop exiting boundaries. 

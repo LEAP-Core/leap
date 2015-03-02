@@ -81,8 +81,11 @@ class BSVSynthTreeBuilder():
         ## modules. Build tree has a few dependencies which must be
         ## captured.
         ##
-        env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-build-tree',
-                         must_exist = not moduleList.env.GetOption('clean'))
+
+        ## If we aren't building the build tree, don't bother with its dependencies
+        if not self.parent.BUILD_LOGS_ONLY: 
+            env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-build-tree',
+                             must_exist = not moduleList.env.GetOption('clean'))
         tree_base_path = env.Dir(get_build_path(moduleList, moduleList.topModule))
 
         tree_file_synth = tree_base_path.File('build_tree_synth.bsv')
@@ -267,6 +270,7 @@ class BSVSynthTreeBuilder():
                              [], moduleList.topModule.name, [], buildTreeDeps, platformModule=True)
 
         tree_module.putAttribute('LI_GRAPH_IGNORE', True)
+
         moduleList.insertModule(tree_module)    
         wrapper_gen_tool.generateAWBCompileWrapper(moduleList, tree_module)
 
@@ -402,7 +406,6 @@ class BSVSynthTreeBuilder():
                                          platform_synth_deps,
                                          platform_synth_command)
         # this produces a ba also?
-        #platform_synth_bo = env.BSC(platform_synth_bo_path, platform_synth)
         env.Depends(moduleList.topModule.moduleDependency['BSV_LOG'],
                         platform_synth_bo)
 
@@ -471,6 +474,21 @@ class BSVSynthTreeBuilder():
             wrapper_gen_tool.generateWellKnownIncludes(tree_file)
             tree_file.write('// import non-synthesis public files\n')
             tree_file.write('`include "build_tree_compile.bsv"\n')
+
+        #If we are only building logs, we don't really require the build tree. 
+        if(self.parent.BUILD_LOGS_ONLY):
+
+            wrapper_handle.write("\n\n(*synthesize*)\n")
+            wrapper_handle.write("module mk_build_tree_Wrapper (Reg#(Bit#(1)));\n")
+            wrapper_handle.write("    let m <- mkRegU();\n")
+            wrapper_handle.write("    return m;\n")
+            wrapper_handle.write("endmodule\n")
+
+            for tree_file in [wrapper_handle, synth_handle]:
+                tree_file.write("// Log build only.  This space intentionally left blank.\n")
+                tree_file.write("`endif\n")
+                tree_file.close()
+            return
 
         # include all the dependencies in the graph in the wrapper.
         for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):

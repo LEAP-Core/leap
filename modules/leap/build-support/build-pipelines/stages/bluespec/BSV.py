@@ -207,7 +207,7 @@ class BSV():
             # We need to calculate some dependencies for the build
             # tree.  We could be clever and put this code somewhere
             # rather than replicate it.
-            if self.USE_TREE_BUILD:
+            if self.USE_TREE_BUILD and not self.BUILD_LOGS_ONLY: 
 
                 buildTreeDeps = {}
                 buildTreeDeps['GEN_VERILOGS'] = []
@@ -570,6 +570,7 @@ class BSV():
             env.Precious(bld_v)
 
             if (moduleList.getAWBParam('bsv_tool', 'BUILD_VERILOG') == 1):
+
                 module.moduleDependency['VERILOG'] += [bld_v] + [ext_gen_v]
 
                 module.moduleDependency['GEN_WRAPPER_VERILOGS'] = [os.path.basename(module.wrapperName() + '.v')]

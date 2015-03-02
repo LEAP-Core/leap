@@ -181,7 +181,7 @@ class ModuleList:
 
     for module in self.synthBoundaries():
       # each module has a generated bsv
-      module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/mk_' + module.name + '_Wrapper.v'] + givenVerilogs
+      module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/' + module.wrapperName() + '.v'] + givenVerilogs
       module.moduleDependency['VERILOG_LIB'] = []
       module.moduleDependency['BA'] = []
       module.moduleDependency['BSV_LOG'] = []

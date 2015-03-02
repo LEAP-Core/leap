@@ -20,6 +20,8 @@ class Synthesize():
     if(moduleList.isDependsBuild):
         return
 
+    BUILD_LOGS_ONLY = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')
+
     # We load this graph in to memory several times. 
     # TODO: load this graph once. 
     self.firstPassLIGraph = getFirstPassLIGraph()
@@ -93,8 +95,11 @@ class Synthesize():
           'ulimit -s unlimited; xst -intstyle silent -ifn config/' + moduleList.topModule.wrapperName() + '.modified.xst -ofn ' + topSRP,
           '@echo xst ' + moduleList.topModule.wrapperName() + ' build complete.' ])    
 
-    synth_deps += top_netlist
+    if(not BUILD_LOGS_ONLY):
+        synth_deps += top_netlist
+
     moduleList.topModule.moduleDependency['SYNTHESIS'] = synth_deps
+   
 
     SCons.Script.Clean(top_netlist, topSRP)
 
