@@ -1,4 +1,4 @@
-# LEAP: [[http://www.leap-fpga.org/]]
+# LEAP: http://www.leap-fpga.org
 
 These are the core modules for the leap environment
 
