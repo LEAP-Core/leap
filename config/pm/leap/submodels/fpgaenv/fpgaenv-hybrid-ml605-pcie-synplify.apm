@@ -184,3 +184,6 @@ Packagehint=leap-platforms
 [DDR SDRAM Common Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
 Packagehint=leap-platforms
+
+[BlueNoC PCIe Bridge/Params]
+BLUENOC_INSERT_IBUF=1
