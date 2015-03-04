@@ -103,10 +103,6 @@ Packagehint=leap
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex6-generic.awb
 Packagehint=leap-platforms
 
-
-
-
-
 [ML605 Virtex-6 Platform with PCIe]
 File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/ml605/ml605-v6-pcie-dma.awb
 Packagehint=leap-platforms
@@ -183,3 +179,6 @@ Packagehint=leap-platforms
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
+
+[BlueNoC PCIe Bridge/Params]
+BLUENOC_INSERT_IBUF=1
