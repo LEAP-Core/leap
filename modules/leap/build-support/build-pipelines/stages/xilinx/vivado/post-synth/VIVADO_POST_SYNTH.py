@@ -164,11 +164,20 @@ class PostSynthesize():
         elabAreaConstraints = area_group_tool.AreaConstraints(moduleList)
         elabAreaConstraints.loadAreaConstraintsElaborated()
         #self.area_constraints = area_group_tool.AreaConstraints(moduleList)
-
-        for module in userModules:   
-            dcp = self.place_dcp(moduleList, module)
-            model.dictionary_list_create_append(module.moduleDependency, 'GEN_VIVADO_PLACEMENT_DCPS', dcp)
-            dcps.append(dcp)
+        for module in userModules:  
+            # Did we get a placed module already?
+            if((module.name in elabAreaConstraints.constraints) and ('LIBRARY_DCP' in elabAreaConstraints.constraints[module.name].attributes)):
+                # we need to locate the dcp corresponding to this area group. 
+                candidates = moduleList.getAllDependencies('GIVEN_VIVADO_DCPS')
+                for dcpCandidate in moduleList.getAllDependencies('GIVEN_VIVADO_DCPS'):                   
+                   if dcpCandidate.attributes['module'] == module.name:         
+                       dcp = str(model.modify_path_hw(dcpCandidate))
+                       model.dictionary_list_create_append(module.moduleDependency, 'GEN_VIVADO_PLACEMENT_DCPS', dcp)
+                       dcps.append(dcp)
+            else:
+                dcp = self.place_dcp(moduleList, module)
+                model.dictionary_list_create_append(module.moduleDependency, 'GEN_VIVADO_PLACEMENT_DCPS', dcp)
+                dcps.append(dcp)
 
         for module in [moduleList.topModule] + platformModules:   
             checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
