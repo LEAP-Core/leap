@@ -1,3 +1,9 @@
+leap (15.02+fixes~git70cf39dc196d2abbea5a7ff4d453005d5f56d405+trusty) trusty; urgency=medium
+
+  * Port of d28d2ca506dbfa91e5223248f2e286131d48188a, fixes build issue in hello for ml605.
+
+ -- Kermin E Fleming <kfleming@leap.csail.mit.edu>  Wed, 04 Mar 2015 12:27:57 -0500
+
 leap (15.02~git9e1d9a360c48116f0629d269454bc42177a01528+trusty) trusty; urgency=medium
 
   * Updated release metadata
