@@ -541,6 +541,12 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // First stage coming out of handleIncomingReq
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) processReqQ0 <- mkSizedFIFOF(4);
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, Bool)) processReqQ1 <- mkSizedFIFOF(8);
+    FIFOF#(Tuple5#(t_CACHE_REQ_BASE,
+                   t_CACHE_REQ,
+                   Bool,
+                   t_SET_METADATA,
+                   Maybe#(Tuple2#(t_CACHE_WAY_IDX, t_METADATA))))
+        processReqQ2 <- mkFIFOF();
 
     // Hit path for operations that read the cache (read and flush)
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK)) readHitQ <- mkSizedFIFOF(8);
@@ -552,7 +558,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // Fill for read path
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) fillLineRequestQ <- mkFIFOF();
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK)) fillLineQ <- mkSizedFIFOF(16);
-    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_WORD_VALID_MASK)) fillLineUncacheableQ <- mkFIFOF();
+    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_WORD_VALID_MASK)) fillLineUncacheableQ <- mkSizedFIFOF(8);
 
     // Write data to an allocated queue entry
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, RL_SA_CACHE_WRITE_REQ#(nWordsPerLine))) writeDataQ <- mkFIFOF();
@@ -567,7 +573,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     FIFOF#(Tuple5#(t_CACHE_REQ_BASE, RL_SA_CACHE_READ_REQ#(nWordsPerLine), t_CACHE_LINE, t_CACHE_WORD_VALID_MASK, Bool)) readRespToClientQ_OOO <- mkFIFOF();
 
     // Who asked for localData read?
-    FIFOF#(RL_SA_CACHE_META_CLIENT) metaClientQ <- mkFIFOF();
+    FIFOF#(RL_SA_CACHE_META_CLIENT) metaClientQ <- mkSizedFIFOF(8);
 
     // Invalidate and flush requests are always returned in the order they
     // were requested.
@@ -1008,6 +1014,26 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     endrule
 
 
+    //
+    // handleIncomingReq2 --
+    //     Receive a set's current metadata and see whether the line hit
+    //     in the cache.
+    //
+    rule handleIncomingReq2 (metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD);
+        match {.req_base_in, .req, .recent_matches} = processReqQ1.first();
+        processReqQ1.deq();
+
+        let meta <- localData.metaReadRsp();
+        metaClientQ.deq();
+
+        let tag = req_base_in.tag;
+        let set = req_base_in.set;
+
+        processReqQ2.enq(tuple5(req_base_in, req, recent_matches, meta,
+                                findWayMatch(tag, meta)));
+    endrule
+
+
     // ====================================================================
     //
     // Three stage path for invalidate or flush requests.  First stage
@@ -1033,14 +1059,9 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     in the cache.
     //
     (* conservative_implicit_conditions *)
-    rule handleInvalOrFlush (reqIsInvalOrFlush(tpl_2(processReqQ1.first())) &&
-                             (metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD));
-
-        match {.req_base_in, .req, .recent_matches} = processReqQ1.first();
-        processReqQ1.deq();
-
-        let meta <- localData.metaReadRsp();
-        metaClientQ.deq();
+    rule handleInvalOrFlush (reqIsInvalOrFlush(tpl_2(processReqQ2.first())));
+        match {.req_base_in, .req, .recent_matches, .meta, .m_match} = processReqQ2.first();
+        processReqQ2.deq();
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -1073,7 +1094,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         Bool found_dirty_line = False;
         let req_base_out = req_base_in;
 
-        if (findWayMatch(tag, meta) matches tagged Valid {.way, .way_meta})
+        if (m_match matches tagged Valid {.way, .way_meta})
         begin
             let meta_upd = meta;
 
@@ -1198,14 +1219,9 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     First unique stage of cache READ path.
     //
     (* conservative_implicit_conditions *)
-    rule handleRead (tpl_2(processReqQ1.first()) matches tagged HCOP_READ .rReq &&&
-                     metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD);
-
-        match {.req_base_in, .req, .recent_matches} = processReqQ1.first();
-        processReqQ1.deq();
-
-        let meta <- localData.metaReadRsp();
-        metaClientQ.deq();
+    rule handleRead (tpl_2(processReqQ2.first()) matches tagged HCOP_READ .rReq);
+        match {.req_base_in, .req, .recent_matches, .meta, .m_match} = processReqQ2.first();
+        processReqQ2.deq();
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -1215,7 +1231,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         Bool need_set_data = False;
         let req_base_out = req_base_in;
 
-        if (findWayMatch(tag, meta) matches tagged Valid {.way, .way_meta})
+        if (m_match matches tagged Valid {.way, .way_meta})
         begin
             //
             // Line hit!
@@ -1280,14 +1296,9 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     First unique stage of cache WRITE path.
     //
     (* conservative_implicit_conditions *)
-    rule handleWrite (tpl_2(processReqQ1.first()) matches tagged HCOP_WRITE .wReq &&&
-                      metaClientQ.first() == RL_SA_CACHE_META_CLIENT_STD);
-
-        match {.req_base_in, .req, .recent_matches} = processReqQ1.first();
-        processReqQ1.deq();
-
-        let meta <- localData.metaReadRsp();
-        metaClientQ.deq();
+    rule handleWrite (tpl_2(processReqQ2.first()) matches tagged HCOP_WRITE .wReq);
+        match {.req_base_in, .req, .recent_matches, .meta, .m_match} = processReqQ2.first();
+        processReqQ2.deq();
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -1306,7 +1317,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         cacheIsEmpty <= False;
         let req_base_out = req_base_in;
 
-        if (findWayMatch(tag, meta) matches tagged Valid {.way, .way_meta})
+        if (m_match matches tagged Valid {.way, .way_meta})
         begin
             //
             // Line hit!
@@ -1686,7 +1697,6 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     marked invalid.
     //
     rule fixupUncacheableFillForRead (metaClientQ.first() == RL_SA_CACHE_META_CLIENT_UNCACHEABLE);
-
         match {.req_base, .old_word_valid_mask} = fillLineUncacheableQ.first();
         fillLineUncacheableQ.deq();
 
@@ -1754,6 +1764,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     ds_data = List::cons(tuple2("SA Cache writeDataQNotFull", writeDataQ.notFull), ds_data);
     ds_data = List::cons(tuple2("SA Cache processReqQ0NotEmpty", processReqQ0.notEmpty), ds_data);
     ds_data = List::cons(tuple2("SA Cache processReqQ1NotEmpty", processReqQ1.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA Cache processReqQ2NotEmpty", processReqQ2.notEmpty), ds_data);
 
     ds_data = List::cons(tuple2("SA Cache readHitQNotEmpty", readHitQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("SA Cache lineMissQNotEmpty", lineMissQ.notEmpty), ds_data);
