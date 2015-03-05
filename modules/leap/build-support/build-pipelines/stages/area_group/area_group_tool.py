@@ -13,7 +13,7 @@ import wrapper_gen_tool
 
 # we only get physical platform definitions in physical builds
 try:
-    import physical_platform_config
+    import physical_platform_utils
 except ImportError:
     pass
 
@@ -96,16 +96,17 @@ class AreaConstraints():
         return _areaConstraintsFile(self.moduleList)
 
     ##
-    ## numIOBufs --
+    ## numLIChannelBufs --
     ##   Compute the number of I/O buffers required for a path between two
     ##   area groups.
     ##
-    def numIOBufs(self, agOut, agIn):
+    def numLIChannelBufs(self, agOut, agIn):
         if (not self.enableBufferInsertion or not self.enabled):
             return 0
 
-        d = self._distance(agOut, agIn)
-        return physical_platform_config.bufferDistance(d)
+        dist = self._distance(agOut, agIn)
+        freq = self.moduleList.getAWBParam('clocks_device', 'MODEL_CLOCK_FREQ')
+        return physical_platform_utils.numBuffersForDistance(dist, freq)
 
     ##
     ## _distance --

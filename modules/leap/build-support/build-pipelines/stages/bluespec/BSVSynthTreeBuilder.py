@@ -803,8 +803,8 @@ class BSVSynthTreeBuilder():
                         if (pipeline_debug != 0):
                             print "Channel (" + c_out.name + ") " + c_out.root_module_name + " -> " + c_in.root_module_name + ": " + c_out.module_name + " -> " + c_in.module_name
                         area_groups = area_constraints.constraints
-                        n_buf = area_constraints.numIOBufs(area_groups[c_out.root_module_name],
-                                                           area_groups[c_in.root_module_name])
+                        n_buf = area_constraints.numLIChannelBufs(area_groups[c_out.root_module_name],
+                                                                  area_groups[c_in.root_module_name])
 
                     module_body += "    connectOutToIn(" + c_out.module_name + ".outgoing[" + str(c_out.module_idx) + "], " +\
                                    c_in.module_name + ".incoming[" + str(c_in.module_idx) + "], " +\
@@ -828,8 +828,8 @@ class BSVSynthTreeBuilder():
                             print "Chain (" + chain.name + ") " + chain.chain_root_out + " -> " + partnerChain.chain_root_in + ": " + chain.module_name + " -> " + partnerChain.module_name
 
                         area_groups = area_constraints.constraints
-                        n_buf = area_constraints.numIOBufs(area_groups[chain.chain_root_out],
-                                                           area_groups[partnerChain.chain_root_in])
+                        n_buf = area_constraints.numLIChannelBufs(area_groups[chain.chain_root_out],
+                                                                  area_groups[partnerChain.chain_root_in])
 
                     module_body += "    connectOutToIn(" + chain.module_name + ".chains[" + str(chain.module_idx) + "].outgoing, " +\
                                    partnerChain.module_name + ".chains[" + str(partnerChain.module_idx) + "].incoming, " +\
