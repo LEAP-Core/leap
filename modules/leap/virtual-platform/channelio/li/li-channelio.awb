@@ -17,6 +17,6 @@
 %sources -t CPP -v PRIVATE  li-channelio-routethrough.cpp
 
 
-%library libtbb.so
+%syslibrary tbb
 
 
