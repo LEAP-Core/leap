@@ -56,16 +56,19 @@ proc executeSynthConstraints { constraintsFunction objectName} {
 
 # This is just an estimate used for the early stages of synthesis and place and
 # route.  For the final place and route, it cannot be used.
-proc annotateModelClock {} {
+proc annotateModelClockHelper { clk } {
     # get an estimate of the model clock frequency
-    if { [llength [get_ports CLK]] } {
+    if { [llength [get_ports $clk]] } {
         set model_clock_freq [getAWBParams {"clocks_device" "MODEL_CLOCK_FREQ"}]
         set model_clock_period [expr double(1)/$model_clock_freq*1000]
-        create_clock -name model_clock -period $model_clock_period [get_ports CLK]
+        create_clock -name model_clock -period $model_clock_period [get_ports $clk]
         puts "Calling create clock.\n" 
     }
 }
 
+proc annotateModelClock {} {
+    annotateModelClockHelper CLK
+}
 
 proc annotateCLK_SRC {} {
 
@@ -75,4 +78,13 @@ proc annotateCLK_SRC {} {
     #  may already have CLK_SRC set.
     set_property -quiet HD.CLK_SRC $MODEL_CLK_BUFG [get_ports CLK]
     
+}
+
+##
+## Function to find clock pins.
+##
+proc bindClockPin {clock_pin clock_wire} {
+    set_property VCCAUX_IO DONTCARE $clock_wire
+    #set_property IOSTANDARD DIFF_SSTL15 $clock_wire
+    set_property PACKAGE_PIN $clock_pin $clock_wire
 }
