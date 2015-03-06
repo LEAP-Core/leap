@@ -521,6 +521,7 @@ class PostSynthesize():
                if(not 'MODULE_NAME' in self.area_constraints.constraints[module.name].attributes):
                    self.area_constraints.constraints[module.name].attributes['MODULE_NAME'] = refName 
    
+               self.area_constraints.constraints[module.name].attributes['SHARE_PLACEMENT'] = True 
                agFile = open(agTcl,'w')
                self.area_constraints.emitModuleConstraintsVivado(agFile, module.name, useSourcePath=True)
                agFile.close()
