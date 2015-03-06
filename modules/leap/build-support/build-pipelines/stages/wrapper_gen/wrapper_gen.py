@@ -15,10 +15,12 @@ from wrapper_gen_tool.prim import *
 from wrapper_gen_tool.struct import *
 from wrapper_gen_tool.vector import *
  
+# we only get physical platform definitions in physical builds
 try:
-    import area_group_tool
+    import physical_platform_utils
 except ImportError:
-    pass # we won't be using this tool.
+    pass
+
 
 # Scons really, really wants dependencies to be ordered. 
 def generateWellKnownIncludes(fileHandle):
@@ -349,19 +351,24 @@ def _emitSynthModule(liModule,
         if (ch_suffix != ''):
             connection = connection + '.' + ch_suffix
 
+        n_buf = 0
+
         # Is the platform area group being managed?
         if (platform_ag is not None):
             # These connections will be attached to the platform.  If the wires
             # are long then insert buffers in the path.
-            n_buf = areaConstraints.numIOBufs(areaConstraints.constraints[root_name],
-                                              platform_ag)
-            if (n_buf > 0):
-                tmpName = 'buf_' + ch_src + '_' + ch_suffix + '_' + str(ch_idx)
-                synthHandle.write('    let ' + tmpName + ' <- ' +\
-                                  'mkBufferedConnection' + ch_dir + '(' +\
-                                  connection + ', ' + str(n_buf) + ');\n')
-                # Expose the buffered connection
-                connection = tmpName
+            n_buf = areaConstraints.numLIChannelBufs(areaConstraints.constraints[root_name],
+                                                     platform_ag)
+        elif (areaConstraints is not None):
+            n_buf = physical_platform_utils.numPlatformLIChannelBufs(areaConstraints.constraints[root_name])
+
+        if (n_buf > 0):
+            tmpName = 'buf_' + ch_src + '_' + ch_suffix + '_' + str(ch_idx)
+            synthHandle.write('    let ' + tmpName + ' <- ' +\
+                              'mkBufferedConnection' + ch_dir + '(' +\
+                              connection + ', ' + str(n_buf) + ');\n')
+            # Expose the buffered connection
+            connection = tmpName
 
         return connection
 
