@@ -199,8 +199,14 @@ class AreaConstraints():
         slice_UpperRightY = int(areaGroupObject.yLoc + areaGroupObject.yDimension) - haloCells
 
         constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
+
         if(useSourcePath):
-            constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+            # Look for source path first, then look for REF_NAME.
+            constraintsFile.write('if { [llength [get_cells -hier -filter {REF_NAME =~ "' + areaGroupObject.attributes['MODULE_NAME'] + '"}]] } {\n')
+            constraintsFile.write('    add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {REF_NAME =~ "' + areaGroupObject.attributes['MODULE_NAME'] + '"}]\n')
+            constraintsFile.write('} else {\n')
+            constraintsFile.write('    add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+            constraintsFile.write('}\n')
         else:
             constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ *}]\n')
 
@@ -745,8 +751,8 @@ class Floorplanner():
     ##
     def elaborateAreaConstraints(self, moduleList):
 
-        extraAreaFactor = 1.3               
-        extraAreaOffset = 150.0
+        extraAreaFactor = 1.35               
+        extraAreaOffset = 250.0
  
         moduleResources = {}
         if(self.firstPassLIGraph is None):
@@ -767,8 +773,7 @@ class Floorplanner():
             # fill those in later?
             if(module in moduleResources):
                 if('LUT' in moduleResources[module]):
-                    areaGroups[module] = AreaGroup(module, '')
-
+                    areaGroups[module] = AreaGroup(module, '') 
         # now that we have the modules, let's apply constraints. 
 
         # Grab area groups declared/defined in the agrp file supplied by the user. 

@@ -64,6 +64,8 @@ class PostSynthesize():
     if(len(moduleList.getAllDependencies('GIVEN_XILINX_ELFS')) > 0):
         self.tcl_elfs = moduleList.getAllDependencies('GIVEN_XILINX_ELFS')
 
+    self.tcl_ag = []
+
     #Emit area group definitions
     # If we got an area group placement data structure, now is the
     # time to convert it into a new constraint tcl. 
@@ -244,6 +246,10 @@ class PostSynthesize():
                     checkpointCommands.append('if { [llength [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]] } {\n')            
                     checkpointCommands.append('    puts "Locking ' + refName + '"\n')
                     if (lockRoute):
+                        # locking routing requires us to emit an area group. boo. 
+                        ag_tcl = self.ag_constraints(moduleList, module)
+                        self.tcl_ag.append(ag_tcl)
+                        checkpointCommands.append('    source ' + str(ag_tcl) + '\n')
                         checkpointCommands.append('    lock_design -level routing [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]\n')            
                     elif (lockPlacement):
                         checkpointCommands.append('    lock_design -level placement [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]\n')            
@@ -339,7 +345,7 @@ class PostSynthesize():
     # generate bitfile
     xilinx_bit = moduleList.env.Command(
       apm_name + '_par.bit',
-      synthDeps + self.tcl_algs + self.tcl_defs + self.tcl_funcs + [self.paramTclFile] + dcps + [postSynthTcl], 
+      synthDeps + self.tcl_algs + self.tcl_defs + self.tcl_funcs + self.tcl_ag + [self.paramTclFile] + dcps + [postSynthTcl], 
       ['vivado -verbose -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
 
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']
@@ -490,12 +496,44 @@ class PostSynthesize():
           )
 
 
-      # generate bitfile
+      # generate checkpoint
       return moduleList.env.Command(
           [dcp],
           [checkpoint] + [edfTcl, constraintsTcl]  +  self.tcl_headers + self.tcl_algs + self.tcl_defs + self.tcl_funcs, 
           ['cd ' + placeCompileDirectory + ';vivado -mode batch -source ' + module.name + ".place.tcl" + ' -log ' + module.name + '.place.log'])
 
+
+  def ag_constraints(self, moduleList, module):
+
+      # Due to area groups,  we first need a closure to generate tcl. 
+      agCompileDirectory = moduleList.compileDirectory + '/' 
+      agTcl = agCompileDirectory + module.name + ".ag.tcl"
+      refName = module.wrapperName()
+
+      def ag_tcl_closure(moduleList):
+
+           def ag_tcl(target, source, env):
+
+               # TODO: Eventually, we'll need to examine the contstraints to decide if we need to rebuild.
+
+               self.area_constraints.loadAreaConstraints()
+               # give our area constraint is a MODULE_NAME, if it doesn't have one. 
+               if(not 'MODULE_NAME' in self.area_constraints.constraints[module.name].attributes):
+                   self.area_constraints.constraints[module.name].attributes['MODULE_NAME'] = refName 
+   
+               agFile = open(agTcl,'w')
+               self.area_constraints.emitModuleConstraintsVivado(agFile, module.name, useSourcePath=True)
+               agFile.close()
+
+           return ag_tcl
+ 
+      moduleList.env.Command(
+          [agTcl],
+          [self.area_constraints.areaConstraintsFile()],
+          ag_tcl_closure(moduleList)
+          )
+     
+      return agTcl
 
 
 
