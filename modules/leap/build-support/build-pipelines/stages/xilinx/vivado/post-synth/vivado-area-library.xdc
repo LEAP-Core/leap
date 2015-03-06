@@ -8,10 +8,10 @@
 ##                            * * * * * * * * * *
 
 
-proc dumpPBlockUtilization {suffix} {
+proc dumpPBlockUtilization {prefix} {
     set pblocks [get_pblocks]
     foreach pblock $pblocks {
-        report_utilization -file "$pblock.$suffix" -pblock $pblock
+        report_utilization -file "$prefix.$pblock" -pblock $pblock
     }
 }
 
