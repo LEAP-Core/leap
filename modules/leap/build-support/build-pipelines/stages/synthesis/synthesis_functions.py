@@ -135,25 +135,25 @@ def generateSynthesisTcl(moduleList, module, compileDirectory):
     synthAnnotationsTclFile.write('set SYNTH_OBJECT ' + module.name + '\n')
 
     tclSynth = []
-    if (module.platformModule or 'AREA_GROUP' not in module.attributes):        
-        if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLSYNTHESISS')) > 0):
-            tclSynth = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLSYNTHESISS'))
-            clockDeps += tclSynth
-            relpathCurry = functools.partial(os.path.relpath, start = str(compileDirectory))
-            tclSynth = map(relpathCurry, tclSynth)   
-
+    #if (module.platformModule or 'AREA_GROUP' not in module.attributes):        
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
+        tclSynth = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
+        clockDeps += tclSynth
+        relpathCurry = functools.partial(os.path.relpath, start = str(compileDirectory))
+        tclSynth = map(relpathCurry, tclSynth)   
+    
     tclParams= []
     if(len(moduleList.getAllDependencies('PARAM_TCL')) > 0):
         tclParams = moduleList.getAllDependencies('PARAM_TCL')
 
     # Add in other synthesis algorithms
     tclHeaders = []
-    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLHEADERS')) > 0):
-        tclHeaders = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLHEADERS'))
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS')) > 0):
+        tclHeaders = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_HEADERS'))
 
     tclFuncs = []
-    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLFUNCTIONS')) > 0):
-        tclFuncs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCLFUNCTIONS')) 
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) > 0):
+        tclFuncs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_FUNCTIONS')) 
 
     for tclParam in tclParams:
          #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_param, str(vivadoCompileDirectory)) + '\n')
@@ -173,6 +173,9 @@ def generateSynthesisTcl(moduleList, module, compileDirectory):
         synthAnnotationsTclFile.write("source " + file + "\n")
 
     synthAnnotationsTclFile.write('annotateModelClock\n')
+
+    # we need some synthesis algorithms... 
+
     synthAnnotationsTclFile.close()
 
     return annotationFiles, tclFuncs + tclHeaders + tclParams + clockDeps
@@ -203,7 +206,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
        
     for vhd in sorted(globalVHDs):
         if(isinstance(vhd, model.Source.Source)):            
-            # Just got a string
+            # Got a source object, potentially more work to do.
             relpath = model.rel_if_not_abspath(vhd.file, str(vivadoCompileDirectory))
             lib = 'work'
             if('lib' in vhd.attributes):
@@ -234,8 +237,10 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
 
     for file in annotationFiles:
         newTclFile.write("add_files " + file + "\n")
-        newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
-
+        if(module.getAttribute('TOP_MODULE') is None):
+            newTclFile.write("set_property USED_IN {synthesis implementation out_of_context} [get_files " + file + "]\n")
+        else:
+            newTclFile.write("set_property USED_IN {synthesis implementation} [get_files " + file + "]\n")
 
     if(module.getAttribute('TOP_MODULE') is None):
         newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
@@ -245,7 +250,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
 
     newTclFile.write("all_clocks\n")
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
-
+    
 
     # We should do opt_design here because it will be faster in
     # parallel.  However, opt_design seems to cause downstream
@@ -255,8 +260,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
 
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.opt.util\n")
     newTclFile.write("write_checkpoint -force " + module.wrapperName() + ".synth.dcp\n")
-    newTclFile.write("write_edif -force " + module.wrapperName() + ".edf\n")
-
+    newTclFile.write("close_project -quiet\n")
     newTclFile.close()
     return [prjPath] + blackBoxDeps + annotationDeps
 
@@ -475,7 +479,7 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
         [ SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '.synth.opt.util')),
           SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '_xst.xrpt')),
-          'cd ' + vivadoCompileDirectory.path + '; vivado -nojournal -mode batch -source ' + module.wrapperName() + '.synthesis.tcl > ' + logFile,
+          'cd ' + vivadoCompileDirectory.path + '; vivado -nojournal -mode batch -source ' + module.wrapperName() + '.synthesis.tcl 2>&1 > ' + logFile,
           '@echo vivado synthesis ' + module.wrapperName() + ' build complete.' ])
 
     utilFile = moduleList.env.Command(resourceFile,
