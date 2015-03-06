@@ -118,8 +118,8 @@ class Verilog():
         vexe_gen_command += ' -Xv -CFLAGS -Xv -I' + path
 
     for lib in moduleList.swLinkLibs:
-        vexe_gen_command += ' -Xl ' + lib + ' '
-        vexe_gen_command += ' -Xv -LDFLAGS -Xv ' + lib + ' '
+        vexe_gen_command += ' -Xl -l' + lib + ' '
+        vexe_gen_command += ' -Xv -LDFLAGS -Xv -l' + lib + ' '
 
     # construct full path to BAs
     def modify_path(str):
