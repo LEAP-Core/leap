@@ -127,7 +127,7 @@ class PostSynthesize():
 
     topWrapper = moduleList.topModule.wrapperName()
 
-    newTclFile = open(postSynthTcl,'w')
+    newTclFile = open(postSynthTcl, 'w')
     newTclFile.write('create_project -force ' + moduleList.apmName + ' ' + moduleList.compileDirectory + ' -part ' + self.part + ' \n')
 
     # To resolve black boxes, we need to load checkpoints in the
@@ -304,39 +304,32 @@ class PostSynthesize():
     for tcl_alg in self.tcl_algs:
         newTclFile.write('source ' + tcl_alg + '\n')
 
-    newTclFile.write("report_timing_summary -file " + apm_name + ".map.twr\n")
+    def dumpPBlockCmd(tgt):
+        return 'dumpPBlockUtilization "' + moduleList.compileDirectory + '/' + tgt + '.util"\n'
 
-    newTclFile.write('dumpPBlockUtilization "link.util"\n')
+    newTclFile.write(dumpPBlockCmd('link'))
+    newTclFile.write("report_timing_summary -file " + apm_name + ".map.twr\n\n")
 
-    newTclFile.write("opt_design\n")
-
+    newTclFile.write("opt_design -directive AddRemap\n")
     newTclFile.write("report_utilization -file " + apm_name + ".opt.util\n")
+    newTclFile.write(dumpPBlockCmd('opt'))
+    newTclFile.write("write_checkpoint -force " + apm_name + ".opt.dcp\n\n")
 
-    newTclFile.write('dumpPBlockUtilization "opt.util"\n')
+    newTclFile.write("place_design -no_drc -directive WLDrivenBlockPlacement\n")
+    newTclFile.write(dumpPBlockCmd('place'))
 
-    newTclFile.write("write_checkpoint -force " + apm_name + ".opt.dcp\n")
-
-    newTclFile.write("place_design -no_drc\n")
-
-    newTclFile.write('dumpPBlockUtilization "place.util"\n')
-
-    newTclFile.write("phys_opt_design\n")
-
+    newTclFile.write("phys_opt_design -directive AggressiveFanoutOpt\n")
     newTclFile.write("write_checkpoint -force " + apm_name + ".map.dcp\n")
-
-    newTclFile.write("report_utilization -file " + apm_name + ".map.util\n")
-    newTclFile.write('dumpPBlockUtilization "phyopt.util"\n')
+    newTclFile.write(dumpPBlockCmd('phyopt'))
+    newTclFile.write("report_utilization -file " + apm_name + ".map.util\n\n")
 
     newTclFile.write("route_design\n")
-
     newTclFile.write("write_checkpoint -force " + apm_name + ".par.dcp\n")
-
-    newTclFile.write("report_timing_summary -file " + apm_name + ".par.twr\n")
+    newTclFile.write(dumpPBlockCmd('par'))
+    newTclFile.write("report_timing_summary -file " + apm_name + ".par.twr\n\n")
 
     newTclFile.write("report_utilization -hierarchical -file " + apm_name + ".par.util\n")
-    newTclFile.write('dumpPBlockUtilization "par.util"\n')
-
-    newTclFile.write("report_drc -file " + topWrapper + ".drc\n")
+    newTclFile.write("report_drc -file " + topWrapper + ".drc\n\n")
  
     newTclFile.write("write_bitstream -force " + apm_name + "_par.bit\n")
 
