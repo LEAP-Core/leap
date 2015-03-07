@@ -705,7 +705,11 @@ class Floorplanner():
              # fill in the new area group structure with previously placed area groups. 
              for areaGroupName in areaGroups:
                  areaGroupObject = areaGroups[areaGroupName]
-                 if(not areaGroupObject.xLoc is None):
+
+                 # Some groups are treated specially
+                 self.setSpecialPosition(areaGroupName, areaGroups)
+
+                 if (not areaGroupObject.xLoc is None):
                      areaGroupsPartial[areaGroupName] = copy.deepcopy(areaGroupObject)
                  else:
                      unplacedGroups += [copy.deepcopy(areaGroupObject)]
@@ -720,35 +724,79 @@ class Floorplanner():
              while(len(unplacedGroups) > 0):
                  name = ""
                  for i in range(modulesAtATime):
-                     if(len(unplacedGroups) > 0):
+                     if (len(unplacedGroups) > 0):
                          group = unplacedGroups.pop()
                          areaGroupsPartial[group.name] = group 
                          name += group.name + "_"
 
                  modFile = fileprefix + name + '_areaGroup.mod'
                  modHandle = open(modFile,'w')
-                 
+
                  variables = self.dumpILPRosen(modHandle, areaGroupsPartial)
 
                  modHandle.close()
        
                  solvedILP = self.solveILPProblem(modFile, areaGroupsPartial, variables)
-                 if(not solvedILP):
+                 if (not solvedILP):
                      break
                  
-             if(solvedILP):
+             if (solvedILP):
                  return areaGroupsPartial
 
          return None        
+
+
+    ##
+    ## Some area groups get special positions that are hand coded.  This
+    ## is handled here.
+    ##
+    def setSpecialPosition(self, areaGroupName, areaGroups):
+        special_ag = areaGroups[areaGroupName]
+
+        # Does the area group already have an allocated region?
+        if (special_ag.xLoc):
+            return
+
+        # Special case the central cache for now, until area group
+        # affinity is set by connections.
+        if (areaGroupName == 'central_cache_service'):
+            # Find the memory controller.  If found put the central cache
+            # next to memory.
+            if ('ddr3' in areaGroups):
+                mem_ag = areaGroups['ddr3']
+                if (mem_ag.xLoc):
+                    # Make central cache the same height and to the left of
+                    # the memory controller.
+                    area = self.withExtraArea(special_ag.area)
+                    x_dim = math.ceil(area / mem_ag.yDimension)
+                    if (int(x_dim) & 1): x_dim += 1
+                    x_loc = int(mem_ag.xLoc - x_dim) - 1
+                    if (x_loc & 1 == 0): x_loc -= 1
+
+                    # Does it fit?
+                    if (x_loc < 0):
+                        return
+
+                    special_ag.xLoc = x_loc
+                    special_ag.xDimension = x_dim
+                    special_ag.yLoc = mem_ag.yLoc
+                    special_ag.yDimension = mem_ag.yDimension
+
+
+    ##
+    ## Add a fudge factor to pad area requests.
+    ##
+    def withExtraArea(self, area):
+        extraAreaFactor = 1.3               
+        extraAreaOffset = 150.0
+ 
+        return extraAreaFactor * area + extraAreaOffset
+
 
     ##
     ## Elaborate Area Constraints from information in the system
     ##
     def elaborateAreaConstraints(self, moduleList):
-
-        extraAreaFactor = 1.3               
-        extraAreaOffset = 150.0
- 
         moduleResources = {}
         if(self.firstPassLIGraph is None):
             moduleResources = li_module.assignResources(moduleList)
@@ -887,7 +935,7 @@ class Floorplanner():
                 areaGroupObject.xDimension = []
                 areaGroupObject.yDimension = []  
 
-                moduleRoot = math.sqrt(extraAreaFactor * areaGroupObject.area + extraAreaOffset)
+                moduleRoot = math.sqrt(self.withExtraArea(areaGroupObject.area))
                 for coef in affineCoefs:
                     areaGroupObject.xDimension.append(coef*moduleRoot)
                     areaGroupObject.yDimension.append(moduleRoot/coef)
