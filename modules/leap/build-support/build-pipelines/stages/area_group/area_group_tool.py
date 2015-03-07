@@ -2,6 +2,7 @@ import math
 import cPickle as pickle
 import os
 import copy
+import traceback
 
 import tsp
 import area_group_parser 
@@ -219,11 +220,15 @@ class AreaConstraints():
         constraintsFile.write('set_property   gridtypes {RAMB36 RAMB18 DSP48 SLICE} [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
        
-        if(self.routeAG):
+        if(self.routeAG and not 'SHARE_ROUTING' in areaGroupObject.attributes):
             constraintsFile.write('set_property CONTAIN_ROUTING true [get_pblocks AG_' + areaGroupObject.name + ']\n')
         else:
             constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
-        constraintsFile.write('set_property EXCLUDE_PLACEMENT true   [get_pblocks AG_' + areaGroupObject.name + ']\n')
+
+        if('SHARE_PLACEMENT' in areaGroupObject.attributes):
+            constraintsFile.write('set_property EXCLUDE_PLACEMENT false   [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        else:
+            constraintsFile.write('set_property EXCLUDE_PLACEMENT true   [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
         constraintsFile.write('endgroup \n')
         return True
@@ -752,7 +757,7 @@ class Floorplanner():
     ##
     def elaborateAreaConstraints(self, moduleList):
 
-        extraAreaFactor = 1.35               
+        extraAreaFactor = 1.3               
         extraAreaOffset = 250.0
  
         moduleResources = {}

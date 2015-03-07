@@ -240,8 +240,8 @@ class PostSynthesize():
                     # If this is an platform/user-defined area group, the wrapper name may be different.
                     if (not self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None):
                         refName = elabAreaConstraints.constraints[module.name].attributes['MODULE_NAME']
-                        lockPlacement = not ('NO_PLACE' in elabAreaConstraints.constraints[module.name].attributes)
-                        lockRoute = not ('NO_ROUTE' in elabAreaConstraints.constraints[module.name].attributes)
+                        lockPlacement = not ('NO_PLACE' in elabAreaConstraints.constraints[module.name].attributes) and lockPlacement
+                        lockRoute = not ('NO_ROUTE' in elabAreaConstraints.constraints[module.name].attributes) and lockRoute
 
                     checkpointCommands.append('if { [llength [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]] } {\n')            
                     checkpointCommands.append('    puts "Locking ' + refName + '"\n')
