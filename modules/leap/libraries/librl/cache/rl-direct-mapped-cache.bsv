@@ -336,7 +336,6 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     Reg#(RL_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(RL_DM_PREFETCH_DISABLE);
     
     // Cache data and tag
-    // BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized(tagged Invalid);
     BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
     
     if (`RL_DM_CACHE_BRAM_TYPE == 0)
@@ -363,17 +362,20 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     FIFOF#(t_CACHE_REQ) newReqQ <- mkFIFOF();
 
     // Pipelines
-    // FIFO#(t_CACHE_REQ) cacheLookupQ <- mkFIFO();
-    FIFO#(t_CACHE_REQ) cacheLookupQ = ?;
-    if(`RL_DM_CACHE_BRAM_TYPE == 1)
+    FIFOF#(Maybe#(t_CACHE_REQ)) cacheLookupQ = ?;
+    if (`RL_DM_CACHE_BRAM_TYPE == 0)
     begin
-        cacheLookupQ <- mkSizedFIFO(4);
+        cacheLookupQ <- mkFIFOF();
     end
     else
     begin
-        cacheLookupQ <- mkFIFO();
+        cacheLookupQ <- mkSizedFIFOF(4);
     end
     
+    // Wires for managing cacheLookupQ
+    RWire#(t_CACHE_REQ) newCacheLookupW <- mkRWire();
+    PulseWire newCacheLookupValidW <- mkPulseWire();
+
     FIFO#(t_CACHE_REQ) fillReqQ <- mkFIFO();
     FIFO#(t_CACHE_REQ) invalQ <- mkFIFO();
 
@@ -507,9 +509,19 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     //     request is tested by the expensive entryFilter.
     // 
     (* fire_when_enabled *)
-    rule pickReqQueue1 (True);
+    rule pickReqQueue1 (cacheLookupQ.notFull);
         match {.req_type, .r} = pickReq;
+        let idx = cacheIdx(r);
         
+        // At this point the cache index is known but it is not yet known
+        // whether it is legal to read the index this cycle.  Delaying the
+        // cache read any longer is an FPGA timing bottleneck.  We request
+        // the read speculatively now and will indicate in cacheLookupQ
+        // whether the speculative read must be drained.  Nothing else
+        // would have been done this cycle, so we lose no performance.
+        cache.readReq(idx);
+        newCacheLookupW.wset(r);
+
         // In order to preserve read/write and write/write order, the
         // request must either come from the side buffer or be a new request
         // referencing a line not already in the side buffer.
@@ -517,9 +529,9 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         // The array sideReqFilter tracks lines active in the side request
         // queue.
         if ((req_type == DM_CACHE_SIDE_REQ) ||
-            (sideReqFilter.sub(resize(cacheIdx(r))) == 0))
+            (sideReqFilter.sub(resize(idx)) == 0))
         begin
-            curReq <= tuple3(req_type, r, entryFilter.test(cacheIdx(r)));
+            curReq <= tuple3(req_type, r, entryFilter.test(idx));
         end
         else
         begin
@@ -537,17 +549,14 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         match {.req_type, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
 
+        // The new request is permitted.  Do it.
+        newCacheLookupValidW.send();
         entryFilter.set(filter_state);
 
         debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
                                 req_type == DM_CACHE_NEW_REQ ? "startNewReq" : 
                                 ( req_type == DM_CACHE_SIDE_REQ ? "startSideReq" :
                                   "startPrefetchReq" ), r.addr, idx));
-
-        // Read the entry either to return the value (READ) or to see whether
-        // the entry is dirty and flush it.
-        cache.readReq(idx);
-        cacheLookupQ.enq(r);
 
         if (req_type == DM_CACHE_NEW_REQ)
         begin
@@ -563,6 +572,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             let pf_req <- prefetcher.getReq();
         end
     endrule
+
 
     //
     // shuntNewReq --
@@ -594,16 +604,47 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             prefetcher.shuntNewCacheReq(idx, r.addr);
         end
     endrule
-    
+
+
     //
     // For collecting prefetch stats
     //
     (* fire_when_enabled *)
-    rule dropPrefetchReqByBusy ( tpl_1(curReq) == DM_CACHE_PREFETCH_REQ && 
-                                 !isValid(tpl_3(curReq)) );
+    rule dropPrefetchReqByBusy (tpl_1(curReq) == DM_CACHE_PREFETCH_REQ && 
+                                !isValid(tpl_3(curReq)) );
         let pf_req <- prefetcher.getReq();
         debugLog.record($format("    Prefetch req dropped by busy: addr=0x%x", tpl_2(curReq).addr));
         prefetcher.prefetchDroppedByBusy(tpl_2(curReq).addr);
+    endrule
+
+
+    //
+    // Write cacheLookupQ to indicate whether a new request was started
+    // this cycle.
+    //
+    (* fire_when_enabled *)
+    rule didLookup (newCacheLookupW.wget() matches tagged Valid .r);
+        // Was a valid new request started?
+        if (newCacheLookupValidW)
+        begin
+            cacheLookupQ.enq(tagged Valid r);
+        end
+        else
+        begin
+            cacheLookupQ.enq(tagged Invalid);
+        end
+    endrule
+
+
+    // ====================================================================
+    //
+    // Drain (failed speculative read)
+    //
+    // ====================================================================
+
+    rule drainRead (! isValid(cacheLookupQ.first));
+        cacheLookupQ.deq();
+        let cur_entry <- cache.readRsp();
     endrule
 
 
@@ -614,8 +655,8 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     // ====================================================================
 
     (* conservative_implicit_conditions *)
-    rule lookupRead (cacheLookupQ.first().act == DM_CACHE_READ);
-        let r = cacheLookupQ.first();
+    rule lookupRead (cacheLookupQ.first() matches tagged Valid .r &&&
+                     r.act == DM_CACHE_READ);
         cacheLookupQ.deq();
 
         let idx = cacheIdx(r);
@@ -747,8 +788,8 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     // ====================================================================
 
     (* conservative_implicit_conditions *)
-    rule doWrite (cacheLookupQ.first().act == DM_CACHE_WRITE);
-        let r = cacheLookupQ.first();
+    rule doWrite (cacheLookupQ.first() matches tagged Valid .r &&&
+                  r.act == DM_CACHE_WRITE);
         cacheLookupQ.deq();
 
         let idx = cacheIdx(r);
@@ -806,9 +847,9 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     // ====================================================================
 
     (* conservative_implicit_conditions *)
-    rule evictForInval ((cacheLookupQ.first().act == DM_CACHE_INVAL) ||
-                        (cacheLookupQ.first().act == DM_CACHE_FLUSH));
-        let r = cacheLookupQ.first();
+    rule evictForInval (cacheLookupQ.first() matches tagged Valid .r &&&
+                        (r.act == DM_CACHE_INVAL) ||
+                        (r.act == DM_CACHE_FLUSH));
         cacheLookupQ.deq();
 
         let idx = cacheIdx(r);
