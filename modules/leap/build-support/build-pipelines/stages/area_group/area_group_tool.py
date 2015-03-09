@@ -781,7 +781,7 @@ class Floorplanner():
                     area = self.withExtraArea(special_ag.area)
                     x_dim = math.ceil(area / mem_ag.yDimension)
                     if (int(x_dim) & 1): x_dim += 1
-                    x_loc = int(mem_ag.xLoc - x_dim) - 1
+                    x_loc = int(mem_ag.xLoc - x_dim) - 6 
                     if (x_loc & 1 == 0): x_loc -= 1
 
                     # Does it fit?
