@@ -223,11 +223,7 @@ class Iface():
         # Compile RRR stubs
         #  NOTE: like dictionaries, some files must be created even when no .rrr
         #  files exist.
-        generate_vico = ''
-        if (moduleList.getAWBParam('iface_tool', 'GENERATE_VICO')):
-            generate_vico = '--vico'
-
-        stubgen = 'leap-rrr-stubgen ' + generate_vico + \
+        stubgen = 'leap-rrr-stubgen ' + \
                   ' --incdirs ' + inc_dirs + \
                   ' --odir ' + rrr_inc_dir.path + \
                   ' --mode stub --target hw --type server $SOURCES'
