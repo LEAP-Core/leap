@@ -14,7 +14,7 @@ proc annotateClockCrossing {src_cells dst_cells} {
 
     # check inputs -- sometimes things may have been optimized away.
 
-    if { [llength $src_cells] && [llength $dst_cells] } {
+    if {[llength $src_cells] && [llength $dst_cells]} {
         set dst_clock          [get_clocks -of_objects $dst_cells]
         set src_clock          [get_clocks -of_objects $src_cells]
 
@@ -51,6 +51,19 @@ proc annotateSyncFIFO {sync_object} {
 }
 
 
-# The following syntax searches for SyncFIFOs, but does not work with synplify
-#   if {[get_property ORIG_REF_NAME $sync_cell] == "SyncFIFO"} {
-#   }
+##
+## Synthesis tools sometimes combine the fifoMem and dDoutReg, which would
+## be fine except that fifoMem winds up tagged with both clock domains and
+## writes to fifoMem are forced into the faster clock domain.  Keep
+## both registers so clocking is accurate.
+##
+proc preserveSyncFIFORegs {} {
+    set     keep_cells [get_cells "fifoMem*" -hierarchical -filter "FILE_NAME =~ */SyncFIFO*.v"]
+    lappend keep_cells [get_cells "dDoutReg*" -hierarchical -filter "FILE_NAME =~ */SyncFIFO*.v"]
+
+    if {[llength $keep_cells]} {
+        set_property KEEP true $keep_cells
+    }
+}
+
+preserveSyncFIFORegs
