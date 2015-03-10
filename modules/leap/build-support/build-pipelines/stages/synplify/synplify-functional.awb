@@ -18,3 +18,4 @@
 
 %param --global RESOURCE_COLLECTOR        "getSRRResourcesClosureXilinx"      "Resource Utilization Parsing Script"
 %param --global PLATFORM_BUILDER          "functools.partial(buildSynplifyEDF, resourceCollector = RESOURCE_COLLECTOR)"  "Builder for Platform Codes"
+%param          USE_VIVADO_SOURCES        0   "Use Vivado sources at compilation"

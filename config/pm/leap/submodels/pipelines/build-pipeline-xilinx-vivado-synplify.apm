@@ -85,3 +85,6 @@ synthesis_library=Synthesis library
 [Generic Synplify Synthesis Tool]
 File=modules/leap/build-support/build-pipelines/stages/synplify/synplify-functional.awb
 Packagehint=leap
+
+[Generic Synplify Synthesis Tool/Params]
+USE_VIVADO_SOURCES=1

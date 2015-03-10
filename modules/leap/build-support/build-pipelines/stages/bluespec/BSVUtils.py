@@ -20,14 +20,14 @@ import model
 def get_bluespec_verilog(env, resultArray = {}, filePath='Verilog'):
     bluespecdir = env['ENV']['BLUESPECDIR']
     
-    fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Verilog/'], stdout = subprocess.PIPE)
+    fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/' + filePath + '/'], stdout = subprocess.PIPE)
     fileList = fileProc.stdout.read()
     fileArray = model.clean_split(fileList, sep = '\n')
     for file in fileArray:
         if ((file[-2:] == '.v') and
             (file != 'main.v') and
             (file != 'ConstrainedRandom.v')):
-            resultArray[file] = bluespecdir + '/Verilog/' + file
+            resultArray[file] = bluespecdir + '/' + filePath + '/' + file
 
     fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Libraries/'], stdout = subprocess.PIPE)
     fileList = fileProc.stdout.read()
