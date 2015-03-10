@@ -15,13 +15,10 @@ proc annotateClockCrossing {src_cells dst_cells} {
     # check inputs -- sometimes things may have been optimized away.
 
     if { [llength $src_cells] && [llength $dst_cells] } {
-
         set dst_clock          [get_clocks -of_objects $dst_cells]
-
         set src_clock          [get_clocks -of_objects $src_cells]
 
         set dst_period         [get_property -min PERIOD $dst_clock]
-
         set src_period         [get_property -min PERIOD $src_clock]
 
         set min_clock          [::tcl::mathfunc::min $src_period $dst_period ]
@@ -51,11 +48,9 @@ proc annotateSyncFIFO {sync_object} {
     lappend dst_cells      [get_cells -hier -filter "NAME =~ $sync_cell/dSyncReg*"]
 
     annotateClockCrossing $src_cells $dst_cells
-
-#   The following syntax searches for SyncFIFOs, but does not work with synplify
-#   if {[get_property ORIG_REF_NAME $sync_cell] == "SyncFIFO"} {
-#   }
-
 }
 
 
+# The following syntax searches for SyncFIFOs, but does not work with synplify
+#   if {[get_property ORIG_REF_NAME $sync_cell] == "SyncFIFO"} {
+#   }
