@@ -408,7 +408,7 @@ class PostSynthesize():
       return moduleList.env.Command(
           [dcp],
           [gen_netlists] + [given_netlists] + [edfTcl], 
-          ['cd ' + edfCompileDirectory + '; vivado -mode batch -source ' +  module.name + ".synth.tcl" + ' -log ' + module.name + '.synth.checkpoint.log'])
+          ['cd ' + edfCompileDirectory + '; touch start.txt; vivado -mode batch -source ' +  module.name + ".synth.tcl" + ' -log ' + module.name + '.synth.checkpoint.log'])
 
 
   def place_dcp(self, moduleList, module):
@@ -520,7 +520,7 @@ class PostSynthesize():
       return moduleList.env.Command(
           [dcp],
           [checkpoint] + [edfTcl, constraintsTcl]  +  self.tcl_headers + self.tcl_algs + self.tcl_defs + self.tcl_funcs, 
-          ['cd ' + placeCompileDirectory + ';vivado -mode batch -source ' + module.name + ".place.tcl" + ' -log ' + module.name + '.place.log'])
+          ['cd ' + placeCompileDirectory + '; touch start.txt; vivado -mode batch -source ' + module.name + ".place.tcl" + ' -log ' + module.name + '.place.log'])
 
 
   def ag_constraints(self, moduleList, module):
@@ -543,7 +543,7 @@ class PostSynthesize():
                if(not 'MODULE_NAME' in area_constraints.constraints[module.name].attributes):
                    area_constraints.constraints[module.name].attributes['MODULE_NAME'] = refName 
    
-               area_constraints.constraints[module.name].attributes['SHARE_PLACEMENT'] = True 
+               area_constraints.constraints[module.name].attributes['SHARE_PLACEMENT'] = False 
                agFile = open(agTcl,'w')
                area_constraints.emitModuleConstraintsVivado(agFile, module.name, useSourcePath=True)
                agFile.close()
