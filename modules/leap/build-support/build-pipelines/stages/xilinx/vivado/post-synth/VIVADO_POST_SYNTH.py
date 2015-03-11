@@ -234,26 +234,26 @@ class PostSynthesize():
             allowAGDevice = (self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None) or emitDeviceGroups
 
             if (allowAGPlatform and allowAGDevice):               
-                    refName = module.wrapperName()
-                    lockPlacement = True
-                    lockRoute = self.routeAG
-                    # If this is an platform/user-defined area group, the wrapper name may be different.
-                    if (not self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None):
-                        refName = elabAreaConstraints.constraints[module.name].attributes['MODULE_NAME']
-                        lockPlacement = not ('NO_PLACE' in elabAreaConstraints.constraints[module.name].attributes) and lockPlacement
-                        lockRoute = not ('NO_ROUTE' in elabAreaConstraints.constraints[module.name].attributes) and lockRoute
+                refName = module.wrapperName()
+                lockPlacement = True
+                lockRoute = self.routeAG
+                # If this is an platform/user-defined area group, the wrapper name may be different.
+                if (not self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None):
+                    refName = elabAreaConstraints.constraints[module.name].attributes['MODULE_NAME']
+                    lockPlacement = not ('NO_PLACE' in elabAreaConstraints.constraints[module.name].attributes) and lockPlacement
+                    lockRoute = not ('NO_ROUTE' in elabAreaConstraints.constraints[module.name].attributes) and lockRoute
 
-                    checkpointCommands.append('if { [llength [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]] } {\n')            
-                    checkpointCommands.append('    puts "Locking ' + refName + '"\n')
-                    if (lockRoute):
-                        # locking routing requires us to emit an area group. boo. 
-                        ag_tcl = self.ag_constraints(moduleList, module)
-                        self.tcl_ag.append(ag_tcl)
-                        checkpointCommands.append('    source ' + str(ag_tcl) + '\n')
-                        checkpointCommands.append('    lock_design -level routing [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]\n')            
-                    elif (lockPlacement):
-                        checkpointCommands.append('    lock_design -level placement [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]\n')            
-                    checkpointCommands.append('}\n')
+                checkpointCommands.append('if { [llength [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]] } {\n')            
+                checkpointCommands.append('    puts "Locking ' + refName + '"\n')
+                if (lockRoute):
+                    # locking routing requires us to emit an area group. boo. 
+                    ag_tcl = self.ag_constraints(moduleList, module)
+                    self.tcl_ag.append(ag_tcl)
+                    checkpointCommands.append('    source ' + str(ag_tcl) + '\n')
+                    checkpointCommands.append('    lock_design -level routing [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]\n')            
+                elif (lockPlacement):
+                    checkpointCommands.append('    lock_design -level placement [get_cells -hier -filter {REF_NAME =~ "' + refName + '"}]\n')            
+                checkpointCommands.append('}\n')
 
     given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
@@ -358,27 +358,52 @@ class PostSynthesize():
       if not os.path.isdir(edfCompileDirectory):
          os.mkdir(edfCompileDirectory)
 
-      edfTclFile = open(edfTcl,'w')
       gen_netlists = module.getDependencies('GEN_NGCS')
-
       given_netlists = [ moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + netlist for netlist in moduleList.getAllDependenciesWithPaths('GIVEN_NGCS') + moduleList.getAllDependenciesWithPaths('GIVEN_EDFS') ]
 
-      for netlist in gen_netlists + given_netlists:
-          edfTclFile.write('read_edif ' + model.rel_if_not_abspath(netlist, edfCompileDirectory) + '\n')
+      constraintsFile = []
+      area_constraints = None
+      if(moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_ENABLE')):
+          area_constraints = area_group_tool.AreaConstraints(moduleList)
+          constraintsFile = [area_constraints.areaConstraintsFile()]
+ 
+      def edf_to_dcp_tcl_closure(moduleList):
+
+           def edf_to_dcp_tcl(target, source, env):
+
+               edfTclFile = open(edfTcl,'w')
+
+               for netlist in gen_netlists + given_netlists:
+                   edfTclFile.write('read_edif ' + model.rel_if_not_abspath(netlist, edfCompileDirectory) + '\n')
+
+               refName = module.wrapperName()
+
+               # If this is an platform/user-defined area group, the wrapper name may be different.
+               if((not self.firstPassLIGraph is None) and (module.name in self.firstPassLIGraph.modules)):
+                   if (not self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None):
+                       area_constraints.loadAreaConstraints()
+                       refName =  area_constraints.constraints[module.name].attributes['MODULE_NAME']           
+               
+               if(module.getAttribute('TOP_MODULE') is None):
+                   edfTclFile.write("link_design -mode out_of_context -top " +  refName + " -part " + self.part  + "\n")
+                   edfTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
+               else:
+                   edfTclFile.write("link_design -top " +  refName + " -part " + self.part  + "\n")
+
+               if(not module.platformModule):
+                   edfTclFile.write("opt_design -quiet\n")
+
+               edfTclFile.write('write_checkpoint -force ' + module.name + ".synth.dcp" + '\n')
+
+               edfTclFile.close()
+           return edf_to_dcp_tcl
       
-      if(module.getAttribute('TOP_MODULE') is None):
-          edfTclFile.write("link_design -mode out_of_context -top " +  module.wrapperName() + " -part " + self.part  + "\n")
-          edfTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
-      else:
-          edfTclFile.write("link_design -top " +  module.wrapperName() + " -part " + self.part  + "\n")
-
-      if(not module.platformModule):
-          edfTclFile.write("opt_design -quiet\n")
-
-      edfTclFile.write('write_checkpoint -force ' + module.name + ".synth.dcp" + '\n')
-
-      edfTclFile.close()
-
+      moduleList.env.Command(
+          [edfTcl],
+          constraintsFile,
+          edf_to_dcp_tcl_closure(moduleList)
+          )
+                  
       # generate bitfile
       return moduleList.env.Command(
           [dcp],
@@ -398,13 +423,15 @@ class PostSynthesize():
       if not os.path.isdir(placeCompileDirectory):
          os.mkdir(placeCompileDirectory)
 
+      area_constraints = area_group_tool.AreaConstraints(moduleList)
+
       def place_dcp_tcl_closure(moduleList):
 
            def place_dcp_tcl(target, source, env):
 
                # TODO: Eventually, we'll need to examine the contstraints to decide if we need to rebuild.
 
-               self.area_constraints.loadAreaConstraints()
+               area_constraints.loadAreaConstraints()
 
                edfTclFile = open(edfTcl,'w')
                constraintsTclFile = open(constraintsTcl,'w')
@@ -418,10 +445,10 @@ class PostSynthesize():
                refName = module.wrapperName()
                # If this is an platform/user-defined area group, the wrapper name may be different.
                if (not self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None):
-                   refName =  self.area_constraints.constraints[module.name].attributes['MODULE_NAME']           
+                   refName =  area_constraints.constraints[module.name].attributes['MODULE_NAME']           
 
                if((self.firstPassLIGraph.modules[module.name].getAttribute('BLACK_BOX_AREA_GROUP') is None) or moduleList.getAWBParamSafe('area_group_tool', 'AREA_GROUPS_PAR_DEVICE_AG')):               
-                   if(not self.area_constraints.emitModuleConstraintsVivado(constraintsTclFile, module.name, useSourcePath=False) is None):
+                   if(not area_constraints.emitModuleConstraintsVivado(constraintsTclFile, module.name, useSourcePath=False) is None):
                        # for platform modules, we need to insert the tcl environment.  
 
                        constraintsTclFile.write('set IS_TOP_BUILD 0\n')
@@ -448,8 +475,8 @@ class PostSynthesize():
                        
                        edfTclFile.write('add_file ' + model.rel_if_not_abspath(constraintsTcl, placeCompileDirectory) + '\n')
 
-                       if(not 'NO_PLACE' in self.area_constraints.constraints[module.name].attributes):                                   
-                           if(not 'NO_ROUTE' in self.area_constraints.constraints[module.name].attributes and self.routeAG):
+                       if(not 'NO_PLACE' in area_constraints.constraints[module.name].attributes):                                   
+                           if(not 'NO_ROUTE' in area_constraints.constraints[module.name].attributes and self.routeAG):
                                edfTclFile.write("set_property USED_IN {synthesis implementation opt_design place_design phys_opt_design route_design out_of_context} [get_files " + model.rel_if_not_abspath(constraintsTcl, placeCompileDirectory) + "]\n")
                            else:
                                edfTclFile.write("set_property USED_IN {synthesis implementation opt_design place_design phys_opt_design out_of_context} [get_files " + model.rel_if_not_abspath(constraintsTcl, placeCompileDirectory) + "]\n")
@@ -459,12 +486,12 @@ class PostSynthesize():
                        edfTclFile.write("link_design -mode out_of_context  -top " + refName + " -part " + self.part  + "\n")
                        needToLink = False
                        # if ended here... 
-                       if(not 'NO_PLACE' in self.area_constraints.constraints[module.name].attributes):
+                       if(not 'NO_PLACE' in area_constraints.constraints[module.name].attributes):
                            edfTclFile.write("place_design -no_drc \n")
                            edfTclFile.write("report_timing_summary -file " + module.name + ".place.twr\n")
                            edfTclFile.write("phys_opt_design \n")
                           
-                           if(not 'NO_ROUTE' in self.area_constraints.constraints[module.name].attributes and self.routeAG):
+                           if(not 'NO_ROUTE' in area_constraints.constraints[module.name].attributes and self.routeAG):
 
                                edfTclFile.write("route_design\n")
                                edfTclFile.write("report_timing_summary -file " + module.name + ".route.twr\n")
@@ -484,7 +511,7 @@ class PostSynthesize():
  
       moduleList.env.Command(
           [edfTcl, constraintsTcl],
-          [self.area_constraints.areaConstraintsFile()],
+          [area_constraints.areaConstraintsFile()],
           place_dcp_tcl_closure(moduleList)
           )
 
@@ -503,27 +530,29 @@ class PostSynthesize():
       agTcl = agCompileDirectory + module.name + ".ag.tcl"
       refName = module.wrapperName()
 
+      area_constraints = area_group_tool.AreaConstraints(moduleList)
+
       def ag_tcl_closure(moduleList):
 
            def ag_tcl(target, source, env):
 
                # TODO: Eventually, we'll need to examine the contstraints to decide if we need to rebuild.
 
-               self.area_constraints.loadAreaConstraints()
+               area_constraints.loadAreaConstraints()
                # give our area constraint is a MODULE_NAME, if it doesn't have one. 
-               if(not 'MODULE_NAME' in self.area_constraints.constraints[module.name].attributes):
-                   self.area_constraints.constraints[module.name].attributes['MODULE_NAME'] = refName 
+               if(not 'MODULE_NAME' in area_constraints.constraints[module.name].attributes):
+                   area_constraints.constraints[module.name].attributes['MODULE_NAME'] = refName 
    
-               self.area_constraints.constraints[module.name].attributes['SHARE_PLACEMENT'] = True 
+               area_constraints.constraints[module.name].attributes['SHARE_PLACEMENT'] = True 
                agFile = open(agTcl,'w')
-               self.area_constraints.emitModuleConstraintsVivado(agFile, module.name, useSourcePath=True)
+               area_constraints.emitModuleConstraintsVivado(agFile, module.name, useSourcePath=True)
                agFile.close()
 
            return ag_tcl
  
       moduleList.env.Command(
           [agTcl],
-          [self.area_constraints.areaConstraintsFile()],
+          [area_constraints.areaConstraintsFile()],
           ag_tcl_closure(moduleList)
           )
      

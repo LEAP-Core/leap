@@ -176,6 +176,9 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
     newPrjPath = 'config/' + module.wrapperName()  + '.modified.synplify.prj'
     newPrjFile = open(newPrjPath,'w');  
 
+    # allow duplicate files, so long as they are not used...
+    newPrjFile.write('set_option -dup {1}\n');      
+   
     newPrjFile.write('add_file -verilog \"../hw/'+module.buildPath + '/.bsc/' + module.wrapperName()+'.v\"\n');      
 
     annotationFiles, annotationDeps = synthesis_library.generateSynthesisTcl(moduleList, module, compileDirectory)
@@ -187,7 +190,18 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
                 moduleList.getAllDependencies('NGC') + \
                 moduleList.getAllDependencies('SDC') + annotationFiles
 
+    # Replace any known black boxes
+    blackBoxDeps = []
+    blackBoxes = module.getAttribute('BLACK_BOX')
+
     for file in fileArray:
+
+        if(not blackBoxes is None):
+            if(file in blackBoxes):
+                file = blackBoxes[file]
+                blackBoxDeps.append(file)               
+
+
         if (type(file) is str):
             newPrjFile.write(_generate_synplify_include(file))        
         elif (isinstance(file, model.Source.Source)):
@@ -256,10 +270,17 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
       
     [moduleVerilogs, moduleVHDs] = synthesis_library.getModuleRTLs(moduleList, module)
 
+    # area group modules have a different base dependency than normal
+    # modules
+    wrapperVerilogDependency = model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'
+    if(not module.getAttribute('AREA_GROUP') is None):
+        # grab the parent stub?          
+        wrapperVerilogDependency = model.get_temp_path(moduleList,module) + module.wrapperName() + '.v'
+
     sub_netlist = moduleList.env.Command(
       [edfFile, srrFile],
-      [model.get_temp_path(moduleList,module) + module.wrapperName() + '_stub.v'] +
-      sorted(module.moduleDependency['VERILOG']) +
+      [wrapperVerilogDependency] + blackBoxDeps +
+      sorted(moduleList.getDependencies(module,'VERILOG')) +
       moduleVerilogs + moduleVHDs +
       sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
       sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +

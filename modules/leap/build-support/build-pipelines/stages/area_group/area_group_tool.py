@@ -3,11 +3,15 @@ import cPickle as pickle
 import os
 import copy
 import traceback
+import functools
+import bsv_tool
+import re
 
 import tsp
 import area_group_parser 
 from area_group_parser import AreaGroup, AreaGroupSize, AreaGroupResource, AreaGroupLocation, AreaGroupLowerLeft, AreaGroupUpperRight, AreaGroupAttribute, AreaGroupPath, AreaGroupRelationship
 import model 
+from model import Module
 import li_module 
 from li_module import LIGraph, LIModule
 import wrapper_gen_tool
@@ -204,11 +208,15 @@ class AreaConstraints():
 
         if(useSourcePath):
             # Look for source path first, then look for REF_NAME.
-            constraintsFile.write('if { [llength [get_cells -hier -filter {REF_NAME =~ "' + areaGroupObject.attributes['MODULE_NAME'] + '"}]] } {\n')
-            constraintsFile.write('    add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {REF_NAME =~ "' + areaGroupObject.attributes['MODULE_NAME'] + '"}]\n')
-            constraintsFile.write('} else {\n')
-            constraintsFile.write('    add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
-            constraintsFile.write('}\n')
+            if('MODULE_NAME' in areaGroupObject.attributes):
+                constraintsFile.write('if { [llength [get_cells -hier -filter {REF_NAME =~ "' + areaGroupObject.attributes['MODULE_NAME'] + '"}]] } {\n')
+                constraintsFile.write('    add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {REF_NAME =~ "' + areaGroupObject.attributes['MODULE_NAME'] + '"}]\n')
+                constraintsFile.write('} else {\n')
+                constraintsFile.write('    add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+                constraintsFile.write('}\n')
+            else:
+                constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ "' + areaGroupObject.sourcePath + '/*"}]\n')
+                
         else:
             constraintsFile.write('add_cells_to_pblock AG_' + areaGroupObject.name + ' [get_cells -hier -filter {NAME =~ *}]\n')
 
@@ -962,3 +970,64 @@ class Floorplanner():
         
 
         return areaGroups
+
+
+def insertDeviceModules(moduleList, annotateParentsOnly=False):
+
+    elabAreaConstraints = AreaConstraints(moduleList)
+    elabAreaConstraints.loadAreaConstraintsElaborated()
+
+    for userAreaGroup in elabAreaConstraints.constraints.values():
+  
+        if('SYNTH_BOUNDARY' in userAreaGroup.attributes):  
+             # Modify parent to know about this child.               
+             parentModule = moduleList.modules[userAreaGroup.parentName]
+             # pick up deps from parent. 
+             moduleDeps ={} 
+             moduleName = userAreaGroup.attributes['MODULE_NAME']
+
+             # grab the parent module verilog and convert it. This
+             # is really ugly, and demonstrates whe first class
+             # language constructs are so nice.  Eventually, we
+             # should push these new synth boundary objects into
+             # flow earlier.
+             moduleVerilog = None
+             for dep in map(functools.partial(bsv_tool.modify_path_ba, moduleList), model.convertDependencies(moduleList.getAllDependenciesWithPaths('GEN_VERILOGS'))):
+                 if (re.search(moduleName, dep)):
+                     moduleVerilog = dep  
+                  
+
+             if(moduleVerilog is None):
+                 print "ERROR: failed to find verilog for area group: " + userAreaGroup.name 
+                 exit(1)
+        
+             moduleVerilogBlackBox = moduleVerilog.replace('.v', '_stub.v')
+
+             moduleDeps['GEN_VERILOG_STUB'] = [moduleVerilogBlackBox]
+
+             # We need to ensure that the second pass glue logic
+             # modules don't look at the black box stubs.  The modules
+             # are in the current synth boundaries list, but not in the LI graph.
+             parentList = [parentModule, moduleList.topModule] + [module for module in moduleList.synthBoundaries() if not module.name in elabAreaConstraints.constraints]
+             
+             for parent in parentList:
+                 print "BLACK_BOX Annotating: " + parent.name
+                 if(parent.getAttribute('BLACK_BOX') is None):
+                     parent.putAttribute('BLACK_BOX', {moduleVerilog: moduleVerilogBlackBox})
+                 else:
+                     blackBoxDict = parent.getAttribute('BLACK_BOX') 
+                     blackBoxDict[moduleVerilog] = moduleVerilogBlackBox
+
+             if(not annotateParentsOnly):            
+                 moduleList.env.Command([moduleVerilogBlackBox], [moduleVerilog],
+                                       'leap-gen-black-box -nohash $SOURCE > $TARGET')
+
+
+                 m = Module(userAreaGroup.name, [moduleName],\
+                             parentModule.buildPath, parentModule.name,\
+                             [], parentModule.name, [], moduleDeps)
+                 m.putAttribute("WRAPPER_NAME", moduleName)
+                 m.putAttribute("AREA_GROUP", 1)
+                 
+                 moduleList.insertModule(m)
+        
