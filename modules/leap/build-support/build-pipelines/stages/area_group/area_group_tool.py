@@ -278,6 +278,9 @@ class Floorplanner():
         self.enableCommunicationClustering = (moduleList.getAWBParam('area_group_tool',
                                                                      'AREA_GROUPS_ENABLE_COMMUNICATION_CLUSTERING') != 0)
 
+        self.clusteringWeight = moduleList.getAWBParam('area_group_tool', 'AREA_GROUPS_CLUSTERING_WEIGHT')
+
+
         liGraph = LIGraph([])
         firstPassGraph = wrapper_gen_tool.getFirstPassLIGraph()
         # We should ignore the 'PLATFORM_MODULE'                                                                                                                    
@@ -507,8 +510,7 @@ class Floorplanner():
 
 
                 # Need to find out how much the two modules communicate.                         
-
-                commsXY = 0 
+                commsXY = self.clusteringWeight 
                 if(('EMPTYBOX' in areaGroupA.attributes) or ('EMPTYBOX' in areaGroupB.attributes)):
                    commsXY = 0 
                 else:
@@ -531,12 +533,21 @@ class Floorplanner():
                     if(self.enableCommunicationClustering):
                         if((not parentChild) and communicatingModules):                                   
                             moduleAObject = self.firstPassLIGraph.modules[areaGroupA.name]
+                            moduleBObject = self.firstPassLIGraph.modules[areaGroupB.name]
                             for channel in moduleAObject.channels:
                                 # some channels may not be assigned
                                 if(isinstance(channel.partnerModule, LIModule)):
                                     if(channel.partnerModule.name == areaGroupB.name):
                                         commsXY = commsXY + 10
         
+                            # although we don't allocate chains yet,                                                  
+                            # we do need some weighting of chains to                                              
+                            # help force modules together                                                          
+                            for chain in moduleAObject.chains:
+                                if(chain.name in moduleBObject.chainNames):
+                                        commsXY = commsXY + 5
+
+
                     #Handle parents/children
                     if(self.enableParentClustering):
                         if(parentChild):

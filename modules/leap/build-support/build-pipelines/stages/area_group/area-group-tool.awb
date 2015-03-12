@@ -13,7 +13,8 @@
 %param AREA_GROUPS_GROUP_PLATFORM_CODE 0 "True if we should build an area group for the platform code."
 %param AREA_GROUPS_PAR_DEVICE_AG 0 "True if we should build user-specified device area groups?"
 %param AREA_GROUPS_ROUTE_AG 0 "True if we should also route area groups."
+%param AREA_GROUPS_CLUSTERING_WEIGHT 0 "Basic weight to use when forcing area groups to be close to one another."
 %param AREA_GROUPS_ENABLE_PARENT_CLUSTERING 1 "Enables parent/child clustering in objective function."
-%param AREA_GROUPS_ENABLE_COMMUNICATION_CLUSTERING 0 "Enables communication-based clustering in objective function."
+%param AREA_GROUPS_ENABLE_COMMUNICATION_CLUSTERING 1 "Enables communication-based clustering in objective function."
 
 
