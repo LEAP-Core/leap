@@ -8,17 +8,16 @@
 ##                            * * * * * * * * * *
 
 
-# This function is necessary to meet timing in low-fanout designs with device drivers.  The driver timing paths are 
-# impossible to meet otherwise.
-
+##
+## Keep all the resets in the design.  Vivado seems to try to merge resets
+## that seem equivalent, even removing stages in a chain!
+##
 proc annotateAsyncReset {} {
+    set resetCells [get_cells "reset_hold*" -hierarchical -filter "NAME =~ */asyncReset/reset_hold*"]
 
-    set resetCells [get_cells -hier -regexp -filter "ORIG_REF_NAME =~ mkUnoptimizableAsyncReset"]
-    lappend resetCells [get_cells -hier -regexp -filter "REF_NAME =~ mkUnoptimizableAsyncReset"]
-    if { [llength $resetCells] != 0 } { 
+    if {[llength $resetCells] != 0} { 
         set_property DONT_TOUCH true $resetCells
     }
-
 }
 
 puts "Included reset library \n"
