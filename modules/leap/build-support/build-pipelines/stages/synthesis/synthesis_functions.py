@@ -479,7 +479,7 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
         [ SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '.synth.opt.util')),
           SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '_xst.xrpt')),
-          'cd ' + vivadoCompileDirectory.path + '; vivado -nojournal -mode batch -source ' + module.wrapperName() + '.synthesis.tcl 2>&1 > ' + logFile,
+          'cd ' + vivadoCompileDirectory.path + '; touch start.txt; vivado -nojournal -mode batch -source ' + module.wrapperName() + '.synthesis.tcl 2>&1 > ' + logFile,
           '@echo vivado synthesis ' + module.wrapperName() + ' build complete.' ])
 
     utilFile = moduleList.env.Command(resourceFile,
