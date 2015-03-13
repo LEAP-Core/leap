@@ -339,7 +339,7 @@ class PostSynthesize():
     xilinx_bit = moduleList.env.Command(
       apm_name + '_par.bit',
       synthDeps + self.tcl_algs + self.tcl_defs + self.tcl_funcs + self.tcl_ag + [self.paramTclFile] + dcps + [postSynthTcl], 
-      ['vivado -verbose -mode batch -source ' + postSynthTcl + ' -log postsynth.log'])
+      ['vivado -verbose -mode batch -source ' + postSynthTcl + ' -log ' + moduleList.compileDirectory + '/postsynth.log'])
 
     moduleList.topModule.moduleDependency['BIT'] = [apm_name + '_par.bit']
 
