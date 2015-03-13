@@ -13,7 +13,7 @@
 ## that seem equivalent, even removing stages in a chain!
 ##
 proc annotateAsyncReset {} {
-    set resetCells [get_cells "reset_hold*" -hierarchical -filter "NAME =~ */asyncReset/reset_hold*"]
+    set resetCells [get_cells -hierarchical -filter "NAME =~ */asyncResetStage/reset_hold*"]
 
     if {[llength $resetCells] != 0} { 
         set_property DONT_TOUCH true $resetCells
