@@ -222,6 +222,7 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
     
     // Track busy entries
     COUNTING_FILTER#(t_CACHE_IDX, 0) entryFilter <- mkCountingFilter(debugLog);
+    FIFO#(t_CACHE_IDX) entryFilterUpdateQ <- mkFIFO();
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
@@ -584,7 +585,7 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
                 begin
                     prefetcher.prefetchDroppedByHit();
                 end
-                entryFilter.remove(idx);
+                entryFilterUpdateQ.enq(idx);
                 needFill = False;
             end
             else if (e.dirty)
@@ -691,7 +692,7 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
             prefetcher.prefetchIllegalReq();
         end
 
-        entryFilter.remove(idx);
+        entryFilterUpdateQ.enq(idx);
     endrule
 
 
@@ -764,7 +765,7 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
             begin
                 prefetcher.prefetchInval(idx);
             end
-            entryFilter.remove(idx);
+            entryFilterUpdateQ.enq(idx);
             if (enMaskedWrite)
             begin
                 reqInfo_writeDataMask.free(r.writeDataIdx);
@@ -862,6 +863,25 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
             else
                 sourceData.flushReq(r.addr, True);
         end
+
+        entryFilterUpdateQ.enq(idx);
+    endrule
+
+
+    // ====================================================================
+    //
+    // Management.
+    //
+    // ====================================================================
+
+    //
+    // finishEntry --
+    //     Finish processing an entry.  Removing from the entry filter
+    //     is expensive, so it is delayed a cycle.
+    //
+    rule finishEntry (True);
+        let idx = entryFilterUpdateQ.first();
+        entryFilterUpdateQ.deq();
 
         entryFilter.remove(idx);
     endrule
