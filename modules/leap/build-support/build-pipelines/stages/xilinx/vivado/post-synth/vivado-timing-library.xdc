@@ -26,6 +26,7 @@ proc annotateClockCrossing {src_cells dst_cells} {
     }
 }
 
+
 ## Annotates the timing of a bluespec SyncFIFO.  This object correctly
 ## synchronizes communications between two clock domains.
 proc annotateSyncFIFO {sync_object} {
@@ -48,5 +49,21 @@ proc annotateSyncFIFO {sync_object} {
             puts "Separating clocks ${src_clock} and ${dst_clock} for SyncFIFO ${sync_object}"
             set_clock_groups -asynchronous -group $src_clock -group $dst_clock
         }
+    }
+}
+
+
+##
+## Discover and then annotate all SyncFIFOs.
+##
+proc findAndAnnotateAllSyncFIFOs {} {
+    # Loop over all SyncFIFOs, using a well-known register name in the source
+    # clock domain.
+    foreach fifo_src [get_cells sGEnqPtr1[0]* -hierarchical] {
+        # Get the path to the SyncFIFO
+        set fifo [regsub \[^/\]*$ $fifo_src ""]
+        set fifo [string trimright $fifo /]
+
+        annotateSyncFIFO $fifo
     }
 }
