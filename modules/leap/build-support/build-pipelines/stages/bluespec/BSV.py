@@ -542,6 +542,7 @@ class BSV():
                     synth_handle = open(target[0].path, 'w')
                     wrapper_gen_tool.generateSynthWrapper(synthModule,
                                                           synth_handle,
+                                                          moduleList.localPlatformName,
                                                           moduleType=module.interfaceType,
                                                           extraImports=module.extraImports)
                     synth_handle.close()

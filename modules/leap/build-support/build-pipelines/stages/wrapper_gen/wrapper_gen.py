@@ -142,7 +142,7 @@ def generateBAImport(module, importHandle):
     if('BSV_IFC' in module.objectCache):        
         ifc = bsvIfc.type
 
-        importHandle.write('module mk_' + module.name + '_Wrapper (' + ifc + ');\n')
+        importHandle.write('module mk_' + module.name + '_Wrapper#(Reset baseReset) (' + ifc + ');\n')
 
         # This code is very similar to module code below.  We should refactor.
         importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n")
@@ -154,7 +154,7 @@ def generateBAImport(module, importHandle):
     else:
         ifc = 'SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + ', Empty)'
 
-        importHandle.write('module ' + module.wrapperName() + ' (' + ifc + ');\n')
+        importHandle.write('module ' + module.wrapperName() + '#(Reset baseReset) (' + ifc + ');\n')
 
         # This code is very similar to module code below.  We should refactor.
         importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n") 
@@ -249,12 +249,15 @@ def validateFirstPassLIGraph(moduleList):
 ##
 def generateSynthWrapper(liModule,
                          synthHandle,
+                         localPlatformName,
                          moduleType = 'Empty',
                          extraImports = []):
      _emitSynthWrapper(liModule,
                        synthHandle,
                        moduleType = moduleType,
-                       extraImports = extraImports)
+                       extraImports = extraImports,
+                       localPlatformName = localPlatformName)
+
 
 ##
 ## generateTopSynthWrapper --
@@ -318,24 +321,30 @@ def _emitSynthModule(liModule,
                      # must also be defined!
                      areaConstraints = None):
 
-    synthHandle.write("\n\nmodule [Connected_Module] " + str(liModule.name) + "(" + moduleType + ");\n")
+    synthHandle.write("\n\nmodule [Connected_Module] " + str(liModule.name) + "#(Reset baseReset) (" + moduleType + ");\n")
 
     ## It may be the case that a module has no li channels. If this is
     ## the case, drop it.  This seems to prevent downstream tools from
     ## erroring on empty modules.
-    if((len(liModule.channels) == 0) and (len(liModule.chains) == 0)):
+    if ((len(liModule.channels) == 0) and (len(liModule.chains) == 0)):
         synthHandle.write("    //Module has been optimized away.\n")
         synthHandle.write("    return ?;\n")
         synthHandle.write("endmodule\n")
         return
 
-    synthHandle.write("    let mod <- liftModule(mk_" + liModule.name + "_Wrapper());\n")
+    if (not localPlatformName or (liModule.name != localPlatformName + '_platform')):
+        synthHandle.write('    Reset rst <- mkResetFanout(baseReset);\n')
+        synthHandle.write("    let mod <- liftModule(mk_" + liModule.name + "_Wrapper(baseReset, reset_by rst));\n")
+    else:
+        # Platform doesn't have an incoming reset.  It is the source of clocking.
+        # baseReset is just a dummy argument for consistency.
+        synthHandle.write("    let mod <- liftModule(mk_" + liModule.name + "_Wrapper(baseReset));\n")
     synthHandle.write("    let connections = tpl_1(mod.services);\n")
     
     platform_ag = None
     if areaConstraints:
          # We may remove the platform module during compilation. 
-         platformAGName = localPlatformName + "_platform"
+         platformAGName = localPlatformName + '_platform'
          if(platformAGName in areaConstraints.constraints):
              platform_ag = areaConstraints.constraints[platformAGName]
 
@@ -586,7 +595,8 @@ class WrapperGen():
         # get the platform module from the LIGraph            
         generateBAImport(platform_module_li, synthHandle)
         # include synth stub here....
-        _emitSynthModule(platform_module_li, synthHandle, platform_module.interfaceType)
+        _emitSynthModule(platform_module_li, synthHandle, platform_module.interfaceType,
+                         localPlatformName = moduleList.localPlatformName)
 
     ## Here we use a module list sorted alphabetically in order to guarantee
     ## the generated wrapper files are consistent.  The topological sort
@@ -684,15 +694,16 @@ class WrapperGen():
             # build_tree.bsv will get generated later, during the
             # leap-connect phase.
             wrapper_bsv.write('    import build_tree_synth::*;\n'); 
-            wrapper_bsv.write('    module [Connected_Module] instantiateAllSynthBoundaries ();\n')
-            wrapper_bsv.write('        let m <- build_tree();\n')
+            wrapper_bsv.write('    module [Connected_Module] instantiateAllSynthBoundaries#(Reset baseReset) ();\n')
+            wrapper_bsv.write('        Reset rst <- mkResetFanout(baseReset);\n')
+            wrapper_bsv.write('        let m <- build_tree(baseReset, reset_by rst);\n')
             wrapper_bsv.write('    endmodule\n')
             wrapper_bsv.write('`else\n');
 
         wrapper_bsv.write('\n    module ')
         if len(synth_modules) != 1:
             wrapper_bsv.write('[Connected_Module]')
-        wrapper_bsv.write(' instantiateAllSynthBoundaries ();\n')
+        wrapper_bsv.write(' instantiateAllSynthBoundaries#(Reset baseReset) ();\n')
 
         for synth in synth_modules:
           if synth != module and not synth.platformModule:
@@ -707,7 +718,7 @@ class WrapperGen():
         wrapper_bsv.write('    import ' + moduleList.localPlatformName +'_platform_synth::*;\n'); 
 
         wrapper_bsv.write('    module [Connected_Module] instantiatePlatform ('+ platform_module.interfaceType +');\n')
-        wrapper_bsv.write('        let m <- ' + moduleList.localPlatformName + '_platform();\n')
+        wrapper_bsv.write('        let m <- ' + moduleList.localPlatformName + '_platform(noReset);\n')
         wrapper_bsv.write('        return m;\n')
         wrapper_bsv.write('    endmodule\n')
 
@@ -749,7 +760,7 @@ class WrapperGen():
         if not os.path.exists(modPath + '_synth.bsv'):            
             dummy_module = LIModule(module.name, module.name)
             handle = getSynthHandle(moduleList, module)
-            generateSynthWrapper(dummy_module, handle,
+            generateSynthWrapper(dummy_module, handle, moduleList.localPlatformName,
                                  moduleType = module.interfaceType,
                                  extraImports = module.extraImports)
 
@@ -772,7 +783,7 @@ class WrapperGen():
 
         for wrapper in [wrapper_bsv, log_bsv]:      
             wrapper.write('(* synthesize *)\n')
-            wrapper.write('module [Module] ' + module.wrapperName() + ' (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.boundaryName + ', `CON_SEND_' + module.boundaryName + ', `CON_RECV_MULTI_' + module.boundaryName + ', `CON_SEND_MULTI_' + module.boundaryName +', `CHAINS_' + module.boundaryName +', ' + module.interfaceType + '));\n')
+            wrapper.write('module [Module] ' + module.wrapperName() + '#(Reset baseReset) (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.boundaryName + ', `CON_SEND_' + module.boundaryName + ', `CON_RECV_MULTI_' + module.boundaryName + ', `CON_SEND_MULTI_' + module.boundaryName +', `CHAINS_' + module.boundaryName +', ' + module.interfaceType + '));\n')
             wrapper.write('  \n')
             # we need to insert the fpga platform here
             # get my parameters 

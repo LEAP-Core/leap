@@ -478,12 +478,12 @@ class BSVSynthTreeBuilder():
         if(self.parent.BUILD_LOGS_ONLY):
 
             wrapper_handle.write("\n\n(*synthesize*)\n")
-            wrapper_handle.write("module mk_build_tree_Wrapper (Reg#(Bit#(1)));\n")
+            wrapper_handle.write("module mk_build_tree_Wrapper#(Reset baseReset) (Reg#(Bit#(1)));\n")
             wrapper_handle.write("    let m <- mkRegU();\n")
             wrapper_handle.write("    return m;\n")
             wrapper_handle.write("endmodule\n")
 
-            synth_handle.write("module build_tree (Reg#(Bit#(1)));\n")
+            synth_handle.write("module build_tree#(Reset baseReset) (Reg#(Bit#(1)));\n")
             synth_handle.write("    let m <- mkRegU();\n")
             synth_handle.write("    return m;\n")
             synth_handle.write("endmodule\n")
@@ -499,7 +499,7 @@ class BSVSynthTreeBuilder():
         for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
             wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')
 
-        wrapper_handle.write('module mk_empty_Wrapper (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
+        wrapper_handle.write('module mk_empty_Wrapper#(Reset baseReset) (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
 
         if (pipeline_debug != 0):
             print "LIGraph: " + str(liGraph)
@@ -761,6 +761,7 @@ class BSVSynthTreeBuilder():
         module_body = ""
 
         # Instantiate the submodules.
+        r_idx = 0
         for m in [submodule0, submodule1]:
             name = m.name
             module_name = name
@@ -771,10 +772,17 @@ class BSVSynthTreeBuilder():
             if (m.type == "empty"):
                 module_name = "empty"
 
+            rst = 'rst' + str(r_idx)
+            r_idx += 1
+
+            module_body += "\n";
+            module_body += "    let " + rst + " <- mkResetFanout(baseReset);\n"
             module_body += "    let " + getInstanceName(name) + " <- mk_" +\
-                           module_name + '_Wrapper' + "();\n"
+                            module_name + "_Wrapper(baseReset, reset_by " + rst + ");\n"
             module_body += "    let " + name + " = tpl_1(" +\
                             getInstanceName(name) + ".services);\n"
+            module_body += "\n";
+
 
         # At this node in the tree, we can match channels from our two children.
         # This matching is what reduces the bluespec compiler complexity, since matched
@@ -954,7 +962,7 @@ class BSVSynthTreeBuilder():
         wrapper_handle.write("\nmodule ")
         if (not gen_synth_boundary):
             wrapper_handle.write("[Module] ")
-        wrapper_handle.write("mk_" + treeModule.name + '_Wrapper')
+        wrapper_handle.write("mk_" + treeModule.name + '_Wrapper#(Reset baseReset)')
         moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
                      ", " + str(outgoing) + ", 0, 0, " + str(chains) + ", Empty)"
 
