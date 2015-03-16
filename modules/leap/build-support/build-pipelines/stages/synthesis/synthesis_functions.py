@@ -163,16 +163,15 @@ def generateSynthesisTcl(moduleList, module, compileDirectory):
          #newTclFile.write('source ' + model.rel_if_not_abspath(tcl_header, str(vivadoCompileDirectory)) + '\n')
          synthAnnotationsTclFile.write('source ' + model.rel_if_not_abspath(tclHeader, str(compileDirectory)) + '\n')
 
+    synthAnnotationsTclFile.write('annotateModelClock\n')
+
     # apply tcl synthesis functions/patches 
     for tclFunc in tclFuncs:
         relpath = model.rel_if_not_abspath(tclFunc, str(compileDirectory))
         synthAnnotationsTclFile.write('source ' + relpath + '\n')
 
-
     for file in tclSynth:
         synthAnnotationsTclFile.write("source " + file + "\n")
-
-    synthAnnotationsTclFile.write('annotateModelClock\n')
 
     # we need some synthesis algorithms... 
 
