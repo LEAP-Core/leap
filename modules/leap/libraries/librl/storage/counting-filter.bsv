@@ -175,8 +175,12 @@ endmodule
 typedef COUNTING_FILTER_IFC#(t_ENTRY, DECODE_FILTER_STATE#(t_ENTRY))
     DECODE_FILTER#(type t_ENTRY, numeric type nFilterBits);
 
-// State passed from test() to set() methods.
-typedef Bit#(SizeOf#(t_ENTRY)) DECODE_FILTER_STATE#(type t_ENTRY);
+// State passed from test() to set() methods.  Because of the messy opaque
+// type above derived from DECODE_FILTER_STATE Bluespec only permits this to
+// be bits.
+typedef Bit#(TAdd#(1, SizeOf#(t_ENTRY)))
+    DECODE_FILTER_STATE#(type t_ENTRY);
+
 
 //
 // Decode filter with one bit corresponding to one or more entries.
@@ -215,7 +219,7 @@ module mkSizedDecodeFilter#(DEBUG_FILE debugLog)
     endrule
 
 
-    RWire#(t_FILTER_IDX) insertId <- mkRWire();
+    RWire#(Tuple2#(Bit#(1), t_FILTER_IDX)) insertId <- mkRWire();
     RWire#(t_FILTER_IDX) removeId <- mkRWire();
 
 
@@ -224,8 +228,8 @@ module mkSizedDecodeFilter#(DEBUG_FILE debugLog)
     endfunction
 
     (* fire_when_enabled, no_implicit_conditions *)
-    rule updateInFilter (ready &&& insertId.wget() matches tagged Valid .id);
-        fvIn.upd(id, fvIn.sub(id) ^ 1);
+    rule updateInFilter (ready &&& insertId.wget() matches tagged Valid {.fvIn_cur, .id});
+        fvIn.upd(id, fvIn_cur ^ 1);
     endrule
 
     (* fire_when_enabled, no_implicit_conditions *)
@@ -236,15 +240,19 @@ module mkSizedDecodeFilter#(DEBUG_FILE debugLog)
 
     method Maybe#(DECODE_FILTER_STATE#(t_ENTRY)) test(t_ENTRY newEntry) if (ready);
         let id = filterIdx(newEntry);
-        return (fvIn.sub(id) == fvOut.sub(id)) ? tagged Valid pack(newEntry) :
-                                                 tagged Invalid;
+        let fvIn_val = fvIn.sub(id);
+
+        let state = pack(tuple2(fvIn_val, newEntry));
+        return (fvIn_val == fvOut.sub(id)) ? tagged Valid state : tagged Invalid;
     endmethod
 
     method Action set(DECODE_FILTER_STATE#(t_ENTRY) newEntry) if (ready);
-        let id = filterIdx(unpack(newEntry));
+        Tuple2#(Bit#(1), t_ENTRY) upd_state = unpack(newEntry);
+        match {.fvIn_cur, .entry} = upd_state;
+        let id = filterIdx(entry);
 
-        insertId.wset(id);
-        debugLog.record($format("    Decode filter SET %0d OK, idx=%0d", newEntry, id));
+        insertId.wset(tuple2(fvIn_cur, id));
+        debugLog.record($format("    Decode filter SET %0d OK, idx=%0d", entry, id));
     endmethod
 
     method Action remove(t_ENTRY oldEntry) if (ready);
