@@ -1,3 +1,7 @@
+# pick up the // operator.
+from __future__ import division
+
+
 import math
 import cPickle as pickle
 import os
@@ -142,13 +146,14 @@ class AreaConstraints():
 
             # This is a magic conversion factor for virtex 7.  It might
             # need to change for different architectures.
-            haloCells = 1
+            haloCells = 3
 
             #INST "m_sys_sys_syn_m_mod/common_services_inst/*" AREA_GROUP = "AG_common_services";
 #AREA_GROUP "AG_common_services"                   RANGE=SLICE_X146Y201:SLICE_X168Y223;
 #AREA_GROUP "AG_common_services"                   GROUP = CLOSED;
             constraintsFile.write('#Generated Area Group for ' + areaGroupObject.name + ' with area ' + str(areaGroupObject.area) + ' \n')
             constraintsFile.write('INST "' + areaGroupObject.sourcePath + '/*" AREA_GROUP = "AG_' + areaGroupObject.name + '";\n')
+             
             slice_LowerLeftX = int(areaGroupObject.xLoc) + haloCells
             slice_LowerLeftY = int(areaGroupObject.yLoc) + haloCells
 
@@ -185,7 +190,7 @@ class AreaConstraints():
 
         # We need to place halo cells around pblocks, so that they
         # do not overlap on rounding.
-        haloCells = 1
+        haloCells = 3
 
         #startgroup
         #set_property  gridtypes {RAMB18 DSP48 SLICE} [get_pblocks AG_fpga0_platform]
@@ -198,11 +203,14 @@ class AreaConstraints():
         constraintsFile.write('startgroup \n')
         constraintsFile.write('create_pblock AG_' + areaGroupObject.name + '\n')
 
-        slice_LowerLeftX = int(areaGroupObject.xLoc) + haloCells
-        slice_LowerLeftY = int(areaGroupObject.yLoc) + haloCells
+        # Xilinx wants aligned tiles - in the X plane tiles begin on
+        # even slices and end on odd ones.
 
-        slice_UpperRightX = int(areaGroupObject.xLoc + areaGroupObject.xDimension) - haloCells
-        slice_UpperRightY = int(areaGroupObject.yLoc + areaGroupObject.yDimension) - haloCells
+        slice_LowerLeftX = ((int(areaGroupObject.xLoc) + haloCells) // 2) * 2 
+        slice_LowerLeftY = ((int(areaGroupObject.yLoc) + haloCells) // 2) * 2
+
+        slice_UpperRightX = ((int(areaGroupObject.xLoc + areaGroupObject.xDimension) - haloCells) // 2) * 2 + 1
+        slice_UpperRightY = ((int(areaGroupObject.yLoc + areaGroupObject.yDimension) - haloCells) // 2) * 2 + 1
 
         constraintsFile.write('resize_pblock AG_' + areaGroupObject.name + ' -add {SLICE_X' + str(slice_LowerLeftX) + 'Y' + str(slice_LowerLeftY) + ':SLICE_X' + str(slice_UpperRightX) + 'Y' + str(slice_UpperRightY) + '}\n')
 
@@ -228,12 +236,12 @@ class AreaConstraints():
         constraintsFile.write('set_property   gridtypes {RAMB36 RAMB18 DSP48 SLICE} [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
        
-        if(self.routeAG and not 'SHARE_ROUTING' in areaGroupObject.attributes):
-            constraintsFile.write('set_property CONTAIN_ROUTING true [get_pblocks AG_' + areaGroupObject.name + ']\n')
-        else:
+        if((not self.routeAG) or ('SHARE_ROUTING' in areaGroupObject.attributes and not areaGroupObject.attributes['SHARE_ROUTING'])):
             constraintsFile.write('set_property CONTAIN_ROUTING false [get_pblocks AG_' + areaGroupObject.name + ']\n')
+        else:
+            constraintsFile.write('set_property CONTAIN_ROUTING true [get_pblocks AG_' + areaGroupObject.name + ']\n')
 
-        if('SHARE_PLACEMENT' in areaGroupObject.attributes):
+        if(('SHARE_PLACEMENT' in areaGroupObject.attributes) and areaGroupObject.attributes['SHARE_PLACEMENT']):
             constraintsFile.write('set_property EXCLUDE_PLACEMENT false   [get_pblocks AG_' + areaGroupObject.name + ']\n')
         else:
             constraintsFile.write('set_property EXCLUDE_PLACEMENT true   [get_pblocks AG_' + areaGroupObject.name + ']\n')
@@ -817,7 +825,7 @@ class Floorplanner():
     ## Add a fudge factor to pad area requests.
     ##
     def withExtraArea(self, area):
-        extraAreaFactor = 1.3               
+        extraAreaFactor = 1.33               
         extraAreaOffset = 250.0
  
         return extraAreaFactor * area + extraAreaOffset
