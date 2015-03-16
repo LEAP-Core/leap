@@ -112,8 +112,8 @@ module [CONNECTED_MODULE] mkLocalMem
     // The DDR controller does this anyway, so we lose no performance.
     MERGE_FIFOF#(2, LOCAL_MEM_REQ) mergeReqQ <- mkMergeBypassFIFOF();
 
-    FIFOF#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) writeDataQ <- mkBypassFIFOF();
-    FIFOF#(Tuple2#(LOCAL_MEM_WORD, LOCAL_MEM_WORD_MASK)) writeWordDataQ <- mkBypassFIFOF();
+    FIFOF#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) writeDataQ <- mkFIFOF();
+    FIFOF#(Tuple2#(LOCAL_MEM_WORD, LOCAL_MEM_WORD_MASK)) writeWordDataQ <- mkFIFOF();
 
     FIFOF#(LOCAL_MEM_LINE) lineResponseQ <- mkBypassFIFOF();
     FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();

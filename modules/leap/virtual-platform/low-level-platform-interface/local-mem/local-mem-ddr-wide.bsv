@@ -96,8 +96,8 @@ module [CONNECTED_MODULE] mkLocalMem
 
     // Merge read and write requests into a single FIFO to preserve order.
     // The DDR controller does this anyway, so we lose no performance.
-    MERGE_FIFOF#(2, LOCAL_MEM_REQ) mergeReqQ <- mkMergeBypassFIFOF();
-    FIFOF#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) writeDataQ <- mkBypassFIFOF();
+    MERGE_FIFOF#(2, LOCAL_MEM_REQ) mergeReqQ <- mkMergeFIFOF();
+    FIFOF#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) writeDataQ <- mkFIFOF();
 
     FIFOF#(LOCAL_MEM_LINE) lineResponseQ <- mkBypassFIFOF();
     FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();
