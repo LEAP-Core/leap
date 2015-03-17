@@ -467,59 +467,111 @@ module [CONNECTED_MODULE] mkScratchpadMemory
     // ====================================================================
 
     // Uncached read and write requests share a FIFO to enforce ordering.
-    FIFO#(SCRATCHPAD_HYBRID_REQ) uncachedReqQ <- mkFIFO();
+    FIFOF#(SCRATCHPAD_HYBRID_REQ) uncachedReqQ <- mkFIFOF();
+    // FIFO1 blocks uncachedReq until the pipeline drains.  See the description
+    // of rule uncachedReq below.
+    FIFO#(Tuple5#(SCRATCHPAD_HYBRID_REQ,
+                  Maybe#(t_LINE_ADDR),
+                  t_SCRATCHPAD_LINE,
+                  t_SCRATCHPAD_LINE_MASK,
+                  Maybe#(t_LINE_ADDR))) uncachedReqQ1 <- mkFIFO1();
+
+    // Used by second stage to manage store buffer flush
+    Reg#(Bool) uncachedSBStateValid <- mkRegU();
 
     //
     // One line write buffer for each port to catch streaming writes
     //
 
     // Addresses
-    LUTRAM_MULTI_READ#(1, SCRATCHPAD_PORT_NUM, Maybe#(t_LINE_ADDR)) uncachedStoreBufAddr <- mkMultiReadLUTRAM(tagged Invalid);
+    LUTRAM#(SCRATCHPAD_PORT_NUM, Maybe#(t_LINE_ADDR)) uncachedStoreBufAddr <- mkLUTRAM(tagged Invalid);
     // Data and masks
     Vector#(SCRATCHPAD_WORDS_PER_LINE,
-            LUTRAM_MULTI_READ#(1, SCRATCHPAD_PORT_NUM,
-                               Tuple2#(SCRATCHPAD_MEM_VALUE,
-                                       SCRATCHPAD_MEM_MASK))) uncachedStoreBuf <-
-        replicateM(mkMultiReadLUTRAMU());
+            LUTRAM#(SCRATCHPAD_PORT_NUM,
+                    Tuple2#(SCRATCHPAD_MEM_VALUE,
+                            SCRATCHPAD_MEM_MASK))) uncachedStoreBuf <-
+        replicateM(mkLUTRAMU());
 
     //
     // One line read cache to catch streaming reads.
     //
-    LUTRAM_MULTI_READ#(1, SCRATCHPAD_PORT_NUM, Maybe#(t_LINE_ADDR)) uncachedLastReadAddr <- mkMultiReadLUTRAM(tagged Invalid);
+    LUTRAM#(SCRATCHPAD_PORT_NUM, Maybe#(t_LINE_ADDR)) uncachedLastReadAddr <- mkLUTRAM(tagged Invalid);
     // Data
-    LUTRAM_MULTI_READ#(1, SCRATCHPAD_PORT_NUM,
-                       t_SCRATCHPAD_LINE) uncachedLastReadBuf <- mkMultiReadLUTRAMU();
+    LUTRAM#(SCRATCHPAD_PORT_NUM,
+            t_SCRATCHPAD_LINE) uncachedLastReadBuf <- mkLUTRAMU();
+
+    //
+    // uncachedReq --
+    //     The head of both the uncached read and write pipelines.  This stage
+    //     exists solely for FPGA timing.  It fetches uncachedStoreBuf address
+    //     and data.
+    //
+    //     This first stage and the second uncachedWriteReq/uncachedReadReq
+    //     stages have an ordering problem in store buffer updates.  This
+    //     is solved by blocking uncachedReq until the second stage clears.
+    //     The system I/O and not this bubble will be the rate limiting stage
+    //     in uncached references.
+    //
+    rule uncachedReq (! initQ.notEmpty && uncachedReqQ.notEmpty);
+        let req = uncachedReqQ.first();
+        uncachedReqQ.deq();
+
+        // Get port and line address from the incoming request.
+        SCRATCHPAD_PORT_NUM port = ?;
+        t_LINE_ADDR l_addr = ?;
+        if (req matches tagged SCRATCHPAD_HYBRID_WRITE .w_req)
+        begin
+            port = w_req.port;
+            l_addr = scratchpadLineAddr(w_req.addr);
+        end
+        if (req matches tagged SCRATCHPAD_HYBRID_READ .r_req)
+        begin
+            port = r_req.readUID.portNum;
+            l_addr = scratchpadLineAddr(r_req.addr);
+        end
+
+        // Read the store buffer address
+        let m_sb_addr = uncachedStoreBufAddr.sub(port);
+
+        // Read the store buffer data
+        t_SCRATCHPAD_LINE sb_val = newVector();
+        t_SCRATCHPAD_LINE_MASK sb_mask = newVector();
+        for (Integer w = 0; w < valueOf(SCRATCHPAD_WORDS_PER_LINE); w = w + 1)
+        begin
+            match {.val, .bmask} = uncachedStoreBuf[w].sub(port);
+            sb_val[w] = val;
+            sb_mask[w] = bmask;
+        end
+
+        let m_lr_addr = uncachedLastReadAddr.sub(port);
+
+        // uncachedReqQ1 is a FIFO1, so reads here of uncachedStoreBuf will
+        // block until updates complete below.
+        uncachedReqQ1.enq(tuple5(req, m_sb_addr, sb_val, sb_mask, m_lr_addr));
+        uncachedSBStateValid <= True;
+    endrule
 
     //
     // uncachedWriteReq --
     //     Write a portion of a word to the system.
     //
+    (* descending_urgency = "uncachedWriteReq, uncachedReq" *)
     (* conservative_implicit_conditions *)
-    rule uncachedWriteReq (! initQ.notEmpty() &&&
-                           uncachedReqQ.first() matches tagged SCRATCHPAD_HYBRID_WRITE .w_req);
+    rule uncachedWriteReq (tpl_1(uncachedReqQ1.first) matches tagged SCRATCHPAD_HYBRID_WRITE .w_req);
+        match {.req, .m_sb_addr, .sb_val, .sb_mask, .m_lr_addr} = uncachedReqQ1.first();
+
         let port = w_req.port;
         let l_addr = scratchpadLineAddr(w_req.addr);
         let word_idx = scratchpadWordIdx(w_req.addr);
 
-        if (uncachedStoreBufAddr.readPorts[0].sub(port) matches tagged Valid .sb_addr)
+        if (uncachedSBStateValid &&& m_sb_addr matches tagged Valid .sb_addr)
         begin
-            // Get the store buffer data and mask.  It will either be flushed
-            // to the host or merged with the new data.
-            t_SCRATCHPAD_LINE sb_val = newVector();
-            t_SCRATCHPAD_LINE_MASK sb_mask = newVector();
-            for (Integer w = 0; w < valueOf(SCRATCHPAD_WORDS_PER_LINE); w = w + 1)
-            begin
-                match {.val, .bmask} = uncachedStoreBuf[w].readPorts[0].sub(port);
-                sb_val[w] = val;
-                sb_mask[w] = bmask;
-            end
-
             // Does the address match?
             if (sb_addr != l_addr)
             begin
                 // No match.  Flush the old line.
                 //
-                // NOTE:  There is no deq of uncachedReqQ on this path.  The
+                // NOTE:  There is no deq of uncachedReqQ1 on this path.  The
                 // request will be processed again now that the store buffer
                 // is empty.
                 let h_addr = hostAddrFromLineAddr(port, sb_addr);
@@ -545,7 +597,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
                 uncachedStoreBuf[word_idx].upd(port, tuple2(pack(bytes_out),
                                                             new_mask));
 
-                uncachedReqQ.deq();
+                uncachedReqQ1.deq();
                 debugLog.record($format("port %0d: uncachedWriteReq: Merge SB entry, addr=0x%x, w_idx=%d, val=0x%x, mask=%b", port, l_addr, word_idx, pack(bytes_out), new_mask));
             end
         end
@@ -554,7 +606,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
             //
             // The store buffer is empty.  Write the new word to the buffer.
             //
-            uncachedReqQ.deq();
+            uncachedReqQ1.deq();
             uncachedStoreBufAddr.upd(port, tagged Valid l_addr);
 
             for (Integer w = 0; w < valueOf(SCRATCHPAD_WORDS_PER_LINE); w = w + 1)
@@ -567,13 +619,14 @@ module [CONNECTED_MODULE] mkScratchpadMemory
             debugLog.record($format("port %0d: uncachedWriteReq: New SB entry, addr=0x%x, w_idx=%d, val=0x%x, mask=%b", port, l_addr, word_idx, w_req.val, w_req.byteMask));
 
             // Invalidate the read buffer if it matches the new address
-            if (uncachedLastReadAddr.readPorts[0].sub(port) matches tagged Valid .r_addr &&&
-                r_addr == l_addr)
+            if (m_lr_addr matches tagged Valid .lr_addr &&& lr_addr == l_addr)
             begin
                 uncachedLastReadAddr.upd(port, tagged Invalid);
                 debugLog.record($format("port %0d: uncachedWriteReq: Inval matching read buf", port));
             end
         end
+
+        uncachedSBStateValid <= False;
     endrule
 
 
@@ -582,27 +635,20 @@ module [CONNECTED_MODULE] mkScratchpadMemory
     //      Request from scratchpad client for data not stored in the central
     //      cache.
     //
+    (* descending_urgency = "uncachedReadReq, uncachedReq" *)
     (* conservative_implicit_conditions *)
-    rule uncachedReadReq (! initQ.notEmpty() &&&
-                          uncachedReqQ.first() matches tagged SCRATCHPAD_HYBRID_READ .r_req);
+    rule uncachedReadReq (tpl_1(uncachedReqQ1.first) matches tagged SCRATCHPAD_HYBRID_READ .r_req);
+        match {.req, .m_sb_addr, .sb_val, .sb_mask, .m_lr_addr} = uncachedReqQ1.first();
+
         let port = r_req.readUID.portNum;
         let l_addr = scratchpadLineAddr(r_req.addr);
         let w_idx = scratchpadWordIdx(r_req.addr);
 
-        if (uncachedStoreBufAddr.readPorts[0].sub(port) matches tagged Valid .sb_addr &&&
+        if (uncachedSBStateValid &&&
+            m_sb_addr matches tagged Valid .sb_addr &&&
             sb_addr == l_addr)
         begin
             // Address being read is in the store buffer!
-
-            // Get the store buffer data and mask.
-            t_SCRATCHPAD_LINE sb_val = newVector();
-            t_SCRATCHPAD_LINE_MASK sb_mask = newVector();
-            for (Integer w = 0; w < valueOf(SCRATCHPAD_WORDS_PER_LINE); w = w + 1)
-            begin
-                match {.val, .bmask} = uncachedStoreBuf[w].readPorts[0].sub(port);
-                sb_val[w] = val;
-                sb_mask[w] = bmask;
-            end
 
             //
             // Two possible cases:  if the word in the store buffer is valid
@@ -617,7 +663,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
             if ((pack(sb_mask[w_idx]) & pack(r_req.byteMask)) == pack(r_req.byteMask))
             begin
                 // Hit.  Return the store buffer.
-                uncachedReqQ.deq();
+                uncachedReqQ1.deq();
                 uncachedReadRspQ.enq(tuple4(r_req.addr,
                                             sb_val[w_idx],
                                             r_req.readUID,
@@ -634,15 +680,14 @@ module [CONNECTED_MODULE] mkScratchpadMemory
                 debugLog.record($format("port %0d: uncachedReadReq: Flush SB entry, addr=0x%x, mask=%b", port, l_addr, pack(sb_mask)));
             end
         end
-        else if (uncachedLastReadAddr.readPorts[0].sub(port) matches tagged Valid .lr_addr &&&
-                 lr_addr == l_addr)
+        else if (m_lr_addr matches tagged Valid .lr_addr &&& lr_addr == l_addr)
         begin
             //
             // Streaming read: the requested line was already requested by the
             // last read.  Don't ask the host again.  Instead, use the last
             // line cache.
             //
-            uncachedReqQ.deq();
+            uncachedReqQ1.deq();
 
             // Record reference metadata for use when the value comes back.
             SCRATCHPAD_HYBRID_READ_INFO info;
@@ -662,7 +707,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
             // The line is not in either the store buffer or the last read buffer.
             // Generate a request to the host.
             //
-            uncachedReqQ.deq();
+            uncachedReqQ1.deq();
 
             let h_addr = hostAddrFromLineAddr(port, l_addr);
             rrrReqQ.enq(tagged LoadLineReq SCRATCHPAD_RRR_LOAD_LINE_REQ { addr: h_addr });
@@ -682,6 +727,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory
 
             debugLog.record($format("port %0d: uncachedReadReq: Read addr=0x%x", port, l_addr));
         end
+
+        uncachedSBStateValid <= False;
     endrule
 
 
@@ -721,7 +768,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
             // Re-use previous response
             read_source = "stream";
 
-            line = uncachedLastReadBuf.readPorts[0].sub(port);
+            line = uncachedLastReadBuf.sub(port);
         end
 
         // Only one word from the line is expected.  Pick the right one.
@@ -741,12 +788,12 @@ module [CONNECTED_MODULE] mkScratchpadMemory
 
     (* fire_when_enabled *)
     rule uncachedDebugState (True);
-        if (uncachedReqQ.first() matches tagged SCRATCHPAD_HYBRID_WRITE .w_req)
+        if (tpl_1(uncachedReqQ1.first) matches tagged SCRATCHPAD_HYBRID_WRITE .w_req)
         begin
             uncachedReqWritePending.send();
         end
 
-        if (uncachedReqQ.first() matches tagged SCRATCHPAD_HYBRID_READ .r_req)
+        if (tpl_1(uncachedReqQ1.first) matches tagged SCRATCHPAD_HYBRID_READ .r_req)
         begin
             uncachedReqReadPending.send();
         end

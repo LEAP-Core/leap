@@ -258,7 +258,7 @@ module [CONNECTED_MODULE] mkCentralCache
     // ====================================================================
 
     // Route read responses back to the correct port.
-    FIFOF#(Tuple2#(CENTRAL_CACHE_PORT_NUM, CENTRAL_CACHE_READ_RESP)) readRespQ <- mkBypassFIFOF();
+    FIFOF#(Tuple2#(CENTRAL_CACHE_PORT_NUM, CENTRAL_CACHE_READ_RESP)) readRespQ <- mkFIFOF();
 
     //
     // processReadReq --
@@ -423,6 +423,21 @@ module mkCentralCacheBacking#(Vector#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_BAC
     // Debug state
     COUNTER#(4) nActiveReads <- mkLCounter(0);
 
+    //
+    // Add a buffering stage for read responses to reduce timing pressure.
+    //
+    FIFO#(RL_SA_CACHE_FILL_RESP#(CENTRAL_CACHE_LINE)) readRespQ <- mkFIFO();
+
+    rule bufferReadResp (True);
+        // The cache expects readReq/readResp in order.  Forward the response from
+        // the appropriate central cache port.
+        let r <- backingStore[readQ.first()].cacheSourceData.readResp();
+        readQ.deq();
+        nActiveReads.down();
+
+        readRespQ.enq(r);
+    endrule
+
 
     //
     // splitInternalAddr --
@@ -449,11 +464,9 @@ module mkCentralCacheBacking#(Vector#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_BAC
         endmethod
 
         method ActionValue#(RL_SA_CACHE_FILL_RESP#(CENTRAL_CACHE_LINE)) readResp();
-            // The cache expects readReq/readResp in order.  Forward the response from
-            // the appropriate central cache port.
-            let r <- backingStore[readQ.first()].cacheSourceData.readResp();
-            readQ.deq();
-            nActiveReads.down();
+            let r = readRespQ.first();
+            readRespQ.deq();
+
             return r;
         endmethod
 
