@@ -237,7 +237,8 @@ class ModuleList:
         )                             
 
 
-
+  def getAWBModule(self, moduleName):
+      return self.modules[moduleName]
     
   def getAWBParam(self, moduleName, param):
       return self.awbParamsObj.getAWBParam(moduleName, param)
