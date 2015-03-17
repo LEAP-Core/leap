@@ -105,7 +105,7 @@ class PostSynthesize():
         # did we get a dcp from the first pass?  If so, did the lim
         # graph give code for this module?  If both are true, then we
         # will link the old ngc in, rather than regenerate it. 
-        if ((not self.firstPassLIGraph is None) and (module.name in self.firstPassLIGraph.modules)):
+        if ((not self.firstPassLIGraph is None) and (module.name in self.firstPassLIGraph.modules) and (self.firstPassLIGraph.modules[module.name].getAttribute('RESYNTHESIZE') is None)):
             if (li_module.linkFirstPassObject(moduleList, module, self.firstPassLIGraph, 'GEN_VIVADO_DCPS', 'GEN_VIVADO_DCPS') is None):
                 module.moduleDependency['GEN_VIVADO_DCPS'] = [self.edf_to_dcp(moduleList, module)]
             
@@ -145,7 +145,7 @@ class PostSynthesize():
         for module in [moduleList.topModule] + platformModules + userModules:   
             dcps.append(module.getDependencies('GEN_VIVADO_DCPS'))
             checkpoint = model.convertDependencies(module.getDependencies('GEN_VIVADO_DCPS'))
-
+            
             # There should only be one checkpoint here. 
             if(len(checkpoint) > 1):
                 print "Error too many checkpoints for " + str(module.name) + ":  " + str(checkpoint)  

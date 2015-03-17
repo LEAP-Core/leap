@@ -109,7 +109,6 @@ class BSVSynthTreeBuilder():
             if (not module.platformModule):
                 for log in module.moduleDependency['BSV_LOG']:
                     boundary_logs += [root_directory.File(log)]
-
         ##
         ## Back to SCons configuration (first) pass...
         ##
@@ -148,9 +147,14 @@ class BSVSynthTreeBuilder():
         if (not self.getFirstPassLIGraph is None):
             # Now that we have demanded bluespec builds (for
             # dependencies), we should now should downgrade synthesis boundaries for the backend.
+            oldStubs = []
             for module in topo:
                 if(not module.platformModule):
-                    module.liIgnore = True
+                    if((not module.name in self.getFirstPassLIGraph.modules) or (self.getFirstPassLIGraph.modules[module.name].getAttribute('RESYNTHESIZE') is None)): 
+                        module.liIgnore = True
+                    # this may not be needed.
+                    else:
+                        oldStubs += module.moduleDependency['GEN_VERILOG_STUB']
 
             # let's pick up the platform dependencies, since they are also special.
             env.ParseDepends(get_build_path(moduleList, moduleList.topModule) + '/.depends-platform',
@@ -170,9 +174,13 @@ class BSVSynthTreeBuilder():
 
             linkthroughMap = {'BA': getEmpty, 'GEN_BAS': getEmpty, 'GEN_VERILOGS': getEmpty, 'GEN_VERILOG_STUB': getEmpty, 'STR': getModuleName}
 
-            oldStubs = []
             buildPath = get_build_path(moduleList, moduleList.topModule)
             for module in self.getFirstPassLIGraph.modules.values():
+            
+                # do not link through those modules marked for resynthesis. 
+                if(not module.getAttribute('RESYNTHESIZE') is None):  
+                    continue
+
                 moduleDeps = {}
 
                 for objType in linkthroughMap:
@@ -187,7 +195,7 @@ class BSVSynthTreeBuilder():
                         # really generated here, so we can't call them
                         # as such. Tuck them in to 'VERILOG'
                         if(objType == 'GEN_VERILOG_STUB'):
-                            oldStubs += localNames
+                            oldStubs += localNames                        
                         moduleDeps[objType] = localNames
 
                         if (module.getAttribute('PLATFORM_MODULE') is None):
@@ -229,7 +237,7 @@ class BSVSynthTreeBuilder():
             liGraph = LIGraph([])
             firstPassGraph = self.getFirstPassLIGraph
             # We should ignore the 'PLATFORM_MODULE'
-            liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
+            liGraph.mergeModules([ module for module in bsv_tool.getUserModules(firstPassGraph) if module.getAttribute('RESYNTHESIZE') is None])
             for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
                 # pull in the dependecies generate by the dependency pass.
                 env.ParseDepends(str(tree_base_path) + '/.depends-' + module.name,
@@ -353,14 +361,12 @@ class BSVSynthTreeBuilder():
                                            tree_components,
                                            tree_command)
 
-        print "TREE COMPONENTS: " + str(tree_components)
- 
         # If we got a first pass LI graph, we need to link its object codes.
         if (not self.getFirstPassLIGraph is None):
             srcs = [s.from_bld() for s in limLinkUserSources]
             link_lim_user_objs = env.Command(limLinkUserTargets,
                                              srcs,
-                                             linkLIMObjClosure(bsv_tool.getUserModules(self.getFirstPassLIGraph),
+                                             linkLIMObjClosure([ module for module in bsv_tool.getUserModules(firstPassGraph) if module.getAttribute('RESYNTHESIZE') is None],
                                                                tree_base_path.path))
             env.Depends(link_lim_user_objs, tree_file_wrapper_bo)
 
@@ -413,7 +419,7 @@ class BSVSynthTreeBuilder():
             srcs = [s.from_bld() for s in limLinkPlatformSources]
             link_lim_platform_objs = env.Command(limLinkPlatformTargets,
                                                  srcs,
-                                                 linkLIMObjClosure(bsv_tool.getPlatformModules(self.getFirstPassLIGraph),
+                                                 linkLIMObjClosure([ module for module in bsv_tool.getPlatformModules(firstPassGraph) if module.getAttribute('RESYNTHESIZE') is None],
                                                                    tree_base_path.path))
             env.Depends(link_lim_platform_objs, platform_synth_bo)
 
@@ -452,10 +458,10 @@ class BSVSynthTreeBuilder():
         else:
             #cut_tree_build may modify the first pass graph, so we need
             #to make a copy
-            liGraph = LIGraph([])
+            liGraph = LIGraph(li_module.parseLogfiles(boundary_logs))
             firstPassGraph = self.getFirstPassLIGraph
             # We should ignore the 'PLATFORM_MODULE'
-            liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
+            liGraph.mergeModules([ module for module in bsv_tool.getUserModules(firstPassGraph) if module.getAttribute('RESYNTHESIZE') is None])
             if (area_constraints):
                 area_constraints.loadAreaConstraintsPlaced()
 

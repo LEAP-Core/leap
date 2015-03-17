@@ -600,7 +600,8 @@ def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
         # did we get an ngc from the first pass?  If so, did the lim
         # graph give code for this module?  If both are true, then we
         # will link the old ngc in, rather than regenerate it. 
-        if((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules)):
+
+        if((not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules) and (firstPassLIGraph.modules[module.name].getAttribute('RESYNTHESIZE') is None)):
             synth_deps += linkNGC(moduleList, module, firstPassLIGraph)
         else:
             # We need to build the netlist. We build platformModules

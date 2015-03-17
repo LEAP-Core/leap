@@ -274,7 +274,7 @@ class BSV():
                 liGraph = LIGraph([])
                 firstPassGraph = first_pass_LI_graph
                 # We should ignore the 'PLATFORM_MODULE'
-                liGraph.mergeModules(getUserModules(firstPassGraph))
+                liGraph.mergeModules([ module for module in getUserModules(firstPassGraph) if module.getAttribute('RESYNTHESIZE') is None])
                 for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
                     wrapper_import_path = tree_base_path + '/' + module.name + '_Wrapper.bsv'
                     li_wrappers.append(module.name + '_Wrapper.bsv')
@@ -410,9 +410,12 @@ class BSV():
             bsc_builds += env.BSC(MODULE_PATH + '/' + self.TMP_BSC_DIR + '/' + bsv.replace('.bsv', ''), MODULE_PATH + '/' + bsv)
 
 
-        # if we got object code and we're not the top level,
-        # we can return now.
-        if ((module.name != moduleList.topModule.name) and (not wrapper_gen_tool.getFirstPassLIGraph() is None)):
+        firstPassLIGraph = wrapper_gen_tool.getFirstPassLIGraph()
+        # In the second pass of the LIM build, we don't need to build
+        # any modules, except in some cases where we turn on
+        # module-specific optimizations, as in the case of central
+        # cache.  If we do need to rebuild, we'll see a tag.
+        if ((module.name != moduleList.topModule.name) and (not firstPassLIGraph is None) and (firstPassLIGraph.modules[module.name].getAttribute('RESYNTHESIZE') is None)):
             return
 
         # This should not be a for loop.
