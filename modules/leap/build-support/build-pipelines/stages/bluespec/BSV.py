@@ -415,7 +415,7 @@ class BSV():
         # any modules, except in some cases where we turn on
         # module-specific optimizations, as in the case of central
         # cache.  If we do need to rebuild, we'll see a tag.
-        if ((module.name != moduleList.topModule.name) and (not firstPassLIGraph is None) and (firstPassLIGraph.modules[module.name].getAttribute('RESYNTHESIZE') is None)):
+        if ((module.name != moduleList.topModule.name) and (not firstPassLIGraph is None) and (module.name in firstPassLIGraph.modules) and (firstPassLIGraph.modules[module.name].getAttribute('RESYNTHESIZE') is None)):
             return
 
         # This should not be a for loop.
