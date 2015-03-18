@@ -441,14 +441,16 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     LUTRAM#(Bit#(5), Bit#(2)) sideReqFilter <- mkLUTRAM(0);
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
 
+    // Track whether the heads of the new and side request queues are
+    // blocked.  Once blocked, a queue stays blocked until either the head
+    // is removed or a cache index is unlocked when an in-flight request
+    // is completed.
+    Reg#(Bool) newReqNotBlocked[3] <- mkCReg(3, True);
+    Reg#(Bool) sideReqNotBlocked[2] <- mkCReg(2, True);
+
     Wire#(Tuple2#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ)) pickReq <- mkWire();
     Wire#(Tuple3#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0))))
         curReq <- mkWire();
-
-    (* fire_when_enabled, no_implicit_conditions *)
-    rule incrReqArb (True);
-        newReqArb <= newReqArb + 1;
-    endrule
 
     //
     // pickReqQueue0 --
@@ -467,19 +469,19 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         // Choose from prefech request queue is the prefetcher is enabled and 
         // the arbitration counter newReqArb is larger than a certain threshold
         
-        Bool pick_new_req = newReqQ.notEmpty &&
-                            ((newReqArb != 0) || ! sideReqQ.notEmpty);
+        Bool new_req_avail = newReqQ.notEmpty && newReqNotBlocked[0];
+        Bool side_req_avail = sideReqQ.notEmpty && sideReqNotBlocked[0];
 
-        t_CACHE_REQ r = ?;
-        RL_DM_CACHE_REQ_TYPE req_type;
-        
+        Bool pick_new_req = new_req_avail && ((newReqArb != 0) || ! side_req_avail);
+
         if ( prefetchMode == RL_DM_PREFETCH_ENABLE && prefetcher.hasReq() && 
            ((!newReqQ.notEmpty && !sideReqQ.notEmpty) || 
            ((newReqArb > 2) && (prefetcher.peekReq().prio == PREFETCH_PRIO_LOW)) || 
            ((newReqArb > 1) && (prefetcher.peekReq().prio == PREFETCH_PRIO_HIGH))))
         begin
-            req_type      = DM_CACHE_PREFETCH_REQ;
+            let req_type  = DM_CACHE_PREFETCH_REQ;
             let pref_req  = prefetcher.peekReq();
+            t_CACHE_REQ r = ?;
             r.act         = DM_CACHE_READ;
             r.addr        = pref_req.addr;
             r.readMeta    = RL_DM_CACHE_READ_META { isLocalPrefetch: True,
@@ -489,15 +491,22 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             match {.tag, .idx} = cacheEntryFromAddr(pref_req.addr);
             r.tag = tag;
             r.idx = idx;
+
+            pickReq <= tuple2(req_type, r);
             debugLog.record($format("    pick prefetch req: addr=0x%x, entry=0x%x", r.addr, idx));
         end
-        else
+        else if (pick_new_req)
         begin
-            r = pick_new_req ? newReqQ.first() : sideReqQ.first();
-            req_type = pick_new_req ? DM_CACHE_NEW_REQ : DM_CACHE_SIDE_REQ;
+            let r = newReqQ.first();
+            pickReq <= tuple2(DM_CACHE_NEW_REQ, r);
+            debugLog.record($format("    pick new req: addr=0x%x, entry=0x%x", r.addr, cacheIdx(r)));
         end
-        
-        pickReq <= tuple2(req_type, r);
+        else if (side_req_avail)
+        begin
+            let r = sideReqQ.first();
+            pickReq <= tuple2(DM_CACHE_SIDE_REQ, r);
+            debugLog.record($format("    pick side req: addr=0x%x, entry=0x%x", r.addr, cacheIdx(r)));
+        end
     endrule
 
 
@@ -522,6 +531,13 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         // would have been done this cycle, so we lose no performance.
         cache.readReq(idx);
         newCacheLookupW.wset(r);
+
+        // Update arbiter now that a request has been posted.  Arbiter update
+        // is tied to cache requests in order to support storage that
+        // doesn't accept a request every cycle, such as BRAM running
+        // with a divided block.  Updating the arbiter without this connection
+        // can trigger harmonics that result in live locks.
+        newReqArb <= newReqArb + 1;
 
         // In order to preserve read/write and write/write order, the
         // request must either come from the side buffer or be a new request
@@ -567,6 +583,8 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         begin
             sideReqQ.deq();
             sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) - 1);
+            // Removing from the side buffer may free the new request.
+            newReqNotBlocked[2] <= True;
         end
         else
         begin
@@ -585,25 +603,49 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     //
     (* fire_when_enabled *)
     rule shuntNewReq (tpl_1(curReq) == DM_CACHE_NEW_REQ &&
-                      ! tpl_2(curReq).globalReadMeta.orderedSourceDataReqs &&
-                      (sideReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) != maxBound) &&
                       ! isValid(tpl_3(curReq)) &&
                       (cacheMode != RL_DM_MODE_DISABLED));
         match {.req_type, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
 
-        debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
-
-        sideReqQ.enq(r);
-        newReqQ.deq();
-
-        // Note line present in sideReqQ
-        sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) + 1);
-        
-        if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+        if (! tpl_2(curReq).globalReadMeta.orderedSourceDataReqs &&
+            (sideReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) != maxBound) &&
+            sideReqQ.notFull)
         begin
-            prefetcher.shuntNewCacheReq(idx, r.addr);
+            debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
+
+            sideReqQ.enq(r);
+            newReqQ.deq();
+
+            // Note line present in sideReqQ
+            sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) + 1);
+
+            if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+            begin
+                prefetcher.shuntNewCacheReq(idx, r.addr);
+            end
         end
+        else
+        begin
+            debugLog.record($format("    new req queue blocked: addr=0x%x, entry=0x%x", r.addr, idx));
+            newReqNotBlocked[0] <= False;
+        end
+    endrule
+
+
+    //
+    // sideReqBlocked --
+    //     Detect when the side queue is blocked.  There is no point in polling
+    //     it until the blocking in-flight request completes.
+    //
+    (* fire_when_enabled *)
+    rule sideReqBlocked (tpl_1(curReq) == DM_CACHE_SIDE_REQ &&
+                         ! isValid(tpl_3(curReq)));
+        match {.req_type, .r, .cf_opaque} = curReq;
+        let idx = cacheIdx(r);
+
+        debugLog.record($format("    side req queue blocked: addr=0x%x, entry=0x%x", r.addr, idx));
+        sideReqNotBlocked[0] <= False;
     endrule
 
 
@@ -629,10 +671,12 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         if (newCacheLookupValidW)
         begin
             cacheLookupQ.enq(tagged Valid r);
+            debugLog.record($format("    Lookup valid, entry=0x%x", cacheIdx(r)));
         end
         else
         begin
             cacheLookupQ.enq(tagged Invalid);
+            debugLog.record($format("    Speculative lookup dropped"));
         end
     endrule
 
@@ -934,6 +978,10 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         entryFilterUpdateQ.deq();
 
         entryFilter.remove(idx);
+
+        // Lift blocks on queues when the filter is updated.
+        newReqNotBlocked[1] <= True;
+        sideReqNotBlocked[1] <= True;
     endrule
 
 
