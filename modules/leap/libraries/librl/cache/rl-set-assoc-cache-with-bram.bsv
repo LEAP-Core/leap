@@ -348,7 +348,19 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     end
 
     // Values
-    Vector#(nWordsPerLine, BRAM#(t_CACHE_DATA_IDX, t_CACHE_WORD)) dataStore <- replicateM(mkBRAM());
+    Vector#(nWordsPerLine, BRAM#(t_CACHE_DATA_IDX, t_CACHE_WORD)) dataStore = ?;
+    if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
+    begin
+        dataStore <- replicateM(mkBRAM());
+    end
+    else if(`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
+    begin
+        dataStore <- replicateM(mkBRAMMultiBank());
+    end
+    else
+    begin
+        dataStore <- replicateM(mkBRAMClockDivider());
+    end
 
     // ***** Internal state *****
 
