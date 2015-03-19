@@ -458,10 +458,11 @@ class BSVSynthTreeBuilder():
         else:
             #cut_tree_build may modify the first pass graph, so we need
             #to make a copy
-            liGraph = LIGraph(li_module.parseLogfiles(boundary_logs))
+            liGraph = LIGraph([])
             firstPassGraph = self.getFirstPassLIGraph
             # We should ignore the 'PLATFORM_MODULE'
-            liGraph.mergeModules([ module for module in bsv_tool.getUserModules(firstPassGraph) if module.getAttribute('RESYNTHESIZE') is None])
+            liGraph.mergeModules(bsv_tool.getUserModules(firstPassGraph))
+
             if (area_constraints):
                 area_constraints.loadAreaConstraintsPlaced()
 
