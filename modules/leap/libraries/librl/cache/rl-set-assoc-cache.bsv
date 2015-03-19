@@ -125,6 +125,10 @@ interface RL_SA_CACHE#(type t_CACHE_ADDR,
                           Bit#(TLog#(nWordsPerLine)) wordIdx,
                           t_CACHE_READ_META readMeta,
                           RL_CACHE_GLOBAL_READ_META globalReadMeta);
+    
+    method Action readLineReq(t_CACHE_ADDR addr,
+                              t_CACHE_READ_META readMeta,
+                              RL_CACHE_GLOBAL_READ_META globalReadMeta);
 
     method ActionValue#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META)) readResp();
 
@@ -141,6 +145,11 @@ interface RL_SA_CACHE#(type t_CACHE_ADDR,
     method Action write(t_CACHE_ADDR addr,
                         t_CACHE_WORD val,
                         Bit#(TLog#(nWordsPerLine)) wordIdx);
+    
+    // Write an entire cache line
+    method Action writeLine(t_CACHE_ADDR addr, 
+                            Vector#(nWordsPerLine, Bool) wordValidMask,
+                            Vector#(nWordsPerLine, t_CACHE_WORD) val);
     
     // Invalidate & flush requests.  Both write dirty lines back.  Invalidate drops
     // the line from the cache.  Flush keeps the line in the cache.  A response
@@ -297,6 +306,7 @@ RL_SA_CACHE_WRITE_INFO#(type t_CACHE_WORD, type t_CACHE_WRITE_WORD_IDX)
 // have to be especially large.
 //
 typedef 3 WRITE_DATA_HEAP_IDX_SZ;
+typedef 2 WRITE_LINE_HEAP_IDX_SZ;
 
 //
 // Meta-data associated with a write request.
@@ -304,15 +314,29 @@ typedef 3 WRITE_DATA_HEAP_IDX_SZ;
 typedef struct
 {
     Bit#(WRITE_DATA_HEAP_IDX_SZ) dataIdx;
-    Bit#(TLog#(nWordsPerLine)) wordIdx;
+    Bit#(TLog#(nWordsPerLine))   wordIdx;
 }
-RL_SA_CACHE_WRITE_REQ#(numeric type nWordsPerLine)
+RL_SA_CACHE_WRITE_WORD_REQ#(numeric type nWordsPerLine)
     deriving (Eq, Bits);
 
+typedef struct
+{
+    Bit#(WRITE_LINE_HEAP_IDX_SZ) dataIdx;
+    Vector#(nWordsPerLine, Bool) wordValidMask;
+}
+RL_SA_CACHE_WRITE_LINE_REQ#(numeric type nWordsPerLine)
+    deriving (Eq, Bits);
+
+typedef union tagged
+{
+    RL_SA_CACHE_WRITE_WORD_REQ#(nWordsPerLine) WRITE_WORD;
+    RL_SA_CACHE_WRITE_LINE_REQ#(nWordsPerLine) WRITE_LINE;
+}
+RL_SA_CACHE_WRITE_REQ#(numeric type nWordsPerLine)
+    deriving(Bits, Eq);
 
 typedef UInt#(TLog#(nSets)) RL_SA_CACHE_SET_IDX#(numeric type nSets);
 typedef UInt#(TLog#(nWays)) RL_SA_CACHE_WAY_IDX#(numeric type nWays);
-
 
 //
 // Cache way metadata (tag and a dirty bit). It is the responsibility of the
@@ -392,10 +416,17 @@ RL_SA_CACHE_META_CLIENT
 typedef struct
 {
     Bit#(TLog#(nWordsPerLine)) wordIdx;
+    Bool                       fullLine;
 }
 RL_SA_CACHE_READ_REQ#(numeric type nWordsPerLine)
     deriving (Eq, Bits);
 
+//
+// Keep the partial valid cache line for readLineReq
+// The data stored in the heap will be merged with the fill response from the 
+// next-level memory before being forwarded back to the client
+//
+typedef 16 RL_SA_CACHE_READ_LINE_FIFO_DEPTH;
 
 //
 // Basic request information constructed when a new request arrives.
@@ -452,6 +483,8 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                         RL_SA_CACHE_LOCAL_DATA#(t_CACHE_ADDR_SZ, t_CACHE_WORD, nWordsPerLine, nSets, nWays, nReaders) localData,
                         NumTypeParam#(t_RECENT_READ_CACHE_IDX_SZ) param0,
                         NumTypeParam#(nTagExtraLowBits) param1,
+                        Bool hasRecentLineCache, 
+                        Bool enableLineAccess,
                         DEBUG_FILE debugLog)
     // interface:
         (RL_SA_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META))
@@ -513,16 +546,18 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     begin
         error("nSets must be a power of 2");
     end
- 
-
 
     // ***** Internal state *****
-
-    Reg#(Bool) cacheIsEmpty <- mkReg(True);
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
     MEMORY_HEAP_IMM#(Bit#(WRITE_DATA_HEAP_IDX_SZ), t_CACHE_WRITE_INFO) reqInfo_writeData <- mkMemoryHeapLUTRAM();
+    MEMORY_HEAP_IMM#(Bit#(WRITE_LINE_HEAP_IDX_SZ), Vector#(nWordsPerLine, t_CACHE_WORD)) reqInfo_writeLineData = ?;
+    
+    if (enableLineAccess)
+    begin
+        reqInfo_writeLineData <- mkMemoryHeapLUTRAM();
+    end
 
     // Is the cache write back?  If not, never set a dirty bit.  It is then the
     // responsibility of the caller to write values to backing storage.
@@ -541,25 +576,24 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // First stage coming out of handleIncomingReq
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) processReqQ0 <- mkSizedFIFOF(4);
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, Bool)) processReqQ1 <- mkSizedFIFOF(8);
-    FIFOF#(Tuple5#(t_CACHE_REQ_BASE,
-                   t_CACHE_REQ,
-                   Bool,
-                   t_SET_METADATA,
-                   Maybe#(Tuple2#(t_CACHE_WAY_IDX, t_METADATA))))
-        processReqQ2 <- mkFIFOF();
+    FIFOF#(Tuple5#(t_CACHE_REQ_BASE, t_CACHE_REQ, Bool, t_SET_METADATA, Maybe#(Tuple2#(t_CACHE_WAY_IDX, t_METADATA)))) processReqQ2 <- mkFIFOF();
 
     // Hit path for operations that read the cache (read and flush)
-    FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK)) readHitQ <- mkSizedFIFOF(8);
+    FIFOF#(Tuple4#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK, Bool)) readHitQ <- mkSizedFIFOF(8);
 
     // Queues on miss path
     FIFOF#(Tuple4#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_SET_METADATA, t_CACHE_WAY_IDX)) lineMissQ <- mkFIFOF();
-    FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK)) wordMissQ <- mkFIFOF();
+    FIFOF#(Tuple4#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK, Bool)) wordMissQ <- mkFIFOF();
 
     // Fill for read path
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) fillLineRequestQ <- mkFIFOF();
-    FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK)) fillLineQ <- mkSizedFIFOF(16);
+    FIFOF#(Tuple4#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK, Bool)) fillLineQ <- mkSizedFIFOF(16);
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_WORD_VALID_MASK)) fillLineUncacheableQ <- mkSizedFIFOF(8);
-
+    FIFOF#(Vector#(nWordsPerLine, t_CACHE_WORD)) partialValidLineQ = ?; 
+    if (enableLineAccess)
+    begin
+        partialValidLineQ <- mkSizedBRAMFIFOF(valueOf(RL_SA_CACHE_READ_LINE_FIFO_DEPTH));
+    end
     // Write data to an allocated queue entry
     FIFOF#(Tuple2#(t_CACHE_REQ_BASE, RL_SA_CACHE_WRITE_REQ#(nWordsPerLine))) writeDataQ <- mkFIFOF();
 
@@ -777,8 +811,12 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // Recent line cache enabled?
     Reg#(Bool) enableRecentLineCache <- mkReg(True);
 
-    MEMORY_IFC#(t_RECENT_READ_CACHE_IDX, t_RECENT_READ_CACHE_ENTRY)
+    MEMORY_IFC#(t_RECENT_READ_CACHE_IDX, t_RECENT_READ_CACHE_ENTRY) recentLineCache = ?;
+    
+    if (hasRecentLineCache)
+    begin
         recentLineCache <- mkSlowMemoryM(mkBRAMInitialized(tagged Invalid), True);
+    end
 
     // Lock out potential reads and writes of the same entry in a cycle
     RWire#(t_RECENT_READ_CACHE_IDX) recentLineWriteLock <- mkRWire();
@@ -879,7 +917,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let tag = req_base.tag;
         let set = req_base.set;
 
-        if (! recentReadLineLocked(tag, set))
+        if (! hasRecentLineCache || ! recentReadLineLocked(tag, set))
         begin
             // In order to preserve read/write and write/write order, the
             // request must either come from the side buffer or be a new request
@@ -916,9 +954,19 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                                 pick_new_req ? "new" : "side",
                                 debugAddrFromTag(tag, set), set));
 
-        // Read the current state of the recent line cache for the set.
-        recentLineCache.readReq(recentLineIdx(tag, set));
-        processReqQ0.enq(tuple2(req_base, req));
+        if (hasRecentLineCache)
+        begin
+            // Read the current state of the recent line cache for the set.
+            recentLineCache.readReq(recentLineIdx(tag, set));
+            processReqQ0.enq(tuple2(req_base, req));
+        end
+        else
+        begin
+            // Read meta data and LRU hints
+            localData.setReadReq(req_base.set, True);
+            metaClientQ.enq(RL_SA_CACHE_META_CLIENT_STD);
+            processReqQ1.enq(tuple3(req_base, req, False));
+        end
 
         if (pick_new_req)
         begin
@@ -930,7 +978,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             sideReqFilter.upd(resize(set), sideReqFilter.sub(resize(set)) - 1);
         end
     endrule
-
+    
     //
     // shuntNewReq --
     //     If the current request is new (not a shunted request) and the
@@ -970,7 +1018,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     line cache.  Now it can be known whether a meta data read is
     //     required.
     //
-    rule handleIncomingReq1 (True);
+    rule handleIncomingReq1 (hasRecentLineCache);
         match {.req_base, .req} = processReqQ0.first();
         processReqQ0.deq();
 
@@ -1012,8 +1060,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             processReqQ1.enq(tuple3(req_base, req, recent_matches));
         end
     endrule
-
-
+    
     //
     // handleIncomingReq2 --
     //     Receive a set's current metadata and see whether the line hit
@@ -1032,7 +1079,6 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         processReqQ2.enq(tuple5(req_base_in, req, recent_matches, meta,
                                 findWayMatch(tag, meta)));
     endrule
-
 
     // ====================================================================
     //
@@ -1069,7 +1115,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         Maybe#(RL_SA_CACHE_INVAL_IDX) need_ack = ?;
         Bool is_inval = ?;
 
-        if (recent_matches)
+        if (hasRecentLineCache && recent_matches)
         begin
             // Invalidate an entry currently stored in the recent line cache.
             debugLog.record($format("  RECENT Inval: addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
@@ -1103,7 +1149,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                 // Found dirty line.  Prepare for write back.
                 req_base_out.way = way;
                 localData.dataRead[lpFLUSH].readReq(way);
-                readHitQ.enq(tuple3(req_base_out, req, way_meta.wordValid));
+                readHitQ.enq(tuple4(req_base_out, req, way_meta.wordValid, False));
                 found_dirty_line = True;
 
                 if (! is_inval)
@@ -1147,7 +1193,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     rule flushDirtyLine (reqIsInvalOrFlush(tpl_2(readHitQ.first())));
 
-        match {.req_base, .req, .word_valid_mask} = readHitQ.first();
+        match {.req_base, .req, .word_valid_mask, .is_read_partial_line} = readHitQ.first();
         readHitQ.deq();
 
         let v <- localData.dataRead[lpFLUSH].readRsp();
@@ -1228,7 +1274,6 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
         debugLog.record($format("  Process request: READ addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
 
-        Bool need_set_data = False;
         let req_base_out = req_base_in;
 
         if (m_match matches tagged Valid {.way, .way_meta})
@@ -1242,13 +1287,17 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             let meta_upd = meta;
             meta_upd.lru <- cacheLRUUpdate(set, way, meta.lru);
 
-            if (way_meta.wordValid[rReq.wordIdx])
+            // Read hit only if the entire line is valid or a requested word 
+            // is valid for the request that only asks for a single word
+            Vector#(TMax#(1, nWordsPerLine), Bool) valid_vec = unpack(zeroExtendNP(pack(way_meta.wordValid))); // to avoid proviso check 
+            Bool read_hit = fold(\&& , valid_vec) || (!rReq.fullLine && way_meta.wordValid[rReq.wordIdx]);
+
+            if (read_hit)
             begin
                 // Word hit!
                 readHitW.send();
                 localData.dataRead[lpREAD].readReq(way);
-                need_set_data = True;
-                readHitQ.enq(tuple3(req_base_out, req, way_meta.wordValid));
+                readHitQ.enq(tuple4(req_base_out, req, way_meta.wordValid, False));
 
                 if (meta_upd.lru != meta.lru)
                 begin
@@ -1257,10 +1306,13 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                     newMRUW.send();
                 end
             end
-            else
+            else if (!rReq.fullLine || !way_meta.dirty)
             begin
                 // Line valid but word in line is not.  Fill.
-                wordMissQ.enq(tuple3(req_base_out, req, way_meta.wordValid));
+                // if the cache line is not dirty, drop the wordvalid bits 
+                // so that the fill reponse will replace the entire cache line
+                let new_word_valid = (!way_meta.dirty)? replicate(False) : way_meta.wordValid;
+                wordMissQ.enq(tuple4(req_base_out, req, new_word_valid, False));
 
                 // Must consume prefetched set data
                 localData.dataRead[lpDRAIN].readReq(?);
@@ -1269,6 +1321,15 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                 // the fill completes.
                 meta_upd.ways[way] = tagged Valid metaData(tag, way_meta.dirty, replicate(True));
 
+                localData.metaWrite(set, meta_upd);
+            end
+            else if (enableLineAccess) // it is a readLine request and the current cacheline is dirty and only partially valid
+            begin
+                readHitQ.enq(tuple4(req_base_out, req, way_meta.wordValid, True));
+                wordMissQ.enq(tuple4(req_base_out, req, way_meta.wordValid, True));
+                localData.dataRead[lpREAD].readReq(way);
+                // Mark all words valid in the line.  They will be after the fill completes.
+                meta_upd.ways[way] = tagged Valid metaData(tag, True, replicate(True));
                 localData.metaWrite(set, meta_upd);
             end
         end
@@ -1305,7 +1366,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
         debugLog.record($format("  Process request: WRITE addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
 
-        if (recent_matches)
+        if (hasRecentLineCache && recent_matches)
         begin
             // Write to an entry stored in the recent line cache.  Simply invalidate
             // it instead of being clever.  Even if we were trying to be clever,
@@ -1314,7 +1375,6 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             updateRecentReadLine(tag, set, tagged Invalid);
         end
 
-        cacheIsEmpty <= False;
         let req_base_out = req_base_in;
 
         if (m_match matches tagged Valid {.way, .way_meta})
@@ -1332,7 +1392,15 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
             // Mark line dirty and word valid
             let new_word_valid = way_meta.wordValid;
-            new_word_valid[wReq.wordIdx] = True;
+            
+            if (wReq matches tagged WRITE_LINE .w_line_req) //write the entire line
+            begin
+                new_word_valid = w_line_req.wordValidMask;
+            end
+            else if (wReq matches tagged WRITE_WORD .w_word_req)
+            begin
+                new_word_valid[w_word_req.wordIdx] = True;
+            end
 
             meta_upd.ways[way] = tagged Valid metaData(tag, writeBackCache(), new_word_valid);
 
@@ -1386,9 +1454,9 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // handleReadCacheHit --
     //   Forward data coming from cache BRAM from handleRead to back to the requester.
     //
-    rule handleReadCacheHit (tpl_2(readHitQ.first()) matches tagged HCOP_READ .rReq);
+    rule handleReadCacheHit (tpl_2(readHitQ.first()) matches tagged HCOP_READ .rReq &&& !tpl_4(readHitQ.first()));
 
-        match {.req_base, .req, .word_valid_mask} = readHitQ.first();
+        match {.req_base, .req, .word_valid_mask, .is_read_partial_line} = readHitQ.first();
         readHitQ.deq();
 
         let d <- localData.dataRead[lpREAD].readRsp();
@@ -1398,11 +1466,14 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let set = req_base.set;
         let way = req_base.way;
 
-        // Update the recent line cache
-        updateRecentReadLine(tag, set,
-                             tagged Valid tuple3(recentLineTag(tag, set),
-                                                 v,
-                                                 word_valid_mask));
+        if (hasRecentLineCache)
+        begin
+            // Update the recent line cache
+            updateRecentReadLine(tag, set,
+                                 tagged Valid tuple3(recentLineTag(tag, set),
+                                                     v,
+                                                     word_valid_mask));
+        end
 
         readRespToClientQ_OOO.enq(tuple5(req_base, rReq, v, word_valid_mask, True));
 
@@ -1421,26 +1492,40 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         match {.req_base, .w_req} = writeDataQ.first();
         writeDataQ.deq();
 
-        let w_data = reqInfo_writeData.sub(w_req.dataIdx);
-
         let tag = req_base.tag;
         let set = req_base.set;
         let way = req_base.way;
+            
+        Vector#(nWordsPerLine, Bool) mask = replicate(False);
+        Vector#(nWordsPerLine, t_CACHE_WORD) val = ?;
 
-        localData.dataWriteWord(set, way, w_req.wordIdx, w_data.val);
+        if (w_req matches tagged WRITE_LINE .w_line_req &&& enableLineAccess)
+        begin
+            let w_line_data = reqInfo_writeLineData.sub(w_line_req.dataIdx);
+            localData.dataWrite(set, way, w_line_req.wordValidMask, w_line_data);
+            debugLog.record($format("  WRITE Line: addr=0x%x, set=0x%x, way=%0d, data=0x%x, wordMask=0x%x", 
+                            debugAddrFromTag(tag, set), set, way, w_line_data, w_line_req.wordValidMask));
+            mask = w_line_req.wordValidMask;
+            val  = w_line_data;
+            reqInfo_writeLineData.free(w_line_req.dataIdx);
+        end
+        else if (w_req matches tagged WRITE_WORD .w_word_req)
+        begin
+            let w_data = reqInfo_writeData.sub(w_word_req.dataIdx);
+            localData.dataWriteWord(set, way, w_word_req.wordIdx, w_data.val);
+            debugLog.record($format("  WRITE Word: addr=0x%x, set=0x%x, way=%0d, word=%0d, data=0x%x", 
+                            debugAddrFromTag(tag, set), set, way, w_word_req.wordIdx, w_data.val));
+            mask[w_word_req.wordIdx] = True;
+            val = replicate(w_data.val);
+            reqInfo_writeData.free(w_word_req.dataIdx);
+        end
 
-        debugLog.record($format("  WRITE Word: addr=0x%x, set=0x%x, way=%0d, word=%0d, data=0x%x", debugAddrFromTag(tag, set), set, way, w_req.wordIdx, w_data.val));
-
+        // Send all writes to backing storage if in write-through mode.
         if (! writeBackCache())
         begin
-            // Send all writes to backing storage if in write-through mode.
-            Vector#(nWordsPerLine, Bool) mask = replicate(False);
-            mask[w_req.wordIdx] = True;
-            Vector#(nWordsPerLine, t_CACHE_WORD) val = replicate(w_data.val);
             sourceData.write(cacheAddr(tag, set), mask, unpack(pack(val)));
         end
 
-        reqInfo_writeData.free(w_req.dataIdx);
         doneQ.enq(set);
     endrule
 
@@ -1458,26 +1543,39 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     rule handleWordMissForRead (tpl_2(wordMissQ.first()) matches tagged HCOP_READ .rReq);
 
-        match {.req_base, .req, .word_valid_mask} = wordMissQ.first();
+        match {.req_base, .req, .word_valid_mask, .is_read_partial_line} = wordMissQ.first();
         wordMissQ.deq();
 
         let tag = req_base.tag;
         let set = req_base.set;
 
         //
-        // Miss.  Pick a victim.
+        // Miss.
         //
 
         readMissW.send();
 
         let addr = cacheAddr(tag, set);
         sourceData.readReq(addr, req_base.readMeta, req_base.globalReadMeta);
-        fillLineQ.enq(tuple3(req_base, req, word_valid_mask));
+        fillLineQ.enq(tuple4(req_base, req, word_valid_mask, is_read_partial_line));
 
         debugLog.record($format("  READ WORD MISS (FILL): addr=0x%x, set=0x%x, way=%0d", debugAddr(addr), set, req_base.way));
     endrule
-
-
+    
+    //
+    // recvPartialLineForRead --
+    //   Receive and store the partial valid cache line. 
+    //
+    rule recvPartialLineForRead (tpl_2(readHitQ.first()) matches tagged HCOP_READ .rReq &&& tpl_4(readHitQ.first()) &&& enableLineAccess);
+        match {.req_base, .req, .word_valid_mask, .is_read_partial_line} = readHitQ.first();
+        readHitQ.deq();
+        let d <- localData.dataRead[lpREAD].readRsp();
+        Vector#(nWordsPerLine, t_CACHE_WORD) v = unpack(pack(d));
+        partialValidLineQ.enq(v);
+        debugLog.record($format("    recvPartialLineForRead: addr=0x%x, set=0x%x, way=%0d, mask=0x%x, data=0x%x", 
+                        debugAddrFromTag(req_base.tag, req_base.set), req_base.set, req_base.way, word_valid_mask, v));
+    endrule
+    
     //
     // handleMissForRead --
     //     Pick a victim and prepare to fill a way from backing storage.
@@ -1536,7 +1634,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         begin
             let addr = cacheAddr(tag, set);
             sourceData.readReq(addr, req_base_out.readMeta, req_base_out.globalReadMeta);
-            fillLineQ.enq(tuple3(req_base_out, req, replicate(False)));
+            fillLineQ.enq(tuple4(req_base_out, req, replicate(False), False));
 
             debugLog.record($format("  READ MISS (FILL): addr=0x%x, set=0x%x, way=%0d", debugAddr(addr), set, req_base_out.way));
         end
@@ -1575,7 +1673,14 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         // The full line will not be filled from memory for a write.  Only
         // mark the word being written valid.
         t_CACHE_WORD_VALID_MASK word_valid_mask = replicate(False);
-        word_valid_mask[wReq.wordIdx] = True;
+        if (wReq matches tagged WRITE_LINE .w_line_req)
+        begin
+            word_valid_mask = w_line_req.wordValidMask;
+        end
+        else if (wReq matches tagged WRITE_WORD .w_word_req)
+        begin
+            word_valid_mask[w_word_req.wordIdx] = True;
+        end
 
         // Update tag and write metadata
         meta_upd.ways[fill_way] = tagged Valid metaData(tag, writeBackCache(), word_valid_mask);
@@ -1623,9 +1728,22 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
         let addr = cacheAddr(tag, set);
         sourceData.readReq(addr, req_base.readMeta, req_base.globalReadMeta);
-        fillLineQ.enq(tuple3(req_base, req, replicate(False)));
+        fillLineQ.enq(tuple4(req_base, req, replicate(False), False));
     endrule
 
+    //
+    // Update a cache line using wordValidMask
+    //
+    function t_CACHE_LINE applyWordMask(Vector#(nWordsPerLine, t_CACHE_WORD) old_val, 
+                                        Vector#(nWordsPerLine, t_CACHE_WORD) write_data, 
+                                        Vector#(nWordsPerLine, Bool) mask);
+        Vector#(nWordsPerLine, t_CACHE_WORD) new_val = newVector();
+        for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
+        begin
+            new_val[b] = mask[b] ? write_data[b] : old_val[b];
+        end
+        return unpack(pack(new_val)); 
+    endfunction
 
     //
     // handleFillForRead --
@@ -1633,7 +1751,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //
     rule handleFillForRead (tpl_2(fillLineQ.first()) matches tagged HCOP_READ .rReq);
 
-        match {.req_base, .req, .cur_word_valid_mask} = fillLineQ.first();
+        match {.req_base, .req, .cur_word_valid_mask, .is_read_partial_line} = fillLineQ.first();
         fillLineQ.deq();
 
         let rsp <- sourceData.readResp();
@@ -1653,19 +1771,30 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         t_CACHE_WORD_VALID_MASK ret_valid_words = unpack(~pack(cur_word_valid_mask));
         localData.dataWrite(set, way, ret_valid_words, unpack(pack(rsp.val)));
 
+        t_CACHE_LINE new_val = rsp.val;
+        if (enableLineAccess && is_read_partial_line)
+        begin
+            let old_val = partialValidLineQ.first();
+            partialValidLineQ.deq();
+            new_val = applyWordMask(old_val, unpack(pack(rsp.val)), ret_valid_words);
+        end
+
+        t_CACHE_WORD_VALID_MASK new_mask = is_read_partial_line? replicate(True) : ret_valid_words;
+
+
         // Update the recent line cache
-        if (rsp.isCacheable)
+        if (hasRecentLineCache && rsp.isCacheable)
         begin
             updateRecentReadLine(tag, set,
                                  tagged Valid tuple3(recentLineTag(tag, set),
-                                                     rsp.val,
-                                                     ret_valid_words));
+                                                     new_val,
+                                                     new_mask));
         end
 
         readRespToClientQ_OOO.enq(tuple5(req_base,
                                          rReq,
-                                         rsp.val,
-                                         ret_valid_words,
+                                         new_val,
+                                         new_mask,
                                          rsp.isCacheable));
 
         debugLog.record($format("  Read FILL%s: addr=0x%x, set=0x%x, way=%0d, mask=0x%x, data=0x%x",
@@ -1697,6 +1826,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     //     marked invalid.
     //
     rule fixupUncacheableFillForRead (metaClientQ.first() == RL_SA_CACHE_META_CLIENT_UNCACHEABLE);
+
         match {.req_base, .old_word_valid_mask} = fillLineUncacheableQ.first();
         fillLineUncacheableQ.deq();
 
@@ -1732,7 +1862,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // ====================================================================
 
     // BE CAREFUL HERE!  Poor choice of order can cause deadlocks.
-    (* descending_urgency = "writeCacheData, handleFlushACK, fixupUncacheableFillForRead, handleFillForRead, handleReadCacheHit, flushDirtyLine, sendFillRequest, handleWordMissForRead, handleMissForRead, handleMissForWrite, handleRead, handleWrite, handleInvalOrFlush, handleIncomingReq1" *)
+    (* descending_urgency = "writeCacheData, handleFlushACK, fixupUncacheableFillForRead, handleFillForRead, handleReadCacheHit, recvPartialLineForRead, flushDirtyLine, sendFillRequest, handleWordMissForRead, handleMissForRead, handleMissForWrite, handleRead, handleWrite, handleInvalOrFlush, handleIncomingReq1" *)
 
     //
     // doneWithRef --
@@ -1822,10 +1952,30 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
 
         RL_SA_CACHE_READ_REQ#(nWordsPerLine) req;
         req.wordIdx = wordIdx;
+        req.fullLine = False;
     
         let set <- genRequest(tagged HCOP_READ req, addr, readMeta, globalReadMeta);
         debugLog.record($format("  New request: READ addr=0x%x, set=0x%x, word=%0d", debugAddr(addr), set, wordIdx));
     endmethod
+
+    method Action readLineReq(t_CACHE_ADDR addr,
+                              t_CACHE_READ_META readMeta,
+                              RL_CACHE_GLOBAL_READ_META globalReadMeta);
+        if (enableLineAccess)
+        begin
+            RL_SA_CACHE_READ_REQ#(nWordsPerLine) req;
+            req.wordIdx = ?;
+            req.fullLine = True;
+    
+            let set <- genRequest(tagged HCOP_READ req, addr, readMeta, globalReadMeta);
+            debugLog.record($format("  New request: READ LINE addr=0x%x, set=0x%x", debugAddr(addr), set));
+        end
+        else
+        begin
+           noAction;
+        end
+    endmethod
+
 
     method ActionValue#(t_CACHE_LOAD_RESP) readResp();
         match {.req_base, .r_req, .v, .valid_words, .is_cacheable} = readRespToClientQ_OOO.first();
@@ -1863,15 +2013,42 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let h <- reqInfo_writeData.malloc();
         reqInfo_writeData.upd(h, w_info);
 
-        RL_SA_CACHE_WRITE_REQ#(nWordsPerLine) w_req;
-        w_req.wordIdx = wordIdx;    
-        w_req.dataIdx = h;
+        RL_SA_CACHE_WRITE_WORD_REQ#(nWordsPerLine) w_word_req;
+        w_word_req.wordIdx = wordIdx;    
+        w_word_req.dataIdx = h;
+        
+        RL_SA_CACHE_WRITE_REQ#(nWordsPerLine) w_req = tagged WRITE_WORD w_word_req;
 
-        let set <- genRequest(tagged HCOP_WRITE w_req, addr, ?, ?);
+        let set <- genRequest(tagged HCOP_WRITE w_req, addr, ?, defaultValue);
 
         debugLog.record($format("  New request: WRITE addr=0x%x, set=0x%x, data=0x%x, word=%0d, wData heap=%0d", debugAddr(addr), set, val, wordIdx, h));
     endmethod
 
+    //
+    // writeLine -- Write an entire line.
+    //
+    method Action writeLine(t_CACHE_ADDR addr, Vector#(nWordsPerLine, Bool) wordValidMask, Vector#(nWordsPerLine, t_CACHE_WORD) val);
+        if (enableLineAccess)
+        begin
+            let h <- reqInfo_writeLineData.malloc();
+            reqInfo_writeLineData.upd(h, val);
+
+            RL_SA_CACHE_WRITE_LINE_REQ#(nWordsPerLine) w_line_req;
+            w_line_req.dataIdx = h;
+            w_line_req.wordValidMask = wordValidMask;
+            
+            RL_SA_CACHE_WRITE_REQ#(nWordsPerLine) w_req = tagged WRITE_LINE w_line_req;
+
+            let set <- genRequest(tagged HCOP_WRITE w_req, addr, ?, defaultValue);
+
+            debugLog.record($format("  New request: WRITE addr=0x%x, set=0x%x, data=0x%x, wDataLine heap=%0d", 
+                            debugAddr(addr), set, val, h));
+        end
+        else
+        begin
+            noAction;
+        end
+    endmethod
 
     //
     // invalReq -- Invalidate (remove) a line from the cache
@@ -1880,13 +2057,13 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         if (sendAck)
         begin
             let idx <- invalReqDoneQ.enq();
-            let set <- genRequest(tagged HCOP_INVAL tagged Valid idx, addr, ?, ?);
+            let set <- genRequest(tagged HCOP_INVAL tagged Valid idx, addr, ?, defaultValue);
 
             debugLog.record($format("  New request: INVAL addr=0x%x, set=0x%x, invalIdx=%d", debugAddr(addr), set, idx));
         end
         else
         begin
-            let set <- genRequest(tagged HCOP_INVAL tagged Invalid, addr, ?, ?);
+            let set <- genRequest(tagged HCOP_INVAL tagged Invalid, addr, ?, defaultValue);
 
             debugLog.record($format("  New request: INVAL addr=0x%x, set=0x%x", debugAddr(addr), set));
         end
@@ -1901,13 +2078,13 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         if (sendAck)
         begin
             let idx <- invalReqDoneQ.enq();
-            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Valid idx, addr, ?, ?);
+            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Valid idx, addr, ?, defaultValue);
 
             debugLog.record($format("  New request: FLUSH addr=0x%x, set=0x%x, invalIdx=%d", debugAddr(addr), set, idx));
         end
         else
         begin
-            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Invalid, addr, ?, ?);
+            let set <- genRequest(tagged HCOP_FLUSH_DIRTY tagged Invalid, addr, ?, defaultValue);
 
             debugLog.record($format("  New request: FLUSH addr=0x%x, set=0x%x", debugAddr(addr), set));
         end

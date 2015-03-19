@@ -10,9 +10,11 @@
 %public rl-direct-mapped-cache.bsv
 %public rl-direct-mapped-cache-masked-write.bsv
 %public rl-set-assoc-cache.bsv
+%public rl-set-assoc-cache-with-bram.bsv
 %public rl-tiny-cache.bsv
 %public rl-prefetch.bsv
 %public rl-prefetch-stats.bsv
 
-%param --global RL_DM_CACHE_BRAM_TYPE  0  "0: Normal BRAM, 1: Multi-banked BRAM, 2: BRAM with clock divider"
+%param --global RL_DM_CACHE_BRAM_TYPE       0  "0: Normal BRAM, 1: Multi-banked BRAM, 2: BRAM with clock divider"
+%param --global RL_SA_BRAM_CACHE_BRAM_TYPE  0  "0: Normal BRAM, 1: Multi-banked BRAM, 2: BRAM with clock divider"
 

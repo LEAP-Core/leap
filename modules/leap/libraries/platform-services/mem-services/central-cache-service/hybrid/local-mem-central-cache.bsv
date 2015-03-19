@@ -137,15 +137,45 @@ module [CONNECTED_MODULE] mkCentralCache
 
     NumTypeParam#(`CENTRAL_CACHE_LINE_RESP_CACHE_IDX_BITS) nRecentReadCacheIdxBits = ?;
     NumTypeParam#(0) nTagExtraLowBits = ?;
+    
     RL_SA_CACHE#(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ),
                  CENTRAL_CACHE_WORD,
                  CENTRAL_CACHE_WORDS_PER_LINE,
                  CENTRAL_CACHE_READ_META
-                 ) cache <- mkCacheSetAssoc(backingConnection.sourceData,
-                                            cacheLocalData,
-                                            nRecentReadCacheIdxBits,
-                                            nTagExtraLowBits,
-                                            debugLogInt);
+                 ) cache = ?;
+                 
+    if (`CENTRAL_CACHE_BRAM_CACHE_ENABLE == 1)
+    begin
+        DEBUG_FILE debugLogIntBRAM <- (`CENTRAL_CACHE_DEBUG_ENABLE == 1)?
+                                      mkDebugFile("memory_central_cache_internal_bram.out"):
+                                      mkDebugFileNull("memory_central_cache_internal_bram.out"); 
+        cache <- mkCentralCacheWithBRAMCache(backingConnection.sourceData,
+                                             cacheLocalData,
+                                             nRecentReadCacheIdxBits,
+                                             nTagExtraLowBits,
+                                             debugLogInt,
+                                             debugLogIntBRAM);
+    end
+    else
+    begin
+        cache <- mkCacheSetAssoc(backingConnection.sourceData,
+                                 cacheLocalData,
+                                 nRecentReadCacheIdxBits,
+                                 nTagExtraLowBits,
+                                 True,
+                                 False,
+                                 debugLogInt);
+    end
+
+    // RL_SA_CACHE#(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ),
+    //              CENTRAL_CACHE_WORD,
+    //              CENTRAL_CACHE_WORDS_PER_LINE,
+    //              CENTRAL_CACHE_READ_META
+    //              ) cache <- mkCacheSetAssoc(backingConnection.sourceData,
+    //                                         cacheLocalData,
+    //                                         nRecentReadCacheIdxBits,
+    //                                         nTagExtraLowBits,
+    //                                         debugLogInt);
 
     // Attach statistics to the cache
    
