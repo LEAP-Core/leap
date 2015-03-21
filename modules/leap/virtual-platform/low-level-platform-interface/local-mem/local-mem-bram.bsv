@@ -130,12 +130,15 @@ module mkLocalMem
     //
     // Busy count for limiting write bandwidth
     //
-    Reg#(Bit#(TLog#(TAdd#(1, `LOCAL_MEM_WRITE_LATENCY)))) writeBusyCnt <- mkReg(0);
+    COUNTER#(TLog#(TAdd#(1, `LOCAL_MEM_WRITE_LATENCY))) writeBusyCnt <- mkLCounter(0);
 
-    (* fire_when_enabled *)
-    rule busyCount (writeBusyCnt != 0);
-        writeBusyCnt <= writeBusyCnt - 1;
-    endrule
+    if (`LOCAL_MEM_WRITE_LATENCY != 0)
+    begin
+        (* fire_when_enabled *)
+        rule busyCount (writeBusyCnt.value() != 0);
+            writeBusyCnt.down();
+        endrule
+    end
 
     //
     // Forward incoming read and write requests to the BRAM.  This FIFO and
@@ -194,7 +197,7 @@ module mkLocalMem
         // readReqQ check is always required for correctness in order to keep
         // reads and writes ordered.
         return readReqQ.notFull() &&
-               ((`LOCAL_MEM_WRITE_LATENCY == 0) || (writeBusyCnt == 0));
+               ((`LOCAL_MEM_WRITE_LATENCY == 0) || (writeBusyCnt.value() == 0));
     endfunction
 
 
@@ -260,7 +263,7 @@ module mkLocalMem
         match {.l_addr, .w_idx} = localMemSeparateAddr(addr);
         memWriteReq[w_idx].enq(tuple3(l_addr, data, replicate(True)));
 
-        writeBusyCnt <= `LOCAL_MEM_WRITE_LATENCY;
+        writeBusyCnt.setC(`LOCAL_MEM_WRITE_LATENCY);
     endmethod
 
     method Action writeLine(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data) if (notBusy());
@@ -272,7 +275,7 @@ module mkLocalMem
             memWriteReq[w].enq(tuple3(l_addr, l_data[w], replicate(True)));
         end
 
-        writeBusyCnt <= `LOCAL_MEM_WRITE_LATENCY;
+        writeBusyCnt.setC(`LOCAL_MEM_WRITE_LATENCY);
     endmethod
 
     method Action writeWordMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data, LOCAL_MEM_WORD_MASK mask) if (notBusy());
@@ -282,7 +285,7 @@ module mkLocalMem
             memWriteReq[w_idx].enq(tuple3(l_addr, data, mask));
         end
 
-        writeBusyCnt <= `LOCAL_MEM_WRITE_LATENCY;
+        writeBusyCnt.setC(`LOCAL_MEM_WRITE_LATENCY);
     endmethod
 
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask) if (notBusy());
@@ -297,7 +300,7 @@ module mkLocalMem
             end
         end
 
-        writeBusyCnt <= `LOCAL_MEM_WRITE_LATENCY;
+        writeBusyCnt.setC(`LOCAL_MEM_WRITE_LATENCY);
     endmethod
 
 endmodule
