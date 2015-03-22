@@ -30,8 +30,6 @@
 //
 
 //
-// Author: Michael Adler
-//
 // A generic cache class (n-way set associative) for caching data in BRAM.
 // Classes building a cache must provide an interface class to the source
 // data of type RL_SA_CACHE_SOURCE_DATA (defined below).  The cache
@@ -258,6 +256,27 @@ typedef enum
 RL_SA_BRAM_CACHE_META_CLIENT
     deriving (Eq, Bits);
 
+//
+// Cache set metadata includes LRU chain and the metadata for each way.  The
+// way metadata is wrapped in a Maybe#() to permit invalid (unallocated) ways.
+//
+typedef struct
+{
+    Vector#(nWays, UInt#(t_CACHE_WAY_IDX_SZ)) lru;
+    Vector#(nWays, Maybe#(RL_SA_CACHE_WAY_METADATA#(t_CACHE_ADDR_SZ, nWordsPerLine, nSets))) ways;
+}
+RL_SA_BRAM_CACHE_SET_METADATA#(numeric type t_CACHE_WAY_IDX_SZ, 
+                               numeric type t_CACHE_ADDR_SZ, 
+                               numeric type nWordsPerLine,
+                               numeric type nSets, 
+                               numeric type nWays)
+    deriving(Bits, Eq);
+
+instance DefaultValue#(RL_SA_BRAM_CACHE_SET_METADATA#(t_CACHE_WAY_IDX_SZ, t_CACHE_ADDR_SZ, nWordsPerLine, nSets, nWays));
+    defaultValue = RL_SA_BRAM_CACHE_SET_METADATA { lru: Vector::genWith(fromInteger),
+                                                   ways: Vector::replicate(tagged Invalid) };
+endinstance
+
 // ========================================================================
 //
 // mkCacheSetAssocWithBRAM --
@@ -297,13 +316,14 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
               Add#(t_CACHE_SET_IDX_SZ, b__, 32),
 
               Alias#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_ADDR),
-              Alias#(RL_SA_CACHE_WAY_IDX#(nWays), t_CACHE_WAY_IDX),
-              Alias#(RL_SA_CACHE_DATA_IDX#(nWays, t_CACHE_SET_IDX), t_CACHE_DATA_IDX),
+              NumAlias#(TMax#(TLog#(nWays), 1), t_CACHE_WAY_IDX_SZ),
+              Alias#(UInt#(t_CACHE_WAY_IDX_SZ), t_CACHE_WAY_IDX),
+              Alias#(UInt#(TAdd#(t_CACHE_SET_IDX_SZ, TLog#(nWays))), t_CACHE_DATA_IDX),
               Alias#(RL_SA_CACHE_WAY_METADATA#(t_CACHE_ADDR_SZ, nWordsPerLine, nSets), t_METADATA),
               Alias#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META), t_CACHE_LOAD_RESP),
-              Alias#(Vector#(nWays, RL_SA_CACHE_WAY_IDX#(nWays)), t_LRU_LIST),
+              Alias#(Vector#(nWays, t_CACHE_WAY_IDX), t_LRU_LIST),
               Alias#(Vector#(nWays, Maybe#(t_METADATA)), t_METADATA_VECTOR),
-              Alias#(RL_SA_CACHE_SET_METADATA#(t_CACHE_ADDR_SZ, nWordsPerLine, nSets, nWays), t_SET_METADATA),
+              Alias#(RL_SA_BRAM_CACHE_SET_METADATA#(t_CACHE_WAY_IDX_SZ, t_CACHE_ADDR_SZ, nWordsPerLine, nSets, nWays), t_SET_METADATA),
               Alias#(RL_SA_BRAM_CACHE_REQ_BASE#(t_CACHE_TAG, t_CACHE_SET_IDX, t_CACHE_WAY_IDX), t_CACHE_REQ_BASE),
               Alias#(RL_SA_BRAM_CACHE_REQ#(nWordsPerLine, t_CACHE_READ_META), t_CACHE_REQ),
               Alias#(Bit#(TLog#(nWordsPerLine)), t_CACHE_WORD_IDX),
@@ -361,6 +381,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
 
     // Values
     Vector#(nWordsPerLine, BRAM#(t_CACHE_DATA_IDX, t_CACHE_WORD)) dataStore = ?;
+    
     if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
     begin
         dataStore <- replicateM(mkBRAM());
@@ -455,8 +476,15 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     //
     function t_CACHE_DATA_IDX getDataIdx (t_CACHE_SET_IDX set, t_CACHE_WAY_IDX way);
         t_CACHE_DATA_IDX idx;
-        idx.set = set;
-        idx.way = way;
+        if (valueOf(nWays) == 1)
+        begin
+            idx = unpack(zeroExtend(pack(set)));
+        end
+        else
+        begin
+            Bit#(TLog#(nWays)) wayIdx = truncate(pack(way));
+            idx = unpack(pack(tuple2(set, wayIdx)));
+        end
         return idx;
     endfunction
 
@@ -504,6 +532,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
 
 
     function Maybe#(Tuple2#(t_CACHE_WAY_IDX, t_METADATA)) findWayMatch(t_CACHE_TAG tag, t_SET_METADATA meta);
+        
         Vector#(nWays, Bool) way_match = replicate(False);
 
         for (Integer w = 0; w < valueOf(nWays); w = w + 1)
@@ -513,12 +542,22 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
                                default: False;
                            endcase;
         end
-
-        let way = findElem(True, way_match);
-        if (cacheEnabled() &&& way matches tagged Valid .w)
-            return tagged Valid tuple2(w, validValue(meta.ways[w]));
+        
+        if (valueOf(nWays) == 1)
+        begin
+            if (cacheEnabled() && way_match[0]) 
+                return tagged Valid tuple2(unpack(0), validValue(meta.ways[0]));
+            else
+                return tagged Invalid;
+        end
         else
-            return tagged Invalid;
+        begin
+            Maybe#(UInt#(TLog#(nWays))) way = findElem(True, way_match);
+            if (cacheEnabled() &&& way matches tagged Valid .w)
+                return tagged Valid tuple2(unpack(zeroExtend(pack(w))), validValue(meta.ways[w]));
+            else
+                return tagged Invalid;
+        end
     endfunction
 
 
@@ -526,7 +565,15 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
 
 
     function Maybe#(t_CACHE_WAY_IDX) findFirstInvalid(t_METADATA_VECTOR meta);
-        return findIndex(isInvalid, meta);
+        if (valueOf(nWays) == 1)
+        begin
+            return isValid(meta[0])? tagged Invalid : tagged Valid unpack(0);
+        end
+        else
+        begin
+            Maybe#(UInt#(TLog#(nWays))) idx = findIndex(isInvalid, meta);
+            return isValid(idx)? tagged Valid unpack(zeroExtend(pack(validValue(idx)))) : tagged Invalid;
+        end
     endfunction
 
 
@@ -539,7 +586,15 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     //   Least recently used way in a set.
     //
     function t_CACHE_WAY_IDX getLRU(t_LRU_LIST list);
-        return validValue(findElem(0, list));
+        if (valueOf(nWays) == 1)
+        begin
+            return unpack(0);
+        end
+        else
+        begin
+            Bit#(TLog#(nWays)) idx = pack(validValue(findElem(0, list)));
+            return unpack(zeroExtend(idx));
+        end
     endfunction
 
 
@@ -549,7 +604,15 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     //
 
     function t_CACHE_WAY_IDX getMRU(t_LRU_LIST list);
-        return validValue(findElem(mruIDX, list));
+        if (valueOf(nWays) == 1)
+        begin
+            return unpack(0);
+        end
+        else
+        begin
+            Bit#(TLog#(nWays)) idx = pack(validValue(findElem(mruIDX, list)));
+            return unpack(zeroExtend(idx));
+        end
     endfunction
 
 
@@ -557,31 +620,39 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     // pushMRU --
     //   Update MRU list, moving a way to the head of the list.
     //
-    function t_LRU_LIST pushMRU(t_LRU_LIST curLRU, t_CACHE_WAY_IDX mru);
-        t_CACHE_WAY_IDX cur_priority = curLRU[mru];
-    
-        //
-        // Shift older references out of the MRU slot
-        //
-        t_LRU_LIST new_list = newVector();
-
-        for (Integer w = 0; w < valueOf(nWays); w = w + 1)
+    function t_LRU_LIST pushMRU(t_LRU_LIST curLRU, t_CACHE_WAY_IDX mruWay);
+        
+        if (valueOf(nWays) == 1)
         begin
-            if (fromInteger(w) == mru)
-            begin
-                new_list[w] = mruIDX;
-            end
-            else if (curLRU[w] > cur_priority)
-            begin
-                new_list[w] = curLRU[w] - 1;
-            end
-            else
-            begin
-                new_list[w] = curLRU[w];
-            end
+            return curLRU;
         end
+        else
+        begin
+            UInt#(TLog#(nWays)) mru = unpack(truncate(pack(mruWay)));
+            t_CACHE_WAY_IDX cur_priority = curLRU[mru];
+            //
+            // Shift older references out of the MRU slot
+            //
+            t_LRU_LIST new_list = newVector();
+            
+            for (Integer w = 0; w < valueOf(nWays); w = w + 1)
+            begin
+                if (fromInteger(w) == mru)
+                begin
+                    new_list[w] = mruIDX;
+                end
+                else if (curLRU[w] > cur_priority)
+                begin
+                    new_list[w] = curLRU[w] - 1;
+                end
+                else
+                begin
+                    new_list[w] = curLRU[w];
+                end
+            end
 
-        return new_list;
+            return new_list;
+        end
     endfunction
 
     function ActionValue#(t_LRU_LIST) cacheLRUUpdate(t_CACHE_SET_IDX set,
