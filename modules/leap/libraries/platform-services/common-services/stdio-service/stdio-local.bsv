@@ -135,11 +135,12 @@ interface STDIO#(type t_DATA);
     method Action fflush(STDIO_FILE file);
     method Action rewind(STDIO_FILE file);
 
-    // sync request/response both invokes the sync() system call and guarantees
-    // all previous commands have been received.  The LEAP run-time system
-    // automatically synchronizes state at the end of run, so use of these
-    // methods is optional.
-    method Action sync_req();
+    // sync request/response guarantees that all previous commands have been
+    // received by the host.  The LEAP run-time system automatically
+    // synchronizes state at the end of run, so use of these methods is
+    // optional.  When hostSync is True, the host also invokes the libC
+    // sync() system call.
+    method Action sync_req(Bool hostSync);
     method Action sync_rsp();
 
     // Internal method used by mkStdio_CondPrintf
@@ -675,8 +676,10 @@ module [CONNECTED_MODULE] mkStdIO
     endmethod
 
 
-    method Action sync_req();
+    method Action sync_req(Bool hostSync);
         let header = genHeader(STDIO_REQ_SYNC);
+        // Signal with the low bit of the file handle
+        header.fileHandle[0] = pack(hostSync);
 
         mar.enq(STDIO_REQ { data: ?, header: header });
     endmethod
@@ -833,7 +836,7 @@ module [CONNECTED_MODULE] mkStdIO_Disabled
     method Action rewind(STDIO_FILE file);
     endmethod
 
-    method Action sync_req();
+    method Action sync_req(Bool hostSync);
         syncFIFO.enq(?);
     endmethod
 

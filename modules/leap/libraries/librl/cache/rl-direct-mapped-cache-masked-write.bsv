@@ -122,7 +122,7 @@ RL_DM_CACHE_WITH_MASKED_WRITE_READ_META#(type t_CACHE_READ_META)
 // are passed through the cache pipelines as a pointer.  The heap size 
 // limits the number of writes in flight.  
 //
-typedef 4 RL_DM_CACHE_WRITE_DATA_MASK_HEAP_IDX_SZ;
+typedef 4 RL_DM_WRITE_DATA_HEAP_IDX_SZ;
 
 //
 // Basic cache request.  A tagged union would be a good idea here but the
@@ -189,8 +189,7 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
               Alias#(Maybe#(RL_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG)), t_CACHE_ENTRY),
 
               // Write Heap Index
-              Bits#(RL_DM_WRITE_DATA_HEAP_IDX, t_SMALL_WRITE_HEAP_IDX_SZ),
-              NumAlias#(TMin#(TMax#(RL_DM_CACHE_WRITE_DATA_MASK_HEAP_IDX_SZ, t_SMALL_WRITE_HEAP_IDX_SZ), t_CACHE_READ_META_SZ), t_WRITE_HEAP_IDX_SZ),
+              NumAlias#(TMin#(RL_DM_WRITE_DATA_HEAP_IDX_SZ, t_CACHE_READ_META_SZ), t_WRITE_HEAP_IDX_SZ),
               Alias#(Bit#(t_WRITE_HEAP_IDX_SZ), t_WRITE_HEAP_IDX),
        
               Alias#(RL_DM_CACHE_WITH_MASKED_WRITE_REQ#(t_CACHE_ADDR, t_CACHE_READ_META, t_WRITE_HEAP_IDX, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
@@ -200,24 +199,44 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
               Bits#(t_CACHE_LOAD_RESP, t_CACHE_LOAD_RESP_SZ),
               Bits#(t_CACHE_TAG, t_CACHE_TAG_SZ));
    
+    if (valueOf(t_CACHE_READ_META_SZ) < valueOf(RL_DM_WRITE_DATA_HEAP_IDX_SZ))
+    begin
+        error("Read meta-data size is too small to support requested write heap size");
+    end
+
     // Only the write back mode is supported
     Reg#(RL_DM_CACHE_MODE) cacheMode <- mkReg(RL_DM_MODE_WRITE_BACK);
     Reg#(RL_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(RL_DM_PREFETCH_DISABLE);
     
     // Cache data and tag
-    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
+    MEMORY_IFC#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
     
     if (`RL_DM_CACHE_BRAM_TYPE == 0)
     begin
+        // Cache implemented as a single BRAM
         cache <- mkBRAMInitialized(tagged Invalid);
     end
-    else if(`RL_DM_CACHE_BRAM_TYPE == 1)
+    else if (`RL_DM_CACHE_BRAM_TYPE == 1)
     begin
-        cache <- mkBRAMInitializedMultiBank(tagged Invalid);
+        // Cache implemented as 4 BRAM banks with I/O buffering to allow
+        // more time to reach memory.
+        NumTypeParam#(4) p_banks = ?;
+        cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                 mkBRAMInitializedBuffered(tagged Invalid));
     end
     else
     begin
-        cache <- mkBRAMInitializedClockDivider(tagged Invalid);
+        // Cache implemented as 8 half-speed BRAM banks.  We assume that
+        // the cache is quite large in order to justify half-speed BRAM.
+        // 8 banks does a reasonable job of hiding the latency.
+        NumTypeParam#(8) p_banks = ?;
+
+        // Add buffering.  This accomplishes two things:
+        //   1. It adds a fully scheduled stage (without conservative conditions)
+        //      that allows requests to go to banks that aren't busy.
+        //   2. Buffering supports long wires.
+        let cache_slow = mkSlowMemoryM(mkBRAMInitializedClockDivider(tagged Invalid), True);
+        cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, cache_slow);
     end
     
     // Track busy entries
@@ -227,15 +246,15 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
     MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, Tuple2#(t_CACHE_WORD, t_CACHE_MASK)) reqInfo_writeDataMask = ?;
-    MEMORY_HEAP_IMM#(RL_DM_WRITE_DATA_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData = ?;
+    MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData = ?;
     
     if (enMaskedWrite)
     begin
-        reqInfo_writeDataMask <- mkMemoryHeapUnionLUTRAM();
+        reqInfo_writeDataMask <- mkMemoryHeapLUTRAM();
     end
     else
     begin
-        reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
+        reqInfo_writeData <- mkMemoryHeapLUTRAM();
     end
 
     // Incoming data.  One method may fire at a time.
@@ -249,7 +268,7 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
     end
     else
     begin
-        cacheLookupQ <- mkSizedFIFOF(4);
+        cacheLookupQ <- mkSizedFIFOF(16);
     end
     
     // Wires for managing cacheLookupQ
@@ -984,9 +1003,8 @@ module [m] mkCacheDirectMappedWithMaskedWrite#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_
         end
         else
         begin
-            RL_DM_WRITE_DATA_HEAP_IDX w_idx <- reqInfo_writeData.malloc();
-            reqInfo_writeData.upd(w_idx, val);
-            data_idx = zeroExtendNP(w_idx);
+            data_idx <- reqInfo_writeData.malloc();
+            reqInfo_writeData.upd(data_idx, val);
         end
 
         t_CACHE_REQ r = ?;

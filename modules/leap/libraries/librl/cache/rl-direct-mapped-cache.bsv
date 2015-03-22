@@ -336,19 +336,34 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     Reg#(RL_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(RL_DM_PREFETCH_DISABLE);
     
     // Cache data and tag
-    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
+    MEMORY_IFC#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
     
     if (`RL_DM_CACHE_BRAM_TYPE == 0)
     begin
+        // Cache implemented as a single BRAM
         cache <- mkBRAMInitialized(tagged Invalid);
     end
     else if(`RL_DM_CACHE_BRAM_TYPE == 1)
     begin
-        cache <- mkBRAMInitializedMultiBank(tagged Invalid);
+        // Cache implemented as 4 BRAM banks with I/O buffering to allow
+        // more time to reach memory.
+        NumTypeParam#(4) p_banks = ?;
+        cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                 mkBRAMInitializedBuffered(tagged Invalid));
     end
     else
     begin
-        cache <- mkBRAMInitializedClockDivider(tagged Invalid);
+        // Cache implemented as 8 half-speed BRAM banks.  We assume that
+        // the cache is quite large in order to justify half-speed BRAM.
+        // 8 banks does a reasonable job of hiding the latency.
+        NumTypeParam#(8) p_banks = ?;
+
+        // Add buffering.  This accomplishes two things:
+        //   1. It adds a fully scheduled stage (without conservative conditions)
+        //      that allows requests to go to banks that aren't busy.
+        //   2. Buffering supports long wires.
+        let cache_slow = mkSlowMemoryM(mkBRAMInitializedClockDivider(tagged Invalid), True);
+        cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, cache_slow);
     end
     
     // Track busy entries
@@ -357,7 +372,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
-    MEMORY_HEAP_IMM#(RL_DM_WRITE_DATA_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData <- mkMemoryHeapUnionLUTRAM();
+    MEMORY_HEAP_IMM#(RL_DM_WRITE_DATA_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData <- mkMemoryHeapLUTRAM();
 
     // Incoming data.  One method may fire at a time.
     FIFOF#(t_CACHE_REQ) newReqQ <- mkFIFOF();
@@ -370,7 +385,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     end
     else
     begin
-        cacheLookupQ <- mkSizedFIFOF(4);
+        cacheLookupQ <- mkSizedFIFOF(16);
     end
     
     // Wires for managing cacheLookupQ

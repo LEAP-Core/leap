@@ -302,6 +302,23 @@ module mkMultiMemIfcToMemIfc#(MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) multiMem
 endmodule
 
 //
+// mkMultiMemIfcToMemIfcM --
+//     Monadic version of mkMultiMemIfcToMemIfc.
+//
+module [m] mkMultiMemIfcToMemIfcM#(function m#(MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA)) multiMemImpl)
+    // interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (IsModule#(m, a__),
+              Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    let _m <- multiMemImpl();
+    let _ifc <- mkMultiMemIfcToMemIfc(_m);
+    return _ifc;
+endmodule
+
+
+//
 // mkMultiReadMemToVectorMemIfc --
 //     Converts a MEMORY_MULTI_READ_IFC to a Vector of MEMORY_IFC each of which 
 //     share the write port.  Used to split up the memory interfaces in the multicache.
@@ -574,6 +591,24 @@ module mkMemIfcToMultiMemIfc#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
 
     method Action write(t_ADDR addr, t_DATA val) = mem.write(addr, val);
     method Bool writeNotFull() = mem.writeNotFull();
+endmodule
+
+
+//
+// mkMemIfcToMultiMemIfcM --
+//     Monadic version of mkMemIfcToMultiMemIfc taking a function instead
+//     of an object.
+//
+module [m] mkMemIfcToMultiMemIfcM#(function m#(MEMORY_IFC#(t_ADDR, t_DATA)) memImpl)
+    // interface:
+    (MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA))
+    provisos (IsModule#(m, a__),
+              Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    let _m <- memImpl();
+    let _ifc <- mkMemIfcToMultiMemIfc(_m);
+    return _ifc;
 endmodule
 
 

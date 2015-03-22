@@ -54,7 +54,7 @@ MEM_BANK_SELECTOR_BITS
     deriving (Eq, Bits);
 
 //
-// mkMultiReadBankedMemory --
+// mkMultiReadBankedMemoryM --
 //     Construct the requested address space using multiple banks.
 //
 //     Note: Memory constructors that take a function to initialize storage
@@ -62,9 +62,9 @@ MEM_BANK_SELECTOR_BITS
 //           full address space to the space within each bank requires
 //           knowledge of the bank ID.
 //
-module [m] mkMultiReadBankedMemory#(NumTypeParam#(n_BANKS) p_banks,
-                                    MEM_BANK_SELECTOR_BITS selectorBits,
-                                    function m#(MEMORY_MULTI_READ_IFC#(t_NUM_READERS, t_BANK_ADDR, t_DATA)) memImpl)
+module [m] mkMultiReadBankedMemoryM#(NumTypeParam#(n_BANKS) p_banks,
+                                     MEM_BANK_SELECTOR_BITS selectorBits,
+                                     function m#(MEMORY_MULTI_READ_IFC#(t_NUM_READERS, t_BANK_ADDR, t_DATA)) memImpl)
     // interface:
     (MEMORY_MULTI_READ_IFC#(t_NUM_READERS, t_ADDR, t_DATA))
     provisos
@@ -85,7 +85,10 @@ module [m] mkMultiReadBankedMemory#(NumTypeParam#(n_BANKS) p_banks,
     Vector#(t_NUM_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) localPorts = newVector();
 
     // Record bank of requests in flight
-    Vector#(t_NUM_READERS, FIFOF#(t_BANK_IDX)) reqQ <- replicateM(mkSizedFIFOF(8));
+    Vector#(t_NUM_READERS, FIFOF#(t_BANK_IDX)) reqQ <- replicateM(mkSizedFIFOF(8 * valueOf(n_BANKS)));
+
+    Vector#(t_NUM_READERS, RWire#(t_DATA)) respW <- replicateM(mkRWire());
+    Vector#(t_NUM_READERS, PulseWire) doDeqW <- replicateM(mkPulseWire());
 
     //
     // Compute the bank and address within the bank.
@@ -112,52 +115,67 @@ module [m] mkMultiReadBankedMemory#(NumTypeParam#(n_BANKS) p_banks,
     //
     for (Integer x = 0; x < valueof(t_NUM_READERS); x = x + 1)
     begin
-        localPorts[x] = interface MEMORY_READER_IFC
-                           method Action readReq(t_ADDR addr);
-                               match {.bank, .bank_addr} = bankAndAddr(addr);
-                               memory[bank].readPorts[x].readReq(bank_addr);
-                               reqQ[x].enq(bank);
-                           endmethod
+        //
+        // Compute the next response in a rule in case the client calling
+        // readRsp() is in a rule marked conservative_implicit_conditions.
+        // In that case a response would be available only when all banks
+        // have a response.
+        //
+        rule nextReadRsp (True);
+            // When bank is next?
+            let bank = reqQ[x].first();
 
-                           method ActionValue#(t_DATA) readRsp();
-                               let bank = reqQ[x].first();
-                               reqQ[x].deq();
+            // Get the response.  peek() will block if there is nothing ready.
+            let rsp = memory[bank].readPorts[x].peek();
 
-                               let rsp <- memory[bank].readPorts[x].readRsp();
-                               return rsp;
-                           endmethod
+            // Forward to client
+            respW[x].wset(rsp);
+        endrule
 
-                           method t_DATA peek();
-                               let bank = reqQ[x].first();
-                               return memory[bank].readPorts[x].peek();
-                           endmethod
+        (* fire_when_enabled *)
+        rule deqReadRsp (doDeqW[x]);
+            let bank = reqQ[x].first();
+            reqQ[x].deq();
 
-                           method Bool notEmpty();
-                               if (! reqQ[x].notEmpty())
-                               begin
-                                   // No request in flight
-                                   return False;
-                               end
-                               else
-                               begin
-                                   let bank = reqQ[x].first();
-                                   return memory[bank].readPorts[x].notEmpty();
-                               end
-                           endmethod
+            // Side effect of deq is the only thing that matters.
+            let drop <- memory[bank].readPorts[x].readRsp();
+        endrule
 
-                           method Bool notFull();
-                               if (! reqQ[x].notEmpty())
-                               begin
-                                   // No request in flight
-                                   return True;
-                               end
-                               else
-                               begin
-                                   let bank = reqQ[x].first();
-                                   return memory[bank].readPorts[x].notFull();
-                               end
-                           endmethod
-                       endinterface;
+
+        localPorts[x] =
+            interface MEMORY_READER_IFC
+                method Action readReq(t_ADDR addr);
+                    match {.bank, .bank_addr} = bankAndAddr(addr);
+                    memory[bank].readPorts[x].readReq(bank_addr);
+                    reqQ[x].enq(bank);
+                endmethod
+
+                method ActionValue#(t_DATA) readRsp() if (respW[x].wget matches tagged Valid .rsp);
+                    doDeqW[x].send();
+                    return rsp;
+                endmethod
+
+                method t_DATA peek() if (respW[x].wget matches tagged Valid .rsp);
+                    return rsp;
+                endmethod
+
+                method Bool notEmpty();
+                    return isValid(respW[x].wget);
+                endmethod
+
+                method Bool notFull();
+                    if (! reqQ[x].notEmpty())
+                    begin
+                        // No request in flight
+                        return True;
+                    end
+                    else
+                    begin
+                        let bank = reqQ[x].first();
+                        return memory[bank].readPorts[x].notFull();
+                    end
+                endmethod
+            endinterface;
     end
 
     interface readPorts = localPorts;
@@ -176,4 +194,34 @@ module [m] mkMultiReadBankedMemory#(NumTypeParam#(n_BANKS) p_banks,
 
         return all(wNotFull, memory);
     endmethod
+endmodule
+
+
+//
+// mkBankedMemoryM --
+//     Construct the requested address space using multiple banks.
+//
+//     Note: Memory constructors that take a function to initialize storage
+//           won't work especially well here, since the mapping from the
+//           full address space to the space within each bank requires
+//           knowledge of the bank ID.
+//
+module [m] mkBankedMemoryM#(NumTypeParam#(n_BANKS) p_banks,
+                            MEM_BANK_SELECTOR_BITS selectorBits,
+                            function m#(MEMORY_IFC#(t_BANK_ADDR, t_DATA)) memImpl)
+    // interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos
+        (IsModule#(m, a__),
+         Bits#(t_ADDR, t_ADDR_SZ),
+         Bits#(t_DATA, t_DATA_SZ),
+         // Break t_ADDR into bank and address within the bank
+         Alias#(Bit#(TLog#(n_BANKS)), t_BANK_IDX),
+         Bits#(t_BANK_IDX, t_BANK_IDX_SZ),
+         Alias#(Bit#(TSub#(t_ADDR_SZ, t_BANK_IDX_SZ)), t_BANK_ADDR));
+
+    let _multi_mem <- mkMultiReadBankedMemoryM(p_banks, selectorBits,
+                                               mkMemIfcToMultiMemIfcM(memImpl));
+    let _mem <- mkMultiMemIfcToMemIfc(_multi_mem);
+    return _mem;
 endmodule

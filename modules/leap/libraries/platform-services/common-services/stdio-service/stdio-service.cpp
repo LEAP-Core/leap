@@ -522,7 +522,13 @@ STDIO_SERVER_CLASS::Req_rewind(const STDIO_REQ_HEADER &req)
 void
 STDIO_SERVER_CLASS::Req_sync(const STDIO_REQ_HEADER &req, bool isSystemSync)
 {
-    sync();
+    // sync_req() encodes whether to call sync() in the low bit of fileHandle.
+    // The option exists because it is sometimes useful to sync with the host
+    // without the overhead of calling sync() here.
+    if (isSystemSync || (req.fileHandle & 1))
+    {
+        sync();
+    }
 
     clientStub->Rsp(req.clientID,
                     isSystemSync ? STDIO_RSP_SYNC_SYSTEM : STDIO_RSP_SYNC,

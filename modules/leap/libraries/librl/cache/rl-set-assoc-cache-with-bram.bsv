@@ -338,13 +338,25 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     begin
         metaStore <- mkBRAMInitialized(defaultValue);
     end
-    else if(`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
+    else if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
     begin
-        metaStore <- mkBRAMInitializedMultiBank(defaultValue);
+        // Cache implemented as 4 BRAM banks with I/O buffering to allow
+        // more time to reach memory.
+        NumTypeParam#(4) p_banks = ?;
+        metaStore <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                     mkBRAMInitializedBuffered(defaultValue));
     end
     else
     begin
-        metaStore <- mkBRAMInitializedClockDivider(defaultValue);
+        // Cache implemented as 4 half-speed BRAM banks.
+        NumTypeParam#(4) p_banks = ?;
+
+        // Add buffering.  This accomplishes two things:
+        //   1. It adds a fully scheduled stage (without conservative conditions)
+        //      that allows requests to go to banks that aren't busy.
+        //   2. Buffering supports long wires.
+        let meta_slow = mkSlowMemoryM(mkBRAMInitializedClockDivider(defaultValue), True);
+        metaStore <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, meta_slow);
     end
 
     // Values
@@ -353,13 +365,17 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     begin
         dataStore <- replicateM(mkBRAM());
     end
-    else if(`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
+    else if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
     begin
-        dataStore <- replicateM(mkBRAMMultiBank());
+        NumTypeParam#(4) p_banks = ?;
+        dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                                mkBRAMBuffered()));
     end
     else
     begin
-        dataStore <- replicateM(mkBRAMClockDivider());
+        NumTypeParam#(4) p_banks = ?;
+        let data_slow = mkSlowMemoryM(mkBRAMClockDivider(), True);
+        dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, data_slow));
     end
 
     // ***** Internal state *****

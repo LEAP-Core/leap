@@ -12,7 +12,6 @@
 
 ## This function annotates a clock divider with a derived clock signal 
 proc annotateClockDivider {cell divisor} {
-
     # check inputs -- sometimes things may have been optimized away. 
     # we need to look for the source clock.  It will be on one of the pins. 
     set source_pin []
@@ -47,26 +46,23 @@ proc annotateClockDivider {cell divisor} {
         set out_pin [get_pins [subst -nocommands "$cell/divider/cntr[0]/Q"]]    
     } 
 
-    create_generated_clock -name "${cell}_div_clk" -divide_by $divisor -source $source_pin $out_pin
+    set dst_clock [create_generated_clock -name "${cell}_div_clk" -divide_by $divisor -source $source_pin $out_pin]
+    puts "Adding clock ${cell}_div_clk divided by ${divisor} from ${source_pin} to ${out_pin}"
 }
 
 
 proc annotateClockDividers {refName divisor} {
-
     set clocks [get_cells -hier -regexp -filter "REF_NAME =~ $refName"]
     lappend clocks [get_cells -hier -regexp -filter "ORIG_REF_NAME =~ $refName"]
     foreach clock $clocks {
         annotateClockDivider $clock $divisor
     }
-
 }
 
-# Find and process all LEAP clock dividers.
+proc findAndAnnotateAllClockDividers {} {
+    annotateClockDividers "mkUserClock_DivideByTwo" 2
+    annotateClockDividers "mkUserClock_DivideByThree" 3
+    annotateClockDividers "mkUserClock_DivideByFour" 4
+}
 
-annotateClockDividers "mkUserClock_DivideByTwo" 2
-annotateClockDividers "mkUserClock_DivideByThree" 3
-annotateClockDividers "mkUserClock_DivideByFour" 4
-
-
-
-
+findAndAnnotateAllClockDividers

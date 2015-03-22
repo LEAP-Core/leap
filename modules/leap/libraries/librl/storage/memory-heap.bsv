@@ -354,7 +354,8 @@ endmodule
 //     This heap manager requires backing storage than can be accessed in
 //     a single cycle such as LUTRAM or vectors of registers.
 //
-module mkMemoryHeapImm#(MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) heap)
+module mkMemoryHeapImm#(MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) heap,
+                        Bool notUnionHeap)
     // interface:
     (MEMORY_HEAP_IMM#(t_INDEX, t_DATA))
     provisos (Bits#(t_DATA, t_DATA_SZ),
@@ -402,12 +403,17 @@ module mkMemoryHeapImm#(MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) heap)
     FIFOF#(t_INDEX) freeQ <- mkFIFOF();
 
     //
-    // fillMallocQ --
-    //     Keep a queue of free storage ready for malloc.
+    // fillMallocFromFree --
+    //     Simple shuffle of incoming free entry straight to mallocQ.
     //
-    rule fillMallocQ (initialized &&&
-                      ! freeQ.notEmpty() &&&
-                      freeListHead matches tagged Valid .f);
+    rule fillMallocFromFree (initialized && freeQ.notEmpty);
+        mallocQ.enq(freeQ.first);
+        freeQ.deq();
+    endrule
+
+    rule fillMallocFromHeap (initialized &&&
+                             ! freeQ.notEmpty() &&&
+                             freeListHead matches tagged Valid .f);
         // Update free list head pointer
         let fl_next = heap.freeList.sub(f);
         if (pack(f) == pack(fl_next))    // pack hack avoids Eq proviso requirement
@@ -419,6 +425,7 @@ module mkMemoryHeapImm#(MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) heap)
         mallocQ.enq(f);
     endrule
 
+    (* descending_urgency = "fillMallocFromFree, pushFreeStorage" *)
     rule pushFreeStorage (initialized && freeQ.notEmpty());
         let addr = freeQ.first();
         freeQ.deq();
@@ -454,7 +461,7 @@ module mkMemoryHeapImm#(MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) heap)
     method t_DATA sub(t_INDEX addr) = heap.data.sub(addr);
 
     // Don't allow writes while freeQ is busy to avoid deadlocks.
-    method Action upd(t_INDEX addr, t_DATA value) if (! freeQ.notEmpty());
+    method Action upd(t_INDEX addr, t_DATA value) if (notUnionHeap || ! freeQ.notEmpty());
         heap.data.upd(addr, value);
     endmethod
 endmodule
@@ -476,7 +483,7 @@ module mkMemoryHeapUnionLUTRAM
               Bounded#(t_INDEX));
 
     MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) pool <- mkMemoryHeapUnionLUTRAMStorage();
-    MEMORY_HEAP_IMM#(t_INDEX, t_DATA) heap <- mkMemoryHeapImm(pool);
+    MEMORY_HEAP_IMM#(t_INDEX, t_DATA) heap <- mkMemoryHeapImm(pool, False);
 
     return heap;
 endmodule
@@ -496,7 +503,7 @@ module mkMemoryHeapLUTRAM
               Bounded#(t_INDEX));
 
     MEMORY_HEAP_IMM_DATA#(t_INDEX, t_DATA) pool <- mkMemoryHeapLUTRAMStorage();
-    MEMORY_HEAP_IMM#(t_INDEX, t_DATA) heap <- mkMemoryHeapImm(pool);
+    MEMORY_HEAP_IMM#(t_INDEX, t_DATA) heap <- mkMemoryHeapImm(pool, True);
 
     return heap;
 endmodule
