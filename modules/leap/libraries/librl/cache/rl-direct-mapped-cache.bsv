@@ -367,7 +367,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     end
     
     // Track busy entries
-    COUNTING_FILTER#(t_CACHE_IDX, 0) entryFilter <- mkCountingFilter(debugLog);
+    COUNTING_FILTER#(t_CACHE_IDX, 1) entryFilter <- mkCountingFilter(debugLog);
     FIFO#(t_CACHE_IDX) entryFilterUpdateQ <- mkFIFO();
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
@@ -464,7 +464,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     Reg#(Bool) sideReqNotBlocked[2] <- mkCReg(2, True);
 
     Wire#(Tuple2#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ)) pickReq <- mkWire();
-    Wire#(Tuple3#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0))))
+    Wire#(Tuple3#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 1))))
         curReq <- mkWire();
 
     //
