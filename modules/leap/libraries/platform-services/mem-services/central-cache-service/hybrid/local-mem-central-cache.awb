@@ -10,8 +10,8 @@
 %public local-mem-central-cache-with-bram-cache.bsv
 
 %param --global  CENTRAL_CACHE_BRAM_CACHE_ENABLE          0  "Enable adding an additional set associative bram cache"
-%param --global  CENTRAL_CACHE_BRAM_CACHE_SET_IDX_BITS   12  "the number of bits for the bram cache's set index"
-%param --global  CENTRAL_CACHE_BRAM_CACHE_WAY_IDX_BITS    2  "the number of bits for the bram cache's way index"
+%param --global  CENTRAL_CACHE_BRAM_CACHE_SET_IDX_BITS   12  "the number of bits for the bram cache's set index (logarithm)"
+%param --global  CENTRAL_CACHE_BRAM_CACHE_WAYS            2  "the number of ways in the cache index (not a logarithm)"
 
 %param --dynamic CENTRAL_CACHE_MODE                       0  "Bits 0-1: 0 write-back, 1 write-through, 3 disabled / Bit 2 disables recent line cache"
 
