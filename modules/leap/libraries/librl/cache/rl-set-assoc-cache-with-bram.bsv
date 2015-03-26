@@ -381,6 +381,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
 
     // Values
     Vector#(nWordsPerLine, BRAM#(t_CACHE_DATA_IDX, t_CACHE_WORD)) dataStore = ?;
+
     if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
     begin
         dataStore <- replicateM(mkBRAMSized(valueof(nSets)*valueof(nWays)));
@@ -389,12 +390,12 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     begin
         NumTypeParam#(4) p_banks = ?;
         dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
-                                                mkBRAMSizedBuffered(valueof(nSets)*valueof(nWays))));
+                                                mkBRAMSizedBuffered(valueof(nSets)*valueof(nWays)/4)));
     end
     else
     begin
         NumTypeParam#(4) p_banks = ?;
-        let data_slow = mkSlowMemoryM(mkBRAMSizedClockDivider(valueof(nSets)*valueof(nWays)), True);
+        let data_slow = mkSlowMemoryM(mkBRAMSizedClockDivider(valueof(nSets)*valueof(nWays)/4), True);
         dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, data_slow));
     end
 
