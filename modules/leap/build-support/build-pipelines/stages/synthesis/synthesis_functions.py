@@ -259,6 +259,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part  + "\n")
 
     newTclFile.write("all_clocks\n")
+    newTclFile.write("report_clocks\n")
     newTclFile.write("report_utilization -file " + module.wrapperName() + ".synth.preopt.util\n")
     
 

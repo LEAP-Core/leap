@@ -381,21 +381,21 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
 
     // Values
     Vector#(nWordsPerLine, BRAM#(t_CACHE_DATA_IDX, t_CACHE_WORD)) dataStore = ?;
-    
+
     if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
     begin
-        dataStore <- replicateM(mkBRAM());
+        dataStore <- replicateM(mkBRAMSized(valueof(nSets)*valueof(nWays)));
     end
     else if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
     begin
         NumTypeParam#(4) p_banks = ?;
         dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
-                                                mkBRAMBuffered()));
+                                                mkBRAMSizedBuffered(valueof(nSets)*valueof(nWays)/4)));
     end
     else
     begin
         NumTypeParam#(4) p_banks = ?;
-        let data_slow = mkSlowMemoryM(mkBRAMClockDivider(), True);
+        let data_slow = mkSlowMemoryM(mkBRAMSizedClockDivider(valueof(nSets)*valueof(nWays)/4), True);
         dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, data_slow));
     end
 
@@ -483,7 +483,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         else
         begin
             Bit#(TLog#(nWays)) wayIdx = truncate(pack(way));
-            idx = unpack(pack(tuple2(set, wayIdx)));
+            idx = unpack(pack(tuple2(wayIdx,set)));
         end
         return idx;
     endfunction
@@ -659,6 +659,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
                                                      t_CACHE_WAY_IDX way,
                                                      t_LRU_LIST cur_lru);
         actionvalue
+
         let new_lru = pushMRU(cur_lru, way);
 
         if ((getMRU(cur_lru) != way) || (cur_lru != new_lru))

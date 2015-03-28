@@ -59,7 +59,7 @@ module [CONNECTED_MODULE] mkCentralCacheWithBRAMCache#(RL_SA_CACHE_SOURCE_DATA#(
         mkCacheSetAssoc(sourceData, localData, param0, param1, False, True, debugLog);
     
     NumTypeParam#(TExp#(`CENTRAL_CACHE_BRAM_CACHE_SET_IDX_BITS)) nBramCacheSets = ?;
-    NumTypeParam#(TExp#(`CENTRAL_CACHE_BRAM_CACHE_WAY_IDX_BITS)) nBramCacheWays = ?;
+    NumTypeParam#(`CENTRAL_CACHE_BRAM_CACHE_WAYS) nBramCacheWays = ?;
     RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), 
                                   t_CACHE_LINE, 
                                   nWordsPerLine, 

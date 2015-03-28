@@ -47,7 +47,7 @@ proc annotateClockDivider {cell divisor} {
     } 
 
     set dst_clock [create_generated_clock -name "${cell}_div_clk" -divide_by $divisor -source $source_pin $out_pin]
-    puts "Adding clock ${cell}_div_clk divided by ${divisor} from ${source_pin} to ${out_pin}"
+    puts "Adding divided clock ${cell}_div_clk divided by ${divisor} from ${source_pin} to ${out_pin}"
 }
 
 
@@ -66,3 +66,41 @@ proc findAndAnnotateAllClockDividers {} {
 }
 
 findAndAnnotateAllClockDividers
+
+
+## This function annotates a gated clock with a derived clock signal 
+proc annotateGatedClock {cell} {
+    # check inputs -- sometimes things may have been optimized away. 
+    # we need to look for the source clock.  It will be on one of the pins. 
+    set source_pin []
+
+    foreach pin [get_pins -of_objects [get_cell $cell]] {
+        set src_clock [get_clocks -of_objects $pin]
+  
+        if { [llength $src_clock] } {
+            lappend source_pin $pin
+        }
+    }
+
+    set pin_length [llength $source_pin]
+
+    if { [llength $source_pin] != 1 } {
+        set source_pin [lindex $source_pin 0]        
+    } 
+
+    set dst_clock [create_generated_clock -name "${cell}_div_clk" -divide_by 1 -source $source_pin [get_pins "${cell}/CLK_OUT"]]
+    # don't let the synthesis tool muck with naming.
+    set_property DONT_TOUCH true [get_cells "$cell"] 
+    puts "Adding gated clock ${cell}_gated_clk from ${source_pin} to ${cell}/CLK_OUT"
+}
+
+
+proc annotateGatedClocks {} {
+    set clocks [get_cells -hier -regexp -filter "REF_NAME =~ GatedClock"]
+    lappend clocks [get_cells -hier -regexp -filter "ORIG_REF_NAME =~ GatedClock"]
+    foreach clock $clocks {
+        annotateGatedClock $clock 
+    }
+}
+
+annotateGatedClocks
