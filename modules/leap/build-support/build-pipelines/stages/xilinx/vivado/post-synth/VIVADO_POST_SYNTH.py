@@ -290,6 +290,7 @@ class PostSynthesize():
  
     newTclFile.write('set IS_TOP_BUILD 1\n ')
     newTclFile.write('set IS_AREA_GROUP_BUILD 0\n ')
+    newTclFile.write('set SYNTH_OBJECT ""\n')
     newTclFile.write('source ' + self.paramTclFile + '\n')
 
     for tcl_header in self.tcl_headers:

@@ -132,14 +132,23 @@ def generateSynthesisTcl(moduleList, module, compileDirectory):
     annotationFiles = [os.path.relpath(str(synthAnnotationsTclPath), str(compileDirectory))]
     clockDeps = [synthAnnotationsTclPath]
 
+    relpathCurry = functools.partial(os.path.relpath, start = str(compileDirectory))
+
     synthAnnotationsTclFile.write('set SYNTH_OBJECT ' + module.name + '\n')
+    synthAnnotationsTclFile.write('set IS_TOP_BUILD 0\n')
+    synthAnnotationsTclFile.write('set IS_AREA_GROUP_BUILD 0\n')
+
+    tclDefs = []
+    if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS')) > 0):
+        tclDefs = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_DEFINITIONS'))
+        clockDeps += tclDefs
+        tclDefs = map(relpathCurry, tclDefs)   
 
     tclSynth = []
     #if (module.platformModule or 'AREA_GROUP' not in module.attributes):        
     if(len(moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS')) > 0):
         tclSynth = map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VIVADO_TCL_SYNTHESISS'))
         clockDeps += tclSynth
-        relpathCurry = functools.partial(os.path.relpath, start = str(compileDirectory))
         tclSynth = map(relpathCurry, tclSynth)   
     
     tclParams= []
@@ -170,6 +179,8 @@ def generateSynthesisTcl(moduleList, module, compileDirectory):
         relpath = model.rel_if_not_abspath(tclFunc, str(compileDirectory))
         synthAnnotationsTclFile.write('source ' + relpath + '\n')
 
+    for file in tclDefs:
+        synthAnnotationsTclFile.write("source " + file + "\n")
     for file in tclSynth:
         synthAnnotationsTclFile.write("source " + file + "\n")
 
