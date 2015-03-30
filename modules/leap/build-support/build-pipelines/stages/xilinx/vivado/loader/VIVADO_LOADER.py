@@ -120,15 +120,12 @@ class LOADER():
         else:
           print '\nDesign meets timing.'
 
-
         errinfo_file.close()
 
-
-        # bail out here so that the top
+        # Timing failures are reported as non-fatal errors.  The error is
+        # noted but the build continues.
         if (clk_err or timing_score > 0):
-            raise BuildError(errstr = "Timing error", 
-                             node = target,
-                             filename = str(target[0])) 
+            model.nonFatalFailures.append(str(target[0]))
 
       return leap_xilinx_summary_closure
  
