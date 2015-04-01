@@ -351,6 +351,7 @@ typedef struct
     RL_SA_CACHE_TAG#(t_CACHE_ADDR_SZ, nSets) tag;
     Bool dirty;
     Vector#(nWordsPerLine, Bool) wordValid;
+    UInt#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH) accesses;
 }
 RL_SA_CACHE_WAY_METADATA#(numeric type t_CACHE_ADDR_SZ, numeric type nWordsPerLine, numeric type nSets)
     deriving(Bits, Eq);
@@ -687,7 +688,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         meta.tag = tag;
         meta.dirty = dirty;
         meta.wordValid = wordValid;
-    
+        meta.accesses = 0;
         return meta;
     endfunction
 
@@ -2139,6 +2140,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         method Bool invalEntry() = invalEntryW;
         method Bool dirtyEntryFlush() = dirtyEntryFlushW;
         method Bool forceInvalLine() = forceInvalLineW;
+        method entryAccesses = tagged Invalid;
     endinterface
 
 endmodule

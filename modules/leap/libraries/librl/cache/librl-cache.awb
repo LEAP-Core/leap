@@ -17,4 +17,5 @@
 
 %param --global RL_DM_CACHE_BRAM_TYPE       0  "0: Normal BRAM, 1: Multi-banked BRAM, 2: BRAM with clock divider"
 %param --global RL_SA_BRAM_CACHE_BRAM_TYPE  0  "0: Normal BRAM, 1: Multi-banked BRAM, 2: BRAM with clock divider"
+%param --global RL_CACHE_LINE_ACCESS_TRACKER_WIDTH  0  "Width of line access tracker for caches"
 
