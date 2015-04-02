@@ -424,8 +424,15 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
     rule removeEntry (ready &&& removeEntryW.wget() matches tagged Valid .oldEntry);
         let hashes = computeHashes(oldEntry);
 
-        for (Integer i = 0; i < 4; i = i + 1)
+        // Check to ensure that we aren't underflowing an entry.
+        if (entryNotSet(hashes))
         begin
+            $display("Counting Bloom Filter at %m, has underflowed");
+            $finish;
+        end
+
+        for (Integer i = 0; i < 4; i = i + 1)
+        begin           
             bfOut[i].upd(hashes[i], 1 + bfOut[i].sub(hashes[i]));
         end
     endrule
@@ -444,6 +451,7 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
             // Can't insert.
             return tagged Invalid;
         end
+
     endmethod
 
     method Action set(t_FILTER_STATE stateUpdate) if (ready);
