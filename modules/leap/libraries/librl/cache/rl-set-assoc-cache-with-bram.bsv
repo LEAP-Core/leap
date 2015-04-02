@@ -1017,6 +1017,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     //
     rule fwdInvalOrFlush (True);
         match {.req_base, .is_inval} = invalOrFlushQ.first();
+        invalOrFlushQ.deq();
         let set = req_base.set;
         let tag = req_base.tag;
         if (is_inval)
