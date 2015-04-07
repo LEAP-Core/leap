@@ -50,7 +50,7 @@ template <typename T> class MARSHALLED_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_L
   public:
     MARSHALLED_LI_CHANNEL_IN_CLASS(tbb::concurrent_bounded_queue<UMF_MESSAGE> *flowcontrolQInitializer,
                                    std::string nameInitializer,
-				   UMF_FACTORY factoryInitializer,  
+                                   UMF_FACTORY factoryInitializer,  
                                    UINT64 flowcontrolChannelIDInitializer):
       FLOWCONTROL_LI_CHANNEL_IN_CLASS(flowcontrolQInitializer, factoryInitializer, flowcontrolChannelIDInitializer),
       LI_CHANNEL_SEND_CLASS<T>(nameInitializer)
@@ -115,7 +115,7 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
         while (1) 
         {
             UMF_MESSAGE msg = physicalChannel->Read();
-	    inChannels->at(msg->GetServiceID())->pushUMF(msg);
+            inChannels->at(msg->GetServiceID())->pushUMF(msg);
         }
     }
 
@@ -127,9 +127,9 @@ class CHANNELIO_BASE_CLASS:  public PLATFORMS_MODULE_CLASS
         PHYSICAL_CHANNEL_CLASS *physicalChannel = (PHYSICAL_CHANNEL_CLASS*) args[0];
         while(1) 
         {
-	    UMF_MESSAGE msg;
-	    mergedMessages->pop(msg);
-	    physicalChannel->Write(msg);
+            UMF_MESSAGE msg;
+            mergedMessages->pop(msg);
+            physicalChannel->Write(msg);
         }
     }
 

@@ -526,10 +526,26 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     Reg#(COH_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(COH_DM_PREFETCH_DISABLE);
     
     // Cache data and tag
-    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache <- mkBRAMInitialized(COH_DM_CACHE_ENTRY{ tag: ?,
-                                                                                     val: ?,
-                                                                                     state: COH_DM_CACHE_STATE_I,
-                                                                                     dirty: False });
+    let cache_init_val = COH_DM_CACHE_ENTRY{ tag: ?,
+                                             val: ?,
+                                             state: COH_DM_CACHE_STATE_I,
+                                             dirty: False };
+
+    BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache;
+    if (`RL_DM_CACHE_BRAM_TYPE == 0)
+    begin
+        // Cache implemented as a single BRAM
+        cache <- mkBRAMInitialized(cache_init_val);
+    end
+    else
+    begin
+        // Cache implemented as 4 BRAM banks with I/O buffering to allow
+        // more time to reach memory.
+        NumTypeParam#(4) p_banks = ?;
+        cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                 mkBRAMInitializedBuffered(cache_init_val));
+    end
+
     // Cache MSHR
     COH_DM_CACHE_MSHR#(t_CACHE_ADDR, 
                        t_CACHE_WORD, 
@@ -543,7 +559,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     LUTRAM#(t_CACHE_IDX, Bool) writebackStatusBits <- mkLUTRAM(False);
 
     // Track busy entries
-    COUNTING_FILTER#(t_CACHE_IDX, 0) entryFilter <- mkCountingFilter(debugLog);
+    COUNTING_FILTER#(t_CACHE_IDX, 1) entryFilter <- mkCountingFilter(debugLog);
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
@@ -771,7 +787,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     Wire#(Tuple3#(COH_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Bool)) pickReq <- mkWire();
     Wire#(Tuple4#(COH_DM_CACHE_REQ_TYPE, 
                   t_CACHE_REQ, 
-                  Maybe#(CF_OPAQUE#(t_CACHE_IDX, 0)),
+                  Maybe#(CF_OPAQUE#(t_CACHE_IDX, 1)),
                   Bool)) curReq <- mkWire();
 
 

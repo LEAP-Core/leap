@@ -568,8 +568,6 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     //
     LOCAL_MEM localMem <- mkLocalMem();
 
-    PulseWire didWrite <- mkPulseWire();
-
     // ====================================================================
     //
     // Data and metadata address mapping functions.  Each set is organized
@@ -652,7 +650,7 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     //   Receive a request to read a set.  Iterate multiple times over each
     //   request in order to prefetch metadata and all ways.
     //
-    rule memReadReq (initialized && ! didWrite && (activeReadCnt.value != 0));
+    rule memReadReq (initialized && (activeReadCnt.value != 0));
         match {.set, .prefetch_set} = setReqQ.first();
 
         // Read a way (or metadata if setReqWayIdx is 0)
@@ -785,7 +783,6 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     method Action metaWrite(RL_SA_CACHE_SET_IDX#(nSets) set,
                             RL_SA_CACHE_SET_METADATA#(t_CACHE_ADDR_SZ, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays) metaUpd) if (initialized);
         localMem.writeLine(getMetadataIdx(set), zeroExtend(pack(metaUpd)));
-        didWrite.send();
     endmethod    
 
     method Action dataWrite(RL_SA_CACHE_SET_IDX#(nSets) set,
@@ -804,7 +801,6 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
         localMem.writeLineMasked(getDataIdx(set, way),
                                  zeroExtend(pack(val)),
                                  byte_mask);
-        didWrite.send();
     endmethod
 
     method Action dataWriteWord(RL_SA_CACHE_SET_IDX#(nSets) set,
@@ -813,7 +809,5 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
                                 t_CACHE_WORD val) if (initialized);
         LOCAL_MEM_ADDR addr = getDataIdx(set, way) | zeroExtendNP(wordIdx);
         localMem.writeWord(addr, zeroExtend(pack(val)));
-        didWrite.send();
     endmethod
-
 endmodule
