@@ -274,8 +274,11 @@ RL_SA_BRAM_CACHE_SET_METADATA#(numeric type t_CACHE_WAY_IDX_SZ,
 
 instance DefaultValue#(RL_SA_BRAM_CACHE_SET_METADATA#(t_CACHE_WAY_IDX_SZ, t_CACHE_ADDR_SZ, nWordsPerLine, nSets, nWays));
     defaultValue = RL_SA_BRAM_CACHE_SET_METADATA { lru: Vector::genWith(fromInteger),
-                                                   ways: Vector::replicate(tagged Invalid) };
+                                                   ways: Vector::replicate(tagged Invalid)
+                                                 };
 endinstance
+
+
 
 // ========================================================================
 //
@@ -341,7 +344,13 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
               Add#(TLog#(TExp#(TLog#(nSets))), 0, TLog#(nSets)),
               Add#(TLog#(TDiv#(TExp#(TLog#(nSets)), 2)), x__, TLog#(nSets)));
 
-    // ***** Elaboration time checks of types"
+    // Set a safe increment value for the access histogram stats
+    // tracker.  If this feature is disabled, the tracker width will
+    // be zero, and the increment value must also be zero. 
+    UInt#(TAdd#(1,`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH)) accessIncrementValueLarge = 1;
+    UInt#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH) accessIncrementValue = truncate(accessIncrementValueLarge);
+
+    // ***** Elaboration time checks of types
     // The interface allows for a number of sets that isn't a
     // power of 2, but the implementation currently does not.
     if(valueof(nSets) != valueof(TExp#(TLog#(nSets))))
@@ -469,6 +478,8 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     PulseWire forceInvalLineW    <- mkPulseWire();
     PulseWire dirtyEntryFlushW   <- mkPulseWire();
 
+    RWire#(UInt#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH)) entryAccessesW  <- mkRWire();
+
     // ***** Indexing functions *****
     //
     // getDataIdx --
@@ -521,12 +532,14 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
 
     function t_METADATA metaData(t_CACHE_TAG tag,
                                  Bool dirty,
-                                 t_CACHE_WORD_VALID_MASK wordValid);
+                                 t_CACHE_WORD_VALID_MASK wordValid,
+                                 UInt#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH) accesses);
         t_METADATA meta;
         meta.tag = tag;
         meta.dirty = dirty;
         meta.wordValid = wordValid;
-    
+        meta.accesses = accesses;    
+
         return meta;
     endfunction
 
@@ -1017,6 +1030,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     //
     rule fwdInvalOrFlush (True);
         match {.req_base, .is_inval} = invalOrFlushQ.first();
+        invalOrFlushQ.deq();
         let set = req_base.set;
         let tag = req_base.tag;
         if (is_inval)
@@ -1087,7 +1101,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
                 wordMissQ.enq(tuple4(req_base_out, req, way_meta.wordValid, maf_idx));
                 // Mark all words valid in the line.  They will be after
                 // the fill completes.
-                meta_upd.ways[way] = tagged Valid metaData(tag, way_meta.dirty, replicate(True));
+                meta_upd.ways[way] = tagged Valid metaData(tag, way_meta.dirty, replicate(True), satPlus(Sat_Bound, way_meta.accesses, accessIncrementValue));
                 metaStore.write(set, meta_upd);
                 if (meta_upd.lru != meta.lru)
                 begin
@@ -1148,7 +1162,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
             let new_word_valid = way_meta.wordValid;
             new_word_valid[wReq.wordIdx] = True;
 
-            meta_upd.ways[way] = tagged Valid metaData(tag, writeBackCache(), new_word_valid);
+            meta_upd.ways[way] = tagged Valid metaData(tag, writeBackCache(), new_word_valid, satPlus(Sat_Bound, way_meta.accesses, accessIncrementValue));
             metaStore.write(set, meta_upd);
             
             if (meta_upd.lru != meta.lru)
@@ -1298,7 +1312,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         //
         // Update metadata here for the filled line since we have the details.
         //
-        meta_upd.ways[fill_way] = tagged Valid metaData(tag, False, replicate(True));
+        meta_upd.ways[fill_way] = tagged Valid metaData(tag, False, replicate(True), accessIncrementValue);
         metaStore.write(set, meta_upd);
         mafTable.write(maf_idx, tuple4(rReq.readMeta, rReq.wordIdx, replicate(False), fill_way));
 
@@ -1306,7 +1320,10 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         Bool flushed_dirty = False;
         if (meta.ways[fill_way] matches tagged Valid .m)
         begin
+            // Collect access statistics
+            entryAccessesW.wset(m.accesses);
             invalEntryW.send();
+
             if (m.dirty)
             begin
                 // Victim is dirty.  Flush data.
@@ -1363,15 +1380,19 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         t_CACHE_WORD_VALID_MASK word_valid_mask = replicate(False);
         word_valid_mask[wReq.wordIdx] = True;
 
-        // Update tag and write metadata
-        meta_upd.ways[fill_way] = tagged Valid metaData(tag, writeBackCache(), word_valid_mask);
+
+        // Update tag and write metadata       
+        meta_upd.ways[fill_way] = tagged Valid metaData(tag, writeBackCache(), word_valid_mask, accessIncrementValue);
         metaStore.write(set, meta_upd);
 
         // Is victim dirty?
         Bool flushed_dirty = False;
         if (meta.ways[fill_way] matches tagged Valid .m)
         begin
+            // Collect access statistics
+            entryAccessesW.wset(m.accesses);
             invalEntryW.send();
+
             if (m.dirty)
             begin
                 // Victim is dirty.  Flush data.
@@ -1525,7 +1546,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         let old_meta = validValue(meta.ways[way]);
         meta.ways[way] = (pack(old_word_valid_mask) == 0) ?
             tagged Invalid :
-            tagged Valid metaData(old_meta.tag, old_meta.dirty, old_word_valid_mask);
+            tagged Valid metaData(old_meta.tag, old_meta.dirty, old_word_valid_mask, old_meta.accesses);
 
         metaStore.write(set, meta);
 
@@ -1719,15 +1740,16 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     endmethod
 
     interface RL_CACHE_STATS stats;
-        method Bool readHit() = readHitW;
-        method Bool readMiss() = readMissW;
-        method Bool readRecentLineHit() = False;
-        method Bool writeHit() = writeHitW;
-        method Bool writeMiss() = writeMissW;
-        method Bool newMRU() = newMRUW;
-        method Bool invalEntry() = invalEntryW;
-        method Bool dirtyEntryFlush() = dirtyEntryFlushW;
-        method Bool forceInvalLine() = forceInvalLineW;
+        method readHit = readHitW;
+        method readMiss = readMissW;
+        method readRecentLineHit = False;
+        method writeHit = writeHitW;
+        method writeMiss = writeMissW;
+        method newMRU = newMRUW;
+        method invalEntry = invalEntryW;
+        method dirtyEntryFlush = dirtyEntryFlushW;
+        method forceInvalLine = forceInvalLineW;
+        method entryAccesses = entryAccessesW.wget;
     endinterface
 
 endmodule

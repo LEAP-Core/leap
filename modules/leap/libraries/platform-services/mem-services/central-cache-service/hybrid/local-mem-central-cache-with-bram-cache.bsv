@@ -287,4 +287,20 @@ module [CONNECTED_MODULE] mkCentralCacheBRAMCacheStats#(RL_CACHE_STATS cacheStat
         stats.incr(statNewMRU);
     endrule
 
+    function STAT_ID getAccessID(Integer i);
+        return statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_ACCESS_COUNT_" + platform + "_" + integerToString(i),
+                        "Central Cache: Line Access Count" + integerToString(i));
+    endfunction
+
+    // If line access tracker width is zero, there are no access statistics collected.  
+    // Therefore, remove the access tracker.
+    if(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH > 0)
+    begin
+        Vector#(TExp#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH), STAT_ID) accessStatIDs = genWith(getAccessID);
+        STAT_VECTOR#(TExp#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH)) accessStats <- mkStatCounter_Vector(vectorToArray(accessStatIDs));
+
+        rule entryAccess(cacheStats.entryAccesses() matches tagged Valid .count);
+            accessStats.incr(extendNP(pack(count)));
+        endrule
+    end         
 endmodule

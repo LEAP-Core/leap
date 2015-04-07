@@ -1117,6 +1117,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         method Bool invalEntry() = False;
         method Bool dirtyEntryFlush() = dirtyEntryFlushW;
         method Bool forceInvalLine() = forceInvalLineW;
+        method entryAccesses = tagged Invalid;
     endinterface
 
 endmodule

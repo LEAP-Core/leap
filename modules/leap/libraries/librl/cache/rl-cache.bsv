@@ -88,6 +88,9 @@ interface RL_CACHE_STATS;
     method Bool invalEntry();            // Invalidate due to capacity
     method Bool dirtyEntryFlush();
     method Bool forceInvalLine();        // Invalidate forced by external request
+
+    // Upon line eviction, returns number of accesses to a line before its eviction.   
+    method Maybe#(UInt#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH)) entryAccesses(); 
 endinterface: RL_CACHE_STATS
 
 module mkNullRLCacheStats (RL_CACHE_STATS);
