@@ -447,11 +447,12 @@ endmodule
 // mkMultiReadMaskedWriteIfcToMultiReadMemIfc --
 //     Converts MEMORY_MULTI_READ_MASKED_WRITE_IFC to MEMORY_MULTI_READ_IFC.
 //
-module mkMultiReadMaskedWriteIfcToMultiReadMemIfc#(MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_Readers, t_ADDR, t_DATA, t_MASK) multiMem)
+module [m] mkMultiReadMaskedWriteIfcToMultiReadMemIfc#(MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_Readers, t_ADDR, t_DATA, t_MASK) multiMem)
     (MEMORY_MULTI_READ_IFC#(n_Readers, t_ADDR, t_DATA))
     provisos (Bits#(t_ADDR, t_ADDR_SZ),
               Bits#(t_DATA, t_DATA_SZ), 
-              Bits#(t_MASK, t_MASK_SZ));
+              Bits#(t_MASK, t_MASK_SZ),
+              IsModule#(m, a__));
     
     MEMORY_MULTI_READ_IFC#(n_Readers, t_ADDR, t_DATA) mem = interface MEMORY_MULTI_READ_IFC
         interface readPorts = multiMem.readPorts;
@@ -460,6 +461,35 @@ module mkMultiReadMaskedWriteIfcToMultiReadMemIfc#(MEMORY_MULTI_READ_MASKED_WRIT
             Vector#(t_MASK_SZ, Bool) mask = replicate(True);
             multiMem.write(addr, data, unpack(pack(mask)));
         endmethod
+
+        method Bool writeNotFull();
+            return multiMem.writeNotFull();
+        endmethod
+    endinterface;
+
+    return mem;
+endmodule
+
+//
+// mkMultiReadMemIfcToMultiReadMaskedWriteIfc --
+//     Converts MEMORY_MULTI_READ_IFC to MEMORY_MULTI_READ_MASKED_WRITE_IFC.
+//
+//     Be careful with this wrapper, since the mask is simply dropped.
+//
+module [m] mkMultiReadMemIfcToMultiReadMaskedWriteIfc#(MEMORY_MULTI_READ_IFC#(n_Readers, t_ADDR, t_DATA) multiMem)
+    (MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_Readers, t_ADDR, t_DATA, t_MASK))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ), 
+              Bits#(t_MASK, t_MASK_SZ),
+              IsModule#(m, a__));
+    
+    MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_Readers, t_ADDR, t_DATA, t_MASK) mem = interface MEMORY_MULTI_READ_MASKED_WRITE_IFC
+        interface readPorts = multiMem.readPorts;
+
+        method Action write(t_ADDR addr, t_DATA data, t_MASK mask);
+            multiMem.write(addr, data);
+        endmethod
+
         method Bool writeNotFull();
             return multiMem.writeNotFull();
         endmethod
@@ -467,8 +497,8 @@ module mkMultiReadMaskedWriteIfcToMultiReadMemIfc#(MEMORY_MULTI_READ_MASKED_WRIT
     endinterface;
 
     return mem;
-
 endmodule
+
 
 // ========================================================================
 //

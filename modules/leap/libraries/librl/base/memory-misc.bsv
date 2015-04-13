@@ -217,3 +217,251 @@ module [m] mkWriteBeforeReadMemory#(MEMORY_IFC#(t_ADDR, t_DATA) mem)
     method Bool writeNotFull = mem.writeNotFull;
     method t_DATA peek = error("mkCachePrefetchLearnerMemory.peek() not implemented");
 endmodule
+
+
+
+// ========================================================================
+//
+//  Memory wrappers that combine equivalent reads into single requests.
+//
+// ========================================================================
+    
+//
+// mkMemReadBypassWrapper --
+//   Monitor read requests and combine a series of requests for the same
+//   address into a single read.
+//
+module [m] mkMemReadBypassWrapper#(
+    MEMORY_IFC#(t_ADDR, t_DATA) mem,
+    Integer maxReadsPerPort)
+    // Interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              IsModule#(m, a__));
+
+    // The read bypass code is implemented in a multi-reader interface.
+    let _mem_multi <- mkMemIfcToMultiMemIfc(mem);
+
+    // Wrap with the read bypassing code.
+    _mem_multi <- mkMemReadBypassWrapperMultiRead(_mem_multi, maxReadsPerPort);
+
+    // Downgrade the multi reader interface to the usual interface.
+    let _mem <- mkMultiMemIfcToMemIfc(_mem_multi);
+
+    return _mem;
+endmodule
+
+module [m] mkMemReadBypassWrapperM#(
+    function m#(MEMORY_IFC#(t_ADDR, t_DATA)) memImpl,
+    Integer maxReadsPerPort)
+    // Interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              IsModule#(m, a__));
+
+    let _mem <- memImpl();
+    _mem <- mkMemReadBypassWrapper(_mem, maxReadsPerPort);
+
+    return _mem;
+endmodule
+
+
+//
+// mkMemReadBypassWrapperMultiRead --
+//   Monitor read requests and combine a series of requests for the same
+//   address into a single read.
+//
+module [m] mkMemReadBypassWrapperMultiRead#(
+    MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) mem,
+    Integer maxReadsPerPort)
+    // Interface:
+    (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              IsModule#(m, a__));
+
+    // The read bypass code is implemented in a masked write interface.
+    // Wrap the incoming memory with a dummy mask argument.
+    MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_ADDR, t_DATA, Bit#(1)) _mem_masked <-
+        mkMultiReadMemIfcToMultiReadMaskedWriteIfc(mem);
+
+    // Wrap with the read bypassing code.
+    _mem_masked <- mkMemReadBypassWrapperMultiReadMaskedWrite(_mem_masked, maxReadsPerPort);
+
+    // Downgrade the masked write interface to the usual interface.
+    let _mem <- mkMultiReadMaskedWriteIfcToMultiReadMemIfc(_mem_masked);
+
+    return _mem;
+endmodule
+    
+
+module [m] mkMemReadBypassWrapperMultiReadM#(
+    function m#(MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA)) memImpl,
+    Integer maxReadsPerPort)
+    // Interface:
+    (MEMORY_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              IsModule#(m, a__));
+
+    let _mem <- memImpl();
+    _mem <- mkMemReadBypassWrapperMultiRead(_mem, maxReadsPerPort);
+
+    return _mem;
+endmodule
+
+
+//
+// mkMemReadBypassWrapperMultiReadMaskedWrite --
+//   Monitor read requests and combine a series of requests for the same
+//   address into a single read.
+//
+module [m] mkMemReadBypassWrapperMultiReadMaskedWrite#(
+    MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_ADDR, t_DATA, t_MASK) mem,
+    Integer maxReadsPerPort)
+    // Interface:
+    (MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_ADDR, t_DATA, t_MASK))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_MASK, t_MASK_SZ),
+              IsModule#(m, a__));
+
+    // addrMatchQ indicates whether to repeat the last value or return a
+    // new response.
+    Vector#(n_READERS, FIFOF#(Bool)) addrMatchQ <- replicateM(mkSizedFIFOF(maxReadsPerPort));
+    Vector#(n_READERS, Array#(Reg#(Maybe#(t_ADDR)))) lastAddr <- replicateM(mkCReg(2, tagged Invalid));
+    Vector#(n_READERS, Reg#(t_DATA)) lastValue <- replicateM(mkRegU());
+
+    Vector#(n_READERS, RWire#(t_DATA)) nextValueW <- replicateM(mkRWire);
+    Vector#(n_READERS, PulseWire) didReadRspW <- replicateM(mkPulseWire);
+
+
+    //
+    // Monitor writes and invalidate the address being matched if needed.
+    // The invalidation is done at the beginning of the cycle following
+    // a write instead of at the end of the write's cycle in order to
+    // avoid creating a timing path between readReq and write methods.
+    //
+    FIFOF#(t_ADDR) invalQ <- mkFIFOF();
+
+    (* fire_when_enabled *)
+    rule doInval (invalQ.notEmpty);
+        let addr = invalQ.first();
+        invalQ.deq();
+
+        for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+        begin
+            if (lastAddr[p][0] matches tagged Valid .a &&& pack(a) == pack(addr))
+            begin
+                lastAddr[p][0] <= tagged Invalid;
+            end
+        end
+    endrule
+
+
+    Vector#(n_READERS, MEMORY_READER_IFC#(t_ADDR, t_DATA)) portsLocal = newVector();
+
+    for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
+    begin
+        //
+        // Compute the next value on each port in this rule instead of in
+        // the method in case callers of the method use no_implicit_conditions,
+        // in which case the lack of a cache read response could cause
+        // a deadlock.
+        //
+        rule nextValue (True);
+            let repeat_prev = addrMatchQ[p].first();
+
+            if (repeat_prev)
+            begin
+                // Forward the repeated value
+                nextValueW[p].wset(lastValue[p]);
+            end
+            else
+            begin
+                // Use the next read response from the managed memory
+                let v = mem.readPorts[p].peek();
+                lastValue[p] <= v;
+                nextValueW[p].wset(v);
+            end
+        endrule
+
+        //
+        // doDeq consumes deq requests from readRsp and consumes incoming
+        // responses.  It is in a rule for the same reason as nextValue above.
+        //
+        (* fire_when_enabled *)
+        rule doDeq (didReadRspW[p]);
+            let repeat_prev = addrMatchQ[p].first();
+            addrMatchQ[p].deq();
+
+            if (! repeat_prev)
+            begin
+                let dummy <- mem.readPorts[p].readRsp();
+            end
+        endrule
+
+
+        portsLocal[p] =
+            interface MEMORY_READER_IFC#(t_ADDR, t_DATA);
+                method Action readReq(t_ADDR addr);
+                    // Look for back-to-back reads from the same address
+                    if (lastAddr[p][1] matches tagged Valid .a &&& pack(a) == pack(addr))
+                    begin
+                        // Found a repeat.  Don't do the load.
+                        addrMatchQ[p].enq(True);
+                    end
+                    else
+                    begin
+                        // New address.
+                        mem.readPorts[p].readReq(addr);
+                        addrMatchQ[p].enq(False);
+                        lastAddr[p][1] <= tagged Valid addr;
+                    end
+                endmethod
+
+                method ActionValue#(t_DATA) readRsp() if (nextValueW[p].wget() matches tagged Valid .v);
+                    didReadRspW[p].send();
+                    return v;
+                endmethod
+
+                method t_DATA peek() if (nextValueW[p].wget() matches tagged Valid .v);
+                    return v;
+                endmethod
+
+                method Bool notEmpty = isValid(nextValueW[p].wget);
+                method Bool notFull = mem.readPorts[p].notFull && addrMatchQ[p].notFull;
+            endinterface;
+    end
+
+    interface readPorts = portsLocal;
+
+    method Action write(t_ADDR addr, t_DATA val, t_MASK mask);
+        mem.write(addr, val, mask);
+
+        // Invalidate last read address if it matches.  For timing, the
+        // invalidation happens at the beginning of the next cycle, before
+        // reads are checked.
+        invalQ.enq(addr);
+    endmethod
+
+    method Bool writeNotFull = mem.writeNotFull;
+endmodule
+
+module [m] mkMemReadBypassWrapperMultiReadMaskedWriteM#(
+    function m#(MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_ADDR, t_DATA, t_MASK)) memImpl,
+    Integer maxReadsPerPort)
+    // Interface:
+    (MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_ADDR, t_DATA, t_MASK))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_MASK, t_MASK_SZ),
+              IsModule#(m, a__));
+
+    let _mem <- memImpl();
+    _mem <- mkMemReadBypassWrapperMultiReadMaskedWrite(_mem, maxReadsPerPort);
+
+    return _mem;
+endmodule
