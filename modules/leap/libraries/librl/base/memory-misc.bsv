@@ -30,6 +30,7 @@
 //
 
 import FIFOF::*;
+import DReg::*;
 
 
 //
@@ -344,13 +345,10 @@ module [m] mkMemReadBypassWrapperMultiReadMaskedWrite#(
     // a write instead of at the end of the write's cycle in order to
     // avoid creating a timing path between readReq and write methods.
     //
-    FIFOF#(t_ADDR) invalQ <- mkFIFOF();
+    Reg#(Maybe#(t_ADDR)) invalLastAddr <- mkDReg(tagged Invalid);
 
-    (* fire_when_enabled *)
-    rule doInval (invalQ.notEmpty);
-        let addr = invalQ.first();
-        invalQ.deq();
-
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule doInval (invalLastAddr matches tagged Valid .addr);
         for (Integer p = 0; p < valueOf(n_READERS); p = p + 1)
         begin
             if (lastAddr[p][0] matches tagged Valid .a &&& pack(a) == pack(addr))
@@ -418,8 +416,9 @@ module [m] mkMemReadBypassWrapperMultiReadMaskedWrite#(
                         // New address.
                         mem.readPorts[p].readReq(addr);
                         addrMatchQ[p].enq(False);
-                        lastAddr[p][1] <= tagged Valid addr;
                     end
+
+                    lastAddr[p][1] <= tagged Valid addr;
                 endmethod
 
                 method ActionValue#(t_DATA) readRsp() if (nextValueW[p].wget() matches tagged Valid .v);
@@ -444,7 +443,7 @@ module [m] mkMemReadBypassWrapperMultiReadMaskedWrite#(
         // Invalidate last read address if it matches.  For timing, the
         // invalidation happens at the beginning of the next cycle, before
         // reads are checked.
-        invalQ.enq(addr);
+        invalLastAddr <= tagged Valid addr;
     endmethod
 
     method Bool writeNotFull = mem.writeNotFull;
