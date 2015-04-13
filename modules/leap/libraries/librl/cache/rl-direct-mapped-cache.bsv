@@ -229,7 +229,8 @@ typedef enum
 }
 RL_DM_CACHE_REQ_TYPE
     deriving (Eq, Bits);
-       
+
+
 //
 // Index of the write data heap index.  To save space, write data is passed
 // through the cache pipelines as a pointer.  The heap size limits the number
@@ -338,12 +339,12 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     // Cache data and tag
     MEMORY_IFC#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
     
-    if (`RL_DM_CACHE_BRAM_TYPE == 0)
+    if (unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_FLAT_BRAM)
     begin
         // Cache implemented as a single BRAM
         cache <- mkBRAMInitialized(tagged Invalid);
     end
-    else if(`RL_DM_CACHE_BRAM_TYPE == 1)
+    else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_BANKED_BRAM)
     begin
         // Cache implemented as 4 BRAM banks with I/O buffering to allow
         // more time to reach memory.
@@ -351,7 +352,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
                                  mkBRAMInitializedBuffered(tagged Invalid));
     end
-    else
+    else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_CLOCK_DIVIDED_BRAM)
     begin
         // Cache implemented as 8 half-speed BRAM banks.  We assume that
         // the cache is quite large in order to justify half-speed BRAM.
@@ -364,6 +365,10 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         //   2. Buffering supports long wires.
         let cache_slow = mkSlowMemoryM(mkBRAMInitializedClockDivider(tagged Invalid), True);
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, cache_slow);
+    end
+    else 
+    begin
+        error("rl-direct-mapped-cache: undefined storage type");
     end
     
     // Track busy entries
