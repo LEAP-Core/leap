@@ -64,7 +64,7 @@ import SpecialFIFOs::*;
 // standard direct mapped cache interface.
 //
 
-typedef RL_DM_CACHE#(t_ADDR, t_DATA, t_READ_META)
+typedef RL_DM_CACHE#(t_ADDR, t_DATA, void, t_READ_META)
     CENTRAL_CACHE_CLIENT#(type t_ADDR, type t_DATA, type t_READ_META);
 
 
@@ -161,7 +161,7 @@ module [CONNECTED_MODULE] mkCentralCacheClient#(Integer cacheID,
                                                            debugLog);
 
     // Private cache
-    RL_DM_CACHE#(t_ADDR, t_DATA, t_READ_META) pvtCache;
+    RL_DM_CACHE#(t_ADDR, t_DATA, void, t_READ_META) pvtCache;
     if (valueOf(n_ENTRIES) == 0)
     begin
         pvtCache <- mkNullCacheDirectMapped(centralCacheConnection,
@@ -173,6 +173,7 @@ module [CONNECTED_MODULE] mkCentralCacheClient#(Integer cacheID,
                                         prefetcher,
                                         nEntries,
                                         hashLocalCacheAddrs,
+                                        False,
                                         debugLog);
     end
 
@@ -354,7 +355,6 @@ module [CONNECTED_MODULE] mkCentralCacheConnection#(Integer cacheID,
         link_cache.makeReq(tagged CENTRAL_CACHE_WRITE r);
         debugLog.record($format("write: addr=0x%x, l_addr=0x%x, wIdx=%0d, val=0x%x", addr, l_addr, w_idx, val));
     endmethod
-
 
     // Line invalidation request
     method Action invalReq(t_ADDR addr, Bool sendAck);

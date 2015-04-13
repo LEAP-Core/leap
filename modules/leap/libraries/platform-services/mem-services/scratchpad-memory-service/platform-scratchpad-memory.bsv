@@ -775,16 +775,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
                                        mkNullCachePrefetcher();
     
     // Private cache
-    RL_DM_CACHE_WITH_MASKED_WRITE#(Bit#(t_MEM_ADDRESS_SZ),
-                                   SCRATCHPAD_MEM_VALUE,
-                                   t_MEM_MASK, 
-                                   t_MAF_IDX) cache <-
-        mkCacheDirectMappedWithMaskedWrite(sourceData,
-                                           prefetcher, 
-                                           nCacheEntries,
-                                           True,
-                                           maskedWriteEn,
-                                           debugLog);
+    RL_DM_CACHE#(Bit#(t_MEM_ADDRESS_SZ),
+                 SCRATCHPAD_MEM_VALUE,
+                 t_MEM_MASK, 
+                 t_MAF_IDX) cache <- mkCacheDirectMapped(sourceData,
+                                                         prefetcher, 
+                                                         nCacheEntries,
+                                                         True,
+                                                         maskedWriteEn,
+                                                         debugLog);
 
     // Hook up stats
     let cacheStats <- statsConstructor(cache.stats);
@@ -829,7 +828,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
         begin
             let mask = writeMaskQ.first();
             writeMaskQ.deq();
-            cache.writeWithMask(pack(addr), val, mask);
+            cache.writeMasked(pack(addr), val, mask);
         end
         else
         begin
