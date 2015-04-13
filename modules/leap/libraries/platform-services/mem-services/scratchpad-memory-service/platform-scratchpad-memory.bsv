@@ -141,7 +141,10 @@ SCRATCHPAD_READ_RSP
 // Number of slots in a read port's reorder buffer.  The scratchpad subsystem
 // does not guarantee to return results in order, so all clients need a ROB.
 // The ROB size limits the number of read requests in flight for a given port.
-typedef 32 SCRATCHPAD_PORT_ROB_SLOTS;
+// For longer latency backing stores, we will use more slots. 
+typedef 32 SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY;
+typedef 64 SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY;
+
 
 // The uncached scratchpad will have more references outstanding due to latency.
 // Allow more references to be in flight.
@@ -304,8 +307,6 @@ module [CONNECTED_MODULE] mkMultiReadStatsScratchpad#(Integer scratchpadID,
 
             // Require brute-force conversion because Integer cannot be converted to a type
             messageM("Scratchpad ID: " + integerToString(scratchpadID) + " private cache entries: " + integerToString(e));
-            
-            let maxInFlight = valueOf(SCRATCHPAD_PORT_ROB_SLOTS);
 
             if      (e <= 8)      begin NumTypeParam#(8)       n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
             else if (e <= 16)     begin NumTypeParam#(16)      n = ?; mem <- mkMemPackMultiReadMaskWrite(data_sz, mkUnmarshalledCachedScratchpad(id, conf, mode, mech, pf_size, n_obj, n, l, stats, pf_stats, mask_w)); end 
@@ -398,15 +399,37 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE))
     provisos (Bits#(t_MEM_ADDRESS, t_MEM_ADDRESS_SZ),
               Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ));
-    
-    let _scr <- mkUnmarshalledScratchpadImpl(scratchpadID,
+
+    MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE) _scr = ?;
+
+    if(conf.backingStore == RL_CACHE_STORE_FLAT_BRAM)
+    begin
+        NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY) nROBSlots = ?;
+        _scr <- mkUnmarshalledScratchpadImpl(scratchpadID,
                                              nContainerObjects,
+                                             nROBSlots,
                                              conf);
 
-    if (conf.requestMerging)
+        if (conf.requestMerging)
+        begin        
+            _scr <- mkMemReadBypassWrapperMultiRead(
+                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY));
+        end
+    end
+    else
     begin
-        _scr <- mkMemReadBypassWrapperMultiRead(
-                   _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS));
+        NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY) nROBSlots = ?;
+        _scr <- mkUnmarshalledScratchpadImpl(scratchpadID,
+                                             nContainerObjects,
+                                             nROBSlots,
+                                             conf);
+
+
+        if (conf.requestMerging)
+        begin        
+            _scr <- mkMemReadBypassWrapperMultiRead(
+                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY));
+        end
     end
 
     return _scr;
@@ -415,6 +438,7 @@ endmodule
 module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     Integer scratchpadID,
     NumTypeParam#(n_OBJECTS) nContainerObjects,
+    NumTypeParam#(n_ROB_SLOTS) nROBSlots,
     SCRATCHPAD_CONFIG conf)
     // interface:
     (MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE))
@@ -422,7 +446,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
               Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
 
               // Index in a reorder buffer
-              Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
+              Alias#(SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS), t_REORDER_ID),
               
               // MAF for in-flight reads
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
@@ -463,13 +487,13 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
     // when available, independent of the latency of requests on other ports.
-    Vector#(n_READERS, SCOREBOARD_FIFOF#(SCRATCHPAD_PORT_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
+    Vector#(n_READERS, SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
 
     // Merge FIFOF combines read and write requests in temporal order,
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot.  The write port is always last.
     MERGE_FIFOF#(TAdd#(n_READERS, 1),
-                 Tuple2#(t_MEM_ADDRESS, SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS))) incomingReqQ <- mkMergeBypassFIFOF();
+                 Tuple2#(t_MEM_ADDRESS, SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS))) incomingReqQ <- mkMergeBypassFIFOF();
 
     // Write data is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(SCRATCHPAD_MEM_VALUE) writeDataQ <- mkBypassFIFO();
@@ -629,7 +653,16 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(
               Bits#(SCRATCHPAD_MEM_VALUE, t_SCRATCHPAD_MEM_VALUE_SZ),
               Bits#(t_MEM_MASK, t_MEM_MASK_SZ));
 
-    let _scr <- mkUnmarshalledCachedScratchpadImpl(scratchpadID, 
+    // Size the ROB.  Eventually, we might need other means of filling
+    // in the NumTypeParams, since each module can really only fill in
+    // one at a time.
+
+    MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE, t_MEM_MASK) _scr = ?;
+
+    if(conf.backingStore == RL_CACHE_STORE_FLAT_BRAM) 
+    begin
+        NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY) nROBSlots = ?;
+        _scr <- mkUnmarshalledCachedScratchpadImpl(scratchpadID, 
                                                    conf,
                                                    cacheModeParam,
                                                    prefetchMechanismParam,
@@ -637,16 +670,40 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(
                                                    nContainerObjects, 
                                                    nCacheEntries,
                                                    nPrefetchLearners,
+                                                   nROBSlots,
                                                    statsConstructor,
                                                    prefetchStatsConstructor,
                                                    maskedWriteEn);
-
-    if (conf.requestMerging)
-    begin
-        _scr <- mkMemReadBypassWrapperMultiReadMaskedWrite(
-                   _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS));
+         
+        if (conf.requestMerging)
+        begin
+            _scr <- mkMemReadBypassWrapperMultiReadMaskedWrite(
+                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY));
+        end
     end
-
+    else
+    begin
+        NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY) nROBSlots = ?;
+        _scr <- mkUnmarshalledCachedScratchpadImpl(scratchpadID, 
+                                                   conf,
+                                                   cacheModeParam,
+                                                   prefetchMechanismParam,
+                                                   prefetchLearnerSizeLogParam,
+                                                   nContainerObjects, 
+                                                   nCacheEntries,
+                                                   nPrefetchLearners,
+                                                   nROBSlots,
+                                                   statsConstructor,
+                                                   prefetchStatsConstructor,
+                                                   maskedWriteEn);
+        
+        if (conf.requestMerging)
+        begin
+            _scr <- mkMemReadBypassWrapperMultiReadMaskedWrite(
+                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY));
+        end
+    end
+        
     return _scr;
 endmodule
 
@@ -659,6 +716,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     NumTypeParam#(n_OBJECTS) nContainerObjects, 
     NumTypeParam#(n_CACHE_ENTRIES) nCacheEntries,
     NumTypeParam#(n_PREFETCH_LEARNER_SIZE) nPrefetchLearners,
+    NumTypeParam#(n_ROB_SLOTS) nROBSlots,
     SCRATCHPAD_STATS_CONSTRUCTOR statsConstructor,
     SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR prefetchStatsConstructor,
     Bool maskedWriteEn)
@@ -669,7 +727,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
               Bits#(t_MEM_MASK, t_MEM_MASK_SZ),
 
               // Index in a reorder buffer
-              Alias#(SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS), t_REORDER_ID),
+              Alias#(SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS), t_REORDER_ID),
               
               // MAF for in-flight reads
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
@@ -736,7 +794,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     // with reads from the same cycle as a write going first.  Each read port
     // gets a slot.  The write port is always last.
     MERGE_FIFOF#(TAdd#(n_READERS, 1),
-                 Tuple2#(t_MEM_ADDRESS, SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_PORT_ROB_SLOTS))) incomingReqQ <- mkMergeFIFOF();
+                 Tuple2#(t_MEM_ADDRESS, SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS))) incomingReqQ <- mkMergeFIFOF();
 
     // Write data is sent in a side port to keep the incomingReqQ smaller.
     FIFO#(SCRATCHPAD_MEM_VALUE) writeDataQ <- mkFIFO();
@@ -748,7 +806,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     end
 
     // Cache responses are not ordered.  Sort them with a reorder buffer.
-    Vector#(n_READERS, SCOREBOARD_FIFOF#(SCRATCHPAD_PORT_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
+    Vector#(n_READERS, SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
     
     // Initialization
     Reg#(Bool) initialized <- mkReg(False);
