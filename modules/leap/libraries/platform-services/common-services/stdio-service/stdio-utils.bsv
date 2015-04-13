@@ -144,8 +144,8 @@ endinterface
 //
 // mkStdIO_CondPrintf --
 //     Wrap the provided STDIO node and expose printf and fprintf.  Output
-//     is enabled conditionally, based on the requested bit of the dynamic
-//     parameter STDIO_COND_PRINTF_MASK.
+//     is enabled conditionally, based on the requested bit of the argument
+//     to --stdio-cond-printf-mask.
 //
 //     This module provides internal buffering.  If you share a single
 //     STDIO node and instantiate a mkStdIO_CondPrintf for each of a set
