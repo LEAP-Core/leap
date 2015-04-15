@@ -95,10 +95,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
-
-
-
 [BlueNoC PCIe Bridge/Requires]
 pcie_bluenoc_device=Virtex-7 PCIE Device v1.10 (BlueNoC)
 pcie_bluenoc_ifc=BlueNoC PCIe Bridge Interfaces
@@ -154,7 +150,7 @@ File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
 
 [Differential Crystal Clocks Device from Wires/Params]
-CRYSTAL_CLOCK_FREQ=156
+CRYSTAL_CLOCK_FREQ=200
 RESET_ACTIVE_HIGH=1
 
 [Differential Crystal Clocks Device from Wires]
@@ -185,8 +181,6 @@ ddr_sdram_xilinx_driver=VC707 DDR3 SDRAM (v2.3)
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-vc707-v2.3/ddr3-sdram-device.awb
 Packagehint=leap-platforms
 
-[PCIe Board with DDR/Params]
-DRAM_CLOCK_MECHANISM="ExternalDifferential"
 
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm

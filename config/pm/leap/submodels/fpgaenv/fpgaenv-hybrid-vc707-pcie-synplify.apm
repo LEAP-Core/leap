@@ -162,7 +162,7 @@ File=modules/bluespec/common/fpgaenv/physical-platform/utils/physical-defs.awb
 Packagehint=leap-platforms
 
 [Differential Crystal Clocks Device from Wires/Params]
-CRYSTAL_CLOCK_FREQ=156
+CRYSTAL_CLOCK_FREQ=200
 RESET_ACTIVE_HIGH=1
 
 [Differential Crystal Clocks Device from Wires]
@@ -185,5 +185,3 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-vc707-v2.3/ddr3-sdram-device.awb
 Packagehint=leap-platforms
 
-[PCIe Board with DDR/Params]
-DRAM_CLOCK_MECHANISM="ExternalDifferential"

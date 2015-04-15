@@ -1,6 +1,9 @@
 import sys
 import copy
 
+import wrapper_gen_tool
+from wrapper_gen_tool.name_mangling import *
+
 class Prim():
     def __init__(self, name):
         # need some statement for compilation
@@ -33,7 +36,7 @@ class Prim_Reset(Prim):
     def __init__(self, name, port, clock):
         Prim.__init__(self, name)
         self.port = port
-        self.clock = clock
+        self.clock = clockMangle(clock)
 
     def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix=''):
         #interfaces don't know their name. this must be propagated.
@@ -48,8 +51,8 @@ class Prim_Inout(Prim):
         Prim.__init__(self, name)
         self.type = type
         self.port = port
-        self.clock = clock
-        self.reset = reset
+        self.clock = clockMangle(clock)
+        self.reset = resetMangle(reset)
 
     def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix=''):
         #interfaces don't know their name. this must be propagated.

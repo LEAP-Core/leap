@@ -14,6 +14,7 @@ from wrapper_gen_tool.method import *
 from wrapper_gen_tool.prim import *
 from wrapper_gen_tool.struct import *
 from wrapper_gen_tool.vector import *
+from wrapper_gen_tool.name_mangling import *
  
 # we only get physical platform definitions in physical builds
 try:
@@ -60,7 +61,7 @@ def generateBAImport(module, importHandle):
         # relationships.  This is a hardcoded hack to get around this 
         # issue.
         if(module.getAttribute('PLATFORM_MODULE') is None):
-            ifcEnv['DEFAULT_CLOCK'] = 'default_clock'
+            ifcEnv['DEFAULT_CLOCK'] = clockMangle('default_clock')
         else:
             ifcEnv['DEFAULT_CLOCK'] = 'device_physicalDrivers_clocksDriver_clock'
         bsvIfc.generateImportInterfaceTop(importHandle, ifcEnv)
@@ -84,8 +85,10 @@ def generateBAImport(module, importHandle):
 
     if('BSV_IFC' in module.objectCache):
         if(module.getAttribute('PLATFORM_MODULE') is None):
-             importHandle.write('default_clock default_clock(CLK);\n')
-             importHandle.write('default_reset default_reset(RST_N) clocked_by(default_clock);\n')
+             clk = clockMangle('default_clock')
+             rst = resetMangle('default_reset')
+             importHandle.write('default_clock ' + clk + '(CLK);\n')
+             importHandle.write('default_reset ' + rst + '(RST_N) clocked_by(' + clk + ');\n')
         bsvIfc.generateImport(importHandle, ifcEnv)
     else:
         for channel in module.channels:
@@ -814,5 +817,3 @@ class WrapperGen():
         log_bsv.close()
 
       wrapper_bsv.close()
-
-
