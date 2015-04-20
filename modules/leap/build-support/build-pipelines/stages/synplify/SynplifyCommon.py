@@ -228,7 +228,7 @@ def buildSynplifyEDF(moduleList, module, globalVerilogs, globalVHDs, resourceCol
     # establish an include path for synplify.  This is necessary for true text inclusion in verilog,
     # as raw text files don't always compile standalone. Ugly yes, but it is verilog....
     newPrjFile.write('set_option -include_path {')
-    newPrjFile.write(";".join(["../" + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()] + [moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()] + [moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath + '/.bsv/' for moduleDir in moduleList.synthBoundaries()]))
+    newPrjFile.write(";".join(["../" + moduleList.env['DEFS']['ROOT_DIR_HW_INC']] + ["../" + moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()] + [moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath for moduleDir in moduleList.synthBoundaries()] + [moduleList.env['DEFS']['ROOT_DIR_HW'] + '/' + moduleDir.buildPath + '/.bsv/' for moduleDir in moduleList.synthBoundaries()]))
     newPrjFile.write('}\n')
 
     # once we get synth boundaries up, this will be needed only for top level
