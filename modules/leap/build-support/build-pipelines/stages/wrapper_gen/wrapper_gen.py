@@ -357,7 +357,7 @@ def _emitSynthModule(liModule,
     ## interface object or a wrapped instance with buffers added to manage
     ## inter-module I/O latency.
     ##
-    def maybeWrapConnection(ch_src, ch_idx, ch_suffix, ch_dir, root_name):
+    def maybeWrapConnection(ch_name, ch_src, ch_idx, ch_suffix, ch_dir, root_name):
         # Name of the incoming/outgoing connection interface object
         connection = 'connections.' + ch_src + '[' + str(ch_idx) + ']'
         if (ch_suffix != ''):
@@ -372,7 +372,12 @@ def _emitSynthModule(liModule,
             n_buf = areaConstraints.numLIChannelBufs(areaConstraints.constraints[root_name],
                                                      platform_ag)
         elif (areaConstraints is not None):
-            n_buf = physical_platform_utils.numPlatformLIChannelBufs(areaConstraints.constraints[root_name])
+            n_buf = physical_platform_utils.numPlatformLIChannelBufs(areaConstraints = areaConstraints.constraints[root_name],
+                                                                     rootModuleName = root_name,
+                                                                     channelName = ch_name)
+        else:
+            n_buf = physical_platform_utils.numPlatformLIChannelBufs(rootModuleName = root_name,
+                                                                     channelName = ch_name)
 
         if (n_buf > 0):
             tmpName = 'buf_' + ch_src + '_' + ch_suffix + '_' + str(ch_idx)
@@ -399,7 +404,8 @@ def _emitSynthModule(liModule,
             ch_dir = 'Out'
 
         # Connection to pass to the platform.
-        connection = maybeWrapConnection(ch_src,
+        connection = maybeWrapConnection(channel.name,
+                                         ch_src,
                                          channel.module_idx,
                                          '',
                                          ch_dir,
@@ -414,13 +420,15 @@ def _emitSynthModule(liModule,
                           ', moduleName: "' + channel.module_name + '"});\n')   
 
     for chain in liModule.chains:
-        chain_in = maybeWrapConnection('chains',
+        chain_in = maybeWrapConnection(chain.name,
+                                       'chains',
                                        chain.module_idx,
                                        'incoming',
                                        'In',
                                        chain.chain_root_in)
 
-        chain_out = maybeWrapConnection('chains',
+        chain_out = maybeWrapConnection(chain.name,
+                                        'chains',
                                         chain.module_idx,
                                         'outgoing',
                                         'Out',
