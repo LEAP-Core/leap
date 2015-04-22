@@ -72,6 +72,61 @@ typedef Bit#(n) NumTypeParam#(numeric type n);
 
 // ========================================================================
 //
+// A generic typeclass for "promoting" an Empty interface to a specific
+// interface.  This may be useful when code picks from among multiple
+// possible instances based on some condition during elaboration.  Some
+// flows may be dynamically impossible but statically result in type
+// clashes.
+//
+// This code transfers Empty interfaces to NULL (?) instances of a specific
+// type.
+//
+// ========================================================================
+
+typeclass BuryEmptyIfc#(type t_IN, type t_OUT)
+    dependencies (t_IN determines t_OUT); 
+
+    // Operate on an existing object.
+    module buryEmptyIfc#(t_IN obj) (t_OUT);
+
+    // Monadic version.
+    module [m] buryEmptyIfcM#(function m#(t_IN) f) (t_OUT)
+        provisos (IsModule#(m, _m));
+endtypeclass
+
+//
+// The generic version requires no transformation.  Just return the object.
+//
+instance BuryEmptyIfc#(t_OUT, t_OUT);
+    module buryEmptyIfc#(t_OUT obj) (t_OUT);
+        return obj;
+    endmodule
+
+    module [m] buryEmptyIfcM#(function m#(t_OUT) f) (t_OUT)
+        provisos (IsModule#(m, _m));
+        let _obj <- f();
+        return _obj;
+    endmodule
+endinstance
+
+//
+// The Empty version always returns "?".
+//
+instance BuryEmptyIfc#(Empty, t_OUT);
+    module buryEmptyIfc#(t_IN obj) (t_OUT);
+        return ?;
+    endmodule
+
+    module [m] buryEmptyIfcM#(function m#(Empty) f) (t_OUT)
+        provisos (IsModule#(m, _m));
+        // Don't even bother calling the constructor.
+        return ?;
+    endmodule
+endinstance
+
+
+// ========================================================================
+//
 // It would be nice if Bluespec provided numeric type comparison functions.
 // These may be needed in complex operations on polymorphic types, where
 // the algorithm may depend on the size of the type.
