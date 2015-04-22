@@ -121,7 +121,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
 [Standard Platform Service (No Memory Service)]
 File=config/pm/leap/submodels/platform-services/standard-platform-null-mem.apm
 Packagehint=leap
@@ -151,3 +150,10 @@ Packagehint=leap-platforms
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module

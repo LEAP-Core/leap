@@ -95,10 +95,6 @@ Packagehint=leap
 File=config/pm/leap/submodels/common/soft-services.apm
 Packagehint=leap
 
-
-
-
-
 [BlueNoC PCIe Bridge/Requires]
 pcie_bluenoc_device=Virtex-7 PCIE Device v1.10 (BlueNoC)
 pcie_bluenoc_ifc=BlueNoC PCIe Bridge Interfaces
@@ -183,3 +179,10 @@ Packagehint=leap-platforms
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module

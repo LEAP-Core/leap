@@ -23,7 +23,7 @@ typedef enum
     STATE_idle,
     STATE_queueing
 }
-STATE
+RRR_DEMARSHALLER_STATE
     deriving(Bits, Eq);
 
 // interface
@@ -40,6 +40,15 @@ interface RRR_DEMARSHALLER#(parameter type in_T, parameter type out_T);
 
     // read the whole completed value
     method out_T peek();
+
+
+    // Below method are for debugging. 
+
+    // lists current state of demarshaller 
+    method RRR_DEMARSHALLER_STATE getState();
+
+    // Lists wheter marshaller has data.
+    method Bool notEmpty();
 
 endinterface
 
@@ -59,7 +68,7 @@ module mkRRRDemarshaller
     Reg#(UMF_MSG_LENGTH) chunksRemaining <- mkReg(0);
     
     // demarshaller state
-    Reg#(STATE) state <- mkReg(STATE_idle);
+    Reg#(RRR_DEMARSHALLER_STATE) state <- mkReg(STATE_idle);
     
     // =============== methods ===============
     
@@ -101,5 +110,11 @@ module mkRRRDemarshaller
 
         return chunks;
     endmethod
+
+    // Just return state.
+    method getState = state;
+
+    // returns wether we have a complete data in the demarshaller.
+    method notEmpty = (state == STATE_queueing && chunksRemaining == 0);
 
 endmodule

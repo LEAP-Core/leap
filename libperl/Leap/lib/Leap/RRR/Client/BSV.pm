@@ -197,6 +197,11 @@ sub print_stub
     $self->_print_state($file, $maxinsize, $maxoutsize);
     
     # per-method state and definitions
+    my $totalMethods = scalar(@{ $self->{methodlist} });
+    # print the total number of methods, for debugging. 
+    print $file $indent . "Integer total_methods = $totalMethods;\n";    
+    print $file $indent . "Integer method_chunks[$totalMethods];\n";    
+
     my $methodID = 0;
     foreach my $method (@{ $self->{methodlist} })
     {
@@ -301,6 +306,26 @@ sub _print_response_rules
     {
         print $file "        UMF_PACKET packet <- client.responsePorts[`SERVICE_ID].read();\n";
     }
+
+    # Add some sanity checks, in case we have breakage.        
+    print $file "        if(packet.UMF_PACKET_header.serviceID != `SERVICE_ID)\n";
+    print $file "        begin\n";
+    print $file "            \$display(\"Misrouted Packet at service %d: %h\", `SERVICE_ID, packet);\n\n";
+    print $file "            \$finish;\n";
+    print $file "        end\n";
+
+    print $file "        if(packet.UMF_PACKET_header.methodID >= fromInteger(total_methods))\n";
+    print $file "        begin\n";
+    print $file "            \$display(\"Illegal Method ID %d at service %d: %h\", packet.UMF_PACKET_header.methodID, `SERVICE_ID, packet);\n\n";
+    print $file "            \$finish;\n";
+    print $file "        end\n";
+
+    print $file "        if(packet.UMF_PACKET_header.numChunks != fromInteger(method_chunks[packet.UMF_PACKET_header.methodID]))\n";
+    print $file "        begin\n";
+    print $file "            \$display(\"Unexpected packet size Method ID %d at service %d. Size was %d, expected %d: %h\", packet.UMF_PACKET_header.methodID, `SERVICE_ID, packet.UMF_PACKET_header.numChunks, method_chunks[packet.UMF_PACKET_header.methodID], packet);\n\n";
+    print $file "            \$finish;\n";
+    print $file "        end\n";
+
     print $file "        mid <= packet.UMF_PACKET_header.methodID;\n";
     print $file "        dem.start(packet.UMF_PACKET_header.numChunks);\n";
     print $file "    endrule\n";

@@ -153,3 +153,10 @@ Packagehint=leap
 
 [DDR SDRAM Emulator in BRAM/Params]
 DRAM_ADDR_BITS=16
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module

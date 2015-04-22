@@ -187,3 +187,10 @@ Packagehint=leap-platforms
 
 [PCIe Board with DDR/Params]
 DRAM_CLOCK_MECHANISM="ExternalDifferential"
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module

@@ -34,7 +34,7 @@ use Leap::RRR::Method::Base;
 # inherit from Method
 our @ISA = qw(Leap::RRR::Method::Base);
 
-my $debug = 0;
+my $debug = 1;
  
 ##
 ## constructor
@@ -576,6 +576,11 @@ sub print_server_state
         print $file $indent . "    ($outsize / valueOf(UMF_CHUNK_BITS)) :\n";
         print $file $indent . "    ($outsize / valueOf(UMF_CHUNK_BITS)) + 1;\n";
     }
+
+    if ($self->inargs()->num() != 0) {
+        print $file $indent . "method_chunks[$id] = valueof(numChunksDemarsh_" . $self->{name} . ");\n";           
+    }
+
 }
 
 ##
@@ -628,6 +633,11 @@ sub print_client_state
                 " = ($insize % valueOf(UMF_CHUNK_BITS)) == 0 ?\n";
     print $file $indent . "    ($insize / valueOf(UMF_CHUNK_BITS)) :\n";
     print $file $indent . "    ($insize / valueOf(UMF_CHUNK_BITS)) + 1;\n";
+
+    if ($self->outargs()->num() != 0) {
+        print $file $indent . "method_chunks[$id] = valueof(numChunksDemarsh_" . $self->{name} . ");\n";           
+    }
+
 }
 
 1;

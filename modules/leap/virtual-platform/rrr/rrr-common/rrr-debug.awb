@@ -1,0 +1,11 @@
+%name RRR Debug Module
+%desc RRR Debug Module
+
+%provides rrr_debug
+
+%notes README
+
+%sources -t BSV -v PUBLIC  rrr-debug.bsv
+
+
+

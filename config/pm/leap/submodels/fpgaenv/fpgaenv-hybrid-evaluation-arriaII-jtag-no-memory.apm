@@ -149,9 +149,16 @@ Packagehint=leap
 avalon=Avalon Bus Intefaces
 
 [Avalon Bus Intefaces]
-File=modules/leap-altera/bluespec/Avalon/src/avalon.awb
+File=modules/leap-platforms-altera/bluespec/Avalon/src/avalon.awb
 Packagehint=leap-altera
 
 [FPGA Build Pipeline Altera (Synplify)]
 File=config/pm/leap/submodels/pipelines/build-pipeline-altera-synplify.apm
 Packagehint=leap
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module

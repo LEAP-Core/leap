@@ -36,6 +36,8 @@ use Leap::RRR::Method::BSV;
 # inherit from Server
 our @ISA = qw(Leap::RRR::Server::Base);
 
+my $debug = 1;
+
 ##
 ## constructor
 ##
@@ -167,10 +169,15 @@ sub print_stub
         $method->print_send_response_declaration($file, $indent, $self->{ifc});
     }
     
+    # expose a debug interface.
+    print $file "`ifndef ENABLE_RRR_DEBUG_INTERFACE_Z\n";
+    print $file "    interface RRR_SERVER_DEBUG debug;\n";
+    print $file "`endif\n";
+    print $file "\n";
+
     # endinterface
     print $file "endinterface\n";
-    print $file "\n";
-    
+
     # module mk...
     if ($self->{ifc} eq "connection")
     {
@@ -197,6 +204,11 @@ sub print_stub
     # global state
     $self->_print_state($file, $maxinsize, $maxoutsize);
     
+    my $totalMethods = scalar(@{ $self->{methodlist} });
+    # print the total number of methods, for debugging. 
+    print $file $indent . "Integer total_methods = $totalMethods;\n";    
+    print $file $indent . "Integer method_chunks[$totalMethods];\n";    
+
     # per-method state and definitions
     my $methodID = 0;
     foreach my $method (@{ $self->{methodlist} })
@@ -204,8 +216,9 @@ sub print_stub
         $method->print_server_state($file, $indent, $methodID);
         $methodID = $methodID + 1;
     }
-    print $file "\n";    
 
+    print $file "\n";    
+                            
     # global (i.e., not RRR-method-specific) rules
     $self->_print_request_rules($file);
     if ($maxoutsize != 0)
@@ -220,6 +233,41 @@ sub print_stub
         $method->print_send_response_definition($file, $indent, $self->{ifc});
     }
     
+    # debug interface
+    print $file "`ifndef ENABLE_RRR_DEBUG_INTERFACE_Z\n";
+    print $file "    interface RRR_SERVER_DEBUG debug;\n";
+    print $file "        method RRR_DEMARSHALLER_STATE demarshallerState();\n";
+    print $file "            return dem.getState();\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method Bool notEmpty();\n";
+    print $file "            return dem.notEmpty();\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method UMF_METHOD_ID methodID();\n";
+    print $file "            return mid;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method Bool misroutedPacket();\n";
+    print $file "            return misroutedPacketReg;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method Bool illegalMethod();\n";
+    print $file "            return illegalMethodReg;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method Bool incorrectLength();\n";
+    print $file "            return incorrectLengthReg;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method String serviceName();\n";
+    print $file "            return \"" . $self->{name}."\";\n";
+    print $file "        endmethod\n";
+    print $file "    endinterface\n";
+    print $file "\n";
+    print $file "`endif\n";
+    print $file "\n";
+
     # endmodule
     print $file "endmodule\n";
     print $file "\n";
@@ -256,6 +304,11 @@ sub _print_state
     }
     print $file "\n";
     print $file "    Reg#(UMF_METHOD_ID) mid <- mkReg(0);\n";
+
+    print $file "    Reg#(Bool) misroutedPacketReg  <- mkReg(False);\n";
+    print $file "    Reg#(Bool) illegalMethodReg    <- mkReg(False);\n";
+    print $file "    Reg#(Bool) incorrectLengthReg  <- mkReg(False);\n";
+
 }
 
 #
@@ -276,6 +329,30 @@ sub _print_request_rules
     {
         print $file "        UMF_PACKET packet <- server.requestPorts[`SERVICE_ID].read();\n";
     }
+
+    # Add some sanity checks, in case we have breakage.        
+    print $file "        if(packet.UMF_PACKET_header.serviceID != `SERVICE_ID)\n";
+    print $file "        begin\n";
+    print $file "            \$display(\"Misrouted Packet at service %d: %h\", `SERVICE_ID, packet);\n\n";
+    print $file "            misroutedPacketReg <= True;\n";
+    print $file "            \$finish;\n";
+    print $file "        end\n";
+
+    print $file "        if(packet.UMF_PACKET_header.methodID >= fromInteger(total_methods))\n";
+    print $file "        begin\n";
+    print $file "            \$display(\"Illegal Method ID %d at service %d: %h\", packet.UMF_PACKET_header.methodID, `SERVICE_ID, packet);\n\n";
+    print $file "            illegalMethodReg <= True;\n";
+    print $file "            \$finish;\n";
+    print $file "        end\n";
+
+    print $file "        if(packet.UMF_PACKET_header.numChunks != fromInteger(method_chunks[packet.UMF_PACKET_header.methodID]))\n";
+    print $file "        begin\n";
+    print $file "            \$display(\"Unexpected packet size Method ID %d at service %d. Size was %d, expected %d: %h\", packet.UMF_PACKET_header.methodID, `SERVICE_ID, packet.UMF_PACKET_header.numChunks, method_chunks[packet.UMF_PACKET_header.methodID], packet);\n\n";
+    print $file "            incorrectLengthReg <= True;\n";
+    print $file "            \$finish;\n";
+    print $file "        end\n";
+
+
     print $file "        mid <= packet.UMF_PACKET_header.methodID;\n";
     print $file "        dem.start(packet.UMF_PACKET_header.numChunks);\n";
     print $file "    endrule\n";

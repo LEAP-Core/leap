@@ -3,12 +3,15 @@
 
 %provides rrr_common
 
+%requires rrr_debug
+
 %notes README
 
 %sources -t BSV -v PUBLIC  marshaller.bsv
 %sources -t BSV -v PUBLIC  demarshaller.bsv
 %sources -t BSV -v PUBLIC  arbiters.bsv
+%sources -t BSV -v PUBLIC  rrr-debug-definitions.bsv
 %sources -t BSH -v PUBLIC  basic-rrr-common.bsh
 
-
+%param ENABLE_RRR_DEBUG_INTERFACE  1   "Enables RRR Debug Interface."
 

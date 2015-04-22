@@ -187,3 +187,10 @@ Packagehint=leap-platforms
 
 [BlueNoC PCIe Bridge/Params]
 BLUENOC_INSERT_IBUF=1
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module
