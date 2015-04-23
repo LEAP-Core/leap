@@ -63,6 +63,8 @@ import List::*;
 
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_strings.bsh"
+`include "awb/provides/common_services.bsh"
 `include "awb/provides/debug_scan_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
@@ -93,6 +95,37 @@ module [CONNECTED_MODULE] mkLocalMem
     checkDDRMemSizesValid();
 
     DEBUG_FILE debugLog <- mkDebugFile("memory_local_mem_ddr_wide.out");
+
+    // Add a mechanism for reporting each memory request.
+    STDIO#(Bit#(64)) stdioDebug <-
+        (`LOCAL_MEM_DEBUG_ENABLE != 0 ? mkStdIO() : mkStdIO_Disabled());
+
+    STDIO_COND_PRINTF#(Bit#(64)) dbgReadReq <- mkStdIO_CondPrintf(31, stdioDebug);
+    STDIO_COND_PRINTF#(Bit#(64)) dbgReadRsp <- mkStdIO_CondPrintf(31, stdioDebug);
+    STDIO_COND_PRINTF#(Bit#(64)) dbgWrite <- mkStdIO_CondPrintf(31, stdioDebug);
+
+    // Strings for debug messages
+    let msg_write_word <- getGlobalStringUID("local-mem WRITE word [0x" +
+                                             localMemFmtAddr() + "]: " +
+                                             localMemFmtWord() + "\n");
+    let msg_write_line <- getGlobalStringUID("local-mem WRITE line [0x" +
+                                             localMemFmtAddr() + "]: " +
+                                             localMemFmtLine() + "\n");
+    let msg_write_word_masked <- getGlobalStringUID("local-mem WRITE word [0x" +
+                                                    localMemFmtAddr() + "]: " +
+                                                    localMemFmtWord() + "  [mask 0x%llx]\n");
+    let msg_write_line_masked <- getGlobalStringUID("local-mem WRITE line [0x" +
+                                                    localMemFmtAddr() + "]: " +
+                                                    localMemFmtLine() + "  [mask 0x%llx]\n");
+    let msg_read_req_word <- getGlobalStringUID("local-mem READ REQ word [0x" +
+                                                localMemFmtAddr() + "]\n");
+    let msg_read_req_line <- getGlobalStringUID("local-mem READ REQ line [0x" +
+                                                localMemFmtAddr() + "]\n");
+    let msg_read_rsp_word <- getGlobalStringUID("local-mem READ RSP word " +
+                                                localMemFmtWord() + "\n");
+    let msg_read_rsp_line <- getGlobalStringUID("local-mem READ RSP line " +
+                                                localMemFmtLine() + "\n");
+
 
     // Merge read and write requests into a single FIFO to preserve order.
     // The DDR controller does this anyway, so we lose no performance.
@@ -421,21 +454,33 @@ module [CONNECTED_MODULE] mkLocalMem
 
     method Action readWordReq(LOCAL_MEM_ADDR addr);
         mergeReqQ.ports[0].enq(tagged MEM_REQ_WORD addr);
+
+        dbgReadReq.printf(msg_read_req_word, localMemAddrToStdioList(addr));
     endmethod
 
     method ActionValue#(LOCAL_MEM_WORD) readWordRsp();
+        let v = wordResponseQ.first();
         wordResponseQ.deq();
-        return wordResponseQ.first();
+
+        dbgReadRsp.printf(msg_read_rsp_word, localMemWordToStdioList(v));
+
+        return v;
     endmethod
 
 
     method Action readLineReq(LOCAL_MEM_ADDR addr);
         mergeReqQ.ports[0].enq(tagged MEM_REQ_LINE addr);
+
+        dbgReadReq.printf(msg_read_req_line, localMemAddrToStdioList(addr));
     endmethod
 
     method ActionValue#(LOCAL_MEM_LINE) readLineRsp();
+        let v = lineResponseQ.first();
         lineResponseQ.deq();
-        return lineResponseQ.first();
+
+        dbgReadRsp.printf(msg_read_rsp_line, localMemLineToStdioList(v));
+
+        return v;
     endmethod
 
 
@@ -443,6 +488,9 @@ module [CONNECTED_MODULE] mkLocalMem
         // Convert word write to a masked line write
         let w_idx = localMemWordIdx(addr);
     
+        dbgWrite.printf(msg_write_word, List::append(localMemAddrToStdioList(addr),
+                                                     localMemWordToStdioList(data)));
+
         // Replicate the word and let the mask sort it out
         Vector#(LOCAL_MEM_WORDS_PER_LINE, LOCAL_MEM_WORD) line_data = replicate(data);
 
@@ -458,12 +506,21 @@ module [CONNECTED_MODULE] mkLocalMem
         mergeReqQ.ports[1].enq(tagged MEM_REQ_LINE addr);
         // Pass on data and mask indicating write everything
         writeDataQ.enq(tuple2(data, unpack(~0)));
+
+        dbgWrite.printf(msg_write_line, List::append(localMemAddrToStdioList(addr),
+                                                     localMemLineToStdioList(data)));
     endmethod
 
     method Action writeWordMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data, LOCAL_MEM_WORD_MASK mask);
         // Convert word write to a masked line write
         let w_idx = localMemWordIdx(addr);
     
+        List#(Bit#(64)) msg;
+        msg = List::append(localMemAddrToStdioList(addr),
+                           List::append(localMemWordToStdioList(data),
+                                        list(zeroExtend(pack(mask)))));
+        dbgWrite.printf(msg_write_word_masked, msg);
+
         // Replicate the word and let the mask sort it out
         Vector#(LOCAL_MEM_WORDS_PER_LINE, LOCAL_MEM_WORD) line_data = replicate(data);
 
@@ -478,6 +535,12 @@ module [CONNECTED_MODULE] mkLocalMem
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
         mergeReqQ.ports[1].enq(tagged MEM_REQ_LINE addr);
         writeDataQ.enq(tuple2(data, mask));
+
+        List#(Bit#(64)) msg;
+        msg = List::append(localMemAddrToStdioList(addr),
+                           List::append(localMemLineToStdioList(data),
+                                        list(zeroExtend(pack(mask)))));
+        dbgWrite.printf(msg_write_line_masked, msg);
     endmethod
 
 endmodule

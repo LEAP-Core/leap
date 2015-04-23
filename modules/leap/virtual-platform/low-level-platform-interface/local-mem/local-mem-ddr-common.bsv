@@ -173,3 +173,86 @@ module [CONNECTED_MODULE] mkLocalMemDDRBankConnection#(Integer bankIdx)
         writeDataQ.send(tuple2(data, mask));
     endmethod
 endmodule
+
+
+// ========================================================================
+//
+//   Functions to help with formatting debugging strings.
+//
+// ========================================================================
+
+//
+// Compute the stdio string format for a word.
+//
+function String localMemFmtWord();
+    String wordFmt = "%016llx";
+
+    let word_sz = valueOf(LOCAL_MEM_WORD_SZ);
+    if (word_sz == 32)
+        wordFmt = "%08lx";
+    else if (word_sz == 16)
+        wordFmt = "%04x";
+    else if (word_sz == 8)
+        wordFmt = "%02x";
+
+    return wordFmt;
+endfunction
+
+//
+// Compute the stdio string format for a line.
+//
+function String localMemFmtLine();
+    let word_fmt = localMemFmtWord();
+
+    String line_fmt = "";
+    for (Integer i = 0; i < valueOf(LOCAL_MEM_WORDS_PER_LINE); i = i + 1)
+    begin
+        if (i != 0)
+        begin
+            line_fmt = line_fmt + " ";
+        end
+
+        line_fmt = line_fmt + word_fmt;
+    end
+
+    return line_fmt;
+endfunction
+
+//
+// Format an address
+//
+function String localMemFmtAddr();
+    return "%016llx";
+endfunction
+
+
+//
+// Turn an address into a list for printing.
+//
+function List#(Bit#(64)) localMemAddrToStdioList(LOCAL_MEM_ADDR a);
+    return list(zeroExtend(a));
+endfunction
+
+
+//
+// Turn a word into a list for printing.
+//
+function List#(Bit#(64)) localMemWordToStdioList(LOCAL_MEM_WORD v);
+    return list(zeroExtend(v));
+endfunction
+
+//
+// Turn a line into a list of words for printing.
+//
+function List#(Bit#(64)) localMemLineToStdioList(LOCAL_MEM_LINE v);
+    // Convert to a vector of 64 bit objects since our debug stdio node takes
+    // 64 bit entries.
+    Vector#(LOCAL_MEM_WORDS_PER_LINE, LOCAL_MEM_WORD) vw = unpack(pack(v));
+    Vector#(LOCAL_MEM_WORDS_PER_LINE, Bit#(64)) v64 = map(zeroExtend, vw);
+
+    // Convert to a list
+    let lst = toList(v64);
+
+    // Convert to stdio order (low bits at the end of the list)
+    return List::reverse(lst);
+endfunction

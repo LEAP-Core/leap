@@ -11,6 +11,7 @@
 %scons %library vector.py
 %scons %library struct.py
 %scons %library prim.py
+%scons %library name_mangling.py
 
 %param USE_BUILD_TREE  1             "Should we use a flat or hierarchical representation of the program latency-insensitive module graph"
 %param --global MODULE_UID_OFFSET  0 "Place to start counting module UIDs"

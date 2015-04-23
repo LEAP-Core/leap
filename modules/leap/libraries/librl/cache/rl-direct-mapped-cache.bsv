@@ -111,6 +111,7 @@ RL_DM_CACHE_PREFETCH_MODE
 //
 interface RL_DM_CACHE#(type t_CACHE_ADDR,
                        type t_CACHE_WORD,
+                       type t_CACHE_MASK,
                        type t_CACHE_READ_META);
 
     // Read a word.  Read from backing store if not already cached.
@@ -127,6 +128,8 @@ interface RL_DM_CACHE#(type t_CACHE_ADDR,
     // Write a word to a cache line.  Word index 0 corresponds to the
     // low bits of a cache line.
     method Action write(t_CACHE_ADDR addr, t_CACHE_WORD val);
+    method Action writeMasked(t_CACHE_ADDR addr, t_CACHE_WORD val,
+                              t_CACHE_MASK byteWriteMask);
     
     // Invalidate & flush requests.  Both write dirty lines back.  Invalidate drops
     // the line from the cache.  Flush keeps the line in the cache.
@@ -229,14 +232,14 @@ typedef enum
 }
 RL_DM_CACHE_REQ_TYPE
     deriving (Eq, Bits);
-       
+
+
 //
 // Index of the write data heap index.  To save space, write data is passed
 // through the cache pipelines as a pointer.  The heap size limits the number
-// of writes in flight.  Writes never wait for a fill, so the heap doesn't
-// have to be especially large.
+// of writes in flight.
 //
-typedef Bit#(2) RL_DM_WRITE_DATA_HEAP_IDX;
+typedef 4 RL_DM_WRITE_DATA_HEAP_IDX_SZ;
 
 
 //
@@ -252,7 +255,7 @@ typedef struct
    RL_CACHE_GLOBAL_READ_META globalReadMeta;
  
    // Write data index
-   RL_DM_WRITE_DATA_HEAP_IDX writeDataIdx;
+   t_WRITE_HEAP_IDX writeDataIdx;
  
    // Flush / inval info
    Bool fullHierarchy;
@@ -261,8 +264,11 @@ typedef struct
    t_CACHE_TAG tag;
    t_CACHE_IDX idx;
 }
-RL_DM_CACHE_REQ#(type t_CACHE_ADDR, type t_CACHE_READ_META,
-                 type t_CACHE_TAG, type t_CACHE_IDX)
+RL_DM_CACHE_REQ#(type t_CACHE_ADDR, 
+                 type t_CACHE_READ_META,
+                 type t_WRITE_HEAP_IDX,
+                 type t_CACHE_TAG, 
+                 type t_CACHE_IDX)
     deriving (Eq, Bits);
 
 
@@ -288,9 +294,40 @@ RL_DM_CACHE_ENTRY#(type t_CACHE_WORD, type t_CACHE_TAG)
 typedef struct
 {
     Bool isLocalPrefetch;
+    Bool isWriteMiss;
     t_CACHE_READ_META clientReadMeta;
 }
 RL_DM_CACHE_READ_META#(type t_CACHE_READ_META)
+    deriving (Eq, Bits);
+
+
+//
+// Basic cache request.  A tagged union would be a good idea here but the
+// compiler gets funny about Bits#() of a tagged union and seems to force
+// ugly provisos up the call chain.
+//
+typedef struct
+{
+   RL_DM_CACHE_ACTION act;
+   t_CACHE_ADDR addr;
+   RL_DM_CACHE_READ_META#(t_CACHE_READ_META) readMeta;
+   RL_CACHE_GLOBAL_READ_META globalReadMeta;
+ 
+   // Write data index
+   t_WRITE_HEAP_IDX writeDataIdx;
+ 
+   // Flush / inval info
+   Bool fullHierarchy;
+
+   // Hashed address and tag, passed through the pipeline instead of recomputed.
+   t_CACHE_TAG tag;
+   t_CACHE_IDX idx;
+}
+RL_DM_CACHE_WRITE_REQ#(type t_CACHE_ADDR, 
+                       type t_CACHE_READ_META,
+                       type t_WRITE_HEAP_IDX,
+                       type t_CACHE_TAG, 
+                       type t_CACHE_IDX)
     deriving (Eq, Bits);
 
 
@@ -309,12 +346,14 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                 CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_READ_META) prefetcher,
                                 NumTypeParam#(n_ENTRIES) dummy,
                                 Bool hashAddresses,
+                                Bool enMaskedWrite, // enable masked write support
                                 DEBUG_FILE debugLog)
     // interface:
-    (RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_READ_META))
+    (RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_READ_META))
     provisos (IsModule#(m, m__),
               Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
               Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
+              Bits#(t_CACHE_MASK, t_CACHE_MASK_SZ),
               Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
 
               // Entry index.  Round n_ENTRIES request up to a power of 2.
@@ -325,25 +364,35 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
               Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, t_CACHE_IDX_SZ)), t_CACHE_TAG),
               Alias#(Maybe#(RL_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG)), t_CACHE_ENTRY),
 
-              Alias#(RL_DM_CACHE_REQ#(t_CACHE_ADDR, t_CACHE_READ_META, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
-              Alias#(RL_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_READ_META), t_CACHE_LOAD_RESP),
+              // Write Heap Index
+              NumAlias#(TMin#(RL_DM_WRITE_DATA_HEAP_IDX_SZ, t_CACHE_READ_META_SZ), t_WRITE_HEAP_IDX_SZ),
+              Alias#(Bit#(t_WRITE_HEAP_IDX_SZ), t_WRITE_HEAP_IDX),
        
+              Alias#(RL_DM_CACHE_WRITE_REQ#(t_CACHE_ADDR, t_CACHE_READ_META, t_WRITE_HEAP_IDX, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
+              Alias#(RL_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_READ_META), t_CACHE_LOAD_RESP),
+              
               // Required by the compiler:
               Bits#(t_CACHE_LOAD_RESP, t_CACHE_LOAD_RESP_SZ),
               Bits#(t_CACHE_TAG, t_CACHE_TAG_SZ));
-    
+   
+    if (valueOf(t_CACHE_READ_META_SZ) < valueOf(RL_DM_WRITE_DATA_HEAP_IDX_SZ))
+    begin
+        error("Read meta-data size is too small to support requested write heap size");
+    end
+
+    // Only the write back mode is supported
     Reg#(RL_DM_CACHE_MODE) cacheMode <- mkReg(RL_DM_MODE_WRITE_BACK);
     Reg#(RL_DM_CACHE_PREFETCH_MODE) prefetchMode <- mkReg(RL_DM_PREFETCH_DISABLE);
     
     // Cache data and tag
     MEMORY_IFC#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
     
-    if (`RL_DM_CACHE_BRAM_TYPE == 0)
+    if (unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_FLAT_BRAM)
     begin
         // Cache implemented as a single BRAM
         cache <- mkBRAMInitialized(tagged Invalid);
     end
-    else if(`RL_DM_CACHE_BRAM_TYPE == 1)
+    else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_BANKED_BRAM)
     begin
         // Cache implemented as 4 BRAM banks with I/O buffering to allow
         // more time to reach memory.
@@ -351,7 +400,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
                                  mkBRAMInitializedBuffered(tagged Invalid));
     end
-    else
+    else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_CLOCK_DIVIDED_BRAM)
     begin
         // Cache implemented as 8 half-speed BRAM banks.  We assume that
         // the cache is quite large in order to justify half-speed BRAM.
@@ -365,6 +414,10 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         let cache_slow = mkSlowMemoryM(mkBRAMInitializedClockDivider(tagged Invalid), True);
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, cache_slow);
     end
+    else 
+    begin
+        error("rl-direct-mapped-cache: undefined storage type");
+    end
     
     // Track busy entries
     COUNTING_FILTER#(t_CACHE_IDX, 1) entryFilter <- mkCountingFilter(debugLog);
@@ -372,7 +425,17 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
-    MEMORY_HEAP_IMM#(RL_DM_WRITE_DATA_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData <- mkMemoryHeapLUTRAM();
+    MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, Tuple2#(t_CACHE_WORD, t_CACHE_MASK)) reqInfo_writeDataMask = ?;
+    MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData = ?;
+    
+    if (enMaskedWrite)
+    begin
+        reqInfo_writeDataMask <- mkMemoryHeapLUTRAM();
+    end
+    else
+    begin
+        reqInfo_writeData <- mkMemoryHeapLUTRAM();
+    end
 
     // Incoming data.  One method may fire at a time.
     FIFOF#(t_CACHE_REQ) newReqQ <- mkFIFOF();
@@ -402,6 +465,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     PulseWire dirtyEntryFlushW <- mkPulseWire();
     PulseWire readMissW        <- mkPulseWire();
     PulseWire writeHitW        <- mkPulseWire();
+    PulseWire writeMissW       <- mkPulseWire();
     PulseWire forceInvalLineW  <- mkPulseWire();
 
     //
@@ -437,7 +501,29 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     function t_CACHE_TAG cacheTag(t_CACHE_REQ r);
         return hashAddresses ? r.tag : tpl_1(cacheEntryFromAddr(r.addr));
     endfunction
+    
+    //
+    // Apply write mask and return the updated data
+    //
+    function t_CACHE_WORD applyWriteMask(t_CACHE_WORD oldVal, t_CACHE_WORD wData, t_CACHE_MASK mask);
+        t_CACHE_WORD r = wData;
 
+        if (enMaskedWrite)
+        begin
+            Vector#(t_CACHE_MASK_SZ, Bit#(8)) bytes_out = newVector();
+            Vector#(t_CACHE_MASK_SZ, Bit#(8)) bytes_old = unpack(resize(pack(oldVal)));
+            Vector#(t_CACHE_MASK_SZ, Bit#(8)) bytes_new = unpack(resize(pack(wData)));
+            Vector#(t_CACHE_MASK_SZ, Bool) mask_v       = unpack(pack(mask));
+            for (Integer b = 0; b < valueOf(t_CACHE_MASK_SZ); b = b + 1)
+            begin
+                bytes_out[b] = mask_v[b] ? bytes_new[b] : bytes_old[b];
+            end
+
+            r = unpack(resize(pack(bytes_out)));
+        end
+
+        return r;
+    endfunction
 
     // ====================================================================
     //
@@ -500,6 +586,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             r.act         = DM_CACHE_READ;
             r.addr        = pref_req.addr;
             r.readMeta    = RL_DM_CACHE_READ_META { isLocalPrefetch: True,
+                                                    isWriteMiss: False, 
                                                     clientReadMeta: pref_req.readMeta };
             r.globalReadMeta  = defaultValue();
             r.globalReadMeta.isPrefetch = True;
@@ -618,8 +705,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     //
     (* fire_when_enabled *)
     rule shuntNewReq (tpl_1(curReq) == DM_CACHE_NEW_REQ &&
-                      ! isValid(tpl_3(curReq)) &&
-                      (cacheMode != RL_DM_MODE_DISABLED));
+                      ! isValid(tpl_3(curReq)));
         match {.req_type, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
 
@@ -726,7 +812,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         Bool needFill = True;
 
-        if (cacheMode != RL_DM_MODE_DISABLED &&& cur_entry matches tagged Valid .e)
+        if (cur_entry matches tagged Valid .e)
         begin
             if (e.tag == tag) // Hit!
             begin
@@ -779,6 +865,11 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         end
     endrule
 
+    // ====================================================================
+    //
+    // Fill path
+    //
+    // ====================================================================
 
     //
     // fillReq --
@@ -790,9 +881,13 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         debugLog.record($format("    fillReq: addr=0x%x", r.addr));
 
-        if (! r.readMeta.isLocalPrefetch)
+        if (!r.readMeta.isLocalPrefetch && !r.readMeta.isWriteMiss)
         begin
             readMissW.send();
+        end
+        else if (r.readMeta.isWriteMiss)
+        begin
+            writeMissW.send();
         end
 
         sourceData.readReq(r.addr, r.readMeta, r.globalReadMeta);
@@ -811,7 +906,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         debugLog.record($format("    fillResp: FILL addr=0x%x, entry=0x%x, cacheable=%b, val=0x%x", f.addr, idx, f.isCacheable, f.val));
 
-        if (! f.readMeta.isLocalPrefetch)
+        if (!f.readMeta.isLocalPrefetch && !f.readMeta.isWriteMiss)
         begin
             t_CACHE_LOAD_RESP resp;
             resp.val = f.val;
@@ -821,8 +916,19 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
             readRespQ.enq(resp);
         end
         
-        // Save value in cache
-        if (f.isCacheable)
+        if (enMaskedWrite && f.readMeta.isWriteMiss) // do write
+        begin
+            // New data to write
+            t_WRITE_HEAP_IDX w_idx = truncate(pack(f.readMeta.clientReadMeta));
+            match { .w_data, .w_mask } = reqInfo_writeDataMask.sub(w_idx);
+            reqInfo_writeDataMask.free(w_idx);
+            t_CACHE_WORD new_val = applyWriteMask(f.val, w_data, w_mask);
+
+            cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: True,
+                                                              tag: tag,
+                                                              val: new_val });
+        end
+        else if (f.isCacheable) // Save value in cache
         begin
             cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: False,
                                                               tag: tag,
@@ -858,45 +964,81 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         let cur_entry <- cache.readRsp();
 
         // New data to write
-        let w_data = reqInfo_writeData.sub(r.writeDataIdx);
-        reqInfo_writeData.free(r.writeDataIdx);
+        t_CACHE_WORD w_data = ?;
+        t_CACHE_MASK w_mask = ?;
 
-        if (cacheMode != RL_DM_MODE_WRITE_BACK)
+        if (enMaskedWrite)
         begin
-            // Caching writes is disabled.  Write through or around.
-            debugLog.record($format("    doWrite: WRITE THROUGH addr=0x%x, entry=0x%x, val=0x%x", r.addr, idx, w_data));
-            sourceData.write(r.addr, w_data);
+            let w_info = reqInfo_writeDataMask.sub(r.writeDataIdx);
+            w_data = tpl_1(w_info);
+            w_mask = tpl_2(w_info);
         end
-        else if (cur_entry matches tagged Valid .e &&&
-                 e.dirty &&&
-                 e.tag != tag)
+        else
         begin
-            // Dirty data must be flushed
-            let old_addr = cacheAddrFromEntry(e.tag, idx);
-            debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
-
-            sourceData.write(old_addr, e.val);
-            dirtyEntryFlushW.send();
+            w_data = reqInfo_writeData.sub(truncateNP(r.writeDataIdx));
+            Vector#(t_CACHE_MASK_SZ, Bool) all_one_mask = replicate(True);
+            w_mask = unpack(pack(all_one_mask));
         end
 
-        // Now do the write.  The write may be skipped in NO ALLOC mode as long
-        // as the current cache entry isn't for the address being written.
-        if ((cacheMode != RL_DM_MODE_WRITE_NO_ALLOC) ||
-            (isValid(cur_entry) && (validValue(cur_entry).tag == tag)))
+        Bool write_hit = False;
+        t_CACHE_WORD old_val = ?;
+
+        if (cur_entry matches tagged Valid .e) 
         begin
-            debugLog.record($format("    doWrite: WRITE addr=0x%x, entry=0x%x, val=0x%x", r.addr, idx, w_data));
+            if (e.tag == tag)
+            begin
+                old_val = e.val;
+                write_hit = True;
+            end
+            else if (e.dirty)
+            begin
+                // Dirty data must be flushed
+                let old_addr = cacheAddrFromEntry(e.tag, idx);
+                debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
+                sourceData.write(old_addr, e.val);
+                dirtyEntryFlushW.send();
+            end
+        end
+        
+        // To avoid proviso checking
+        Vector#(TMax#(1, t_CACHE_MASK_SZ), Bool) mask_vec = unpack(zeroExtendNP(pack(w_mask)));
+        if (write_hit || fold(\&& , mask_vec) || !enMaskedWrite) // do write
+        begin
+            t_CACHE_WORD new_val = write_hit? applyWriteMask(old_val, w_data, w_mask) : w_data;
+            debugLog.record($format("    doWrite: WRITE addr=0x%x, entry=0x%x, val=0x%x, mask=0x%x, new_val=0x%x", 
+                            r.addr, idx, w_data, w_mask, new_val));
 
             writeHitW.send();
-            cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: (cacheMode == RL_DM_MODE_WRITE_BACK),
+            cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: True,
                                                               tag: tag,
-                                                              val: w_data });
+                                                              val: new_val });
             if (prefetchMode == RL_DM_PREFETCH_ENABLE)
             begin
                 prefetcher.prefetchInval(idx);
             end
+            entryFilterUpdateQ.enq(idx);
+            if (enMaskedWrite)
+            begin
+                reqInfo_writeDataMask.free(r.writeDataIdx);
+            end
+            else
+            begin
+                reqInfo_writeData.free(truncateNP(r.writeDataIdx));
+            end
         end
+        else // write miss
+        begin
+            fillReqQ.enq(r);
 
-        entryFilterUpdateQ.enq(idx);
+            if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+            begin
+                prefetcher.readMiss(idx, r.addr,
+                                    r.readMeta.isLocalPrefetch,
+                                    r.readMeta.clientReadMeta);
+            end
+
+            debugLog.record($format("    doWrite: MISS addr=0x%x, entry=0x%x", r.addr, idx));
+        end
     endrule
 
 
@@ -1015,6 +1157,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         r.act = DM_CACHE_READ;
         r.addr = addr;
         r.readMeta = RL_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                             isWriteMiss: False,
                                              clientReadMeta: readMeta };
         r.globalReadMeta = globalReadMeta;
 
@@ -1039,13 +1182,25 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     method Action write(t_CACHE_ADDR addr, t_CACHE_WORD val);
         // Store the write data on a heap
-        let data_idx <- reqInfo_writeData.malloc();
-        reqInfo_writeData.upd(data_idx, val);
+        Vector#(t_CACHE_MASK_SZ, Bool) mask = replicate(True);
+        t_WRITE_HEAP_IDX data_idx = ?; 
+        if (enMaskedWrite)
+        begin
+            data_idx <- reqInfo_writeDataMask.malloc();
+            reqInfo_writeDataMask.upd(data_idx, tuple2(val, unpack(pack(mask))));
+        end
+        else
+        begin
+            data_idx <- reqInfo_writeData.malloc();
+            reqInfo_writeData.upd(data_idx, val);
+        end
 
         t_CACHE_REQ r = ?;
         r.act = DM_CACHE_WRITE;
         r.addr = addr;
-        r.readMeta = ?;
+        r.readMeta = RL_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                             isWriteMiss: False,
+                                             clientReadMeta: ? };
         r.globalReadMeta = ?;
         r.writeDataIdx = data_idx;
 
@@ -1056,6 +1211,30 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         newReqQ.enq(r);
 
         debugLog.record($format("  New request: WRITE addr=0x%x, wData heap=%0d, val=0x%x", addr, data_idx, val));
+    endmethod
+    
+    method Action writeMasked(t_CACHE_ADDR addr, t_CACHE_WORD val, t_CACHE_MASK mask) if (enMaskedWrite);
+        // Store the write data on a heap
+        let data_idx <- reqInfo_writeDataMask.malloc();
+        reqInfo_writeDataMask.upd(data_idx, tuple2(val, mask));
+
+        t_CACHE_REQ r = ?;
+        r.act = DM_CACHE_WRITE;
+        r.addr = addr;
+        r.readMeta = RL_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                             isWriteMiss: True,
+                                             clientReadMeta: unpack(zeroExtend(data_idx)) };
+        r.globalReadMeta = defaultValue();
+        r.writeDataIdx = data_idx;
+
+        match {.tag, .idx} = cacheEntryFromAddr(addr);
+        r.tag = tag;
+        r.idx = idx;
+
+        newReqQ.enq(r);
+
+        debugLog.record($format("  New request: MASKED WRITE addr=0x%x, wData heap=%0d, val=0x%x, mask=0x%x", 
+                        addr, data_idx, val, mask));
     endmethod
     
 
@@ -1112,7 +1291,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         method Bool readMiss() = readMissW;
         method Bool readRecentLineHit() = False;    
         method Bool writeHit() = writeHitW;
-        method Bool writeMiss() = False;
+        method Bool writeMiss() = writeMissW;
         method Bool newMRU() = False;
         method Bool invalEntry() = False;
         method Bool dirtyEntryFlush() = dirtyEntryFlushW;
@@ -1137,10 +1316,11 @@ endmodule
 module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, RL_DM_CACHE_READ_META#(t_CACHE_READ_META)) sourceData,
                                     DEBUG_FILE debugLog)
     // interface:
-    (RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_READ_META))
+    (RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_READ_META))
     provisos (IsModule#(m, m__),
               Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
               Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
+              Bits#(t_CACHE_MASK, t_CACHE_MASK_SZ),
               Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ));
 
     //
@@ -1161,6 +1341,7 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
                           RL_CACHE_GLOBAL_READ_META globalReadMeta);
         sourceData.readReq(addr,
                            RL_DM_CACHE_READ_META { isLocalPrefetch: False,
+                                                   isWriteMiss: False,
                                                    clientReadMeta: readMeta },
                            globalReadMeta);
     endmethod
@@ -1181,6 +1362,11 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
         sourceData.write(addr, val);
     endmethod
     
+    method Action writeMasked(t_CACHE_ADDR addr, t_CACHE_WORD val,
+                              t_CACHE_MASK byteWriteMask);
+        error("writeMasked not supported by sourceData interface");
+    endmethod
+
     method Action invalReq(t_CACHE_ADDR addr, Bool fullHierarchy);
         if (fullHierarchy)
             sourceData.invalReq(addr, True);
@@ -1209,6 +1395,7 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
         method Bool invalEntry() = False;
         method Bool dirtyEntryFlush() = False;
         method Bool forceInvalLine() = False;
+        method entryAccesses = tagged Invalid;
     endinterface
 
 endmodule

@@ -238,11 +238,13 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
  
     # First, elaborate the rtl design. 
 
+    inc_dirs = model.rel_if_not_abspath(moduleList.env['DEFS']['ROOT_DIR_HW_INC'], str(vivadoCompileDirectory))
+
     # For the top module, we don't use out of context.b
     if(module.getAttribute('TOP_MODULE') is None):
-        newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
     else:
-        newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
 
 
     for file in annotationFiles:
@@ -253,10 +255,11 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
             newTclFile.write("set_property USED_IN {synthesis implementation} [get_files " + file + "]\n")
 
     if(module.getAttribute('TOP_MODULE') is None):
-        newTclFile.write("synth_design -gated_clock_conversion on -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("synth_design -gated_clock_conversion on -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
+
         newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
     else:
-        newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
 
     newTclFile.write("all_clocks\n")
     newTclFile.write("report_clocks\n")

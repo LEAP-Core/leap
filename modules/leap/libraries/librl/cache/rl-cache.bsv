@@ -66,6 +66,20 @@ instance DefaultValue#(RL_CACHE_GLOBAL_READ_META);
 endinstance
 
 
+// RL_CACHE_STORE_TYPE --
+//   Used to define the underlying store used by the cache.
+//   There is no way to enforce that these definitions are consistent
+//   with the definitions found in librl_bsv_cache.
+typedef enum
+{
+    RL_CACHE_STORE_FLAT_BRAM = 0,
+    RL_CACHE_STORE_BANKED_BRAM = 1,
+    RL_CACHE_STORE_CLOCK_DIVIDED_BRAM = 2   
+}
+RL_CACHE_STORE_TYPE
+    deriving (Eq, Bits);
+
+
 // ========================================================================
 //
 // Cache statistics.
@@ -97,3 +111,6 @@ module mkNullRLCacheStats (RL_CACHE_STATS);
   return ?;
 endmodule
 
+
+
+       

@@ -14,6 +14,7 @@ from wrapper_gen_tool.method import *
 from wrapper_gen_tool.prim import *
 from wrapper_gen_tool.struct import *
 from wrapper_gen_tool.vector import *
+from wrapper_gen_tool.name_mangling import *
  
 # we only get physical platform definitions in physical builds
 try:
@@ -60,7 +61,7 @@ def generateBAImport(module, importHandle):
         # relationships.  This is a hardcoded hack to get around this 
         # issue.
         if(module.getAttribute('PLATFORM_MODULE') is None):
-            ifcEnv['DEFAULT_CLOCK'] = 'default_clock'
+            ifcEnv['DEFAULT_CLOCK'] = clockMangle('default_clock')
         else:
             ifcEnv['DEFAULT_CLOCK'] = 'device_physicalDrivers_clocksDriver_clock'
         bsvIfc.generateImportInterfaceTop(importHandle, ifcEnv)
@@ -84,8 +85,10 @@ def generateBAImport(module, importHandle):
 
     if('BSV_IFC' in module.objectCache):
         if(module.getAttribute('PLATFORM_MODULE') is None):
-             importHandle.write('default_clock default_clock(CLK);\n')
-             importHandle.write('default_reset default_reset(RST_N) clocked_by(default_clock);\n')
+             clk = clockMangle('default_clock')
+             rst = resetMangle('default_reset')
+             importHandle.write('default_clock ' + clk + '(CLK);\n')
+             importHandle.write('default_reset ' + rst + '(RST_N) clocked_by(' + clk + ');\n')
         bsvIfc.generateImport(importHandle, ifcEnv)
     else:
         for channel in module.channels:
@@ -354,7 +357,7 @@ def _emitSynthModule(liModule,
     ## interface object or a wrapped instance with buffers added to manage
     ## inter-module I/O latency.
     ##
-    def maybeWrapConnection(ch_src, ch_idx, ch_suffix, ch_dir, root_name):
+    def maybeWrapConnection(ch_name, ch_src, ch_idx, ch_suffix, ch_dir, root_name):
         # Name of the incoming/outgoing connection interface object
         connection = 'connections.' + ch_src + '[' + str(ch_idx) + ']'
         if (ch_suffix != ''):
@@ -369,7 +372,12 @@ def _emitSynthModule(liModule,
             n_buf = areaConstraints.numLIChannelBufs(areaConstraints.constraints[root_name],
                                                      platform_ag)
         elif (areaConstraints is not None):
-            n_buf = physical_platform_utils.numPlatformLIChannelBufs(areaConstraints.constraints[root_name])
+            n_buf = physical_platform_utils.numPlatformLIChannelBufs(areaConstraints = areaConstraints.constraints[root_name],
+                                                                     rootModuleName = root_name,
+                                                                     channelName = ch_name)
+        else:
+            n_buf = physical_platform_utils.numPlatformLIChannelBufs(rootModuleName = root_name,
+                                                                     channelName = ch_name)
 
         if (n_buf > 0):
             tmpName = 'buf_' + ch_src + '_' + ch_suffix + '_' + str(ch_idx)
@@ -396,7 +404,8 @@ def _emitSynthModule(liModule,
             ch_dir = 'Out'
 
         # Connection to pass to the platform.
-        connection = maybeWrapConnection(ch_src,
+        connection = maybeWrapConnection(channel.name,
+                                         ch_src,
                                          channel.module_idx,
                                          '',
                                          ch_dir,
@@ -411,13 +420,15 @@ def _emitSynthModule(liModule,
                           ', moduleName: "' + channel.module_name + '"});\n')   
 
     for chain in liModule.chains:
-        chain_in = maybeWrapConnection('chains',
+        chain_in = maybeWrapConnection(chain.name,
+                                       'chains',
                                        chain.module_idx,
                                        'incoming',
                                        'In',
                                        chain.chain_root_in)
 
-        chain_out = maybeWrapConnection('chains',
+        chain_out = maybeWrapConnection(chain.name,
+                                        'chains',
                                         chain.module_idx,
                                         'outgoing',
                                         'Out',
@@ -814,5 +825,3 @@ class WrapperGen():
         log_bsv.close()
 
       wrapper_bsv.close()
-
-

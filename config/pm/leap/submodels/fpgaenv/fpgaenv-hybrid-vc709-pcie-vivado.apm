@@ -1,11 +1,11 @@
 
 [Global]
 SaveParameters=0
-Description=Hybrid VC707 PCIE FPGA Environment (Vivado)
-File=fpgaenv-hybrid-vc707-pcie-vivado
+Description=Hybrid VC709 PCIE FPGA Environment (Vivado)
+File=fpgaenv-hybrid-vc709-pcie-vivado
 Version=2.2
 Type=Leap
-Name=Hybrid VC707 PCIE FPGA Environment (Vivado)
+Name=Hybrid VC709 PCIE FPGA Environment (Vivado)
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -101,7 +101,7 @@ Packagehint=leap
 
 [BlueNoC PCIe Bridge/Requires]
 pcie_bluenoc_ifc=BlueNoC PCIe Bridge Interfaces
-pcie_bluenoc_device=Virtex-7 PCIE Device v1.10 (BlueNoC)
+pcie_bluenoc_device=Virtex-7 PCIe v3 Device v3.0 (BlueNoC)
 
 [BlueNoC PCIe Tunnel]
 File=modules/leap/virtual-platform/physical-channel/pcie/bluenoc/pcie-bluenoc-physical-channel.awb
@@ -137,14 +137,10 @@ Packagehint=leap-platforms
 [PCIe Board with DDR/Requires]
 pcie_device=BlueNoC PCIe Bridge
 clocks_device=Differential Crystal Clocks Device from Wires
-physical_platform_config=VC707 Virtex-7 Platform with PCIe
+physical_platform_config=VC709 Virtex-7 Platform with PCIe
 physical_platform_utils=Common Physical Platform Utilities
 ddr_sdram_device=Xilinx DDR SDRAM Physical Device
 aurora_device=Aurora Device Wrapper Null
-
-[VC707 Virtex-7 Platform with PCIe]
-File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc707/vc707-v7-pcie-dma.awb
-Packagehint=leap-platforms
 
 [Hardware FPGA Components for Virtex 7]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex7.awb
@@ -169,10 +165,6 @@ RESET_ACTIVE_HIGH=1
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/clocks/differential/differential-clocks-device.awb
 Packagehint=leap-platforms
 
-[Virtex-7 PCIE Device v1.10 (BlueNoC)]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/1_10/pcie-virtex7.awb
-Packagehint=leap-platforms
-
 [FPGA Build Pipeline Xilinx (Vivado)]
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
 Packagehint=leap
@@ -185,9 +177,18 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-virtex7-v2.3/ddr3-sdram-device.awb
 Packagehint=leap-platforms
 
-[VC707 DDR3 SDRAM Configuration]
-File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-virtex7-v2.3/config/vc707/ddr3-sdram-vc707.awb
-Packagehint=leap-platforms
 
 [Virtex-7 DDR3 SDRAM (v2.3)/Requires]
-ddr_sdram_xilinx_v23_config=VC707 DDR3 SDRAM Configuration
+ddr_sdram_xilinx_v23_config=VC709 DDR3 SDRAM Configuration
+
+[Virtex-7 PCIe v3 Device v3.0 (BlueNoC)]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/pcie3_7x_v3_0/pcie-virtex7.awb
+Packagehint=leap-platforms
+
+[VC709 Virtex-7 Platform with PCIe]
+File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc709/vc709-v7-pcie-dma.awb
+Packagehint=leap-platforms
+
+[VC709 DDR3 SDRAM Configuration]
+File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-virtex7-v2.3/config/vc709/ddr3-sdram-vc709.awb
+Packagehint=leap-platforms
