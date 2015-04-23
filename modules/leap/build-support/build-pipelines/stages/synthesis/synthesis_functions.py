@@ -253,7 +253,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
             newTclFile.write("set_property USED_IN {synthesis implementation} [get_files " + file + "]\n")
 
     if(module.getAttribute('TOP_MODULE') is None):
-        newTclFile.write("synth_design -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
+        newTclFile.write("synth_design -gated_clock_conversion on -mode out_of_context -top " + module.wrapperName() + " -part " + part  + "\n")
         newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
     else:
         newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part  + "\n")
