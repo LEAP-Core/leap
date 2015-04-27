@@ -54,6 +54,7 @@ GetOptions("mode=s"      => \$mode,
            "vico"        => \$vico);
 
 my @serviceTable;
+my @serviceFiles;
 
 
 ##
@@ -70,7 +71,13 @@ foreach my $ifile (@ARGV)
         print "error: input filename $ifile must end with .rrr suffix\n";
         exit(1);
     }
+    
+    push (@serviceFiles, $ifile);
+}
 
+# sort the service file names to produce consistent outputs across builds.
+foreach my $ifile (sort @serviceFiles)
+{
     # parse input RRR file into data structure
     push (@serviceTable, parse_rrr_file($ifile));
 }
