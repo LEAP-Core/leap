@@ -24,9 +24,18 @@ def get_bluespec_verilog(env, resultArray = {}, filePath='Verilog'):
     fileList = fileProc.stdout.read()
     fileArray = model.clean_split(fileList, sep = '\n')
     for file in fileArray:
-        if ((file[-2:] == '.v') and
-            (file != 'main.v') and
-            (file != 'ConstrainedRandom.v')):
+        ## Skip some Bluespec Verilog files because they cause problems...
+        if ((file == 'main.v') or (file == 'ConstrainedRandom.v')):
+            continue
+
+        ## The SizedFIFO in Verilog.Vivado tags the memory as distributed.
+        ## This caused at least Vivado 2014.4 to crash when building the
+        ## VC707 platform.  We will use the standard SizedFIFO without the
+        ## tag.  Vivado still infers distributed RAM.
+        if ((file == 'SizedFIFO.v') and (filePath == 'Verilog.Vivado')):
+            continue
+
+        if (file[-2:] == '.v'):
             resultArray[file] = bluespecdir + '/' + filePath + '/' + file
 
     fileProc = subprocess.Popen(["ls", "-1", bluespecdir + '/Libraries/'], stdout = subprocess.PIPE)
