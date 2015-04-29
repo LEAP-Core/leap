@@ -140,10 +140,10 @@ Packagehint=leap-platforms
 
 [Generic Altera JTAG/Requires]
 clocks_device=Single-Ended Crystal Clocks Device
-altera_jtag_physical_mapping=ArriaII Dev Board JTAG Mapping
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
 jtag_device=Altera JTAG
+physical_platform_config=ArriaII Dev Board JTAG Mapping
 
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
@@ -153,6 +153,6 @@ Packagehint=leap
 avalon=Avalon Bus Intefaces
 
 [Avalon Bus Intefaces]
-File=modules/leap-altera/bluespec/Avalon/src/avalon.awb
+File=modules/leap-platforms-altera/bluespec/Avalon/src/avalon.awb
 Packagehint=leap-altera
 
