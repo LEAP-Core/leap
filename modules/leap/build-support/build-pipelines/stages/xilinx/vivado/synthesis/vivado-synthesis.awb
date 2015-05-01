@@ -15,9 +15,10 @@
 
 #Probably not needed.
 
-%param --global XST_BLUESPEC_BASICINOUT  0   "Enable running Bluespec basicinout on top level Verilog"
-%param --global XST_PARALLEL_CASE        1   "Enable Xilinx XST global parallel case directive"
-%param --global XST_INSERT_IOBUF         0   "Have XST insert IOBUFs"
-%param          USE_VIVADO_SOURCES       1   "Use Vivado sources at compilation"
+%param --global XST_BLUESPEC_BASICINOUT        0   "Enable running Bluespec basicinout on top level Verilog"
+%param --global XST_PARALLEL_CASE              1   "Enable Xilinx XST global parallel case directive"
+%param --global XST_INSERT_IOBUF               0   "Have XST insert IOBUFs"
+%param --global VIVADO_ENABLE_CLOCK_CONVERSION 0   "Turns on clock conversion at synthesis time"
+%param          USE_VIVADO_SOURCES             1   "Use Vivado sources at compilation"
 
  

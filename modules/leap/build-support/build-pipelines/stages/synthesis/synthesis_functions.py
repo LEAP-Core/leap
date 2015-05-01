@@ -233,6 +233,7 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     annotationFiles, annotationDeps = generateSynthesisTcl(moduleList, module, vivadoCompileDirectory)
 
     part = moduleList.getAWBParam('physical_platform_config', 'FPGA_PART_XILINX')
+    
     # the out of context option instructs the tool not to place iobuf
     # and friends on the external ports.
  
@@ -255,7 +256,13 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
             newTclFile.write("set_property USED_IN {synthesis implementation} [get_files " + file + "]\n")
 
     if(module.getAttribute('TOP_MODULE') is None):
-        newTclFile.write("synth_design -gated_clock_conversion on -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
+        clockConversion = ""
+        useClockConversion = moduleList.getAWBParamSafe('synthesis_tool', 'VIVADO_ENABLE_CLOCK_CONVERSION')
+        print " VIVADO CLOCK CONVERSION: " + str(useClockConversion)
+        if(useClockConversion > 0):
+            clockConversion = " -gated_clock_conversion auto "
+        
+        newTclFile.write("synth_design  " + clockConversion + " -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
 
         newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
     else:

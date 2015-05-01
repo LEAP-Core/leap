@@ -88,10 +88,11 @@ proc annotateGatedClock {cell} {
         set source_pin [lindex $source_pin 0]        
     } 
 
-    set dst_clock [create_generated_clock -name "${cell}_div_clk" -divide_by 1 -source $source_pin [get_pins "${cell}/CLK_OUT"]]
     # don't let the synthesis tool muck with naming.
-    set_property DONT_TOUCH true [get_cells "$cell"] 
-    puts "Adding gated clock ${cell}_gated_clk from ${source_pin} to ${cell}/CLK_OUT"
+    set clk_out_net [get_nets "${cell}/CLK_OUT"]   
+    if { [llength $clk_out_net] != 0 } {
+        set_property GATED_CLOCK true $clk_out_net
+    }
 }
 
 
