@@ -145,6 +145,9 @@ SCRATCHPAD_READ_RSP
 typedef 32 SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY;
 typedef 64 SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY;
 
+// Provide a backwards compatible definition of ROB slots.
+typedef SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY SCRATCHPAD_PORT_ROB_SLOTS;
+
 
 // The uncached scratchpad will have more references outstanding due to latency.
 // Allow more references to be in flight.
@@ -401,6 +404,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(
               Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ));
 
     MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE) _scr = ?;
+    Integer robSlots = ?;
 
     if(conf.backingStore == RL_CACHE_STORE_FLAT_BRAM)
     begin
@@ -410,11 +414,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(
                                              nROBSlots,
                                              conf);
 
-        if (conf.requestMerging)
-        begin        
-            _scr <- mkMemReadBypassWrapperMultiRead(
-                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY));
-        end
+        robSlots = valueOf(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY);
     end
     else
     begin
@@ -424,13 +424,11 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(
                                              nROBSlots,
                                              conf);
 
-
-        if (conf.requestMerging)
-        begin        
-            _scr <- mkMemReadBypassWrapperMultiRead(
-                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY));
-        end
+        robSlots = valueOf(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY);
     end
+
+
+    _scr <- mkMergedScratchpad(_scr, conf, robSlots, mkMemReadBypassWrapperMultiRead);
 
     return _scr;
 endmodule
@@ -625,6 +623,34 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
 endmodule
 
+   
+//
+// mkMergedScratchpad --
+//     Scratchpads may have an optional merger, which will try to place 
+//     back-to-back requests together to conserve memory bandwidth.  Here, 
+//     we apply the merger, based on the 1) the scratchpad configuration 2) 
+//     a merger implementation provided by the caller. Returns scratchpad
+//     with the same interface
+//
+module [m] mkMergedScratchpad#(scratchpadIfc baseScratchpad,
+                               SCRATCHPAD_CONFIG conf, 
+                               Integer numRobSlots, 
+                               function m#(scratchpadIfc) mkMergerImpl(scratchpadIfc unmergedScratchpad, Integer robSlots)) 
+     // Interface:
+    (scratchpadIfc)
+    provisos(IsModule#(m, a__));
+
+    scratchpadIfc resultScratchpad = baseScratchpad;
+    if (conf.requestMerging)
+    begin
+        resultScratchpad <- mkMergerImpl(baseScratchpad, numRobSlots);
+    end
+    
+    return resultScratchpad;
+      
+endmodule
+
+
     
 //
 // mkUnmarshalledCachedScratchpad --
@@ -657,6 +683,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(
     // in the NumTypeParams, since each module can really only fill in
     // one at a time.
 
+    Integer robSlots = ?;
     MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE, t_MEM_MASK) _scr = ?;
 
     if(conf.backingStore == RL_CACHE_STORE_FLAT_BRAM) 
@@ -674,12 +701,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(
                                                    statsConstructor,
                                                    prefetchStatsConstructor,
                                                    maskedWriteEn);
-         
-        if (conf.requestMerging)
-        begin
-            _scr <- mkMemReadBypassWrapperMultiReadMaskedWrite(
-                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY));
-        end
+
+        robSlots = valueOf(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY);         
     end
     else
     begin
@@ -696,14 +719,12 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(
                                                    statsConstructor,
                                                    prefetchStatsConstructor,
                                                    maskedWriteEn);
-        
-        if (conf.requestMerging)
-        begin
-            _scr <- mkMemReadBypassWrapperMultiReadMaskedWrite(
-                       _scr, valueOf(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY));
-        end
+
+        robSlots = valueOf(SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY);
     end
         
+    _scr <- mkMergedScratchpad(_scr, conf, robSlots, mkMemReadBypassWrapperMultiReadMaskedWrite);
+
     return _scr;
 endmodule
 
