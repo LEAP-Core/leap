@@ -27,6 +27,20 @@ proc annotateClockCrossing {src_cells dst_cells} {
 }
 
 
+## This function annotates pairs of sets of cells as a safe (managed)
+## clock crossing.
+proc annotateSafeClockCrossing {src_cells dst_cells} {
+    # check inputs -- sometimes things may have been optimized away.
+    if {[llength $src_cells] && [llength $dst_cells]} {
+        set dst_clock [get_clocks -of_objects $dst_cells]
+        set src_clock [get_clocks -of_objects $src_cells]
+
+        puts "Separating clocks ${src_clock} and ${dst_clock}"
+        set_clock_groups -asynchronous -group $src_clock -group $dst_clock
+    }
+}
+
+
 ## Annotates the timing of a bluespec SyncFIFO.  This object correctly
 ## synchronizes communications between two clock domains.
 proc annotateSyncFIFO {sync_object} {
@@ -60,6 +74,15 @@ proc findAndAnnotateAllSyncFIFOs {} {
     # Loop over all SyncFIFOs, using a well-known register name in the source
     # clock domain.
     foreach fifo_src [get_cells sGEnqPtr1[0]* -hierarchical] {
+        # Get the path to the SyncFIFO
+        set fifo [regsub \[^/\]*$ $fifo_src ""]
+        set fifo [string trimright $fifo /]
+
+        annotateSyncFIFO $fifo
+    }
+
+    # The same for SyncFIFOLevel.
+    foreach fifo_src [get_cells sGEnqPtr[0]* -hierarchical] {
         # Get the path to the SyncFIFO
         set fifo [regsub \[^/\]*$ $fifo_src ""]
         set fifo [string trimright $fifo /]
