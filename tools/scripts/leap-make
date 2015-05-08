@@ -1,0 +1,83 @@
+import os, os.path
+import sys
+import re
+import shutil
+import subprocess
+from subprocess import Popen, PIPE, STDOUT
+from subprocess import call
+
+import argparse
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('sourceFiles', metavar='source', type=str, nargs='+',
+                   help='a set of source files')
+parser.add_argument('--target', dest='target', type=str, default='VC707',
+                   help='target FPGA platform')
+parser.add_argument('--benchmark', dest='benchmark', type=str, default='config/bm/leap/demos.cfx/benchmarks/null.cfg',
+                   help='target FPGA benchmark')
+
+args = parser.parse_args()
+
+basePath = os.getcwd()
+buildBasePath = basePath + '/.build/' 
+
+if(not os.path.exists(buildBasePath)):
+    os.mkdir(buildBasePath)
+
+#make a build directory
+awbApplicationFile = buildBasePath + "leap-make.awb"
+awbApplicationSubmodelFile = buildBasePath + "leap-make-submodel.apm"
+awbBuildDir = buildBasePath
+awbBuildDirCompile = buildBasePath + "/pm"
+awbBuildDirRun = buildBasePath + "/bm"
+# Build up an awb file. 
+awbApplicationHandle = open(awbApplicationFile, 'w')
+
+awbApplicationHandle.write('****\n')
+awbApplicationHandle.write('%AWB_START\n')
+awbApplicationHandle.write('%name leap make target program\n')
+awbApplicationHandle.write('%desc leap make target program\n')
+awbApplicationHandle.write('\n')
+awbApplicationHandle.write('%provides connected_application\n')
+awbApplicationHandle.write('\n')
+
+
+# generate a source manifesto. Use %public for now.
+for source in args.sourceFiles:
+    # check that the source exists. 
+    if (not os.path.exists(source)):
+        print "Source file not found: " + source
+        exit(1)
+
+    # link local files in build directory. 
+    linkPath = buildBasePath + '/' + source
+    relPath = os.path.relpath(basePath + '/' + source,  buildBasePath)
+
+    if (not os.path.lexists(linkPath)):
+        os.symlink(relPath, linkPath)
+
+    awbApplicationHandle.write('%public  ' + source + '\n')
+
+awbApplicationHandle.close()
+
+awbBatchFile = buildBasePath + "leap-make.batch"
+awbBatchHandle = open(awbBatchFile, 'w')
+
+platforms ={'VC707': 'config/pm/leap/demos/hello/hello_hybrid_vc707.apm',
+            'SIM': 'config/pm/leap/demos/hello/hello_hybrid_exe.apm'}
+
+platform = platforms[args.target]
+
+awbAPMFile = buildBasePath + "leap-make.apm"
+
+awbBatchHandle.write('cp ' + platform + " " + awbAPMFile + '\n')
+awbBatchHandle.write('new submodel ' + awbApplicationFile + ' ' + awbApplicationSubmodelFile + '\n')        
+awbBatchHandle.write('replace module ' + awbAPMFile + ' ' + awbApplicationSubmodelFile + '\n')        
+awbBatchHandle.write('configure model ' + awbAPMFile + ' --builddir ' + awbBuildDirCompile + '\n')
+awbBatchHandle.write('build model ' + awbAPMFile  + ' --builddir ' + awbBuildDirCompile + '\n')
+#awbBatchHandle.write('setup benchmark ' + args.benchmark  + ' --builddir ' + awbBuildDirCompile + ' --rundir ' + awbBuildDirRun + '\n')
+awbBatchHandle.write('setup benchmark ' + args.benchmark  + ' --builddir ' + awbBuildDirCompile + ' --rundir ' + basePath + '\n')
+
+awbBatchHandle.close()
+
+call('awb-shell --file '+ awbBatchFile, shell=True)

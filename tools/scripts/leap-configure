@@ -342,11 +342,11 @@ sub setup_benchmark {
     my $srcdir = dirname($setup_command);
 
     # Create the run dir
-    $sys_status = system("rm -rf $rundir");
-    if ($sys_status) {
-      print "Could not remove rundir ($rundir)\n";
-      return 0;
-    }
+    #$sys_status = system("rm -rf $rundir");
+    #if ($sys_status) {
+    #  print "Could not remove rundir ($rundir)\n";
+    #  return 0;
+    #}
 
     $sys_status = system("mkdir -p ${rundir}/config");
     if ($sys_status) {
