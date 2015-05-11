@@ -37,8 +37,16 @@ class Build(ProjectDependency):
     # The run script allows us to have multiple types for the same apm
     # This accomodate legacy builds.  If multiple types are assigned to the same APM, 
     # then their directory and master (soon to be deprecated) will go away. 
-    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "CPU", "directory" => "./", "master" => "0", "logicalName" => "' + moduleList.localPlatformName  + '"}')
-    platformMetadata.append('{"name" =>"' + platformName + '", "type" => "BLUESIM", "directory" => "./", "master" => "1", "logicalName" => "' + moduleList.localPlatformName  + '"}')
+    platformMetadata.append('{"name" =>"' + platformName +
+                            '", "type" => "CPU", ' +
+                            '"directory" => "./", "master" => "0", "logicalName" => "' +
+                            moduleList.localPlatformName  + '"}')
+
+    build_sim_type = moduleList.getAWBParam('build_pipeline', 'BUILD_PIPELINE_SIM_TYPE')
+    platformMetadata.append('{"name" =>"' + platformName +
+                            '", "type" => "' + build_sim_type + '", ' +
+                            '"directory" => "./", "master" => "1", "logicalName" => "' +
+                            moduleList.localPlatformName  + '"}')
 
     configFile.write('platforms=['+ ",".join(platformMetadata) +']\n')
     configFile.close()
