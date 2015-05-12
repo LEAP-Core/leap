@@ -12,6 +12,12 @@ APPLICATION_ENV_CLASS::APPLICATION_ENV_CLASS(VIRTUAL_PLATFORM vp) :
     return;
 }
 
+APPLICATION_ENV_CLASS::~APPLICATION_ENV_CLASS()
+{
+    if (app != NULL) 
+        delete app; 
+}
+
 void 
 APPLICATION_ENV_CLASS::InitApp(int argc, char** argv)
 {
