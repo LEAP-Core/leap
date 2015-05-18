@@ -1,3 +1,34 @@
+//
+// Copyright (c) 2013, Intel Corporation
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// Redistributions of source code must retain the above copyright notice, this
+// list of conditions and the following disclaimer.
+//
+// Redistributions in binary form must reproduce the above copyright notice,
+// this list of conditions and the following disclaimer in the documentation
+// and/or other materials provided with the distribution.
+//
+// Neither the name of the Intel Corporation nor the names of its contributors
+// may be used to endorse or promote products derived from this software
+// without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+//
+
 #ifndef __LI_BASE_TYPES__
 #define __LI_BASE_TYPES__
 
@@ -17,10 +48,27 @@
 using namespace std;
 
 class LI_HALF_CHANNEL_CLASS;
+
+///////
+//
+//  li-base.h -- 
+//    This file contains the definitions of several base classes for named channels.
+//    These base classes manage naming and connecting LI channels.  Child classes will 
+//    provide other functionalities like marshalling, flowcontrol, etc.  
+//
+
 // The following serves as a reminder that I will eventually have to implement chains
-//class LI_CHANNEL_CHAIN_CLASS;
+// Currently, there is no support for chains to software. 
+// class LI_CHANNEL_CHAIN_CLASS;
 
 typedef class LI_HALF_CHANNEL_CLASS* LI_HALF_CHANNEL;
+
+// 
+// LI_CHANNEL_MATCHER_CLASS --
+//   A class for matching LI channels by name. LI channels are placed into two maps. 
+//   As channels are added, the matcher class ties channels with the same name 
+//   together, using the private LI_HALF_CHANNEL_CLASS interface. 
+//
 
 // This is a private channel matching class
 class LI_CHANNEL_MATCHER_CLASS
@@ -53,7 +101,10 @@ class LI_CHANNEL_MATCHER_CLASS
 
 };
 
-// This is a private interface for the LI_MATCHER.
+// LI_HALF_CHANNEL_CLASS
+//   A base class for named channels. This is a private interface for LI_MATCHER.
+//   which uses the interface to tie together latency insensitive channels.
+//
 class LI_HALF_CHANNEL_CLASS 
 {
  
@@ -74,7 +125,11 @@ class LI_HALF_CHANNEL_CLASS
 
 template <typename T> class LI_CHANNEL_SEND_CLASS;
 
-// Virtual base class allowing super classes to pick implementations for push
+// LI_HALF_CHANNEL_RECV_CLASS --
+//   Virtual base class allowing super classes to pick implementations for push. 
+//   This is needed to allow for channels that must directly push data into another 
+//   channel, that is route-throughs. 
+//
 template <typename T> class LI_HALF_CHANNEL_RECV_CLASS: public LI_HALF_CHANNEL_CLASS
 {
     template <typename U> friend class LI_CHANNEL_SEND_CLASS; // Allow Send to access our push
@@ -90,7 +145,12 @@ template <typename T> class LI_HALF_CHANNEL_RECV_CLASS: public LI_HALF_CHANNEL_C
 
 };
 
-// Send does push
+// LI_CHANNEL_SEND_CLASS --                                                                                                                             
+//   This is the send side of an LI channel.  It simply invokes the push method of its partner RECV
+//   channel, which performs some action, for example sending a message to a physical device.                                                       
+//   The send class maintains a pointer to the partner channel, which is elaborated by the 
+//   channel matcher. 
+// 
 template <typename T> class LI_CHANNEL_SEND_CLASS: public LI_HALF_CHANNEL_CLASS
 {
     template <typename U> friend class LI_HALF_CHANNEL_RECV_CLASS; // Allow Recv to register with us
@@ -110,7 +170,11 @@ template <typename T> class LI_CHANNEL_SEND_CLASS: public LI_HALF_CHANNEL_CLASS
 
 
 
-// Recv does pop
+// LI_CHANNEL_RECV_CLASS --
+//   Class for non-route through communications. It is a simple wrapper around a lock-free
+//   queue. External users pop from the queue.  The internal push interface is restricted
+//   to the channel partner. 
+//
 template <typename T> class LI_CHANNEL_RECV_CLASS: LI_HALF_CHANNEL_RECV_CLASS<T>
 {
     template <typename U> friend class LI_CHANNEL_SEND_CLASS; // Allow Recv to register with us  
@@ -129,11 +193,14 @@ template <typename T> class LI_CHANNEL_RECV_CLASS: LI_HALF_CHANNEL_RECV_CLASS<T>
 };
 
 
-// These classes are used in the synthesized physical code.  
-// They derive from sends and receives to pick up the matching functionality. 
+// These classes represent the physical LI channel implementation.
+// They derive from the above send and receive classes to pick up the channel matching functionality. 
 
-// The base LI Channel classes represent the channelio side interface. Outbound channels need a pop,
-// inbound channels need a push.
+// LI_CHANNEL_OUT_CLASS --
+//  The base outbound channel for the channelio side interface. This channel will mate with 
+//  user-side channels forming a connection to a physical I/O device. Some of these channels, 
+//  specifically the channels carrying flow control, do not themselves need flow control.  
+//
 typedef class LI_CHANNEL_OUT_CLASS* LI_CHANNEL_OUT;
 class LI_CHANNEL_OUT_CLASS
 {
@@ -154,6 +221,10 @@ class LI_CHANNEL_OUT_CLASS
 
 };
 
+// LI_CHANNEL_IN_CLASS --
+//  The base inbound channel class for the channelio side interface. This channel will mate with 
+//  user-side channels forming a connection to a physical I/O device.  
+//
 typedef class LI_CHANNEL_IN_CLASS* LI_CHANNEL_IN;
 class LI_CHANNEL_IN_CLASS
 {
@@ -169,7 +240,17 @@ class LI_CHANNEL_IN_CLASS
 
 };
 
+/////
+//
+//  Constructors for templatized classes.  These must appear in the same file as the template class
+//  definitions. 
+//
+/////
 
+// LI_HALF_CHANNEL_RECV_CLASS --
+//  Constructor for LI_HALF_CHANNEL_RECV_CLASS.  Looks for a partner in the channel matcher.
+//  If a partner is found, they will be mated. Otherwise, when the partner registers they will
+//  be mated. 
 template<typename T> LI_HALF_CHANNEL_RECV_CLASS<T>::LI_HALF_CHANNEL_RECV_CLASS(string nameInitializer):
     LI_HALF_CHANNEL_CLASS(nameInitializer, typeid(T).name()) 
 {
@@ -184,7 +265,10 @@ template<typename T> LI_HALF_CHANNEL_RECV_CLASS<T>::LI_HALF_CHANNEL_RECV_CLASS(s
 } 
 
 
-
+// LI_HALF_CHANNEL_SEND_CLASS --
+//  Constructor for LI_HALF_CHANNEL_SEND_CLASS.  Looks for a partner in the channel matcher.
+//  If a partner is found, they will be mated. Otherwise, when the partner registers they will
+//  be mated. 
 template<typename T> LI_CHANNEL_SEND_CLASS<T>::LI_CHANNEL_SEND_CLASS(std::string nameInitializer):
   LI_HALF_CHANNEL_CLASS(nameInitializer, typeid(T).name())
 {
@@ -198,7 +282,9 @@ template<typename T> LI_CHANNEL_SEND_CLASS<T>::LI_CHANNEL_SEND_CLASS(std::string
 
 }
 
-// Recv must own queue implementation as send has actionaable context.
+// LI_CHANNEL_RECV_CLASS --
+//  Constructor for LI_CHANNEL_RECV_CLASS.  Calls underlying constructor. 
+//  Recv must own queue implementation as send has actionaable context.
 template<typename T> LI_CHANNEL_RECV_CLASS<T>::LI_CHANNEL_RECV_CLASS(std::string nameInitializer):
   dataQ(), 
   LI_HALF_CHANNEL_RECV_CLASS<T>(nameInitializer)
