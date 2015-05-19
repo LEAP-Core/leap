@@ -71,11 +71,12 @@ module mkLCounter#(Bit#(nBits) initialValue)
     (* fire_when_enabled, no_implicit_conditions *)
     rule updateCounter;
         Bit#(nBits) new_value;
+        Bit#(nBits) base_value = ctr;
 
         if (setcCalledW.wget() matches tagged Valid .v)
-            new_value = v + upByW - downByW;
-        else
-            new_value = ctr + upByW - downByW;
+            base_value = v;
+       
+        new_value = base_value + upByW - downByW;
 
         ctr <= new_value;
         zero <= (new_value == 0);
