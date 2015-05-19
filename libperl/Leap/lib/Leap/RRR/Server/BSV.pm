@@ -248,6 +248,22 @@ sub print_stub
     print $file "            return mid;\n";
     print $file "        endmethod\n";
     print $file "\n";
+    print $file "        method UMF_SERVICE_ID serviceID();\n";
+    print $file "            return sid;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method UMF_PHY_CHANNEL_PVT sequenceNumber();\n";
+    print $file "            return seqNum;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method UMF_PHY_CHANNEL_PVT sequenceNumberLast();\n";
+    print $file "            return seqNumLast;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method Tuple3#(Bit#(64), Bit#(64), UMF_CHUNK) chunk() if(currentChunk.wget() matches tagged Valid .value);\n";
+    print $file "            return value;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
     print $file "        method Bool misroutedPacket();\n";
     print $file "            return misroutedPacketReg;\n";
     print $file "        endmethod\n";
@@ -260,8 +276,16 @@ sub print_stub
     print $file "            return incorrectLengthReg;\n";
     print $file "        endmethod\n";
     print $file "\n";
+    print $file "        method Bit#(64) totalPackets();\n";
+    print $file "            return totalPacketsReg;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
+    print $file "        method Bit#(64) totalChunks();\n";
+    print $file "            return totalChunksReg;\n";
+    print $file "        endmethod\n";
+    print $file "\n";
     print $file "        method String serviceName();\n";
-    print $file "            return \"" . $self->{name}."\";\n";
+    print $file "            return name;\n";
     print $file "        endmethod\n";
     print $file "    endinterface\n";
     print $file "\n";
@@ -303,7 +327,14 @@ sub _print_state
         print $file "    MARSHALLER_N#(UMF_CHUNK, Bit#($maxoutsize)) mar <- mkSimpleMarshallerN(True);\n";
     }
     print $file "\n";
-    print $file "    Reg#(UMF_METHOD_ID) mid <- mkReg(0);\n";
+    print $file "    Reg#(UMF_METHOD_ID)       mid             <- mkReg(0);\n";
+    print $file "    Reg#(UMF_SERVICE_ID)      sid             <- mkRegU();\n";
+    print $file "    Reg#(UMF_PHY_CHANNEL_PVT) seqNum          <- mkReg(maxBound);\n";
+    print $file "    Reg#(UMF_PHY_CHANNEL_PVT) seqNumLast      <- mkReg(maxBound - 1);\n";
+    print $file "    Reg#(Bit#(64))            totalPacketsReg <- mkReg(maxBound);\n";
+    print $file "    Reg#(Bit#(64))            totalChunksReg  <- mkReg(0);\n";
+    print $file "    RWire#(Tuple3#(Bit#(64), Bit#(64), UMF_CHUNK))         currentChunk    <- mkRWire();\n";
+    print $file "    String                    name    = \"" . $self->{name}."\";\n";
 
     print $file "    Reg#(Bool) misroutedPacketReg  <- mkReg(False);\n";
     print $file "    Reg#(Bool) illegalMethodReg    <- mkReg(False);\n";
@@ -352,8 +383,13 @@ sub _print_request_rules
     print $file "            \$finish;\n";
     print $file "        end\n";
 
-
-    print $file "        mid <= packet.UMF_PACKET_header.methodID;\n";
+    print $file "        currentChunk.wset(tuple3(totalPacketsReg+1, totalChunksReg, packet.UMF_PACKET_dataChunk));\n";
+    print $file "        mid        <= packet.UMF_PACKET_header.methodID;\n";
+    print $file "        sid        <= packet.UMF_PACKET_header.serviceID;\n";
+    print $file "        seqNum     <= packet.UMF_PACKET_header.phyChannelPvt;\n";
+    print $file "        seqNumLast <= seqNum;\n";
+    print $file "        totalPacketsReg <= totalPacketsReg + 1;\n";
+    print $file "        totalChunksReg  <= totalChunksReg + 1;\n";
     print $file "        dem.start(packet.UMF_PACKET_header.numChunks);\n";
     print $file "    endrule\n";
     print $file "\n";
@@ -368,6 +404,8 @@ sub _print_request_rules
     {
         print $file "        UMF_PACKET packet <- server.requestPorts[`SERVICE_ID].read();\n";
     }
+    print $file "        totalChunksReg  <= totalChunksReg + 1;\n";
+    print $file "        currentChunk.wset(tuple3(totalPacketsReg, totalChunksReg,packet.UMF_PACKET_dataChunk));\n";
     print $file "        dem.insert(packet.UMF_PACKET_dataChunk);\n";
     print $file "    endrule\n";
     print $file "\n";

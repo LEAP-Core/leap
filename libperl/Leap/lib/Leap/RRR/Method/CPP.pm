@@ -201,6 +201,14 @@ sub print_client_definition
         print $file $indent . "    UMF_MESSAGE resp = MakeRequest(msg);\n";
         print $file $indent . "    \n";
 
+        # Check message to ensure that it came to the right place. 
+        print $file $indent . "    if (ENABLE_RRR_DEBUG_INTERFACE) {\n";
+        print $file $indent . "        ASSERTX(resp->GetServiceID() == " . $self->{servicename} . "_SERVICE_ID);\n";
+        print $file $indent . "        ASSERTX(resp->GetMethodID() == " . $self->{servicename} . "_METHOD_ID_" . $self->{name} . ");\n";
+        print $file $indent . "    }\n";
+        print $file $indent . "    \n";
+
+
         # demarshall return value(s)
         print $file $indent . "    " . $self->_outtype_name() . " retval;\n";
 

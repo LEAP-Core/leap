@@ -111,6 +111,7 @@ sub print_stub
 
     print $file "#include \"awb/provides/low_level_platform_interface.h\"\n";
     print $file "#include \"awb/provides/rrr.h\"\n";
+    print $file "#include \"awb/provides/rrr_common.h\"\n";
     print $file "#include \"awb/rrr/service_ids.h\"\n";
     print $file "\n";
     
