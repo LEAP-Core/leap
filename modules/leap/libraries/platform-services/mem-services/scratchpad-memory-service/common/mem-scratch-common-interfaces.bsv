@@ -116,6 +116,9 @@ typedef struct
     // Construct/participate in cache hierarchy?
     SCRATCHPAD_CACHE_MODE cacheMode;
 
+    // Backing store to use in cache.
+    RL_CACHE_STORE_TYPE backingStore;
+
     // The number of entries in scratchpad's private cache
     Integer cacheEntries;
 
@@ -146,6 +149,7 @@ instance DefaultValue#(SCRATCHPAD_CONFIG);
     defaultValue = SCRATCHPAD_CONFIG {
         cacheMode: SCRATCHPAD_CACHED,
         cacheEntries: 0,
+        backingStore: unpack(`RL_DM_CACHE_BRAM_TYPE),
         initFilePath: tagged Invalid,
         enablePrefetching: tagged Invalid,
         requestMerging: False,

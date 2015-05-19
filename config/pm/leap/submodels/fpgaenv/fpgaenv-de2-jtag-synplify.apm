@@ -136,10 +136,10 @@ Packagehint=leap-platforms
 
 [Generic Altera JTAG/Requires]
 clocks_device=Single-Ended Crystal Clocks Device
-altera_jtag_physical_mapping=DE2 Dev Board JTAG Mapping
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
 jtag_device=Altera JTAG
+physical_platform_config=DE2 Dev Board JTAG Mapping
 
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm

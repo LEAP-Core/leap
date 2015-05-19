@@ -14,6 +14,7 @@ class APPLICATION_ENV_CLASS
     CONNECTED_APPLICATION app;
   public:
     APPLICATION_ENV_CLASS(VIRTUAL_PLATFORM vp);
+    ~APPLICATION_ENV_CLASS();
     void InitApp(int arc, char** argv);
     int RunApp(int argc, char** argv);
 };

@@ -18,4 +18,5 @@
 
 %scons %library VerilogPipeline.py
 
-%param BUILD_PIPELINE_DEBUG 0 "Enable build pipeline debug"
+%param BUILD_PIPELINE_DEBUG    0           "Enable build pipeline debug"
+%param BUILD_PIPELINE_SIM_TYPE "BLUESIM"   "Simulator type"
