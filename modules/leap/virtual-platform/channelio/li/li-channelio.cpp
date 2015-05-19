@@ -114,14 +114,14 @@ template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UMF_MESSAGE>::pushUMF(UMF_MESSAGE
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "Channel is  " << this << endl;        
+        debugLog << "Channel is  " << this << endl;        
     }
 
     freeCredits(incoming->GetServiceID());
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "****Channel " << this->name << " incoming message is complete" << endl; 
+        debugLog << "****Channel " << this->name << " incoming message is complete" << endl; 
     }
 
     delete incoming; // We've translated the message, so get rid of it...
@@ -131,54 +131,79 @@ template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UMF_MESSAGE>::pushUMF(UMF_MESSAGE
 // This push is the push inherited from LI_CHANNEL_SEND.  It is user-facing
 template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &element) 
 {
+    //  TODO: Currently pushes are non-atomic, which means that they can get interleaved. 
+    //  The mutex fixes this, but a better solution would be to construct a linked list and
+    //  use the lock-free queue. 
+    std::unique_lock<std::mutex> lk(pushMutex); 
+
     // Check for space in flow control 
     // RRR allows small size/packed bytes.  We account for that here...
     // TODO: These values are probably constant. We should store as a static class variable.
     UINT32 extraChunk = ((element->GetLength()%sizeof(UMF_CHUNK)) != 0) ? 1 : 0; 
     UINT32 messageLength = (element->GetLength()/sizeof(UMF_CHUNK) + extraChunk + 1) * 3;  // Each chunk takes a header plus one bit for encoding?
 
-    if(DEBUG_CHANNELIO) 
-    {
-        cout << endl << "****Channel "<< this->name << " Sends message " << endl;               
-        cout << endl << "Base Message length "<< dec << (UINT32) (element->GetLength()) << endl;  
-        cout << "Message Credits "<< dec << messageLength << endl;
-        cout << "Channel ID "<< dec << this->channelID << endl;
-        element->Print(cout);
-    }
-  
-
     acquireCredits(messageLength);
 
     // Send header first
     {
-        UMF_CHUNK baseHeader = element->EncodeHeader();  
+        UMF_CHUNK baseHeader = element->EncodeHeaderWithPhyChannelPvt(packetNumber & 0x3f);          
+        element->SetPhyPvt( packetNumber & 0x3f);
+
+        if(DEBUG_CHANNELIO) 
+        {
+            debugLog << this->name <<" packet number 0x" << hex << packetNumber << " truncated to seq" << (packetNumber & 0x3f) <<endl;
+            chunkNumber ++;
+            packetNumber++;
+
+            debugLog << endl << "****Channel "<< this->name << " Sends message " << endl;               
+            debugLog << endl << "Base Message length "<< dec << (UINT32) (element->GetLength()) << endl;  
+            debugLog << "Message Credits "<< dec << messageLength << endl;
+            debugLog << "Channel ID (LIM) "<< dec << this->channelID << endl;
+            debugLog << "Original RRR message "<< dec << this->channelID << endl;
+            element->Print(debugLog);
+        }
+
         UMF_MESSAGE outMesg = factory->createUMFMessage();
         outMesg->SetLength(2 * sizeof(UMF_CHUNK)); 
         outMesg->SetServiceID(this->channelID);
         outMesg->AppendChunk(baseHeader);
         outMesg->AppendChunk(0);
+
+        if(DEBUG_CHANNELIO) 
+        {
+            debugLog << "New header "<< endl;
+            outMesg->Print(debugLog);
+        }
+
         outputQ->push(outMesg);
     }
 
     element->StartExtract();
     while (element->CanExtract())
     {
+        if(DEBUG_CHANNELIO) 
+        {
+            debugLog << "packet bytes remaining: " << element->ExtractBytesLeft() << endl;
+        }
+
         UMF_CHUNK chunk = element->ExtractChunk();
         UMF_MESSAGE outMesg = factory->createUMFMessage();
+        chunkNumber ++;
 
         if(DEBUG_CHANNELIO) 
         {
-            cout << endl <<"Sending payload chunk " << this-> name;
-            cout << " Factory ptr: " << factory << " Mesg ptr: " << outMesg << endl;
+            debugLog << endl <<"Sending payload chunk " << this-> name;
+            debugLog << " Factory ptr: " << factory << " Mesg ptr: " << outMesg << endl;
+            outMesg->Print(debugLog);
 	}
 
         outMesg->SetLength(2 * sizeof(UMF_CHUNK));
 
         if(DEBUG_CHANNELIO) 
         {
-            cout << "Reading Channel "<< this << endl;
-            cout << "Name "<< this->name << endl;
-            cout << "ID " << this->channelID << endl;
+            debugLog << "Reading Channel "<< this << endl;
+            debugLog << "Name "<< this->name << endl;
+            debugLog << "ID " << this->channelID << endl;
 	}
 
         outMesg->SetServiceID(this->channelID);
@@ -187,7 +212,8 @@ template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &
 
         if(DEBUG_CHANNELIO) 
         {
-            cout << "Pushing message to output Q" << endl;
+            debugLog << "Pushing message to output Q" << endl;
+            outMesg->Print(debugLog);
 	}
 
         outputQ->push(outMesg);
@@ -195,8 +221,11 @@ template<> void MARSHALLED_LI_CHANNEL_OUT_CLASS<UMF_MESSAGE>::push(UMF_MESSAGE &
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << endl << "****Channel "<< this->name << " Send message complete" << endl;               
+
+        debugLog << this->name << " chunk number 0x" << hex << chunkNumber <<endl;
+        debugLog << endl << "****Channel "<< this->name << " Send message complete" << endl;               
     }
+
 
     UMF_MESSAGE elementCopy = element;
     delete elementCopy; // Should we delete here?
@@ -224,7 +253,7 @@ template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UINT128>::pushUMF(UMF_MESSAGE &in
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "(UINT128) Channel is  " << this << endl;
+        debugLog << "(UINT128) Channel is  " << this << endl;
         
     }
 
@@ -232,7 +261,7 @@ template<> void MARSHALLED_LI_CHANNEL_IN_CLASS<UINT128>::pushUMF(UMF_MESSAGE &in
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "****Channel " << this->name << " incoming message is complete" << endl; 
+        debugLog << "****Channel " << this->name << " incoming message is complete" << endl; 
     }
 
     delete incoming; // We've translated the message, so get rid of it...

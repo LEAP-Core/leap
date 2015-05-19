@@ -47,14 +47,17 @@ using namespace std;
 // The marshalled LI classes represent the client-side interface. 
 template <typename T> class MARSHALLED_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS, public LI_CHANNEL_SEND_CLASS<T>
 {
+    ofstream debugLog;
+
   public:
     MARSHALLED_LI_CHANNEL_IN_CLASS(tbb::concurrent_bounded_queue<UMF_MESSAGE> *flowcontrolQInitializer,
                                    std::string nameInitializer,
                                    UMF_FACTORY factoryInitializer,  
                                    UINT64 flowcontrolChannelIDInitializer):
-      FLOWCONTROL_LI_CHANNEL_IN_CLASS(flowcontrolQInitializer, factoryInitializer, flowcontrolChannelIDInitializer),
+      FLOWCONTROL_LI_CHANNEL_IN_CLASS(&debugLog, flowcontrolQInitializer, factoryInitializer, flowcontrolChannelIDInitializer),
       LI_CHANNEL_SEND_CLASS<T>(nameInitializer)
     {
+        debugLog.open(this->name + ".log");
     };
 
     virtual void pushUMF(UMF_MESSAGE &message);
@@ -68,6 +71,13 @@ template <typename T> class MARSHALLED_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_
   private:
     UMF_FACTORY factory; // we need to take T and pack it in to a UMF_MESSAGE
     UINT64 channelID;
+    UINT64 packetNumber;
+    UINT64 chunkNumber;
+    ofstream debugLog;
+
+    // TODO: this doesn't really need to be a mutex. Probably we could
+    // get away with building a linked list of messages. 
+    std::mutex pushMutex;
 
   protected:
     void push(T &element); // Our send friends can touch this interface
@@ -78,11 +88,12 @@ template <typename T> class MARSHALLED_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_
                                     std::string nameInitializer, 
                                     UINT64 channelIDInitializer):
 
-      FLOWCONTROL_LI_CHANNEL_OUT_CLASS(outputQInitializer),
+      FLOWCONTROL_LI_CHANNEL_OUT_CLASS(&debugLog, outputQInitializer),
       LI_HALF_CHANNEL_RECV_CLASS<T>(nameInitializer)
     { 
         factory = factoryInitializer;
-        channelID = channelIDInitializer;
+        channelID = channelIDInitializer;        
+        debugLog.open(this->name + ".log");
     };
 
 

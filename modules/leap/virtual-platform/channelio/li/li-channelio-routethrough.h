@@ -55,7 +55,9 @@ receives credit from the consumer of the message.
 
 *****/
 
-// Handles inbound route-through packets
+// ROUTE_THROUGH_LI_CHANNEL_IN_CLASS -
+//  Handles inbound route-through packets.  Spawns a thread (TODO: maybe not have so many threads), which polls the inbound  
+//  message buffer. When messages arrive, they will be pushed out through the corresponding instance of ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS
 typedef class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS* ROUTE_THROUGH_LI_CHANNEL_IN;
 class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS, public LI_CHANNEL_SEND_CLASS<UMF_MESSAGE>
 {
@@ -66,7 +68,10 @@ class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS,
 
     pthread_t       forwardingThread; 
     tbb::concurrent_bounded_queue<UMF_MESSAGE> msgBuffer;
-    
+    ofstream debugLog;    
+
+    // Function for incoming routing thread.  Pulls message in from router, 
+    // and then ships it to an outbound channel partner
     static void * routeMessage(void *argv) 
     {
         UMF_MESSAGE inMesg;
@@ -91,10 +96,11 @@ class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS,
                                    std::string nameInitializer,
 				   UMF_FACTORY factoryInitializer,  
                                    UINT64 flowcontrolChannelIDInitializer):
-      FLOWCONTROL_LI_CHANNEL_IN_CLASS(flowcontrolQInitializer, factoryInitializer, flowcontrolChannelIDInitializer),
+      FLOWCONTROL_LI_CHANNEL_IN_CLASS(&debugLog, flowcontrolQInitializer, factoryInitializer, flowcontrolChannelIDInitializer),
       LI_CHANNEL_SEND_CLASS<UMF_MESSAGE>(nameInitializer),
       msgBuffer()
     {
+        debugLog.open(nameInitializer + "route_through_in.log");
 	if (pthread_create(&forwardingThread,
 			   NULL,
 			   routeMessage,
@@ -102,15 +108,18 @@ class ROUTE_THROUGH_LI_CHANNEL_IN_CLASS: public FLOWCONTROL_LI_CHANNEL_IN_CLASS,
 	  {
 	    perror("pthread_create, forwardingThread:");
 	    exit(1);
-	  }
+	  }         
     };
 
     void pushUMF(UMF_MESSAGE &message);
 
 };
 
-
-// Handles outbound route-through packets
+// ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS --
+//  Handles outbound route-through packets.  This class's push method will be invoked by a 
+//  corresponding instance of ROUTE_THROUGH_LI_CHANNEL_IN_CLASS when it receives an inbound 
+//  message. 
+//
 typedef class ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS* ROUTE_THROUGH_LI_CHANNEL_OUT;
 class ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_LI_CHANNEL_OUT_CLASS, public LI_HALF_CHANNEL_RECV_CLASS<UMF_MESSAGE>
 {
@@ -120,6 +129,7 @@ class ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_LI_CHANNEL_OUT_CLAS
   private:
     UMF_FACTORY factory; // It isn't clear that the route through needs to make use of the UMF factory.
     UINT64 channelID;
+    ofstream debugLog;
 
   protected:
     void push(UMF_MESSAGE &element); // Our send friends can touch this interface
@@ -130,9 +140,10 @@ class ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS: public FLOWCONTROL_LI_CHANNEL_OUT_CLAS
                                        std::string nameInitializer, 
                                        UINT64 channelIDInitializer):
 
-      FLOWCONTROL_LI_CHANNEL_OUT_CLASS(outputQInitializer),
+      FLOWCONTROL_LI_CHANNEL_OUT_CLASS(&debugLog, outputQInitializer),
       LI_HALF_CHANNEL_RECV_CLASS<UMF_MESSAGE>(nameInitializer)
     { 
+        debugLog.open(nameInitializer + ".route_through_out.log");
         factory = factoryInitializer;
         channelID = channelIDInitializer;
     };

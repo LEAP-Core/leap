@@ -55,12 +55,12 @@ void ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS::push(UMF_MESSAGE &outMesg)
 
     if (DEBUG_CHANNELIO) 
     {
-        cout << endl << "****Outbound Channel "<< this->name << " Sends message " << endl;               
-        cout << endl << "Base Message length "<< dec << (UINT32) (outMesg->GetLength()) << endl;  
-        cout << "UMF_CHUNK (bytes) " << sizeof(UMF_CHUNK) << endl;
-        cout << "Message Length (bytes) "<< dec << messageLengthBytes << endl;
-        cout << "Message Credits (chunks) "<< dec << messageLengthChunks << endl;
-        cout << "Channel ID "<< dec << this->channelID << endl;
+        debugLog << endl << "****Outbound Channel "<< this->name << " Sends message " << endl;               
+        debugLog << endl << "Base Message length "<< dec << (UINT32) (outMesg->GetLength()) << endl;  
+        debugLog << "UMF_CHUNK (bytes) " << sizeof(UMF_CHUNK) << endl;
+        debugLog << "Message Length (bytes) "<< dec << messageLengthBytes << endl;
+        debugLog << "Message Credits (chunks) "<< dec << messageLengthChunks << endl;
+        debugLog << "Channel ID "<< dec << this->channelID << endl;
     }
 
     // For now we will allow the system to deadlock here. What is really needed is an 
@@ -77,7 +77,7 @@ void ROUTE_THROUGH_LI_CHANNEL_OUT_CLASS::push(UMF_MESSAGE &outMesg)
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << endl << "****Outbound Route-through Channel "<< this->name << " message complete" << endl;            
+        debugLog << endl << "****Outbound Route-through Channel "<< this->name << " message complete" << endl;            
     }
 }
 
@@ -96,9 +96,9 @@ void ROUTE_THROUGH_LI_CHANNEL_IN_CLASS::pushUMF(UMF_MESSAGE &inMesg)
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "Channel " << this->name << " is  " << this << endl;
-        inMesg->Print(cout);
-        cout << this->name << " route through acquiring credit " << messageLengthChunks << endl;
+        debugLog << "Channel " << this->name << " is  " << this << endl;
+        inMesg->Print(debugLog);
+        debugLog << this->name << " route through acquiring credit " << messageLengthChunks << endl;
     }
 
     // This technically frees our credits.
@@ -115,7 +115,7 @@ void ROUTE_THROUGH_LI_CHANNEL_IN_CLASS::pushUMF(UMF_MESSAGE &inMesg)
 
     if(DEBUG_CHANNELIO) 
     {
-        cout << "****In Route-through Channel " << this->name << " message is complete" << endl; 
+        debugLog << "****In Route-through Channel " << this->name << " message is complete" << endl; 
     }
     
     // Unlike the marshalled LI channels, we do not delete the
