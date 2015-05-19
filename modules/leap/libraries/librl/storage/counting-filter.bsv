@@ -427,7 +427,7 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
         // Check to ensure that we aren't underflowing an entry.
         if (entryNotSet(hashes))
         begin
-            $display("Counting Bloom Filter at %m, has underflowed");
+            $display("Counting Bloom Filter at %m, has underflowed while trying to remove %h %0d: h0=%0d, h1=%0d, h2=%0d, h3=%0d", oldEntry, oldEntry, hashes[0], hashes[1], hashes[2], hashes[3]);
             $finish;
         end
 
@@ -464,7 +464,7 @@ module mkCountingBloomFilter#(DEBUG_FILE debugLog)
     method Action remove(t_ENTRY oldEntry) if (ready);
         removeEntryW.wset(oldEntry);
 
-        debugLog.record($format("    Bloom filter REMOVE %0d", oldEntry));
+        debugLog.record($format("    Bloom filter REMOVE %0d (0x%x)", oldEntry, oldEntry));
     endmethod
 
     method Bool notSet(t_ENTRY entry) if (ready);
