@@ -36,7 +36,7 @@ use Leap::RRR::Method::BSV;
 # inherit from Server
 our @ISA = qw(Leap::RRR::Server::Base);
 
-my $debug = 1;
+my $debug = 0;
 
 ##
 ## constructor
