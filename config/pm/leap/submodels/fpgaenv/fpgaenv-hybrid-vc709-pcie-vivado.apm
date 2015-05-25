@@ -177,7 +177,6 @@ Packagehint=leap-platforms
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-virtex7-v2.3/ddr3-sdram-device.awb
 Packagehint=leap-platforms
 
-
 [Virtex-7 DDR3 SDRAM (v2.3)/Requires]
 ddr_sdram_xilinx_v23_config=VC709 DDR3 SDRAM Configuration
 
@@ -192,3 +191,10 @@ Packagehint=leap-platforms
 [VC709 DDR3 SDRAM Configuration]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram-xilinx/ddr3-sdram-virtex7-v2.3/config/vc709/ddr3-sdram-vc709.awb
 Packagehint=leap-platforms
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module
