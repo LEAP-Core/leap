@@ -130,7 +130,6 @@ physical_platform_utils=Common Physical Platform Utilities
 ddr_sdram_device=Null DDR SDRAM Physical Device
 aurora_device=Aurora Device Wrapper Null
 
-
 [Hardware FPGA Components for Virtex 7]
 File=modules/bluespec/common/fpgaenv/fpga-components/hardware-fpga-components-virtex7.awb
 Packagehint=leap-platforms
@@ -162,7 +161,6 @@ Packagehint=leap-platforms
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
 Packagehint=leap
 
-
 [Null DDR SDRAM Physical Device/Requires]
 ddr_sdram_definitions=DDR SDRAM Common Definitions
 
@@ -181,3 +179,10 @@ Packagehint=leap-platforms
 [VC709 Virtex-7 Platform with PCIe]
 File=modules/bluespec/common/fpgaenv/physical-platform/pci-express-generic/config/vc709/vc709-v7-pcie-dma.awb
 Packagehint=leap-platforms
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module
