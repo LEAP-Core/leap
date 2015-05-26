@@ -11,3 +11,6 @@
 
 %public  connected-application-default-sw.bsv
 %public  connected-application-default-sw.h
+
+%param SYNTH_BOUNDARY mkConnectedApplication "name of synthesis boundary"
+
