@@ -600,6 +600,14 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
         moduleList.topModule.moduleDependency['SYNTHESIS'] = synth_deps
         return synth_deps
 
+####
+#
+# buildNetlists -
+#   A parameteric function for building the netlists of a design. It takes three
+#   arguments: the build context (moduleList), a netlist builder for the user module
+#   (userModuleBuilder) and a builder for the platform (platformModuleBuilder).  
+#   buildNetlists then invokes these functions as part of a parallel build process.
+#
 def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
     # We load this graph in to memory several times. 
     # TODO: load this graph once. 
@@ -641,3 +649,53 @@ def buildNetlists(moduleList, userModuleBuilder, platformModuleBuilder):
 
     # Alias for synthesis
     moduleList.env.Alias('synth', synth_deps)
+
+
+
+######
+#
+# leap_physical_summary -
+# Generate a summary of the build and write a target file describing
+# whether the build was successful. Achieved by searching for flow specific 
+# strings in the post-place and route log.
+#
+def leap_physical_summary(physical_result, errinfo, success_string, failure_string):
+    def leap_physical_summary_closure(target, source, env):
+        par_file = open(physical_result,'r')
+        errinfo_file = open(errinfo, 'w')
+
+        timing_score = None
+        clk_err = 0
+
+        for full_line in par_file:
+            line = full_line.rstrip()
+            # do a quartus specific search.   
+            match = re.search(r'' + success_string, line)
+            if (match):
+                timing_score = 0 
+
+            match = re.search(r'' + failure_string, line)
+            if (match):
+                timing_score = 1 
+                break
+
+        par_file.close()
+
+        if (timing_score is None):
+            print 'Failed to find timing score!'
+            clk_err = 1
+
+        if (clk_err or timing_score > 0):
+            print '\n        ******** Design does NOT meet timing! ********\n'
+            errinfo_file.write('Slack was violated.\n')
+        else:
+            print '\nDesign meets timing.'
+
+        errinfo_file.close()
+
+        # Timing failures are reported as non-fatal errors.  The error is
+        # noted but the build continues.
+        if (clk_err or timing_score > 0):
+            model.nonFatalFailures.append(str(target[0]))
+
+    return leap_physical_summary_closure

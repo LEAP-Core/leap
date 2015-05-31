@@ -2,7 +2,8 @@ import os
 import stat
 import SCons.Script
 from SCons.Errors import BuildError
-from model import  *
+import model 
+import synthesis_library
 
 #this might be better implemented as a 'Node' in scons, but 
 #I want to get something working before exploring that path
@@ -22,7 +23,7 @@ class LOADER():
     
     moduleList.topModule.moduleDependency['SIGNATURE'] = [signature]
 
-    if (getBuildPipelineDebug(moduleList) != 0):
+    if (model.getBuildPipelineDebug(moduleList) != 0):
         print  moduleList.swExeOrTarget + "\n"
 
     ##
@@ -82,52 +83,6 @@ class LOADER():
                                  stat.S_IROTH | stat.S_IXOTH)
 
       return leap_xilinx_loader_closure
-
-
-    ##
-    ## Generate a summary of the build and write a target file describing
-    ## whether the build was successful.
-    ##
-    def leap_xilinx_summary(xilinx_apm_name):
-      def leap_xilinx_summary_closure(target, source, env):
-        par_file = open(xilinx_apm_name + '.par.twr','r')
-        errinfo_file = open(str(target[0]), 'w')
-
-        timing_score = None
-        clk_err = 0
-
-        for full_line in par_file:
-          line = full_line.rstrip()
-          # do a vivado specific search.  This should be considered as a stopgap until we produce a Vivado. 
-          match = re.search(r'^Slack \(MET\)', line)
-          if (match):
-            timing_score = 0 
-
-          match = re.search(r'^Slack \(VIOLATED\)', line)
-          if (match):
-            timing_score = 1 
-            break
-
-        par_file.close()
-
-        if (timing_score is None):
-          print 'Failed to find timing score!'
-          clk_err = 1
-
-        if (clk_err or timing_score > 0):
-          print '\n        ******** Design does NOT meet timing! ********\n'
-          errinfo_file.write('Slack was violated.\n')
-        else:
-          print '\nDesign meets timing.'
-
-        errinfo_file.close()
-
-        # Timing failures are reported as non-fatal errors.  The error is
-        # noted but the build continues.
-        if (clk_err or timing_score > 0):
-            model.nonFatalFailures.append(str(target[0]))
-
-      return leap_xilinx_summary_closure
  
     loader = moduleList.env.Command(
       'config/' + moduleList.apmName + '.download',
@@ -144,7 +99,7 @@ class LOADER():
           SCons.Script.Delete(moduleList.apmName + '_hw.exe'),
           SCons.Script.Delete(moduleList.apmName + '_hw.vexe'),
           '@echo "++++++++++++ Post-Place & Route ++++++++"',
-          leap_xilinx_summary(xilinx_apm_name) ])
+          synthesis_library.leap_physical_summary(xilinx_apm_name + '.par.twr', moduleList.apmName + '_hw.errinfo', '^Slack \(MET\)', '^Slack \(VIOLATED\)') ])
     else:
       summary = moduleList.env.Command(
         moduleList.apmName + '_hw.errinfo',
@@ -152,7 +107,7 @@ class LOADER():
         [ SCons.Script.Delete(moduleList.apmName + '_hw.exe'),
           SCons.Script.Delete(moduleList.apmName + '_hw.vexe'),
           '@echo "++++++++++++ Post-Place & Route ++++++++"',
-          leap_xilinx_summary(xilinx_apm_name) ])
+          synthesis_library.leap_physical_summary(xilinx_apm_name + '.par.twr', moduleList.apmName + '_hw.errinfo', '^Slack \(MET\)', '^Slack \(VIOLATED\)') ])
 
 
 
