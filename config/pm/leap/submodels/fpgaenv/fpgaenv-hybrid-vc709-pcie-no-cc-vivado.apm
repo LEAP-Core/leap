@@ -157,7 +157,6 @@ Packagehint=leap-platforms
 File=config/pm/leap/submodels/pipelines/build-pipeline-xilinx-vivado.apm
 Packagehint=leap
 
-
 [DDR SDRAM Common Definitions]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/ddr-sdram/ddr-sdram.awb
 Packagehint=leap-platforms
@@ -192,3 +191,10 @@ Packagehint=leap-platforms
 [Virtex-7 PCIe v3 Device v3.0 (BlueNoC)]
 File=modules/bluespec/common/fpgaenv/physical-platform/physical-devices/pci-express/pcie-bluenoc-virtex7/pcie3_7x_v3_0/pcie-virtex7.awb
 Packagehint=leap-platforms
+
+[RRR Debug Module]
+File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
+Packagehint=leap
+
+[RRR Common Module/Requires]
+rrr_debug=RRR Debug Module
