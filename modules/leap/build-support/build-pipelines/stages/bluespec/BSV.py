@@ -547,7 +547,8 @@ class BSV():
                                                           synth_handle,
                                                           moduleList.localPlatformName,
                                                           moduleType=module.interfaceType,
-                                                          extraImports=module.extraImports)
+                                                          extraImports=module.extraImports,
+                                                          synthBoundaryModule = module)
                     synth_handle.close()
 
                 env.Command(synth_stub, # target
