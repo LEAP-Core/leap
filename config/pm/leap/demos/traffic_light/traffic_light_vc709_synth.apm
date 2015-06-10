@@ -1,0 +1,59 @@
+
+[Global]
+SaveParameters=0
+Description=Traffic Light from Bluespec Tutorial for vc707 w. synthesis boundary
+File=traffic_light_vc709_synth
+Version=2.2
+Name=Traffic Light Model  vc707 with synthesis boundary
+DefaultBenchmark=config/bm/leap/demos.cfx/benchmarks/null.cfg
+Type=Leap
+Class=Asim::Model
+DefaultRunOpts=
+RootName=HW/SW Hybrid Pipeline Build
+RootProvides=model
+
+[Model]
+DefaultAttributes=function_as_boundary traffic_light demo connected slave hybrid project htg
+model=HW/SW Hybrid Pipeline Build
+
+[Traffic Light System with Soft Connections]
+File=modules/leap/examples/traffic-light/traffic-light-system.awb
+Packagehint=leap
+
+[Default Software Connected Application]
+File=modules/leap/build-support/project/application-env/soft-services/default-sw/connected-application-default-sw.awb
+Packagehint=leap
+
+[Traffic Light System with Soft Connections/Requires]
+traffic_light_function=Traffic light function w. synthesis boundary
+
+[Default Software Connected Application/Requires]
+hardware_system=Traffic Light System with Soft Connections
+
+[Traffic light function w. synthesis boundary]
+File=modules/leap/examples/traffic-light/traffic-light-function/traffic-light-function-smart-synth-boundary.awb
+Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-pipeline.awb
+Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid VC709 PCIe FPGA Environment - No Memory/Central Cache (Vivado)
+application_env=Soft Services Hybrid Application Environment
+
+[Soft Services Hybrid Application Environment]
+File=modules/leap/build-support/project/application-env/soft-services/application-env-hybrid-soft-service.awb
+Packagehint=leap
+
+[Soft Services Hybrid Application Environment/Requires]
+connected_application=Default Software Connected Application
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/leap/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[Hybrid VC709 PCIe FPGA Environment - No Memory/Central Cache (Vivado)]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-vc709-pcie-no-mem-vivado.apm
+Packagehint=leap
