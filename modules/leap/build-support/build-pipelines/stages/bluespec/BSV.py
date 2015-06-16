@@ -88,10 +88,7 @@ class BSV():
 
         # we need to annotate the module list with the
         # bluespec-provided library files. Do so here.
-        if(not moduleList.getAWBParamSafe('synthesis_tool', 'USE_VIVADO_SOURCES') is None):
-            bsv_tool.decorateBluespecLibraryCodeVivado(moduleList)
-        else:
-            bsv_tool.decorateBluespecLibraryCodeBaseline(moduleList)
+        bsv_tool.decorateBluespecLibraryCode(moduleList)
 
         self.TMP_BSC_DIR = moduleList.env['DEFS']['TMP_BSC_DIR']
         self.BUILD_LOGS_ONLY = moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')

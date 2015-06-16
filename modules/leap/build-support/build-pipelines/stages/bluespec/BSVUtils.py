@@ -104,35 +104,21 @@ def getBluespecVersion():
 
     return getBluespecVersion.version
 
-## 
-## The functions below are a little ugly.  Ultimately, we should be
-## building some include path using a -y like syntax as the other EDA
-## tools do.  The code flow is most below: only an option parser is missing. 
-## 
-
 ##
-## decorateBluespecLibraryCodeBaseline --
-##     Decorates the module list with information about bluespec library files. 
+## decorateBluespecLibraryCode --
+##     Decorates the module list with information about Bluespec library files.
 ##
-def decorateBluespecLibraryCodeBaseline(moduleList):
-    bsvVerilog = get_bluespec_verilog(moduleList.env).values()
-
-    for module in moduleList.synthBoundaries():
-        model.dictionary_list_create_append(module.moduleDependency, 'VERILOG_LIB', bsvVerilog)
-
-    model.dictionary_list_create_append(moduleList.topModule.moduleDependency, 'VERILOG_LIB', bsvVerilog)
-
-
-##
-## decorateBluespecLibraryCodeVivado --
-##     Decorates the module list with information. Bluespec has a 
-##
-def decorateBluespecLibraryCodeVivado(moduleList):
+def decorateBluespecLibraryCode(moduleList):
     # get the baseline verilog
     bsvBaselineArray = get_bluespec_verilog(moduleList.env)
 
-    # now get the vivado specific verilogs
-    bsvVerilog = get_bluespec_verilog(moduleList.env, resultArray = bsvBaselineArray, filePath = 'Verilog.Vivado').values()
+    # Is there tool specific code?
+    if (not moduleList.getAWBParamSafe('synthesis_tool', 'USE_VIVADO_SOURCES') is None):
+        bsvVerilog = get_bluespec_verilog(moduleList.env, resultArray = bsvBaselineArray, filePath = 'Verilog.Vivado').values()
+    elif (not moduleList.getAWBParamSafe('synthesis_tool', 'USE_QUARTUS_SOURCES') is None):
+        bsvVerilog = get_bluespec_verilog(moduleList.env, resultArray = bsvBaselineArray, filePath = 'Verilog.Quartus').values()
+    else:
+        bsvVerilog = bsvBaselineArray
 
     for module in moduleList.synthBoundaries():
         model.dictionary_list_create_append(module.moduleDependency, 'VERILOG_LIB', bsvVerilog)
