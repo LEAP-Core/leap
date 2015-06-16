@@ -764,7 +764,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     //     Decide whether to consider the new request or side request queue
     //     this cycle.  Filtering both is too expensive.
     //
-    rule pickReqQueue (True);
+    rule pickReqQueue (metaLookupQ.notFull());
         // New requests win over side requests if there is a new request
         // and the arbiter is non-zero.  If the arbitration counter newReqArb
         // is larger than 1 bit this favors new requests over side-buffer
@@ -1484,7 +1484,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     //
     // handleFillForUncacheableRead --
     //
-    rule handleFillForUncacheableRead (!tpl_5(mafLookupQ.first()));
+    rule handleFillForUncacheableRead (!tpl_5(mafLookupQ.first()) && metaLookupQ.notFull());
         //
         // On return only claim that the newly filled words are valid.
         //
