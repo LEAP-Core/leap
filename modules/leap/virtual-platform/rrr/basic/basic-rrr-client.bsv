@@ -32,6 +32,9 @@
 import Vector::*;
 import FIFOF::*;
 
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/librl_bsv_base.bsh"
+
 `include "awb/provides/channelio.bsh"
 `include "awb/provides/rrr.bsh"
 `include "awb/provides/rrr_common.bsh"
@@ -64,14 +67,14 @@ interface ARBITED_CLIENT#(numeric type n);
 endinterface
 
 // client
-module mkRRRClient#(CHANNEL_IO#(UMF_PACKET) channel) (RRR_CLIENT);
+module [CONNECTED_MODULE] mkRRRClient#(CHANNEL_IO#(UMF_PACKET) channel) (RRR_CLIENT);
   ARBITED_CLIENT#(`NUM_SERVICES) client <- mkArbitedClient(channel.readPorts[`CLIENT_CHANNEL_ID].read,
                                                            channel.writePorts[`CLIENT_CHANNEL_ID].write);
   interface requestPorts = client.requestPorts;
   interface responsePorts = client.responsePorts;
 endmodule
 
-module mkArbitedClient#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_CLIENT#(n));
+module [CONNECTED_MODULE] mkArbitedClient#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_CLIENT#(n));
   ARBITED_CLIENT#(n) m = ?;
   if(valueof(n) > 0)
     begin
@@ -81,7 +84,7 @@ module mkArbitedClient#(function ActionValue#(UMF_PACKET) read(), function Actio
 endmodule
 
 // Doesn't work if n == 0
-module mkArbitedClientNonZero#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_CLIENT#(n));
+module [CONNECTED_MODULE] mkArbitedClientNonZero#(function ActionValue#(UMF_PACKET) read(), function Action write(UMF_PACKET data)) (ARBITED_CLIENT#(n));
 
     // ==============================================================
     //                        Ports and Queues
