@@ -1396,7 +1396,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             
             if (wReq matches tagged WRITE_LINE .w_line_req) //write the entire line
             begin
-                new_word_valid = w_line_req.wordValidMask;
+                new_word_valid = unpack(pack(way_meta.wordValid) | pack(w_line_req.wordValidMask));
             end
             else if (wReq matches tagged WRITE_WORD .w_word_req)
             begin
