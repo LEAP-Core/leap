@@ -118,7 +118,8 @@ def decorateBluespecLibraryCode(moduleList):
     elif (not moduleList.getAWBParamSafe('synthesis_tool', 'USE_QUARTUS_SOURCES') is None):
         bsvVerilog = get_bluespec_verilog(moduleList.env, resultArray = bsvBaselineArray, filePath = 'Verilog.Quartus').values()
     else:
-        bsvVerilog = bsvBaselineArray
+        bsvVerilog = bsvBaselineArray.values()
+
 
     for module in moduleList.synthBoundaries():
         model.dictionary_list_create_append(module.moduleDependency, 'VERILOG_LIB', bsvVerilog)
