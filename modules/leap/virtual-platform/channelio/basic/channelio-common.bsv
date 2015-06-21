@@ -32,6 +32,7 @@
 import FIFOF::*;
 import Vector::*;
 
+`include "awb/provides/soft_connections.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/umf.bsh"
 
@@ -50,7 +51,7 @@ interface CHANNEL_VIRTUALIZER#(numeric type read_channels, numeric type write_ch
 endinterface
 
 // channelio module
-module mkChannelVirtualizer#(function ActionValue#(umf_chunk) read(), function Action write(umf_chunk data)) (CHANNEL_VIRTUALIZER#(reads,writes, 
+module [CONNECTED_MODULE] mkChannelVirtualizer#(function ActionValue#(umf_chunk) read(), function Action write(umf_chunk data)) (CHANNEL_VIRTUALIZER#(reads,writes, 
           GENERIC_UMF_PACKET#(GENERIC_UMF_PACKET_HEADER#(
                            umf_channel_id, umf_service_id,
                            umf_method_id,  umf_message_len,
@@ -111,7 +112,7 @@ module mkChannelVirtualizer#(function ActionValue#(umf_chunk) read(), function A
 
                         endmethod
                     endinterface;
-    end		    
+    end
 
     for (Integer i = 0; i < valueof(writes); i = i+1)
     begin

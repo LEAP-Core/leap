@@ -34,6 +34,7 @@ import Vector::*;
 
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/physical_channel.bsh"
+`include "awb/provides/soft_connections.bsh"
 `include "awb/provides/umf.bsh"
 
 
@@ -44,7 +45,10 @@ interface CHANNEL_IO#(type umf_packet);
     interface Vector#(`CIO_NUM_CHANNELS, CIOWritePort#(umf_packet)) writePorts;
 endinterface
 
-module mkChannelIO#(PHYSICAL_DRIVERS drivers) (CHANNEL_IO#(UMF_PACKET));
+module [CONNECTED_MODULE] mkChannelIO#(PHYSICAL_DRIVERS drivers)
+    // Interface:
+    (CHANNEL_IO#(UMF_PACKET));
+
     PHYSICAL_CHANNEL physicalChannel <- mkPhysicalChannel(drivers);
     CHANNEL_VIRTUALIZER#(`CIO_NUM_CHANNELS, `CIO_NUM_CHANNELS, UMF_PACKET) channelVirtualizer <- mkChannelVirtualizer(physicalChannel.read,physicalChannel.write);
     interface  readPorts = channelVirtualizer.readPorts();   
