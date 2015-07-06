@@ -330,7 +330,6 @@ RL_DM_CACHE_WRITE_REQ#(type t_CACHE_ADDR,
                        type t_CACHE_IDX)
     deriving (Eq, Bits);
 
-
 // ===================================================================
 //
 // Cache implementation
@@ -339,12 +338,112 @@ RL_DM_CACHE_WRITE_REQ#(type t_CACHE_ADDR,
 
 //
 // mkCacheDirectMapped --
-//   n_ENTRIES parameter defines the number of entries in the cache.  The true
-//   number of entries will be rounded up to a power of 2.
+//    A thin wrapper allowing us to make parameterization decisions about the actual cache (implemented below).  Here,
+//    we examine the requested cache size, and parameterize an implementation on behalf of the programmer.
+//    n_ENTRIES parameter defines the number of entries in the cache.  The true number of entries will be rounded
+//    up to a supported cache size.
 //
 module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, RL_DM_CACHE_READ_META#(t_CACHE_READ_META)) sourceData,
                                 CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_READ_META) prefetcher,
-                                NumTypeParam#(n_ENTRIES) dummy,
+                                NumTypeParam#(n_ENTRIES) entries,
+                                // These parameters allow us to support non-power of two caches
+                                Bool hashAddresses,
+                                Bool enMaskedWrite, // enable masked write support
+                                DEBUG_FILE debugLog)
+    // interface:
+    (RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_READ_META))
+    provisos (IsModule#(m, m__),
+              Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
+              Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
+              Bits#(t_CACHE_MASK, t_CACHE_MASK_SZ),
+              Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
+
+              // Entry index.  Round n_ENTRIES request up to a power of 2.
+              Log#(n_ENTRIES, t_CACHE_IDX_SZ),
+              NumAlias#(TExp#(t_CACHE_IDX_SZ), n_MAX_ENTRIES),
+              Alias#(RL_DM_CACHE_IDX#(t_CACHE_IDX_SZ), t_CACHE_IDX),
+
+              Alias#(Bit#(TSub#(t_CACHE_IDX_SZ, n_LOAD_BALANCE_BASE_BITS)), t_LOAD_BALANCE_RANGE_BITS),
+              Alias#(Bit#(TAdd#(n_LOAD_BALANCE_EXTRA_BITS, SizeOf#(t_LOAD_BALANCE_RANGE_BITS))), t_LOAD_BALANCE_DOMAIN_BITS),
+
+              Alias#(Bit#(n_LOAD_BALANCE_BASE_BITS), t_LOAD_BALANCE_BASE_BITS),
+
+              // Tag is the address bits other than the entry index
+              Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, n_LOAD_BALANCE_BASE_BITS)), t_CACHE_TAG),
+              Alias#(Maybe#(RL_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG)), t_CACHE_ENTRY),
+
+              Bits#(t_CACHE_TAG, t_CACHE_TAG_SZ));
+
+    RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_READ_META) cache = ?;
+
+    // Here, we examine n_ENTRIES, and develop different cache implementations
+    // based on how close this value is to the next power of two
+    messageM("n_Entries:" + integerToString(valueof(n_ENTRIES)));
+    messageM("n_MAX_Entries:" + integerToString(valueof(n_MAX_ENTRIES)));
+    if(valueof(n_ENTRIES) > 7 * valueof(n_MAX_ENTRIES) / 8)
+    begin
+        // Build power of two cache
+        messageM("Building Full sized cache");
+        NumTypeParam#(0) loadBalanceExtraBits = ?;
+        NumTypeParam#(t_CACHE_IDX_SZ) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 1;
+
+        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+
+    end
+    else if(valueof(n_ENTRIES) > 3 * valueof(n_MAX_ENTRIES) / 4)
+    begin
+        messageM("Building 7/8 sized cache");
+        NumTypeParam#(4) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 6;
+
+        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+    end
+    else if(valueof(n_ENTRIES) > 5 * valueof(n_MAX_ENTRIES) / 8)
+    begin
+
+        // Build 3/4 power of two cache
+        messageM("Building 3/4 sized cache");
+        NumTypeParam#(4) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,2)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 2;
+
+        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+    end
+    else
+    begin
+        // Build 5/8 power of two cache
+        messageM("Building 5/8 sized cache");
+        NumTypeParam#(4) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 4;
+
+        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+    end
+
+    return cache;
+endmodule
+
+
+// ===================================================================
+//
+// Cache implementation
+//
+// ===================================================================
+
+//
+// mkCacheDirectMappedBalanced --
+//   A cache implementing an optional load-balancer functionality for non-power of two caches.
+//
+module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, RL_DM_CACHE_READ_META#(t_CACHE_READ_META)) sourceData,
+                                CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_READ_META) prefetcher,
+                                NumTypeParam#(n_ENTRIES) entries,
+                                // These parameters allow us to support non-power of two caches
+                                // via a load balancing technique.
+                                NumTypeParam#(n_LOAD_BALANCE_EXTRA_BITS) loadBalanceExtraBits,
+                                NumTypeParam#(n_LOAD_BALANCE_BASE_BITS) loadBalanceBaseBits,
+                                Integer maxLoadBalanceIndex,
                                 Bool hashAddresses,
                                 Bool enMaskedWrite, // enable masked write support
                                 DEBUG_FILE debugLog)
@@ -360,8 +459,13 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
               Log#(n_ENTRIES, t_CACHE_IDX_SZ),
               Alias#(RL_DM_CACHE_IDX#(t_CACHE_IDX_SZ), t_CACHE_IDX),
 
+              Alias#(Bit#(TSub#(t_CACHE_IDX_SZ, n_LOAD_BALANCE_BASE_BITS)), t_LOAD_BALANCE_RANGE_BITS),
+              Alias#(Bit#(TAdd#(n_LOAD_BALANCE_EXTRA_BITS, SizeOf#(t_LOAD_BALANCE_RANGE_BITS))), t_LOAD_BALANCE_DOMAIN_BITS),
+
+              Alias#(Bit#(n_LOAD_BALANCE_BASE_BITS), t_LOAD_BALANCE_BASE_BITS),
+
               // Tag is the address bits other than the entry index
-              Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, t_CACHE_IDX_SZ)), t_CACHE_TAG),
+              Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, n_LOAD_BALANCE_BASE_BITS)), t_CACHE_TAG),
               Alias#(Maybe#(RL_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG)), t_CACHE_ENTRY),
 
               // Write Heap Index
@@ -370,10 +474,20 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
        
               Alias#(RL_DM_CACHE_WRITE_REQ#(t_CACHE_ADDR, t_CACHE_READ_META, t_WRITE_HEAP_IDX, t_CACHE_TAG, t_CACHE_IDX), t_CACHE_REQ),
               Alias#(RL_DM_CACHE_LOAD_RESP#(t_CACHE_WORD, t_CACHE_READ_META), t_CACHE_LOAD_RESP),
-              
+
+
               // Required by the compiler:
               Bits#(t_CACHE_LOAD_RESP, t_CACHE_LOAD_RESP_SZ),
               Bits#(t_CACHE_TAG, t_CACHE_TAG_SZ));
+
+    function Integer doMod(Integer modEnd);
+        return modEnd % (maxLoadBalanceIndex + 1);
+    endfunction
+
+    function t_LOAD_BALANCE_RANGE_BITS calculateLoadBalanceIndex(t_LOAD_BALANCE_DOMAIN_BITS index);
+        Vector#(TExp#(SizeOf#(t_LOAD_BALANCE_DOMAIN_BITS)), Integer) loadBalancer = map(doMod, genVector());
+        return fromInteger(loadBalancer[index]);
+    endfunction
    
     if (valueOf(t_CACHE_READ_META_SZ) < valueOf(RL_DM_WRITE_DATA_HEAP_IDX_SZ))
     begin
@@ -390,15 +504,20 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     if (unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_FLAT_BRAM)
     begin
         // Cache implemented as a single BRAM
-        cache <- mkBRAMInitialized(tagged Invalid);
+        cache <- mkBRAMInitializedSized(tagged Invalid, valueof(n_ENTRIES));
     end
     else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_BANKED_BRAM)
     begin
         // Cache implemented as 4 BRAM banks with I/O buffering to allow
         // more time to reach memory.
         NumTypeParam#(4) p_banks = ?;
+        
+        // Notice that we must choose MEM_BANK_SELECTOR_BITS_LOW
+        // here. Choosing the high bits will not work if we have a
+        // non-power-of-2 cache.
+
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
-                                 mkBRAMInitializedBuffered(tagged Invalid));
+                                 mkBRAMInitializedSizedBuffered(tagged Invalid,valueof(n_ENTRIES)/4));
     end
     else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_CLOCK_DIVIDED_BRAM)
     begin
@@ -411,7 +530,11 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
         //   1. It adds a fully scheduled stage (without conservative conditions)
         //      that allows requests to go to banks that aren't busy.
         //   2. Buffering supports long wires.
-        let cache_slow = mkSlowMemoryM(mkBRAMInitializedClockDivider(tagged Invalid), True);
+        let cache_slow = mkSlowMemoryM(mkBRAMInitializedSizedClockDivider(tagged Invalid, valueof(n_ENTRIES)/8), True);
+
+        // Notice that we must choose MEM_BANK_SELECTOR_BITS_LOW
+        // here. Choosing the high bits will not work if we have a
+        // non-power-of-2 cache.
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, cache_slow);
     end
     else 
@@ -461,12 +584,12 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     FIFO#(t_CACHE_LOAD_RESP) readRespQ <- mkBypassFIFO();
     
     // Wires for communicating stats
-    PulseWire readHitW         <- mkPulseWire();
-    PulseWire dirtyEntryFlushW <- mkPulseWire();
-    PulseWire readMissW        <- mkPulseWire();
-    PulseWire writeHitW        <- mkPulseWire();
-    PulseWire writeMissW       <- mkPulseWire();
-    PulseWire forceInvalLineW  <- mkPulseWire();
+    PulseWire readHitW          <- mkPulseWire();
+    PulseWire dirtyEntryFlushW  <- mkPulseWire();
+    PulseWire readMissW         <- mkPulseWire();
+    PulseWire writeHitW         <- mkPulseWire();
+    PulseWire writeMissW        <- mkPulseWire();
+    PulseWire forceInvalLineW   <- mkPulseWire();
 
     //
     // Convert address to cache index and tag
@@ -474,13 +597,20 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     function Tuple2#(t_CACHE_TAG, t_CACHE_IDX) cacheEntryFromAddr(t_CACHE_ADDR addr);
         let a = hashAddresses ? hashBits(pack(addr)) : pack(addr);
 
-        // The truncateNP avoids having to assert a tautology about the relative
-        // sizes.  All objects are actually the same size.
-        return unpack(truncateNP(a));
+        Tuple2#(t_CACHE_TAG, t_LOAD_BALANCE_BASE_BITS) addrSplit = unpack(truncateNP(a));
+        match {.tag, .baseBits} = addrSplit;
+
+        // Calculate the load balancer index bits
+        t_LOAD_BALANCE_DOMAIN_BITS balancerBits = truncateNP(tag);
+        let balancedIndex = calculateLoadBalanceIndex(balancerBits);
+
+        return tuple2(tag, unpack({balancedIndex, baseBits}));
     endfunction
 
     function t_CACHE_ADDR cacheAddrFromEntry(t_CACHE_TAG tag, t_CACHE_IDX idx);
-        t_CACHE_ADDR a = unpack(zeroExtendNP({tag, pack(idx)}));
+
+        t_LOAD_BALANCE_BASE_BITS indexBaseBits = truncateNP(pack(idx));
+        t_CACHE_ADDR a = unpack(zeroExtendNP({tag, indexBaseBits}));
 
         // Are addresses hashed or direct?  The original hash is reversible.
         if (hashAddresses)
