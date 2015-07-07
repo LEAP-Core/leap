@@ -103,9 +103,6 @@ rrr_common=RRR Common Module
 File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-null.awb
 Packagehint=leap
 
-[Airblue 1.0 Cyclone III JTAG Mapping]
-File=modules/bluespec/common/fpgaenv/physical-platform/airblue_cycloneiii/airblue_cycloneiii-jtag.awb
-Packagehint=leap-platforms
 
 [RL Bluespec Library Submodel]
 File=config/pm/leap/submodels/common/librl-bsv.apm
@@ -136,10 +133,10 @@ Packagehint=leap-platforms
 
 [Generic Altera JTAG/Requires]
 clocks_device=Single-Ended Crystal Clocks Device
-altera_jtag_physical_mapping=Airblue 1.0 Cyclone III JTAG Mapping
 physical_platform_utils=Common Physical Platform Utilities
 led_device=General LED Device
 jtag_device=Altera JTAG
+physical_platform_config=DE3 Dev Board JTAG Mapping
 
 [Standard Virtual Devices Submodel]
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
@@ -150,7 +147,7 @@ avalon=Avalon Bus Intefaces
 
 [Avalon Bus Intefaces]
 File=modules/leap-platforms-altera/bluespec/Avalon/src/avalon.awb
-Packagehint=leap-altera
+Packagehint=leap-platforms-altera
 
 [FPGA Build Pipeline Altera (Synplify)]
 File=config/pm/leap/submodels/pipelines/build-pipeline-altera-synplify.apm
@@ -162,3 +159,7 @@ Packagehint=leap
 
 [RRR Common Module/Requires]
 rrr_debug=RRR Debug Module
+
+[DE3 Dev Board JTAG Mapping]
+File=modules/bluespec/common/fpgaenv/physical-platform/altera_jtag/jtag/de3/altera-de3-jtag.awb
+Packagehint=leap-platforms
