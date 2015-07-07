@@ -68,6 +68,8 @@ import Vector::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/ddr_sdram_device.bsh"
 
+`include "awb/provides/local_mem_interface.bsh"
+
 
 //
 // mkLocalMem --

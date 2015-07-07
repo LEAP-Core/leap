@@ -180,10 +180,16 @@ Packagehint=leap
 File=config/pm/leap/submodels/virtual-devices/std-virtual-devices.apm
 Packagehint=leap
 
-
 [RRR Debug Module]
 File=modules/leap/virtual-platform/rrr/rrr-common/rrr-debug.awb
 Packagehint=leap
 
 [RRR Common Module/Requires]
 rrr_debug=RRR Debug Module
+
+[NULL Local Memory Interface/Requires]
+local_mem_interface=Local Memory Interface
+
+[Local Memory Interface]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-interface/local-mem-interface.awb
+Packagehint=leap

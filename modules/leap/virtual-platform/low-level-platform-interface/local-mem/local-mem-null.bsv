@@ -38,6 +38,9 @@ import List::*;
 `include "awb/provides/physical_platform.bsh"
 `include "awb/provides/fpga_components.bsh"
 
+typedef `LOCAL_MEM_ADDR_BITS LOCAL_MEM_ADDR_SZ;
+`include "awb/provides/local_mem_interface.bsh"
+
 
 //
 // platformHasLocalMem --
@@ -51,8 +54,6 @@ function Bool platformHasLocalMem() = False;
 //
 // Define a dummy local memory interface.
 //
-
-typedef `LOCAL_MEM_ADDR_BITS LOCAL_MEM_ADDR_SZ;
 
 module mkLocalMem
     // interface:

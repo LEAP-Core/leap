@@ -150,7 +150,7 @@ avalon=Avalon Bus Intefaces
 
 [Avalon Bus Intefaces]
 File=modules/leap-platforms-altera/bluespec/Avalon/src/avalon.awb
-Packagehint=leap-altera
+Packagehint=leap-platforms-altera
 
 [Single-Ended Crystal Clocks Device/Params]
 MODEL_CLOCK_FREQ=50
@@ -165,3 +165,10 @@ Packagehint=leap
 
 [RRR Common Module/Requires]
 rrr_debug=RRR Debug Module
+
+[NULL Local Memory Interface/Requires]
+local_mem_interface=Local Memory Interface
+
+[Local Memory Interface]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-interface/local-mem-interface.awb
+Packagehint=leap

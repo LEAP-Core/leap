@@ -1,0 +1,7 @@
+Definition of the common interface for all local memory implementations.
+
+The interface is a BSH file instead of a BSV file because it requires some
+platform specific types that are defined in platform-specific local_mem
+implementations.  To avoid a circular dependence between the interface and
+the platform-specific code the platform-specific code includes the interface
+definition once all required types are defined.

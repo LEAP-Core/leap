@@ -2,10 +2,10 @@
 %desc Local Memory Interface using BRAM
 
 %provides local_mem
+%requires local_mem_interface
 
 %notes README
 
-%public local-mem-interface.bsv
 %public local-mem-bram.bsv
 
 %param LOCAL_MEM_ADDR_BITS      21  "Local memory address size (address indexes words)"
