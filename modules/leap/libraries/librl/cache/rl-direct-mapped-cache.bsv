@@ -346,7 +346,7 @@ RL_DM_CACHE_WRITE_REQ#(type t_CACHE_ADDR,
 module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, RL_DM_CACHE_READ_META#(t_CACHE_READ_META)) sourceData,
                                 CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_READ_META) prefetcher,
                                 NumTypeParam#(n_ENTRIES) entries,
-                                // These parameters allow us to support non-power of two caches
+                                Maybe#(RL_CACHE_STORE_TYPE) cacheImplementation,
                                 Bool hashAddresses,
                                 Bool enMaskedWrite, // enable masked write support
                                 DEBUG_FILE debugLog)
@@ -377,49 +377,89 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
     RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_READ_META) cache = ?;
 
     // Here, we examine n_ENTRIES, and develop different cache implementations
-    // based on how close this value is to the next power of two
-    messageM("n_Entries:" + integerToString(valueof(n_ENTRIES)));
-    messageM("n_MAX_Entries:" + integerToString(valueof(n_MAX_ENTRIES)));
+    // based on how close this value is to the next power of two.  
     if(valueof(n_ENTRIES) > 7 * valueof(n_MAX_ENTRIES) / 8)
     begin
         // Build power of two cache
-        messageM("Building Full sized cache");
         NumTypeParam#(0) loadBalanceExtraBits = ?;
         NumTypeParam#(t_CACHE_IDX_SZ) loadBalanceBaseBits = ?;
         Integer maxLoadBalanceIndex = 1;
 
-        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+        cache <- mkCacheDirectMappedBalanced(sourceData, 
+                                             prefetcher, 
+                                             entries, 
+                                             cacheImplementation,
+                                             loadBalanceExtraBits, 
+                                             loadBalanceBaseBits, 
+                                             maxLoadBalanceIndex, 
+                                             hashAddresses, 
+                                             enMaskedWrite, 
+                                             debugLog);
 
     end
     else if(valueof(n_ENTRIES) > 3 * valueof(n_MAX_ENTRIES) / 4)
     begin
-        messageM("Building 7/8 sized cache");
-        NumTypeParam#(4) loadBalanceExtraBits = ?;
+        // Build 7/8 power of two cache
+
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMax#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
         NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
         Integer maxLoadBalanceIndex = 6;
 
-        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+        cache <- mkCacheDirectMappedBalanced(sourceData, 
+                                             prefetcher, 
+                                             entries, 
+                                             cacheImplementation,
+                                             loadBalanceExtraBits, 
+                                             loadBalanceBaseBits, 
+                                             maxLoadBalanceIndex, 
+                                             hashAddresses, 
+                                             enMaskedWrite, 
+                                             debugLog);
     end
     else if(valueof(n_ENTRIES) > 5 * valueof(n_MAX_ENTRIES) / 8)
     begin
 
         // Build 3/4 power of two cache
-        messageM("Building 3/4 sized cache");
-        NumTypeParam#(4) loadBalanceExtraBits = ?;
+
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMax#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
         NumTypeParam#(TSub#(t_CACHE_IDX_SZ,2)) loadBalanceBaseBits = ?;
         Integer maxLoadBalanceIndex = 2;
 
-        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+        cache <- mkCacheDirectMappedBalanced(sourceData, 
+                                             prefetcher, 
+                                             entries, 
+                                             cacheImplementation,
+                                             loadBalanceExtraBits, 
+                                             loadBalanceBaseBits, 
+                                             maxLoadBalanceIndex, 
+                                             hashAddresses, 
+                                             enMaskedWrite, 
+                                             debugLog);
     end
     else
     begin
         // Build 5/8 power of two cache
-        messageM("Building 5/8 sized cache");
-        NumTypeParam#(4) loadBalanceExtraBits = ?;
+ 
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMax#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
         NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
         Integer maxLoadBalanceIndex = 4;
 
-        cache <- mkCacheDirectMappedBalanced(sourceData, prefetcher, entries, loadBalanceExtraBits, loadBalanceBaseBits, maxLoadBalanceIndex, hashAddresses, enMaskedWrite, debugLog);
+        cache <- mkCacheDirectMappedBalanced(sourceData, 
+                                             prefetcher, 
+                                             entries, 
+                                             cacheImplementation,
+                                             loadBalanceExtraBits, 
+                                             loadBalanceBaseBits,  
+                                             maxLoadBalanceIndex, 
+                                             hashAddresses, 
+                                             enMaskedWrite, 
+                                             debugLog);
     end
 
     return cache;
@@ -439,12 +479,13 @@ endmodule
 module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, RL_DM_CACHE_READ_META#(t_CACHE_READ_META)) sourceData,
                                 CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_READ_META) prefetcher,
                                 NumTypeParam#(n_ENTRIES) entries,
+                                Maybe#(RL_CACHE_STORE_TYPE) cacheImplementation,
                                 // These parameters allow us to support non-power of two caches
                                 // via a load balancing technique.
                                 NumTypeParam#(n_LOAD_BALANCE_EXTRA_BITS) loadBalanceExtraBits,
                                 NumTypeParam#(n_LOAD_BALANCE_BASE_BITS) loadBalanceBaseBits,
-                                Integer maxLoadBalanceIndex,
-                                Bool hashAddresses,
+                                Integer maxLoadBalanceIndex,                                 
+                                Bool hashAddresses, // should we hash cache addresses?
                                 Bool enMaskedWrite, // enable masked write support
                                 DEBUG_FILE debugLog)
     // interface:
@@ -501,12 +542,19 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     // Cache data and tag
     MEMORY_IFC#(t_CACHE_IDX, t_CACHE_ENTRY) cache = ?;
     
-    if (unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_FLAT_BRAM)
+    // Decide the sort of cache that we will implement. 
+    RL_CACHE_STORE_TYPE storeType = unpack(`RL_DM_CACHE_BRAM_TYPE);
+    if(cacheImplementation matches tagged Valid .overrideStoreType)
+    begin 
+        storeType = overrideStoreType;
+    end
+
+    if (storeType == RL_CACHE_STORE_FLAT_BRAM)
     begin
         // Cache implemented as a single BRAM
         cache <- mkBRAMInitializedSized(tagged Invalid, valueof(n_ENTRIES));
     end
-    else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_BANKED_BRAM)
+    else if(storeType == RL_CACHE_STORE_BANKED_BRAM)
     begin
         // Cache implemented as 4 BRAM banks with I/O buffering to allow
         // more time to reach memory.
@@ -517,9 +565,9 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         // non-power-of-2 cache.
 
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
-                                 mkBRAMInitializedSizedBuffered(tagged Invalid,valueof(n_ENTRIES)/4));
+                                 mkBRAMInitializedSizedBuffered(tagged Invalid, valueof(n_ENTRIES)/4));
     end
-    else if(unpack(`RL_DM_CACHE_BRAM_TYPE) == RL_CACHE_STORE_CLOCK_DIVIDED_BRAM)
+    else if(storeType == RL_CACHE_STORE_CLOCK_DIVIDED_BRAM)
     begin
         // Cache implemented as 8 half-speed BRAM banks.  We assume that
         // the cache is quite large in order to justify half-speed BRAM.

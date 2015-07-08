@@ -172,6 +172,7 @@ module [CONNECTED_MODULE] mkCentralCacheClient#(Integer cacheID,
         pvtCache <- mkCacheDirectMapped(centralCacheConnection,
                                         prefetcher,
                                         nEntries,
+                                        tagged Invalid,
                                         hashLocalCacheAddrs,
                                         False,
                                         debugLog);

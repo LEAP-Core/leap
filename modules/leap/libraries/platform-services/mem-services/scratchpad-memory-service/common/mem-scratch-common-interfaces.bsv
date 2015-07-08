@@ -129,6 +129,13 @@ typedef struct
 
     // Enable prefetching in scratchpad's private cache
     Maybe#(Bool) enablePrefetching;
+
+    // Allows programmer to select private cache implementation of scratchpad. 
+    // If none is selected, then the global default, set in librl, will be used. 
+    Maybe#(RL_CACHE_STORE_TYPE) privateCacheImplementation;
+
+    // Enable address hashing for the scratchpad
+    Bool enableAddressHashing;
     
     // Enable the request merging optimization to merge multiple read requests
     // accessing the same scratchpad internal address
@@ -152,6 +159,7 @@ instance DefaultValue#(SCRATCHPAD_CONFIG);
         backingStore: unpack(`RL_DM_CACHE_BRAM_TYPE),
         initFilePath: tagged Invalid,
         enablePrefetching: tagged Invalid,
+        enableAddressHashing: True,
         requestMerging: False,
         debugLogPath: tagged Invalid,
         enableStatistics: tagged Invalid
