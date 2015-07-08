@@ -29,6 +29,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+`include "awb/provides/local_mem_params.bsh"
+
 //
 // Standard interface to local memory.  Implementations of local memory
 // are in the local-mem subdirectory.

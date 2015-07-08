@@ -2,10 +2,10 @@
 %desc Local Memory using DDR DRAM (burst holds at least one line)
 
 %provides local_mem
+%requires local_mem_interface
 
 %notes README
 
-%public local-mem-interface.bsv
 %public local-mem-ddr-common.bsv
 %public local-mem-ddr-wide.bsv
 

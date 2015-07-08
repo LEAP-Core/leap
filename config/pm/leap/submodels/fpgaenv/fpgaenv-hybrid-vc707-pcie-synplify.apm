@@ -200,3 +200,9 @@ Packagehint=leap-platforms
 ddr_sdram_xilinx_v23_config=VC707 DDR3 SDRAM Configuration
 
 
+[Local Memory using DDR DRAM (burst holds at least one line)/Requires]
+local_mem_interface=Local Memory Interface
+
+[Local Memory Interface]
+File=modules/leap/virtual-platform/low-level-platform-interface/local-mem/local-mem-interface/local-mem-interface.awb
+Packagehint=leap

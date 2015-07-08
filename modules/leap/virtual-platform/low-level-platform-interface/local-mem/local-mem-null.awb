@@ -2,10 +2,10 @@
 %desc NULL Local Memory Interface
 
 %provides local_mem
+%requires local_mem_interface
 
 %notes README
 
-%public local-mem-interface.bsv
 %public local-mem-null.bsv
 
 // Dummy Values

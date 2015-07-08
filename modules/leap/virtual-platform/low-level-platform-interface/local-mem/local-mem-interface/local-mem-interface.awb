@@ -1,0 +1,8 @@
+%name Local Memory Interface
+%desc Local Memory Interface
+
+%provides local_mem_interface
+
+%notes README
+
+%public local-mem-interface.bsh
