@@ -209,6 +209,7 @@ typedef struct
     Bool                      isCacheable;
     Bool                      retry;
     Bool                      getsFwd;
+    Bool                      fromCache;
     RL_CACHE_GLOBAL_READ_META globalReadMeta;
 }
 COH_DM_CACHE_FILL_RESP#(type t_CACHE_WORD,
@@ -602,20 +603,24 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     // Wires for communicating stats
     PulseWire readHitW              <- mkPulseWire();
     PulseWire readMissW             <- mkPulseWire();
+    PulseWire readInvalMissW        <- mkPulseWire();
     PulseWire writeHitW             <- mkPulseWire();
     PulseWire writeCacheMissW       <- mkPulseWire();
     PulseWire writePermissionMissSW <- mkPulseWire();
     PulseWire writePermissionMissOW <- mkPulseWire();
-    // PulseWire selfInvalW           <- mkPulseWire();
+    PulseWire writeInvalMissW       <- mkPulseWire();
+    // PulseWire selfInvalW         <- mkPulseWire();
     PulseWire selfDirtyFlushW       <- mkPulseWire();
     PulseWire selfCleanFlushW       <- mkPulseWire();
     PulseWire coherenceInvalW       <- mkPulseWire();
     PulseWire coherenceFlushW       <- mkPulseWire();
-    // PulseWire forceInvalLineW      <- mkPulseWire();
-    // PulseWire forceFlushLineW      <- mkPulseWire();
+    // PulseWire forceInvalLineW    <- mkPulseWire();
+    // PulseWire forceFlushLineW    <- mkPulseWire();
     PulseWire getsUncacheableW      <- mkPulseWire();
     PulseWire imUpgradeW            <- mkPulseWire();
     PulseWire ioUpgradeW            <- mkPulseWire();
+    PulseWire respFromCacheW        <- mkPulseWire();
+    PulseWire respFromMemoryW       <- mkPulseWire();
 
     //
     // Convert address to cache index and tag
@@ -1316,10 +1321,11 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         Bool need_bypass     = False;
         Bool need_writeback  = False;
         t_MSHR_IDX mshr_idx  = truncateNP(idx);
+        Bool isInvalMiss     = False;
 
-        if (cur_entry.state != COH_DM_CACHE_STATE_I)
+        if (cur_entry.tag == tag) // Tag match!
         begin
-            if (cur_entry.tag == tag) // Hit!
+            if (cur_entry.state != COH_DM_CACHE_STATE_I) // Hit!
             begin
                 debugLog.record($format("    Cache: localLookupRead: HIT addr=0x%x, entry=0x%x, state=%d, val=0x%x", r.addr, idx, cur_entry.state, cur_entry.val));
                 // Ignore prefetch hit response and prefetch hit status
@@ -1345,30 +1351,34 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                 need_fill = False;
                 numFreedSlots.wset(2);
             end
-            else if ((cur_entry.state == COH_DM_CACHE_STATE_O) || (cur_entry.state == COH_DM_CACHE_STATE_M))
+            else if (!f.readMeta.isLocalPrefetch) // Miss due to a previous coherence invalidation
             begin
-                // Miss.  Need to flush old data
-                // Check if MSHR has available spots
-                if (mshr.entryAvailable(mshr_idx))
+                isInvalMiss = True;
+            end
+        end
+        else if ((cur_entry.state == COH_DM_CACHE_STATE_O) || (cur_entry.state == COH_DM_CACHE_STATE_M))
+        begin
+            // Miss.  Need to flush old data
+            // Check if MSHR has available spots
+            if (mshr.entryAvailable(mshr_idx))
+            begin
+                let old_addr = cacheAddrFromEntry(cur_entry.tag, idx);
+                debugLog.record($format("    Cache: localLookupRead: FLUSH addr=0x%x, entry=0x%x, val=0x%x, dirty=%s", 
+                                old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
+                // Write back old data
+                let clean_write_back = (cacheMode == COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty; 
+                let is_exclusive = (cur_entry.state == COH_DM_CACHE_STATE_M);
+                sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
+                mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
+                need_writeback = True;
+                writebackStatusBits.upd(idx, True);
+                if (clean_write_back)
                 begin
-                    let old_addr = cacheAddrFromEntry(cur_entry.tag, idx);
-                    debugLog.record($format("    Cache: localLookupRead: FLUSH addr=0x%x, entry=0x%x, val=0x%x, dirty=%s", 
-                                    old_addr, idx, cur_entry.val, cur_entry.dirty? "True" : "False"));
-                    // Write back old data
-                    let clean_write_back = (cacheMode == COH_DM_MODE_CLEAN_WRITE_BACK) && !cur_entry.dirty; 
-                    let is_exclusive = (cur_entry.state == COH_DM_CACHE_STATE_M);
-                    sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
-                    mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
-                    need_writeback = True;
-                    writebackStatusBits.upd(idx, True);
-                    if (clean_write_back)
-                    begin
-                        selfCleanFlushW.send();
-                    end
-                    else
-                    begin
-                        selfDirtyFlushW.send();
-                    end
+                    selfCleanFlushW.send();
+                end
+                else
+                begin
+                    selfDirtyFlushW.send();
                 end
             end
         end
@@ -1385,6 +1395,10 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                     prefetcher.readMiss(idx, r.addr,
                                         f.readMeta.isLocalPrefetch,
                                         f.readMeta.clientReadMeta);
+                end
+                if (isInvalMiss)
+                begin
+                    readInvalMissW.send();
                 end
                 upd_entry = COH_DM_CACHE_ENTRY { tag: tag,
                                                  val: ?,
@@ -1518,6 +1532,10 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                 end
                 else
                 begin
+                    if (cur_entry.tag == tag)
+                    begin
+                        writeInvalMissW.send();
+                    end
                     debugLog.record($format("    Cache: doLocalWrite: Cacheline MISS addr=0x%x, entry=0x%x", r.addr, idx));
                     writeCacheMissW.send();
                 end
@@ -1738,6 +1756,15 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     rule recvNwResp (True);
         let f <- sourceData.getResp();
         mshr.recvResp(f);
+        
+        if (f.fromCache)
+        begin
+            respFromCacheW.send();
+        end
+        else
+        begin
+            respFromMemoryW.send();
+        end
     endrule
 
     //
@@ -1978,10 +2005,12 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     interface COH_CACHE_STATS stats;
         method Bool readHit() = readHitW;
         method Bool readMiss() = readMissW;
+        method Bool readInvalMiss() = readInvalMissW;
         method Bool writeHit() = writeHitW;
         method Bool writeCacheMiss() = writeCacheMissW;
         method Bool writePermissionMissS () = writePermissionMissSW;
         method Bool writePermissionMissO () = writePermissionMissOW;
+        method Bool writeInvalMiss() = writeInvalMissW;
         method Bool invalEntry() = False;
         method Bool dirtyEntryFlush() = selfDirtyFlushW;
         method Bool cleanEntryFlush() = selfCleanFlushW;
@@ -1994,6 +2023,8 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         method Bool getsUncacheable() = getsUncacheableW;
         method Bool imUpgrade() = imUpgradeW;
         method Bool ioUpgrade() = ioUpgradeW;
+        method Bool respFromCache() = respFromCacheW;
+        method Bool respFromMemory() = respFromMemoryW;
     endinterface
 
 endmodule

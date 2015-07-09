@@ -310,6 +310,7 @@ typedef struct
     RL_CACHE_GLOBAL_READ_META   globalReadMeta;
     Bool                        isCacheable;
     Bool                        retry;
+    Bool                        fromCache;
 }
 COH_SCRATCH_RESP
     deriving (Eq, Bits);

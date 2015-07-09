@@ -1486,7 +1486,8 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
                                                                    meta: meta,
                                                                    globalReadMeta: globalReadMeta,
                                                                    isCacheable: cacheable, 
-                                                                   retry: retry }));
+                                                                   retry: retry,
+                                                                   fromCache: True }));
             
                 debugLog.record($format("    sourceData: %s: send response: dest=%d, val=0x%x, meta=0x%x, ownership=%s, isCacheable=%s, isExclusive=%s %s", 
                                 ruleName, dest, val, meta, (ownership)? "True" : "False", cacheable? "True" : "False", 
@@ -1974,6 +1975,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         r.retry = s.retry;
         r.globalReadMeta = s.globalReadMeta;
         r.getsFwd = False;
+        r.fromCache = s.fromCache;
 
 `ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
         // GETS response forwarding happens when the received response indicates 
@@ -2002,6 +2004,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
         r.retry = s.retry;
         r.globalReadMeta = s.globalReadMeta;
         r.getsFwd = False;
+        r.fromCache = s.fromCache;
 
 `ifndef COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE_Z
         if (!s.ownership && s.needFwd && !isOwnReq(s.lastFwdClientId, s.lastFwdControllerId))

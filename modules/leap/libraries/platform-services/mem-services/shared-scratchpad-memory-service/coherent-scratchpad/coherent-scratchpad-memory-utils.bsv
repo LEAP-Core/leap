@@ -58,11 +58,13 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
 
     String tag_prefix = "LEAP_" + tagPrefix;
 
-    STAT_ID statIDs[16] = {
+    STAT_ID statIDs[20] = {
         statName(tag_prefix + "COH_SCRATCH_LOAD_HIT",
                  descPrefix + "Coherent scratchpad load hits"),
         statName(tag_prefix + "COH_SCRATCH_LOAD_MISS",
                  descPrefix + "Coherent scratchpad load misses"),
+        statName(tag_prefix + "COH_SCRATCH_LOAD_INVAL_MISS",
+                 descPrefix + "Coherent scratchpad load misses due to coherence invalidation"),
         statName(tag_prefix + "COH_SCRATCH_STORE_HIT",
                  descPrefix + "Coherent scratchpad store hits"),
         statName(tag_prefix + "COH_SCRATCH_STORE_CACHELINE_MISS",
@@ -71,6 +73,8 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
                  descPrefix + "Coherent scratchpad store permission misses from S state"),
         statName(tag_prefix + "COH_SCRATCH_STORE_PERMISSION_MISS_O",
                  descPrefix + "Coherent scratchpad store permission misses from O state"),
+        statName(tag_prefix + "COH_SCRATCH_STORE_INVAL_MISS",
+                 descPrefix + "Coherent scratchpad store misses due to coherence invalidation"),
         statName(tag_prefix + "COH_SCRATCH_SELF_INVAL",
                  descPrefix + "Coherent scratchpad self invalidate"),
         statName(tag_prefix + "COH_SCRATCH_SELF_DIRTY_FLUSH",
@@ -90,10 +94,13 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
         statName(tag_prefix + "COH_SCRATCH_IM_UPGRADE",
                  descPrefix + "Coherent scratchpad automatically upgrade from I to M"), 
         statName(tag_prefix + "COH_SCRATCH_IO_UPGRADE",
-                 descPrefix + "Coherent scratchpad automatically upgrade from I to O") 
-
+                 descPrefix + "Coherent scratchpad automatically upgrade from I to O"),
+        statName(tag_prefix + "COH_SCRATCH_RESP_FROM_CACHE",
+                 descPrefix + "Coherent scratchpad responses sent from caches"),
+        statName(tag_prefix + "COH_SCRATCH_RESP_FROM_MEMORY",
+                 descPrefix + "Coherent scratchpad responses sent from the memory")
     };
-    STAT_VECTOR#(16) sv <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(20) sv <- mkStatCounter_Vector(statIDs);
     
     rule readHit (stats.readHit());
         sv.incr(0);
@@ -103,60 +110,76 @@ module [CONNECTED_MODULE] mkBasicCoherentScratchpadCacheStats#(String tagPrefix,
         sv.incr(1);
     endrule
 
-    rule writeHit (stats.writeHit());
+    rule readInvalMiss (stats.readInvalMiss());
         sv.incr(2);
     endrule
 
-    rule writeCacheMiss (stats.writeCacheMiss());
+    rule writeHit (stats.writeHit());
         sv.incr(3);
     endrule
 
-    rule writePermissionMissS (stats.writePermissionMissS());
+    rule writeCacheMiss (stats.writeCacheMiss());
         sv.incr(4);
     endrule
 
-    rule writePermissionMissO (stats.writePermissionMissO());
+    rule writePermissionMissS (stats.writePermissionMissS());
         sv.incr(5);
     endrule
-    
-    rule invalEntry (stats.invalEntry());
+
+    rule writePermissionMissO (stats.writePermissionMissO());
         sv.incr(6);
     endrule
-
-    rule dirtyEntryFlush (stats.dirtyEntryFlush());
+    
+    rule writeInvalMiss (stats.writeInvalMiss());
         sv.incr(7);
     endrule
     
-    rule cleanEntryFlush (stats.cleanEntryFlush());
+    rule invalEntry (stats.invalEntry());
         sv.incr(8);
     endrule
 
-    rule coherenceInval (stats.coherenceInval());
+    rule dirtyEntryFlush (stats.dirtyEntryFlush());
         sv.incr(9);
     endrule
-
-    rule coherenceFlush (stats.coherenceFlush());
+    
+    rule cleanEntryFlush (stats.cleanEntryFlush());
         sv.incr(10);
     endrule
-    
-    rule mshrRetry (stats.mshrRetry());
+
+    rule coherenceInval (stats.coherenceInval());
         sv.incr(11);
     endrule
 
-    rule getxRetry (stats.getxRetry());
+    rule coherenceFlush (stats.coherenceFlush());
         sv.incr(12);
     endrule
     
-    rule getsUncacheable (stats.getsUncacheable());
+    rule mshrRetry (stats.mshrRetry());
         sv.incr(13);
     endrule
 
-    rule imUpgrade (stats.imUpgrade());
+    rule getxRetry (stats.getxRetry());
         sv.incr(14);
+    endrule
+    
+    rule getsUncacheable (stats.getsUncacheable());
+        sv.incr(15);
+    endrule
+
+    rule imUpgrade (stats.imUpgrade());
+        sv.incr(16);
     endrule
 
     rule ioUpgrade (stats.ioUpgrade());
-        sv.incr(15);
+        sv.incr(17);
+    endrule
+
+    rule respFromCache (stats.respFromCache());
+        sv.incr(18);
+    endrule
+
+    rule respFromMemory (stats.respFromMemory());
+        sv.incr(19);
     endrule
 
 endmodule

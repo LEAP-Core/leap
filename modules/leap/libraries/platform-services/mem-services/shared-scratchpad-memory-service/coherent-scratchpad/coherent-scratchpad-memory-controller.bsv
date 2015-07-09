@@ -910,7 +910,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                      meta: zeroExtend(e.clientMeta), 
                                                                      globalReadMeta: e.globalReadMeta,
                                                                      isCacheable: True,
-                                                                     retry: False }));
+                                                                     retry: False, 
+                                                                     fromCache: True }));
 
                 debugLog.record($format("      rshrRespLookup: idx=0x%x, forward response: dest=%d, val=0x%x", 
                                 r.idx, e.forwardId, r.val));
@@ -969,7 +970,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                                      meta: zeroExtend(e.clientMeta), 
                                                                      globalReadMeta: e.globalReadMeta,
                                                                      isCacheable: True,
-                                                                     retry: False }));
+                                                                     retry: False,
+                                                                     fromCache: True }));
                 // release rshr entry
                 rshrWriteBypass(r.idx, tagged Invalid);
                 rshrReleaseIdx <= r.idx;
@@ -1093,7 +1095,8 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                                                             meta: zeroExtend(r.clientMeta), 
                                                             globalReadMeta: r.globalReadMeta,
                                                             isCacheable: True,
-                                                            retry: False }));
+                                                            retry: False,
+                                                            fromCache: False }));
         debugLog.record($format("      dataMemLookup: send data response: dest=%d, val=0x%x, meta=0x%x, isExclusive=%s", 
                         r.requester, data, r.clientMeta, r.isExclusive? "True" : "False"));
         dataReceivedW.send();

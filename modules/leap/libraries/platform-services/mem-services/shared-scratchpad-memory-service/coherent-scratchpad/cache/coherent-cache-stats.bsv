@@ -40,11 +40,13 @@
 interface COH_CACHE_STATS;
     method Bool readHit();
     method Bool readMiss();
-    
+    method Bool readInvalMiss();          // Read miss because of a previous coherence invalidation
+
     method Bool writeHit();
     method Bool writeCacheMiss();         // Write miss due to cache-line miss
     method Bool writePermissionMissS();   // Write miss due to permission miss (cache line already exists)
     method Bool writePermissionMissO();   // Write miss due to permission miss (cache line already exists)
+    method Bool writeInvalMiss();         // Write miss because of a previous coherence invalidation
 
     method Bool invalEntry();             // Invalidate due to capacity
     method Bool dirtyEntryFlush();        // Dirty flush due to capacity
@@ -61,6 +63,9 @@ interface COH_CACHE_STATS;
     method Bool getsUncacheable();        // Uncacheable response for GETS
     method Bool imUpgrade();              // automatically upgrade from I to M
     method Bool ioUpgrade();              // automatically upgrade from I to O
+
+    method Bool respFromCache();          // data is forwarded from another cache
+    method Bool respFromMemory();         // data is sent from next-level memory
 
 endinterface: COH_CACHE_STATS
 
