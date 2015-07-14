@@ -871,12 +871,12 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
         if (cur_entry matches tagged Valid .e)
         begin
             Bool sent_resp = False;
-            // write back data and ownerbit to memory if the ownership has not 
+            // write back ownerbit to memory if the ownership has not 
             // been checked-out by a GETS/GETX
             // (Here we respond GETS with ownership to enable automatically S->O or S->M upgrades)
+            let w_addr = rshrAddrFromEntry(e.tag, r.idx);
             if (!e.needForward)
             begin
-                let w_addr = rshrAddrFromEntry(e.tag, r.idx);
                 // write back ownership
 `ifndef COHERENT_SCRATCHPAD_I_TO_M_ENABLE_Z
                 let ownership_state = r.isExclusive? COH_MEM_STATE_E : COH_MEM_STATE_O;
@@ -886,10 +886,12 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
                 ownerbitMem.write(w_addr, False);
                 debugLog.record($format("      rshrRespLookup: idx=0x%x, ownerbitMem write back, addr=0x%x", r.idx, w_addr));
 `endif
-                // write back data value
-                dataMem.write(w_addr, r.val);
-                debugLog.record($format("      rshrRespLookup: idx=0x%x, dataMem write back, addr=0x%x, val=0x%x", r.idx, w_addr, r.val));
             end
+            // We need to write back data value even if the ownership has been checked-out by a GETS/GETX.
+            // This is because the cache which issues a GETS and gets the ownership may issue a clean write-back
+            // afterwards without writing the data value back. 
+            dataMem.write(w_addr, r.val);
+            debugLog.record($format("      rshrRespLookup: idx=0x%x, dataMem write back, addr=0x%x, val=0x%x", r.idx, w_addr, r.val));
 
             // forward write-back data to a client if response queue is not full
             if (e.needForward && outputRespQ.notFull())
