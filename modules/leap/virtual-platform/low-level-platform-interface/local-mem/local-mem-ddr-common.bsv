@@ -50,10 +50,23 @@ function Bool platformHasLocalMem() = True;
 // How many FPGA DDR words in a local memory word?
 typedef TDiv#(LOCAL_MEM_WORD_SZ, FPGA_DDR_WORD_SZ) DDR_WORDS_PER_LOCAL_WORD;
 
-// Compute the address space size available to local memory:  total FPGA
-// words across all DDR banks, referenced as local words.
-typedef TSub#(TAdd#(FPGA_DDR_ADDRESS_SZ, TLog#(FPGA_DDR_BANKS)),
+//
+// Compute the address space size available to local memory:  
+// 
+// Unified local memory (LOCAL_MEM_UNIFIED == 1): 
+//     total FPGA words across all DDR banks, referenced as local words
+// 
+// Distributed local memory (LOCAL_MEM_UNIFIED == 0): 
+//     FPGA words per DDR bank, referenced as local words
+//
+typedef TMin#(1, `LOCAL_MEM_UNIFIED) LOCAL_MEM_UNIFIED;
+typedef TSub#(TAdd#(FPGA_DDR_ADDRESS_SZ, 
+              TMul#(LOCAL_MEM_UNIFIED, TLog#(FPGA_DDR_BANKS))),
               TLog#(DDR_WORDS_PER_LOCAL_WORD)) LOCAL_MEM_ADDR_SZ;
+// 
+// Allow clients to determine whether and how many distributed local memory banks exist
+//
+typedef TMax#(1, TMul#(TSub#(1, LOCAL_MEM_UNIFIED), FPGA_DDR_BANKS)) LOCAL_MEM_BANKS;
 
 // ========================================================================
 //

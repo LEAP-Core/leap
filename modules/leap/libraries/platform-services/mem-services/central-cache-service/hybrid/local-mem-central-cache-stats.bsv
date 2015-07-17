@@ -46,48 +46,50 @@
 // ===================================================================
 
 
-module [CONNECTED_MODULE] mkCentralCacheStats#(RL_CACHE_STATS cacheStats)
+module [CONNECTED_MODULE] mkCentralCacheStats#(RL_CACHE_STATS cacheStats, Integer bankIdx)
     // interface:
     ();
 
     // Disambiguate central caches on multiple platforms    
     String platform <- getSynthesisBoundaryPlatform();
 
+    String statsHeader = "LEAP_CENTRAL_CACHE_PLATFORM_" + platform + "_BANK_" + integerToString(bankIdx) + "_";
+
     STAT_ID statIDs[9];
 
-    statIDs[0] = statName("LEAP_CENTRAL_CACHE_LOAD_HIT_" + platform,
+    statIDs[0] = statName(statsHeader + "LOAD_HIT",
                           "Central Cache: Load hits");
     let statLoadHit = 0;
 
-    statIDs[1] = statName("LEAP_CENTRAL_CACHE_LOAD_MISS_" + platform,
+    statIDs[1] = statName(statsHeader + "LOAD_MISS",
                           "Central Cache: Load misses");
     let statLoadMiss = 1;
 
-    statIDs[2] = statName("LEAP_CENTRAL_CACHE_STORE_HIT_" + platform,
+    statIDs[2] = statName(statsHeader + "STORE_HIT",
                           "Central Cache: Store hits");
     let statStoreHit  = 2;
 
-    statIDs[3] = statName("LEAP_CENTRAL_CACHE_STORE_MISS_" + platform,
+    statIDs[3] = statName(statsHeader + "STORE_MISS",
                           "Central Cache: Store misses");
     let statStoreMiss = 3;
 
-    statIDs[4] = statName("LEAP_CENTRAL_CACHE_INVAL_LINE_" + platform,
+    statIDs[4] = statName(statsHeader + "INVAL_LINE",
                           "Central Cache: Lines invalidated due to capacity");
     let statInvalEntry = 4;
 
-    statIDs[5] = statName("LEAP_CENTRAL_CACHE_DIRTY_LINE_FLUSH_" + platform,
+    statIDs[5] = statName(statsHeader + "DIRTY_LINE_FLUSH",
                           "Central Cache: Dirty lines flushed to memory");
     let statDirtyEntryFlush = 5;
 
-    statIDs[6] = statName("LEAP_CENTRAL_CACHE_FORCE_INVAL_LINE_" + platform,
+    statIDs[6] = statName(statsHeader + "FORCE_INVAL_LINE",
                           "Central Cache: Lines forcibly invalidated (not due to capacity)");
     let statForceInvalLine = 6;
 
-    statIDs[7] = statName("LEAP_CENTRAL_CACHE_LOAD_RECENT_LINE_HIT_" + platform,
+    statIDs[7] = statName(statsHeader + "LOAD_RECENT_LINE_HIT",
                           "Central Cache: Load recent line cache hits");
     let statLoadRecentLineHit = 7;
 
-    statIDs[8] = statName("LEAP_CENTRAL_CACHE_LOAD_NEW_MRU_" + platform,
+    statIDs[8] = statName(statsHeader + "LOAD_NEW_MRU",
                           "Central Cache: Reference changed MRU way for valid entry (hit)");
     let statNewMRU = 8;
 

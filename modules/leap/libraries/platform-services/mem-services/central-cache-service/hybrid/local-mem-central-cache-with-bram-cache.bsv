@@ -40,6 +40,7 @@ module [CONNECTED_MODULE] mkCentralCacheWithBRAMCache#(RL_SA_CACHE_SOURCE_DATA#(
                                                        RL_SA_CACHE_LOCAL_DATA#(t_CACHE_ADDR_SZ, t_CACHE_WORD, nWordsPerLine, nSets, nWays, nReaders) localData,
                                                        NumTypeParam#(t_RECENT_READ_CACHE_IDX_SZ) param0,
                                                        NumTypeParam#(nTagExtraLowBits) param1,
+                                                       Integer bankIdx, 
                                                        DEBUG_FILE debugLog,
                                                        DEBUG_FILE debugLogBRAM)
     // interface:
@@ -68,7 +69,7 @@ module [CONNECTED_MODULE] mkCentralCacheWithBRAMCache#(RL_SA_CACHE_SOURCE_DATA#(
     RL_SA_BRAM_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META) bramCache <-
         mkCacheSetAssocWithBRAM(bramCacheSourceData, nBramCacheSets, nBramCacheWays, param1, debugLogBRAM);
 
-    let bramCacheStats <- mkCentralCacheBRAMCacheStats(bramCache.stats);
+    let bramCacheStats <- mkCentralCacheBRAMCacheStats(bramCache.stats, bankIdx);
     
     // ====================================================================
     //
@@ -212,44 +213,46 @@ endmodule
 //
 // ===================================================================
 
-module [CONNECTED_MODULE] mkCentralCacheBRAMCacheStats#(RL_CACHE_STATS cacheStats)
+module [CONNECTED_MODULE] mkCentralCacheBRAMCacheStats#(RL_CACHE_STATS cacheStats, Integer bankIdx)
     // interface:
     ();
 
     // Disambiguate central caches on multiple platforms    
     String platform <- getSynthesisBoundaryPlatform();
+    
+    String statsHeader = "LEAP_CENTRAL_CACHE_BRAM_CACHE_PLATFORM_" + platform + "_BANK_" + integerToString(bankIdx) + "_";
 
     STAT_ID statIDs[8];
 
-    statIDs[0] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_LOAD_HIT_" + platform,
+    statIDs[0] = statName(statsHeader + "LOAD_HIT",
                           "Central Cache: Load hits");
     let statLoadHit = 0;
 
-    statIDs[1] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_LOAD_MISS_" + platform,
+    statIDs[1] = statName(statsHeader + "LOAD_MISS",
                           "Central Cache: Load misses");
     let statLoadMiss = 1;
 
-    statIDs[2] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_STORE_HIT_" + platform,
+    statIDs[2] = statName(statsHeader + "STORE_HIT",
                           "Central Cache: Store hits");
     let statStoreHit  = 2;
 
-    statIDs[3] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_STORE_MISS_" + platform,
+    statIDs[3] = statName(statsHeader + "STORE_MISS",
                           "Central Cache: Store misses");
     let statStoreMiss = 3;
 
-    statIDs[4] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_INVAL_LINE_" + platform,
+    statIDs[4] = statName(statsHeader + "INVAL_LINE",
                           "Central Cache: Lines invalidated due to capacity");
     let statInvalEntry = 4;
 
-    statIDs[5] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_DIRTY_LINE_FLUSH_" + platform,
+    statIDs[5] = statName(statsHeader + "DIRTY_LINE_FLUSH",
                           "Central Cache: Dirty lines flushed to memory");
     let statDirtyEntryFlush = 5;
 
-    statIDs[6] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_FORCE_INVAL_LINE_" + platform,
+    statIDs[6] = statName(statsHeader + "FORCE_INVAL_LINE",
                           "Central Cache: Lines forcibly invalidated (not due to capacity)");
     let statForceInvalLine = 6;
 
-    statIDs[7] = statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_LOAD_NEW_MRU_" + platform,
+    statIDs[7] = statName(statsHeader + "LOAD_NEW_MRU",
                           "Central Cache: Reference changed MRU way for valid entry (hit)");
     let statNewMRU = 7;
 
@@ -288,7 +291,7 @@ module [CONNECTED_MODULE] mkCentralCacheBRAMCacheStats#(RL_CACHE_STATS cacheStat
     endrule
 
     function STAT_ID getAccessID(Integer i);
-        return statName("LEAP_CENTRAL_CACHE_BRAM_CACHE_ACCESS_COUNT_" + platform + "_" + integerToString(i),
+        return statName(statsHeader + "ACCESS_COUNT_" + integerToString(i),
                         "Central Cache: Line Access Count" + integerToString(i));
     endfunction
 

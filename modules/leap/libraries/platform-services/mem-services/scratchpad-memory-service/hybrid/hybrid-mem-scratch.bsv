@@ -135,7 +135,7 @@ SCRATCHPAD_HYBRID_READ_INFO
 // mkMemoryVirtualDevice --
 //     Build a device interface with the requested number of ports.
 //
-module [CONNECTED_MODULE] mkScratchpadMemory
+module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
     // interface:
     (SCRATCHPAD_MEMORY_VDEV)
     provisos (Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
@@ -151,7 +151,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
 
     let platformName <- getSynthesisBoundaryPlatform();
 
-    let dbg_name = "memory_scratchpad_" + platformName() + ".out";
+    let dbg_name = "memory_scratchpad_platform_" + platformName() + "_bank_" + integerToString(memBankIdx) + ".out";
     DEBUG_FILE debugLog <- (`SCRATCHPAD_MEMORY_DEBUG_ENABLE == 1)?
                            mkDebugFile(dbg_name):
                            mkDebugFileNull(dbg_name);
@@ -167,7 +167,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
     // Scratchpad's central cache port
     //
     CONNECTION_CLIENT#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)
-        centralCachePort <- mkConnectionClient(cachePortName(`VDEV_CACHE_SCRATCH, platformName));
+        centralCachePort <- mkConnectionClient(cachePortName(`VDEV_CACHE_SCRATCH, memBankIdx, platformName));
 
     // Meta-data for outstanding reads from the host
     FIFOF#(SCRATCHPAD_HYBRID_READ_INFO) readReqInfoQ <- mkSizedSlowBRAMFIFOF(1024);
@@ -183,7 +183,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
     FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) rrrRespQ <- mkBypassFIFO();
 
     // Instantiate the connector.
-    let hybridConnector <- mkScratchpadConnector(rrrReqQ, rrrRespQ);
+    let hybridConnector <- mkScratchpadConnector(rrrReqQ, rrrRespQ, memBankIdx);
 
 
     // ====================================================================
@@ -379,7 +379,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory
     // ====================================================================
 
     CONNECTION_SERVER#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)
-        centralCacheBackingPort <- mkConnectionServer(backingPortName(`VDEV_CACHE_SCRATCH, platformName));
+        centralCacheBackingPort <- mkConnectionServer(backingPortName(`VDEV_CACHE_SCRATCH, memBankIdx, platformName));
 
 
     rule backingReadReq (! initQ.notEmpty() &&&

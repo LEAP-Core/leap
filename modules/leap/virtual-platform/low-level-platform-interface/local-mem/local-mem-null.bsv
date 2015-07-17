@@ -50,12 +50,16 @@ typedef `LOCAL_MEM_ADDR_BITS LOCAL_MEM_ADDR_SZ;
 //
 function Bool platformHasLocalMem() = False;
 
+// 
+// Allow clients to determine whether and how many distributed local memory banks exist
+//
+typedef 1 LOCAL_MEM_BANKS;
 
 //
 // Define a dummy local memory interface.
 //
 
-module mkLocalMem
+module mkLocalMem#(LOCAL_MEM_CONFIG conf)
     // interface:
     (LOCAL_MEM);
 

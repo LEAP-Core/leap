@@ -11,3 +11,5 @@
 
 %param LOCAL_MEM_WORD_BITS      64  "Local memory word size"
 %param LOCAL_MEM_WORDS_PER_LINE  4  "Local memory words per line (must be power of 2)"
+%param LOCAL_MEM_UNIFIED         1  "0: distributed local memory banks, 1: memory bank(s) form a unified local memory address space"
+

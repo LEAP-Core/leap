@@ -47,9 +47,12 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
     ();
     
     //
-    // Instantiate a scratchpad implementation.
+    // Instantiate scratchpad server implementation.
     //
-    let memory <- mkScratchpadMemory();
+    // Multiple scratchpads get instantiated if there are multiple distributed
+    // local memory banks
+    //
+    Vector#(SCRATCHPAD_N_SERVERS, SCRATCHPAD_MEMORY_VDEV) memories <- genWithM(mkScratchpadMemory);
 
     // ***** Assertion Checkers *****
     ASSERTION_NODE assertNode <- mkAssertionNode(`ASSERTIONS_SCRATCHPAD_MEMORY_SERVICE__BASE);
@@ -65,79 +68,92 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
     // Two rings are required to avoid deadlocks:  one for requests and
     // one for responses.
     //
+    // When there are multiple scratchpad servers, multiple rings are 
+    // constructed.
+    //
     // ====================================================================
 
     let platformID <- getSynthesisBoundaryPlatformID();
-    
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
-        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req", 0);
+   
+    for (Integer c = 0; c < valueOf(SCRATCHPAD_N_SERVERS); c = c + 1)
+    begin
+        String ringBaseName = "Scratchpad_Platform_" + integerToString(platformID);
+        if (c > 0)
+        begin
+            ringBaseName = "Scratchpad_" + integerToString(c) + "_" + "Platform_" + integerToString(platformID);
+        end
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
-        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp", 0);
+        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+            mkConnectionTokenRingNode(ringBaseName + "_Req", 0);
 
-    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req, Port: 0");
-    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp, Port: 0");
-    
-    //
-    // sendScratchpadReq --
-    //     Forward a scratchpad client's request to the scratchpad
-    //     device.
-    //
-    //     At most one instance of this rule will fire, based on the
-    //     arbiter.
-    //
-    rule sendScratchpadReq (True);
-        let req = link_mem_req.first();
-        link_mem_req.deq();
+        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+            mkConnectionTokenRingNode(ringBaseName + "_Resp", 0);
 
-        case (req) matches
-            tagged SCRATCHPAD_MEM_INIT .init:
-            begin
-                let s <- memory.init(init.allocLastWordIdx,
-                                     init.port,
-                                     init.cached,
-                                     init.initFilePath);
-                assertScratchpadSpace(s);
-            end
+        messageM("Scratchpad Ring Name: "+ ringBaseName + "_Req, Port: 0");
+        messageM("Scratchpad Ring Name: "+ ringBaseName + "_Resp, Port: 0");
+        
+        let memory = memories[c];
+        
+        //
+        // sendScratchpadReq --
+        //     Forward a scratchpad client's request to the scratchpad
+        //     device.
+        //
+        //     At most one instance of this rule will fire, based on the
+        //     arbiter.
+        //
+        rule sendScratchpadReq (True);
+            let req = link_mem_req.first();
+            link_mem_req.deq();
 
-            tagged SCRATCHPAD_MEM_READ .r_req:
-            begin
-                let read_uid = SCRATCHPAD_READ_UID { portNum: r_req.port,
-                                                     clientReadUID: r_req.readUID };
-                memory.readReq(r_req.addr,
-                               r_req.byteReadMask,
-                               read_uid,
-                               r_req.globalReadMeta);
-            end
+            case (req) matches
+                tagged SCRATCHPAD_MEM_INIT .init:
+                begin
+                    let s <- memory.init(init.allocLastWordIdx,
+                                         init.port,
+                                         init.cached,
+                                         init.initFilePath);
+                    assertScratchpadSpace(s);
+                end
 
-            tagged SCRATCHPAD_MEM_WRITE .w_req:
-            begin
-                memory.write(w_req.addr, w_req.val, w_req.port);
-            end
+                tagged SCRATCHPAD_MEM_READ .r_req:
+                begin
+                    let read_uid = SCRATCHPAD_READ_UID { portNum: r_req.port,
+                                                         clientReadUID: r_req.readUID };
+                    memory.readReq(r_req.addr,
+                                   r_req.byteReadMask,
+                                   read_uid,
+                                   r_req.globalReadMeta);
+                end
 
-            tagged SCRATCHPAD_MEM_WRITE_MASKED .w_req:
-            begin
-                memory.writeMasked(w_req.addr,
-                                   w_req.val,
-                                   w_req.byteWriteMask,
-                                   w_req.port);
+                tagged SCRATCHPAD_MEM_WRITE .w_req:
+                begin
+                    memory.write(w_req.addr, w_req.val, w_req.port);
+                end
 
-            end
-        endcase
-    endrule
-    
+                tagged SCRATCHPAD_MEM_WRITE_MASKED .w_req:
+                begin
+                    memory.writeMasked(w_req.addr,
+                                       w_req.val,
+                                       w_req.byteWriteMask,
+                                       w_req.port);
 
-    rule sendScratchpadResp (True);
-        let r <- memory.readRsp();
+                end
+            endcase
+        endrule
+        
+        rule sendScratchpadResp (True);
+            let r <- memory.readRsp();
 
-        SCRATCHPAD_READ_RSP resp;
-        resp.val = r.val;
-        resp.addr = r.addr;
-        resp.readUID = r.readUID.clientReadUID;
-        resp.globalReadMeta = r.globalReadMeta;
-        resp.isCacheable = r.isCacheable;
+            SCRATCHPAD_READ_RSP resp;
+            resp.val = r.val;
+            resp.addr = r.addr;
+            resp.readUID = r.readUID.clientReadUID;
+            resp.globalReadMeta = r.globalReadMeta;
+            resp.isCacheable = r.isCacheable;
 
-        link_mem_rsp.enq(r.readUID.portNum, resp);
-    endrule
+            link_mem_rsp.enq(r.readUID.portNum, resp);
+        endrule
+    end
 
 endmodule

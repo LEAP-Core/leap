@@ -44,7 +44,7 @@ import Vector::*;
 `include "awb/provides/central_cache_common.bsh"
 
 
-module mkCentralCache
+module mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     // interface:
     (CENTRAL_CACHE_IFC);
 

@@ -41,6 +41,7 @@
 import FIFO::*;
 import FIFOF::*;
 import Vector::*;
+import DefaultValue::*;
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/soft_services.bsh"
@@ -82,19 +83,23 @@ typedef SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(SCRATCHPAD_MEM_ADDRESS,
 // mkScratchpadMemory --
 //     Build a scratchpad memory with the requested number of ports.
 //
-module [CONNECTED_MODULE] mkScratchpadMemory
+module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
     // interface:
     (SCRATCHPAD_MEMORY_VDEV)
     provisos (Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ));
 
+    let platformName <- getSynthesisBoundaryPlatform();
+    let dbg_name = "memory_scratchpad_platform_" + platformName() + "_bank_" + integerToString(memBankIdx) + ".out";
     DEBUG_FILE debugLog <- (`SCRATCHPAD_MEMORY_DEBUG_ENABLE == 1)?
-                           mkDebugFile("memory_scratchpad.out"):
-                           mkDebugFileNull("memory_scratchpad.out");
+                           mkDebugFile(dbg_name):
+                           mkDebugFileNull(dbg_name);
 
     //
     // Instantiate the shim to local memory.
     //
-    LOCAL_MEM localMem <- mkLocalMem();
+    LOCAL_MEM_CONFIG conf = defaultValue;
+    conf.bankIdx = memBankIdx;
+    LOCAL_MEM localMem <- mkLocalMem(conf);
 
     // Total memory allocated
     Reg#(SCRATCHPAD_MEM_ADDRESS) totalAlloc <- mkReg(0);

@@ -69,6 +69,11 @@ typedef `LOCAL_MEM_ADDR_BITS LOCAL_MEM_ADDR_SZ;
 //
 function Bool platformHasLocalMem() = True;
 
+// 
+// Allow clients to determine whether and how many distributed local memory banks exist
+//
+typedef 1 LOCAL_MEM_BANKS;
+
 // Cycle counter for calculating delays
 typedef UInt#(16) REQ_CYCLE;
 
@@ -91,7 +96,7 @@ READ_REQ
     deriving (Bits, Eq);
 
 
-module mkLocalMem
+module mkLocalMem#(LOCAL_MEM_CONFIG conf)
     // interface:
     (LOCAL_MEM);
 

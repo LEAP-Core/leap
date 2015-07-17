@@ -78,7 +78,7 @@ import List::*;
 //   Implement local memory using DDR memory.  The DDR memory has line sizes
 //   large enough to hold a single local memory line.
 //
-module [CONNECTED_MODULE] mkLocalMem
+module [CONNECTED_MODULE] mkLocalMem#(LOCAL_MEM_CONFIG conf)
     // interface:
     (LOCAL_MEM)
     provisos (Add#(a_, LOCAL_MEM_LINE_SZ, DDR_BURST_DATA_SZ),
@@ -92,11 +92,15 @@ module [CONNECTED_MODULE] mkLocalMem
                                                 LOCAL_MEM_LINE)),
               // Vector mapping of local memory write masks to a DDR memory burst
               Alias#(t_LOCAL_MEM_MASKS, Vector#(n_LOCAL_MEM_LINES_PER_BURST,
-                                                LOCAL_MEM_LINE_MASK)));
+                                                LOCAL_MEM_LINE_MASK)),
+              // t_DDR_BANKS == 1 if local memory is not unified
+              // (distributed memory bank which connects to a single DDR bank)
+              NumAlias#(t_DDR_BANKS, TMax#(1, TMul#(LOCAL_MEM_UNIFIED, FPGA_DDR_BANKS))));
 
     checkDDRMemSizesValid();
 
-    DEBUG_FILE debugLog <- mkDebugFile("memory_local_mem_ddr_wide.out");
+    let platformName <- getSynthesisBoundaryPlatform();
+    DEBUG_FILE debugLog <- mkDebugFile("memory_local_mem_platform_" + platformName + "_bank_" + integerToString(conf.bankIdx) + "_ddr_wide.out");
 
     // Add a mechanism for reporting each memory request.
     STDIO#(Bit#(64)) stdioDebug <-
@@ -138,7 +142,18 @@ module [CONNECTED_MODULE] mkLocalMem
     FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();
 
     // Get a connection to the DDR DRAM Controller
+`ifndef LOCAL_MEM_UNIFIED_Z
     LOCAL_MEM_DDR dramDriver <- mkLocalMemDDRConnection();
+    messageM("mkLocalMem unified: t_DDR_BANKS = " + integerToString(valueOf(t_DDR_BANKS)) + 
+             " LOCAL_MEM_BANKS = " + integerToString(valueOf(LOCAL_MEM_BANKS)));
+`else
+    Integer ddrBankIdx = conf.bankIdx;
+    Vector#(1, LOCAL_MEM_DDR_BANK) dramDriver = newVector();
+    dramDriver[0] <- mkLocalMemDDRBankConnection(ddrBankIdx);
+    messageM("mkLocalMem distributed: ddrBankIdx = " + integerToString(ddrBankIdx) + 
+             " t_DDR_BANKS = " + integerToString(valueOf(t_DDR_BANKS)) + 
+             " LOCAL_MEM_BANKS = " + integerToString(valueOf(LOCAL_MEM_BANKS)));
+`endif
 
     //
     // ddrAddrComponents --
@@ -154,9 +169,14 @@ module [CONNECTED_MODULE] mkLocalMem
     
         // The local memory address maps to a DDR address, a DDR bank and the
         // index of the local memory line within a DDR burst.
-        Tuple3#(DDR_BURST_ADDRESS, DDR_BANK_IDX, t_LOCAL_MEM_LINE_IDX) ddr_addr_comp =
+`ifndef LOCAL_MEM_UNIFIED_Z        
+        Tuple3#(DDR_BURST_ADDRESS, DDR_BANK_IDX, t_LOCAL_MEM_LINE_IDX) ddr_addr_comp = 
             unpack(local_line_addr);
-
+`else
+        Tuple2#(DDR_BURST_ADDRESS, t_LOCAL_MEM_LINE_IDX) ddr_addr_short = unpack(local_line_addr);
+        Tuple3#(DDR_BURST_ADDRESS, DDR_BANK_IDX, t_LOCAL_MEM_LINE_IDX) ddr_addr_comp = 
+            tuple3(tpl_1(ddr_addr_short), 0, tpl_2(ddr_addr_short));
+`endif
         // Convert burst-aligned address to a full FPGA word address
         DDR_BURST_WORD_IDX w_idx = 0;
         FPGA_DDR_ADDRESS ddr_addr = {tpl_1(ddr_addr_comp), w_idx};
@@ -179,7 +199,7 @@ module [CONNECTED_MODULE] mkLocalMem
     //
 
     FIFOF#(Tuple2#(Bool, LOCAL_MEM_REQ)) activeReadQ <-
-        mkSizedFIFOF(valueOf(TMul#(FPGA_DDR_BANKS, FPGA_DDR_MAX_OUTSTANDING_READS)));
+        mkSizedFIFOF(valueOf(TMul#(t_DDR_BANKS, FPGA_DDR_MAX_OUTSTANDING_READS)));
 
     Reg#(Maybe#(Tuple2#(DDR_BANK_IDX, FPGA_DDR_ADDRESS))) lastReadAddr <-
         mkReg(tagged Invalid);
@@ -336,7 +356,7 @@ module [CONNECTED_MODULE] mkLocalMem
     // the word write methods convert their requests to masked line writes.
     //
 
-    Vector#(FPGA_DDR_BANKS,
+    Vector#(t_DDR_BANKS,
             FIFO#(Tuple2#(t_LOCAL_MEM_LINES,
                           t_LOCAL_MEM_MASKS))) burstWriteQ <- replicateM(mkBypassFIFO());
 
@@ -365,6 +385,7 @@ module [CONNECTED_MODULE] mkLocalMem
 
         // Forward write data to the DDR controller
         burstWriteQ[bank].enq(tuple2(ddr_burst, ddr_masks));
+
         writeDataQ.deq();
 
         // Invalidate the last read line cache if the write is to the same
@@ -383,12 +404,12 @@ module [CONNECTED_MODULE] mkLocalMem
     //
 
     // Count outbound beats for each data queue
-    Vector#(FPGA_DDR_BANKS,
+    Vector#(t_DDR_BANKS,
             Reg#(Bit#(TLog#(FPGA_DDR_BURST_LENGTH)))) writeBeatIdx <-
         replicateM(mkReg(0));
 
     // There is a separate queue for each bank
-    for (Integer bank = 0; bank < valueOf(FPGA_DDR_BANKS); bank = bank + 1)
+    for (Integer bank = 0; bank < valueOf(t_DDR_BANKS); bank = bank + 1)
     begin
         rule fwdWriteData (True);
             let beat_idx = writeBeatIdx[bank];
@@ -409,9 +430,8 @@ module [CONNECTED_MODULE] mkLocalMem
 
             debugLog.record($format("Write bank=%0d, beat=%0d, val=0x%h, mask_low=0x%h", bank, beat_idx, beats[beat_idx], beat_masks[beat_idx]));
 
-            dramDriver[bank].writeData(beats[beat_idx],
-                                       beat_masks[beat_idx]);
-
+            dramDriver[bank].writeData(beats[beat_idx], beat_masks[beat_idx]);
+            
             // Count beats.  This code depends on the number of beats in
             // a write being a power of 2.
             if (beat_idx == maxBound)

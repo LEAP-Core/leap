@@ -54,20 +54,21 @@ import FIFO::*;
 //     This wrapper picks the connector appropriate to the FPGA topology.
 //
 module [CONNECTED_MODULE] mkScratchpadConnector#(FIFO#(SCRATCHPAD_RRR_REQ) localReqQ,
-                                                 FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) localRespQ)
+                                                 FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) localRespQ, 
+                                                 Integer scratchpadBankIdx)
     // Interface:
     (Empty);
 
-    if (fpgaNumPlatforms() == 1)
+    if (fpgaNumPlatforms() == 1 && valueOf(SCRATCHPAD_N_SERVERS) == 1)
     begin
-        // Single FPGA system
+        // Single FPGA system with single memory bank
         let c <- mkScratchpadConnectorSingle(localReqQ, localRespQ);
     end
     else
     begin
-        // Multi-FPGA system
-        let platformID <- getSynthesisBoundaryPlatformID();
-        if (`BUILD_COMMON_SERVICES == 1)
+        // Multi-FPGA system or single fpga system with multiple memory banks
+        // let platformID <- getSynthesisBoundaryPlatformID();
+        if (`BUILD_COMMON_SERVICES == 1 && scratchpadBankIdx == 0) 
         begin
             // Master FPGA
             let c <- mkScratchpadConnectorMultiMaster(localReqQ, localRespQ);
@@ -75,7 +76,7 @@ module [CONNECTED_MODULE] mkScratchpadConnector#(FIFO#(SCRATCHPAD_RRR_REQ) local
         else
         begin
             // Slave FPGA
-            let c <- mkScratchpadConnectorMultiSlave(localReqQ, localRespQ);
+            let c <- mkScratchpadConnectorMultiSlave(localReqQ, localRespQ, scratchpadBankIdx);
         end
     end
 endmodule
@@ -89,39 +90,39 @@ function Action scratchSendReq(SCRATCHPAD_RRR_REQ req,
                                SCRATCHPAD_RING_STOP_ID num,
                                ClientStub_SCRATCHPAD_MEMORY scratchpad_rrr,
                                FIFO#(SCRATCHPAD_RING_STOP_ID) tags);
-action
-    case (req) matches
-      tagged StoreWordReq .storeWordReq:
-        begin
-        scratchpad_rrr.makeRequest_StoreWord(storeWordReq.byteMask,
-                                             storeWordReq.addr,
-                                             storeWordReq.data);
-        end
-
-      tagged StoreLineReq .storeLineReq:
-        begin
-        scratchpad_rrr.makeRequest_StoreLine(storeLineReq.byteMask,
-                                             storeLineReq.addr,
-                                             storeLineReq.data0,
-                                             storeLineReq.data1,
-                                             storeLineReq.data2,
-                                             storeLineReq.data3);
-        end
-
-      tagged LoadLineReq .loadLineReq:
-        begin
-        scratchpad_rrr.makeRequest_LoadLine(loadLineReq.addr);
-        tags.enq(num);
-        end
-
-      tagged InitRegionReq .initRegionReq:
-        begin
-        scratchpad_rrr.makeRequest_InitRegion(initRegionReq.regionID,
-                                              initRegionReq.regionEndIdx,
-                                              initRegionReq.initFilePath);
-        end
-    endcase
-endaction
+    action
+        case (req) matches
+            tagged StoreWordReq .storeWordReq:
+            begin
+                scratchpad_rrr.makeRequest_StoreWord(storeWordReq.byteMask,
+                                                     storeWordReq.addr,
+                                                     storeWordReq.data);
+            end
+    
+            tagged StoreLineReq .storeLineReq:
+            begin
+                scratchpad_rrr.makeRequest_StoreLine(storeLineReq.byteMask,
+                                                     storeLineReq.addr,
+                                                     storeLineReq.data0,
+                                                     storeLineReq.data1,
+                                                     storeLineReq.data2,
+                                                     storeLineReq.data3);
+            end
+    
+            tagged LoadLineReq .loadLineReq:
+            begin
+                scratchpad_rrr.makeRequest_LoadLine(loadLineReq.addr);
+                tags.enq(num);
+            end
+    
+            tagged InitRegionReq .initRegionReq:
+            begin
+                scratchpad_rrr.makeRequest_InitRegion(initRegionReq.regionID,
+                                                      initRegionReq.regionEndIdx,
+                                                      initRegionReq.initFilePath);
+            end
+        endcase
+    endaction
 endfunction
 
 
@@ -155,7 +156,7 @@ module [CONNECTED_MODULE] mkScratchpadConnectorSingle#(FIFO#(SCRATCHPAD_RRR_REQ)
         let req = localReqQ.first();
         localReqQ.deq();
 
-        scratchSendReq(req, 0, scratchpad_rrr, tags);
+        scratchSendReq(req, unpack(0), scratchpad_rrr, tags);
         stats.incr(statLocalReq);
     endrule
  
@@ -179,56 +180,67 @@ endmodule
 module [CONNECTED_MODULE] mkScratchpadConnectorMultiMaster#(FIFO#(SCRATCHPAD_RRR_REQ) localReqQ,
                                                             FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) localRespQ)
     // Interface:
-    (Empty);
+    (Empty)
+    provisos (Bits#(SCRATCHPAD_RING_STOP_ID, t_SCRATCH_IDX_SZ),
+              Alias#(Bit#(t_SCRATCH_IDX_SZ), t_SCRATCH_IDX));
 
     DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_rrr.out");
 
     ClientStub_SCRATCHPAD_MEMORY scratchpad_rrr <- mkClientStub_SCRATCHPAD_MEMORY(); 
 
-    let multiFPGA = (fpgaNumPlatforms() > 1);
-
     //
     // Ring stop 0 is the bridge between remote FPGAs and the RRR hybrid
     // interface.
     //
-    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RING_REQ) link_mem_req <-
+    CONNECTION_ADDR_RING#(t_SCRATCH_IDX, SCRATCHPAD_RING_REQ) link_mem_req <-
         mkConnectionAddrRingNode("ScratchpadGlobalReq", 0);
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
+    CONNECTION_ADDR_RING#(t_SCRATCH_IDX, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
         mkConnectionAddrRingNode("ScratchpadGlobalResp", 0);
 
-    STAT_ID statIDs[4];
+    STAT_ID statIDs[6];
 
     statIDs[0] = statName("LEAP_SCRATCHPAD_LOCAL_REQUESTS",
                           "Requests from the local scratchpads");
     let statLocalReq = 0;
 
     statIDs[1] = statName("LEAP_SCRATCHPAD_LOCAL_RESPONSES",
-                          "Responses from the local scratchpads");
+                          "Responses to the local scratchpads");
     let statLocalResp = 1;
 
-    statIDs[2] = statName("LEAP_SCRATCHPAD_REMOTE_REQUESTS",
-                          "Requests from the remote scratchpads");
-    let statRemoteReq = 2;
+    statIDs[2] = statName("LEAP_SCRATCHPAD_REMOTE_PLATFORM_REQUESTS",
+                          "Requests from the scratchpads on a remote platform");
+    let statRemotePlatformReq = 2;
 
-    statIDs[3] = statName("LEAP_SCRATCHPAD_REMOTE_RESPONSES",
-                          "Responses from the remote scratchpads");
-    let statRemoteResp = 3;
+    statIDs[3] = statName("LEAP_SCRATCHPAD_REMOTE_PLATFORM_RESPONSES",
+                          "Responses to the scratchpads on a remote platform");
+    let statRemotePlatformResp = 3;
+    
+    statIDs[4] = statName("LEAP_SCRATCHPAD_REMOTE_BANK_REQUESTS",
+                          "Requests from the remote scratchpads on the local platform");
+    let statRemoteBankReq = 4;
+    
+    statIDs[5] = statName("LEAP_SCRATCHPAD_REMOTE_BANK_RESPONSES",
+                          "Responses to the remote scratchpads on the local platform");
+    let statRemoteBankResp = 5;
 
-    STAT_VECTOR#(4) stats <- mkStatCounter_Vector(statIDs);
+    STAT_VECTOR#(6) stats <- mkStatCounter_Vector(statIDs);
 
     // Size of tags defines max outstanding requests.
     FIFO#(SCRATCHPAD_RING_STOP_ID) tags <- mkSizedFIFO(32);
+    Reg#(Bit#(1)) localArb <- mkReg(0);
 
-    rule eatReqLocal;
+    rule eatReqLocal (localArb == 0 || !link_mem_req.notEmpty);
         let req = localReqQ.first();
         localReqQ.deq();
 
-        scratchSendReq(req, 0, scratchpad_rrr, tags);
+        scratchSendReq(req, tuple2(0,0), scratchpad_rrr, tags);
         stats.incr(statLocalReq);
+        localArb <= localArb + 1;
+        debugLog.record($format("Scratchpad recv local req..."));
     endrule
  
-    rule eatRespLocal (tags.first == 0);
+    rule eatRespLocal (pack(tags.first) == 0);
         tags.deq;
         let r <- scratchpad_rrr.getResponse_LoadLine();
         localRespQ.enq(SCRATCHPAD_RRR_LOAD_LINE_RESP { data0:r.data0,
@@ -236,6 +248,7 @@ module [CONNECTED_MODULE] mkScratchpadConnectorMultiMaster#(FIFO#(SCRATCHPAD_RRR
                                                        data2:r.data2,
                                                        data3:r.data3 });
         stats.incr(statLocalResp);
+        debugLog.record($format("Scratchpad serviced local resp..."));
     endrule
 
     // Also handle non-local requests
@@ -243,24 +256,45 @@ module [CONNECTED_MODULE] mkScratchpadConnectorMultiMaster#(FIFO#(SCRATCHPAD_RRR
     rule eatReqNonLocal;
         let req = link_mem_req.first();
         link_mem_req.deq();
-
+        
         scratchSendReq(req.req, req.stopID, scratchpad_rrr, tags);
-        stats.incr(statRemoteReq);
+        
+        match {.platform_id, .bank_id} = req.stopID;
+        
+        if (platform_id == 0)
+        begin
+            stats.incr(statRemoteBankReq);
+        end
+        else
+        begin
+            stats.incr(statRemotePlatformReq);
+        end
 
-        debugLog.record($format("Scratchpad recv non-local req %d", req.stopID));
+        debugLog.record($format("Scratchpad recv non-local req, platform=%d, bank=%d", platform_id, bank_id));
+        localArb <= localArb + 1;
     endrule
 
-    rule eatRespNonLocal (tags.first != 0);
-        tags.deq;
+    rule eatRespNonLocal (pack(tags.first) != 0);
         let r <- scratchpad_rrr.getResponse_LoadLine();
-        link_mem_rsp.enq(tags.first,
+        link_mem_rsp.enq(pack(tags.first),
                          SCRATCHPAD_RRR_LOAD_LINE_RESP { data0:r.data0,
                                                          data1:r.data1,
                                                          data2:r.data2,
                                                          data3:r.data3 });
-        stats.incr(statRemoteResp);
-
-        debugLog.record($format("Scratchpad serviced non-local resp %d", tags.first));
+        
+        match {.platform_id, .bank_id} = tags.first();
+        tags.deq;
+        
+        if (platform_id == 0)
+        begin
+            stats.incr(statRemoteBankResp);
+        end
+        else
+        begin
+            stats.incr(statRemotePlatformResp);
+        end
+        
+        debugLog.record($format("Scratchpad serviced non-local resp, platform=%d, bank=%d", platform_id, bank_id));
     endrule
 endmodule
 
@@ -271,27 +305,32 @@ endmodule
 //     Forward all requests to the master.
 //
 module [CONNECTED_MODULE] mkScratchpadConnectorMultiSlave#(FIFO#(SCRATCHPAD_RRR_REQ) localReqQ,
-                                                           FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) localRespQ)
+                                                           FIFO#(SCRATCHPAD_RRR_LOAD_LINE_RESP) localRespQ,
+                                                           Integer scratchpadBankIdx)
     // Interface:
-    (Empty);
+    (Empty)
+    provisos (Bits#(SCRATCHPAD_RING_STOP_ID, t_SCRATCH_IDX_SZ),
+              Alias#(Bit#(t_SCRATCH_IDX_SZ), t_SCRATCH_IDX));
     
     let platformName <- getSynthesisBoundaryPlatform();
     let platformID   <- getSynthesisBoundaryPlatformID();
+    
+    SCRATCHPAD_RING_STOP_ID curStopId = tuple2(fromInteger(platformID), fromInteger(scratchpadBankIdx));
 
-    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_" + platformName + ".out");
+    DEBUG_FILE debugLog <- mkDebugFile("memory_scratchpad_ring_" + platformName + "_bank_" + integerToString(scratchpadBankIdx) + ".out");
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RING_REQ) link_mem_req <-
-        mkConnectionAddrRingNode("ScratchpadGlobalReq", fromInteger(platformID));
+    CONNECTION_ADDR_RING#(t_SCRATCH_IDX, SCRATCHPAD_RING_REQ) link_mem_req <-
+        mkConnectionAddrRingNode("ScratchpadGlobalReq", pack(curStopId));
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_RING_STOP_ID, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
-        mkConnectionAddrRingNode("ScratchpadGlobalResp", fromInteger(platformID));
+    CONNECTION_ADDR_RING#(t_SCRATCH_IDX, SCRATCHPAD_RRR_LOAD_LINE_RESP) link_mem_rsp <-
+        mkConnectionAddrRingNode("ScratchpadGlobalResp", pack(curStopId));
  
     rule eatReq;
         let req = localReqQ.first();
         localReqQ.deq();
 
         // patch through requests to base handler.
-        link_mem_req.enq(0, SCRATCHPAD_RING_REQ { stopID: fromInteger(platformID()),
+        link_mem_req.enq(0, SCRATCHPAD_RING_REQ { stopID: curStopId,
                                                   req: req });
 
         debugLog.record($format("Scratchpad req"));

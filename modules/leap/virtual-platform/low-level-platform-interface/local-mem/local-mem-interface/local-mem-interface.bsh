@@ -37,6 +37,7 @@
 //
 
 import Vector::*;
+import DefaultValue::*;
 
 //
 // Local memory is the interface between a single local memory device (e.g.
@@ -100,6 +101,22 @@ interface LOCAL_MEM;
 
 endinterface: LOCAL_MEM
 
+//
+// Local memory configuration
+//
+typedef struct
+{
+    // associated DDR bank index (for distributed local memories)
+    Integer bankIdx;
+}
+LOCAL_MEM_CONFIG
+    deriving (Eq, Bits);
+
+instance DefaultValue#(LOCAL_MEM_CONFIG);
+    defaultValue = LOCAL_MEM_CONFIG {
+        bankIdx: 0
+    };
+endinstance
 
 //
 // localMemSeparateAddr --
