@@ -30,6 +30,7 @@
 //
 
 import Vector::*;
+import DefaultValue::*;
 
 `include "awb/provides/virtual_devices.bsh"
 `include "awb/provides/central_cache.bsh"
@@ -45,7 +46,6 @@ module [CONNECTED_MODULE] mkCentralCacheService
     // interface:
     ();
 
-
     let platformName <- getSynthesisBoundaryPlatform();
 
     //
@@ -55,120 +55,137 @@ module [CONNECTED_MODULE] mkCentralCacheService
     // The central cache will always miss if there is no local memory.  Only
     // build a real cache if the local storage exists.
     //
-    CENTRAL_CACHE_IFC centralCache <- platformHasLocalMem ? mkCentralCache() :
-                                                            mkBypassCentralCache();
+    Vector#(LOCAL_MEM_BANKS, CENTRAL_CACHE_IFC) centralCaches = newVector();
+    centralCaches[0] <- platformHasLocalMem ? mkCentralCache(defaultValue) : mkBypassCentralCache();
 
-    // ====================================================================
-    //
-    // Central cache connections.  Two soft connections for each individual
-    // port.  One connection is for requests to the cache.  The other
-    // is for requests from the cache to backing storage provided by the
-    // client.
-    //
-    // ====================================================================
-
-    Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_SERVER#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)) link_cache = newVector();
-    Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_CLIENT#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)) link_cache_backing = newVector();
-
-    for (Integer p = 0; p < valueOf(CENTRAL_CACHE_N_CLIENTS); p = p + 1)
+    // If there are multiple DDR banks and the local memory is not unified, 
+    // instantiate multiple central caches. Each central cache connects to 
+    // a distributed local memory.
+    for (Integer p = 1; p < valueOf(LOCAL_MEM_BANKS); p = p + 1)
     begin
-`ifdef VDEV_CACHE__BASE
-        link_cache[p] <- mkConnectionServerOptional("vdev_cache_" + platformName + "_" + integerToString(p));
-
-        //
-        // Forward requests to the central cache.
-        //
-        rule sendCentralCacheReq (True);
-            let req = link_cache[p].getReq();
-            link_cache[p].deq();
-
-            centralCache.clientPorts[p].newReq(req);
-        endrule
-
-        //
-        // Return responses from the central cache.
-        //
-        let resp_data =
-            (rules
-                // Return the requested word of the line fetched from
-                // the cache.
-                rule recvCentralCacheData (True);
-                    let d <- centralCache.clientPorts[p].readResp();
-                    link_cache[p].makeRsp(tagged CENTRAL_CACHE_READ d);
-                endrule
-            endrules);
-
-        let resp_flush_ack =
-            (rules
-                // Flush or invalidate ACK response
-                rule recvCentralCacheFlushAck (True);
-                    let d <- centralCache.clientPorts[p].invalOrFlushWait();
-                    link_cache[p].makeRsp(tagged CENTRAL_CACHE_FLUSH_ACK False);
-                endrule
-            endrules);
-
-        addRules(rJoinDescendingUrgency(resp_flush_ack, resp_data));
-
-
-        //
-        // Backing storage communication.  Requests come from the cache
-        // back to the client.
-        //
-
-        link_cache_backing[p] <- mkConnectionClientOptional("vdev_cache_backing_" + platformName + "_" + integerToString(p));
-
-        //
-        // Forward requests to the central cache.
-        //
-        let back_rules =
-            (rules
-                rule sendCentralCacheBackingReadReq (True);
-                    let r <- centralCache.backingPorts[p].getReadReq();
-                    link_cache_backing[p].makeReq(tagged CENTRAL_CACHE_BACK_READ r);
-                endrule
-            endrules);
-
-        let back_wreq =
-            (rules
-                rule sendCentralCacheBackingWriteReq (True);
-                    let r <- centralCache.backingPorts[p].getWriteReq();
-                    link_cache_backing[p].makeReq(tagged CENTRAL_CACHE_BACK_WREQ r);
-                endrule
-            endrules);
-
-        back_rules = rJoinDescendingUrgency(back_rules, back_wreq);
-
-        let back_wdata =
-            (rules
-                rule sendCentralCacheBackingWriteData (True);
-                    let d <- centralCache.backingPorts[p].getWriteData();
-                    link_cache_backing[p].makeReq(tagged CENTRAL_CACHE_BACK_WDATA d);
-                endrule
-            endrules);
-
-        back_rules = rJoinDescendingUrgency(back_rules, back_wdata);
-        addRules(back_rules);
-
-        //
-        // Backing storage responses
-        //
-        rule recvCentralCacheBackingResp (True);
-            let resp = link_cache_backing[p].getRsp();
-            link_cache_backing[p].deq();
-
-            case (resp) matches
-                tagged CENTRAL_CACHE_BACK_READ .r:
-                begin
-                    centralCache.backingPorts[p].sendReadResp(r.wordVal,
-                                                              r.isCacheable);
-                end
-
-                tagged CENTRAL_CACHE_BACK_WACK .dummy:
-                begin
-                    centralCache.backingPorts[p].sendWriteAck();
-                end
-            endcase
-        endrule
-`endif
+        CENTRAL_CACHE_CONFIG conf = defaultValue;
+        conf.memBankIdx = p;
+        centralCaches[p] <- mkCentralCache(conf);
     end
+
+    // ========================================================================
+    //
+    // Central cache connections for each central cache.  
+    // Two soft connections for each individual port.  One connection is for 
+    // requests to the cache.  The other is for requests from the cache to 
+    // backing storage provided by the client.
+    //
+    // ========================================================================
+
+    for (Integer c = 0; c < valueOf(LOCAL_MEM_BANKS); c = c + 1)
+    begin
+        let centralCache = centralCaches[c];
+        Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_SERVER#(CENTRAL_CACHE_REQ, CENTRAL_CACHE_RESP)) link_cache = newVector();
+        Vector#(CENTRAL_CACHE_N_CLIENTS, CONNECTION_CLIENT#(CENTRAL_CACHE_BACKING_REQ, CENTRAL_CACHE_BACKING_RESP)) link_cache_backing = newVector();
+        
+        for (Integer p = 0; p < valueOf(CENTRAL_CACHE_N_CLIENTS); p = p + 1)
+        begin
+`ifdef VDEV_CACHE__BASE
+            
+            link_cache[p] <- mkConnectionServerOptional(cachePortBaseName(c, platformName) + "_" + integerToString(p));
+
+            //
+            // Forward requests to the central cache.
+            //
+            rule sendCentralCacheReq (True);
+                let req = link_cache[p].getReq();
+                link_cache[p].deq();
+
+                centralCache.clientPorts[p].newReq(req);
+            endrule
+
+            //
+            // Return responses from the central cache.
+            //
+            let resp_data =
+                (rules
+                    // Return the requested word of the line fetched from
+                    // the cache.
+                    rule recvCentralCacheData (True);
+                        let d <- centralCache.clientPorts[p].readResp();
+                        link_cache[p].makeRsp(tagged CENTRAL_CACHE_READ d);
+                    endrule
+                endrules);
+
+            let resp_flush_ack =
+                (rules
+                    // Flush or invalidate ACK response
+                    rule recvCentralCacheFlushAck (True);
+                        let d <- centralCache.clientPorts[p].invalOrFlushWait();
+                        link_cache[p].makeRsp(tagged CENTRAL_CACHE_FLUSH_ACK False);
+                    endrule
+                endrules);
+
+            addRules(rJoinDescendingUrgency(resp_flush_ack, resp_data));
+
+
+            //
+            // Backing storage communication.  Requests come from the cache
+            // back to the client.
+            //
+            link_cache_backing[p] <- mkConnectionClientOptional(backingPortBaseName(c, platformName) + "_" + integerToString(p));
+
+            //
+            // Forward requests to the central cache.
+            //
+            let back_rules =
+                (rules
+                    rule sendCentralCacheBackingReadReq (True);
+                        let r <- centralCache.backingPorts[p].getReadReq();
+                        link_cache_backing[p].makeReq(tagged CENTRAL_CACHE_BACK_READ r);
+                    endrule
+                endrules);
+
+            let back_wreq =
+                (rules
+                    rule sendCentralCacheBackingWriteReq (True);
+                        let r <- centralCache.backingPorts[p].getWriteReq();
+                        link_cache_backing[p].makeReq(tagged CENTRAL_CACHE_BACK_WREQ r);
+                    endrule
+                endrules);
+
+            back_rules = rJoinDescendingUrgency(back_rules, back_wreq);
+
+            let back_wdata =
+                (rules
+                    rule sendCentralCacheBackingWriteData (True);
+                        let d <- centralCache.backingPorts[p].getWriteData();
+                        link_cache_backing[p].makeReq(tagged CENTRAL_CACHE_BACK_WDATA d);
+                    endrule
+                endrules);
+
+            back_rules = rJoinDescendingUrgency(back_rules, back_wdata);
+            addRules(back_rules);
+
+            //
+            // Backing storage responses
+            //
+            rule recvCentralCacheBackingResp (True);
+                let resp = link_cache_backing[p].getRsp();
+                link_cache_backing[p].deq();
+
+                case (resp) matches
+                    tagged CENTRAL_CACHE_BACK_READ .r:
+                    begin
+                        centralCache.backingPorts[p].sendReadResp(r.wordVal,
+                                                                  r.isCacheable);
+                    end
+
+                    tagged CENTRAL_CACHE_BACK_WACK .dummy:
+                    begin
+                        centralCache.backingPorts[p].sendWriteAck();
+                    end
+                endcase
+            endrule
+`endif
+        end
+    
+    end
+
+
 endmodule

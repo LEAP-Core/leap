@@ -74,6 +74,12 @@ typedef TAdd#(`VDEV_SCRATCH__NENTRIES, 1) SCRATCHPAD_N_CLIENTS;
 typedef Bit#(TLog#(TAdd#(1, SCRATCHPAD_N_CLIENTS))) SCRATCHPAD_PORT_NUM;
 
 //
+// Set the number of scratchpad servers (controllers) to the number of 
+// (distributed) local memory banks
+//
+typedef LOCAL_MEM_BANKS SCRATCHPAD_N_SERVERS;
+
+//
 // Scratchpads are not required to return read results in order.  Clients
 // are expected to use the SCRATCHPAD_CLIENT_READ_UID type to tag read requests
 // with information to sort them correctly.
@@ -296,7 +302,7 @@ SCRATCHPAD_RRR_REQ
 //
 // ========================================================================
 
-typedef FPGA_PLATFORM_ID SCRATCHPAD_RING_STOP_ID;
+typedef Tuple2#(FPGA_PLATFORM_ID, UInt#(TLog#(LOCAL_MEM_BANKS))) SCRATCHPAD_RING_STOP_ID;
 
 typedef struct 
 {

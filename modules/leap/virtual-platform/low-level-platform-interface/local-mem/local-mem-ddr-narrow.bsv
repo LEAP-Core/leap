@@ -70,7 +70,6 @@ import Vector::*;
 
 `include "awb/provides/local_mem_interface.bsh"
 
-
 //
 // mkLocalMem --
 //   Implement local memory using DDR memory.
@@ -79,7 +78,7 @@ import Vector::*;
 //   a burst from the DDR memory.  Multiple DDR bursts are combined to form
 //   a local memory line.
 //
-module [CONNECTED_MODULE] mkLocalMem
+module [CONNECTED_MODULE] mkLocalMem#(LOCAL_MEM_CONFIG conf)
     // interface:
     (LOCAL_MEM)
     provisos (Add#(a_, DDR_BURST_DATA_SZ, LOCAL_MEM_LINE_SZ),
@@ -101,14 +100,17 @@ module [CONNECTED_MODULE] mkLocalMem
                                                      FPGA_DDR_BURST_LENGTH)),
               // Number of local memory words per DDR burst
               NumAlias#(n_LOCAL_MEM_WORDS_PER_BURST, TDiv#(DDR_BURST_DATA_SZ,
-                                                           LOCAL_MEM_WORD_SZ)));
+                                                           LOCAL_MEM_WORD_SZ)),
+              // t_DDR_BANKS == 1 if local memory is not unified
+              // (distributed memory bank which connects to a single DDR bank)
+              NumAlias#(t_DDR_BANKS, TMax#(1, TMul#(LOCAL_MEM_UNIFIED, FPGA_DDR_BANKS))));
 
     checkDDRMemSizesValid();
 
     if (valueOf(LOCAL_MEM_WORD_SZ) > valueOf(DDR_BURST_DATA_SZ))
         errorM("LOCAL_MEM_WORD must be no bigger than one DDR memory burst.");
 
-    DEBUG_FILE debugLog <- mkDebugFile("memory_local_mem_ddr_narrow.out");
+    DEBUG_FILE debugLog <- mkDebugFile("memory_local_mem_platform_" + platformName + "_bank_" + integerToString(conf.bankIdx) + "_ddr_narrow.out");
 
     // Merge read and write requests into a single FIFO to preserve order.
     // The DDR controller does this anyway, so we lose no performance.
@@ -121,7 +123,13 @@ module [CONNECTED_MODULE] mkLocalMem
     FIFOF#(LOCAL_MEM_WORD) wordResponseQ <- mkBypassFIFOF();
 
     // Get a handle to the DDR DRAM Controller
+`ifndef LOCAL_MEM_UNIFIED_Z
     LOCAL_MEM_DDR dramDriver <- mkLocalMemDDRConnection();
+`else
+    Integer ddrBankIdx = conf.bankIdx;
+    Vector#(1, LOCAL_MEM_DDR_BANK) dramDriver = newVector();
+    dramDriver[0] <- mkLocalMemDDRBankConnection(ddrBankIdx);
+`endif
 
     //
     // ddrAddrComponents --
@@ -136,8 +144,13 @@ module [CONNECTED_MODULE] mkLocalMem
         let local_line_addr = localMemLineAddr(localAddr);
     
         // The local memory address maps to a DDR address and bank.
+`ifndef LOCAL_MEM_UNIFIED_Z        
         Tuple2#(t_DDR_ALIGNED_BURST_ADDRESS, DDR_BANK_IDX) ddr_addr_comp =
             unpack(local_line_addr);
+`else
+        Tuple2#(t_DDR_ALIGNED_BURST_ADDRESS, DDR_BANK_IDX) ddr_addr_comp =
+            tuple2(unpack(local_line_addr), 0)
+`endif
 
         // Pad the multi-burst-aligned address to a burst address within the bank.
         t_DDR_BURST_IDX b_idx = 0;
@@ -195,7 +208,7 @@ module [CONNECTED_MODULE] mkLocalMem
     //
 
     FIFOF#(Tuple2#(Bool, LOCAL_MEM_REQ)) activeReadQ <-
-        mkSizedFIFOF(valueOf(TMul#(FPGA_DDR_BANKS, FPGA_DDR_MAX_OUTSTANDING_READS)));
+        mkSizedFIFOF(valueOf(TMul#(t_DDR_BANKS, FPGA_DDR_MAX_OUTSTANDING_READS)));
 
     Reg#(t_DDR_BURST_IDX) readBurstIdx <- mkReg(0);
 
@@ -344,7 +357,7 @@ module [CONNECTED_MODULE] mkLocalMem
     // the word write methods convert their requests to masked line writes.
     //
 
-    Vector#(FPGA_DDR_BANKS,
+    Vector#(t_DDR_BANKS,
             FIFO#(Tuple2#(Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT),
                           Vector#(FPGA_DDR_BURST_LENGTH, FPGA_DDR_DUALEDGE_BEAT_MASK))))
         burstWriteQ <- replicateM(mkBypassFIFO());
@@ -426,12 +439,12 @@ module [CONNECTED_MODULE] mkLocalMem
     //
 
     // Count outbound beats for each data queue
-    Vector#(FPGA_DDR_BANKS,
+    Vector#(t_DDR_BANKS,
             Reg#(Bit#(TLog#(FPGA_DDR_BURST_LENGTH)))) writeBeatIdx <-
         replicateM(mkReg(0));
 
     // There is a separate queue for each bank
-    for (Integer bank = 0; bank < valueOf(FPGA_DDR_BANKS); bank = bank + 1)
+    for (Integer bank = 0; bank < valueOf(t_DDR_BANKS); bank = bank + 1)
     begin
         rule fwdWriteData (True);
             let beat_idx = writeBeatIdx[bank];

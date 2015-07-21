@@ -36,6 +36,7 @@
 
 `include "awb/dict/VDEV.bsh"
 
+import DefaultValue::*;
 import Vector::*;
 
 // ========================================================================
@@ -257,6 +258,22 @@ interface CENTRAL_CACHE_IFC;
 
 endinterface: CENTRAL_CACHE_IFC
 
+//
+// Central cache configuration
+//
+typedef struct
+{
+    // associated local memory bank index (for distributed local memories)
+    Integer memBankIdx;
+}
+CENTRAL_CACHE_CONFIG
+    deriving (Eq, Bits);
+
+instance DefaultValue#(CENTRAL_CACHE_CONFIG);
+    defaultValue = CENTRAL_CACHE_CONFIG {
+        memBankIdx: 0
+    };
+endinstance
 
 // ========================================================================
 //
@@ -318,9 +335,17 @@ CENTRAL_CACHE_BACKING_RESP
 
 
 //
+// Return the base name of central cache and backing store connections
+// given the central cache bank index and the platform name 
+//
+function String cachePortBaseName(Integer bankIdx, String platformName) = "vdev_cache_" + integerToString(bankIdx) + "_" + platformName;
+function String backingPortBaseName(Integer bankIdx, String platformName) = "vdev_cache_" + integerToString(bankIdx) + "_backing_" + platformName;
+
+//
 // Construct the name of the soft connection to a central cache port.
 // Ports are created dynamically using dictionaries in the VDEV.CACHE
 // name space.
 //
-function String cachePortName(Integer n , String platformName) = "vdev_cache_" + platformName + "_" + integerToString(n - `CACHE_BASE);
-function String backingPortName(Integer n, String platformName) = "vdev_cache_backing_" + platformName + "_" + integerToString(n - `CACHE_BASE);
+function String cachePortName(Integer n, Integer bankIdx, String platformName) = cachePortBaseName(bankIdx, platformName) + "_" + integerToString(n - `CACHE_BASE);
+function String backingPortName(Integer n, Integer bankIdx, String platformName) = backingPortBaseName(bankIdx, platformName) + "_" + integerToString(n - `CACHE_BASE);
+

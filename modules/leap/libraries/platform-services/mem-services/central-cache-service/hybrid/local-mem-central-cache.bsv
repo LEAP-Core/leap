@@ -72,7 +72,7 @@ endinterface: CENTRAL_CACHE_BACKING
 //     Central cache using local memory.  One port is created for each
 //     client.
 //
-module [CONNECTED_MODULE] mkCentralCache
+module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     // interface:
     (CENTRAL_CACHE_IFC)
     provisos (Bits#(CENTRAL_CACHE_LINE_ADDR, t_CENTRAL_CACHE_LINE_ADDR_SZ),
@@ -89,16 +89,16 @@ module [CONNECTED_MODULE] mkCentralCache
               Bits#(t_CENTRAL_CACHE_SET_IDX, t_CENTRAL_CACHE_SET_IDX_SZ));
 
     DEBUG_FILE debugLog <- (`CENTRAL_CACHE_DEBUG_ENABLE == 1)?
-                           mkDebugFile("memory_central_cache.out"):
-                           mkDebugFileNull("memory_central_cache.out"); 
+                           mkDebugFile("memory_central_cache_" + integerToString(conf.memBankIdx) + ".out"):
+                           mkDebugFileNull("memory_central_cache_" + integerToString(conf.memBankIdx) + ".out"); 
 
     DEBUG_FILE debugLogBacking <- (`CENTRAL_CACHE_DEBUG_ENABLE == 1)?
-                           mkDebugFile("memory_central_cache_backing.out"):
-                           mkDebugFileNull("memory_central_cache_backing.out"); 
+                           mkDebugFile("memory_central_cache_" + integerToString(conf.memBankIdx) + "_backing.out"):
+                           mkDebugFileNull("memory_central_cache_" + integerToString(conf.memBankIdx) + "_backing.out"); 
 
     DEBUG_FILE debugLogInt <- (`CENTRAL_CACHE_DEBUG_ENABLE == 1)?
-                             mkDebugFile("memory_central_cache_internal.out"):
-                             mkDebugFileNull("memory_central_cache_internal.out"); 
+                             mkDebugFile("memory_central_cache_" + integerToString(conf.memBankIdx) + "_internal.out"):
+                             mkDebugFileNull("memory_central_cache_" + integerToString(conf.memBankIdx) + "_internal.out"); 
    
 
     // Debug state
@@ -133,7 +133,7 @@ module [CONNECTED_MODULE] mkCentralCache
                             CENTRAL_CACHE_WORDS_PER_LINE,
                             TExp#(t_CENTRAL_CACHE_SET_IDX_SZ),
                             3,
-                            RL_SA_CACHE_DATA_READ_PORTS) cacheLocalData <- mkLocalMemCacheData(debugLogInt);
+                            RL_SA_CACHE_DATA_READ_PORTS) cacheLocalData <- mkLocalMemCacheData(conf.memBankIdx, debugLogInt);
 
     NumTypeParam#(`CENTRAL_CACHE_LINE_RESP_CACHE_IDX_BITS) nRecentReadCacheIdxBits = ?;
     NumTypeParam#(0) nTagExtraLowBits = ?;
@@ -147,12 +147,13 @@ module [CONNECTED_MODULE] mkCentralCache
     if (`CENTRAL_CACHE_BRAM_CACHE_ENABLE == 1)
     begin
         DEBUG_FILE debugLogIntBRAM <- (`CENTRAL_CACHE_DEBUG_ENABLE == 1)?
-                                      mkDebugFile("memory_central_cache_internal_bram.out"):
-                                      mkDebugFileNull("memory_central_cache_internal_bram.out"); 
+                                      mkDebugFile("memory_central_cache_" + integerToString(conf.memBankIdx) + "_internal_bram.out"):
+                                      mkDebugFileNull("memory_central_cache_" + integerToString(conf.memBankIdx) + "_internal_bram.out"); 
         cache <- mkCentralCacheWithBRAMCache(backingConnection.sourceData,
                                              cacheLocalData,
                                              nRecentReadCacheIdxBits,
                                              nTagExtraLowBits,
+                                             conf.memBankIdx,
                                              debugLogInt,
                                              debugLogIntBRAM);
     end
@@ -167,21 +168,10 @@ module [CONNECTED_MODULE] mkCentralCache
                                  debugLogInt);
     end
 
-    // RL_SA_CACHE#(Bit#(t_CENTRAL_CACHE_INTERNAL_ADDR_SZ),
-    //              CENTRAL_CACHE_WORD,
-    //              CENTRAL_CACHE_WORDS_PER_LINE,
-    //              CENTRAL_CACHE_READ_META
-    //              ) cache <- mkCacheSetAssoc(backingConnection.sourceData,
-    //                                         cacheLocalData,
-    //                                         nRecentReadCacheIdxBits,
-    //                                         nTagExtraLowBits,
-    //                                         debugLogInt);
-
     // Attach statistics to the cache
    
-    let cacheStats <- mkCentralCacheStats(cache.stats);
+    let cacheStats <- mkCentralCacheStats(cache.stats, conf.memBankIdx);
    
-
     // Manage routing of flush/inval ACK back to requesting port
     FIFO#(CENTRAL_CACHE_PORT_NUM) flushAckRespQ <- mkFIFO();
 
@@ -545,7 +535,7 @@ endmodule
 // mkLocalMemCacheData --
 //     Set associative cache local storage using local memory.
 //
-module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
+module [CONNECTED_MODULE] mkLocalMemCacheData#(Integer bankIdx, DEBUG_FILE debugLog)
     // interface:
     (RL_SA_CACHE_LOCAL_DATA#(t_CACHE_ADDR_SZ, t_CACHE_WORD, LOCAL_MEM_WORDS_PER_LINE, nSets, nWays, nReaders))
     provisos (Bits#(t_CACHE_WORD, LOCAL_MEM_WORD_SZ),
@@ -566,7 +556,9 @@ module [CONNECTED_MODULE] mkLocalMemCacheData#(DEBUG_FILE debugLog)
     //
     // Instantiate the shim to local memory.
     //
-    LOCAL_MEM localMem <- mkLocalMem();
+    LOCAL_MEM_CONFIG conf = defaultValue;
+    conf.bankIdx = bankIdx;
+    LOCAL_MEM localMem <- mkLocalMem(conf);
 
     // ====================================================================
     //
