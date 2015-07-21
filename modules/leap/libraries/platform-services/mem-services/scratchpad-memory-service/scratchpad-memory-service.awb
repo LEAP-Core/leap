@@ -12,6 +12,7 @@
 
 %public scratchpad-memory-service.bsh
 %public scratchpad-memory-service.bsv
+%public scratchpad-user-prefetcher.bsv
 %public platform-scratchpad-memory.bsv
 %public platform-scratchpad-memory-utils.bsv
 %private scratchpad-memory-service.dic
@@ -25,7 +26,7 @@
 // block RAM layout.  Scratchpads will use mainly 1K x 18 bit BRAMs.
 %param --global SCRATCHPAD_STD_PVT_CACHE_ENTRIES              1024  "Scratchpad private cache entries (must be a power of 2)"
 %param --global SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM   32  "Number of prefetch learners in scratchpad private cache (must be a power of 2)"
-%param --global SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE         0  "Enable scratchpad private cache prefetcher"
+%param --global SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE         0  "Enable scratchpad private cache prefetcher: 0 - no prefetch, 1 - stride prefetch, 2 - User LI-channel prefetch interface"
 
 %param SCRATCHPAD_STD_PVT_SKEW  0      "Skew cache indices"
 %param SCRATCHPAD_PLATFORM  "Unknown"  "Where should my scratchpad requests go?"

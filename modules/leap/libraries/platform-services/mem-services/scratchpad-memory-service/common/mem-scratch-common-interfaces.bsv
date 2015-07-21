@@ -107,6 +107,23 @@ typedef enum
 SCRATCHPAD_CACHE_MODE
     deriving (Eq, Bits);
 
+//
+// Prefetching options for scratchpads.  
+//
+typedef enum
+{
+    // Turn off prefetching.
+    SCRATCHPAD_NON_PREFETCH = 0,
+
+    // Use a gateware stride prefetcher
+    SCRATCHPAD_STRIDE_PREFETCH = 1,
+
+    // Expose prefetch request interface to user, using li channels.
+    SCRATCHPAD_USER_PREFETCH = 2 
+}
+SCRATCHPAD_PREFETCHER_IMPL
+    deriving (Eq, Bits);
+
 
 //
 // Scratchpad configuration (passed to scratchpad constructors.)
@@ -128,7 +145,7 @@ typedef struct
     Maybe#(GLOBAL_STRING_UID) initFilePath;
 
     // Enable prefetching in scratchpad's private cache
-    Maybe#(Bool) enablePrefetching;
+    Maybe#(SCRATCHPAD_PREFETCHER_IMPL) enablePrefetching;
 
     // Allows programmer to select private cache implementation of scratchpad. 
     // If none is selected, then the global default, set in librl, will be used. 

@@ -100,8 +100,11 @@ typedef struct
     // Does the coherent scratchpad domain has multiple controllers?
     Bool                    multiController;
 
-    // Enable prefetching in coherent scratchpad's private cache
-    Maybe#(Bool)            enablePrefetching;
+    // Enable prefetching in scratchpad's private cache
+    Maybe#(SCRATCHPAD_PREFETCHER_IMPL) enablePrefetching;
+
+    // Enable address hashing for the scratchpad
+    Bool enableAddressHashing;
     
     // Enable the request merging optimization to merge multiple read requests
     // accessing the same scratchpad internal address
@@ -130,6 +133,7 @@ instance DefaultValue#(COH_SCRATCH_CLIENT_CONFIG);
         cacheEntries: `SHARED_SCRATCHPAD_PVT_CACHE_ENTRIES,
         multiController: False,
         enablePrefetching: tagged Invalid, 
+        enableAddressHashing: True,
         requestMerging: (`SHARED_SCRATCHPAD_REQ_MERGE_ENABLE==1),
         debugLogPath: tagged Invalid,
         enableDebugScan: tagged Invalid,
