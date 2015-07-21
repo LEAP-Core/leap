@@ -1,6 +1,6 @@
 //
 // resize --
-//     Size conversion using zero extend or truncate as appropriate.
+//     Size conversion using zero extend or truncate as appropriate. Manipulates high-order bits.
 //
 function t_DST resize(t_SRC src)
     provisos (Bits#(t_DST, n_DST_BITS),
@@ -9,6 +9,19 @@ function t_DST resize(t_SRC src)
     
     Bit#(n_BITS) x = zeroExtendNP(pack(src));
     return unpack(truncateNP(x));
+endfunction
+
+//
+// resizeLSB --
+//     Size conversion using zero extend or truncate as appropriate. Manipulates low-order bits.
+//
+function t_DST resizeLSB(t_SRC src)
+    provisos (Bits#(t_DST, n_DST_BITS),
+              Bits#(t_SRC, n_SRC_BITS),
+              Max#(n_DST_BITS, n_SRC_BITS, n_BITS));
+    
+    Bit#(n_BITS) x = zeroExtendNP(reverseBits(pack(src)));
+    return unpack(reverseBits(truncateNP(x)));
 endfunction
 
 //
