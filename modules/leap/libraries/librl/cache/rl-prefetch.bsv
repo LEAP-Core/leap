@@ -39,7 +39,7 @@
 
 import FIFO::*;
 import SpecialFIFOs::*;
-
+import FIFOLevel::*;
 // Project foundation imports.
 
 `include "awb/provides/librl_bsv_base.bsh"
@@ -62,6 +62,14 @@ typedef enum
 }
 PREFETCH_PRIO
     deriving (Eq, Bits);
+
+typedef struct
+{
+    Bool            defaultOverride;
+    PREFETCH_PRIO   prio;
+}
+PREFETCH_PRIO_SPEC
+    deriving (Eq,Bits);
 
 //
 // Prefetch mode
@@ -126,7 +134,7 @@ interface CACHE_PREFETCHER#(type t_CACHE_IDX,
                             type t_CACHE_ADDR,
                             type t_CACHE_READ_META);
     
-    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size);
+    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size, PREFETCH_PRIO_SPEC prioSpec);
     
     // Return true if the prefetch request queue is not empty
     method Bool hasReq();
@@ -134,6 +142,9 @@ interface CACHE_PREFETCHER#(type t_CACHE_IDX,
     // Return a read request to prefetch a word (from the prefetch request queue)
     method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META)) getReq();
     method PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META) peekReq();
+   
+    // Allow external user to remove stale prefetches if the prefetcher gets full. 
+    method Bool prefetcherNearlyFull();
     
     //
     // Learn the prefetch mechanism 
@@ -173,6 +184,11 @@ endinterface: CACHE_PREFETCHER
 
 // Prefetch size (# prefetch requests)
 typedef UInt#(2) PREFETCH_SIZE;
+
+// Size of prefetch buffer.  Has some impact on Low-priority performance
+typedef 4 PREFETCH_BUF_SIZE;
+
+typedef 2 PREFETCH_BUF_NEARLY_FULL;
 
 // Prefetch learner index
 typedef UInt#(n_IDX_BITS) PREFETCH_LEARNER_IDX#(numeric type n_IDX_BITS);
@@ -266,7 +282,7 @@ PREFETCH_LEARNER_REQ#(type t_LEARNER_IDX,
 // Prefetch default distance
 `define PREFETCH_DEFAULT_DIST 1
 // Prefetch default priority
-`define PREFETCH_DEFAULT_PRIO PREFETCH_PRIO_HIGH
+`define PREFETCH_DEFAULT_PRIO PREFETCH_PRIO_LOW
 
 // ===================================================================
 //
@@ -289,7 +305,7 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, B
               Bounded#(t_CACHE_IDX));
     
     // Prefetch request queue
-    FIFOF#(t_PREFETCH_REQ) prefetchReqQ <- mkSizedFIFOF(8);
+    FIFOCountIfc#(t_PREFETCH_REQ, PREFETCH_BUF_SIZE) prefetchReqQ <- mkFIFOCount();
 
     // Number of words to prefetch
     Reg#(PREFETCH_SIZE) prefetchNum <- mkReg(`PREFETCH_DEFAULT_SIZE);
@@ -302,6 +318,9 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, B
 
     // Prefetch address
     Reg#(t_CACHE_ADDR) prefetchAddr <- mkReg(unpack(0));
+
+    // Prefetch priority
+    Reg#(PREFETCH_PRIO) prefetchPriority <- mkReg(`PREFETCH_DEFAULT_PRIO);
 
     PulseWire startPrefetch <- mkPulseWire();
     
@@ -336,7 +355,7 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, B
         prefetchAddr <= new_addr;
         let req = PREFETCH_REQ { addr: new_addr, 
                                  readMeta: ?,
-                                 prio: `PREFETCH_DEFAULT_PRIO };
+                                 prio: prefetchPriority };
         prefetchReqQ.enq(req);
         startPrefetch.send();
         prefetchIssuedW.send();
@@ -352,14 +371,20 @@ module mkCachePrefetcher#(NumTypeParam#(n_LEARNERS) dummy, Bool hashAddresses, B
     //
     // ====================================================================
 
-    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size);
+    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size, PREFETCH_PRIO_SPEC prioSpec);
         match {.prefetch_type, .prefetch_dist} = mode; 
         learner.setLearnerLookaheadDist(prefetch_dist);
         learner.setLearnerSize(size);
         learner.setLearnerMode(prefetch_type);
+        if(prioSpec.defaultOverride)
+        begin
+            prefetchPriority <= prioSpec.prio;
+        end
     endmethod
 
     method Bool hasReq() = prefetchReqQ.notEmpty;
+
+    method Bool prefetcherNearlyFull() = prefetchReqQ.count() > fromInteger(valueof(PREFETCH_BUF_SIZE) - valueof(PREFETCH_BUF_NEARLY_FULL));
  
     method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META)) getReq();
         let req = prefetchReqQ.first();
@@ -1373,12 +1398,14 @@ module mkNullCachePrefetcher
               Bits#(t_CACHE_ADDR,     t_CACHE_ADDR_SZ),
               Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ));
     
-    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size);
+    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size, PREFETCH_PRIO_SPEC prioSpec);
         noAction;
     endmethod
    
     method Bool hasReq() = False;
     
+    method Bool prefetcherNearlyFull() = False;
+
     method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META)) getReq();
         return ?;
     endmethod

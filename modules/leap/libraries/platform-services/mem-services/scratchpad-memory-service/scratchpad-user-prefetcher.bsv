@@ -33,10 +33,10 @@
 import FIFO::*;
 import FIFOF::*;
 import SpecialFIFOs::*;
+import FIFOLevel::*;
 import Vector::*;
 import DefaultValue::*;
-import ConfigReg::* ;
-
+import ConfigReg::*;
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/soft_services.bsh"
@@ -81,8 +81,11 @@ module [CONNECTED_MODULE] mkScratchpadUserPrefetcher#(Integer scratchpadID, NumT
     PARAMETER_NODE paramNode         <- mkDynamicParameterNode();
     Param#(3) cacheMode              <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PVT_CACHE_MODE, paramNode);
 
+    // Prefetch priority
+    Reg#(PREFETCH_PRIO) prefetchPriority <- mkReg(PREFETCH_PRIO_HIGH);
+
     // Prefetch request queue
-    FIFOF#(t_PREFETCH_REQ) prefetchReqQ <- mkSizedFIFOF(8);
+    FIFOCountIfc#(t_PREFETCH_REQ,4) prefetchReqQ <- mkFIFOCount();
 
     // Wires for communicating stats
     PulseWire prefetchDroppedByBusyW <- mkPulseWire();
@@ -101,7 +104,7 @@ module [CONNECTED_MODULE] mkScratchpadUserPrefetcher#(Integer scratchpadID, NumT
         // Maybe we need a resizeLSB here. 
         let req = PREFETCH_REQ { addr: unpack(resizeLSB(new_addr)), 
                                  readMeta: ?,
-                                 prio: PREFETCH_PRIO_HIGH };
+                                 prio: prefetchPriority };
 
         // Use existing cache mode parameter to turn off prefetching.
         if(cacheMode[2] == 1)
@@ -119,12 +122,17 @@ module [CONNECTED_MODULE] mkScratchpadUserPrefetcher#(Integer scratchpadID, NumT
     //
     // ====================================================================
 
-    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size);
-       // No action       
+    method Action setPrefetchMode(Tuple2#(PREFETCH_MODE, PREFETCH_DIST_PARAM) mode, PREFETCH_LEARNER_SIZE_LOG size, PREFETCH_PRIO_SPEC prioSpec);
+        if(prioSpec.defaultOverride)
+        begin
+            prefetchPriority <= prioSpec.prio;
+        end
     endmethod
 
     method Bool hasReq() = prefetchReqQ.notEmpty;
  
+    method Bool prefetcherNearlyFull() = prefetchReqQ.count() > 2;
+
     method ActionValue#(PREFETCH_REQ#(t_CACHE_ADDR, t_CACHE_READ_META)) getReq();
         let req = prefetchReqQ.first();
         prefetchReqQ.deq();

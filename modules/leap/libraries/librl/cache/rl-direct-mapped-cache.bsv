@@ -65,6 +65,8 @@ RL_DM_CACHE_LOAD_RESP#(type t_CACHE_WORD,
                        type t_CACHE_READ_META)
     deriving (Eq, Bits);
 
+
+
 //
 // Store Request
 //
@@ -301,6 +303,31 @@ RL_DM_CACHE_READ_META#(type t_CACHE_READ_META)
     deriving (Eq, Bits);
 
 
+
+// 
+// Request during the first stage of the request selection process. This is a provisional 
+// request which exists before issuing requests to the cache and the data filter. 
+//
+typedef  struct {
+   RL_DM_CACHE_REQ_TYPE reqType;
+   t_CACHE_REQ          request;
+} 
+RL_DM_EARLY_REQUEST_SELECTION#(type t_CACHE_REQ)
+    deriving (Eq, Bits);
+
+// 
+// Request during the second(final) stage of the request selection process. This request has 
+// issued to the cache and filter, and has the metadata for these structures.
+//
+typedef  struct {
+   RL_DM_CACHE_REQ_TYPE                reqType;
+   t_CACHE_REQ                         request;
+   Maybe#(CF_OPAQUE#(t_CACHE_IDX, 1))  requestMetadata;
+} 
+RL_DM_FINAL_REQUEST_SELECTION#(type t_CACHE_REQ, type t_CACHE_IDX)
+    deriving (Eq, Bits);
+
+
 //
 // Basic cache request.  A tagged union would be a good idea here but the
 // compiler gets funny about Bits#() of a tagged union and seems to force
@@ -329,6 +356,10 @@ RL_DM_CACHE_WRITE_REQ#(type t_CACHE_ADDR,
                        type t_CACHE_TAG, 
                        type t_CACHE_IDX)
     deriving (Eq, Bits);
+
+// Definitions for cache side buffer
+typedef Bit#(2) SIDE_REQS_OUTSTANDING;
+typedef Bit#(5) SIDE_REQ_BINS;
 
 // ===================================================================
 //
@@ -717,7 +748,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     // ====================================================================
 
     FIFOF#(t_CACHE_REQ) sideReqQ <- mkSizedFIFOF(8);
-    LUTRAM#(Bit#(5), Bit#(2)) sideReqFilter <- mkLUTRAM(0);
+    LUTRAM#(SIDE_REQ_BINS, SIDE_REQS_OUTSTANDING) sideReqFilter <- mkLUTRAM(0);
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
 
     // Track whether the heads of the new and side request queues are
@@ -727,9 +758,9 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     Reg#(Bool) newReqNotBlocked[3] <- mkCReg(3, True);
     Reg#(Bool) sideReqNotBlocked[2] <- mkCReg(2, True);
 
-    Wire#(Tuple2#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ)) pickReq <- mkWire();
-    Wire#(Tuple3#(RL_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Maybe#(CF_OPAQUE#(t_CACHE_IDX, 1))))
-        curReq <- mkWire();
+    Wire#(RL_DM_EARLY_REQUEST_SELECTION#(t_CACHE_REQ)) pickReq <- mkWire();
+    Wire#(RL_DM_FINAL_REQUEST_SELECTION#(t_CACHE_REQ, t_CACHE_IDX)) curReq <- mkWire();
+
 
     //
     // pickReqQueue0 --
@@ -753,10 +784,13 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
 
         Bool pick_new_req = new_req_avail && ((newReqArb != 0) || ! side_req_avail);
 
+        // If we have a high priority prefetch, we can issue it over other requests. 
+        // we examine bit 0 of new request to balance the prefetches better against
+        // against the baseline reqeusts.  If we have a low priority prefetch, we will 
+        // only issue it if we don't have something else to do. 
         if ( prefetchMode == RL_DM_PREFETCH_ENABLE && prefetcher.hasReq() && 
            ((!newReqQ.notEmpty && !sideReqQ.notEmpty) || 
-           ((newReqArb > 2) && (prefetcher.peekReq().prio == PREFETCH_PRIO_LOW)) || 
-           ((newReqArb > 1) && (prefetcher.peekReq().prio == PREFETCH_PRIO_HIGH))))
+           ((newReqArb[0] == 0) && (prefetcher.peekReq().prio == PREFETCH_PRIO_HIGH))))
         begin
             let req_type  = DM_CACHE_PREFETCH_REQ;
             let pref_req  = prefetcher.peekReq();
@@ -772,19 +806,19 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             r.tag = tag;
             r.idx = idx;
 
-            pickReq <= tuple2(req_type, r);
+            pickReq <= RL_DM_EARLY_REQUEST_SELECTION{reqType: req_type, request: r};
             debugLog.record($format("    pick prefetch req: addr=0x%x, entry=0x%x", r.addr, idx));
         end
         else if (pick_new_req)
         begin
             let r = newReqQ.first();
-            pickReq <= tuple2(DM_CACHE_NEW_REQ, r);
+            pickReq <= RL_DM_EARLY_REQUEST_SELECTION{reqType:DM_CACHE_NEW_REQ, request: r};
             debugLog.record($format("    pick new req: addr=0x%x, entry=0x%x", r.addr, cacheIdx(r)));
         end
         else if (side_req_avail)
         begin
             let r = sideReqQ.first();
-            pickReq <= tuple2(DM_CACHE_SIDE_REQ, r);
+            pickReq <= RL_DM_EARLY_REQUEST_SELECTION{reqType: DM_CACHE_SIDE_REQ, request: r};
             debugLog.record($format("    pick side req: addr=0x%x, entry=0x%x", r.addr, cacheIdx(r)));
         end
     endrule
@@ -800,7 +834,8 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     // 
     (* fire_when_enabled *)
     rule pickReqQueue1 (cacheLookupQ.notFull);
-        match {.req_type, .r} = pickReq;
+        let req_type = pickReq.reqType;
+        let r = pickReq.request;
         let idx = cacheIdx(r);
         
         // At this point the cache index is known but it is not yet known
@@ -828,22 +863,45 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         if ((req_type == DM_CACHE_SIDE_REQ) ||
             (sideReqFilter.sub(resize(idx)) == 0))
         begin
-            curReq <= tuple3(req_type, r, entryFilter.test(idx));
+            curReq <= RL_DM_FINAL_REQUEST_SELECTION{reqType: req_type, request: r, requestMetadata: entryFilter.test(idx)};
         end
         else
         begin
-            curReq <= tuple3(req_type, r, tagged Invalid);
+            curReq <= RL_DM_FINAL_REQUEST_SELECTION{reqType: req_type, request: r, requestMetadata: tagged Invalid};
         end
     endrule
 
-
-    //
-    // startReq --
-    //     Start the current request if the line is not busy.
-    //
     (* fire_when_enabled *)
-    rule startReq (tpl_3(curReq) matches tagged Valid .filter_state);
-        match {.req_type, .r, .cf_opaque} = curReq;
+    rule startNewReq (curReq.requestMetadata matches tagged Valid .filter_state &&&
+                      curReq.reqType  == DM_CACHE_NEW_REQ);
+
+        let req_type = curReq.reqType;
+        let r = curReq.request;
+        let cf_opaque = curReq.requestMetadata;
+
+        let idx = cacheIdx(r);
+
+        // The new request is permitted.  Do it.
+        newCacheLookupValidW.send();
+        entryFilter.set(filter_state);
+
+        debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
+                                req_type == DM_CACHE_NEW_REQ ? "startNewReq" : 
+                                ( req_type == DM_CACHE_SIDE_REQ ? "startSideReq" :
+                                  "startPrefetchReq" ), r.addr, idx));
+        newReqQ.deq();
+        
+    endrule
+
+
+    (* fire_when_enabled *)
+    rule startSideReq (curReq.requestMetadata matches tagged Valid .filter_state &&&
+                       curReq.reqType == DM_CACHE_SIDE_REQ);
+
+        let req_type = curReq.reqType;
+        let r = curReq.request;
+        let cf_opaque = curReq.requestMetadata;
+
         let idx = cacheIdx(r);
 
         // The new request is permitted.  Do it.
@@ -855,21 +913,43 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                                 ( req_type == DM_CACHE_SIDE_REQ ? "startSideReq" :
                                   "startPrefetchReq" ), r.addr, idx));
 
-        if (req_type == DM_CACHE_NEW_REQ)
-        begin
-            newReqQ.deq();
-        end
-        else if (req_type == DM_CACHE_SIDE_REQ)
-        begin
-            sideReqQ.deq();
-            sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) - 1);
-            // Removing from the side buffer may free the new request.
-            newReqNotBlocked[2] <= True;
-        end
-        else
-        begin
-            let pf_req <- prefetcher.getReq();
-        end
+        sideReqQ.deq();
+        sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) - 1);
+        // Removing from the side buffer may free the new request.
+        newReqNotBlocked[2] <= True;
+        
+    endrule
+
+    (* fire_when_enabled *)
+    rule startPrefetchReq (curReq.requestMetadata matches tagged Valid .filter_state &&&
+                           (curReq.reqType == DM_CACHE_PREFETCH_REQ));
+
+        let req_type = curReq.reqType;
+        let r = curReq.request;
+        let cf_opaque = curReq.requestMetadata;
+
+        let idx = cacheIdx(r);
+
+        // The new request is permitted.  Do it.
+        newCacheLookupValidW.send();
+        entryFilter.set(filter_state);
+
+        debugLog.record($format("    %s: addr=0x%x, entry=0x%x",
+                                req_type == DM_CACHE_NEW_REQ ? "startNewReq" : 
+                                ( req_type == DM_CACHE_SIDE_REQ ? "startSideReq" :
+                                  "startPrefetchReq" ), r.addr, idx));
+
+        let pf_req <- prefetcher.getReq();
+        
+    endrule
+
+    (* fire_when_enabled *)
+    rule dropStalePrefetches ( curReq.requestMetadata matches tagged Valid .filter_state &&& (
+                               curReq.reqType != DM_CACHE_PREFETCH_REQ && 
+                              ((prefetcher.peekReq().prio == PREFETCH_PRIO_LOW) && prefetcher.prefetcherNearlyFull())));
+
+        let pf_req <- prefetcher.getReq();
+        
     endrule
 
 
@@ -882,13 +962,16 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     //     This rule will not fire if startReq fires.
     //
     (* fire_when_enabled *)
-    rule shuntNewReq (tpl_1(curReq) == DM_CACHE_NEW_REQ &&
-                      ! isValid(tpl_3(curReq)));
-        match {.req_type, .r, .cf_opaque} = curReq;
+    rule shuntNewReq (curReq.reqType == DM_CACHE_NEW_REQ &&
+                      ! isValid(curReq.requestMetadata));
+        let req_type = curReq.reqType;
+        let r = curReq.request;
+        let cf_opaque = curReq.requestMetadata;
+
         let idx = cacheIdx(r);
 
-        if (! tpl_2(curReq).globalReadMeta.orderedSourceDataReqs &&
-            (sideReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) != maxBound) &&
+        if (! curReq.request.globalReadMeta.orderedSourceDataReqs &&
+            (sideReqFilter.sub(resize(cacheIdx(curReq.request))) != maxBound) &&
             sideReqQ.notFull)
         begin
             debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
@@ -918,25 +1001,27 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     //     it until the blocking in-flight request completes.
     //
     (* fire_when_enabled *)
-    rule sideReqBlocked (tpl_1(curReq) == DM_CACHE_SIDE_REQ &&
-                         ! isValid(tpl_3(curReq)));
-        match {.req_type, .r, .cf_opaque} = curReq;
+    rule sideReqBlocked (curReq.reqType == DM_CACHE_SIDE_REQ &&
+                         ! isValid(curReq.requestMetadata));
+        let req_type = curReq.reqType;
+        let r = curReq.request;
+        let cf_opaque = curReq.requestMetadata; 
+
         let idx = cacheIdx(r);
 
         debugLog.record($format("    side req queue blocked: addr=0x%x, entry=0x%x", r.addr, idx));
         sideReqNotBlocked[0] <= False;
     endrule
 
-
     //
     // For collecting prefetch stats
     //
     (* fire_when_enabled *)
-    rule dropPrefetchReqByBusy (tpl_1(curReq) == DM_CACHE_PREFETCH_REQ && 
-                                !isValid(tpl_3(curReq)) );
+    rule dropPrefetchReqByBusy (curReq.reqType == DM_CACHE_PREFETCH_REQ && 
+                                !isValid(curReq.requestMetadata) );
         let pf_req <- prefetcher.getReq();
-        debugLog.record($format("    Prefetch req dropped by busy: addr=0x%x", tpl_2(curReq).addr));
-        prefetcher.prefetchDroppedByBusy(tpl_2(curReq).addr);
+        debugLog.record($format("    Prefetch req dropped by busy: addr=0x%x", curReq.request.addr));
+        prefetcher.prefetchDroppedByBusy(curReq.request.addr);
     endrule
 
 
