@@ -54,6 +54,10 @@ import ModuleContext::*;
 `include "awb/provides/multifpga_router_service.bsh"
 `endif
 
+`ifndef SOFT_CONNECTION_REMAP_Z
+`include "soft_connection_remap.bsh"
+`endif
+
 //
 // Optionally pass in a set of top-level clocks and a reset.
 //
@@ -93,9 +97,14 @@ module [Module] mkClockedSystem
     match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryID(fpgaPlatformID()));
     match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, putSynthesisBoundaryName(fpgaPlatformName()));
     match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, putExposeAllConnections(`EXPOSE_ALL_CONNECTIONS == 1));
+`ifndef SOFT_CONNECTION_REMAP_Z
+    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, putConnectionRemapFunction(connectionNameRemap));
+`else
+    let int_ctx7 = int_ctx6;
+`endif
 
    // Instantiate the soft-connected system
-    let sys <- instantiateWithConnections(mkConnectedSystem, tagged Valid int_ctx6);
+    let sys <- instantiateWithConnections(mkConnectedSystem, tagged Valid int_ctx7);
 
     return sys;
 

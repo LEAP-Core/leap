@@ -20,6 +20,7 @@
 %param --dynamic SCRATCHPAD_PVT_CACHE_MODE  0 "Bit 2: 0 disabled, 1 enabled prefetcher / Bits 1-0: 0 write-back, 1 write-through, 2 write-no-allocate, 3 disabled"
 
 %param --dynamic SCRATCHPAD_PREFETCHER_MECHANISM  36 "Bits 5-4: 0 basic-tagged, 1 stride-learn-on-miss, 2 stride-learn-on-original-miss, 3 stride-hybrid / Bits 3: 0 look ahead prefetch distance (laDist) learn automatically / Bit 2-0: laDist upper bound in log"
+
 %param --dynamic SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG 5 "0-6: # prefetch learners (in log)"
 %param --dynamic SCRATCHPAD_PREFETCHER_PRIORITY_SPEC 1 "Bit 1: Override Default, Bit 0: Priority to use (High - 1, Low - 1)" 
 
@@ -27,11 +28,13 @@
 // block RAM layout.  Scratchpads will use mainly 1K x 18 bit BRAMs.
 %param --global SCRATCHPAD_STD_PVT_CACHE_ENTRIES              1024  "Scratchpad private cache entries (must be a power of 2)"
 %param --global SCRATCHPAD_STD_PVT_CACHE_PREFETCH_LEARNER_NUM   32  "Number of prefetch learners in scratchpad private cache (must be a power of 2)"
-%param --global SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE         0  "Enable scratchpad private cache prefetcher: 0 - no prefetch, 1 - stride prefetch, 2 - User LI-channel prefetch interface"
+%param --global SCRATCHPAD_STD_PVT_CACHE_PREFETCH_ENABLE         0  "Enable scratchpad private cache prefetcher: 0 no prefetch, 1 stride prefetch, 2 User LI-channel prefetch interface"
 
-%param SCRATCHPAD_STD_PVT_SKEW  0      "Skew cache indices"
-%param SCRATCHPAD_PLATFORM  "Unknown"  "Where should my scratchpad requests go?"
+%param SCRATCHPAD_STD_PVT_SKEW                                   0  "Skew cache indices"
+%param SCRATCHPAD_PLATFORM                               "Unknown"  "Where should my scratchpad requests go?"
 
-%param --global PLATFORM_SCRATCHPAD_DEBUG_ENABLE 0 "Enable Platform Scratchpad Debug Log"
-%param --global PLATFORM_SCRATCHPAD_STATS_ENABLE 0 "Enable Platform Scratchpad Statistics collection"
+%param --global SCRATCHPAD_CHAIN_REMAP                           0  "Remap scratchpad connections"
+
+%param --global PLATFORM_SCRATCHPAD_DEBUG_ENABLE                 0  "Enable Platform Scratchpad Debug Log"
+%param --global PLATFORM_SCRATCHPAD_STATS_ENABLE                 0  "Enable Platform Scratchpad Statistics collection"
 
