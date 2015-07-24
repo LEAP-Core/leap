@@ -95,6 +95,8 @@ class ModuleList:
     self.buildDirectory = env['DEFS']['BUILD_DIR']
     self.compileDirectory = env['DEFS']['TMP_XILINX_DIR']
     givenVerilogs = Utils.clean_split(env['DEFS']['GIVEN_VERILOGS'], sep = ' ') 
+    givenVerilogPkgs = Utils.clean_split(env['DEFS']['GIVEN_VERILOG_PKGS'], sep = ' ') 
+    givenVerilogHs = Utils.clean_split(env['DEFS']['GIVEN_VERILOG_HS'], sep = ' ') 
     givenNGCs = Utils.clean_split(env['DEFS']['GIVEN_NGCS'], sep = ' ') 
     givenVHDs = Utils.clean_split(env['DEFS']['GIVEN_VHDS'], sep = ' ') 
     self.apmName = env['DEFS']['APM_NAME']
@@ -173,6 +175,8 @@ class ModuleList:
 
       #This should be done in xst process 
       module.moduleDependency['VERILOG'] = givenVerilogs
+      module.moduleDependency['VERILOG_PKG'] = givenVerilogPkgs
+      module.moduleDependency['VERILOG_H'] = givenVerilogHs
       module.moduleDependency['BA'] = []
       module.moduleDependency['VERILOG_STUB'] = []
       module.moduleDependency['VERILOG_LIB'] = []
@@ -182,12 +186,16 @@ class ModuleList:
     for module in self.synthBoundaries():
       # each module has a generated bsv
       module.moduleDependency['VERILOG'] = ['hw/' + module.buildPath + '/.bsc/' + module.wrapperName() + '.v'] + givenVerilogs
+      module.moduleDependency['VERILOG_PKG'] = givenVerilogPkgs
+      module.moduleDependency['VERILOG_H'] = givenVerilogHs
       module.moduleDependency['VERILOG_LIB'] = []
       module.moduleDependency['BA'] = []
       module.moduleDependency['BSV_LOG'] = []
       module.moduleDependency['STR'] = []
 
     self.topModule.moduleDependency['VERILOG'] = ['hw/' + self.topModule.buildPath + '/.bsc/mk_' + self.topModule.name + '_Wrapper.v'] + givenVerilogs
+    self.topModule.moduleDependency['VERILOG_PKG'] = givenVerilogPkgs
+    self.topModule.moduleDependency['VERILOG_H'] = givenVerilogHs
     self.topModule.moduleDependency['VERILOG_STUB'] = []
     self.topModule.moduleDependency['VERILOG_LIB'] = []
     self.topModule.moduleDependency['NGC'] = givenNGCs
