@@ -552,4 +552,13 @@ module [CONNECTED_MODULE] mkLocalMem#(LOCAL_MEM_CONFIG conf)
         writeDataQ.enq(tuple2(data, mask));
     endmethod
 
+
+    method Action allocRegionReq(LOCAL_MEM_ADDR addr);
+        error("Region allocation not required for fixed sized memory");
+    endmethod
+
+    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
+        error("Region allocation not required for fixed sized memory");
+        return ?;
+    endmethod
 endmodule

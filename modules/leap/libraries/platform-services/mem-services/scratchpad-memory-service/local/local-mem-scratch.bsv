@@ -136,6 +136,21 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
         match {.port, .base_addr, .n_init} = initQ.first();
         initQ.deq();
         
+`ifdef LOCAL_MEM_REQUIRES_ALLOC
+        let m_alloc_addr <- localMem.allocRegionRsp();
+        if (! isValid(m_alloc_addr))
+        begin
+            debugLog.record($format("INIT ALLOC port %0d: OUT OF MEMORY", port));
+        end
+
+        // Use the base address from the allocator
+        if (m_alloc_addr matches tagged Valid .alloc_addr)
+        begin
+            base_addr = alloc_addr;
+            debugLog.record($format("INIT ALLOC port %0d: 0x%x words, base 0x%x", port, n_init, base_addr));
+        end
+`endif
+
         initBusy <= True;
         initPort <= port;
         initAddrBase <= base_addr;
@@ -285,6 +300,13 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
         if (last_word > totalAlloc)
         begin
             initQ.enq(tuple3(portNum, totalAlloc, allocLastWordIdx));
+
+`ifdef LOCAL_MEM_REQUIRES_ALLOC
+            //
+            // Local memory requires explicit allocation.
+            //
+            localMem.allocRegionReq(allocLastWordIdx);
+`endif
         end
         else
         begin

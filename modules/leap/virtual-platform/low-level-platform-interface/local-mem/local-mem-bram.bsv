@@ -309,4 +309,12 @@ module mkLocalMem#(LOCAL_MEM_CONFIG conf)
         writeBusyCnt.setC(`LOCAL_MEM_WRITE_LATENCY);
     endmethod
 
+    method Action allocRegionReq(LOCAL_MEM_ADDR addr);
+        error("Region allocation not required for fixed sized memory");
+    endmethod
+
+    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
+        error("Region allocation not required for fixed sized memory");
+        return ?;
+    endmethod
 endmodule
