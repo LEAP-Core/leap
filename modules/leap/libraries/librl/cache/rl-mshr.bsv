@@ -118,7 +118,8 @@ module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog)
 
     // Really, these should be folded into a single LUTRAM.  We are not taking advantage of the 
     // multiporting. 
-    Vector#(n_ENTRIES, LUTRAM#(t_MSHR_INDEX, t_MSHR_REQ))             requests       <- replicateM(mkLUTRAMU());
+//    Vector#(n_ENTRIES, LUTRAM#(t_MSHR_INDEX, t_MSHR_REQ))             requests       <- replicateM(mkLUTRAMU());
+    LUTRAM#(Bit#(TAdd#(n_ENTRIES_SZ, t_MSHR_INDEX_SZ)), t_MSHR_REQ)     requests       <- mkLUTRAMU();
     Vector#(TExp#(t_MSHR_INDEX_SZ), Reg#(FUNC_FIFO_IDX#(n_ENTRIES)))  requestsState  <- replicateM(mkReg(funcFIFO_IDX_Init()));
     LUTRAM#(t_MSHR_INDEX, t_MSHR_TAG)                                 mshrTags       <- mkLUTRAMU();
 
@@ -182,7 +183,7 @@ module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog)
             // Do the actual enqueue.
             match {.s, .dataIdx} = funcFIFO_IDX_UGenq(enqState);
 
-            requests[dataIdx].upd(enqReq.index, enqReq.request);
+            requests.upd({pack(dataIdx),pack(enqReq.index)}, enqReq.request);
             requestsStateNext[pack(enqReq.index)] = s;
         end 
  
@@ -231,7 +232,7 @@ module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog)
     endmethod 
 
     method t_MSHR_REQ firstMSHR(t_MSHR_INDEX index);               
-        return requests[funcFIFO_IDX_UGfirst(requestsState[pack(index)])].sub(index);
+        return requests.sub({pack(funcFIFO_IDX_UGfirst(requestsState[pack(index)])),pack(index)});
     endmethod 
 
     method Action dump();
