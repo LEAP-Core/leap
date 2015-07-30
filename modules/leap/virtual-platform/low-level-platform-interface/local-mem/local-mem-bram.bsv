@@ -72,7 +72,7 @@ function Bool platformHasLocalMem() = True;
 // 
 // Allow clients to determine whether and how many distributed local memory banks exist
 //
-typedef 1 LOCAL_MEM_BANKS;
+typedef `LOCAL_MEM_BRAM_BANKS LOCAL_MEM_BANKS;
 
 // Cycle counter for calculating delays
 typedef UInt#(16) REQ_CYCLE;
@@ -309,4 +309,12 @@ module mkLocalMem#(LOCAL_MEM_CONFIG conf)
         writeBusyCnt.setC(`LOCAL_MEM_WRITE_LATENCY);
     endmethod
 
+    method Action allocRegionReq(LOCAL_MEM_ADDR addr);
+        error("Region allocation not required for fixed sized memory");
+    endmethod
+
+    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
+        error("Region allocation not required for fixed sized memory");
+        return ?;
+    endmethod
 endmodule

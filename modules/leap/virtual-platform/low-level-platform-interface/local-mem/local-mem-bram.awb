@@ -11,6 +11,7 @@
 %param LOCAL_MEM_ADDR_BITS      21  "Local memory address size (address indexes words)"
 %param LOCAL_MEM_WORD_BITS      64  "Local memory word size"
 %param LOCAL_MEM_WORDS_PER_LINE  4  "Local memory words per line (must be power of 2)"
+%param LOCAL_MEM_BRAM_BANKS      1  "Number of local memory BRAM banks"
 
 %param LOCAL_MEM_READ_LATENCY    0  "Additional latency to add to reads (for debugging)"
 %param LOCAL_MEM_WRITE_LATENCY   0  "Additional latency to add to writes (for debugging)"

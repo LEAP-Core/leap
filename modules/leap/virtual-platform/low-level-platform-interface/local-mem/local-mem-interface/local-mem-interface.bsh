@@ -99,6 +99,19 @@ interface LOCAL_MEM;
     method Action writeWordMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data, LOCAL_MEM_WORD_MASK mask);
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
 
+    //
+    // Some memories require allocation of each region.  On-board memory, such
+    // as DRAM DIMMS on a PCIe board, do not.  Host memory mapped into windows
+    // visible to the FPGA typically do require allocation.  When the AWB
+    // parameter LOCAL_MEM_REQUIRES_ALLOC exists these methods must be used
+    // to allocate and partition the memory space.
+    //
+    // The interface is request/response.  allocRegionReq requests an n-line
+    // region.  allocRegionRsp returns the address of the region or invalid
+    // if the region could not be allocated.
+    //
+    method Action allocRegionReq(LOCAL_MEM_ADDR addr);
+    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
 endinterface: LOCAL_MEM
 
 //
