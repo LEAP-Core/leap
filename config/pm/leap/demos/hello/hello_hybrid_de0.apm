@@ -45,4 +45,4 @@ File=config/pm/leap/submodels/fpgaenv/fpgaenv-de0-jtag.apm
 Packagehint=leap-platforms-altera
 
 [Hybrid evaluation-de0-JTAG FPGA Environment/Params]
-MODEL_CLOCK_FREQ=300
+MODEL_CLOCK_FREQ=150
