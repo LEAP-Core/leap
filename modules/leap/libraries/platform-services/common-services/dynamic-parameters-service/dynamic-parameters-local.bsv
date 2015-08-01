@@ -37,6 +37,7 @@
 //
 
 `include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_strings.bsh"
 
 `include "awb/dict/PARAMS.bsh"
 
@@ -50,7 +51,8 @@
 //
 interface PARAMETER_NODE;
     
-    method Maybe#(Bit#(64)) checkForNewValue(PARAMS_DICT_TYPE myID);
+    method Maybe#(Bit#(64)) checkForNewValueID(PARAMS_DICT_TYPE myID);
+    method Maybe#(Bit#(64)) checkForNewValueStr(GLOBAL_STRING_UID myStr);
 
 endinterface
 
@@ -68,15 +70,28 @@ interface Param#(numeric type bits);
 endinterface
 
 //
-// PARAM_DATA is the message sent along the dynamic parameter ring.  It comes
-// in three parts to save wires:  first the parameter ID, then the high 32 bits,
-// then the low 32 bits.
+// PARAM_TAG --
+//   Used to disambiguate old-style awb-script-derived dynamic parameters from 
+//   new user-declared parameters, which use the string ID mechanism. 
 //
 typedef union tagged
 {
     PARAMS_DICT_TYPE PARAM_ID;
-    Bit#(32) PARAM_High32;
-    Bit#(32) PARAM_Low32;
+    GLOBAL_STRING_UID PARAM_STR;
+}
+    PARAM_TAG
+           deriving (Eq, Bits);
+
+//
+// PARAM_DATA is the message sent along the dynamic parameter ring.  It comes
+// in three parts to save wires:  first the parameter tag, then the high 32 bits,
+// then the low 32 bits.
+//
+typedef union tagged
+{
+    PARAM_TAG TAG;
+    Bit#(32)  PARAM_High32;
+    Bit#(32)  PARAM_Low32;
 }
     PARAM_DATA
            deriving (Eq, Bits);
@@ -100,7 +115,7 @@ module [CONNECTED_MODULE] mkDynamicParameterNode
 
     // Most recent param that came in on the ring
     Reg#(Bool) validParam <- mkReg(False);
-    Reg#(PARAMS_DICT_TYPE) id <- mkReg(?);
+    Reg#(PARAM_TAG) tag <- mkReg(?);
     Reg#(Bit#(64)) value <- mkReg(?);
  
     // shift
@@ -113,10 +128,10 @@ module [CONNECTED_MODULE] mkDynamicParameterNode
         PARAM_DATA param <- chain.recvFromPrev();
         chain.sendToNext(param);
 
-        if (param matches tagged PARAM_ID .new_id)
+        if (param matches tagged TAG .new_tag)
         begin
             receiving <= True;
-            id <= new_id;
+            tag <= new_tag;
             // validParam will be set true after the param value arrives
             validParam <= False;
         end
@@ -154,13 +169,25 @@ module [CONNECTED_MODULE] mkDynamicParameterNode
 
     endrule
 
-    // checkForNewValue
+    // checkForNewValueID
     //
-    // Individual parameters invoke this method every cycle to receive param
+    // Legacy parameters invoke this method every cycle to receive param
     // values.
     //
-    method Maybe#(Bit#(64)) checkForNewValue(PARAMS_DICT_TYPE myID);
-        if (validParam && id == myID)
+    method Maybe#(Bit#(64)) checkForNewValueID(PARAMS_DICT_TYPE myID);
+        if ( tag matches tagged PARAM_ID .tagValue &&& validParam &&& tagValue == myID)
+            return tagged Valid value;
+        else
+            return tagged Invalid;
+    endmethod
+
+    // checkForNewValueStr
+    //
+    // New-style parameters invoke this method every cycle to receive param
+    // values.
+    //
+    method Maybe#(Bit#(64)) checkForNewValueStr(GLOBAL_STRING_UID myStrID);
+        if ( tag matches tagged PARAM_STR .tagValue &&& validParam &&& tagValue == myStrID)
             return tagged Valid value;
         else
             return tagged Invalid;
@@ -172,7 +199,7 @@ endmodule
 //
 // mkDynamicParameter --
 //
-// Object for an individual parameter.
+// Object for an individual, legacy parameter.
 //
 module [CONNECTED_MODULE] mkDynamicParameter#(PARAMS_DICT_TYPE myID, PARAMETER_NODE paramNode)
     //interface:
@@ -185,7 +212,36 @@ module [CONNECTED_MODULE] mkDynamicParameter#(PARAMS_DICT_TYPE myID, PARAMETER_N
     // Monitor the parameter node and update the parameter when it comes through.
     //
     rule setValue(True);
-        if (paramNode.checkForNewValue(myID) matches tagged Valid .v)
+        if (paramNode.checkForNewValueID(myID) matches tagged Valid .v)
+        begin
+            value <= tagged Valid truncate(v);
+        end
+    endrule
+
+    method Bit#(bits) _read() if (value matches tagged Valid .v);
+        return v;
+    endmethod
+
+endmodule
+
+
+//
+// mkDynamicParameterStr --
+//
+// Object for an individual, new-style string parameter.
+//
+module [CONNECTED_MODULE] mkDynamicParameterFromString#(GLOBAL_STRING_UID myStrID, PARAMETER_NODE paramNode)
+    //interface:
+        (Param#(bits)) provisos (Add#(a__, bits, 64));
+
+    Reg#(Maybe#(Bit#(bits))) value <- mkReg(tagged Invalid);
+
+    // setValue
+    //
+    // Monitor the parameter node and update the parameter when it comes through.
+    //
+    rule setValue(True);
+        if (paramNode.checkForNewValueStr(myStrID) matches tagged Valid .v)
         begin
             value <= tagged Valid truncate(v);
         end

@@ -55,6 +55,20 @@ typedef enum
 SOFT_PARAMS_STATE
     deriving (Eq, Bits);
 
+
+// SOFT_PARAMS_TYPE
+
+// Disambiguate old-style parameters from new-style string parameters. 
+
+typedef enum
+{
+    TYPE_ID = 0,
+    TYPE_STR = 1
+}
+SOFT_PARAMS_TYPE
+    deriving (Eq, Bits);
+
+
 // mkParamsController
 
 // Abstracts all communication from the main controller to individual stat counters.
@@ -86,7 +100,17 @@ module [CONNECTED_MODULE] mkDynamicParametersService
         //
         // The first message on the chain is the parameter ID
         //
-        PARAM_DATA msg = tagged PARAM_ID truncate(pack(c.paramID));
+        let paramType = unpack(truncate(c.paramType));
+        PARAM_DATA msg = ?;
+        if(paramType == TYPE_ID)
+        begin
+            msg = tagged TAG (tagged PARAM_ID truncate(pack(c.paramID)));
+        end 
+        else
+        begin
+            msg = tagged TAG (tagged PARAM_STR truncate(pack(c.paramID)));
+        end 
+
         chain.sendToNext(msg);
 
         state <= PCS_HIGH32;
