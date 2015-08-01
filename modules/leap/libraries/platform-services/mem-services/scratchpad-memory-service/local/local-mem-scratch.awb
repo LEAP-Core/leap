@@ -7,5 +7,5 @@
 
 %public local-mem-scratch.bsv
 
-%param SCRATCHPAD_SUPPORTS_INIT     0  "0 or 1: Does scratchpad memory directly supports initialization from a file?"
-%param SCRATCHPAD_MEMORY_USE_LINES  0  "0 or 1: use word (0) or line (1) accesses to local memory."
+%param --global SCRATCHPAD_SUPPORTS_INIT     0  "0 or 1: Does scratchpad memory directly supports initialization from a file?"
+%param --global SCRATCHPAD_MEMORY_USE_LINES  0  "0 or 1: use word (0) or line (1) accesses to local memory."
