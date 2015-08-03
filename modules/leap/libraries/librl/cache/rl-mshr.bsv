@@ -62,7 +62,7 @@ RL_MSHR_ENQ#(type t_MSHR_INDEX,
 
 // Turn on extra MSHR error checking.  This is disabled by default
 // because it adds extra register file ports. 
-Bool mshr_debug = True;
+Bool mshr_debug = False;
 
 //
 // MSHR interface.
@@ -81,17 +81,17 @@ interface RL_MSHR#(type t_MSHR_TAG, type t_MSHR_REQ, type t_MSHR_INDEX, numeric 
    //    MSHR before enqueuing.     
    method Action     enqMSHR(t_MSHR_INDEX index, t_MSHR_TAG tag, t_MSHR_REQ request);
 
-   // notEmpty/notFull --
+   // notEmpty/notFull/countMSHR --
    //    Check the state of the index-th MSHR.  Since the state depends on the value of tag, 
    //    caller must also supply a tag.  For example, a tag mismatch will make the MSHR 'full'.
    method Bool       notEmptyMSHR(t_MSHR_INDEX index, t_MSHR_TAG tag);
    method Bool       notFullMSHR(t_MSHR_INDEX index, t_MSHR_TAG tag);
+   method Bit#(TLog#(TAdd#(n_ENTRIES, 1))) countMSHR(t_MSHR_INDEX index);
 
    // deqMSHR/firstMSHR -- 
    //   Methods for manipulating the head of the index-th MSHR queue. 
    method Action     deqMSHR(t_MSHR_INDEX index);
    method t_MSHR_REQ firstMSHR(t_MSHR_INDEX index);
-   method Bit#(TLog#(TAdd#(1, n_ENTRIES))) countMSHR(t_MSHR_INDEX index);
 
    // dump -- 
    //    A debug method, which dumps the state of the MSHR queues.
@@ -109,7 +109,6 @@ module mkMSHR#(DEBUG_FILE debugLog)
               Eq#(t_MSHR_TAG),
               Bounded#(t_MSHR_INDEX),
               Eq#(t_MSHR_INDEX),  
-              Log#(TAdd#(1, n_ENTRIES), TLog#(TAdd#(n_ENTRIES, 1))),
               NumAlias#(TLog#(n_ENTRIES), n_ENTRIES_SZ)
              );
 
@@ -117,11 +116,7 @@ module mkMSHR#(DEBUG_FILE debugLog)
     //  | tag | requestsState | requests[0] | requests[1] | ... | requests[n_ENTRIES - 1] |
     //  We have 2 ^ |t_MSHR_INDEX| of these entries, which we manage as independent
     //  fifos, using the  requestsState.
-
-    // Really, these should be folded into a single LUTRAM.  We are not taking advantage of the 
-    // multiporting. 
-//    Vector#(n_ENTRIES, LUTRAM#(t_MSHR_INDEX, t_MSHR_REQ))             requests       <- replicateM(mkLUTRAMU());
-    LUTRAM#(Bit#(TAdd#(n_ENTRIES_SZ, t_MSHR_INDEX_SZ)), t_MSHR_REQ)     requests       <- mkLUTRAMU();
+    LUTRAM#(Bit#(TAdd#(n_ENTRIES_SZ, t_MSHR_INDEX_SZ)), t_MSHR_REQ)   requests       <- mkLUTRAMU();
     Vector#(TExp#(t_MSHR_INDEX_SZ), Reg#(FUNC_FIFO_IDX#(n_ENTRIES)))  requestsState  <- replicateM(mkReg(funcFIFO_IDX_Init()));
     LUTRAM#(t_MSHR_INDEX, t_MSHR_TAG)                                 mshrTags       <- mkLUTRAMU();
 
@@ -194,6 +189,7 @@ module mkMSHR#(DEBUG_FILE debugLog)
                  
             requests.upd({pack(dataIdx),pack(enqReq.index)}, enqReq.request);
             requestsStateNext[pack(enqReq.index)] = s;
+
             debugLog.record($format("MSHR enq %d notFull %d notEmpty %d count %d", enqReq.index, 
                                                                                funcFIFO_IDX_notFull(s),
                                                                                funcFIFO_IDX_notEmpty(s),
