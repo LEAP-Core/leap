@@ -137,17 +137,22 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
         initQ.deq();
         
 `ifdef LOCAL_MEM_REQUIRES_ALLOC
-        let m_alloc_addr <- localMem.allocRegionRsp();
-        if (! isValid(m_alloc_addr))
+        let m_alloc <- localMem.allocRegionRsp();
+        if (! isValid(m_alloc))
         begin
             debugLog.record($format("INIT ALLOC port %0d: OUT OF MEMORY", port));
         end
 
         // Use the base address from the allocator
-        if (m_alloc_addr matches tagged Valid .alloc_addr)
+        if (m_alloc matches tagged Valid .alloc)
         begin
-            base_addr = alloc_addr;
             debugLog.record($format("INIT ALLOC port %0d: 0x%x words, base 0x%x", port, n_init, base_addr));
+
+            base_addr = alloc.baseAddr;
+            if (! alloc.needsInitZero)
+            begin
+                n_init = 0;
+            end
         end
 `endif
 
