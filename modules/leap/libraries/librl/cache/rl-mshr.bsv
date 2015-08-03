@@ -62,7 +62,7 @@ RL_MSHR_ENQ#(type t_MSHR_INDEX,
 
 // Turn on extra MSHR error checking.  This is disabled by default
 // because it adds extra register file ports. 
-Bool mshr_debug = False;
+Bool mshr_debug = True;
 
 //
 // MSHR interface.
@@ -73,7 +73,7 @@ Bool mshr_debug = False;
 // for efficiency. One queue may be written and one queue may be dequeued per cycle.  It is possible to 
 // read mutltiple queues in a cycle, though this may incur extra hardware overhead.  
 //
-interface RL_MSHR#(type t_MSHR_TAG, type t_MSHR_REQ, type t_MSHR_INDEX);
+interface RL_MSHR#(type t_MSHR_TAG, type t_MSHR_REQ, type t_MSHR_INDEX, numeric type n_ENTRIES);
 
    // enqMSHR --
    //    Enqueues a value into the index-th MSHR.  If a MSHR is empty, the MSHR tag will also
@@ -91,6 +91,7 @@ interface RL_MSHR#(type t_MSHR_TAG, type t_MSHR_REQ, type t_MSHR_INDEX);
    //   Methods for manipulating the head of the index-th MSHR queue. 
    method Action     deqMSHR(t_MSHR_INDEX index);
    method t_MSHR_REQ firstMSHR(t_MSHR_INDEX index);
+   method Bit#(TLog#(TAdd#(1, n_ENTRIES))) countMSHR(t_MSHR_INDEX index);
 
    // dump -- 
    //    A debug method, which dumps the state of the MSHR queues.
@@ -99,15 +100,16 @@ interface RL_MSHR#(type t_MSHR_TAG, type t_MSHR_REQ, type t_MSHR_INDEX);
 endinterface
 
 
-module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog) 
+module mkMSHR#(DEBUG_FILE debugLog) 
     // interface:
-    (RL_MSHR#(t_MSHR_TAG, t_MSHR_REQ, t_MSHR_INDEX))
+    (RL_MSHR#(t_MSHR_TAG, t_MSHR_REQ, t_MSHR_INDEX, n_ENTRIES))
     provisos (Bits#(t_MSHR_TAG, t_MSHR_TAG_SZ),
               Bits#(t_MSHR_REQ, t_MSHR_REQ_SZ),
               Bits#(t_MSHR_INDEX, t_MSHR_INDEX_SZ),
               Eq#(t_MSHR_TAG),
               Bounded#(t_MSHR_INDEX),
               Eq#(t_MSHR_INDEX),  
+              Log#(TAdd#(1, n_ENTRIES), TLog#(TAdd#(n_ENTRIES, 1))),
               NumAlias#(TLog#(n_ENTRIES), n_ENTRIES_SZ)
              );
 
@@ -139,7 +141,7 @@ module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog)
         if(mshrEnqW.wget matches tagged Valid .enqReq &&& mshrDeqW.wget matches tagged Valid .deqReq &&& 
            deqReq == enqReq.index)
         begin            
-            enqState = funcFIFO_IDX_UGdeq(requestsState[pack(enqReq.index)]);
+            enqState = funcFIFO_IDX_UGdeq(requestsState[pack(deqReq)]);
             debugLog.record($format("MSHR enq/deq idx=0x%x", enqReq.index));
         end
         // enqueue and dequeue are different. Do dequeue 
@@ -180,11 +182,23 @@ module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog)
                 end 
             end
 
+            // is the fifo full? 
+            if(!funcFIFO_IDX_notFull(enqState))
+            begin
+                $display("MSHR attempted to enqueue into full MSHR: mshr %d was full", enqReq.index);
+                $finish;
+            end
+
             // Do the actual enqueue.
             match {.s, .dataIdx} = funcFIFO_IDX_UGenq(enqState);
-
+                 
             requests.upd({pack(dataIdx),pack(enqReq.index)}, enqReq.request);
             requestsStateNext[pack(enqReq.index)] = s;
+            debugLog.record($format("MSHR enq %d notFull %d notEmpty %d count %d", enqReq.index, 
+                                                                               funcFIFO_IDX_notFull(s),
+                                                                               funcFIFO_IDX_notEmpty(s),
+                                                                               funcFIFO_IDX_numBusySlots(s)));
+
         end 
  
         writeVReg(requestsState, requestsStateNext);
@@ -226,6 +240,10 @@ module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog)
 
     endmethod
 
+    method Bit#(TLog#(TAdd#(n_ENTRIES, 1))) countMSHR(t_MSHR_INDEX index);
+        return funcFIFO_IDX_numBusySlots(requestsState[pack(index)]);
+    endmethod 
+
     method Action deqMSHR(t_MSHR_INDEX index);
         mshrDeqW.wset(index);
         debugLog.record($format("MSHR deq: idx=0x%x", index));
@@ -236,12 +254,13 @@ module mkMSHR#(NumTypeParam#(n_ENTRIES) entries, DEBUG_FILE debugLog)
     endmethod 
 
     method Action dump();
+        debugLog.record($format("MSHR dump"));
         for( Integer i = 0; i < valueof(TExp#(t_MSHR_INDEX_SZ)); i = i + 1) 
         begin
-            $display("MSHR %d notFull %d notEmpty %d count %d", i, 
-                                                                funcFIFO_IDX_notFull(requestsState[i]), 
-                                                                funcFIFO_IDX_notEmpty(requestsState[i]),
-                                                                funcFIFO_IDX_numBusySlots(requestsState[i]));
+            debugLog.record($format("MSHR %d notFull %d notEmpty %d count %d", i, 
+                                                                               funcFIFO_IDX_notFull(requestsState[i]),
+                                                                               funcFIFO_IDX_notEmpty(requestsState[i]),
+                                                                               funcFIFO_IDX_numBusySlots(requestsState[i])));
         end
     endmethod
   
