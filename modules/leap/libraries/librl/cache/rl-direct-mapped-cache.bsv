@@ -425,7 +425,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_READ_META) cache = ?;
 
-    // Disable MSHRs
+    // Disable/Enable MSHRs
     Bool enableMSHRs = False; 
 
     // Here, we examine n_ENTRIES, and develop different cache implementations
@@ -1207,7 +1207,6 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             end
 
             debugLog.record($format("    lookupRead: MISS addr=0x%x, entry=0x%x", r.addr, idx));
-            // need to allocate MSHR here. 
         end
     endrule
 
@@ -1349,6 +1348,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                 $finish;
             end 
         end
+        else
         begin
             let deadValue <- sourceData.readResp();
             entryFilterUpdateQ.enq(idx);          

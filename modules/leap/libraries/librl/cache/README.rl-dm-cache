@@ -1,0 +1,82 @@
+
+Stage 1:
+Request select --
+   pickReqQueue0
+   pickReqQueue1
+   startNewReq/startSideReq/startPrefetchReq/shuntNewReq
+   dropStalePrefetches
+   enqToMSHR
+   dropPrefetchReqByBusy
+   sideReqBlocked
+   didLookup
+
+   The effect of all of these rules is to select a new request, check
+   that it can be issued, and issue it.  Currently, the check is done
+   by examining the 'entryFilter'.  If the request cannot be issued,
+   then it may go to one of two places.  MSHR is the preferred
+   location, if there are already requests outstanding to this
+   location. SideReqQ stores those requests which are not able to be
+   inserted into an MSHR, for example, if the MSHR is busy. 
+
+   A wrinkle here is the 'sideReqFilter', which tracks dependencies in
+   the sideReqQ. This makes sure that read/write dependencies are
+   honored when considering new requests: if old requests are in the
+   sideReqQ, new requests cannot be issued. 
+
+Stage 2:
+Examine cache data:
+   drainRead/lookupRead/doWrite/evictForInval   
+   
+   Here, we will examine the result of stage 1. Chiefly this means a
+   tag match with the data in the cache.  On a read hit, we return the
+   data directly. One a write hit, we will merge the write data into 
+   the cache data and write back to the cache. 
+ 
+   Misses are a bit more interesting.  In this case, we will allocate
+   MSHR, evict the cache data, and prepare to issue a fill request. 
+    
+   
+Stage 3A:
+Finish Inval
+   finishInval
+
+   Finishes Inval, ships data out of the cache. 
+
+
+Stage3B:
+Fill Request (Miss Path)
+    fillReq
+
+    This stage pushes out a fill request to the backing store. It
+    exists to economize on sourceData implementation area.
+
+Stage 4:
+Handle Fill
+    fillResp
+
+    Places fill response data in the cache. If MSHRs are used,
+    multiple requests will be satisfied simultaneously.
+
+
+Stage 5:
+FinishEntry
+   finishEntry
+
+   Removes entries from the entryFilter. Exists as a timing
+   optimization. Every access ends up here.
+
+Paths
+--------
+
+Read Hit:
+Stage 1 -> Stage 2 -> Stage 5
+
+Read Miss:
+Stage 1 -> Stage 2 -> Stage 3A -> Stage 4 -> Stage 5
+
+Write Hit: 
+Stage 1 -> Stage 2 -> Stage 5
+
+Write Miss: 
+Stage 1 -> Stage 2 -> Stage 3A -> Stage 4 -> Stage 5
+
