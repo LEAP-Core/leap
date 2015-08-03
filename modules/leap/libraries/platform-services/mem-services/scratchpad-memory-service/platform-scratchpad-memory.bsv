@@ -503,6 +503,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     let my_port = scratchpadPortId(scratchpadID);
     let platformID <- getSynthesisBoundaryPlatformID();
     
+`ifdef SCRATCHPAD_CHAIN_REMAP_Z
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
         mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req", my_port);
 
@@ -511,6 +512,19 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
 
     messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
     messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+`else
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req_" + integerToString(scratchpadIntPortId(scratchpadID)), my_port);
+
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + integerToString(scratchpadIntPortId(scratchpadID)), my_port);
+
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req_" + 
+             integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+    
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + 
+             integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+`endif
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -562,7 +576,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
 
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
-                                        byteReadMask: replicate(True),
+                                        byteReadMask: unpack(~0),
                                         readUID: zeroExtendNP(pack(maf_idx)),
                                         globalReadMeta: defaultValue() };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
@@ -1010,6 +1024,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     let my_port = scratchpadPortId(scratchpadID);
     let platformID <- getSynthesisBoundaryPlatformID();
 
+`ifdef SCRATCHPAD_CHAIN_REMAP_Z
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
         mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req", my_port);
 
@@ -1018,6 +1033,19 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
 
     messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
     messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+`else
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req_" + integerToString(scratchpadIntPortId(scratchpadID)), my_port);
+
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + integerToString(scratchpadIntPortId(scratchpadID)), my_port);
+
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req_" + 
+             integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+    
+    messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + 
+             integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+`endif
 
     Reg#(Bool) initialized <- mkReg(False);
 
@@ -1052,7 +1080,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         //
         let req = SCRATCHPAD_READ_REQ { port: my_port,
                                         addr: zeroExtendNP(pack(addr)),
-                                        byteReadMask: replicate(True),
+                                        byteReadMask: unpack(~0),
                                         readUID: zeroExtendNP(pack(readUID)),
                                         globalReadMeta: globalReadMeta };
 
@@ -1237,11 +1265,28 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     let my_port = scratchpadPortId(scratchpadID);
     let platformID <- getSynthesisBoundaryPlatformID();
 
+`ifdef SCRATCHPAD_CHAIN_REMAP_Z
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
         mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req", my_port);
 
     CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
         mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp", my_port);
+
+    messageM("Uncached Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+    messageM("Uncached Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp, Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+`else
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Req_" + integerToString(scratchpadIntPortId(scratchpadID)), my_port);
+
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        mkConnectionTokenRingNode("Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + integerToString(scratchpadIntPortId(scratchpadID)), my_port);
+
+    messageM("Uncached Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Req_" + 
+             integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+    
+    messageM("Uncached Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + 
+             integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
+`endif
 
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.

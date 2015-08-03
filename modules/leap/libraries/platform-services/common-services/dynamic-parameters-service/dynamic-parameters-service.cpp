@@ -56,6 +56,22 @@
 #undef Declare
 #undef RegisterDyn
 
+// ===== service instantiation =====
+DYNAMIC_PARAMS_SERVICE_CLASS DYNAMIC_PARAMS_SERVICE_CLASS::instance;
+
+// SOFT_PARAMS_TYPE
+
+// Disambiguate old-style parameters from new-style string parameters.
+// This type is mirrored in bluespec code.
+
+typedef enum
+{
+    TYPE_ID = 0,
+    TYPE_STR = 1
+}
+  SOFT_PARAMS_TYPE;
+   
+
 //
 // Dictionary ID array
 //
@@ -72,6 +88,7 @@ static UINT32 paramDictIDs[] =
 #undef RegisterDynDict
 #define RegisterDynDict(VAR,DICT_ENTRY) extern UINT64 VAR;
 #include "awb/provides/sim_config.h"
+#include "awb/provides/soft_strings.h"
 
 //
 // Dynamic parameter pointer array
@@ -117,8 +134,15 @@ DYNAMIC_PARAMS_SERVICE_CLASS::SendAllParams()
         UINT32 i = 0;
         while (paramValues[i])
         {
-            clientStub->sendParam(paramDictIDs[i], *paramValues[i]);
+            clientStub->sendParam(paramDictIDs[i], TYPE_ID, *paramValues[i]);
             i += 1;
         }
     }
+}
+
+void 
+DYNAMIC_PARAMS_SERVICE_CLASS::SendParam(const string& paramName, UINT64 paramValue)
+{
+     GLOBAL_STRING_UID uid = GLOBAL_STRINGS::Lookup(paramName, true);
+     clientStub->sendParam(uid, TYPE_STR, paramValue);
 }

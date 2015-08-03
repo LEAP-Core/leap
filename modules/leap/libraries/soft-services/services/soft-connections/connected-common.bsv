@@ -381,6 +381,9 @@ LOGICAL_CHAIN_INFO;
 //
 // ========================================================================
 
+typedef function String f(String name) CONNECTION_REMAP_FUNC;
+function String connectionNameNullRemap(String inputName) = inputName;
+
 typedef struct
 {
     GLOBAL_STRING_TABLE globalStrings;
@@ -399,6 +402,7 @@ typedef struct
     String synthesisBoundaryName;
     Bool exposeAllConnections;
     String rootStationName;
+    CONNECTION_REMAP_FUNC remappingFunction; 
     Reset softReset;
 }
 LOGICAL_CONNECTION_INFO;

@@ -92,6 +92,7 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  synthesisBoundaryName: "UNASSIGNED",
                  exposeAllConnections: False,
                  rootStationName: "InvalidRootStation",
+                 remappingFunction: connectionNameNullRemap,
                  softReset: sReset
              };
     endmodule

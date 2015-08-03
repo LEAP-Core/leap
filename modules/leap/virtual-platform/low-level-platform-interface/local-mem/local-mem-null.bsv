@@ -97,4 +97,11 @@ module mkLocalMem#(LOCAL_MEM_CONFIG conf)
         noAction;
     endmethod
 
+    method Action allocRegionReq(LOCAL_MEM_ADDR addr);
+        noAction;
+    endmethod
+
+    method ActionValue#(Maybe#(LOCAL_MEM_ALLOC_RSP)) allocRegionRsp();
+        return ?;
+    endmethod
 endmodule

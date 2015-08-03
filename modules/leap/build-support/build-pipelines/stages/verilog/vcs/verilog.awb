@@ -13,8 +13,5 @@
 
 %scons %library verilog.py
 
-%param VCS_ARGUMENTS "" "Extra VCS arguments"
-
-
-
-
+%param VCS_ARGUMENTS      ""     "Extra VCS arguments"
+%param VCS_ENABLE_LINT    0      "Enable lint in VCS?"

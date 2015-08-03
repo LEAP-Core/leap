@@ -92,6 +92,16 @@ module [t_CONTEXT] getSynthesisBoundaryName (String)
 
 endmodule
 
+module [t_CONTEXT] getConnectionRemapFunction (CONNECTION_REMAP_FUNC)
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    return ctxt.remappingFunction;
+
+endmodule
+
 module [t_CONTEXT] getUnmatchedSends (LOGICAL_SEND_INFO_TABLE)
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
@@ -263,6 +273,17 @@ module [t_CONTEXT] putSynthesisBoundaryName#(String new_name) ()
 
     LOGICAL_CONNECTION_INFO ctxt <- getContext();
     ctxt.synthesisBoundaryName = new_name;
+    putContext(ctxt);
+
+endmodule
+
+module [t_CONTEXT] putConnectionRemapFunction#(CONNECTION_REMAP_FUNC f) ()
+    provisos
+        (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+         IsModule#(t_CONTEXT, t_DUMMY));
+
+    LOGICAL_CONNECTION_INFO ctxt <- getContext();
+    ctxt.remappingFunction = f;
     putContext(ctxt);
 
 endmodule

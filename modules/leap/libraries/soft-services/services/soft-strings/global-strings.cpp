@@ -47,7 +47,8 @@ const GLOBAL_STRING_UID pvtIdSpace = -1 << (GLOBAL_STRING_SYNTH_UID_SZ +
                                             GLOBAL_STRING_LOCAL_UID_SZ);
 
 // Static objects
-unordered_map <GLOBAL_STRING_UID, string> GLOBAL_STRINGS::uidToString;
+unordered_map <GLOBAL_STRING_UID, string>  GLOBAL_STRINGS::uidToString;
+unordered_map <string, GLOBAL_STRING_UID>  GLOBAL_STRINGS::stringToUID;
 GLOBAL_STRING_UID GLOBAL_STRINGS::nextAllocId = pvtIdSpace;
 static GLOBAL_STRINGS instance;
     
@@ -71,6 +72,29 @@ GLOBAL_STRINGS::Lookup(GLOBAL_STRING_UID uid, bool abortIfUndef)
         }
 
         return NULL;
+    }
+}
+
+//
+// Look up a UID in the table, given a string handle.
+//
+const GLOBAL_STRING_UID
+GLOBAL_STRINGS::Lookup(const string& str, bool abortIfUndef)
+{
+    unordered_map <string, GLOBAL_STRING_UID>::iterator s = stringToUID.find(str);
+
+    if (s != stringToUID.end())
+    {
+        return (s->second);
+    }
+    else
+    {
+        if (abortIfUndef)
+        {
+            ASIMERROR("Global string " << str << " undefined!");
+        }
+
+        return -1;
     }
 }
 
@@ -138,6 +162,7 @@ GLOBAL_STRINGS::AddString(GLOBAL_STRING_UID uid, const string& str)
     }
 
     uidToString[uid] = str;
+    stringToUID[str] = uid;
 }
 
 //

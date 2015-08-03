@@ -76,6 +76,15 @@ typedef Bit#(LOCAL_MEM_ADDR_SZ) LOCAL_MEM_ADDR;
 typedef TSub#(LOCAL_MEM_ADDR_SZ, LOCAL_MEM_WORD_IDX_SZ) LOCAL_MEM_LINE_ADDR_SZ;
 typedef Bit#(LOCAL_MEM_LINE_ADDR_SZ) LOCAL_MEM_LINE_ADDR;
 
+typedef struct
+{
+    LOCAL_MEM_ADDR baseAddr;
+    // Does memory have to be initialize with 0s or has it already been done?
+    Bool needsInitZero;
+}
+LOCAL_MEM_ALLOC_RSP
+    deriving (Eq, Bits);
+
 
 interface LOCAL_MEM;
     //
@@ -99,6 +108,19 @@ interface LOCAL_MEM;
     method Action writeWordMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_WORD data, LOCAL_MEM_WORD_MASK mask);
     method Action writeLineMasked(LOCAL_MEM_ADDR addr, LOCAL_MEM_LINE data, LOCAL_MEM_LINE_MASK mask);
 
+    //
+    // Some memories require allocation of each region.  On-board memory, such
+    // as DRAM DIMMS on a PCIe board, do not.  Host memory mapped into windows
+    // visible to the FPGA typically do require allocation.  When the AWB
+    // parameter LOCAL_MEM_REQUIRES_ALLOC exists these methods must be used
+    // to allocate and partition the memory space.
+    //
+    // The interface is request/response.  allocRegionReq requests an n-line
+    // region.  allocRegionRsp returns the address of the region or invalid
+    // if the region could not be allocated.
+    //
+    method Action allocRegionReq(LOCAL_MEM_ADDR addr);
+    method ActionValue#(Maybe#(LOCAL_MEM_ALLOC_RSP)) allocRegionRsp();
 endinterface: LOCAL_MEM
 
 //

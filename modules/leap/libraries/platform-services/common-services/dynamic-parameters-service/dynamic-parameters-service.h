@@ -20,6 +20,10 @@ typedef class DYNAMIC_PARAMS_SERVICE_CLASS* DYNAMIC_PARAMS_SERVICE;
 class DYNAMIC_PARAMS_SERVICE_CLASS: public PLATFORMS_MODULE_CLASS
 {
   private:
+
+    // self-instantiation
+    static DYNAMIC_PARAMS_SERVICE_CLASS instance;
+
  
     // stub
     PARAMS_CLIENT_STUB clientStub;
@@ -28,8 +32,14 @@ class DYNAMIC_PARAMS_SERVICE_CLASS: public PLATFORMS_MODULE_CLASS
     DYNAMIC_PARAMS_SERVICE_CLASS();
     ~DYNAMIC_PARAMS_SERVICE_CLASS();
 
+    // static methods
+    static DYNAMIC_PARAMS_SERVICE GetInstance() { return &instance; }
+
     // Send dynamic parameters to hardware
     void SendAllParams();
+
+    // Send a single parameter to hardware. 
+    void SendParam(const string& str, UINT64 paramValue);
 
     // required RRR service methods
     void Init(PLATFORMS_MODULE);

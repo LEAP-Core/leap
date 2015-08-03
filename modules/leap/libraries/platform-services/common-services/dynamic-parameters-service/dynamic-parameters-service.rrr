@@ -5,6 +5,6 @@ service PARAMS
     ##
     server hw (bsv, connection) <- sw (cpp, method)
     {
-        method sendParam(in UINT32[32] paramID, in UINT64[64] value);
+        method sendParam(in UINT32[32] paramID, in UINT8[8] paramType, in UINT64[64] value);
     };
 };

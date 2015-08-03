@@ -139,12 +139,17 @@ endmodule
 // that are then divorced from their physical topology. Until that day arrives
 // a Logical and Physical chain is the same thing.
 
-module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
+module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO link) ()
     provisos
         (Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
          IsModule#(t_CONTEXT, t_DUMMY));
 
+    messageM("Register Chain: [" + link.logicalName + "] Module:"  + link.moduleNameIncoming);
+
     // See what existing links are out there.
+    let remap_function <- getConnectionRemapFunction();
+    let new_link = link;
+    new_link.logicalName = remap_function(link.logicalName);
     let existing_links <- getChain(new_link);
 
     // If the platforms do not match, drop the chain.  Unless we have been 
@@ -173,13 +178,13 @@ module [t_CONTEXT] registerChain#(LOGICAL_CHAIN_INFO new_link) ()
         connectOutToIn(new_link.outgoing, latest_link.incoming, 0);
 
         // Add the new link to the list.
-        putChain(LOGICAL_CHAIN_INFO{logicalName: new_link.logicalName, 
-                                               logicalType: new_link.logicalType, 
-                                               moduleNameIncoming: new_link.moduleNameIncoming,
-                                               moduleNameOutgoing: latest_link.moduleNameOutgoing,
-                                               bitWidth: new_link.bitWidth, 
-                                               incoming: new_link.incoming, 
-                                               outgoing: latest_link.outgoing});
+        putChain( LOGICAL_CHAIN_INFO{ logicalName: new_link.logicalName, 
+                                      logicalType: new_link.logicalType, 
+                                      moduleNameIncoming: new_link.moduleNameIncoming,
+                                      moduleNameOutgoing: latest_link.moduleNameOutgoing,
+                                      bitWidth: new_link.bitWidth, 
+                                      incoming: new_link.incoming, 
+                                      outgoing: latest_link.outgoing });
 
     end
     else
