@@ -665,8 +665,10 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, Tuple2#(t_CACHE_WORD, t_CACHE_MASK)) reqInfo_writeDataMask = ?;
     MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData = ?;
     
-    Reg#(RL_DM_CACHE_FILL_STATE) fillState  <- mkReg(DM_CACHE_FILL_START);
-    Reg#(t_CACHE_WORD)           fillBuffer <- mkRegU(); 
+
+    Reg#(RL_DM_CACHE_FILL_STATE) fillState       <- mkReg(DM_CACHE_FILL_START);
+    Reg#(t_CACHE_WORD)           fillBuffer      <- mkRegU(); 
+    Reg#(Bool)                   fillBufferDirty <- mkReg(False);
 
     if (enMaskedWrite)
     begin
@@ -1295,11 +1297,13 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
        
         // Depending on state, we take either the fillBuffer data or 
         // the incoming data. 
-        let cacheData = fillBuffer;
+        let  cacheData  = fillBuffer;
+        Bool cacheDirty = fillBufferDirty;
         if(fillState == DM_CACHE_FILL_START)
         begin
             debugLog.record($format("    fill starting"));
             cacheData = f.val;
+            cacheDirty = False;
         end
  
         // Assign a defaults the case that we do not use MSHRs
@@ -1357,7 +1361,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         if (!currentRequestReadMeta.isLocalPrefetch && !currentRequestReadMeta.isWriteMiss)
         begin
             t_CACHE_LOAD_RESP resp;
-            resp.val = f.val;
+            resp.val = cacheData;
             resp.isCacheable = f.isCacheable;
             resp.readMeta = currentRequestReadMeta.clientReadMeta;
             resp.globalReadMeta = currentRequestGlobalReadMeta;
@@ -1371,6 +1375,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             match { .w_data, .w_mask } = reqInfo_writeDataMask.sub(w_idx);
             reqInfo_writeDataMask.free(w_idx);
             cacheData = applyWriteMask(cacheData, w_data, w_mask);
+            cacheDirty = True;
 
             // If we have handled all oustanding requests to this line, 
             // commit it to the cache. Otherwise, we will continue 
@@ -1390,11 +1395,11 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             // processing on fill buffer.
             if(fillComplete)
             begin
-                cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: False,
+                cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: cacheDirty,
                                                                   tag: tag,
                                                                   val: cacheData });
             end
-   
+               
             prefetcher.fillResp(idx, f.addr,
                                 currentRequestReadMeta.isLocalPrefetch,
                                 currentRequestReadMeta.clientReadMeta);
@@ -1408,6 +1413,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         begin
             // Update fill buffer for potential use in next cycle. 
             fillBuffer <= cacheData;
+            fillBufferDirty <= cacheDirty;
         end
     endrule
 
