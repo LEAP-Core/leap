@@ -45,6 +45,7 @@ import ConfigReg::* ;
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/stats_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
@@ -525,6 +526,15 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + 
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
+    
+    STAT_ID statIDs[2];
+    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_REQUESTS",
+                          "Scratchpad requests sent to the ring");
+    let statReq = 0;
+    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
+                          "Scratchpad responses received from the ring");
+    let statResp = 1;
+    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -580,6 +590,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                                         readUID: zeroExtendNP(pack(maf_idx)),
                                         globalReadMeta: defaultValue() };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+        stats.incr(statReq);
     endrule
 
     // Write requests
@@ -596,6 +607,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                                          val: val };
 
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+        stats.incr(statReq);
     endrule
 
     //
@@ -614,6 +626,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
         match {.port, .rob_idx} = maf_idx;
 
         sortResponseQ[port].setValue(rob_idx, s.val);
+        stats.incr(statResp);
     endrule
 
 
@@ -1046,6 +1059,15 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + 
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
+    
+    STAT_ID statIDs[2];
+    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_REQUESTS",
+                          "Scratchpad requests sent to the ring");
+    let statReq = 0;
+    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
+                          "Scratchpad responses received from the ring");
+    let statResp = 1;
+    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
 
     Reg#(Bool) initialized <- mkReg(False);
 
@@ -1087,7 +1109,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         // Forward the request to the scratchpad virtual device that handles
         // all scratchpad backing storage I/O.
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
-
+        stats.incr(statReq);
         debugLog.record($format("sourceData: read REQ ID %0d: addr 0x%x", my_port, req.addr));
     endmethod
 
@@ -1107,7 +1129,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         // any client's metadata and extra bits can simply be truncated.
         r.readMeta = unpack(truncateNP(s.readUID));
         r.globalReadMeta = s.globalReadMeta;
-
+        stats.incr(statResp);
         debugLog.record($format("sourceData: read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
 
         return r;
@@ -1133,6 +1155,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+        stats.incr(statReq);
 
         debugLog.record($format("sourceData: write ID %0d: addr=0x%x, val=0x%x", my_port, addr, val));
     endmethod
@@ -1288,6 +1311,14 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
 
+    STAT_ID statIDs[2];
+    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_REQUESTS",
+                          "Scratchpad requests sent to the ring");
+    let statReq = 0;
+    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
+                          "Scratchpad responses received from the ring");
+    let statResp = 1;
+    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -1391,6 +1422,8 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
         match {.addr, .rob_idx} = incomingReqQ.first();
 
         let s_addr = scratchpadAddr(addr);
+        
+        stats.incr(statReq);
 
         if (lastWriteAddr matches tagged Valid .lw_addr &&&
             s_addr == lw_addr)
@@ -1471,6 +1504,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
                                                         val: lastWriteVal,
                                                         byteWriteMask: lastWriteMask };
                 link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE_MASKED req);
+                stats.incr(statReq);
             end
 
             // Record the latest write in the buffer.
@@ -1510,6 +1544,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
 
         debugLog.record($format("read port %0d: resp val=0x%x, s_idx=%0d, rob_idx=%0d", 
                         port, v, addr_idx, rob_idx));
+        stats.incr(statResp);
     endrule
 
 
