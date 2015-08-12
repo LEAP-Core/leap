@@ -123,7 +123,7 @@ interface RL_SA_BRAM_CACHE#(type t_CACHE_ADDR,
     //
     method List#(Tuple2#(String, Bool)) debugScanState();
     
-    interface RL_CACHE_STATS stats;
+    interface RL_CACHE_STATS#(t_CACHE_READ_META) stats;
 
 endinterface: RL_SA_BRAM_CACHE
 
@@ -469,10 +469,10 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         fillLineUncacheableQ <- mkSizedFIFOF(4);
     end
 
-    PulseWire readMissW          <- mkPulseWire();
-    PulseWire writeMissW         <- mkPulseWire();
-    PulseWire readHitW           <- mkPulseWire();
-    PulseWire writeHitW          <- mkPulseWire();
+    RWire#(t_CACHE_READ_META) readMissW          <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeMissW         <- mkRWire();
+    RWire#(t_CACHE_READ_META) readHitW           <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeHitW          <- mkRWire();
     PulseWire newMRUW            <- mkPulseWire();
     PulseWire invalEntryW        <- mkPulseWire();
     PulseWire forceInvalLineW    <- mkPulseWire();
@@ -1083,7 +1083,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
             if (way_meta.wordValid[rReq.wordIdx])
             begin
                 // Word hit!
-                readHitW.send();
+                readHitW.wset(rReq.readMeta);
                 need_set_data = True;
                 dataLookupQ.enq(tuple4(req_base_out, req, way_meta.wordValid, RL_SA_BRAM_CACHE_DATA_READ_HIT));
                 cacheLineDataReadReq(set, way);
@@ -1156,7 +1156,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
             let meta_upd = meta;
             meta_upd.lru <- cacheLRUUpdate(set, way, meta.lru);
 
-            writeHitW.send();
+            writeHitW.wset(?);
 
             // Mark line dirty and word valid
             let new_word_valid = way_meta.wordValid;
@@ -1272,7 +1272,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         //
         // Miss.  Pick a victim.
         //
-        readMissW.send();
+        readMissW.wset(rReq.readMeta);
 
         let addr = cacheAddr(tag, set);
         
@@ -1300,7 +1300,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         let tag = req_base_in.tag;
         let set = req_base_in.set;
 
-        readMissW.send();
+        readMissW.wset(rReq.readMeta);
 
         let req_base_out = req_base_in;
         req_base_out.way = fill_way;
@@ -1363,7 +1363,8 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         let tag = req_base_in.tag;
         let set = req_base_in.set;
 
-        writeMissW.send();
+        // no read meta available here
+        writeMissW.wset(?);
 
         let req_base_out = req_base_in;
         req_base_out.way = fill_way;
@@ -1740,11 +1741,11 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     endmethod
 
     interface RL_CACHE_STATS stats;
-        method readHit = readHitW;
-        method readMiss = readMissW;
+        method readHit = readHitW.wget;
+        method readMiss = readMissW.wget;
         method readRecentLineHit = False;
-        method writeHit = writeHitW;
-        method writeMiss = writeMissW;
+        method writeHit = writeHitW.wget;
+        method writeMiss = writeMissW.wget;
         method newMRU = newMRUW;
         method invalEntry = invalEntryW;
         method dirtyEntryFlush = dirtyEntryFlushW;

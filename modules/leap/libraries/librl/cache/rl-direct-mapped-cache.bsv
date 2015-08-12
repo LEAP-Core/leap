@@ -65,15 +65,6 @@ RL_DM_CACHE_LOAD_RESP#(type t_CACHE_WORD,
                        type t_CACHE_READ_META)
     deriving (Eq, Bits);
 
-/*
-typedef union tagged {
-    READ_METADATA  Read;
-    WRITE_METADATA Write;
-} RL_DIRECT_MAPPED_CACHE_MSHR#(type t_READ_METADATA,
-                               type t_WRITE_METADATA)
-    deriving (Eq, Bits);
-*/
-
 //
 // Store Request
 //
@@ -159,7 +150,7 @@ interface RL_DM_CACHE#(type t_CACHE_ADDR,
     //
     method Action setCacheMode(RL_DM_CACHE_MODE mode, RL_DM_CACHE_PREFETCH_MODE en);
     
-    interface RL_CACHE_STATS stats;
+    interface RL_CACHE_STATS#(t_CACHE_READ_META) stats;
 
 endinterface: RL_DM_CACHE
 
@@ -703,12 +694,12 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     FIFO#(t_CACHE_LOAD_RESP) readRespQ <- mkBypassFIFO();
     
     // Wires for communicating stats
-    PulseWire readHitW          <- mkPulseWire();
-    PulseWire dirtyEntryFlushW  <- mkPulseWire();
-    PulseWire readMissW         <- mkPulseWire();
-    PulseWire writeHitW         <- mkPulseWire();
-    PulseWire writeMissW        <- mkPulseWire();
-    PulseWire forceInvalLineW   <- mkPulseWire();
+    RWire#(t_CACHE_READ_META) readHitW          <- mkRWire();
+    PulseWire                 dirtyEntryFlushW  <- mkPulseWire();
+    RWire#(t_CACHE_READ_META) readMissW         <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeHitW         <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeMissW        <- mkRWire();
+    PulseWire                 forceInvalLineW   <- mkPulseWire();
 
     //
     // Convert address to cache index and tag
@@ -1168,7 +1159,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                 // Ignore prefetch hit response and prefetch hit status
                 if (! r.readMeta.isLocalPrefetch)
                 begin
-                    readHitW.send();
+                    readHitW.wset(r.readMeta.clientReadMeta);
                     if (prefetchMode == RL_DM_PREFETCH_ENABLE)
                     begin
                         prefetcher.readHit(idx, r.addr);
@@ -1193,7 +1184,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                 let old_addr = cacheAddrFromEntry(e.tag, idx);
                 debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
                 sourceData.write(old_addr, e.val);
-                dirtyEntryFlushW.send();
+                dirtyEntryFlushW.send;
             end
         end
 
@@ -1251,11 +1242,11 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
 
                 if (!r.readMeta.isLocalPrefetch && !r.readMeta.isWriteMiss)
                 begin
-                    readMissW.send();
+                    readMissW.wset(r.readMeta.clientReadMeta);
                 end
                 else if (r.readMeta.isWriteMiss)
                 begin
-                    writeMissW.send();
+                    writeMissW.wset(r.readMeta.clientReadMeta);
                 end
 
                 sourceData.readReq(r.addr, r.readMeta, r.globalReadMeta);
@@ -1273,11 +1264,11 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
 
             if (!r.readMeta.isLocalPrefetch && !r.readMeta.isWriteMiss)
             begin
-                readMissW.send();
+                readMissW.wset(r.readMeta.clientReadMeta);
             end
             else if (r.readMeta.isWriteMiss)
             begin
-                writeMissW.send();
+                writeMissW.wset(r.readMeta.clientReadMeta);
             end
 
             sourceData.readReq(r.addr, r.readMeta, r.globalReadMeta);
@@ -1467,7 +1458,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                 let old_addr = cacheAddrFromEntry(e.tag, idx);
                 debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
                 sourceData.write(old_addr, e.val);
-                dirtyEntryFlushW.send();
+                dirtyEntryFlushW.send;
             end
         end
         
@@ -1479,7 +1470,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             debugLog.record($format("    doWrite: WRITE addr=0x%x, entry=0x%x, val=0x%x, mask=0x%x, new_val=0x%x", 
                             r.addr, idx, w_data, w_mask, new_val));
 
-            writeHitW.send();
+            writeHitW.wset(r.readMeta.clientReadMeta);
             cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: True,
                                                               tag: tag,
                                                               val: new_val });
@@ -1532,7 +1523,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
 
         if (cur_entry matches tagged Valid .e &&& (e.tag == tag))
         begin
-            forceInvalLineW.send();
+            forceInvalLineW.send;
 
             if (e.dirty)
             begin
@@ -1758,15 +1749,15 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     endmethod
 
     interface RL_CACHE_STATS stats;
-        method Bool readHit() = readHitW;
-        method Bool readMiss() = readMissW;
-        method Bool readRecentLineHit() = False;    
-        method Bool writeHit() = writeHitW;
-        method Bool writeMiss() = writeMissW;
-        method Bool newMRU() = False;
-        method Bool invalEntry() = False;
-        method Bool dirtyEntryFlush() = dirtyEntryFlushW;
-        method Bool forceInvalLine() = forceInvalLineW;
+        method readHit = readHitW.wget;
+        method readMiss = readMissW.wget;
+        method readRecentLineHit = False;    
+        method writeHit = writeHitW.wget;
+        method writeMiss = writeMissW.wget;
+        method newMRU = False;
+        method invalEntry = False;
+        method dirtyEntryFlush = dirtyEntryFlushW;
+        method forceInvalLine = forceInvalLineW;
         method entryAccesses = tagged Invalid;
     endinterface
 
@@ -1857,15 +1848,15 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
     endmethod
     
     interface RL_CACHE_STATS stats;
-        method Bool readHit() = False;
-        method Bool readMiss() = False;
-        method Bool readRecentLineHit() = False;    
-        method Bool writeHit() = False;
-        method Bool writeMiss() = False;
-        method Bool newMRU() = False;
-        method Bool invalEntry() = False;
-        method Bool dirtyEntryFlush() = False;
-        method Bool forceInvalLine() = False;
+        method readHit() = tagged Invalid;
+        method readMiss() = tagged Invalid;
+        method readRecentLineHit() = False;    
+        method writeHit() = tagged Invalid;
+        method writeMiss() = tagged Invalid;
+        method newMRU() = False;
+        method invalEntry() = False;
+        method dirtyEntryFlush() = False;
+        method forceInvalLine() = False;
         method entryAccesses = tagged Invalid;
     endinterface
 
