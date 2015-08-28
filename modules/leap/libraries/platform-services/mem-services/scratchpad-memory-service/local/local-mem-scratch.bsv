@@ -293,7 +293,8 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
     method ActionValue#(Bool) init(SCRATCHPAD_MEM_ADDRESS allocLastWordIdx,
                                    SCRATCHPAD_PORT_NUM portNum,
                                    Bool useCentralCache,
-                                   Maybe#(GLOBAL_STRING_UID) initFilePath);
+                                   Maybe#(GLOBAL_STRING_UID) initFilePath,
+                                   Bool initCacheOnly);
         SCRATCHPAD_MEM_ADDRESS last_word = totalAlloc + allocLastWordIdx;
 
         // Arithmetic for debug (includes overflow bit)

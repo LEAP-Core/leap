@@ -146,6 +146,11 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem
     let routes <- mkMultifpgaRouterServices(vp.physicalDrivers, clocked_by clk, reset_by rst);
 `endif
 
+`ifndef SOFT_CONNECTION_REMAP_Z
+    // Instantiate connectors to connect partitioned scratchpads
+    connectPartitionedScratchpads(clocked_by clk, reset_by rst);
+`endif
+
     //
     // Instantiate the application.
     //

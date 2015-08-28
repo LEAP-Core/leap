@@ -24,6 +24,8 @@
 %param --dynamic SCRATCHPAD_PREFETCHER_LEARNER_SIZE_LOG 5 "0-6: # prefetch learners (in log)"
 %param --dynamic SCRATCHPAD_PREFETCHER_PRIORITY_SPEC 1 "Bit 1: Override Default, Bit 0: Priority to use (High - 1, Low - 1)" 
 
+%param --dynamic SCRATCHPAD_ADDR_MAP_MODE                        0  "1-0: 0 consider dram page size, 1 ignore dram page size, 2 hash + consider dram page size, 3 hash + ignore dram page size"
+
 // 1K entries as the base size of scratchpad makes sense because of Xilinx
 // block RAM layout.  Scratchpads will use mainly 1K x 18 bit BRAMs.
 %param --global SCRATCHPAD_STD_PVT_CACHE_ENTRIES              1024  "Scratchpad private cache entries (must be a power of 2)"

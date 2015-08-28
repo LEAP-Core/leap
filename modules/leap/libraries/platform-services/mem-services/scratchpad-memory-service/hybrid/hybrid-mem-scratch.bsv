@@ -342,32 +342,37 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
     // ====================================================================
     
     // FIFO1 because it isn't worth the space to pipeline initialization.
-    FIFOF#(Tuple4#(SCRATCHPAD_PORT_NUM,
+    FIFOF#(Tuple5#(SCRATCHPAD_PORT_NUM,
                    SCRATCHPAD_MEM_ADDRESS,
                    Bool,
-                   Maybe#(GLOBAL_STRING_UID))) initQ <- mkFIFOF1();
+                   Maybe#(GLOBAL_STRING_UID), 
+                   Bool)) initQ <- mkFIFOF1();
 
     rule initRegion (True);
         match {.port,
                .alloc_last_word_idx,
                .use_central_cache,
-               .m_init_from_file} = initQ.first();
+               .m_init_from_file, 
+               .init_cache_only} = initQ.first();
         initQ.deq();
 
         portUsesCentralCache[port] <= use_central_cache;
 
-        GLOBAL_STRING_UID init_file_path = 0;
-        if (m_init_from_file matches tagged Valid .path)
+        if (!init_cache_only)
         begin
-            init_file_path = path;
+            GLOBAL_STRING_UID init_file_path = 0;
+            if (m_init_from_file matches tagged Valid .path)
+            begin
+                init_file_path = path;
+            end
+
+            rrrReqQ.enq(tagged InitRegionReq
+                            SCRATCHPAD_RRR_INIT_REGION_REQ { regionID: zeroExtend(port),
+                                                             regionEndIdx: zeroExtend(alloc_last_word_idx),
+                                                             initFilePath: zeroExtend(init_file_path) });
+
+            debugLog.record($format("initRegion: id %0d, endIdx 0x%0x, path %0d", port, alloc_last_word_idx, init_file_path));
         end
-
-        rrrReqQ.enq(tagged InitRegionReq
-                        SCRATCHPAD_RRR_INIT_REGION_REQ { regionID: zeroExtend(port),
-                                                         regionEndIdx: zeroExtend(alloc_last_word_idx),
-                                                         initFilePath: zeroExtend(init_file_path) });
-
-        debugLog.record($format("initRegion: id %0d, endIdx 0x%0x, path %0d", port, alloc_last_word_idx, init_file_path));
     endrule
 
 
@@ -970,10 +975,12 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
     method ActionValue#(Bool) init(SCRATCHPAD_MEM_ADDRESS allocLastWordIdx,
                                    SCRATCHPAD_PORT_NUM portNum,
                                    Bool useCentralCache,
-                                   Maybe#(GLOBAL_STRING_UID) initFilePath);
-        debugLog.record($format("port %0d: init lastWordIdx=0x%x, cached %0d", portNum, allocLastWordIdx, useCentralCache));
+                                   Maybe#(GLOBAL_STRING_UID) initFilePath,
+                                   Bool initCacheOnly);
+        debugLog.record($format("port %0d: init lastWordIdx=0x%x, cached %0d, initCacheOnly=%s", 
+                        portNum, allocLastWordIdx, useCentralCache, initCacheOnly? "True" : "False"));
 
-        initQ.enq(tuple4(portNum, allocLastWordIdx, useCentralCache, initFilePath));
+        initQ.enq(tuple5(portNum, allocLastWordIdx, useCentralCache, initFilePath, initCacheOnly));
         return True;
     endmethod
 

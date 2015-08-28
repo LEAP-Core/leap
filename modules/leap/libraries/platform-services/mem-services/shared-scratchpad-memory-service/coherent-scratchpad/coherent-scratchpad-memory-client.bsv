@@ -137,6 +137,10 @@ module [CONNECTED_MODULE] mkMultiReadCoherentScratchpadClient#(Integer scratchpa
     begin
         debugScanNodeConstructor = mkCohScratchClientDebugScanNode(debug_scan_name);
     end
+    else if (`SHARED_SCRATCHPAD_DEBUG_ENABLE == 1)
+    begin
+        debugScanNodeConstructor = mkCohScratchClientDebugScanNode("Coherent Scratchpad Client " + integerToString(scratchpadID));
+    end
 
     let m <- mkMultiReadStatsCoherentScratchpadClient(scratchpadID,
                                                       conf,

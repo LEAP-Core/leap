@@ -54,6 +54,9 @@ import ConfigReg::* ;
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/common_services.bsh"
 
+`include "awb/provides/local_mem_interface.bsh"
+`include "awb/provides/local_mem.bsh"
+
 `include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
 `include "awb/dict/VDEV.bsh"
 
@@ -73,6 +76,10 @@ typedef struct
     SCRATCHPAD_MEM_ADDRESS allocLastWordIdx;
     Bool cached;
     Maybe#(GLOBAL_STRING_UID) initFilePath;
+    // For scratchpads using multiple cache banks, only one init request 
+    // should initialize memory, while other init requests should only 
+    // initialize cache banks (set initCacheOnly to True)
+    Bool initCacheOnly;
 }
 SCRATCHPAD_INIT_REQ
     deriving (Eq, Bits);
@@ -508,14 +515,17 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
     
-    STAT_ID statIDs[2];
-    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_REQUESTS",
-                          "Scratchpad requests sent to the ring");
-    let statReq = 0;
-    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
+    STAT_ID statIDs[3];
+    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
+                          "Scratchpad read requests sent to the ring");
+    let statReadReq = 0;
+    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_WRITE_REQUESTS",
+                          "Scratchpad write requests sent to the ring");
+    let statWriteReq = 1;
+    statIDs[2] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
                           "Scratchpad responses received from the ring");
-    let statResp = 1;
-    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
+    let statReadResp = 2;
+    STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -545,7 +555,9 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
         r.port = my_port;
         r.cached = True;
         r.initFilePath = conf.initFilePath;
+        r.initCacheOnly = False;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
+        
         debugLog.record($format("doInit: init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
     endrule
 
@@ -571,7 +583,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                                         readUID: zeroExtendNP(pack(maf_idx)),
                                         globalReadMeta: defaultValue() };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
-        stats.incr(statReq);
+        stats.incr(statReadReq);
     endrule
 
     // Write requests
@@ -588,7 +600,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                                          val: val };
 
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
-        stats.incr(statReq);
+        stats.incr(statWriteReq);
     endrule
 
     //
@@ -607,7 +619,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
         match {.port, .rob_idx} = maf_idx;
 
         sortResponseQ[port].setValue(rob_idx, s.val);
-        stats.incr(statResp);
+        stats.incr(statReadResp);
     endrule
 
 
@@ -1066,14 +1078,17 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
     
-    STAT_ID statIDs[2];
-    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_REQUESTS",
-                          "Scratchpad requests sent to the ring");
-    let statReq = 0;
-    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
+    STAT_ID statIDs[3];
+    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
+                          "Scratchpad read requests sent to the ring");
+    let statReadReq = 0;
+    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_WRITE_REQUESTS",
+                          "Scratchpad write requests sent to the ring");
+    let statWriteReq = 1;
+    statIDs[2] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
                           "Scratchpad responses received from the ring");
-    let statResp = 1;
-    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
+    let statReadResp = 2;
+    STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
 
     Reg#(Bool) initialized <- mkReg(False);
 
@@ -1089,6 +1104,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         r.allocLastWordIdx = zeroExtendNP(alloc);
         r.cached = True;
         r.initFilePath = conf.initFilePath;
+        r.initCacheOnly = False;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
 
         debugLog.record($format("sourceData: init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
@@ -1115,7 +1131,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         // Forward the request to the scratchpad virtual device that handles
         // all scratchpad backing storage I/O.
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
-        stats.incr(statReq);
+        stats.incr(statReadReq);
         debugLog.record($format("sourceData: read REQ ID %0d: addr 0x%x", my_port, req.addr));
     endmethod
 
@@ -1135,7 +1151,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         // any client's metadata and extra bits can simply be truncated.
         r.readMeta = unpack(truncateNP(s.readUID));
         r.globalReadMeta = s.globalReadMeta;
-        stats.incr(statResp);
+        stats.incr(statReadResp);
         debugLog.record($format("sourceData: read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
 
         return r;
@@ -1161,7 +1177,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
-        stats.incr(statReq);
+        stats.incr(statWriteReq);
 
         debugLog.record($format("sourceData: write ID %0d: addr=0x%x, val=0x%x", my_port, addr, val));
     endmethod
@@ -1317,14 +1333,17 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
 
-    STAT_ID statIDs[2];
-    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_REQUESTS",
-                          "Scratchpad requests sent to the ring");
-    let statReq = 0;
-    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
+    STAT_ID statIDs[3];
+    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
+                          "Scratchpad read requests sent to the ring");
+    let statReadReq = 0;
+    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_WRITE_REQUESTS",
+                          "Scratchpad write requests sent to the ring");
+    let statWriteReq = 1;
+    statIDs[2] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
                           "Scratchpad responses received from the ring");
-    let statResp = 1;
-    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
+    let statReadResp = 2;
+    STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -1412,7 +1431,9 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
         r.allocLastWordIdx = scratchpadAddr(alloc);
         r.cached = False;
         r.initFilePath = conf.initFilePath;
+        r.initCacheOnly = False;
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
+        
         debugLog.record($format("doInit: init ID %0d, last word idx 0x%x", r.port, r.allocLastWordIdx));
     endrule
 
@@ -1429,7 +1450,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
 
         let s_addr = scratchpadAddr(addr);
         
-        stats.incr(statReq);
+        stats.incr(statReadReq);
 
         if (lastWriteAddr matches tagged Valid .lw_addr &&&
             s_addr == lw_addr)
@@ -1510,7 +1531,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
                                                         val: lastWriteVal,
                                                         byteWriteMask: lastWriteMask };
                 link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE_MASKED req);
-                stats.incr(statReq);
+                stats.incr(statWriteReq);
             end
 
             // Record the latest write in the buffer.
@@ -1550,7 +1571,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
 
         debugLog.record($format("read port %0d: resp val=0x%x, s_idx=%0d, rob_idx=%0d", 
                         port, v, addr_idx, rob_idx));
-        stats.incr(statResp);
+        stats.incr(statReadResp);
     endrule
 
 
@@ -1616,3 +1637,135 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
 
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
 endmodule
+
+
+//
+// mkScratchpadClientRingConnector --
+//     Connect a scratchpad client to multiple controller rings. Requests
+//     are forwarded based on address partitioning. 
+//
+module [CONNECTED_MODULE] mkScratchpadClientRingConnector#(String clientReqRingName,
+                                                           String clientRespRingName,
+                                                           SCRATCHPAD_PORT_NUM portNum, 
+                                                           Vector#(n_CONTROLLERS, String) controllerReqRingNames, 
+                                                           Vector#(n_CONTROLLERS, String) controllerRespRingNames, 
+                                                           function UInt#(TLog#(n_CONTROLLERS)) getControllerIdxFromAddr(SCRATCHPAD_MEM_ADDRESS addr))
+    (Empty)
+    provisos (NumAlias#(TMax#(LOCAL_MEM_BURST_DATA_SZ, LOCAL_MEM_LINE_SZ), t_LOCAL_MEM_DATA_SZ),
+              Add#(a_, SCRATCHPAD_MEM_VALUE_SZ, t_LOCAL_MEM_DATA_SZ),
+              NumAlias#(TLog#(TDiv#(t_LOCAL_MEM_DATA_SZ, SCRATCHPAD_MEM_VALUE_SZ)), t_LOCAL_MEM_DATA_IDX_SZ),
+              NumAlias#(TDiv#(LOCAL_MEM_LINE_SZ, SCRATCHPAD_MEM_VALUE_SZ), t_WORDS_PER_LINE),
+              Alias#(Bit#(t_LOCAL_MEM_DATA_IDX_SZ), t_LOCAL_MEM_DATA_IDX),
+              Bits#(SCRATCHPAD_MEM_ADDRESS, t_ADDR_SZ),
+              NumAlias#(TSub#(t_ADDR_SZ, t_LOCAL_MEM_DATA_IDX_SZ), t_LOCAL_MEM_ADDR_SZ),
+              Alias#(Bit#(t_LOCAL_MEM_ADDR_SZ), t_LOCAL_MEM_ADDR));
+
+    // Connection node on the client ring
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_client_req <-
+        mkConnectionTokenRingNode(clientReqRingName, 0);
+
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_client_rsp <-
+        mkConnectionTokenRingNode(clientRespRingName, 0);
+
+    // Connection nodes on controller rings
+    Vector#(n_CONTROLLERS, CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ)) link_ctrl_reqs = newVector();
+    Vector#(n_CONTROLLERS, CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP)) link_ctrl_rsps = newVector();   
+
+    DEBUG_FILE debugLog <- mkDebugFile("scratchpad_connector_" + clientReqRingName + ".out");
+    
+    // Dynamic parameters
+    PARAMETER_NODE   paramNode  <- mkDynamicParameterNode();
+    Param#(2) addrMapModeParam  <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_ADDR_MAP_MODE, paramNode);
+    Reg#(Bit#(2))  addrMapMode  <- mkReg(0);
+
+    // address map pre-processing function
+    function SCRATCHPAD_MEM_ADDRESS addrMap (SCRATCHPAD_MEM_ADDRESS addr);
+        if (addrMapMode[0] == 0)
+        begin
+            Tuple2#(t_LOCAL_MEM_ADDR, t_LOCAL_MEM_DATA_IDX) local_addr = unpack(addr);
+            let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
+            return zeroExtend(a); 
+        end
+        else
+        begin
+            Tuple2#(Bit#(TSub#(t_ADDR_SZ, TLog#(t_WORDS_PER_LINE))), Bit#(TLog#(t_WORDS_PER_LINE))) local_addr = unpack(addr); 
+            let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
+            return zeroExtend(a); 
+        end
+    endfunction
+
+
+    // Initialization
+    Reg#(Bool) initialized <- mkReg(False);
+    rule doInit (! initialized);
+        addrMapMode <= addrMapModeParam;
+        initialized <= True;
+    endrule
+
+    for (Integer p = 0; p < valueOf(n_CONTROLLERS); p = p + 1)
+    begin
+        link_ctrl_reqs[p] <- mkConnectionTokenRingNode(controllerReqRingNames[p], portNum);
+        link_ctrl_rsps[p] <- mkConnectionTokenRingNode(controllerRespRingNames[p], portNum);
+    end
+        
+    rule sendScratchpadReq (initialized);
+        let req = link_client_req.first();
+        link_client_req.deq();
+
+        case (req) matches
+            tagged SCRATCHPAD_MEM_INIT .init:
+            begin
+                link_ctrl_reqs[0].enq(0, req);
+                debugLog.record($format("sendScratchpadReq: forward master INIT req to controller %d", 0));
+                for (Integer p = 1; p < valueOf(n_CONTROLLERS); p = p + 1)
+                begin
+                    let slave_init = init;
+                    slave_init.initCacheOnly = True;
+                    link_ctrl_reqs[p].enq(0, tagged SCRATCHPAD_MEM_INIT slave_init);
+                    debugLog.record($format("sendScratchpadReq: forward slave INIT req to controller %d", p));
+                end
+            end
+
+            tagged SCRATCHPAD_MEM_READ .r_req:
+            begin
+                let idx = getControllerIdxFromAddr(addrMap(r_req.addr));
+                link_ctrl_reqs[idx].enq(0, req);
+                debugLog.record($format("sendScratchpadReq: forward READ req to controller %d, addr=0x%x", idx, r_req.addr));
+            end
+
+            tagged SCRATCHPAD_MEM_WRITE .w_req:
+            begin
+                let idx = getControllerIdxFromAddr(addrMap(w_req.addr));
+                link_ctrl_reqs[idx].enq(0, req);
+                debugLog.record($format("sendScratchpadReq: forward WRITE req to controller %d, addr=0x%x", idx, w_req.addr));
+            end
+
+            tagged SCRATCHPAD_MEM_WRITE_MASKED .w_req:
+            begin
+                let idx = getControllerIdxFromAddr(addrMap(w_req.addr));
+                link_ctrl_reqs[idx].enq(0, req);
+                debugLog.record($format("sendScratchpadReq: forward WRITE req to controller %d, addr=0x%x", idx, w_req.addr));
+            end
+        endcase
+    endrule
+    
+    Rules resp_rules = emptyRules; 
+    
+    for (Integer c = 0; c < valueOf(n_CONTROLLERS); c = c + 1)
+    begin 
+        let resp_fwd = 
+            (rules 
+                 rule sendScratchpadResp (initialized); 
+                     let resp = link_ctrl_rsps[c].first();
+                     link_ctrl_rsps[c].deq();
+                     link_client_rsp.enq(portNum, resp);
+                     debugLog.record($format("sendScratchpadResp: forward response from controller %d, addr=0x%x, val=0x%x", c, resp.addr, resp.val));
+                 endrule 
+            endrules); 
+        resp_rules = rJoinDescendingUrgency(resp_rules,resp_fwd); 
+    end 
+    
+    addRules(resp_rules); 
+
+endmodule
+

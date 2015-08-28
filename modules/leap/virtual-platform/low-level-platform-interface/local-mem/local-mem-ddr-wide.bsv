@@ -145,14 +145,16 @@ module [CONNECTED_MODULE] mkLocalMem#(LOCAL_MEM_CONFIG conf)
 `ifndef LOCAL_MEM_UNIFIED_Z
     LOCAL_MEM_DDR dramDriver <- mkLocalMemDDRConnection();
     messageM("mkLocalMem unified: t_DDR_BANKS = " + integerToString(valueOf(t_DDR_BANKS)) + 
-             " LOCAL_MEM_BANKS = " + integerToString(valueOf(LOCAL_MEM_BANKS)));
+             " LOCAL_MEM_BANKS = " + integerToString(valueOf(LOCAL_MEM_BANKS)) + 
+             " LOCAL_MEM_ADDR_SZ = " + integerToString(valueOf(LOCAL_MEM_ADDR_SZ)));
 `else
     Integer ddrBankIdx = conf.bankIdx;
     Vector#(1, LOCAL_MEM_DDR_BANK) dramDriver = newVector();
     dramDriver[0] <- mkLocalMemDDRBankConnection(ddrBankIdx);
     messageM("mkLocalMem distributed: ddrBankIdx = " + integerToString(ddrBankIdx) + 
              " t_DDR_BANKS = " + integerToString(valueOf(t_DDR_BANKS)) + 
-             " LOCAL_MEM_BANKS = " + integerToString(valueOf(LOCAL_MEM_BANKS)));
+             " LOCAL_MEM_BANKS = " + integerToString(valueOf(LOCAL_MEM_BANKS)) +
+             " LOCAL_MEM_ADDR_SZ = " + integerToString(valueOf(LOCAL_MEM_ADDR_SZ)));
 `endif
 
     //

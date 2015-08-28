@@ -112,7 +112,8 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
                     let s <- memory.init(init.allocLastWordIdx,
                                          init.port,
                                          init.cached,
-                                         init.initFilePath);
+                                         init.initFilePath,
+                                         init.initCacheOnly);
                     assertScratchpadSpace(s);
                 end
 
