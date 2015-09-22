@@ -1683,13 +1683,16 @@ module [CONNECTED_MODULE] mkScratchpadClientRingConnector#(String clientReqRingN
         if (addrMapMode[0] == 0)
         begin
             Tuple2#(t_LOCAL_MEM_ADDR, t_LOCAL_MEM_DATA_IDX) local_addr = unpack(addr);
-            let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
-            return zeroExtend(a); 
+            //let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
+            Bit#(10) a1 = truncateNP(tpl_1(local_addr));
+            let a2 = (addrMapMode[1] == 0)? a1 :  hashBits(a1);
+            return zeroExtend(a2); 
         end
         else
         begin
             Tuple2#(Bit#(TSub#(t_ADDR_SZ, TLog#(t_WORDS_PER_LINE))), Bit#(TLog#(t_WORDS_PER_LINE))) local_addr = unpack(addr); 
-            let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
+            //let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
+            let a = tpl_1(local_addr);
             return zeroExtend(a); 
         end
     endfunction
