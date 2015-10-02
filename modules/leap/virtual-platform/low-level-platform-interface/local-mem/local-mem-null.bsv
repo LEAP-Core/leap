@@ -55,6 +55,9 @@ function Bool platformHasLocalMem() = False;
 //
 typedef 1 LOCAL_MEM_BANKS;
 
+// Local memory burst data size
+typedef `LOCAL_MEM_WORD_BITS LOCAL_MEM_BURST_DATA_SZ;
+
 //
 // Define a dummy local memory interface.
 //
