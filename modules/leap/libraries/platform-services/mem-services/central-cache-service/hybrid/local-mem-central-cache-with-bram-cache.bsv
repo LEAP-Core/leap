@@ -213,7 +213,7 @@ endmodule
 //
 // ===================================================================
 
-module [CONNECTED_MODULE] mkCentralCacheBRAMCacheStats#(RL_CACHE_STATS cacheStats, Integer bankIdx)
+module [CONNECTED_MODULE] mkCentralCacheBRAMCacheStats#(RL_CACHE_STATS#(t_READ_META) cacheStats, Integer bankIdx)
     // interface:
     ();
 
@@ -258,19 +258,19 @@ module [CONNECTED_MODULE] mkCentralCacheBRAMCacheStats#(RL_CACHE_STATS cacheStat
 
     STAT_VECTOR#(8) stats <- mkStatCounter_Vector(statIDs);
 
-    rule readHit (cacheStats.readHit());
+    rule readHit (cacheStats.readHit() matches tagged Valid .meta);
         stats.incr(statLoadHit);
     endrule
 
-    rule readMiss (cacheStats.readMiss());
+    rule readMiss (cacheStats.readMiss() matches tagged Valid .meta);
         stats.incr(statLoadMiss);
     endrule
 
-    rule writeHit (cacheStats.writeHit());
+    rule writeHit (cacheStats.writeHit() matches tagged Valid .meta);
         stats.incr(statStoreHit);
     endrule
 
-    rule writeMiss (cacheStats.writeMiss());
+    rule writeMiss (cacheStats.writeMiss() matches tagged Valid .meta);
         stats.incr(statStoreMiss);
     endrule
 

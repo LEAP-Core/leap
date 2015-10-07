@@ -76,6 +76,15 @@ typedef Bit#(LOCAL_MEM_ADDR_SZ) LOCAL_MEM_ADDR;
 typedef TSub#(LOCAL_MEM_ADDR_SZ, LOCAL_MEM_WORD_IDX_SZ) LOCAL_MEM_LINE_ADDR_SZ;
 typedef Bit#(LOCAL_MEM_LINE_ADDR_SZ) LOCAL_MEM_LINE_ADDR;
 
+typedef struct
+{
+    LOCAL_MEM_ADDR baseAddr;
+    // Does memory have to be initialize with 0s or has it already been done?
+    Bool needsInitZero;
+}
+LOCAL_MEM_ALLOC_RSP
+    deriving (Eq, Bits);
+
 
 interface LOCAL_MEM;
     //
@@ -111,7 +120,7 @@ interface LOCAL_MEM;
     // if the region could not be allocated.
     //
     method Action allocRegionReq(LOCAL_MEM_ADDR addr);
-    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
+    method ActionValue#(Maybe#(LOCAL_MEM_ALLOC_RSP)) allocRegionRsp();
 endinterface: LOCAL_MEM
 
 //

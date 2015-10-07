@@ -88,26 +88,28 @@ RL_CACHE_STORE_TYPE
 
 //
 // Statistics wires for caches so individual caches can have their hit rates logged.
-// When a line becomes true the coresponding statistic should be incremented.
+// For advanced monitoring, we allow the programmer to expose the cache request 
+// metadata, which may be used by special cache stats collectors. 
 //
-interface RL_CACHE_STATS;
-    method Bool readHit();
-    method Bool readMiss();
-    method Bool readRecentLineHit();     // Caches may have internal recent line
-                                         // caches to optimize repeat accesses
-                                         // to the same line.
-    method Bool writeHit();
-    method Bool writeMiss();
-    method Bool newMRU();                // MRU line changed
-    method Bool invalEntry();            // Invalidate due to capacity
-    method Bool dirtyEntryFlush();
-    method Bool forceInvalLine();        // Invalidate forced by external request
+interface RL_CACHE_STATS#(type t_CACHE_METADATA);
+    method Maybe#(t_CACHE_METADATA) readHit();
+    method Maybe#(t_CACHE_METADATA) readMiss();
+    // Caches may have internal recent line
+    // caches to optimize repeat accesses
+    // to the same line.
+    method Bool                     readRecentLineHit();
+    method Maybe#(t_CACHE_METADATA) writeHit();
+    method Maybe#(t_CACHE_METADATA) writeMiss();
+    method Bool                     newMRU();                // MRU line changed
+    method Bool                     invalEntry();            // Invalidate due to capacity
+    method Bool                     dirtyEntryFlush();
+    method Bool                     forceInvalLine();        // Invalidate forced by external request
 
     // Upon line eviction, returns number of accesses to a line before its eviction.   
     method Maybe#(UInt#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH)) entryAccesses(); 
 endinterface: RL_CACHE_STATS
 
-module mkNullRLCacheStats (RL_CACHE_STATS);
+module mkNullRLCacheStats (RL_CACHE_STATS#(t_CACHE_METADATA));
   return ?;
 endmodule
 

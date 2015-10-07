@@ -172,7 +172,7 @@ interface RL_SA_CACHE#(type t_CACHE_ADDR,
     //
     method List#(Tuple2#(String, Bool)) debugScanState();
     
-    interface RL_CACHE_STATS stats;
+    interface RL_CACHE_STATS#(t_CACHE_READ_META) stats;
 
 endinterface: RL_SA_CACHE
 
@@ -614,15 +614,15 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     // were requested.
     SCOREBOARD_FIFOF#(RL_SA_CACHE_MAX_INVAL, Bool) invalReqDoneQ <- mkScoreboardFIFOF();
 
-    PulseWire readMissW          <- mkPulseWire();
-    PulseWire writeMissW         <- mkPulseWire();
-    PulseWire readHitW           <- mkPulseWire();
-    PulseWire writeHitW          <- mkPulseWire();
-    PulseWire newMRUW            <- mkPulseWire();
-    PulseWire invalEntryW        <- mkPulseWire();
-    PulseWire forceInvalLineW    <- mkPulseWire();
-    PulseWire dirtyEntryFlushW   <- mkPulseWire();
-    PulseWire readRecentLineHitW <- mkPulseWire();
+    RWire#(t_CACHE_READ_META) readMissW          <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeMissW         <- mkRWire();
+    RWire#(t_CACHE_READ_META) readHitW           <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeHitW          <- mkRWire();
+    PulseWire                 newMRUW            <- mkPulseWire;
+    PulseWire                 invalEntryW        <- mkPulseWire();
+    PulseWire                 forceInvalLineW    <- mkPulseWire();
+    PulseWire                 dirtyEntryFlushW   <- mkPulseWire();
+    PulseWire                 readRecentLineHitW <- mkPulseWire();
 
 
     // ***** localData read port assignment ***** //
@@ -1038,7 +1038,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         begin
             // Recent line read hit!
             debugLog.record($format("  Read RECENT HIT: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", debugAddrFromTag(tag, set), set, recent_word_valid_mask, recent_line));
-            readRecentLineHitW.send();
+            readRecentLineHitW.send;
 
             readRespToClientQ_OOO.enq(tuple5(req_base,
                                              rReq,
@@ -1166,7 +1166,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             begin
                 // Invalidate line
                 meta_upd.ways[way] = tagged Invalid;
-                forceInvalLineW.send();
+                forceInvalLineW.send;
             end
 
             localData.metaWrite(set, meta_upd);
@@ -1210,7 +1210,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                 tagged HCOP_FLUSH_DIRTY .needAck: needAck;
             endcase;
 
-        dirtyEntryFlushW.send();
+        dirtyEntryFlushW.send;
         debugLog.record($format("  Write back DIRTY: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", debugAddrFromTag(tag, set), set, word_valid_mask, flush_data));
 
         // Flush for invalidate request.  Use sync method to know the
@@ -1296,7 +1296,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             if (read_hit)
             begin
                 // Word hit!
-                readHitW.send();
+                readHitW.wset(req_base_in.readMeta);
                 localData.dataRead[lpREAD].readReq(way);
                 readHitQ.enq(tuple4(req_base_out, req, way_meta.wordValid, False));
 
@@ -1304,7 +1304,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                 begin
                     // LRU changed.  Update metadata.
                     localData.metaWrite(set, meta_upd);
-                    newMRUW.send();
+                    newMRUW.send;
                 end
             end
             else if (!rReq.fullLine || !way_meta.dirty)
@@ -1389,7 +1389,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
             let meta_upd = meta;
             meta_upd.lru <- cacheLRUUpdate(set, way, meta.lru);
 
-            writeHitW.send();
+            writeHitW.wset(req_base_in.readMeta);
 
             // Mark line dirty and word valid
             let new_word_valid = way_meta.wordValid;
@@ -1414,7 +1414,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
                 localData.metaWrite(set, meta_upd);
                 if (meta_upd.lru != meta.lru)
                 begin
-                    newMRUW.send();
+                    newMRUW.send;
                 end
             end
 
@@ -1554,7 +1554,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         // Miss.
         //
 
-        readMissW.send();
+        readMissW.wset(req_base.readMeta);
 
         let addr = cacheAddr(tag, set);
         sourceData.readReq(addr, req_base.readMeta, req_base.globalReadMeta);
@@ -1593,7 +1593,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let tag = req_base_in.tag;
         let set = req_base_in.set;
 
-        readMissW.send();
+        readMissW.wset(req_base_in.readMeta);
 
         let req_base_out = req_base_in;
         req_base_out.way = fill_way;
@@ -1616,12 +1616,12 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         Bool flushed_dirty = False;
         if (meta.ways[fill_way] matches tagged Valid .m)
         begin
-            invalEntryW.send();
+            invalEntryW.send;
             if (m.dirty)
             begin
                 // Victim is dirty.  Flush data.
                 flushed_dirty = True;
-                dirtyEntryFlushW.send();
+                dirtyEntryFlushW.send;
                 debugLog.record($format("  READ MISS (DIRTY WB): addr=0x%x, set=0x%x, way=%0d, mask=0x%x, data=0x%x", debugAddrFromTag(m.tag, set), set, fill_way, m.wordValid, flush_data));
 
                 sourceData.write(cacheAddr(m.tag, set), m.wordValid, flush_data);
@@ -1658,7 +1658,7 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         let tag = req_base_in.tag;
         let set = req_base_in.set;
 
-        writeMissW.send();
+        writeMissW.wset(req_base_in.readMeta);
 
         let req_base_out = req_base_in;
         req_base_out.way = fill_way;
@@ -1695,12 +1695,12 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
         Bool flushed_dirty = False;
         if (meta.ways[fill_way] matches tagged Valid .m)
         begin
-            invalEntryW.send();
+            invalEntryW.send;
             if (m.dirty)
             begin
                 // Victim is dirty.  Flush data.
                 flushed_dirty = True;
-                dirtyEntryFlushW.send();
+                dirtyEntryFlushW.send;
                 debugLog.record($format("  WRITE MISS (DIRTY WB): addr=0x%x, set=0x%x, way=%0d, mask=0x%x, data=0x%x", debugAddrFromTag(m.tag, set), set, fill_way, m.wordValid, flush_data));
 
                 sourceData.write(cacheAddr(m.tag, set), m.wordValid, flush_data);
@@ -2131,15 +2131,15 @@ module mkCacheSetAssoc#(RL_SA_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_
     endmethod
 
     interface RL_CACHE_STATS stats;
-        method Bool readHit() = readHitW;
-        method Bool readMiss() = readMissW;
-        method Bool readRecentLineHit() = readRecentLineHitW;
-        method Bool writeHit() = writeHitW;
-        method Bool writeMiss() = writeMissW;
-        method Bool newMRU() = newMRUW;
-        method Bool invalEntry() = invalEntryW;
-        method Bool dirtyEntryFlush() = dirtyEntryFlushW;
-        method Bool forceInvalLine() = forceInvalLineW;
+        method readHit = readHitW.wget;
+        method readMiss = readMissW.wget;
+        method readRecentLineHit = readRecentLineHitW;
+        method writeHit = writeHitW.wget;
+        method writeMiss = writeMissW.wget;
+        method newMRU = newMRUW;
+        method invalEntry = invalEntryW;
+        method dirtyEntryFlush = dirtyEntryFlushW;
+        method forceInvalLine = forceInvalLineW;
         method entryAccesses = tagged Invalid;
     endinterface
 

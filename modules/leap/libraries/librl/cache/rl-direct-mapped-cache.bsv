@@ -65,8 +65,6 @@ RL_DM_CACHE_LOAD_RESP#(type t_CACHE_WORD,
                        type t_CACHE_READ_META)
     deriving (Eq, Bits);
 
-
-
 //
 // Store Request
 //
@@ -152,7 +150,7 @@ interface RL_DM_CACHE#(type t_CACHE_ADDR,
     //
     method Action setCacheMode(RL_DM_CACHE_MODE mode, RL_DM_CACHE_PREFETCH_MODE en);
     
-    interface RL_CACHE_STATS stats;
+    interface RL_CACHE_STATS#(t_CACHE_READ_META) stats;
 
 endinterface: RL_DM_CACHE
 
@@ -233,6 +231,14 @@ typedef enum
     DM_CACHE_PREFETCH_REQ
 }
 RL_DM_CACHE_REQ_TYPE
+    deriving (Eq, Bits);
+
+typedef enum
+{
+    DM_CACHE_FILL_START,
+    DM_CACHE_FILL_ONGOING
+}
+RL_DM_CACHE_FILL_STATE
     deriving (Eq, Bits);
 
 
@@ -358,8 +364,11 @@ RL_DM_CACHE_WRITE_REQ#(type t_CACHE_ADDR,
     deriving (Eq, Bits);
 
 // Definitions for cache side buffer
-typedef Bit#(2) SIDE_REQS_OUTSTANDING;
-typedef Bit#(5) SIDE_REQ_BINS;
+typedef Bit#(2) RL_DM_CACHE_SIDE_REQS_OUTSTANDING;
+typedef Bit#(5) RL_DM_CACHE_SIDE_REQ_BINS;
+
+typedef Bit#(3) RL_DM_CACHE_MSHR_IDX;
+typedef 4       RL_DM_CACHE_MSHR_ENTRIES;
 
 // ===================================================================
 //
@@ -407,6 +416,9 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
     RL_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_READ_META) cache = ?;
 
+    // Disable/Enable MSHRs
+    Bool enableMSHRs = False; 
+
     // Here, we examine n_ENTRIES, and develop different cache implementations
     // based on how close this value is to the next power of two.  
     if(valueof(n_ENTRIES) > 7 * valueof(n_MAX_ENTRIES) / 8)
@@ -423,6 +435,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                              loadBalanceExtraBits, 
                                              loadBalanceBaseBits, 
                                              maxLoadBalanceIndex, 
+                                             enableMSHRs, 
                                              hashAddresses, 
                                              enMaskedWrite, 
                                              debugLog);
@@ -445,6 +458,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                              loadBalanceExtraBits, 
                                              loadBalanceBaseBits, 
                                              maxLoadBalanceIndex, 
+                                             enableMSHRs, 
                                              hashAddresses, 
                                              enMaskedWrite, 
                                              debugLog);
@@ -467,6 +481,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                              loadBalanceExtraBits, 
                                              loadBalanceBaseBits, 
                                              maxLoadBalanceIndex, 
+                                             enableMSHRs, 
                                              hashAddresses, 
                                              enMaskedWrite, 
                                              debugLog);
@@ -487,7 +502,8 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
                                              cacheImplementation,
                                              loadBalanceExtraBits, 
                                              loadBalanceBaseBits,  
-                                             maxLoadBalanceIndex, 
+                                             maxLoadBalanceIndex,
+                                             enableMSHRs, 
                                              hashAddresses, 
                                              enMaskedWrite, 
                                              debugLog);
@@ -515,7 +531,8 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                                 // via a load balancing technique.
                                 NumTypeParam#(n_LOAD_BALANCE_EXTRA_BITS) loadBalanceExtraBits,
                                 NumTypeParam#(n_LOAD_BALANCE_BASE_BITS) loadBalanceBaseBits,
-                                Integer maxLoadBalanceIndex,                                 
+                                Integer maxLoadBalanceIndex,
+                                Bool enableMSHRs,   // should we make use of MSHRs?                                 
                                 Bool hashAddresses, // should we hash cache addresses?
                                 Bool enMaskedWrite, // enable masked write support
                                 DEBUG_FILE debugLog)
@@ -622,6 +639,15 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     end
     
     // Track busy entries
+    RL_MSHR#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_REQ, RL_DM_CACHE_MSHR_IDX, RL_DM_CACHE_MSHR_ENTRIES) mshr = ?;
+    RWire#(RL_DM_CACHE_MSHR_IDX) newMSHRRequest = ?; 
+
+    if (enableMSHRs)
+    begin
+        mshr <- mkMSHR(debugLog);
+        newMSHRRequest <- mkRWire();
+    end
+
     COUNTING_FILTER#(t_CACHE_IDX, 1) entryFilter <- mkCountingFilter(debugLog);
     FIFO#(t_CACHE_IDX) entryFilterUpdateQ <- mkFIFO();
 
@@ -630,6 +656,11 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, Tuple2#(t_CACHE_WORD, t_CACHE_MASK)) reqInfo_writeDataMask = ?;
     MEMORY_HEAP_IMM#(t_WRITE_HEAP_IDX, t_CACHE_WORD) reqInfo_writeData = ?;
     
+
+    Reg#(RL_DM_CACHE_FILL_STATE) fillState       <- mkReg(DM_CACHE_FILL_START);
+    Reg#(t_CACHE_WORD)           fillBuffer      <- mkRegU(); 
+    Reg#(Bool)                   fillBufferDirty <- mkReg(False);
+
     if (enMaskedWrite)
     begin
         reqInfo_writeDataMask <- mkMemoryHeapLUTRAM();
@@ -663,12 +694,12 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     FIFO#(t_CACHE_LOAD_RESP) readRespQ <- mkBypassFIFO();
     
     // Wires for communicating stats
-    PulseWire readHitW          <- mkPulseWire();
-    PulseWire dirtyEntryFlushW  <- mkPulseWire();
-    PulseWire readMissW         <- mkPulseWire();
-    PulseWire writeHitW         <- mkPulseWire();
-    PulseWire writeMissW        <- mkPulseWire();
-    PulseWire forceInvalLineW   <- mkPulseWire();
+    RWire#(t_CACHE_READ_META) readHitW          <- mkRWire();
+    PulseWire                 dirtyEntryFlushW  <- mkPulseWire();
+    RWire#(t_CACHE_READ_META) readMissW         <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeHitW         <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeMissW        <- mkRWire();
+    PulseWire                 forceInvalLineW   <- mkPulseWire();
 
     //
     // Convert address to cache index and tag
@@ -748,7 +779,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     // ====================================================================
 
     FIFOF#(t_CACHE_REQ) sideReqQ <- mkSizedFIFOF(8);
-    LUTRAM#(SIDE_REQ_BINS, SIDE_REQS_OUTSTANDING) sideReqFilter <- mkLUTRAM(0);
+    LUTRAM#(RL_DM_CACHE_SIDE_REQ_BINS, RL_DM_CACHE_SIDE_REQS_OUTSTANDING) sideReqFilter <- mkLUTRAM(0);
     Reg#(Bit#(2)) newReqArb <- mkReg(0);
 
     // Track whether the heads of the new and side request queues are
@@ -758,9 +789,10 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     Reg#(Bool) newReqNotBlocked[3] <- mkCReg(3, True);
     Reg#(Bool) sideReqNotBlocked[2] <- mkCReg(2, True);
 
-    Wire#(RL_DM_EARLY_REQUEST_SELECTION#(t_CACHE_REQ)) pickReq <- mkWire();
+    // Wires controlling the request pipeline. 
+    Wire#(RL_DM_EARLY_REQUEST_SELECTION#(t_CACHE_REQ))              pickReq <- mkWire();
     Wire#(RL_DM_FINAL_REQUEST_SELECTION#(t_CACHE_REQ, t_CACHE_IDX)) curReq <- mkWire();
-
+    PulseWire                                                       mshrReq <- mkPulseWire();
 
     //
     // pickReqQueue0 --
@@ -860,8 +892,8 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         //
         // The array sideReqFilter tracks lines active in the side request
         // queue.
-        if ((req_type == DM_CACHE_SIDE_REQ) ||
-            (sideReqFilter.sub(resize(idx)) == 0))
+        if ((req_type == DM_CACHE_SIDE_REQ) ||        // Was in side req queue -- it's the oldest request, so there is no order hazard
+            (sideReqFilter.sub(resize(idx)) == 0))    // No conflicting instruction in sideReqQ. 
         begin
             curReq <= RL_DM_FINAL_REQUEST_SELECTION{reqType: req_type, request: r, requestMetadata: entryFilter.test(idx)};
         end
@@ -968,11 +1000,39 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         let r = curReq.request;
         let cf_opaque = curReq.requestMetadata;
 
-        let idx = cacheIdx(r);
+        // Here, we need to see if we can put in an mshr.  This is
+        // the only place that we put things in the sideReqQ. A real question is 
+        // whether we need the side reqQ anymore. In this case, it is only 
+        // handling read-after-write. 
 
-        if (! curReq.request.globalReadMeta.orderedSourceDataReqs &&
-            (sideReqFilter.sub(resize(cacheIdx(curReq.request))) != maxBound) &&
-            sideReqQ.notFull)
+        let sideReqFilterCount = sideReqFilter.sub(resize(cacheIdx(curReq.request))); 
+
+        let idx = cacheIdx(r);
+        RL_DM_CACHE_MSHR_IDX mshrIdx = truncateNP(pack(idx));
+
+        // Can we put this request into an MSHR? 
+        if (enableMSHRs                              &&  // are MSHRs enabled?
+            mshr.notEmptyMSHR(mshrIdx, pack(r.addr)) &&  // is there a tag allocated for this index in the MSHR?
+            mshr.notFullMSHR(mshrIdx, pack(r.addr))  &&  // is there space in the MSHR (does a tag check)?  
+            sideReqFilterCount == 0)                     // is the side req Q filter empty (needed to preserve ordering)
+        begin
+            // place request in MSHR. 
+            mshrReq.send();
+            mshr.dump();
+            newReqQ.deq();
+            
+            // inform fill handler of new entry
+            newMSHRRequest.wset(mshrIdx);
+
+            // Let the prefetcher know something interesting happened. 
+            if (prefetchMode == RL_DM_PREFETCH_ENABLE)
+            begin
+                prefetcher.shuntNewCacheReq(idx, r.addr);
+            end
+        end
+        else if (! curReq.request.globalReadMeta.orderedSourceDataReqs &&
+           (sideReqFilterCount != maxBound) &&
+           sideReqQ.notFull)
         begin
             debugLog.record($format("    shunt busy line req: addr=0x%x, entry=0x%x", r.addr, idx));
 
@@ -982,18 +1042,34 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             // Note line present in sideReqQ
             sideReqFilter.upd(resize(idx), sideReqFilter.sub(resize(idx)) + 1);
 
+            // Let the prefetcher know something interesting happened. 
             if (prefetchMode == RL_DM_PREFETCH_ENABLE)
             begin
                 prefetcher.shuntNewCacheReq(idx, r.addr);
             end
         end
         else
+        // We can't eliminate this request.  We must block. 
         begin
             debugLog.record($format("    new req queue blocked: addr=0x%x, entry=0x%x", r.addr, idx));
             newReqNotBlocked[0] <= False;
         end
     endrule
 
+    //
+    // enqToMSHR --
+    //     Places an incoming request into the MSHR.  This rule is removed from
+    //     shuntNewReq so that fillReq can fire in the same cycle.
+    //
+    (* fire_when_enabled *)
+    rule enqToMSHR(mshrReq);
+        let r = curReq.request;
+        let idx = cacheIdx(r);
+        RL_DM_CACHE_MSHR_IDX mshrIdx = truncateNP(pack(idx));
+
+        mshr.enqMSHR(mshrIdx, pack(r.addr), r);
+
+    endrule
 
     //
     // sideReqBlocked --
@@ -1083,7 +1159,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                 // Ignore prefetch hit response and prefetch hit status
                 if (! r.readMeta.isLocalPrefetch)
                 begin
-                    readHitW.send();
+                    readHitW.wset(r.readMeta.clientReadMeta);
                     if (prefetchMode == RL_DM_PREFETCH_ENABLE)
                     begin
                         prefetcher.readHit(idx, r.addr);
@@ -1108,7 +1184,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                 let old_addr = cacheAddrFromEntry(e.tag, idx);
                 debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
                 sourceData.write(old_addr, e.val);
-                dirtyEntryFlushW.send();
+                dirtyEntryFlushW.send;
             end
         end
 
@@ -1116,7 +1192,6 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         if (needFill)
         begin
             fillReqQ.enq(r);
-
             if (prefetchMode == RL_DM_PREFETCH_ENABLE)
             begin
                 prefetcher.readMiss(idx, r.addr,
@@ -1138,75 +1213,199 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     // fillReq --
     //     Request fill from backing storage.
     //
+    (* conservative_implicit_conditions *)
     rule fillReq (True);
         let r = fillReqQ.first();
-        fillReqQ.deq();
 
-        debugLog.record($format("    fillReq: addr=0x%x", r.addr));
+        let idx = cacheIdx(r);
+        RL_DM_CACHE_MSHR_IDX mshrIdx = truncateNP(pack(idx));
 
-        if (!r.readMeta.isLocalPrefetch && !r.readMeta.isWriteMiss)
+        // If MSHRs are enabled, we will allocate here.  Otherwise, 
+        // we simply issue the fill request.
+        if (enableMSHRs)
         begin
-            readMissW.send();
-        end
-        else if (r.readMeta.isWriteMiss)
-        begin
-            writeMissW.send();
-        end
+            if ( mshr.notFullMSHR(mshrIdx, pack(r.addr)) &&
+                 mshr.notEmptyMSHR(mshrIdx, pack(r.addr)))
+            begin
+                $display("Fill Req miss-under-miss mismatch");
+                $finish;
+            end
 
-        sourceData.readReq(r.addr, r.readMeta, r.globalReadMeta);
+            // Fills require an MSHR.  Allocate one here. If we cannot allocate,
+            // we must stall. 
+            if (mshr.notFullMSHR(mshrIdx, pack(r.addr)))
+            begin
+                fillReqQ.deq();
+                mshr.enqMSHR(mshrIdx, pack(r.addr), r);
+                mshr.dump();
+                debugLog.record($format("    fillReq: addr=0x%x", r.addr));
+
+                if (!r.readMeta.isLocalPrefetch && !r.readMeta.isWriteMiss)
+                begin
+                    readMissW.wset(r.readMeta.clientReadMeta);
+                end
+                else if (r.readMeta.isWriteMiss)
+                begin
+                    writeMissW.wset(r.readMeta.clientReadMeta);
+                end
+
+                sourceData.readReq(r.addr, r.readMeta, r.globalReadMeta);
+            end        
+            else 
+            begin 
+                debugLog.record($format("    fillReq: addr=0x%x mshr=0x%x is blocked", r.addr, mshrIdx));
+                mshr.dump();
+            end
+        end
+        else // No MSHRs, just issue request.
+        begin
+            fillReqQ.deq();
+            debugLog.record($format("    fillReq: addr=0x%x", r.addr));
+
+            if (!r.readMeta.isLocalPrefetch && !r.readMeta.isWriteMiss)
+            begin
+                readMissW.wset(r.readMeta.clientReadMeta);
+            end
+            else if (r.readMeta.isWriteMiss)
+            begin
+                writeMissW.wset(r.readMeta.clientReadMeta);
+            end
+
+            sourceData.readReq(r.addr, r.readMeta, r.globalReadMeta);
+        end
     endrule
     
-
     //
     // fillResp --
     //     Fill response.  Fill responses may return out of order relative to
     //     requests.
     //
     rule fillResp (True);
-        let f <- sourceData.readResp();
-        
+        let f = sourceData.peekResp();
+
         match {.tag, .idx} = cacheEntryFromAddr(f.addr);
+        RL_DM_CACHE_MSHR_IDX mshrIdx = truncateNP(pack(idx));
+       
+        // Depending on state, we take either the fillBuffer data or 
+        // the incoming data. 
+        let  cacheData  = fillBuffer;
+        Bool cacheDirty = fillBufferDirty;
+        if(fillState == DM_CACHE_FILL_START)
+        begin
+            debugLog.record($format("    fill starting"));
+            cacheData = f.val;
+            cacheDirty = False;
+        end
+ 
+        // Assign a defaults the case that we do not use MSHRs
+        let currentRequestReadMeta = f.readMeta;
+        let currentRequestGlobalReadMeta = f.globalReadMeta;
+       
+        // We only spend multiple cycles merging requests if 
+        // MSHRs are enabled.
+        let fillComplete = True;
 
-        debugLog.record($format("    fillResp: FILL addr=0x%x, entry=0x%x, cacheable=%b, val=0x%x", f.addr, idx, f.isCacheable, f.val));
+        if (enableMSHRs)           
+        begin
+            // Did a new request try to extend this mshr?  If it did, we should process it.
+            Bool enqueueConflict = isValid(newMSHRRequest.wget()) && (fromMaybe(?, newMSHRRequest.wget()) == mshrIdx);  
+            fillComplete = !enqueueConflict && mshr.countMSHR(mshrIdx) == 1;
 
-        if (!f.readMeta.isLocalPrefetch && !f.readMeta.isWriteMiss)
+            // If we have consumed all of the mshr requests, we can finally ship the data to the cache and drop the 
+            // in bound request. 
+            if(fillComplete)
+            begin  
+                let deadValue <- sourceData.readResp();
+                entryFilterUpdateQ.enq(idx);
+                fillState <= DM_CACHE_FILL_START;
+                debugLog.record($format("    fill complete"));
+                mshr.dump();
+            end
+            else 
+            begin
+                fillState <= DM_CACHE_FILL_ONGOING;
+                debugLog.record($format("    fill continuing"));
+            end
+            
+            // remove request from mshr.
+            mshr.deqMSHR(mshrIdx);
+            mshr.dump();
+            let mshrRequest = mshr.firstMSHR(mshrIdx);
+            // Populate metadata from MSHR. 
+            currentRequestReadMeta = mshrRequest.readMeta;
+            currentRequestGlobalReadMeta = mshrRequest.globalReadMeta;
+
+            debugLog.record($format("    fillResp: FILL addr=0x%x req.addr=0x%x, entry=0x%x, cacheable=%b, val=0x%x", f.addr, mshrRequest.addr, idx, f.isCacheable, cacheData));
+
+            if(pack(f.addr) != pack(mshrRequest.addr))
+            begin
+                $display("Fill Resp Address mismatch");
+                $finish;
+            end 
+        end
+        else
+        begin
+            let deadValue <- sourceData.readResp();
+            entryFilterUpdateQ.enq(idx);          
+        end
+
+        if (!currentRequestReadMeta.isLocalPrefetch && !currentRequestReadMeta.isWriteMiss)
         begin
             t_CACHE_LOAD_RESP resp;
-            resp.val = f.val;
+            resp.val = cacheData;
             resp.isCacheable = f.isCacheable;
-            resp.readMeta = f.readMeta.clientReadMeta;
-            resp.globalReadMeta = f.globalReadMeta;
+            resp.readMeta = currentRequestReadMeta.clientReadMeta;
+            resp.globalReadMeta = currentRequestGlobalReadMeta;
             readRespQ.enq(resp);
         end
         
-        if (enMaskedWrite && f.readMeta.isWriteMiss) // do write
+        if (enMaskedWrite && currentRequestReadMeta.isWriteMiss) // do write
         begin
             // New data to write
-            t_WRITE_HEAP_IDX w_idx = truncate(pack(f.readMeta.clientReadMeta));
+            t_WRITE_HEAP_IDX w_idx = truncate(pack(currentRequestReadMeta.clientReadMeta));
             match { .w_data, .w_mask } = reqInfo_writeDataMask.sub(w_idx);
             reqInfo_writeDataMask.free(w_idx);
-            t_CACHE_WORD new_val = applyWriteMask(f.val, w_data, w_mask);
+            cacheData = applyWriteMask(cacheData, w_data, w_mask);
+            cacheDirty = True;
 
-            cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: True,
-                                                              tag: tag,
-                                                              val: new_val });
+            // If we have handled all oustanding requests to this line, 
+            // commit it to the cache. Otherwise, we will continue 
+            // processing on fill buffer.
+            if(fillComplete)
+            begin
+                cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: True,
+                                                                  tag: tag,
+                                                                  val: cacheData });
+            end
         end
-        else if (f.isCacheable) // Save value in cache
+        else if (f.isCacheable) // Save value in cache.  
         begin
-            cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: False,
-                                                              tag: tag,
-                                                              val: f.val });
 
+            // If we have handled all oustanding requests to this line, 
+            // commit it to the cache. Otherwise, we will continue 
+            // processing on fill buffer.
+            if(fillComplete)
+            begin
+                cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: cacheDirty,
+                                                                  tag: tag,
+                                                                  val: cacheData });
+            end
+               
             prefetcher.fillResp(idx, f.addr,
-                                f.readMeta.isLocalPrefetch,
-                                f.readMeta.clientReadMeta);
+                                currentRequestReadMeta.isLocalPrefetch,
+                                currentRequestReadMeta.clientReadMeta);
         end
-        else if (f.readMeta.isLocalPrefetch)
+        else if (currentRequestReadMeta.isLocalPrefetch)
         begin
             prefetcher.prefetchIllegalReq();
         end
 
-        entryFilterUpdateQ.enq(idx);
+        if (enableMSHRs)
+        begin
+            // Update fill buffer for potential use in next cycle. 
+            fillBuffer <= cacheData;
+            fillBufferDirty <= cacheDirty;
+        end
     endrule
 
 
@@ -1259,7 +1458,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
                 let old_addr = cacheAddrFromEntry(e.tag, idx);
                 debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
                 sourceData.write(old_addr, e.val);
-                dirtyEntryFlushW.send();
+                dirtyEntryFlushW.send;
             end
         end
         
@@ -1271,7 +1470,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             debugLog.record($format("    doWrite: WRITE addr=0x%x, entry=0x%x, val=0x%x, mask=0x%x, new_val=0x%x", 
                             r.addr, idx, w_data, w_mask, new_val));
 
-            writeHitW.send();
+            writeHitW.wset(r.readMeta.clientReadMeta);
             cache.write(idx, tagged Valid RL_DM_CACHE_ENTRY { dirty: True,
                                                               tag: tag,
                                                               val: new_val });
@@ -1290,7 +1489,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             end
         end
         else // write miss
-        begin
+        begin 
             fillReqQ.enq(r);
 
             if (prefetchMode == RL_DM_PREFETCH_ENABLE)
@@ -1324,7 +1523,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
 
         if (cur_entry matches tagged Valid .e &&& (e.tag == tag))
         begin
-            forceInvalLineW.send();
+            forceInvalLineW.send;
 
             if (e.dirty)
             begin
@@ -1359,7 +1558,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     endrule
 
 
-    (* descending_urgency = "fillResp, fillReq, lookupRead, doWrite, finishInval, evictForInval" *)
+    (* descending_urgency = "enqToMSHR, fillResp, fillReq, lookupRead, doWrite, finishInval, evictForInval" *)
     rule finishInval (True);
         let r = invalQ.first();
         invalQ.deq();
@@ -1550,15 +1749,15 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
     endmethod
 
     interface RL_CACHE_STATS stats;
-        method Bool readHit() = readHitW;
-        method Bool readMiss() = readMissW;
-        method Bool readRecentLineHit() = False;    
-        method Bool writeHit() = writeHitW;
-        method Bool writeMiss() = writeMissW;
-        method Bool newMRU() = False;
-        method Bool invalEntry() = False;
-        method Bool dirtyEntryFlush() = dirtyEntryFlushW;
-        method Bool forceInvalLine() = forceInvalLineW;
+        method readHit = readHitW.wget;
+        method readMiss = readMissW.wget;
+        method readRecentLineHit = False;    
+        method writeHit = writeHitW.wget;
+        method writeMiss = writeMissW.wget;
+        method newMRU = False;
+        method invalEntry = False;
+        method dirtyEntryFlush = dirtyEntryFlushW;
+        method forceInvalLine = forceInvalLineW;
         method entryAccesses = tagged Invalid;
     endinterface
 
@@ -1649,15 +1848,15 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
     endmethod
     
     interface RL_CACHE_STATS stats;
-        method Bool readHit() = False;
-        method Bool readMiss() = False;
-        method Bool readRecentLineHit() = False;    
-        method Bool writeHit() = False;
-        method Bool writeMiss() = False;
-        method Bool newMRU() = False;
-        method Bool invalEntry() = False;
-        method Bool dirtyEntryFlush() = False;
-        method Bool forceInvalLine() = False;
+        method readHit() = tagged Invalid;
+        method readMiss() = tagged Invalid;
+        method readRecentLineHit() = False;    
+        method writeHit() = tagged Invalid;
+        method writeMiss() = tagged Invalid;
+        method newMRU() = False;
+        method invalEntry() = False;
+        method dirtyEntryFlush() = False;
+        method forceInvalLine() = False;
         method entryAccesses = tagged Invalid;
     endinterface
 

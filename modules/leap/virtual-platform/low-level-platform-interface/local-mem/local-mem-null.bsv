@@ -55,6 +55,9 @@ function Bool platformHasLocalMem() = False;
 //
 typedef 1 LOCAL_MEM_BANKS;
 
+// Local memory burst data size
+typedef `LOCAL_MEM_WORD_BITS LOCAL_MEM_BURST_DATA_SZ;
+
 //
 // Define a dummy local memory interface.
 //
@@ -101,7 +104,7 @@ module mkLocalMem#(LOCAL_MEM_CONFIG conf)
         noAction;
     endmethod
 
-    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
+    method ActionValue#(Maybe#(LOCAL_MEM_ALLOC_RSP)) allocRegionRsp();
         return ?;
     endmethod
 endmodule

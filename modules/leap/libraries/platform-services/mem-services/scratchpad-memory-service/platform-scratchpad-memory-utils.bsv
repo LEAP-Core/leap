@@ -35,12 +35,24 @@
 `include "awb/provides/soft_connections.bsh"
 
 
+//
+// A type class which allows us to extract the ID of a datatype. 
+// Although this is general, we currently only use it to extract 
+// the port ID of scratchpad read metadata. 
+//
+typeclass ID#(type t_DATA, type t_ID)
+    dependencies (t_DATA determines t_ID);
+
+    function t_ID getID(t_DATA data);
+
+endtypeclass
+
 // SCRATCHPAD_STATS_CONSTRUCTOR
 
 // A function to instantiate a stat tracker. Passed to the multi-cached-memory
 // modules below.
 
-typedef function CONNECTED_MODULE#(Empty) f(RL_CACHE_STATS stats) SCRATCHPAD_STATS_CONSTRUCTOR;
+typedef function CONNECTED_MODULE#(Empty) f(RL_CACHE_STATS#(t_READ_META) stats) SCRATCHPAD_STATS_CONSTRUCTOR#(type t_READ_META);
 typedef function CONNECTED_MODULE#(Empty) f(RL_PREFETCH_STATS stats) SCRATCHPAD_PREFETCH_STATS_CONSTRUCTOR;
 
 //
@@ -51,7 +63,7 @@ typedef function CONNECTED_MODULE#(Empty) f(RL_PREFETCH_STATS stats) SCRATCHPAD_
 //
 module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(String tagPrefix,
                                                        String descPrefix,
-                                                       RL_CACHE_STATS stats)
+                                                       RL_CACHE_STATS#(t_READ_META) stats)
     // interface:
     ();
 
@@ -69,25 +81,75 @@ module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(String tagPrefix,
     };
     STAT_VECTOR#(4) sv <- mkStatCounter_Vector(statIDs);
     
-    rule readHit (stats.readHit());
+    rule readHit (stats.readHit() matches tagged Valid .readMeta);
         sv.incr(0);
     endrule
 
-    rule readMiss (stats.readMiss());
+    rule readMiss (stats.readMiss() matches tagged Valid .readMeta);
         sv.incr(1);
     endrule
 
-    rule writeHit (stats.writeHit());
+    rule writeHit (stats.writeHit() matches tagged Valid .readMeta);
         sv.incr(2);
     endrule
 
-    rule writeMiss (stats.writeMiss());
+    rule writeMiss (stats.writeMiss() matches tagged Valid .readMeta);
         sv.incr(3);
     endrule
 endmodule
 
+//
+// mkBasicScratchpadCacheStats --
+//     Shim between an RL_CACHE_STATS interface and statistics counters.
+//     Tag and description prefixes allow the caller to define the prefixes
+//     of the statistic.
+//
+module [CONNECTED_MODULE] mkMultiportedScratchpadCacheStats#(NumTypeParam#(n_PORTS) ports,
+                                                             String tagPrefix,
+                                                             String descPrefix,
+                                                             RL_CACHE_STATS#(t_READ_META) stats)
+    // interface:
+    ()
 
-module [CONNECTED_MODULE] mkNullScratchpadCacheStats#(RL_CACHE_STATS stats)
+    provisos(ID#(t_READ_META, t_PORT_ID),
+             Bits#(t_PORT_ID, t_PORT_ID_SZ));
+
+    for(Integer i = 0; i < valueof(n_PORTS); i = i + 1)
+    begin
+        String tag_prefix = "LEAP_" + tagPrefix + "_port_" + integerToString(i) + "_";
+
+        STAT_ID statIDs[4] = {
+            statName(tag_prefix + "SCRATCH_LOAD_HIT",
+                     descPrefix + "Scratchpad load hits"),
+            statName(tag_prefix + "SCRATCH_LOAD_MISS",
+                     descPrefix + "Scratchpad load misses"),
+            statName(tag_prefix + "SCRATCH_STORE_HIT",
+                     descPrefix + "Scratchpad store hits"),
+            statName(tag_prefix + "SCRATCH_STORE_MISS",
+                     descPrefix + "Scratchpad store misses")
+        };
+        STAT_VECTOR#(4) sv <- mkStatCounter_Vector(statIDs);
+        
+        rule readHit (stats.readHit() matches tagged Valid .readMeta &&& pack(getID(readMeta)) == fromInteger(i));
+            sv.incr(0);
+        endrule
+
+        rule readMiss (stats.readMiss() matches tagged Valid .readMeta &&& pack(getID(readMeta)) == fromInteger(i));
+            sv.incr(1);
+        endrule
+
+        rule writeHit (stats.writeHit() matches tagged Valid .readMeta &&& pack(getID(readMeta)) == fromInteger(i));
+            sv.incr(2);
+        endrule
+
+        rule writeMiss (stats.writeMiss() matches tagged Valid .readMeta &&& pack(getID(readMeta)) == fromInteger(i));
+            sv.incr(3);
+        endrule
+    end        
+endmodule
+
+
+module [CONNECTED_MODULE] mkNullScratchpadCacheStats#(RL_CACHE_STATS#(t_READ_META) stats)
     // interface:
     ();
 endmodule

@@ -313,7 +313,7 @@ for my $platform (@$platforms_ref) {
             # AFU/QPI simulator must start first in order to manage shared memory.
             # Remove a file that will indicate it has started.
             system("rm -rf " . ${platformName} . "/work");
-            system("mkdir " . ${platformName} . "/work");
+            system("mkdir -p " . ${platformName} . "/work");
 
             # ASE needs an environment variable and a config file
             `mkdir -p ${platformName}/leap_debug`;

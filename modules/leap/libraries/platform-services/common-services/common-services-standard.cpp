@@ -37,8 +37,7 @@
 using namespace std;
 
 // constructor
-COMMON_SERVICES_CLASS::COMMON_SERVICES_CLASS() :
-    dynamicParamsService(new DYNAMIC_PARAMS_SERVICE_CLASS())
+COMMON_SERVICES_CLASS::COMMON_SERVICES_CLASS()
 {
 }
 
@@ -53,8 +52,7 @@ COMMON_SERVICES_CLASS::Init()
 {
     // Tell the dynamic parameters IO service to send all
     // parameters to the hardware.
-    
-    dynamicParamsService->SendAllParams();
+    DYNAMIC_PARAMS_SERVICE_CLASS::GetInstance()->SendAllParams();
 
     // Tell the stats device to setup itself.
     STATS_SERVER_CLASS::GetInstance()->SetupStats();

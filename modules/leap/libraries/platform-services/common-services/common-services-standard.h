@@ -35,10 +35,6 @@ typedef class COMMON_SERVICES_CLASS* COMMON_SERVICES;
 
 class COMMON_SERVICES_CLASS
 {
-  private:
-    // The parameter controller is a pure client
-    // so we must instantiate it.
-    DYNAMIC_PARAMS_SERVICE dynamicParamsService;
 
   public:
     COMMON_SERVICES_CLASS();

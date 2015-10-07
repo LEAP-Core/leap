@@ -1184,7 +1184,7 @@ module [CONNECTED_MODULE] mkCachedCoherentScratchpadController#(Integer dataScra
             debugScanName = debug_scan_name;
         end
         
-        let dbgNode <- mkDebugScanNode(debugScanName + "(coherent-scratchpad-memory-controller.bsv)", dbg_list);
+        let dbgNode <- mkDebugScanNode(debugScanName + " (coherent-scratchpad-memory-controller.bsv)", dbg_list);
     end
 
 endmodule

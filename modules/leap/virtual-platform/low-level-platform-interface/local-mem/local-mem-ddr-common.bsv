@@ -68,6 +68,7 @@ typedef TSub#(TAdd#(FPGA_DDR_ADDRESS_SZ,
 //
 typedef TMax#(1, TMul#(TSub#(1, LOCAL_MEM_UNIFIED), FPGA_DDR_BANKS)) LOCAL_MEM_BANKS;
 
+
 // ========================================================================
 //
 // Construct a LOCAL_MEM_LINE from FPGA DDR banks, bursts and words.
@@ -90,6 +91,8 @@ typedef Bit#(DDR_BURST_ADDRESS_SZ) DDR_BURST_ADDRESS;
 // Bank index
 typedef Bit#(TLog#(FPGA_DDR_BANKS)) DDR_BANK_IDX;
 
+// Local memory burst data size
+typedef DDR_BURST_DATA_SZ LOCAL_MEM_BURST_DATA_SZ;
 
 //
 // checkDDRMemSizesValid --

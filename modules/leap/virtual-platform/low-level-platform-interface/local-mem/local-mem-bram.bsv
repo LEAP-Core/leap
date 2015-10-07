@@ -74,6 +74,9 @@ function Bool platformHasLocalMem() = True;
 //
 typedef `LOCAL_MEM_BRAM_BANKS LOCAL_MEM_BANKS;
 
+// Local memory burst data size
+typedef LOCAL_MEM_WORD_SZ LOCAL_MEM_BURST_DATA_SZ;
+
 // Cycle counter for calculating delays
 typedef UInt#(16) REQ_CYCLE;
 
@@ -313,7 +316,7 @@ module mkLocalMem#(LOCAL_MEM_CONFIG conf)
         error("Region allocation not required for fixed sized memory");
     endmethod
 
-    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
+    method ActionValue#(Maybe#(LOCAL_MEM_ALLOC_RSP)) allocRegionRsp();
         error("Region allocation not required for fixed sized memory");
         return ?;
     endmethod

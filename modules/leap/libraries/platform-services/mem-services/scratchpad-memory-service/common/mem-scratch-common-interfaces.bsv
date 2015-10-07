@@ -338,9 +338,13 @@ interface SCRATCHPAD_MEMORY_VIRTUAL_DEVICE#(type t_ADDR, type t_DATA, type t_MAS
 
     // Initialize a port, requesting an allocation of allocLastWordIdx + 1
     // SCRATCHPAD_MEM_VALUE sized words.
+    // For scratchpads using multiple cache banks, only one init request 
+    // should initialize memory, while other init requests should only 
+    // initialize cache banks (set initCacheOnly to True)
     method ActionValue#(Bool) init(t_ADDR allocLastWordIdx,
                                    SCRATCHPAD_PORT_NUM portNum,
                                    Bool useCentralCache,
-                                   Maybe#(GLOBAL_STRING_UID) initFilePath);
+                                   Maybe#(GLOBAL_STRING_UID) initFilePath,
+                                   Bool initCacheOnly);
 endinterface: SCRATCHPAD_MEMORY_VIRTUAL_DEVICE
 

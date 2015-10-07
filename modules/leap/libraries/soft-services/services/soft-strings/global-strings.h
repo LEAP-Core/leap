@@ -66,6 +66,7 @@ class GLOBAL_STRINGS : public COMMAND_SWITCH_STRING_CLASS
 {
   private:
     static unordered_map <GLOBAL_STRING_UID, string> uidToString;
+    static unordered_map <string, GLOBAL_STRING_UID> stringToUID;
 
     static void DumpUIDs();
 
@@ -77,6 +78,7 @@ class GLOBAL_STRINGS : public COMMAND_SWITCH_STRING_CLASS
     GLOBAL_STRINGS();
 
     static const string* Lookup(GLOBAL_STRING_UID uid, bool abortIfUndef = true);
+    static const GLOBAL_STRING_UID Lookup(const string& str, bool abortIfUndef = true);
 
     // Add a string to the table.  A handle will be allocated and returned.
     static GLOBAL_STRING_UID AddString(const string& str);

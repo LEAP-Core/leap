@@ -557,7 +557,7 @@ module [CONNECTED_MODULE] mkLocalMem#(LOCAL_MEM_CONFIG conf)
         error("Region allocation not required for fixed sized memory");
     endmethod
 
-    method ActionValue#(Maybe#(LOCAL_MEM_ADDR)) allocRegionRsp();
+    method ActionValue#(Maybe#(LOCAL_MEM_ALLOC_RSP)) allocRegionRsp();
         error("Region allocation not required for fixed sized memory");
         return ?;
     endmethod
