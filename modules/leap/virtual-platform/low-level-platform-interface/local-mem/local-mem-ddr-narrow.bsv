@@ -104,17 +104,18 @@ module [CONNECTED_MODULE] mkLocalMem#(LOCAL_MEM_CONFIG conf)
               // t_DDR_BANKS == 1 if local memory is not unified
               // (distributed memory bank which connects to a single DDR bank)
               NumAlias#(t_DDR_BANKS, TMax#(1, TMul#(LOCAL_MEM_UNIFIED, FPGA_DDR_BANKS))));
-
+    
     checkDDRMemSizesValid();
 
     if (valueOf(LOCAL_MEM_WORD_SZ) > valueOf(DDR_BURST_DATA_SZ))
         errorM("LOCAL_MEM_WORD must be no bigger than one DDR memory burst.");
 
+    let platformName <- getSynthesisBoundaryPlatform();
     DEBUG_FILE debugLog <- mkDebugFile("memory_local_mem_platform_" + platformName + "_bank_" + integerToString(conf.bankIdx) + "_ddr_narrow.out");
 
     // Merge read and write requests into a single FIFO to preserve order.
     // The DDR controller does this anyway, so we lose no performance.
-    MERGE_FIFOF#(2, LOCAL_MEM_REQ) mergeReqQ <- mkMergeBypassFIFOF();
+    MERGE_FIFOF#(2, LOCAL_MEM_REQ) mergeReqQ <- mkMergeFIFOF();
 
     FIFOF#(Tuple2#(LOCAL_MEM_LINE, LOCAL_MEM_LINE_MASK)) writeDataQ <- mkFIFOF();
     FIFOF#(Tuple2#(LOCAL_MEM_WORD, LOCAL_MEM_WORD_MASK)) writeWordDataQ <- mkFIFOF();
@@ -497,7 +498,6 @@ module [CONNECTED_MODULE] mkLocalMem#(LOCAL_MEM_CONFIG conf)
     dbg_list <- addDebugScanField(dbg_list, "LM DDR Wide wordResponseQ not full", wordResponseQ.notFull);
 
     let dbgNode <- mkDebugScanNode("Local Memory (local-mem-ddr-wide.bsv)", dbg_list);
-
 
     // ====================================================================
     //
