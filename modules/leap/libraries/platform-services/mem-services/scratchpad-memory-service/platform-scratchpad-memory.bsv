@@ -464,6 +464,9 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
 
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS), t_REORDER_ID),
+
+              // To track in-flight reads
+              NumAlias#(TAdd#(TLog#(TMul#(n_READERS, n_ROB_SLOTS)),1), t_COUNTER_SZ), 
               
               // MAF for in-flight reads
               Alias#(Tuple2#(Bit#(TLog#(n_READERS)), t_REORDER_ID), t_MAF_IDX),
@@ -514,7 +517,8 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     messageM("Scratchpad Ring Name: "+ "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + 
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
-    
+   
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
     STAT_ID statIDs[3];
     statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
                           "Scratchpad read requests sent to the ring");
@@ -526,6 +530,30 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                           "Scratchpad responses received from the ring");
     let statReadResp = 2;
     STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
+
+    COUNTER#(t_COUNTER_SZ) reqCounter <- mkLCounter(0);
+    
+    Reg#(Bool) reqCounterEnabled <- mkReg(False); 
+    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS_INFLIGHT",
+                               "Scratchpad inflight read requests", 
+                               reqCounter.value(), 
+                               reqCounterEnabled._read());
+    
+    // Set scratchpad network latency tests
+    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo <- mkSCSizedFIFOF(16);
+    Reg#(Bool) latencyInitialized            <- mkReg(False);
+    PARAMETER_NODE paramNode                 <- mkDynamicParameterNode();
+    Param#(4) latencyParam                   <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY, paramNode);
+    Param#(8) latencyIdParam                 <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID, paramNode);
+    PulseWire fifoEnqW                       <- mkPulseWire;
+    PulseWire fifoDeqW                       <- mkPulseWire;
+
+    mkScratchpadQueueingDelayStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_QUEUEING_DELAY",
+                                   "Scratchpad request queueing delay", 
+                                   tagged Valid 16,  
+                                   fifoEnqW, 
+                                   fifoDeqW);
+`endif
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -559,8 +587,28 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
         
         debugLog.record($format("doInit: init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
+    
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        if (pack(latencyIdParam) == fromInteger(scratchpadIntPortId(scratchpadID)))
+        begin
+            latencyFifo.control.setControl(True);
+            debugLog.record($format("doInit: enable latencyFIFO, scratchpadID=%0d, delay=0x%x", scratchpadIntPortId(scratchpadID), latencyParam));
+        end
+`endif
     endrule
 
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+    rule initLatency (!latencyInitialized && initialized);
+        latencyFifo.control.setDelay(resize(pack(latencyParam)));
+    endrule
+    (* fire_when_enabled *)
+    rule sendReqFromLatencyFifo (initialized);
+        let req = latencyFifo.fifo.first();
+        latencyFifo.fifo.deq();
+        link_mem_req.enq(0, req);
+        fifoDeqW.send();
+    endrule
+`endif
 
     //
     // Forward merged requests to the memory.
@@ -582,8 +630,15 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                                         byteReadMask: unpack(~0),
                                         readUID: zeroExtendNP(pack(maf_idx)),
                                         globalReadMeta: defaultValue() };
-        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z        
         stats.incr(statReadReq);
+        reqCounter.up();
+        reqCounterEnabled <= True;
+        latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_READ req);
+        fifoEnqW.send();
+`else
+        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+`endif
     endrule
 
     // Write requests
@@ -599,8 +654,13 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
 
-        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
         stats.incr(statWriteReq);
+        latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_WRITE req);
+        fifoEnqW.send();
+`else
+        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+`endif
     endrule
 
     //
@@ -619,7 +679,10 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
         match {.port, .rob_idx} = maf_idx;
 
         sortResponseQ[port].setValue(rob_idx, s.val);
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
         stats.incr(statReadResp);
+        reqCounter.down();
+`endif
     endrule
 
 
@@ -784,6 +847,9 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
 
               // Index in a reorder buffer
               Alias#(SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS), t_REORDER_ID),
+
+              // To track in-flight reads
+              NumAlias#(TAdd#(TLog#(TMul#(n_READERS, n_ROB_SLOTS)),1), t_COUNTER_SZ), 
               
               // MAF for in-flight reads
               Alias#(SCRATCHPAD_MULTIPORT_READ_META#(t_REORDER_ID, Bit#(TLog#(n_READERS))), t_MAF_IDX),
@@ -821,7 +887,8 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     Param#(2) prefetchPrioritySpec   <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_PREFETCHER_PRIORITY_SPEC, paramNode);
 
     // Connection between private cache and the scratchpad virtual device
-    let sourceData <- mkScratchpadCacheSourceData(scratchpadID, conf, debugLog);
+    NumTypeParam#(t_COUNTER_SZ) reqCounterSz = ?;
+    let sourceData <- mkScratchpadCacheSourceData(scratchpadID, reqCounterSz, conf, debugLog);
                    
     // Choose a prefetcher. The prefetcher may need to translate
     // between the user-level address, and the cache address. 
@@ -892,6 +959,27 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     // Hook up stats
     let cacheStats <- statsConstructor(cache.stats);
     let prefetchStats <- prefetchStatsConstructor(prefetcher.stats);
+    
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z   
+    COUNTER#(t_COUNTER_SZ) reqCounter <- mkLCounter(0);
+    Reg#(Bool) reqCounterEnabled <- mkReg(False); 
+    let platformID <- getSynthesisBoundaryPlatformID();
+    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_CLIENT_REQUESTS_INFLIGHT",
+                               "Scratchpad inflight read requests sent from the client", 
+                               reqCounter.value(), 
+                               reqCounterEnabled._read());
+
+    PulseWire fifoEnqW <- mkPulseWire;
+    PulseWire fifoDeqW <- mkPulseWire;
+    
+    FIFO#(Tuple2#(t_MEM_ADDRESS, Maybe#(t_MAF_IDX))) orderedReqQ <- mkSizedFIFO(16);
+
+    mkScratchpadQueueingDelayStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_QUEUEING_DELAY",
+                                   "Scratchpad request queueing delay", 
+                                   tagged Valid 16,  
+                                   fifoEnqW, 
+                                   fifoDeqW);
+`endif
 
     // Merge FIFOF combines read and write requests in temporal order,
     // with reads from the same cycle as a write going first.  Each read port
@@ -919,25 +1007,51 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
         initialized <= True;
     endrule
 
+    function Action cacheWrite (t_MEM_ADDRESS addr);
+        action
+            let val = writeDataQ.first();
+            writeDataQ.deq();
+            if (maskedWriteEn)
+            begin
+                let mask = writeMaskQ.first();
+                writeMaskQ.deq();
+                cache.writeMasked(pack(addr), val, mask);
+            end
+            else
+            begin
+                cache.write(pack(addr), val);
+            end
+        endaction
+    endfunction
+
+
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+    rule forwardReqToCache (initialized);
+        match {.addr, .idx} = orderedReqQ.first();
+        orderedReqQ.deq();
+        fifoDeqW.send();
+        if (idx matches tagged Valid .maf_idx) // read request
+        begin
+            cache.readReq(pack(addr), maf_idx, defaultValue());
+        end
+        else // write request
+        begin
+            cacheWrite(addr);
+        end
+    endrule
+`endif
+
 
     // Write requests
     rule forwardWriteReq (initialized && (incomingReqQ.firstPortID() == fromInteger(valueOf(n_READERS))));
         let addr = tpl_1(incomingReqQ.first());
         incomingReqQ.deq();
-
-        let val = writeDataQ.first();
-        writeDataQ.deq();
-
-        if (maskedWriteEn)
-        begin
-            let mask = writeMaskQ.first();
-            writeMaskQ.deq();
-            cache.writeMasked(pack(addr), val, mask);
-        end
-        else
-        begin
-            cache.write(pack(addr), val);
-        end
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        orderedReqQ.enq(tuple2(addr, tagged Invalid));
+        fifoEnqW.send();
+`else
+        cacheWrite(addr);
+`endif
     endrule
 
 
@@ -952,8 +1066,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
             // port ID and the ROB index.
             t_MAF_IDX maf_idx = SCRATCHPAD_MULTIPORT_READ_META{portID: fromInteger(p), robSlot: idx};
 
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z 
+            reqCounterEnabled <= True;
+            reqCounter.up();
+            orderedReqQ.enq(tuple2(addr, tagged Valid maf_idx));
+            fifoEnqW.send();
+`else
             // Request data from the cache
             cache.readReq(pack(addr), maf_idx, defaultValue());
+`endif
         endrule
 
         //
@@ -967,6 +1088,9 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
             // The readUID field holds the concatenation of the port ID and
             // the port's reorder buffer index.
             sortResponseQ[p].setValue(r.readMeta.robSlot, r.val);
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z 
+            reqCounter.down();
+`endif        
         endrule
     end
 
@@ -1033,6 +1157,7 @@ endmodule
 //     the main scratchpad controller.
 //
 module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
+                                                       NumTypeParam#(t_COUNTER_SZ) reqCounterSz,
                                                        SCRATCHPAD_CONFIG conf,
                                                        DEBUG_FILE debugLog)
     // interface:
@@ -1078,6 +1203,8 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
     
+
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
     STAT_ID statIDs[3];
     statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
                           "Scratchpad read requests sent to the ring");
@@ -1089,6 +1216,20 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
                           "Scratchpad responses received from the ring");
     let statReadResp = 2;
     STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
+    
+    COUNTER#(t_COUNTER_SZ) reqCounter <- mkLCounter(0);
+    Reg#(Bool) reqCounterEnabled <- mkReg(False); 
+    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_NETWROK_REQUESTS_INFLIGHT",
+                               "Scratchpad inflight read requests sent to the ring", 
+                               reqCounter.value(), 
+                               reqCounterEnabled._read());
+    // Set scratchpad network latency tests
+    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo <- mkSCFIFOF();
+    Reg#(Bool) latencyInitialized            <- mkReg(False);
+    PARAMETER_NODE paramNode                 <- mkDynamicParameterNode();
+    Param#(4) latencyParam                   <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY, paramNode);
+    Param#(8) latencyIdParam                 <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID, paramNode);
+`endif
 
     Reg#(Bool) initialized <- mkReg(False);
 
@@ -1108,7 +1249,27 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
 
         debugLog.record($format("sourceData: init ID %0d: last word idx 0x%x", my_port, r.allocLastWordIdx));
+
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        if (pack(latencyIdParam) == fromInteger(scratchpadIntPortId(scratchpadID)))
+        begin
+            latencyFifo.control.setControl(True);
+            debugLog.record($format("doInit: enable latencyFIFO, scratchpadID=%0d, delay=0x%x", scratchpadIntPortId(scratchpadID), latencyParam));
+        end
+`endif
     endrule
+
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+    rule initLatency (!latencyInitialized && initialized);
+        latencyFifo.control.setDelay(resize(pack(latencyParam)));
+    endrule
+    (* fire_when_enabled *)
+    rule sendReqFromLatencyFifo (initialized);
+        let req = latencyFifo.fifo.first();
+        latencyFifo.fifo.deq();
+        link_mem_req.enq(0, req);
+    endrule
+`endif
 
     //
     // readReq --
@@ -1130,9 +1291,16 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
 
         // Forward the request to the scratchpad virtual device that handles
         // all scratchpad backing storage I/O.
-        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
-        stats.incr(statReadReq);
         debugLog.record($format("sourceData: read REQ ID %0d: addr 0x%x", my_port, req.addr));
+
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        stats.incr(statReadReq);
+        reqCounterEnabled <= True;
+        reqCounter.up();
+        latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_READ req);
+`else
+        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+`endif
     endmethod
 
     //
@@ -1151,9 +1319,11 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         // any client's metadata and extra bits can simply be truncated.
         r.readMeta = unpack(truncateNP(s.readUID));
         r.globalReadMeta = s.globalReadMeta;
-        stats.incr(statReadResp);
         debugLog.record($format("sourceData: read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
-
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z        
+        stats.incr(statReadResp);
+        reqCounter.down();
+`endif
         return r;
     endmethod
 
@@ -1176,10 +1346,14 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         let req = SCRATCHPAD_WRITE_REQ { port: my_port,
                                          addr: zeroExtendNP(pack(addr)),
                                          val: val };
-        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
-        stats.incr(statWriteReq);
-
         debugLog.record($format("sourceData: write ID %0d: addr=0x%x, val=0x%x", my_port, addr, val));
+        
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        stats.incr(statWriteReq);
+        latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_WRITE req);
+`else        
+        link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
+`endif
     endmethod
 
     //
@@ -1333,6 +1507,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
              integerToString(scratchpadIntPortId(scratchpadID)) + ", Port: " + integerToString(scratchpadIntPortId(scratchpadID)));
 `endif
 
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
     STAT_ID statIDs[3];
     statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
                           "Scratchpad read requests sent to the ring");
@@ -1344,6 +1519,28 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
                           "Scratchpad responses received from the ring");
     let statReadResp = 2;
     STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
+    
+    COUNTER#(TLog#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS)) reqCounter <- mkLCounter(0);
+    Reg#(Bool) reqCounterEnabled <- mkReg(False); 
+    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS_INFLIGHT",
+                               "Scratchpad inflight read requests", 
+                               reqCounter.value(), 
+                               reqCounterEnabled);
+    // Set scratchpad network latency tests
+    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo <- mkSCSizedFIFOF(16);
+    Reg#(Bool) latencyInitialized            <- mkReg(False);
+    PARAMETER_NODE paramNode                 <- mkDynamicParameterNode();
+    Param#(4) latencyParam                   <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY, paramNode);
+    Param#(8) latencyIdParam                 <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID, paramNode);
+    PulseWire fifoEnqW                       <- mkPulseWire;
+    PulseWire fifoDeqW                       <- mkPulseWire;
+
+    mkScratchpadQueueingDelayStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_QUEUEING_DELAY",
+                                   "Scratchpad request queueing delay", 
+                                   tagged Valid 16,  
+                                   fifoEnqW, 
+                                   fifoDeqW);
+`endif
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
@@ -1435,8 +1632,28 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_INIT r);
         
         debugLog.record($format("doInit: init ID %0d, last word idx 0x%x", r.port, r.allocLastWordIdx));
+
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        if (pack(latencyIdParam) == fromInteger(scratchpadIntPortId(scratchpadID)))
+        begin
+            latencyFifo.control.setControl(True);
+            debugLog.record($format("doInit: enable latencyFIFO, scratchpadID=%0d, delay=0x%x", scratchpadIntPortId(scratchpadID), latencyParam));
+        end
+`endif
     endrule
 
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+    rule initLatency (!latencyInitialized && initialized);
+        latencyFifo.control.setDelay(resize(pack(latencyParam)));
+    endrule
+    (* fire_when_enabled *)
+    rule sendReqFromLatencyFifo (initialized);
+        let req = latencyFifo.fifo.first();
+        latencyFifo.fifo.deq();
+        fifoDeqW.send();
+        link_mem_req.enq(0, req);
+    endrule
+`endif
 
     //
     // Forward merged requests to the memory.
@@ -1450,7 +1667,11 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
 
         let s_addr = scratchpadAddr(addr);
         
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
         stats.incr(statReadReq);
+        reqCounterEnabled <= True;
+        reqCounter.up();
+`endif
 
         if (lastWriteAddr matches tagged Valid .lw_addr &&&
             s_addr == lw_addr)
@@ -1463,8 +1684,12 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
                                                     addr: lw_addr,
                                                     val: lastWriteVal,
                                                     byteWriteMask: lastWriteMask };
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+            latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_WRITE_MASKED req);
+            fifoEnqW.send();
+`else
             link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE_MASKED req);
-
+`endif
             lastWriteAddr <= tagged Invalid;
 
             debugLog.record($format("port %0d: flush write for read conflict s_addr=0x%x", port, s_addr));
@@ -1489,7 +1714,12 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
                                             readUID: zeroExtendNP(pack(maf_idx)),
                                             globalReadMeta: defaultValue() };
 
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+            latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_READ req);
+            fifoEnqW.send();
+`else
             link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
+`endif
             debugLog.record($format("read port %0d: req addr=0x%x, s_addr=0x%x, s_idx=%0d, rob_idx=%0d",
                                     port, addr, s_addr, addr_idx, rob_idx));
         end
@@ -1530,8 +1760,13 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
                                                         addr: lw_addr,
                                                         val: lastWriteVal,
                                                         byteWriteMask: lastWriteMask };
-                link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE_MASKED req);
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z                
                 stats.incr(statWriteReq);
+                latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_WRITE_MASKED req);
+                fifoEnqW.send();
+`else
+                link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE_MASKED req);
+`endif
             end
 
             // Record the latest write in the buffer.
@@ -1571,7 +1806,10 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
 
         debugLog.record($format("read port %0d: resp val=0x%x, s_idx=%0d, rob_idx=%0d", 
                         port, v, addr_idx, rob_idx));
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z        
         stats.incr(statReadResp);
+        reqCounter.down();
+`endif
     endrule
 
 

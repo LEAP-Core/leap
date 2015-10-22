@@ -29,11 +29,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+import FIFO::*;
+import DReg::*;
+
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/soft_connections.bsh"
-
 
 //
 // A type class which allows us to extract the ID of a datatype. 
@@ -285,3 +287,120 @@ module [CONNECTED_MODULE] mkNullScratchpadPrefetchStats#(RL_PREFETCH_STATS stats
     // interface:
     ();
 endmodule
+
+
+//
+// mkScratchpadHistogramStats --
+//     Generate histogram stats for a given counter.
+//
+typedef 64 HISTOGRAM_STATS_NUM;
+
+module [CONNECTED_MODULE] mkScratchpadHistogramStats#(String statTag,
+                                                      String statDesc,
+                                                      Bit#(t_COUNTER_SZ) counter,
+                                                      Bool counterEn)
+    // interface:
+    ()
+    provisos(NumAlias#(TLog#(HISTOGRAM_STATS_NUM), n_STATS_LOG),
+             NumAlias#(TMax#(t_COUNTER_SZ, n_STATS_LOG), t_MAX_COUNTER_SZ));
+    
+    STAT_ID statID = statName(statTag, statDesc);
+    STAT_VECTOR#(HISTOGRAM_STATS_NUM) counterSv  <- mkStatCounter_RAM(statID);
+    
+    UInt#(n_STATS_LOG) maxStatIdx = maxBound;
+    Reg#(Bit#(n_STATS_LOG)) statIdx <- mkRegU;
+    Reg#(Bool) statEn  <- mkReg(False);
+    
+    function Bit#(n_STATS_LOG) getStatIdx(UInt#(t_MAX_COUNTER_SZ) val);
+        return (val >= unpack(zeroExtend(pack(maxStatIdx))))? pack(maxStatIdx) : truncate(pack(val));
+    endfunction
+
+    rule addPipeline (True);
+        statIdx <= getStatIdx(unpack(zeroExtend(counter)));
+        statEn  <= counterEn;
+    endrule
+
+    rule counterIncr (statEn);
+        counterSv.incr(statIdx);
+    endrule
+
+endmodule
+
+//
+// mkScratchpadQueueingDelayStats --
+//     Generate queueing delay histogram stats for a given FIFO. 
+//
+// Maximum queueing delay
+typedef 256 SCRATCHPAD_QUEUE_MAX_LATENCY;
+
+module [CONNECTED_MODULE] mkScratchpadQueueingDelayStats#(String statTag,
+                                                          String statDesc,
+                                                          Maybe#(Integer) fifoSz, 
+                                                          Bool enqEn, 
+                                                          Bool deqEn)
+    // interface:
+    ()
+    provisos(NumAlias#(TLog#(HISTOGRAM_STATS_NUM), n_STATS_LOG),
+             Alias#(Bit#(TAdd#(TLog#(SCRATCHPAD_QUEUE_MAX_LATENCY), 1)), t_LATENCY));
+    
+    Reg#(t_LATENCY) current <- mkReg(0);
+    Reg#(t_LATENCY) latencyReg <- mkDReg(0);
+    
+    STAT_ID statID = statName(statTag, statDesc);
+    STAT_VECTOR#(HISTOGRAM_STATS_NUM) latencySv  <- mkStatCounter_RAM(statID);
+    
+    UInt#(n_STATS_LOG) maxStatIdx = maxBound;
+    Reg#(Bit#(n_STATS_LOG)) statIdx <- mkRegU;
+    Reg#(Bool) statEn  <- mkReg(False);
+    
+    function Bit#(n_STATS_LOG) getStatIdx(t_LATENCY val);
+        return (val >= zeroExtend(pack(maxStatIdx)))? pack(maxStatIdx) : truncate(val);
+    endfunction
+
+    FIFO#(t_LATENCY) queue = ?;
+    
+    if (fifoSz matches tagged Valid .s)
+    begin
+        queue <- mkSizedFIFO(s);
+    end
+    else
+    begin
+        queue <- mkFIFO();
+    end
+
+    (* fire_when_enabled *)
+    rule tickCurrent;
+        current <= current + 1;
+    endrule
+
+    (* fire_when_enabled *)
+    rule enqueueTimeStamp(enqEn);
+        queue.enq(current); 
+    endrule
+
+    (* fire_when_enabled *)
+    rule dequeueTimeStamp(deqEn);
+        let stamp = queue.first();
+        queue.deq();
+        if (current > stamp)
+        begin
+            latencyReg <= (current - stamp);
+        end
+        else
+        begin
+            latencyReg <= (maxBound - stamp + current);
+        end
+    endrule
+    
+    (* fire_when_enabled *)
+    rule addPipeline (True);
+        statIdx <= getStatIdx(latencyReg>>2);
+        statEn  <= (latencyReg != 0);
+    endrule
+
+    rule statsIncr (statEn);
+        latencySv.incr(statIdx);
+    endrule
+
+endmodule
+

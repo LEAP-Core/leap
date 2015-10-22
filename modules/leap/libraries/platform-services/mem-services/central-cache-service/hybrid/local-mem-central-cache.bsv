@@ -186,6 +186,27 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
         return pack(tuple2(port, addr));
     endfunction
 
+`ifndef CENTRAL_CACHE_PROFILE_ENABLE_Z
+    COUNTER#(7) reqCounter       <- mkLCounter(0);
+    Reg#(Bool) reqCounterEnabled <- mkReg(False); 
+
+    String platform <- getSynthesisBoundaryPlatform();
+    String statsHeader = "LEAP_CENTRAL_CACHE_PLATFORM_" + platform + "_BANK_" + integerToString(conf.memBankIdx) + "_";
+    
+    mkCentralCacheHistogramStats(statsHeader + "READ_REQUESTS_INFLIGHT",
+                                 "Central cache inflight read requests", 
+                                 reqCounter.value(), 
+                                 reqCounterEnabled._read());
+    
+    PulseWire fifoEnqW <- mkPulseWire;
+    PulseWire fifoDeqW <- mkPulseWire;
+    
+    mkCentralCacheQueueingDelayStats(statsHeader + "QUEUEING_DELAY", 
+                                     "Central cache queueing delay",
+                                     tagged Valid 16, 
+                                     fifoEnqW,
+                                     fifoDeqW);
+`endif
 
     // ====================================================================
     //
@@ -218,15 +239,45 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     //
     // ====================================================================
 
+`ifndef CENTRAL_CACHE_PROFILE_ENABLE_Z
+    MERGE_FIFOF#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_REQ) incomingReqQ <- mkMergeFIFOF();
+    FIFO#(CENTRAL_CACHE_REQ) reqQ <- mkSizedFIFO(16);
+    FIFO#(Bit#(TLog#(CENTRAL_CACHE_N_CLIENTS))) reqPortIdQ <- mkSizedFIFO(16);
+
+    (* fire_when_enabled *)
+    rule forwardMergeFifo(initialized);
+        reqQ.enq(incomingReqQ.first());
+        reqPortIdQ.enq(incomingReqQ.firstPortID());
+        incomingReqQ.deq();
+        fifoEnqW.send();
+    endrule
+
+    function CENTRAL_CACHE_PORT_NUM getReqPortId () = zeroExtend(reqPortIdQ.first());
+    function Action dequeueReqQ ();
+        action
+            fifoDeqW.send();
+            reqPortIdQ.deq();
+            reqQ.deq();
+        endaction
+    endfunction
+
+`else
     MERGE_FIFOF#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_REQ) reqQ <- mkMergeFIFOF();
+    function CENTRAL_CACHE_PORT_NUM getReqPortId () = zeroExtend(req.firstPortID());
+    function Action dequeueReqQ ();
+        action
+            reqQ.deq();
+        endaction
+    endfunction
+`endif
 
     (* conservative_implicit_conditions *)
     rule processWriteReq (initialized &&&
                           reqQ.first() matches tagged CENTRAL_CACHE_WRITE .r);
-        CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
+        
+        CENTRAL_CACHE_PORT_NUM port = getReqPortId();
         let addr = addPortToAddr(port, r.addr);
-
-        reqQ.deq();
+        dequeueReqQ();
 
         debugLog.record($format("port %0d: write addr=0x%x, wIdx=%d, val=0x%x", port, r.addr, r.wordIdx, r.val));
         cache.write(addr, r.val, r.wordIdx);
@@ -236,12 +287,12 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     (* conservative_implicit_conditions *)
     rule processInvalReq (initialized &&&
                           reqQ.first() matches tagged CENTRAL_CACHE_INVAL .r);
-        CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
+        CENTRAL_CACHE_PORT_NUM port = getReqPortId();
         let addr = addPortToAddr(port, r.addr);
-
-        reqQ.deq();
-
+        dequeueReqQ();
+        
         debugLog.record($format("port %0d: inval addr=0x%x, ack=%d", port, r.addr, r.sendAck));
+        
         cache.invalReq(addr, r.sendAck);
 
         if (r.sendAck)
@@ -255,10 +306,9 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     (* conservative_implicit_conditions *)
     rule processFlushReq (initialized &&&
                           reqQ.first() matches tagged CENTRAL_CACHE_FLUSH .r);
-        CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
+        CENTRAL_CACHE_PORT_NUM port = getReqPortId(); 
         let addr = addPortToAddr(port, r.addr);
-
-        reqQ.deq();
+        dequeueReqQ();
 
         debugLog.record($format("port %0d: flush addr=0x%x, ack=%d", port, r.addr, r.sendAck));
         cache.flushReq(addr, r.sendAck);
@@ -287,13 +337,17 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     (* conservative_implicit_conditions *)
     rule processReadReq (initialized &&&
                          reqQ.first() matches tagged CENTRAL_CACHE_READ .r);
-        CENTRAL_CACHE_PORT_NUM port = zeroExtend(reqQ.firstPortID());
+        CENTRAL_CACHE_PORT_NUM port = getReqPortId();
         let addr = addPortToAddr(port, r.addr);
-
-        reqQ.deq();
+        dequeueReqQ();
 
         debugLog.record($format("port %0d: readReq addr=0x%x, wordIdx=0x%x, readMeta=0x%x, globalReadMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta, pack(r.globalReadMeta)));
         cache.readReq(addr, r.wordIdx, r.readMeta, r.globalReadMeta);
+
+`ifndef CENTRAL_CACHE_PROFILE_ENABLE_Z
+        reqCounterEnabled <= True;
+        reqCounter.up();
+`endif
 
         dbgCacheReadsInFlight.up();
     endrule
@@ -324,6 +378,10 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
 
         // Forward data to the correct port
         readRespQ.enq(tuple2(port, r));
+
+`ifndef CENTRAL_CACHE_PROFILE_ENABLE_Z
+        reqCounter.down();
+`endif
 
         debugLog.record($format("port %0d: queue readResp addr=0x%x, wordIdx=0x%x, readMeta=0x%x, globalReadMeta=0x%x", port, r.addr, r.wordIdx, r.readMeta, pack(r.globalReadMeta)));
     endrule
@@ -391,13 +449,16 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
                 method Action newReq(CENTRAL_CACHE_REQ req);
                     // Add request to the FIFO.  Requests will be processed in
                     // order across all ports.
+`ifndef CENTRAL_CACHE_PROFILE_ENABLE_Z
+                    incomingReqQ.ports[p].enq(req);
+`else
                     reqQ.ports[p].enq(req);
+`endif
                 endmethod
 
                 method ActionValue#(CENTRAL_CACHE_READ_RESP) readResp() if (tpl_1(readRespQ.first()) == fromInteger(p));
                     let r = tpl_2(readRespQ.first());
                     readRespQ.deq();
-
                     debugLog.record($format("port %0d: readResp addr=0x%x, readMeta=0x%x, globalReadMeta=0x%x", p, r.addr, r.readMeta, pack(r.globalReadMeta)));
                     return r;
                 endmethod
