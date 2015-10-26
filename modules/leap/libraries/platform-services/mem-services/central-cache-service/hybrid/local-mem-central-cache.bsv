@@ -263,7 +263,7 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
 
 `else
     MERGE_FIFOF#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_REQ) reqQ <- mkMergeFIFOF();
-    function CENTRAL_CACHE_PORT_NUM getReqPortId () = zeroExtend(req.firstPortID());
+    function CENTRAL_CACHE_PORT_NUM getReqPortId () = zeroExtend(reqQ.firstPortID());
     function Action dequeueReqQ ();
         action
             reqQ.deq();
