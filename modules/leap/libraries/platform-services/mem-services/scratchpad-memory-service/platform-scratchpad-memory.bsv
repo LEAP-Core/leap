@@ -534,10 +534,10 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     COUNTER#(t_COUNTER_SZ) reqCounter <- mkLCounter(0);
     
     Reg#(Bool) reqCounterEnabled <- mkReg(False); 
-    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS_INFLIGHT",
-                               "Scratchpad inflight read requests", 
-                               reqCounter.value(), 
-                               reqCounterEnabled._read());
+    mkCounterHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS_INFLIGHT",
+                            "Scratchpad inflight read requests", 
+                            reqCounter.value(), 
+                            reqCounterEnabled._read());
     
     // Set scratchpad network latency tests
     SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo <- mkSCSizedFIFOF(16);
@@ -548,11 +548,11 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     PulseWire fifoEnqW                       <- mkPulseWire;
     PulseWire fifoDeqW                       <- mkPulseWire;
 
-    mkScratchpadQueueingDelayStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_QUEUEING_DELAY",
-                                   "Scratchpad request queueing delay", 
-                                   tagged Valid 16,  
-                                   fifoEnqW, 
-                                   fifoDeqW);
+    mkQueueingStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID),
+                    "Scratchpad request", 
+                    tagged Valid 16,  
+                    fifoEnqW, 
+                    fifoDeqW);
 `endif
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
@@ -964,21 +964,21 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     COUNTER#(t_COUNTER_SZ) reqCounter <- mkLCounter(0);
     Reg#(Bool) reqCounterEnabled <- mkReg(False); 
     let platformID <- getSynthesisBoundaryPlatformID();
-    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_CLIENT_REQUESTS_INFLIGHT",
-                               "Scratchpad inflight read requests sent from the client", 
-                               reqCounter.value(), 
-                               reqCounterEnabled._read());
+    mkCounterHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_CLIENT_REQUESTS_INFLIGHT",
+                            "Scratchpad inflight read requests sent from the client", 
+                            reqCounter.value(), 
+                            reqCounterEnabled._read());
 
     PulseWire fifoEnqW <- mkPulseWire;
     PulseWire fifoDeqW <- mkPulseWire;
     
     FIFO#(Tuple2#(t_MEM_ADDRESS, Maybe#(t_MAF_IDX))) orderedReqQ <- mkSizedFIFO(16);
 
-    mkScratchpadQueueingDelayStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_QUEUEING_DELAY",
-                                   "Scratchpad request queueing delay", 
-                                   tagged Valid 16,  
-                                   fifoEnqW, 
-                                   fifoDeqW);
+    mkQueueingStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_CLIENT_REQUEST",
+                    "Scratchpad client request", 
+                    tagged Valid 16,  
+                    fifoEnqW, 
+                    fifoDeqW);
 `endif
 
     // Merge FIFOF combines read and write requests in temporal order,
@@ -1219,16 +1219,24 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     
     COUNTER#(t_COUNTER_SZ) reqCounter <- mkLCounter(0);
     Reg#(Bool) reqCounterEnabled <- mkReg(False); 
-    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_NETWROK_REQUESTS_INFLIGHT",
-                               "Scratchpad inflight read requests sent to the ring", 
-                               reqCounter.value(), 
-                               reqCounterEnabled._read());
+    mkCounterHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_NETWROK_REQUESTS_INFLIGHT",
+                            "Scratchpad inflight read requests sent to the ring", 
+                            reqCounter.value(), 
+                            reqCounterEnabled._read());
     // Set scratchpad network latency tests
-    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo <- mkSCFIFOF();
+    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo <- mkSCSizedFIFOF(16);
     Reg#(Bool) latencyInitialized            <- mkReg(False);
     PARAMETER_NODE paramNode                 <- mkDynamicParameterNode();
     Param#(4) latencyParam                   <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY, paramNode);
     Param#(8) latencyIdParam                 <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID, paramNode);
+    
+    PulseWire fifoEnqW <- mkPulseWire;
+    PulseWire fifoDeqW <- mkPulseWire;
+    mkQueueingStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_NETWORK_REQUEST",
+                    "Scratchpad network request", 
+                    tagged Valid 16,  
+                    fifoEnqW, 
+                    fifoDeqW);
 `endif
 
     Reg#(Bool) initialized <- mkReg(False);
@@ -1268,6 +1276,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         let req = latencyFifo.fifo.first();
         latencyFifo.fifo.deq();
         link_mem_req.enq(0, req);
+        fifoDeqW.send();
     endrule
 `endif
 
@@ -1298,6 +1307,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         reqCounterEnabled <= True;
         reqCounter.up();
         latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_READ req);
+        fifoEnqW.send();
 `else
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_READ req);
 `endif
@@ -1351,6 +1361,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
         stats.incr(statWriteReq);
         latencyFifo.fifo.enq(tagged SCRATCHPAD_MEM_WRITE req);
+        fifoEnqW.send();
 `else        
         link_mem_req.enq(0, tagged SCRATCHPAD_MEM_WRITE req);
 `endif
@@ -1522,10 +1533,10 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     
     COUNTER#(TLog#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS)) reqCounter <- mkLCounter(0);
     Reg#(Bool) reqCounterEnabled <- mkReg(False); 
-    mkScratchpadHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS_INFLIGHT",
-                               "Scratchpad inflight read requests", 
-                               reqCounter.value(), 
-                               reqCounterEnabled);
+    mkCounterHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS_INFLIGHT",
+                            "Scratchpad inflight read requests", 
+                            reqCounter.value(), 
+                            reqCounterEnabled);
     // Set scratchpad network latency tests
     SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo <- mkSCSizedFIFOF(16);
     Reg#(Bool) latencyInitialized            <- mkReg(False);
@@ -1535,11 +1546,11 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     PulseWire fifoEnqW                       <- mkPulseWire;
     PulseWire fifoDeqW                       <- mkPulseWire;
 
-    mkScratchpadQueueingDelayStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_QUEUEING_DELAY",
-                                   "Scratchpad request queueing delay", 
-                                   tagged Valid 16,  
-                                   fifoEnqW, 
-                                   fifoDeqW);
+    mkQueueingStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID),
+                    "Scratchpad request", 
+                    tagged Valid 16,  
+                    fifoEnqW, 
+                    fifoDeqW);
 `endif
 
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.

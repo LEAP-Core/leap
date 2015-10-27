@@ -8,6 +8,7 @@
 %notes README
 
 %public  stats-local.bsv
+%public  stats-util.bsv
 %public  stats-service.bsv
 %public  stats-service.h
 %private stats-service.cpp

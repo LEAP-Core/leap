@@ -191,21 +191,16 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     Reg#(Bool) reqCounterEnabled <- mkReg(False); 
 
     String platform <- getSynthesisBoundaryPlatform();
-    String statsHeader = "LEAP_CENTRAL_CACHE_PLATFORM_" + platform + "_BANK_" + integerToString(conf.memBankIdx) + "_";
+    String statsHeader = "LEAP_CENTRAL_CACHE_PLATFORM_" + platform + "_BANK_" + integerToString(conf.memBankIdx);
     
-    mkCentralCacheHistogramStats(statsHeader + "READ_REQUESTS_INFLIGHT",
-                                 "Central cache inflight read requests", 
-                                 reqCounter.value(), 
-                                 reqCounterEnabled._read());
+    mkCounterHistogramStats(statsHeader + "_READ_REQUESTS_INFLIGHT",
+                            "Central cache inflight read requests", 
+                            reqCounter.value(), 
+                            reqCounterEnabled._read());
     
     PulseWire fifoEnqW <- mkPulseWire;
     PulseWire fifoDeqW <- mkPulseWire;
-    
-    mkCentralCacheQueueingDelayStats(statsHeader + "QUEUEING_DELAY", 
-                                     "Central cache queueing delay",
-                                     tagged Valid 16, 
-                                     fifoEnqW,
-                                     fifoDeqW);
+    mkQueueingStats(statsHeader, "Central cache", tagged Valid 16, fifoEnqW, fifoDeqW);
 `endif
 
     // ====================================================================

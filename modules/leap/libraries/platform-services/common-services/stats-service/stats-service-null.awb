@@ -8,6 +8,7 @@
 %notes README
 
 %public stats-local.bsv
+%public stats-util.bsv
 
 %param --global STATS_ENABLED True  "Enable Stat dumping?"
 %param --global STATS_SIZE    28    "Number of bits per Stat counter."
