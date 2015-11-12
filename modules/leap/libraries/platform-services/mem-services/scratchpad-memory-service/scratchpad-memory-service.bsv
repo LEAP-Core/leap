@@ -83,10 +83,12 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
             ringBaseName = "Scratchpad_" + integerToString(c) + "_" + "Platform_" + integerToString(platformID);
         end
 
-        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <-
+        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+            mkConnectionAddrRingNode(ringBaseName + "_Req", 0):
             mkConnectionTokenRingNode(ringBaseName + "_Req", 0);
 
-        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <-
+        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+            mkConnectionAddrRingNode(ringBaseName + "_Resp", 0):
             mkConnectionTokenRingNode(ringBaseName + "_Resp", 0);
 
         messageM("Scratchpad Ring Name: "+ ringBaseName + "_Req, Port: 0");
