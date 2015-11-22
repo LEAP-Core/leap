@@ -29,6 +29,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+import Vector::*;
+import OInt::*;
+
 
 //
 // LOCAL_ARBITER is an arbiter suitable for inclusion within a single rule.
@@ -238,3 +241,112 @@ module mkLocalRandomArbiter
     endmethod
 
 endmodule
+
+
+//
+// mkLocalArbiterBandwidth --
+//   An arbiter which permits bandwidth allocation among the clients. 
+//
+module mkLocalArbiterBandwidth#(Vector#(nCLIENTS, UInt#(nFRACTION)) bandwidthFractions)
+    // Interface:
+    (LOCAL_ARBITER#(nCLIENTS))
+    provisos (Add#(1, nFRACTION_extra_bits, nFRACTION),
+//              Log#(nLOG_CLIENTS, TLog#(nCLIENTS)),
+              Add#(1, nFRACTION_VALUES_extra_bits, TLog#(TAdd#(1, TExp#(nFRACTION)))),
+              Alias#(LOCAL_ARBITER_CLIENT_MASK#(nCLIENTS), t_CLIENT_MASK),
+              Alias#(LOCAL_ARBITER_CLIENT_IDX#(nCLIENTS), t_CLIENT_IDX),
+              NumAlias#(TExp#(nFRACTION), nFRACTION_VALUES));
+
+    messageM("router Log Radix: " + integerToString(valueof(nFRACTION)));
+    messageM("router Log Radix EXP: " + integerToString(valueof(nFRACTION_VALUES)));
+
+    Vector#(nCLIENTS, Reg#(Bit#(nFRACTION_VALUES)))  usageHistory <- replicateM(mkReg(0));
+    RWire#(t_CLIENT_IDX)                             winnerWire   <- mkRWire();
+    Reg#(LOCAL_ARBITER_OPAQUE#(nCLIENTS))            state        <- mkReg(unpack(0));
+
+    //
+    // bandwidthArbiterFunc --
+    //    Implements an arbitration scheme with bandwidth fairness.  This fairness is acheived by 
+    //    observing the request history of each client, and throttling clients who overuse their 
+    //    bandwidth. 
+    //
+    function ActionValue#(Tuple2#(Maybe#(LOCAL_ARBITER_CLIENT_IDX#(nCLIENTS)),
+                     LOCAL_ARBITER_OPAQUE#(nCLIENTS)))
+        bandwidthArbiterFunc(LOCAL_ARBITER_CLIENT_MASK#(nCLIENTS) req);
+        actionvalue
+
+        let n_clients = valueOf(nCLIENTS);
+
+        // Define hungry and satisfied clients.
+        let candidates = req;
+        let hungry = zipWith ( \< , map(countOnes, readVReg(usageHistory)), map(zeroExtendNP, bandwidthFractions));
+
+        // If we have any hungry clients, we prefer them.
+        if (elem(True, zipWith( \&& , hungry, req)))  
+        begin
+           candidates = zipWith( \&& , req, hungry); 
+        end
+
+        $display("Base candidates %b, hungry %b, final candidates %b", req, hungry, candidates);
+       
+
+        let winner = localArbiterPickWinner(candidates, state);
+        
+        return tuple2(winner, LOCAL_ARBITER_OPAQUE{priorityIdx: winner.Valid});
+        endactionvalue
+    endfunction
+        
+    function Action updateState(Maybe#(LOCAL_ARBITER_CLIENT_IDX#(nCLIENTS)) winner);
+    action
+        // If a grant was given, update the priority index so that client now has
+        // lowest priority.
+
+        if (winner matches tagged Valid .idx)
+        begin
+            state.priorityIdx <= (idx == fromInteger(valueof(nCLIENTS) - 1)) ? 0 : idx + 1;
+        end
+        
+    endaction
+    endfunction
+ 
+    function Action updateHistory(Reg#(Bit#(nFRACTION_VALUES)) historyReg, Bit#(1) used);
+    action
+        historyReg <= (historyReg << 1) | zeroExtendNP(used);
+    endaction
+    endfunction
+
+    // We update usage every cycle
+    rule updateUsage;        
+        Vector#(nCLIENTS, Bit#(1)) usage = replicate(0);
+        usage[winnerWire.wget().Valid] = isValid(winnerWire.wget()) ? 1'b1 : 1'b0;
+        $display("Updating usage with %b", usage);
+        zipWithM_(updateHistory, usageHistory, usage);     
+        for(Integer i = 0; i < valueof(nCLIENTS); i = i + 1)
+        begin
+            $display("usage[%d] = %b, allocation: %d", i, usageHistory[i], bandwidthFractions[i]);
+        end
+    endrule
+
+
+    method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req, Bool fixed);
+        match {.winner, .state_upd} <- bandwidthArbiterFunc(req);
+        updateState(winner);
+        winnerWire.wset(winner.Valid);
+        $display("Arb reqs: %b, winner: %d", req, winner.Valid);
+        $display("Arb fraction: %d, fraction_values: %d", valueof(nFRACTION), valueof(nFRACTION_VALUES));
+        return winner;
+    endmethod
+
+    method ActionValue#(Tuple2#(Maybe#(t_CLIENT_IDX), LOCAL_ARBITER_OPAQUE#(nCLIENTS))) arbitrateNoUpd(t_CLIENT_MASK req, Bool fixed);
+        let arb <- bandwidthArbiterFunc(req); 
+        $display("Provisional Arb mask: %b valid: %b, winner: %d", req, isValid(tpl_1(arb)), tpl_1(arb).Valid);
+        return arb;
+    endmethod
+
+    method Action update(LOCAL_ARBITER_OPAQUE#(nCLIENTS) stateUpdate);
+        updateState(tagged Valid stateUpdate.priorityIdx);
+        winnerWire.wset(stateUpdate.priorityIdx);        
+    endmethod
+
+endmodule
+
