@@ -37,6 +37,8 @@
 %param SCRATCHPAD_STD_PVT_SKEW                                   0  "Skew cache indices"
 %param SCRATCHPAD_PLATFORM                               "Unknown"  "Where should my scratchpad requests go?"
 
+%param --global SCRATCHPAD_TOKEN_RING_ENABLE                     1  "Using token rings to connect scratchpads"
+
 %param --global SCRATCHPAD_CHAIN_REMAP                           0  "Remap scratchpad connections"
 
 %param --global PLATFORM_SCRATCHPAD_DEBUG_ENABLE                 0  "Enable Platform Scratchpad Debug Log"

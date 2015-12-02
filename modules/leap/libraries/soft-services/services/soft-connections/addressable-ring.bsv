@@ -154,7 +154,7 @@ endmodule
 // mkConnectionAddrRingNodeNtoN --
 //     A non-token, addressable ring with a compile-time static ring stop ID.
 // This implementation supports N sources and N sinks (N-to-N), while 
-// mkConnectionTokenRingNode only suuports single source (1-to-N) or single 
+// mkConnectionAddrRingNode only suuports single source (1-to-N) or single 
 // sink (N-to-1).
 //
 module [CONNECTED_MODULE] mkConnectionAddrRingNodeNtoN#(String chainID,
