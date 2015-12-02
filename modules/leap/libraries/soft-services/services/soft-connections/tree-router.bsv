@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2014, Intel Corporation
+// Copyright (c) 2015, Intel Corporation
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,8 @@
 //
 
 //
-// A parametric router for tree-based network topologies. 
+// A parametric router for tree-based network topologies. The router expects child
+// addresses to be monotonically ordered.
 // 
 
 
@@ -75,6 +76,13 @@ instance Enqueuable#(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA));
 endinstance
 
 
+//
+// mkTreeRouter --
+//
+//   Instantiates a tree-based router. The router takes as an argument a set of interfaces to its children, 
+//   as well as the address ranges of the child subtrees. It also takes as an argument a constructor for 
+//   an arbiter, which can be supplied externally.  
+//
 
 module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA)) children, Vector#(TAdd#(1, n_INGRESS_PORTS) , t_NODE_ID) addressBounds, function m#(LOCAL_ARBITER#(n_INGRESS_PORTS)) mkArbiter() ) (CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA))
     provisos( Bits#(t_NODE_ID, t_NODE_ID_SZ), 
@@ -134,7 +142,6 @@ module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_I
         rule selectChild (isValid(selectionIndex.wget) && selectionIndex.wget().Valid == fromInteger(child));
             outgoingBuffer.enq(children[selectionIndex.wget().Valid].first);
             children[selectionIndex.wget().Valid].deq();
-            $display("Selected message from child %d (%d): %h", selectionIndex.wget().Valid, children[selectionIndex.wget().Valid].first.dstNode, children[selectionIndex.wget().Valid].first.data); 
         endrule
  
     end
@@ -143,43 +150,59 @@ module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_I
     // 
     //  Response side. Manages messages moving towards leaves of tree. 
     //
-
-    // Since ranges are mutually exclusive, we generate the control signals in this rule. 
+   
+    //
+    // Since child addresses are guaranteed to be ordered, we can generate the control signals
+    // with relatively simple operations.  
+    //
     let dest = incomingBuffer.first.dstNode;
-    let greaterThanRanges = zipWith( \<= , addressBounds, replicate(dest)); 
+    let greaterThanEqualRanges = zipWith( \<= , addressBounds, replicate(dest)); 
 
-    // We use to identify the transistion between range of the 
+    //
+    // We use to identify the transistion between range of the children
+    // this manifests as the 1 to 0 step of greaterThanEqualRanges.
     function Bool aAndNotB(Bool a, Bool b) = a && !b;
 
-    Vector#(n_INGRESS_PORTS, Bool) useChild = zipWith( aAndNotB , take(greaterThanRanges), takeTail(greaterThanRanges));
+    Vector#(n_INGRESS_PORTS, Bool) useChild = zipWith( aAndNotB , take(greaterThanEqualRanges), takeTail(greaterThanEqualRanges));
 
+    //
     // Sanity check that for each packet, it goes somewhere in our range. 
+    //
     rule assertRouting1 (countElem(True, useChild) == 0);
         $display("Routing tree node has a message which is not routable to any of its children");
         $finish;
     endrule
 
     rule assertRouting2 (countElem(True, useChild) > 1);
-        $display("Routing tree logic thinks there are several children ready to execute. This is a failure. Dest: %d, Children Ready %b GEQRange: %b", dest, pack(useChild), greaterThanRanges);
+        $display("Routing tree logic thinks there are several children ready to execute. This is a failure. Dest: %d, Children Ready %b GEQRange: %b", dest, pack(useChild), greaterThanEqualRanges);
         $finish;
     endrule
+
 
     for(Integer child = 0; child < fromInteger(valueof(n_INGRESS_PORTS)); child = child + 1) 
     begin
 
-        rule dump;
-            $display("%t Child has message message for %d (%d): %h", $time, child, children[fromInteger(child)].first.dstNode, children[fromInteger(child)].first.data); 
-        endrule      
+        // Check that child address ranges are, in fact, ordered.
+        if ( addressBounds[child] > addressBounds[child + 1] )
+        begin
+            errorM("Tree router found non-monotonic address ranges.");
+        end
 
+
+        //
         // We do a range check to select the child 
+        //
         rule enqChild if(useChild[fromInteger(child)]);
             incomingBuffer.deq;
             children[fromInteger(child)].enq(incomingBuffer.first);
-            $display("Placing message for %d (%d): %h", child, incomingBuffer.first.dstNode, incomingBuffer.first.data); 
         endrule
   
     end
 
+
+    // 
+    //  External interface definition.  We anre only plumbing FIFOs here. 
+    //
 
     method Action enq(TREE_MSG#(t_NODE_ID, t_DATA) msg) ;
         incomingBuffer.enq(msg); 
