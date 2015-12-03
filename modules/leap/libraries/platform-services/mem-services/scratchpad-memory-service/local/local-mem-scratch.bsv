@@ -111,7 +111,7 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
     // Direct read responses to the correct port
     FIFOF#(Tuple3#(SCRATCHPAD_MEM_ADDRESS,
                    SCRATCHPAD_READ_UID,
-                   RL_CACHE_GLOBAL_READ_META)) readQ <- mkSizedFIFOF(8);
+                   RL_CACHE_GLOBAL_READ_META)) readQ <- mkSizedFIFOF(128);
 
 
     // ====================================================================
