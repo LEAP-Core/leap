@@ -99,10 +99,11 @@ module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(String tagPrefix,
 endmodule
 
 //
-// mkBasicScratchpadCacheStats --
+// mkMultiportedScratchpadCacheStats --
 //     Shim between an RL_CACHE_STATS interface and statistics counters.
 //     Tag and description prefixes allow the caller to define the prefixes
-//     of the statistic.
+//     of the statistic.  This version tracks accesses across the several 
+//     cache ports of a multiported cache.
 //
 module [CONNECTED_MODULE] mkMultiportedScratchpadCacheStats#(NumTypeParam#(n_PORTS) ports,
                                                              String tagPrefix,
