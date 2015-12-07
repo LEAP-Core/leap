@@ -20,6 +20,8 @@
 %public addressable-ring.bsv
 %public connected-module.bsv
 %public bury-connections.bsv
+%public tree-router.bsv
+
 
 %sources --t BSH --v PUBLIC soft-connections-backward-deps.bsh
 %param --dynamic LATENCY_DELTA_ID 0 "Which soft connection should get extra latency?"

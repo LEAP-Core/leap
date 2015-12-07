@@ -193,7 +193,9 @@ typedef TNot#(TNE#(a, b))
 typedef TAdd#(TMul#(TBool#(a), b), TMul#(TNot#(a), c))
     TSelect#(numeric type a, numeric type b, numeric type c);
 
-
+// TExponent: returns A^B
+typedef TSelect#(TEq#(b,0), 1, TMul#(a,TSub#(b,1)))
+    TPow#(numeric type a, numeric type b);    
 
 // ========================================================================
 //

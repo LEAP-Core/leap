@@ -424,3 +424,38 @@ function FIFOF#(t_DATA) fifoCountToFifof (FIFOCountIfc#(t_DATA,n_ENTRIES) old_fi
 
   return new_fifo;
 endfunction
+
+
+//
+// Instances of the "Dequeuable" typeclass provide functions
+// for extracing behaviors like notEmpty.
+//
+typeclass Dequeuable#(type t_MODULE);
+
+    function Bool isNotEmpty(t_MODULE mod);
+
+endtypeclass
+
+instance Dequeuable#(FIFOF#(t_DATA));
+
+    function isNotEmpty(FIFOF#(t_DATA) fifo) = fifo.notEmpty;
+
+endinstance
+
+
+//
+// Instances of the "Enqueuable" typeclass provide functions
+// for extracing behaviors like notEmpty.
+//
+typeclass Enqueuable#(type t_MODULE);
+
+    function Bool isNotFull(t_MODULE mod);
+
+endtypeclass
+
+instance Enqueuable#(FIFOF#(t_DATA));
+
+    function isNotFull(FIFOF#(t_DATA) fifo) = fifo.notFull;
+
+endinstance
+

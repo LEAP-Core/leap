@@ -28,12 +28,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-
-// The actual instatiation of a physical send. For efficiency contains an 
-// unguarded FIFO, which makes the scheduler's life much easier.
-// The dispatcher which invokes this may guard the FIFO as appropriate.
-
-
 import FIFOF::*;
 import FIFO::*;
 
@@ -47,62 +41,79 @@ typedef struct {
 } TimestampedValue#(type t_MSG) deriving (Bits,Eq);
 
 
-
 interface SCFIFOF#(type t_MSG);
     interface FIFOF#(t_MSG) fifo;
     interface CONNECTION_LATENCY_CONTROL control;
 endinterface 
 
-// Probably need to pull the parameters out of the context
+// The actual instatiation of a physical send. For efficiency contains an 
+// unguarded FIFO, which makes the scheduler's life much easier.
+// The dispatcher which invokes this may guard the FIFO as appropriate.
+
 module mkSCFIFOFUG (SCFIFOF#(t_MSG))
-provisos( Bits#(t_MSG, t_MSG_sz) );
+    provisos( Bits#(t_MSG, t_MSG_sz) );
+    
+    let m <- mkSCSizedFIFOFUG(`CON_BUFFERING);  
+    return m;
+endmodule
 
-     NumTypeParam#(LATENCY_FIFO_DEPTH) sizeParam = ?;
-     let fifoMem <- mkUGSizedFIFOF(valueof(LATENCY_FIFO_DEPTH));
-     Reg#(LATENCY_FIFO_DELAY_CONTAINER) current <- mkReg(0);
-     // I'm too lazy to implement a lutram count fifo.. 
-     COUNTER#(SizeOf#(LATENCY_FIFO_DEPTH_CONTAINER)) count <- mkLCounter(0);     
-     Reg#(Bool) enable <- mkReg(False);
-     Reg#(LATENCY_FIFO_DELAY_CONTAINER) delayExternal <- mkReg(0);
-     Reg#(LATENCY_FIFO_DEPTH_CONTAINER) depthExternal <- mkReg(`CON_BUFFERING);
+// Probably need to pull the parameters out of the context
+module mkSCSizedFIFOFUG#(Integer depthParam)
+    // interface:
+    (SCFIFOF#(t_MSG))
+    provisos(Bits#(t_MSG, t_MSG_sz));
 
-     PulseWire statIncr <- mkPulseWire();
+    NumTypeParam#(LATENCY_FIFO_DEPTH) sizeParam = ?;
+    let fifoMem <- mkUGSizedFIFOF(depthParam);
+    Reg#(LATENCY_FIFO_DELAY_CONTAINER) current <- mkReg(0);
+    // I'm too lazy to implement a lutram count fifo.. 
+    COUNTER#(SizeOf#(LATENCY_FIFO_DEPTH_CONTAINER)) count <- mkLCounter(0);     
+    Reg#(Bool) enable <- mkReg(False);
+    
+    if (depthParam > valueOf(LATENCY_FIFO_DEPTH))
+    begin
+        error("LATENCY_FIFO_DEPTH is not big enough: need to be set to at least " + integerToString(depthParam));
+    end
+    
+    Reg#(LATENCY_FIFO_DELAY_CONTAINER) delayExternal <- mkReg(0);
+    Reg#(LATENCY_FIFO_DEPTH_CONTAINER) depthExternal <- mkReg(fromInteger(depthParam));
 
-     let delay = (enable)?delayExternal:0;
-     let depth = (enable)?depthExternal:`CON_BUFFERING;
+    PulseWire statIncr <- mkPulseWire();
 
-     Int#(SizeOf#(LATENCY_FIFO_DELAY_CONTAINER)) stampDelta = unpack(abs(current-fifoMem.first.stamp));
+    let delay = (enable)? delayExternal : 0;
+    let depth = (enable)? depthExternal : fromInteger(depthParam);
 
-     rule tickCurrent;
-         current <= current + 1;
-     endrule
+    Int#(SizeOf#(LATENCY_FIFO_DELAY_CONTAINER)) stampDelta = unpack(abs(current-fifoMem.first.stamp));
 
-     interface FIFOF fifo;
+    rule tickCurrent;
+        current <= current + 1;
+    endrule
 
-         method first();
-             return fifoMem.first.payload;
-         endmethod
+    interface FIFOF fifo;
 
-         method Action deq();
-             fifoMem.deq; 
-             count.down;
-             statIncr.send;
-         endmethod
+        method first();
+            return fifoMem.first.payload;
+        endmethod
 
-         method Action enq(t_MSG value);
-             count.up();
-             fifoMem.enq(TimestampedValue{stamp: current, payload: value});
-         endmethod
+        method Action deq();
+            fifoMem.deq; 
+            count.down;
+            statIncr.send;
+        endmethod
 
+        method Action enq(t_MSG value);
+            count.up();
+            fifoMem.enq(TimestampedValue{stamp: current, payload: value});
+        endmethod
 
-         method Bool notEmpty = fifoMem.notEmpty && (delay < pack(abs(stampDelta)));   
+        method Bool notEmpty = fifoMem.notEmpty && (delay < pack(abs(stampDelta)));   
 
-         method Bool notFull = fifoMem.notFull && (count.value <= depth);
+        method Bool notFull = fifoMem.notFull && (count.value <= depth);
 
-         method Action clear(); 
-             fifoMem.clear();
-             count.setC(0);   
-         endmethod
+        method Action clear(); 
+            fifoMem.clear();
+            count.setC(0);   
+        endmethod
 
     endinterface
 
@@ -119,3 +130,46 @@ provisos( Bits#(t_MSG, t_MSG_sz) );
     endinterface
 
 endmodule
+
+// ========================================================================
+//
+// Guarded latency FIFOs. 
+//
+// ========================================================================
+
+module mkSCFIFOF (SCFIFOF#(t_MSG))
+    provisos( Bits#(t_MSG, t_MSG_sz) );
+    
+    let m <- mkSCSizedFIFOF(`CON_BUFFERING);  
+    return m;
+endmodule
+
+
+module mkSCSizedFIFOF#(Integer depth)
+    // interface:
+    (SCFIFOF#(t_MSG))
+    provisos(Bits#(t_MSG, t_MSG_sz));
+
+    let m <- mkSCSizedFIFOFUG(depth);  
+    
+    interface FIFOF fifo;
+        method first() if (m.fifo.notEmpty);
+            return m.fifo.first();
+        endmethod
+        method Action deq() if (m.fifo.notEmpty);
+            m.fifo.deq();
+        endmethod
+        method Action enq(t_MSG value) if (m.fifo.notFull);
+            m.fifo.enq(value);
+        endmethod
+        method Bool notEmpty = m.fifo.notEmpty;
+        method Bool notFull = m.fifo.notFull;
+        method Action clear(); 
+            m.fifo.clear();
+        endmethod
+    endinterface
+
+    interface CONNECTION_LATENCY_CONTROL control = m.control;
+
+endmodule
+

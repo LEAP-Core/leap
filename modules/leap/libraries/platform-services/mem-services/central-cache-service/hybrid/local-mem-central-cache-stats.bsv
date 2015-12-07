@@ -29,6 +29,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+import FIFO::*;
+import DReg::*;
+
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/fpga_components.bsh"
@@ -132,3 +135,4 @@ module [CONNECTED_MODULE] mkCentralCacheStats#(RL_CACHE_STATS#(t_READ_META) cach
     endrule
 
 endmodule
+

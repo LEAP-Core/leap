@@ -29,11 +29,13 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+import FIFO::*;
+import DReg::*;
+
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/soft_connections.bsh"
-
 
 //
 // A type class which allows us to extract the ID of a datatype. 
@@ -286,3 +288,4 @@ module [CONNECTED_MODULE] mkNullScratchpadPrefetchStats#(RL_PREFETCH_STATS stats
     // interface:
     ();
 endmodule
+
