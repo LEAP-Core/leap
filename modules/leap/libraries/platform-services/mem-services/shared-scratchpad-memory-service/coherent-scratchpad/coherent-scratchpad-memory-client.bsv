@@ -1300,11 +1300,11 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
     function Tuple2#(Bit#(1), Maybe#(t_ACTIVATED_REQ)) getActivatedReq();
         if (hasMultiController)
         begin
-            if (links_mem_activatedReq[0].recvNotEmpty() && (activatedReqArb || !links_mem_activatedReq[1].recvNotEmpty()))
+            if (links_mem_activatedReq[0].recvNotEmpty() && links_mem_activatedReq[0].sendNotFull() && (activatedReqArb || !links_mem_activatedReq[1].recvNotEmpty() || !links_mem_activatedReq[1].sendNotFull()))
             begin
                 return tuple2(0, tagged Valid links_mem_activatedReq[0].peekFromPrev());
             end
-            else if (links_mem_activatedReq[1].recvNotEmpty())
+            else if (links_mem_activatedReq[1].recvNotEmpty() && links_mem_activatedReq[1].sendNotFull())
             begin
                 return tuple2(1, tagged Valid links_mem_activatedReq[1].peekFromPrev());
             end
