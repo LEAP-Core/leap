@@ -95,7 +95,7 @@ class ModuleList:
     self.buildDirectory = env['DEFS']['BUILD_DIR']
     self.compileDirectory = env['DEFS']['TMP_XILINX_DIR']
     givenVerilogs = Utils.clean_split(env['DEFS']['GIVEN_VERILOGS'], sep = ' ') 
-    givenVerilogPkgs = Utils.clean_split(env['DEFS']['GIVEN_VERILOG_PKGS'], sep = ' ') 
+    givenVerilogPkgs = Utils.clean_split(env['DEFS']['GIVEN_VERILOG_PKGS'], sep = ' ')
     givenVerilogHs = Utils.clean_split(env['DEFS']['GIVEN_VERILOG_HS'], sep = ' ') 
     givenNGCs = Utils.clean_split(env['DEFS']['GIVEN_NGCS'], sep = ' ') 
     givenVHDs = Utils.clean_split(env['DEFS']['GIVEN_VHDS'], sep = ' ') 
@@ -255,25 +255,25 @@ class ModuleList:
       return self.awbParamsObj.getAWBParamSafe(moduleName, param)
 
   def getAllDependencies(self, key):
-    # we must check to see if the dependencies actually exist.
-    # generally we have to make sure to remove duplicates
-    allDeps = [] 
-    if(self.topModule.moduleDependency.has_key(key)):
-      for dep in self.topModule.moduleDependency[key]:
-        if(allDeps.count(dep) == 0):
-          allDeps.extend(dep if isinstance(dep, list) else [dep])
-    for module in self.moduleList:
-      if(module.moduleDependency.has_key(key)):
-        for dep in module.moduleDependency[key]: 
-          if(allDeps.count(dep) == 0):
-            allDeps.extend(dep if isinstance(dep, list) else [dep])
+      # we must check to see if the dependencies actually exist.
+      # generally we have to make sure to remove duplicates
+      allDeps = [] 
+      if (self.topModule.moduleDependency.has_key(key)):
+          for dep in self.topModule.moduleDependency[key]:
+              if (allDeps.count(dep) == 0):
+                  allDeps.extend(dep if isinstance(dep, list) else [dep])
+      for module in self.moduleList:
+          if (module.moduleDependency.has_key(key)):
+              for dep in module.moduleDependency[key]: 
+                  if (allDeps.count(dep) == 0):
+                      allDeps.extend(dep if isinstance(dep, list) else [dep])
 
-    if(len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
-      sys.stderr.write("Warning: no dependencies were found")
+      if (len(allDeps) == 0 and CommandLine.getBuildPipelineDebug(self) > 1):
+          sys.stderr.write("Warning: no dependencies were found")
 
-    # Return a list of unique entries, in the process converting SCons
-    # dependence entries to strings.
-    return list(set(ProjectDependency.convertDependencies(allDeps)))
+      # Return a list of unique entries, in the process converting SCons
+      # dependence entries to strings.
+      return list(set(ProjectDependency.convertDependencies(allDeps)))
 
   def getDependencies(self, module, key):
     allDeps = module.getDependencies(key)
