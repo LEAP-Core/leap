@@ -32,29 +32,6 @@
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/scratchpad_memory_service.bsh"
 
-//
-// mkWriteValidatedReg --
-//     This module provides a register that can be seen as a read-only register
-// using write method to intialize its value. This register can only be read
-// after initialization. 
-//
-module mkWriteValidatedReg
-    // interface:
-    (Reg#(t_DATA))
-    provisos (Bits#(t_DATA, t_DATA_SZ));
-    
-    Reg#(t_DATA) data <- mkRegU();
-    Reg#(Bool) initialized <- mkReg(False);
-
-    method t_DATA _read() if (initialized);
-        return data;
-    endmethod
-
-    method Action _write(t_DATA val) if (!initialized);
-        initialized <= True;
-        data <= val;
-    endmethod
-endmodule
 
 // ====================================================================
 //

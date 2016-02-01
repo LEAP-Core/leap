@@ -18,6 +18,7 @@
 %public connection-implementation.bsv
 %public connection-backwards-compat.bsv
 %public addressable-ring.bsv
+%public addressable-ring-connector.bsv
 %public connected-module.bsv
 %public bury-connections.bsv
 %public tree-router.bsv

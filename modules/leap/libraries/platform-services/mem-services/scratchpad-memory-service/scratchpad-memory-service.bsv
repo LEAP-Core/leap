@@ -44,7 +44,9 @@ import Arbiter::*;
 
 module [CONNECTED_MODULE] mkScratchpadMemoryService
     // interface:
-    ();
+    (Empty)
+    provisos (Bits#(SCRATCHPAD_MEM_REQ, t_SCRATCHPAD_MEM_REQ_SZ), 
+              Bits#(SCRATCHPAD_READ_RSP, t_SCRATCHPAD_READ_RSP_SZ)); 
     
     //
     // Instantiate scratchpad server implementation.
@@ -83,11 +85,11 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
             ringBaseName = "Scratchpad_" + integerToString(c) + "_" + "Platform_" + integerToString(platformID);
         end
 
-        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_MEM_REQ) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
             mkConnectionAddrRingNode(ringBaseName + "_Req", 0):
             mkConnectionTokenRingNode(ringBaseName + "_Req", 0);
 
-        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, SCRATCHPAD_READ_RSP) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
             mkConnectionAddrRingNode(ringBaseName + "_Resp", 0):
             mkConnectionTokenRingNode(ringBaseName + "_Resp", 0);
 
@@ -105,7 +107,7 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
         //     arbiter.
         //
         rule sendScratchpadReq (True);
-            let req = link_mem_req.first();
+            SCRATCHPAD_MEM_REQ req = unpack(link_mem_req.first());
             link_mem_req.deq();
 
             case (req) matches
@@ -140,7 +142,6 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
                                        w_req.val,
                                        w_req.byteWriteMask,
                                        w_req.port);
-
                 end
             endcase
         endrule
@@ -155,7 +156,7 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
             resp.globalReadMeta = r.globalReadMeta;
             resp.isCacheable = r.isCacheable;
 
-            link_mem_rsp.enq(r.readUID.portNum, resp);
+            link_mem_rsp.enq(r.readUID.portNum, pack(resp));
         endrule
     end
 

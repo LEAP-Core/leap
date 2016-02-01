@@ -4,7 +4,6 @@
 *
 *******************************************************************/
 
-
 %AWB_START
 
 %name Soft Service Soft Connections Common 
@@ -21,15 +20,15 @@
 %public with-connections.bsv
 %public latency-fifo.bsv
 
-%param --global CON_CWIDTH 700 "Phyisical Connection Bit Width after splitting."
-%param --global CON_CHAIN_CWIDTH 700 "Phyisical Chain Connection Bit Width, which is not split."
-%param --global CON_BUFFERING 2 "Amount of Buffering Slots per Connection."
-%param --global CON_NUMCHAINS 9 "Number of Connection Chains."
-%param --global CONNECTION_IDX_SIZE 8 "Number of bits to index multicast connections (8=256 connections)."
-%param --global ADDR_RING_MSG_MODE 0 "Addressable ring message priority: 0 always choose local message, 1 always forward, 2 use arbiter"
-%param --global ADDR_RING_DEBUG_ENABLE 0 "Enable addressable ring debug"
-%param CON_LATENCY_ENABLE   0   "Add soft-connection latency test fixture"
-%param --global DUMP_CHANNEL_TRAFFIC_ENABLE   0   "Dump all li channel traffic at runtime (simulation only)"
+%param --global CON_CWIDTH                  700  "Phyisical Connection Bit Width after splitting."
+%param --global CON_CHAIN_CWIDTH            700  "Phyisical Chain Connection Bit Width, which is not split."
+%param --global CON_BUFFERING                 2  "Amount of Buffering Slots per Connection."
+%param --global CON_NUMCHAINS                 9  "Number of Connection Chains."
+%param --global CONNECTION_IDX_SIZE           8  "Number of bits to index multicast connections (8=256 connections)."
+%param --global ADDR_RING_MSG_MODE            2  "Addressable ring message priority: 0 always choose local message, 1 always forward, 2 use arbiter"
+%param --global ADDR_RING_DEBUG_ENABLE        0  "Enable addressable ring debug"
+%param          CON_LATENCY_ENABLE            0  "Add soft-connection latency test fixture"
+%param --global DUMP_CHANNEL_TRAFFIC_ENABLE   0  "Dump all li channel traffic at runtime (simulation only)"
 
 %AWB_END
 
