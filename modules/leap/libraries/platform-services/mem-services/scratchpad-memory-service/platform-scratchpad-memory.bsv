@@ -2103,20 +2103,22 @@ module [CONNECTED_MODULE] mkScratchpadHierarchicalRingConnector#(String childReq
     // interface:
     (Empty)
     provisos (Bits#(SCRATCHPAD_PORT_NUM, t_NODE_ID_SZ),
-              Bits#(SCRATCHPAD_MEM_REQ, t_MSG_SZ));
+              Bits#(SCRATCHPAD_READ_RSP, t_RSP_SZ), 
+              Bits#(SCRATCHPAD_MEM_REQ,  t_REQ_SZ));
 
     NumTypeParam#(t_NODE_ID_SZ) nodeIdSz = ?; 
-    NumTypeParam#(t_MSG_SZ) msgSz = ?; 
-    
+    NumTypeParam#(t_RSP_SZ) rspSz = ?; 
+    NumTypeParam#(t_REQ_SZ) reqSz = ?; 
+
     if (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)
     begin
-        mkConnectionHierarchicalAddrRingConnector(childReqRingName, parentReqRingName, nodeIdSz, msgSz, isChildNode);
-        mkConnectionHierarchicalAddrRingConnector(childRespRingName, parentRespRingName, nodeIdSz, msgSz, isChildNode);
+        mkConnectionHierarchicalAddrRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode);
+        mkConnectionHierarchicalAddrRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode);
     end
     else
     begin
-        mkConnectionHierarchicalTokenRingConnector(childReqRingName, parentReqRingName, nodeIdSz, msgSz, isChildNode);
-        mkConnectionHierarchicalTokenRingConnector(childRespRingName, parentRespRingName, nodeIdSz, msgSz, isChildNode);
+        mkConnectionHierarchicalTokenRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode);
+        mkConnectionHierarchicalTokenRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode);
     end
 
 endmodule
