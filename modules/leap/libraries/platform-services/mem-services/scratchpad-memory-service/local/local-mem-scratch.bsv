@@ -148,7 +148,11 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
         begin
             debugLog.record($format("INIT ALLOC port %0d: 0x%x words, base 0x%x", port, n_init, base_addr));
 
+  `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
             base_addr = alloc.baseAddr;
+  `else
+            base_addr = localMemLineAddr(alloc.baseAddr);
+  `endif
             if (! alloc.needsInitZero)
             begin
                 n_init = 0;
@@ -311,7 +315,11 @@ module [CONNECTED_MODULE] mkScratchpadMemory#(Integer memBankIdx)
             //
             // Local memory requires explicit allocation.
             //
+  `ifdef SCRATCHPAD_MEMORY_USE_LINES_Z
             localMem.allocRegionReq(allocLastWordIdx);
+  `else
+            localMem.allocRegionReq(localMemLineAddrToAddr(allocLastWordIdx));
+  `endif
 `endif
         end
         else
