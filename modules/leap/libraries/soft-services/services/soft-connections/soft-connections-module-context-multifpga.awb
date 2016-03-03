@@ -21,6 +21,7 @@
 %public connected-module.bsv
 %public addressable-ring.bsv
 %public bury-connections.bsv
+%public tree-router.bsv
 
 %sources --t BSH --v PUBLIC soft-connections-backward-deps.bsh
 

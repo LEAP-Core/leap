@@ -45,7 +45,6 @@ import ConfigReg::* ;
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
-`include "awb/provides/soft_connections_util.bsh"
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
@@ -504,11 +503,11 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     let respRingName = (`SCRATCHPAD_CHAIN_REMAP == 0)? "Scratchpad_Platform_" + integerToString(platformID) + "_Resp" : 
                        "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + integerToString(scratchpadIntPortId(scratchpadID));
     
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
         mkConnectionAddrRingNode(reqRingName, myPort._read()):
         mkConnectionTokenRingNode(reqRingName, myPort._read());
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
         mkConnectionAddrRingNode(respRingName, myPort._read()):
         mkConnectionTokenRingNode(respRingName, myPort._read());
 
@@ -1211,11 +1210,11 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     let respRingName = (`SCRATCHPAD_CHAIN_REMAP == 0)? "Scratchpad_Platform_" + integerToString(platformID) + "_Resp" : 
                        "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + integerToString(scratchpadIntPortId(scratchpadID));
     
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
         mkConnectionAddrRingNode(reqRingName, myPort._read()):
         mkConnectionTokenRingNode(reqRingName, myPort._read());
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
         mkConnectionAddrRingNode(respRingName, myPort._read()):
         mkConnectionTokenRingNode(respRingName, myPort._read());
     
@@ -1232,6 +1231,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     rule sendScratchIdReq(!scratchpadIdReqSent); 
         link_scratchpad_id_req.enq(0, scratchpadPortId(scratchpadID));
         scratchpadIdReqSent <= True;
+        debugLog.record($format("sendScratchIdReq: scratchpadID=%0d", scratchpadPortId(scratchpadID)));
     endrule
 `endif
 
@@ -1260,9 +1260,9 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     PARAMETER_NODE paramNode                 <- mkDynamicParameterNode();
     Param#(4) latencyParam                   <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY, paramNode);
     Param#(8) latencyIdParam                 <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID, paramNode);
+    
     PulseWire fifoEnqW <- mkPulseWire;
     PulseWire fifoDeqW <- mkPulseWire;
-    
     mkQueueingStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_NETWORK_REQUEST",
                     "Scratchpad network request", 
                     tagged Valid 16,  
@@ -1277,6 +1277,7 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         let id = link_scratchpad_id_resp.first();
         link_scratchpad_id_resp.deq();
         myPort <= id;
+        debugLog.record($format("initPortId: resp from the controller: %0d", id));
 `else        
         myPort <= scratchpadPortId(scratchpadID);
 `endif
@@ -1545,11 +1546,11 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     let respRingName = (`SCRATCHPAD_CHAIN_REMAP == 0)? "Scratchpad_Platform_" + integerToString(platformID) + "_Resp" : 
                        "Scratchpad_Platform_" + integerToString(platformID) + "_Resp_" + integerToString(scratchpadIntPortId(scratchpadID));
     
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
         mkConnectionAddrRingNode(reqRingName, myPort._read()):
         mkConnectionTokenRingNode(reqRingName, myPort._read());
 
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
+    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
         mkConnectionAddrRingNode(respRingName, myPort._read()):
         mkConnectionTokenRingNode(respRingName, myPort._read());
 
@@ -1948,180 +1949,6 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     endmethod
 
     method Bool writeNotFull = incomingReqQ.ports[valueOf(n_READERS)].notFull();
-endmodule
-
-
-//
-// mkScratchpadClientRingConnector --
-//     Connect a scratchpad client to multiple controller rings. Requests
-//     are forwarded based on address partitioning. 
-//
-module [CONNECTED_MODULE] mkScratchpadClientRingConnector#(String clientReqRingName,
-                                                           String clientRespRingName,
-                                                           SCRATCHPAD_PORT_NUM portNum, 
-                                                           Vector#(n_CONTROLLERS, String) controllerReqRingNames, 
-                                                           Vector#(n_CONTROLLERS, String) controllerRespRingNames, 
-                                                           function UInt#(TLog#(n_CONTROLLERS)) getControllerIdxFromAddr(SCRATCHPAD_MEM_ADDRESS addr))
-    (Empty)
-    provisos (NumAlias#(TMax#(LOCAL_MEM_BURST_DATA_SZ, LOCAL_MEM_LINE_SZ), t_LOCAL_MEM_DATA_SZ),
-              Add#(a_, SCRATCHPAD_MEM_VALUE_SZ, t_LOCAL_MEM_DATA_SZ),
-              NumAlias#(TLog#(TDiv#(t_LOCAL_MEM_DATA_SZ, SCRATCHPAD_MEM_VALUE_SZ)), t_LOCAL_MEM_DATA_IDX_SZ),
-              NumAlias#(TDiv#(LOCAL_MEM_LINE_SZ, SCRATCHPAD_MEM_VALUE_SZ), t_WORDS_PER_LINE),
-              Alias#(Bit#(t_LOCAL_MEM_DATA_IDX_SZ), t_LOCAL_MEM_DATA_IDX),
-              Bits#(SCRATCHPAD_MEM_ADDRESS, t_ADDR_SZ),
-              Bits#(SCRATCHPAD_MEM_REQ, t_SCRATCHPAD_MEM_REQ_SZ), 
-              Bits#(SCRATCHPAD_READ_RSP, t_SCRATCHPAD_READ_RSP_SZ), 
-              NumAlias#(TSub#(t_ADDR_SZ, t_LOCAL_MEM_DATA_IDX_SZ), t_LOCAL_MEM_ADDR_SZ),
-              Alias#(Bit#(t_LOCAL_MEM_ADDR_SZ), t_LOCAL_MEM_ADDR));
-
-    // Connection node on the client ring
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_client_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
-        mkConnectionAddrRingNode(clientReqRingName, 0):
-        mkConnectionTokenRingNode(clientReqRingName, 0);
-    
-    CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_client_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
-        mkConnectionAddrRingNode(clientRespRingName, 0):
-        mkConnectionTokenRingNode(clientRespRingName, 0);
-
-    // Connection nodes on controller rings
-    Vector#(n_CONTROLLERS, CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ))) link_ctrl_reqs = newVector();
-    Vector#(n_CONTROLLERS, CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ))) link_ctrl_rsps = newVector();   
-
-    DEBUG_FILE debugLog <- mkDebugFile("scratchpad_connector_" + clientReqRingName + ".out");
-    
-    // Dynamic parameters
-    PARAMETER_NODE   paramNode  <- mkDynamicParameterNode();
-    Param#(2) addrMapModeParam  <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_ADDR_MAP_MODE, paramNode);
-    Reg#(Bit#(2))  addrMapMode  <- mkReg(0);
-
-    // address map pre-processing function
-    function SCRATCHPAD_MEM_ADDRESS addrMap (SCRATCHPAD_MEM_ADDRESS addr);
-        if (addrMapMode[0] == 0)
-        begin
-            Tuple2#(t_LOCAL_MEM_ADDR, t_LOCAL_MEM_DATA_IDX) local_addr = unpack(addr);
-            //let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
-            Bit#(10) a1 = resize(tpl_1(local_addr));
-            let a2 = (addrMapMode[1] == 0)? a1 :  hashBits(a1);
-            return zeroExtend(a2); 
-        end
-        else
-        begin
-            Tuple2#(Bit#(TSub#(t_ADDR_SZ, TLog#(t_WORDS_PER_LINE))), Bit#(TLog#(t_WORDS_PER_LINE))) local_addr = unpack(addr); 
-            //let a = (addrMapMode[1] == 0)? tpl_1(local_addr) :  hashBits(tpl_1(local_addr));
-            let a = tpl_1(local_addr);
-            return zeroExtend(a); 
-        end
-    endfunction
-
-    for (Integer p = 0; p < valueOf(n_CONTROLLERS); p = p + 1)
-    begin
-        link_ctrl_reqs[p] <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)? 
-                             mkConnectionAddrRingNode(controllerReqRingNames[p], portNum):
-                             mkConnectionTokenRingNode(controllerReqRingNames[p], portNum);
-        link_ctrl_rsps[p] <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)?
-                             mkConnectionAddrRingNode(controllerRespRingNames[p], portNum):
-                             mkConnectionTokenRingNode(controllerRespRingNames[p], portNum);
-    end
-    
-    // Initialization
-    Reg#(Bool) initialized <- mkReg(False);
-    rule doInit (! initialized);
-        addrMapMode <= addrMapModeParam;
-        initialized <= True;
-    endrule
-        
-    rule sendScratchpadReq (initialized);
-        SCRATCHPAD_MEM_REQ req = unpack(link_client_req.first());
-        link_client_req.deq();
-
-        case (req) matches
-            tagged SCRATCHPAD_MEM_INIT .init:
-            begin
-                link_ctrl_reqs[0].enq(0, pack(req));
-                debugLog.record($format("sendScratchpadReq: forward master INIT req to controller %d", 0));
-                for (Integer p = 1; p < valueOf(n_CONTROLLERS); p = p + 1)
-                begin
-                    let slave_init = init;
-                    slave_init.initCacheOnly = True;
-                    link_ctrl_reqs[p].enq(0, pack(tagged SCRATCHPAD_MEM_INIT slave_init));
-                    debugLog.record($format("sendScratchpadReq: forward slave INIT req to controller %d", p));
-                end
-            end
-
-            tagged SCRATCHPAD_MEM_READ .r_req:
-            begin
-                let idx = getControllerIdxFromAddr(addrMap(r_req.addr));
-                link_ctrl_reqs[idx].enq(0, pack(req));
-                debugLog.record($format("sendScratchpadReq: forward READ req to controller %d, addr=0x%x", idx, r_req.addr));
-            end
-
-            tagged SCRATCHPAD_MEM_WRITE .w_req:
-            begin
-                let idx = getControllerIdxFromAddr(addrMap(w_req.addr));
-                link_ctrl_reqs[idx].enq(0, pack(req));
-                debugLog.record($format("sendScratchpadReq: forward WRITE req to controller %d, addr=0x%x", idx, w_req.addr));
-            end
-
-            tagged SCRATCHPAD_MEM_WRITE_MASKED .w_req:
-            begin
-                let idx = getControllerIdxFromAddr(addrMap(w_req.addr));
-                link_ctrl_reqs[idx].enq(0, pack(req));
-                debugLog.record($format("sendScratchpadReq: forward WRITE req to controller %d, addr=0x%x", idx, w_req.addr));
-            end
-        endcase
-    endrule
-    
-    Rules resp_rules = emptyRules; 
-    
-    for (Integer c = 0; c < valueOf(n_CONTROLLERS); c = c + 1)
-    begin 
-        let resp_fwd = 
-            (rules 
-                 rule sendScratchpadResp (initialized); 
-                     SCRATCHPAD_READ_RSP resp = unpack(link_ctrl_rsps[c].first());
-                     link_ctrl_rsps[c].deq();
-                     link_client_rsp.enq(portNum, pack(resp));
-                     debugLog.record($format("sendScratchpadResp: forward response from controller %d, addr=0x%x, val=0x%x", c, resp.addr, resp.val));
-                 endrule 
-            endrules); 
-        resp_rules = rJoinDescendingUrgency(resp_rules,resp_fwd); 
-    end 
-    
-    addRules(resp_rules); 
-
-endmodule
-
-//
-// mkScratchpadHierarchicalRingConnector --
-//     Connect a scratchpad ring to another. This is used in 
-// hierarchical-ring networks. 
-//
-module [CONNECTED_MODULE] mkScratchpadHierarchicalRingConnector#(String childReqRingName,
-                                                                 String childRespRingName,
-                                                                 String parentReqRingName, // next-level client ring
-                                                                 String parentRespRingName, 
-                                                                 function Bool isChildNode(SCRATCHPAD_PORT_NUM nodeID))
-    // interface:
-    (Empty)
-    provisos (Bits#(SCRATCHPAD_PORT_NUM, t_NODE_ID_SZ),
-              Bits#(SCRATCHPAD_READ_RSP, t_RSP_SZ), 
-              Bits#(SCRATCHPAD_MEM_REQ,  t_REQ_SZ));
-
-    NumTypeParam#(t_NODE_ID_SZ) nodeIdSz = ?; 
-    NumTypeParam#(t_RSP_SZ) rspSz = ?; 
-    NumTypeParam#(t_REQ_SZ) reqSz = ?; 
-
-    if (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)
-    begin
-        mkConnectionHierarchicalAddrRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
-        mkConnectionHierarchicalAddrRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
-    end
-    else
-    begin
-        mkConnectionHierarchicalTokenRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
-        mkConnectionHierarchicalTokenRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
-    end
-
 endmodule
 
 

@@ -149,8 +149,8 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem
 `ifndef SOFT_CONNECTION_REMAP_Z
     // Instantiate connectors to connect partitioned scratchpads
     connectPartitionedScratchpads(clocked_by clk, reset_by rst);
-    // Instantiate connectors to connect multiple scratchpad rings
-    connectScratchpadRings(clocked_by clk, reset_by rst);
+    // Instantiate connectors to build hierarchical rings or tree networks
+    connectScratchpadNetwork(clocked_by clk, reset_by rst);
     // Instantiate scratchpad ID remap controller
     mkScratchpadIdRemap(clocked_by clk, reset_by rst);
 `endif
