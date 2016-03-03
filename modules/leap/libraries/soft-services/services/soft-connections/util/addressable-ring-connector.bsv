@@ -34,6 +34,12 @@
 //
 
 `include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/soft_connections_common.bsh"
+`include "awb/provides/stats_service.bsh"
 
 //
 // mkConnectionHierarchicalAddrRingConnector --
@@ -45,12 +51,13 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingConnector#(String chil
                                                                      String parentChainID, 
                                                                      NumTypeParam#(t_NODE_ID_SZ) nodeIdSz,
                                                                      NumTypeParam#(t_MSG_SZ) msgSz, 
-                                                                     function Bool isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId))
+                                                                     function Bool isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId),
+                                                                     Bool enProfile)
     // Interface:
     (Empty);
      
     function Maybe#(Bool) isChildNode(Bit#(t_NODE_ID_SZ) nodeID) = tagged Valid isChildNodeFunc(nodeID);
-    mkConnectionHierarchicalAddrRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode);
+    mkConnectionHierarchicalAddrRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode, enProfile);
 endmodule
 
 //
@@ -61,12 +68,13 @@ endmodule
 module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingDynConnector#(String childChainID, 
                                                                         String parentChainID, 
                                                                         NumTypeParam#(t_NODE_ID_SZ) nodeIdSz,
-                                                                        NumTypeParam#(t_MSG_SZ) msgSz)
+                                                                        NumTypeParam#(t_MSG_SZ) msgSz, 
+                                                                        Bool enProfile)
     // Interface:
     (Empty);
 
     function Maybe#(Bool) isChildNode(Bit#(t_NODE_ID_SZ) nodeID) = tagged Invalid;
-    mkConnectionHierarchicalAddrRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode);
+    mkConnectionHierarchicalAddrRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode, enProfile);
 endmodule
 
 
@@ -80,12 +88,13 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalTokenRingConnector#(String chi
                                                                       String parentChainID, 
                                                                       NumTypeParam#(t_NODE_ID_SZ) nodeIdSz,
                                                                       NumTypeParam#(t_MSG_SZ) msgSz, 
-                                                                      function Bool isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId))
+                                                                      function Bool isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId),
+                                                                      Bool enProfile)
     // Interface:
     (Empty);
     
     function Maybe#(Bool) isChildNode(Bit#(t_NODE_ID_SZ) nodeID) = tagged Valid isChildNodeFunc(nodeID);
-    mkConnectionHierarchicalTokenRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode);
+    mkConnectionHierarchicalTokenRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode, enProfile);
 endmodule
 
 //
@@ -96,12 +105,13 @@ endmodule
 module [CONNECTED_MODULE] mkConnectionHierarchicalTokenRingDynConnector#(String childChainID, 
                                                                          String parentChainID, 
                                                                          NumTypeParam#(t_NODE_ID_SZ) nodeIdSz,
-                                                                         NumTypeParam#(t_MSG_SZ) msgSz)
+                                                                         NumTypeParam#(t_MSG_SZ) msgSz, 
+                                                                         Bool enProfile)
     // Interface:
     (Empty);
 
     function Maybe#(Bool) isChildNode(Bit#(t_NODE_ID_SZ) nodeID) = tagged Invalid;
-    mkConnectionHierarchicalTokenRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode);
+    mkConnectionHierarchicalTokenRingConnector_Impl(childChainID, parentChainID, nodeIdSz, msgSz, isChildNode, enProfile);
 endmodule
 
 
@@ -119,7 +129,8 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingConnector_Impl#(String
                                                                           String parentChainID, 
                                                                           NumTypeParam#(t_NODE_ID_SZ) nodeIdSz,
                                                                           NumTypeParam#(t_MSG_SZ) msgSz, 
-                                                                          function Maybe#(Bool) isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId))
+                                                                          function Maybe#(Bool) isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId),
+                                                                          Bool enProfile)
     // Interface:
     (Empty)
     provisos (Alias#(Bit#(t_MSG_SZ), t_MSG),
@@ -159,7 +170,7 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingConnector_Impl#(String
         return id;
     endactionvalue
     endfunction
-
+    
     CONNECTION_ADDR_RING_CONNECTOR_INIT#(t_NODE_ID) init <- 
         mkConnectionAddrRingConnectorInitializer(isChildNodeFunc,
                                                  initSendToChildRing, 
@@ -170,6 +181,45 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingConnector_Impl#(String
     PulseWire fwdParentMsgPrior  <- mkPulseWire();
     PulseWire fwdChildMsgPrior   <- mkPulseWire();
     
+    if (enProfile)
+    begin
+        Reg#(Bool) parentChainDeqR   <- mkRegU;
+        Reg#(Bool) childChainDeqR    <- mkRegU;
+        Reg#(Bool) parentChainFirstR <- mkReg(True);
+        Reg#(Bool) childChainFirstR  <- mkReg(True);
+        
+        rule updateDeqR (init.initialized);
+            parentChainDeqR <= (fwdFromParentToParentW || fwdFromParentToChildW);
+            childChainDeqR  <= (fwdFromChildToParentW || fwdFromChildToChildW);
+        endrule
+        
+        rule checkParentFirstReq (init.initialized && parentChainFirstR && parentChain.recvNotEmpty);
+            parentChainFirstR <= False;
+        endrule
+        rule checkChildFirstReq (init.initialized && childChainFirstR && childChain.recvNotEmpty);
+            childChainFirstR <= False;
+        endrule
+        
+        String parentStatTagPrefix = "LEAP_SCRATCHPAD_RING_CONNECTOR_" + childChainID + "_" + parentChainID + "_PCHAIN";
+        String parentStatDescPrefix =  "Parent chain";
+        
+        String childStatTagPrefix = "LEAP_SCRATCHPAD_RING_CONNECTOR_" + childChainID + "_" + parentChainID + "_CCHAIN";
+        String childStatDescPrefix = "Child chain";
+
+        mkQueueingStats(parentStatTagPrefix,
+                        parentStatDescPrefix,
+                        tagged Valid 1,  
+                        parentChain.recvNotEmpty && (parentChainFirstR || parentChainDeqR) && init.initialized, 
+                        fwdFromParentToParentW || fwdFromParentToChildW);
+
+        mkQueueingStats(childStatTagPrefix,
+                        childStatDescPrefix, 
+                        tagged Valid 1, 
+                        childChain.recvNotEmpty && (childChainFirstR || childChainDeqR) && init.initialized,
+                        fwdFromChildToParentW || fwdFromChildToChildW);
+
+    end
+
     //
     // newMsgFromChildToParent --
     //     Does incoming message on the child ring have data for one of the parent nodes?
@@ -181,7 +231,7 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingConnector_Impl#(String
     //     Does incoming message on the parent ring have data for one of the child nodes?
     //
     function Bool newMsgFromParentIsForChild() = init.isChildNode(tpl_1(parentChain.peekFromPrev()));
-
+    
     //
     // checkMsgSendPrior
     //
@@ -284,7 +334,8 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalTokenRingConnector_Impl#(Strin
                                                                            String parentChainID, 
                                                                            NumTypeParam#(t_NODE_ID_SZ) nodeIdSz,
                                                                            NumTypeParam#(t_MSG_SZ) msgSz, 
-                                                                           function Maybe#(Bool) isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId))
+                                                                           function Maybe#(Bool) isChildNodeFunc(Bit#(t_NODE_ID_SZ) nodeId),
+                                                                           Bool enProfile)
     // Interface:
     (Empty)
     provisos (Alias#(Bit#(t_MSG_SZ), t_MSG),
@@ -347,7 +398,46 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalTokenRingConnector_Impl#(Strin
                                                  initSendToChildRing, 
                                                  initRecvFromChildRing,
                                                  initSendToParentRing, 
-                                                 initRecvFromParentRing);
+                                                 initRecvFromParentRing); 
+    
+    if (enProfile)
+    begin
+        Reg#(Bool) parentChainDeqR   <- mkRegU;
+        Reg#(Bool) childChainDeqR    <- mkRegU;
+        Reg#(Bool) parentChainFirstR <- mkReg(True);
+        Reg#(Bool) childChainFirstR  <- mkReg(True);
+        
+        rule updateDeqR (init.initialized);
+            parentChainDeqR <= (fwdFromParentToParentW || fwdFromParentToChildW);
+            childChainDeqR  <= (fwdFromChildToParentW || fwdFromChildToChildW);
+        endrule
+        
+        rule checkParentFirstReq (init.initialized && parentChainFirstR && parentChain.recvNotEmpty);
+            parentChainFirstR <= False;
+        endrule
+        rule checkChildFirstReq (init.initialized && childChainFirstR && childChain.recvNotEmpty);
+            childChainFirstR <= False;
+        endrule
+
+
+        String parentStatTagPrefix = "LEAP_SCRATCHPAD_RING_CONNECTOR_" + childChainID + "_" + parentChainID + "_PCHAIN";
+        String parentStatDescPrefix =  "Parent chain";
+        
+        String childStatTagPrefix = "LEAP_SCRATCHPAD_RING_CONNECTOR_" + childChainID + "_" + parentChainID + "_CCHAIN";
+        String childStatDescPrefix = "Child chain";
+
+        mkQueueingStats(parentStatTagPrefix,
+                        parentStatDescPrefix,
+                        tagged Valid 1,  
+                        parentChain.recvNotEmpty && (parentChainFirstR || parentChainDeqR) && init.initialized, 
+                        fwdFromParentToParentW || fwdFromParentToChildW);
+
+        mkQueueingStats(childStatTagPrefix,
+                        childStatDescPrefix, 
+                        tagged Valid 1, 
+                        childChain.recvNotEmpty && (childChainFirstR || childChainDeqR) && init.initialized,
+                        fwdFromChildToParentW || fwdFromChildToChildW);
+    end
 
     //
     // Initialization of the token counters. 
@@ -547,7 +637,7 @@ module mkConnectionAddrRingConnectorInitializer#(function Maybe#(Bool) isChildNo
                                                  function Action sendToChildRing(t_NODE_ID id),
                                                  function ActionValue#(t_NODE_ID) recvFromChildRing(),
                                                  function Action sendToParentRing(t_NODE_ID id),
-                                                 function ActionValue#(t_NODE_ID) recvFromParentRing())
+                                                 function ActionValue#(t_NODE_ID) recvFromParentRing()) 
     (CONNECTION_ADDR_RING_CONNECTOR_INIT#(t_NODE_ID))
     provisos (Bits#(t_NODE_ID, t_NODE_ID_SZ),
               Eq#(t_NODE_ID),
@@ -620,3 +710,5 @@ module mkConnectionAddrRingConnectorInitializer#(function Maybe#(Bool) isChildNo
     endmethod
 
 endmodule
+
+

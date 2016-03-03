@@ -53,6 +53,7 @@ soft_connections_common=Soft Service Soft Connections Common
 physical_interconnect=NULL Physical Interconnect
 soft_connections_debug=Soft Connections Debugging
 soft_connections_latency=Soft Connections Latency Test Fixture
+soft_connections_util=Soft Connections Util
 
 [Basic Soft Clock Algorithm/Requires]
 soft_clocks_lib=Basic Soft Clock Library
@@ -92,3 +93,8 @@ Packagehint=leap
 [Lock Synchronization Service]
 File=modules/leap/libraries/soft-services/services/lock-sync-service/lock-sync-service.awb
 Packagehint=leap
+
+
+[Soft Connections Util]
+Packagehint=leap
+File=modules/leap/libraries/soft-services/services/soft-connections/util/soft-connections-util.awb

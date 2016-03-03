@@ -45,6 +45,7 @@ import ConfigReg::* ;
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_services_lib.bsh"
 `include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/soft_connections_util.bsh"
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
 `include "awb/provides/librl_bsv_storage.bsh"
@@ -1259,9 +1260,9 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     PARAMETER_NODE paramNode                 <- mkDynamicParameterNode();
     Param#(4) latencyParam                   <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY, paramNode);
     Param#(8) latencyIdParam                 <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID, paramNode);
-    
     PulseWire fifoEnqW <- mkPulseWire;
     PulseWire fifoDeqW <- mkPulseWire;
+    
     mkQueueingStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_NETWORK_REQUEST",
                     "Scratchpad network request", 
                     tagged Valid 16,  
@@ -2112,13 +2113,13 @@ module [CONNECTED_MODULE] mkScratchpadHierarchicalRingConnector#(String childReq
 
     if (`SCRATCHPAD_TOKEN_RING_ENABLE == 0)
     begin
-        mkConnectionHierarchicalAddrRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode);
-        mkConnectionHierarchicalAddrRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode);
+        mkConnectionHierarchicalAddrRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
+        mkConnectionHierarchicalAddrRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
     end
     else
     begin
-        mkConnectionHierarchicalTokenRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode);
-        mkConnectionHierarchicalTokenRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode);
+        mkConnectionHierarchicalTokenRingConnector(childReqRingName, parentReqRingName, nodeIdSz, reqSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
+        mkConnectionHierarchicalTokenRingConnector(childRespRingName, parentRespRingName, nodeIdSz, rspSz, isChildNode, `PLATFORM_SCRATCHPAD_PROFILE_ENABLE == 1);
     end
 
 endmodule
