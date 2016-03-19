@@ -447,7 +447,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         // Normally, we choose the N bits above the base for balancing. However, in some cases
         // we may have fewer than this.
-        NumTypeParam#(TMax#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
         NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
         Integer maxLoadBalanceIndex = 6;
 
@@ -470,7 +470,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
 
         // Normally, we choose the N bits above the base for balancing. However, in some cases
         // we may have fewer than this.
-        NumTypeParam#(TMax#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
         NumTypeParam#(TSub#(t_CACHE_IDX_SZ,2)) loadBalanceBaseBits = ?;
         Integer maxLoadBalanceIndex = 2;
 
@@ -492,7 +492,7 @@ module [m] mkCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_W
  
         // Normally, we choose the N bits above the base for balancing. However, in some cases
         // we may have fewer than this.
-        NumTypeParam#(TMax#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
         NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
         Integer maxLoadBalanceIndex = 4;
 
