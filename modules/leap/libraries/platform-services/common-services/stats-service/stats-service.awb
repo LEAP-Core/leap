@@ -11,6 +11,7 @@
 %public  stats-util.bsv
 %public  stats-service.bsv
 %public  stats-service.h
+%public  stats-emitter.h
 %private stats-service.cpp
 %private stats-service.rrr
 %sources -t LOG -v PUBLIC stats-service.log 

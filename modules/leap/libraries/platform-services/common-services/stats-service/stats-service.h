@@ -274,43 +274,4 @@ typedef STATS_SERVER_CLASS STATS_DEVICE_CLASS;
 
 void StatsEmitFile();
 
-
-// ========================================================================
-//
-//   HACK!  Clients may "register" as stats emitters by allocating an
-//   instance of the following class.  They may then write whatever
-//   they wish to the stats file.  Clearly this should be improved with
-//   some structure, perhaps by switching to statistics code from
-//   Asim.
-//
-// ========================================================================
-
-typedef class STATS_EMITTER_CLASS *STATS_EMITTER;
-
-// Set of all stats emitters.
-typedef std::unordered_set<STATS_EMITTER> ALL_STATS_EMITTERS;
-
-class STATS_EMITTER_CLASS
-{
-  private:
-    static ALL_STATS_EMITTERS* statsEmitters;
-
-  public:
-    STATS_EMITTER_CLASS();
-    ~STATS_EMITTER_CLASS();
-
-    static ALL_STATS_EMITTERS GetStatsEmitters(void)
-    {
-        if (statsEmitters == NULL)
-        {
-            statsEmitters = new ALL_STATS_EMITTERS;
-        }
-
-        return *statsEmitters;
-    };
-
-    virtual void EmitStats(ofstream &statsFile) = 0;
-    virtual void ResetStats() = 0;
-};
-
 #endif // __STATS_SERVICE_H__
