@@ -41,7 +41,6 @@ import FIFOF::*;
 
 `include "awb/provides/librl_bsv_base.bsh"
 
-
 //
 // Addressable ring interface looks like a FIFO, except that enq() takes an
 // extra argument for the destination node ID.

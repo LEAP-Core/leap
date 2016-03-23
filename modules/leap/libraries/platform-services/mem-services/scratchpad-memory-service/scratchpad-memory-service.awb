@@ -15,6 +15,7 @@
 %public scratchpad-user-prefetcher.bsv
 %public platform-scratchpad-memory.bsv
 %public platform-scratchpad-memory-utils.bsv
+%public platform-scratchpad-memory-connections.bsv
 %private scratchpad-memory-service.dic
 
 %param --dynamic SCRATCHPAD_PVT_CACHE_MODE                       0  "Bit 2: 0 disabled, 1 enabled prefetcher / Bits 1-0: 0 write-back, 1 write-through, 2 write-no-allocate, 3 disabled"

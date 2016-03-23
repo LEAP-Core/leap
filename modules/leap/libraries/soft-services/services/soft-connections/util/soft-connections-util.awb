@@ -1,0 +1,7 @@
+%name Soft Connections Util
+%desc Soft Connections Util
+
+%provides soft_connections_util
+
+%public addressable-ring-connector.bsv
+

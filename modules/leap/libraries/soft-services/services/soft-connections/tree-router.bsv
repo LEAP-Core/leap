@@ -49,29 +49,31 @@ typedef struct {
 } TREE_MSG#(type t_NODE_ID, type t_DATA)
     deriving (Eq, Bits);
 
-interface CONNECTION_ADDR_TREE#(type t_NODE_ID, type t_DATA);
+// t_DATA_UP: message type from leaf to root (from child to parent)
+// t_DATA_DOWN: message type from root to leaf (from parent to child)
+interface CONNECTION_ADDR_TREE#(type t_NODE_ID, type t_DATA_UP, type t_DATA_DOWN);
 
     // Outgoing portion of the network 
-    method Action enq(TREE_MSG#(t_NODE_ID, t_DATA) msg);
+    method Action enq(TREE_MSG#(t_NODE_ID, t_DATA_DOWN) msg);
     method Bool notFull();
 
     // Incoming portion
-    method TREE_MSG#(t_NODE_ID, t_DATA) first();
+    method t_DATA_UP first();
     method Action deq();
     method Bool notEmpty();
 
 endinterface
 
 // Define some instances for the CONNECTION_ADDR_TREE type. 
-instance Dequeuable#(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA));
+instance Dequeuable#(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA_UP, t_DATA_DOWN));
 
-    function isNotEmpty(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA) treeNode) = treeNode.notEmpty;
+    function isNotEmpty(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA_UP, t_DATA_DOWN) treeNode) = treeNode.notEmpty;
 
 endinstance
          
-instance Enqueuable#(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA));
+instance Enqueuable#(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA_UP, t_DATA_DOWN));
 
-    function isNotFull(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA) treeNode) = treeNode.notFull;
+    function isNotFull(CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA_UP, t_DATA_DOWN) treeNode) = treeNode.notFull;
 
 endinstance
 
@@ -84,9 +86,13 @@ endinstance
 //   an arbiter, which can be supplied externally.  
 //
 
-module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA)) children, Vector#(TAdd#(1, n_INGRESS_PORTS) , t_NODE_ID) addressBounds, function m#(LOCAL_ARBITER#(n_INGRESS_PORTS)) mkArbiter() ) (CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA))
+module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA_UP, t_DATA_DOWN)) children, 
+                         Vector#(TAdd#(1, n_INGRESS_PORTS) , t_NODE_ID) addressBounds, 
+                         function m#(LOCAL_ARBITER#(n_INGRESS_PORTS)) mkArbiter() ) 
+    (CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA_UP, t_DATA_DOWN))
     provisos( Bits#(t_NODE_ID, t_NODE_ID_SZ), 
-              Bits#(t_DATA, t_DATA_SZ),
+              Bits#(t_DATA_UP, t_DATA_UP_SZ),
+              Bits#(t_DATA_DOWN, t_DATA_DOWN_SZ),
               Ord#(t_NODE_ID), 
               IsModule#(m, t_MODULE));
 
@@ -100,10 +106,10 @@ module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_I
 
     // Ingress buffering.  We need to accept incoming requests to a buffer 
     // before we decide what to do with them. 
-    FIFOF#(TREE_MSG#(t_NODE_ID, t_DATA)) incomingBuffer <- mkFIFOF();
+    FIFOF#(TREE_MSG#(t_NODE_ID, t_DATA_DOWN)) incomingBuffer <- mkFIFOF();
 
     // Egress buffering.  Injects a cycle of latency to cut path between tree layers.
-    FIFOF#(TREE_MSG#(t_NODE_ID, t_DATA)) outgoingBuffer <- mkFIFOF();
+    FIFOF#(t_DATA_UP) outgoingBuffer <- mkFIFOF();
 
 
     //
@@ -169,7 +175,7 @@ module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_I
     // Sanity check that for each packet, it goes somewhere in our range. 
     //
     rule assertRouting1 (countElem(True, useChild) == 0);
-        $display("Routing tree node has a message which is not routable to any of its children");
+        $display("Routing tree node has a message which is not routable to any of its children. Dest: %d", dest);
         $finish;
     endrule
 
@@ -204,7 +210,7 @@ module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_I
     //  External interface definition.  We anre only plumbing FIFOs here. 
     //
 
-    method Action enq(TREE_MSG#(t_NODE_ID, t_DATA) msg) ;
+    method Action enq(TREE_MSG#(t_NODE_ID, t_DATA_DOWN) msg) ;
         incomingBuffer.enq(msg); 
     endmethod
 
@@ -219,3 +225,31 @@ module [m] mkTreeRouter#(Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_NODE_I
     method notEmpty = outgoingBuffer.notEmpty();
 
 endmodule
+
+//
+//  mkLeafNode --
+//    Instantiates a leaf node in the router tree. The external interface is 
+//    channel based. 
+module [CONNECTED_MODULE] mkTreeLeafNode#(String treeName, Integer index) 
+    (CONNECTION_ADDR_TREE#(t_NODE_ID, t_DATA_UP, t_DATA_DOWN))
+    provisos( Bits#(t_NODE_ID, t_NODE_ID_SZ), 
+              Bits#(t_DATA_UP, t_DATA_UP_SZ),
+              Bits#(t_DATA_DOWN, t_DATA_DOWN_SZ));
+
+    CONNECTION_RECV#(t_DATA_UP) incomingRequest <-
+        mkConnectionRecv(treeName + "_TREE_NODE_IN_" + integerToString(index));
+
+    CONNECTION_SEND#(TREE_MSG#(t_NODE_ID, t_DATA_DOWN)) outgoingRequest <-
+        mkConnectionSend(treeName + "_TREE_NODE_OUT_" + integerToString(index));
+    
+    // Outgoing portion of the network
+    method enq = outgoingRequest.send;
+    method notFull = outgoingRequest.notFull;
+
+    // Incoming portion
+    method first = incomingRequest.receive;
+    method deq = incomingRequest.deq;
+    method notEmpty = incomingRequest.notEmpty;
+
+endmodule
+

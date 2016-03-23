@@ -6,6 +6,7 @@
 %requires soft_connections_common
 %requires soft_connections_debug
 %requires soft_connections_latency
+%requires soft_connections_util
 
 %attributes bluespec
 
@@ -17,9 +18,8 @@
 %public connection-vectors.bsv
 %public connection-implementation.bsv
 %public connection-backwards-compat.bsv
-%public addressable-ring.bsv
-%public addressable-ring-connector.bsv
 %public connected-module.bsv
+%public addressable-ring.bsv
 %public bury-connections.bsv
 %public tree-router.bsv
 

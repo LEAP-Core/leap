@@ -577,7 +577,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     // doInit --
     //     Complete initialization.
     //
-    rule doInit (state == STAT_INIT);
+    rule doInit (state == STAT_INIT && !overflowQ.notEmpty);
         chainPut(tagged ST_INIT);
         state <= STAT_RECORDING;
     endrule
@@ -587,7 +587,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     // dump --
     //     Done one entry in the statistics vector.
     //
-    rule dump (state == STAT_DUMP);
+    rule dump (state == STAT_DUMP && !overflowQ.notEmpty);
         // Unlike the register vector case above (mkStatCounterVec_Enabled) the
         // value is always sent out in dumps, even when 0.  Here it is because
         // this dump code is only called when requested by software.  In the
@@ -610,7 +610,7 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     // finishDump --
     //     Done dumping all entries in the statistics vector.
     //
-    rule finishDump (state == STAT_FINISHING_DUMP);
+    rule finishDump (state == STAT_FINISHING_DUMP && !overflowQ.notEmpty);
         chainPut(tagged ST_DUMP);
         state <= STAT_RECORDING;
     endrule
@@ -645,9 +645,6 @@ module [CONNECTED_MODULE] mkStatCounterRAM_Enabled#(GLOBAL_STRING_UID desc)
     // handleOverflow --
     //     Pass counter overflow data to software.
     //
-    (* descending_urgency = "handleOverflow, doInit" *)
-    (* descending_urgency = "handleOverflow, dump" *)
-    (* descending_urgency = "handleOverflow, finishDump" *)
     rule handleOverflow (overflowQ.notEmpty);
         match {.idx, .val} = overflowQ.first();
         overflowQ.deq();

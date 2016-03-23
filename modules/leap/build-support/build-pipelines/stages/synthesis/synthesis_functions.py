@@ -4,11 +4,11 @@ import re
 
 import SCons
 
+
 import model
 import li_module
 import parameter_substitution 
 import wrapper_gen_tool 
-
 
 def getModuleRTLs(moduleList, module):
     moduleVerilogs = []
@@ -216,6 +216,11 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         relpath = model.rel_if_not_abspath(vlog, str(vivadoCompileDirectory))
         newTclFile.write("read_verilog -quiet " + relpath + "\n")
        
+    # grab the system verilogs. 
+    for sysv in map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_SYSTEM_VERILOGS')):
+        relpath = model.rel_if_not_abspath(sysv, str(vivadoCompileDirectory))
+        newTclFile.write("read_verilog -sv -quiet " + relpath + "\n")
+    
     for vhd in sorted(globalVHDs):
         if(isinstance(vhd, model.Source.Source)):            
             # Got a source object, potentially more work to do.
