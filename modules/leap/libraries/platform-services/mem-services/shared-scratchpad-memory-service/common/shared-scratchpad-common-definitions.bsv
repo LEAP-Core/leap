@@ -104,6 +104,16 @@ typedef enum
 }
 SHARED_SCRATCH_CACHE_MODE
     deriving (Eq, Bits);
+
+// SHARED_SCRATCH_CACHE_STORE_TYPE --
+//   Used to define the underlying store used by the shared cache.
+typedef enum
+{
+    SHARED_SCRATCH_CACHE_STORE_FLAT_BRAM = 0,
+    SHARED_SCRATCH_CACHE_STORE_BANKED_BRAM = 1
+}
+SHARED_SCRATCH_CACHE_STORE_TYPE
+    deriving (Eq, Bits);
 //
 // Shared scratchpad client type
 // Shared scratchpad clients in the same memory region should have

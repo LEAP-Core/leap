@@ -86,6 +86,16 @@ COH_SCRATCH_CACHE_MODE
     deriving (Eq, Bits);
 
 //
+// Coherent cache banked bram latency
+//
+typedef 4 COH_SCRATCH_CACHE_BANKED_BRAM_LATENCY;
+
+//
+// Coherent cache flat bram latency
+//
+typedef 2 COH_SCRATCH_CACHE_FLAT_BRAM_LATENCY;
+
+//
 // Coherent scratchpad configurations (passed to the constructors of coherent 
 // scratchpad controller and client)
 //
@@ -96,6 +106,9 @@ typedef struct
     
     // The number of entries in coherent scratchpad's private cache
     Integer                 cacheEntries;
+    
+    // Backing store to use in cache.
+    SHARED_SCRATCH_CACHE_STORE_TYPE  backingStore;
 
     // Does the coherent scratchpad domain has multiple controllers?
     Bool                    multiController;
@@ -131,6 +144,7 @@ instance DefaultValue#(COH_SCRATCH_CLIENT_CONFIG);
     defaultValue = COH_SCRATCH_CLIENT_CONFIG {
         cacheMode: COH_SCRATCH_CACHED,
         cacheEntries: `SHARED_SCRATCHPAD_PVT_CACHE_ENTRIES,
+        backingStore: unpack(`COHERENT_SCRATCHPAD_PVT_CACHE_BRAM_TYPE),
         multiController: False,
         enablePrefetching: tagged Invalid, 
         enableAddressHashing: True,

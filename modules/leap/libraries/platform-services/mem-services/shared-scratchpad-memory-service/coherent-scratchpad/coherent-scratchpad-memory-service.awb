@@ -13,6 +13,7 @@
 
 %param --dynamic COHERENT_SCRATCHPAD_PVT_CACHE_MODE                    1  "Bit 1: 0 disabled, 1 enabled prefetcher / Bit 0: 0 disabled, 1 enabled cache clean write-back"
 
+%param --global COHERENT_SCRATCHPAD_PVT_CACHE_BRAM_TYPE                0  "0 use flat bram store, 1: use banked bram store"
 %param --global COHERENT_SCRATCHPAD_RESP_FWD_CHAIN_ENABLE              1  "0 store full forwarding list, 1 use response chaining"
 %param --global COHERENT_SCRATCHPAD_DATA_MEM_CACHE_ENABLE              0  "Enables the private cache in the controller's data scratchpad"
 %param --global COHERENT_SCRATCHPAD_I_TO_M_ENABLE                      1  "0 automatic upgrade from I to O, 1 automatic upgrade from I to M/O"

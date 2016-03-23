@@ -529,6 +529,7 @@ COH_SCRATCH_MERGE_TABLE_ENTRY#(type t_MERGE_TAG,
                                numeric type n_ENTRIES)
     deriving(Bits, Eq);
 
+
 //
 // mkUnmarshalledCachedCoherentScratchpadClient --
 //     Allocate a cached connection to the coherent scratchpad rings of a 
@@ -605,8 +606,17 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedCoherentScratchpadClient#(Integer 
 
     
     // Coherent private cache
-    COH_DM_CACHE#(t_MEM_ADDR, t_MEM_DATA, t_MEM_MASK, t_MAF_IDX) cache <- 
-        mkCoherentCacheDirectMapped(sourceData, prefetcher, nCacheEntries, True, debugLog);
+    COH_DM_CACHE#(t_MEM_ADDR, t_MEM_DATA, t_MEM_MASK, t_MAF_IDX) cache = ?;
+    if (conf.backingStore == SHARED_SCRATCH_CACHE_STORE_FLAT_BRAM)
+    begin
+        NumTypeParam#(COH_SCRATCH_CACHE_FLAT_BRAM_LATENCY) store_latency = ?;
+        cache <- mkCoherentCacheDirectMapped(sourceData, prefetcher, nCacheEntries, conf.backingStore, store_latency, True, debugLog);
+    end
+    else
+    begin
+        NumTypeParam#(COH_SCRATCH_CACHE_BANKED_BRAM_LATENCY) store_latency = ?;
+        cache <- mkCoherentCacheDirectMapped(sourceData, prefetcher, nCacheEntries, conf.backingStore, store_latency, True, debugLog);
+    end
 
     // Hook up stats
     let cacheStats <- statsConstructor(cache.stats);
@@ -1268,7 +1278,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
 
     FIFOF#(t_UNACTIVATED_REQ) unactivatedReqQ <- mkSizedFIFOF(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE));
     PulseWire unactivatedReqSentW <- mkPulseWire();
-    COUNTER#(4) numBufferedReq <- mkLCounter(0);
+    COUNTER#(TLog#(TAdd#(COH_DM_CACHE_NW_REQ_BUF_SIZE,1))) numBufferedReq <- mkLCounter(0);
 
     (* fire_when_enabled *)
     rule sendReqToNetwork (True);
@@ -1893,7 +1903,7 @@ module [CONNECTED_MODULE] mkCoherentScratchpadCacheSourceData#(Integer scratchpa
 
     // Request or response queues
     ds_data = List::cons(tuple2("Coherent Cache Router numBufferedReq notEmpty", numBufferedReq.value()>0), ds_data);
-    ds_data = List::cons(tuple2("Coherent Cache Router numBufferedReq notFull", numBufferedReq.value()<maxBound), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache Router numBufferedReq notFull", numBufferedReq.value()<fromInteger(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE))), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache Router unactivatedReqQ notEmpty", unactivatedReqQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache Router unactivatedReqQ notFull", unactivatedReqQ.notFull), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache Router activatedReqQ notEmpty", activatedReqQ.notEmpty), ds_data);

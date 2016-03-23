@@ -41,6 +41,7 @@ import FIFOF::*;
 import SpecialFIFOs::*;
 import List::*;
 import DefaultValue::*;
+import ConfigReg::*;
 
 // Project foundation imports.
 
@@ -49,6 +50,7 @@ import DefaultValue::*;
 `include "awb/provides/librl_bsv_cache.bsh"
 `include "awb/provides/fpga_components.bsh"
 `include "awb/provides/coherent_scratchpad_memory_service_params.bsh"
+`include "awb/provides/shared_scratchpad_memory_common.bsh"
 
 // ===================================================================
 //
@@ -61,7 +63,7 @@ typedef 16 COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES;
 // Number of entries in the miss status handling registers (MSHR)
 typedef 64 COH_DM_CACHE_MSHR_ENTRIES;
 // Size of the unactivated request buffer
-typedef  8 COH_DM_CACHE_NW_REQ_BUF_SIZE;
+typedef 12 COH_DM_CACHE_NW_REQ_BUF_SIZE;
 
 typedef struct
 {
@@ -474,6 +476,7 @@ COH_DM_CACHE_READ_META#(type t_CACHE_CLIENT_META)
 //
 // ===================================================================
 
+
 //
 // mkCoherentCacheDirectMapped --
 //   n_ENTRIES parameter defines the number of entries in the cache.  The true
@@ -482,6 +485,8 @@ COH_DM_CACHE_READ_META#(type t_CACHE_CLIENT_META)
 module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, t_MSHR_IDX, t_NW_REQ_IDX) sourceData,
                                         CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_CLIENT_META) prefetcher,
                                         NumTypeParam#(n_ENTRIES) dummy,
+                                        SHARED_SCRATCH_CACHE_STORE_TYPE storeType,
+                                        NumTypeParam#(n_STORE_LATENCY) storeLatency,
                                         Bool hashAddresses,
                                         DEBUG_FILE debugLog)
     // interface:
@@ -504,7 +509,11 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
               Alias#(COH_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG, COH_DM_CACHE_COH_STATE), t_CACHE_ENTRY),
 
               // MSHR index
-              Alias#(UInt#(TMin#(TLog#(TDiv#(COH_DM_CACHE_MSHR_ENTRIES,2)), t_CACHE_IDX_SZ)), t_MSHR_IDX),
+              NumAlias#(TMin#(TLog#(TDiv#(COH_DM_CACHE_MSHR_ENTRIES,2)), t_CACHE_IDX_SZ), t_MSHR_IDX_SZ),
+              Alias#(UInt#(t_MSHR_IDX_SZ), t_MSHR_IDX),
+              // MSHR tag
+              Alias#(Bit#(TSub#(t_CACHE_IDX_SZ, t_MSHR_IDX_SZ)), t_MSHR_TAG),
+              
               // Network request index
               Alias#(COH_DM_CACHE_NETWORK_REQ_IDX#(COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES), t_NW_REQ_IDX),
 
@@ -533,7 +542,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                                              dirty: False };
 
     BRAM#(t_CACHE_IDX, t_CACHE_ENTRY) cache;
-    if (`RL_DM_CACHE_BRAM_TYPE == 0)
+    if (storeType == SHARED_SCRATCH_CACHE_STORE_FLAT_BRAM)
     begin
         // Cache implemented as a single BRAM
         cache <- mkBRAMInitialized(cache_init_val);
@@ -555,12 +564,13 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                        t_MSHR_IDX, 
                        t_NW_REQ_IDX) mshr <- mkMSHRForDirectMappedCache(debugLog);
 
-    // Cache writeback status bits
-    // True: the current cache line has an inflight PUTX in mshr
-    LUTRAM#(t_CACHE_IDX, Bool) writebackStatusBits <- mkLUTRAM(False);
+    // Table that tracks the cache lines with pending write-backs
+    // Valid: the current cache line has an inflight PUTX in mshr
+    LUTRAM#(t_MSHR_IDX, Maybe#(t_MSHR_TAG)) pendingWritebackTable <- mkLUTRAM(tagged Invalid);
 
     // Track busy entries
     COUNTING_FILTER#(t_CACHE_IDX, 1) entryFilter <- mkCountingFilter(debugLog);
+    PulseWire entryFilterRemoveW <- mkPulseWire();
 
     // Write data is kept in a heap to avoid passing it around through FIFOs.
     // The heap size limits the number of writes in flight.
@@ -588,17 +598,21 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
 `endif
 
     // Use peekable fifo to enable accessing an arbitrary opject in the fifo
-    PEEKABLE_FIFOF#(t_CACHE_REQ, 2) cacheLookupQ <- mkPeekableFIFOF();
-    RWire#(t_CACHE_REQ) cacheLookupReq           <- mkRWire();
+    PEEKABLE_FIFOF#(Maybe#(t_CACHE_REQ), n_STORE_LATENCY) cacheLookupQ <- mkPeekableFIFOF();
+    
+    // Wires for managing cacheLookupQ
+    RWire#(t_CACHE_REQ) newCacheLookupReqW <- mkRWire();
+    PulseWire newCacheLookupValidW <- mkPulseWire();
    
     //FIFO#(t_CACHE_REQ) invalQ       <- mkFIFO();
    
     // Track the number of available slots (in the request buffer in sourceData) 
     // for inflight unacitaved requests
-    COUNTER#(t_REQ_COUNTER_SZ) numFreeReqBufSlots <- mkLCounter(fromInteger(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE)));
-    RWire#(Bit#(t_REQ_COUNTER_SZ)) numFreedSlots  <- mkRWire();
-    PulseWire startLocalReqW                      <- mkPulseWire();
-    PulseWire resendGetXFromMSHRW                 <- mkPulseWire();
+    Reg#(Bit#(t_REQ_COUNTER_SZ)) numFreeReqBufSlots <- mkReg(fromInteger(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE)));
+    RWire#(Bit#(t_REQ_COUNTER_SZ)) numFreedSlots    <- mkRWire();
+    Reg#(Bool) reqBufFree                           <- mkReg(True);
+    PulseWire startLocalReqW                        <- mkPulseWire();
+    PulseWire resendGetXFromMSHRW                   <- mkPulseWire();
 
     // Wires for communicating stats
     PulseWire readHitW              <- mkPulseWire();
@@ -627,7 +641,6 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     //
     function Tuple2#(t_CACHE_TAG, t_CACHE_IDX) cacheEntryFromAddr(t_CACHE_ADDR addr);
         let a = hashAddresses ? hashBits(pack(addr)) : pack(addr);
-
         // The truncateNP avoids having to assert a tautology about the relative
         // sizes.  All objects are actually the same size.
         return unpack(truncateNP(a));
@@ -635,11 +648,9 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
 
     function t_CACHE_ADDR cacheAddrFromEntry(t_CACHE_TAG tag, t_CACHE_IDX idx);
         t_CACHE_ADDR a = unpack(zeroExtendNP({tag, pack(idx)}));
-
         // Are addresses hashed or direct?  The original hash is reversible.
         if (hashAddresses)
             a = unpack(hashBits_inv(pack(a)));
-
         return a;
     endfunction
 
@@ -655,6 +666,20 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     function t_CACHE_TAG cacheTag(t_CACHE_REQ r);
         return hashAddresses ? r.tag : tpl_1(cacheEntryFromAddr(r.addr));
     endfunction
+   
+    // Convert cache index to mshr index and tag
+    function Tuple2#(t_MSHR_TAG, t_MSHR_IDX) mshrEntryFromCacheIdx(t_CACHE_IDX idx);
+        return unpack(truncateNP(pack(idx)));
+    endfunction
+
+    function t_MSHR_IDX mshrIdx(t_CACHE_IDX idx);
+        return tpl_2(mshrEntryFromCacheIdx(idx));
+    endfunction
+
+    function t_MSHR_TAG mshrTag(t_CACHE_IDX idx);
+        return tpl_1(mshrEntryFromCacheIdx(idx));
+    endfunction
+
 
     //
     // Collecting activated requests from network (sourceData)
@@ -677,47 +702,27 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     endrule
 
     //
-    // Managing the number of freed slots in the unactiaved request buffer (in sourceData)
+    // Managing the number of freed and reserved slots in the unactiaved request buffer (in sourceData)
     //
     (*fire_when_enabled*)
-    rule updFreedReqSlot (True);
-        let free_num = 0;
-        if (numFreedSlots.wget() matches tagged Valid .n)
-        begin
-            free_num = free_num + n;
-        end
-        if (sourceData.unactivatedReqSent())
-        begin
-            free_num = free_num + 1;
-        end
-        if (free_num != 0)
-        begin
-            numFreeReqBufSlots.upBy(free_num);
-            debugLog.record($format("    Cache: updFreedReqSlot: number of freed slots=%x, numFreeReqBufSlots=%x", free_num, numFreeReqBufSlots.value()));
-        end
-    endrule
-
-    //
-    // Managing the number of reserved slots in the unactiaved request buffer (in sourceData)
-    //
-    (*fire_when_enabled*)
-    rule updReservedReqSlot (True);
-        let num = 0;
+    rule updFreeReqBufSlot (True);
+        Bit#(t_REQ_COUNTER_SZ) free_num = fromMaybe(0, numFreedSlots.wget()) + zeroExtend(pack(sourceData.unactivatedReqSent()));
+        Bit#(t_REQ_COUNTER_SZ) reserve_num = zeroExtend(pack(resendGetXFromMSHRW));
         if (startLocalReqW)
         begin
-            num = num + 2;
+            reserve_num = reserve_num + 2;
         end
-        if (resendGetXFromMSHRW)
+        if (free_num != 0 || reserve_num != 0)
         begin
-            num = num + 1;
-        end
-        if (num != 0)
-        begin
-            numFreeReqBufSlots.downBy(num);
-            debugLog.record($format("    Cache: updReservedReqSlot: number of reserved slots=%x, numFreeReqBufSlots=%x", num, numFreeReqBufSlots.value()));
+            let new_num = numFreeReqBufSlots + free_num - reserve_num;
+            let is_free = (new_num > 2);
+            debugLog.record($format("    Cache: updFreeReqBufSlot: freed slots=%d, reserved slots=%d, numFreeReqBufSlots=%0d, reqBufFree=%s", 
+                            free_num, reserve_num, numFreeReqBufSlots, is_free? "True" : "False"));
+
+            numFreeReqBufSlots <= new_num;
+            reqBufFree <= is_free;
         end
     endrule
-
 
     // ===========================================================================
     //
@@ -733,8 +738,8 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     //     (1), (2), and (3) belong to local reqeusts, which are from the local 
     //     client or created locally. (4) is a remote request. (5) is a local 
     //     request that has already accessed the cache but is not be able to 
-    //     processed because the MSHR entry is not avaiable. The type of request 
-    //     need to be handle differently than other local requests. To avoid 
+    //     processed because the MSHR entry is not avaiable. This type of requests 
+    //     needs to be handle differently than other local requests. To avoid 
     //     confusion, when mentioning local requests, (5) is not included. 
     //
     //     At most one local request per line may be active.  When a new incoming
@@ -771,16 +776,17 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     // have already accessed the cache but cannot find a free MSHR entry and
     // stall all other local requests until the mshrRetryQ is empty.
     //
-    FIFOF#(t_CACHE_REQ) mshrRetryQ  <- mkFIFOF();
+    FIFOF#(t_CACHE_REQ) mshrRetryQ <- (storeType == SHARED_SCRATCH_CACHE_STORE_FLAT_BRAM)? mkFIFOF() : mkSizedFIFOF(valueOf(n_STORE_LATENCY));
+    
     // To reduce the number of retry times, process mshrRetryQ only when there
     // is a MSHR entry released
     Reg#(Bool) mshrReleased <- mkReg(False);
     PulseWire  mshrRetryW   <- mkPulseWire();
+    
     //
     // A fair round robin arbiter with changing priorities
     //
     LOCAL_ARBITER#(5) processReqArb <- mkLocalArbiter();
-    PulseWire updateReqArbW         <- mkPulseWire();
     Wire#(LOCAL_ARBITER_OPAQUE#(5)) arbNewState <- mkWire();
     
     //
@@ -788,6 +794,14 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     //
     FIFOF#(t_CACHE_REQ) localRetryQ <- mkSizedFIFOF(8);
     LUTRAM#(Bit#(5), Bit#(2)) localRetryReqFilter <- mkLUTRAM(0);
+    
+    // Track whether the heads of the localReqQ and localRetryQ are blocked.  
+    // Once blocked, a queue stays blocked until either the head is removed or 
+    // a cache index is unlocked when an in-flight request is completed.
+    Reg#(Bool) newReqNotBlocked      <- mkConfigReg(True);
+    Reg#(Bool) retryReqNotBlocked    <- mkConfigReg(True);
+    PulseWire  startLocalRetryReqW   <- mkPulseWire();
+    PulseWire  drainReadW            <- mkPulseWire();
 
     Wire#(Tuple3#(COH_DM_CACHE_REQ_TYPE, t_CACHE_REQ, Bool)) pickReq <- mkWire();
     Wire#(Tuple4#(COH_DM_CACHE_REQ_TYPE, 
@@ -800,28 +814,23 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     
     PulseWire readPendingW <- mkPulseWire();
     PulseWire writePendingW <- mkPulseWire();
-
+    
+    COUNTER#(TAdd#(TLog#(n_STORE_LATENCY),1)) numWriteLookup <- mkLCounter(0);
+    COUNTER#(TAdd#(TLog#(n_STORE_LATENCY),1)) numReadLookup  <- mkLCounter(0);
+    
     // 
     // Check local pending requests
     //
     rule checkPendingReq (True);
         // Check if there is a pending local write request
         let has_local_write = mshr.getExclusivePending();
-        if (cacheLookupQ.peekElem(0) matches tagged Valid .req0 &&& req0.reqInfo matches tagged LocalReqInfo .f0 &&& f0.act == COH_DM_CACHE_WRITE)
-        begin
-            has_local_write = True;
-        end
-        if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.reqInfo matches tagged LocalReqInfo .f1 &&& f1.act == COH_DM_CACHE_WRITE)
+        if (!numWriteLookup.isZero())
         begin
             has_local_write = True;
         end
         // Check if there is a pending local read request
         let has_local_read = mshr.getSharePending();
-        if (cacheLookupQ.peekElem(0) matches tagged Valid .req0 &&& req0.reqInfo matches tagged LocalReqInfo .f0 &&& f0.act == COH_DM_CACHE_READ)
-        begin
-            has_local_read = True;
-        end
-        if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.reqInfo matches tagged LocalReqInfo .f1 &&& f1.act == COH_DM_CACHE_READ)
+        if (!numReadLookup.isZero())
         begin
             has_local_read = True;
         end
@@ -837,15 +846,6 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     endrule
 
 `endif
-
-    //
-    // updateReqArb --
-    //     Update the state of the round robin arbiter (processReqArb) if the 
-    //     picked request is processed (updateReqArbW signal is raised)
-    // 
-    rule updateReqArb (updateReqArbW);
-        processReqArb.update(arbNewState);
-    endrule
 
     //
     // pickReqQueue0 --
@@ -867,7 +867,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         // Note which request queue has request available to process
         LOCAL_ARBITER_CLIENT_MASK#(5) reqs = newVector();
         
-        let req_buf_free = (numFreeReqBufSlots.value() > 2);
+        let req_buf_free = reqBufFree;
         let is_fence_req = False;
         
 `ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
@@ -888,14 +888,14 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                 has_local = (check_read && readPendingW) || (check_write && writePendingW);
             end
         end
-        reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty && !mshrRetryQ.notEmpty &&
+        reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty && !mshrRetryQ.notEmpty && newReqNotBlocked &&
                                                    ((is_fence_req && !localRetryQ.notEmpty && !has_local) || 
                                                    (!is_fence_req && req_buf_free));
 `else
-        reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty && !mshrRetryQ.notEmpty && req_buf_free;
+        reqs[pack(COH_DM_CACHE_LOCAL_REQ)]       = localReqQ.notEmpty && !mshrRetryQ.notEmpty && req_buf_free && newReqNotBlocked;
 `endif
 
-        reqs[pack(COH_DM_CACHE_LOCAL_RETRY_REQ)] = localRetryQ.notEmpty && !mshrRetryQ.notEmpty && req_buf_free;
+        reqs[pack(COH_DM_CACHE_LOCAL_RETRY_REQ)] = localRetryQ.notEmpty && !mshrRetryQ.notEmpty && req_buf_free && retryReqNotBlocked;
         reqs[pack(COH_DM_CACHE_PREFETCH_REQ)]    = prefetchMode == COH_DM_PREFETCH_ENABLE && 
                                                    prefetcher.hasReq() && !mshrRetryQ.notEmpty && req_buf_free;
         reqs[pack(COH_DM_CACHE_REMOTE_REQ)]      = remoteReqQ.notEmpty && !mshr.dataRespQAlmostFull();
@@ -945,8 +945,22 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     //     request is tested by the expensive entryFilter.
     // 
     (* fire_when_enabled *)
-    rule pickReqQueue1 (True);
+    rule pickReqQueue1 (cacheLookupQ.notFull);
         match {.req_type, .r, .is_local_fence} = pickReq;
+        
+        let idx = cacheIdx(r);
+        // At this point the cache index is known but it is not yet known
+        // whether it is legal to read the index this cycle.  Delaying the
+        // cache read any longer is an FPGA timing bottleneck.  We request
+        // the read speculatively now and will indicate in cacheLookupQ
+        // whether the speculative read must be drained.  Nothing else
+        // would have been done this cycle, so we lose no performance.
+        cache.readReq(idx);
+        newCacheLookupReqW.wset(r);
+        
+        // Update arbiter now that a request has been posted.
+        processReqArb.update(arbNewState);
+        
         //
         // In order to preserve read/write and write/write order of local 
         // requests, a local request must either come from the local retry 
@@ -980,12 +994,8 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         match {.req_type, .r, .cf_opaque} = curReq;
         let idx = cacheIdx(r);
         debugLog.record($format("    Cache: startRemoteReq: addr=0x%x, entry=0x%x", r.addr, idx));
-        cache.readReq(idx);
-        cacheLookupQ.enq(r);
-        cacheLookupReq.wset(r);
+        newCacheLookupValidW.send();
         remoteReqQ.deq();
-        // update arbiter processReqArb
-        updateReqArbW.send();
     endrule
     
     //
@@ -1001,12 +1011,18 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         match {.req_type, .r, .cf_opaque, .is_fence} = curReq;
         let idx = cacheIdx(r);
         debugLog.record($format("    Cache: startMSHRRetryReq: addr=0x%x, entry=0x%x", r.addr, idx));
-        cache.readReq(idx);
-        cacheLookupQ.enq(r);
-        cacheLookupReq.wset(r);
+        newCacheLookupValidW.send();
         mshrRetryQ.deq();
-        // update arbiter processReqArb
-        updateReqArbW.send();
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+        if (f.act == COH_DM_CACHE_WRITE)
+        begin
+            numWriteLookup.up();
+        end
+        else if (f.act == COH_DM_CACHE_READ)
+        begin
+            numReadLookup.up();
+        end
+`endif
     endrule
 
 `ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
@@ -1021,8 +1037,6 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         debugLog.record($format("    Cache: done with fence request..."));
         localReqQ.deq();
         localFenceInfoQ.deq();
-        // update arbiter processReqArb
-        updateReqArbW.send();
     endrule
 `endif
 
@@ -1047,12 +1061,21 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
 
         // Read the entry either to return the value (READ) or to see whether
         // the entry is dirty and flush it.
-        cache.readReq(idx);
-        cacheLookupQ.enq(r);
-        cacheLookupReq.wset(r);
+        newCacheLookupValidW.send();
         startLocalReqW.send();
-        debugLog.record($format("    Cache: start local req: numFreeReqBufSlots=%x", numFreeReqBufSlots.value()));
+        debugLog.record($format("    Cache: start local req: numFreeReqBufSlots=%0d", numFreeReqBufSlots));
 
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+        if (f.act == COH_DM_CACHE_WRITE)
+        begin
+            numWriteLookup.up();
+        end
+        else if (f.act == COH_DM_CACHE_READ)
+        begin
+            numReadLookup.up();
+        end
+`endif
+        
         if (req_type == COH_DM_CACHE_LOCAL_REQ)
         begin
             localReqQ.deq();
@@ -1061,28 +1084,14 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         begin
             localRetryQ.deq();
             localRetryReqFilter.upd(resize(idx), localRetryReqFilter.sub(resize(idx)) - 1);
+            startLocalRetryReqW.send();
         end
         else
         begin
             let pf_req <- prefetcher.getReq();
         end
-        
-        // update arbiter processReqArb
-        updateReqArbW.send();
     endrule
 
-    //
-    // blockedLocalReq --
-    //     update arbiter processReqArb when local requests are blocked by busy 
-    //     cache lines
-    //
-    (* fire_when_enabled *)
-    rule blockedLocalReq (tpl_2(curReq).reqInfo matches tagged LocalReqInfo .f &&& 
-                          (tpl_1(curReq) != COH_DM_CACHE_MSHR_RETRY_REQ) &&& 
-                          ! isValid(tpl_3(curReq)) &&& !tpl_4(curReq));
-        updateReqArbW.send();
-    endrule
-    
     //
     // shuntNewReq --
     //     If the current local request is new (not a shunted request) and the
@@ -1123,6 +1132,70 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         prefetcher.prefetchDroppedByBusy(tpl_2(curReq).addr);
     endrule
 
+    //
+    // blockLocalReq --
+    //     Check if the head of the local request queue is blocked by busy 
+    // cache lines and cannot be shunt to retry queue. 
+    //
+    (* fire_when_enabled *)
+    rule blockLocalReq (tpl_1(curReq) == COH_DM_CACHE_LOCAL_REQ &&
+                        (localRetryReqFilter.sub(resize(cacheIdx(tpl_2(curReq)))) == maxBound) &&
+                        ! isValid(tpl_3(curReq)) && !tpl_4(curReq));
+        newReqNotBlocked <= False;
+        debugLog.record($format("    Cache: new local req blocked by busy: addr=0x%x", tpl_2(curReq).addr));
+    endrule
+    
+    //
+    // unblockLocalReq --
+    //     Unblock the local request queue when a local retry request is 
+    // processed or an inflight request is complete. 
+    //
+    (* fire_when_enabled *)
+    rule unblockLocalReq (startLocalRetryReqW || entryFilterRemoveW);
+        newReqNotBlocked <= True;
+        debugLog.record($format("    Cache: unblock local req queue"));
+    endrule
+    
+    //
+    // blockLocalRetryReq --
+    //     Check if the head of the local retry request queue is blocked by 
+    // busy cache lines.
+    //
+    (* fire_when_enabled *)
+    rule blockLocalRetryReq (tpl_1(curReq) == COH_DM_CACHE_LOCAL_RETRY_REQ &&
+                             ! isValid(tpl_3(curReq)) && !tpl_4(curReq));
+        retryReqNotBlocked <= False;
+        debugLog.record($format("    Cache: local retry req blocked by busy: addr=0x%x", tpl_2(curReq).addr));
+    endrule
+    
+    //
+    // unblockLocalRetryReq --
+    //     Unblock the local retry request queue when an inflight request is complete. 
+    //
+    (* fire_when_enabled *)
+    rule unblockLocalRetryReq (entryFilterRemoveW);
+        retryReqNotBlocked <= True;
+        debugLog.record($format("    Cache: unblock local retry req queue"));
+    endrule
+    
+    //
+    // Write cacheLookupQ to indicate whether a new request was started
+    // this cycle.
+    //
+    (* fire_when_enabled *)
+    rule didLookup (newCacheLookupReqW.wget() matches tagged Valid .r);
+        // Was a valid new request started?
+        if (newCacheLookupValidW)
+        begin
+            cacheLookupQ.enq(tagged Valid r);
+            debugLog.record($format("    Lookup valid, entry=0x%x", cacheIdx(r)));
+        end
+        else
+        begin
+            cacheLookupQ.enq(tagged Invalid);
+            debugLog.record($format("    Speculative lookup dropped"));
+        end
+    endrule
     
     // ========================================================================
     //
@@ -1135,62 +1208,80 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     // whether the cache line is active or not. As a result, requests in the 
     // cache lookup pipeline may have the same target cache line and may cause 
     // read-after-write hazards. To deal with read-after-write hazards, we add
-    // two bypass paths to allow cache reads to get the latest update.
+    // response bypass paths to allow cache reads to get the latest update.
     //
-    // The reason why we need two bypass paths is because there are two paths
+    // The reason why we need bypass paths is because there are two paths
     // updating the cache: (1) fill responses from MSHR (2) normal cache 
     // operations (read misses/cache writes)
     //
-    // Each time when MSHR writes back to cache, it checks the cache's two 
-    // inflight read requests (cacheReadInflight0, cacheReadInflight1) and updates 
-    // the bypass entries if necessary (bypassCacheEntry0, bypassCacheEntry1).
+    // Each time when MSHR writes back to cache, it checks the cache's 
+    // inflight read requests and updates bypass entries if necessary 
     //
-    Reg#(t_CACHE_ENTRY) bypassCacheEntry0 <- mkReg(COH_DM_CACHE_ENTRY{ tag: ?,
-                                                                       val: ?,
-                                                                       state: COH_DM_CACHE_STATE_I,
-                                                                       dirty: False });
-    Reg#(t_CACHE_ENTRY) bypassCacheEntry1 <- mkReg(COH_DM_CACHE_ENTRY{ tag: ?,
-                                                                       val: ?,
-                                                                       state: COH_DM_CACHE_STATE_I,
-                                                                       dirty: False });
-    Reg#(Bool) needBypass0 <- mkReg(False);
-    Reg#(Bool) needBypass1 <- mkReg(False);
-
-    // 
-    // updateBypassEntry -- 
-    // 
-    // The two bypass entries are shifted each time when a cache read response
-    // is dequeued (which happens during each cache operation).
-    //
-    // If the current cache operation's update needs to be bypassed, the new
-    // updates is stored into bypassCacheEntry0; otherwise, the value of 
-    // bypassCacheEntry1 is shifted to bypassCacheEntry0.
-    // 
-    function Action updateBypassEntry(Bool needBypass, t_CACHE_ENTRY bypassEntry);
-        return 
-            action
-                bypassCacheEntry0 <= (needBypass)? bypassEntry : bypassCacheEntry1;
-                needBypass0 <= needBypass || needBypass1;
-                needBypass1 <= False;
-            endaction;
+    Reg#(FUNC_FIFO#(Maybe#(t_CACHE_ENTRY), n_STORE_LATENCY)) bypassCacheEntryQ <- mkReg(funcFIFO_Init());
+    RWire#(Vector#(n_STORE_LATENCY, Bool)) needBypassW <- mkRWire();
+    RWire#(t_CACHE_ENTRY) bypassCacheEntryW <- mkRWire();
+    PulseWire bypassCacheEntryDeqW <- mkPulseWire();
+    
+    function Maybe#(t_CACHE_ENTRY) doBypass (Maybe#(t_CACHE_ENTRY) old_entry, Bool needBypass, t_CACHE_ENTRY new_entry);
+        return (needBypass)? tagged Valid new_entry : old_entry; 
     endfunction
 
+    (*fire_when_enabled*)
+    rule updateBypassEntryQ (isValid(newCacheLookupReqW.wget()) || isValid(bypassCacheEntryW.wget()) || bypassCacheEntryDeqW);
+        FUNC_FIFO#(Maybe#(t_CACHE_ENTRY), n_STORE_LATENCY) new_fifo_state = bypassCacheEntryQ;
+        // DEQ requested?
+        if (bypassCacheEntryDeqW)
+        begin
+            new_fifo_state = funcFIFO_UGdeq(new_fifo_state);
+        end
+        // ENQ requested?
+        if (isValid(newCacheLookupReqW.wget()))
+        begin
+            new_fifo_state = funcFIFO_UGenq(new_fifo_state, tagged Invalid);
+        end
+        // Overwrite fifo
+        if (needBypassW.wget() matches tagged Valid .bypass_vec &&& bypassCacheEntryW.wget() matches tagged Valid .entry)
+        begin
+            new_fifo_state.data = zipWith3(doBypass, new_fifo_state.data, bypass_vec, replicate(entry));
+        end
+        bypassCacheEntryQ <= new_fifo_state;
+    endrule
+
     //
-    // Return bypassCacheEntry0 if needBypass0 is true; otherwise, return 
+    // Return the value from bypassCacheEntryQ if valid; otherwise, return 
     // cache.readRsp()
     //
     function ActionValue#(t_CACHE_ENTRY) cacheReadRespBypass();
         actionvalue
+            bypassCacheEntryDeqW.send();
             let resp <- cache.readRsp();
-            if (needBypass0)
+            let bypass_resp = funcFIFO_UGfirst(bypassCacheEntryQ);
+            if (bypass_resp matches tagged Valid .r)
             begin
-                resp = bypassCacheEntry0;
+                resp = r;
                 debugLog.record($format("    Cache: read from bypass entry..."));
             end
             return resp;
         endactionvalue
     endfunction
-   
+
+    function Bool checkSameCacheIdx (t_CACHE_IDX cache_idx, Integer fifo_idx);
+        Bool is_same_idx = False;
+        if (fifo_idx < valueOf(n_STORE_LATENCY))
+        begin
+            if (cacheLookupQ.peekElem(fromInteger(fifo_idx)) matches tagged Valid .req &&& req matches tagged Valid .r)
+            begin
+                is_same_idx = (r.idx == cache_idx); 
+            end
+        end
+        return is_same_idx;
+    endfunction
+    
+    function Integer addOne (Integer i);
+        return (i+1);
+    endfunction
+
+
     //
     // Apply write mask and return the updated data
     //
@@ -1206,6 +1297,19 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         return unpack(resize(pack(bytes_out))); 
     endfunction
     
+    // ====================================================================
+    //
+    // Drain (failed speculative read)
+    //
+    // ====================================================================
+
+    rule drainRead (! isValid(cacheLookupQ.first));
+        cacheLookupQ.deq();
+        let cur_entry <- cacheReadRespBypass();
+        drainReadW.send();
+        debugLog.record($format("    Cache: drainRead: drain speculative read response"));
+    endrule
+    
     // ========================================================================
     //
     // Remote request path
@@ -1215,18 +1319,23 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     FIFOF#(t_ROUTER_RESP) respToRouterQ <- mkFIFOF();
     
     (* conservative_implicit_conditions *)
-    rule remoteCacheLookup (cacheLookupQ.first().reqInfo matches tagged RemoteReqInfo .f);
-        let r = cacheLookupQ.first();
+    rule remoteCacheLookup (cacheLookupQ.first() matches tagged Valid .r &&& r.reqInfo matches tagged RemoteReqInfo .f);
+        
         cacheLookupQ.deq();
-
         Bool resp_sent   = False;
-        Bool need_bypass = False;
+        Vector#(n_STORE_LATENCY, Bool) need_bypass_vec = replicate(False);
         
         let idx = cacheIdx(r);
         let tag = cacheTag(r);
 
         let cur_entry <- cacheReadRespBypass();
         let upd_entry = cur_entry;
+        
+        Bool has_inflight_putx = False;
+        if (pendingWritebackTable.sub(mshrIdx(idx)) matches tagged Valid .mshr_tag &&& mshr_tag == mshrTag(idx))
+        begin
+            has_inflight_putx = True;
+        end
 
         if (cur_entry.state != COH_DM_CACHE_STATE_TRANS && cur_entry.tag == tag) // Hit!
         begin
@@ -1264,18 +1373,19 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                                     r.addr, f.reqIdx, cur_entry.val));
                 end
             end
-            if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.idx == idx)
+            need_bypass_vec = zipWith(checkSameCacheIdx, replicate(idx), genWith(addOne));
+            if (newCacheLookupReqW.wget() matches tagged Valid .req0 &&& req0.idx == idx)
             begin
-                need_bypass = True;
+                UInt#(TLog#(n_STORE_LATENCY)) bypass_idx =  unpack(truncateNP(bypassCacheEntryQ.activeEntries-1));
+                need_bypass_vec[bypass_idx] = True;
             end
-            else if (cacheLookupReq.wget() matches tagged Valid .req0 &&& req0.idx == idx)
-            begin
-                need_bypass = True;
-            end
+            bypassCacheEntryW.wset(upd_entry);
+            needBypassW.wset(need_bypass_vec);
             cache.write(idx, upd_entry);
+            debugLog.record($format("    Cache: remoteLookup: check bypass updated entry: entry=0x%x, need_bypass_vec=%b", idx, need_bypass_vec));
             debugLog.record($format("    Cache: remoteLookup: update cache state=%d", upd_entry.state));
         end
-        else if (cur_entry.state == COH_DM_CACHE_STATE_TRANS || writebackStatusBits.sub(idx))
+        else if (cur_entry.state == COH_DM_CACHE_STATE_TRANS || has_inflight_putx)
         begin
             // if the cache state is in transient state or mshr is still waiting 
             // for the PUTX completion, it is MSHR's responsibility to send responses
@@ -1295,9 +1405,6 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
             debugLog.record($format("    Cache: remoteLookup: NULL RESP: addr=0x%x, reqIdx=0x%x", 
                             r.addr, f.reqIdx));
         end
-
-        updateBypassEntry(need_bypass, upd_entry);
-    
     endrule
 
     // ========================================================================
@@ -1307,10 +1414,12 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     // ========================================================================
     
     (* conservative_implicit_conditions *)
-    rule localLookupRead (cacheLookupQ.first().reqInfo matches tagged LocalReqInfo .f &&& f.act == COH_DM_CACHE_READ);
-        let r = cacheLookupQ.first();
+    rule localLookupRead (cacheLookupQ.first() matches tagged Valid .r &&& r.reqInfo matches tagged LocalReqInfo .f &&& f.act == COH_DM_CACHE_READ);
         cacheLookupQ.deq();
-
+        
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+        numReadLookup.down();
+`endif
         let idx = cacheIdx(r);
         let tag = cacheTag(r);
 
@@ -1318,10 +1427,12 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         let upd_entry = ?;
 
         Bool need_fill       = True;
-        Bool need_bypass     = False;
         Bool need_writeback  = False;
-        t_MSHR_IDX mshr_idx  = truncateNP(idx);
         Bool isInvalMiss     = False;
+        
+        Vector#(n_STORE_LATENCY, Bool) need_bypass_vec = replicate(False);
+        
+        t_MSHR_IDX mshr_idx  = mshrIdx(idx);
 
         if (cur_entry.tag == tag) // Tag match!
         begin
@@ -1348,6 +1459,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                     prefetcher.prefetchDroppedByHit();
                 end
                 entryFilter.remove(idx);
+                entryFilterRemoveW.send();
                 need_fill = False;
                 numFreedSlots.wset(2);
             end
@@ -1371,7 +1483,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                 sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
                 mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
                 need_writeback = True;
-                writebackStatusBits.upd(idx, True);
+                pendingWritebackTable.upd(mshrIdx(idx), tagged Valid mshrTag(idx));
                 if (clean_write_back)
                 begin
                     selfCleanFlushW.send();
@@ -1404,14 +1516,15 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                                                  val: ?,
                                                  state: COH_DM_CACHE_STATE_TRANS,
                                                  dirty: False };
-                if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.idx == idx)
+                need_bypass_vec = zipWith(checkSameCacheIdx, replicate(idx), genWith(addOne));
+                if (newCacheLookupReqW.wget() matches tagged Valid .req0 &&& req0.idx == idx)
                 begin
-                    need_bypass = True;
+                    UInt#(TLog#(n_STORE_LATENCY)) bypass_idx =  unpack(truncateNP(bypassCacheEntryQ.activeEntries-1));
+                    need_bypass_vec[bypass_idx] = True;
                 end
-                else if (cacheLookupReq.wget() matches tagged Valid .req0 &&& req0.idx == idx)
-                begin
-                    need_bypass = True;
-                end
+                bypassCacheEntryW.wset(upd_entry);
+                needBypassW.wset(need_bypass_vec);
+                debugLog.record($format("    Cache: localLookupRead: check bypass updated entry: entry=0x%x, need_bypass_vec=%b", idx, need_bypass_vec));
                 debugLog.record($format("    Cache: localLookupRead: MISS addr=0x%x, entry=0x%x, meta=0x%x", r.addr, idx, f.readMeta));
                 cache.write(idx, upd_entry);
                 if (!need_writeback)
@@ -1426,9 +1539,6 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                 debugLog.record($format("    Cache: localLookupRead: Retry addr=0x%x, entry=0x%x, MSHR entry (idx=0x%x) not available", r.addr, idx, mshr_idx));
             end
         end
-        
-        updateBypassEntry(need_bypass, upd_entry);
-        
     endrule
 
     // ====================================================================
@@ -1439,9 +1549,13 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
 
     (* mutually_exclusive = "remoteCacheLookup, localLookupRead, doLocalWrite" *)
     (* conservative_implicit_conditions *)
-    rule doLocalWrite (cacheLookupQ.first().reqInfo matches tagged LocalReqInfo .f &&& f.act == COH_DM_CACHE_WRITE);
-        let r = cacheLookupQ.first();
+    rule doLocalWrite (cacheLookupQ.first() matches tagged Valid .r &&& r.reqInfo matches tagged LocalReqInfo .f &&& f.act == COH_DM_CACHE_WRITE);
+        
         cacheLookupQ.deq();
+
+`ifndef SHARED_SCRATCHPAD_PIPELINED_FENCE_ENABLE_Z
+        numWriteLookup.down();
+`endif
 
         let idx = cacheIdx(r);
         let tag = cacheTag(r);
@@ -1450,9 +1564,9 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         let upd_entry = ?;
        
         Bool need_retry      = False;
-        Bool need_bypass     = False;
         Bool need_writeback  = False;
-        t_MSHR_IDX mshr_idx  = truncateNP(idx);
+        
+        t_MSHR_IDX mshr_idx  = mshrIdx(idx);
 
         // New data to write
         match {.w_data, .w_mask} = reqInfo_writeData.sub(f.writeDataIdx);
@@ -1471,7 +1585,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                 sourceData.putExclusive(old_addr, clean_write_back, is_exclusive);
                 mshr.putExclusive(mshr_idx, old_addr, cur_entry.val, False, clean_write_back, is_exclusive);
                 need_writeback = True;
-                writebackStatusBits.upd(idx, True);
+                pendingWritebackTable.upd(mshrIdx(idx), tagged Valid mshrTag(idx));
                 if (clean_write_back)
                 begin
                     selfCleanFlushW.send();
@@ -1492,6 +1606,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
             let new_data = applyWriteMask(cur_entry.val, w_data, w_mask);
             upd_entry = COH_DM_CACHE_ENTRY { tag: tag, val: new_data, state: COH_DM_CACHE_STATE_M, dirty: True };
             entryFilter.remove(idx);
+            entryFilterRemoveW.send();
             reqInfo_writeData.free(f.writeDataIdx);
             numFreedSlots.wset(2);
 `ifndef SHARED_SCRATCHPAD_TEST_AND_SET_ENABLE_Z
@@ -1560,19 +1675,18 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
         
         if (!need_retry)
         begin
-            if (cacheLookupQ.peekElem(1) matches tagged Valid .req1 &&& req1.idx == idx)
+            Vector#(n_STORE_LATENCY, Bool) need_bypass_vec = zipWith(checkSameCacheIdx, replicate(idx), genWith(addOne));
+            if (newCacheLookupReqW.wget() matches tagged Valid .req0 &&& req0.idx == idx)
             begin
-                need_bypass = True;
+                UInt#(TLog#(n_STORE_LATENCY)) bypass_idx =  unpack(truncateNP(bypassCacheEntryQ.activeEntries-1));
+                need_bypass_vec[bypass_idx] = True;
             end
-            else if (cacheLookupReq.wget() matches tagged Valid .req0 &&& req0.idx == idx)
-            begin
-                need_bypass = True;
-            end
+            bypassCacheEntryW.wset(upd_entry);
+            needBypassW.wset(need_bypass_vec);
+            debugLog.record($format("    Cache: doLocalWrite: check bypass updated entry: entry=0x%x, need_bypass_vec=%b", idx, need_bypass_vec));
             cache.write(idx, upd_entry);
         end
-
-        updateBypassEntry(need_bypass, upd_entry);
-
+    
     endrule
 
     // ====================================================================
@@ -1589,7 +1703,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     rule fillReq (True);
         match {.r, .is_read} = fillReqQ.first();
         fillReqQ.deq();
-        t_MSHR_IDX mshr_idx = truncateNP(cacheIdx(r));
+        t_MSHR_IDX mshr_idx = mshrIdx(cacheIdx(r));
         let req_info = r.reqInfo.LocalReqInfo;
         if (is_read) // read miss fill
         begin
@@ -1663,7 +1777,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
 
         if (f.msgType == COH_CACHE_PUTX && !f.isCacheable) // write backs due to cache conflicts
         begin
-            writebackStatusBits.upd(idx, False);
+            pendingWritebackTable.upd(mshrIdx(idx), tagged Invalid);
         end
         else
         begin
@@ -1691,34 +1805,31 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
             // update cache and bypass entries
             cache.write(idx, new_entry);
             
-            Maybe#(t_CACHE_REQ) req0 = tagged Invalid;
-            Maybe#(t_CACHE_REQ) req1 = tagged Invalid;
-            
-            // cacheLookupQ is empty 
-            if (!cacheLookupQ.notEmpty())
+            Vector#(n_STORE_LATENCY, Bool) need_bypass_vec = replicate(False);
+            if (drainReadW) // bypassCacheEntryQ would dequeue this cycle
             begin
-                req0 = cacheLookupReq.wget();
+                need_bypass_vec = zipWith(checkSameCacheIdx, replicate(idx), genWith(addOne));
+                if (newCacheLookupReqW.wget() matches tagged Valid .req0 &&& req0.idx == idx)
+                begin
+                    UInt#(TLog#(n_STORE_LATENCY)) bypass_idx =  unpack(truncateNP(bypassCacheEntryQ.activeEntries-1));
+                    need_bypass_vec[bypass_idx] = True;
+                end
             end
-            else // cacheLookupQ is not empty
+            else
             begin
-                req0 = cacheLookupQ.peekElem(0);
-                req1 = (cacheLookupQ.notFull())? cacheLookupReq.wget() : cacheLookupQ.peekElem(1);
+                need_bypass_vec = zipWith(checkSameCacheIdx, replicate(idx), genVector());
+                if (newCacheLookupReqW.wget() matches tagged Valid .req0 &&& req0.idx == idx)
+                begin
+                    UInt#(TLog#(n_STORE_LATENCY)) bypass_idx =  unpack(truncateNP(bypassCacheEntryQ.activeEntries));
+                    need_bypass_vec[bypass_idx] = True;
+                end
             end
-
-            if (req0 matches tagged Valid .r0 &&& r0.idx == idx)
-            begin
-                needBypass0 <= True;
-                bypassCacheEntry0 <= new_entry;
-                debugLog.record($format("    Cache: fillResp: bypass updated entry: entry=0x%x", idx));
-            end
-            if (req1 matches tagged Valid .r1 &&& r1.idx == idx)
-            begin
-                needBypass1 <= True;
-                bypassCacheEntry1 <= new_entry;
-                debugLog.record($format("    Cache: fillResp: bypass updated entry: entry=0x%x", idx));
-            end
+            bypassCacheEntryW.wset(new_entry);
+            needBypassW.wset(need_bypass_vec);
+            debugLog.record($format("    Cache: fillResp: check bypass updated entry: entry=0x%x, need_bypass_vec=%b", idx, need_bypass_vec));
 
             entryFilter.remove(idx);
+            entryFilterRemoveW.send();
         end
     endrule
 
@@ -1780,7 +1891,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     //
     // mshr resend getX request if receiving retry response
     //
-    rule resendGetXFromMSHR (numFreeReqBufSlots.value() > 0);
+    rule resendGetXFromMSHR (numFreeReqBufSlots > 0);
         match {.addr, .idx} <- mshr.retryReq();
         sourceData.getExclusive(addr, idx, defaultValue());
         resendGetXFromMSHRW.send();
@@ -1832,8 +1943,8 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     ds_data = List::cons(tuple2("Coherent Cache cacheLookupQ notEmpty", cacheLookupQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache cacheLookupQ notFull", cacheLookupQ.notFull), ds_data);
     // Request reserved slots
-    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notEmpty", (numFreeReqBufSlots.value()>0)), ds_data);
-    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notFull", (numFreeReqBufSlots.value()<fromInteger(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE)))), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notEmpty", (numFreeReqBufSlots>0)), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache numFreeReqBufSlots notFull", (numFreeReqBufSlots<fromInteger(valueOf(COH_DM_CACHE_NW_REQ_BUF_SIZE)))), ds_data);
 
     let debugScanData = ds_data;
 
