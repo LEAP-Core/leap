@@ -479,12 +479,16 @@ COH_DM_CACHE_READ_META#(type t_CACHE_CLIENT_META)
 
 //
 // mkCoherentCacheDirectMapped --
-//   n_ENTRIES parameter defines the number of entries in the cache.  The true
-//   number of entries will be rounded up to a power of 2.
+//    A thin wrapper allowing us to make parameterization decisions about the 
+//    actual coherent cache (implemented below).  Here, we examine the 
+//    requested cache size, and parameterize an implementation on behalf of 
+//    the programmer. n_ENTRIES parameter defines the number of entries in 
+//    the cache. The true number of entries will be rounded up to a supported 
+//    cache size.
 //
 module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, t_MSHR_IDX, t_NW_REQ_IDX) sourceData,
                                         CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_CLIENT_META) prefetcher,
-                                        NumTypeParam#(n_ENTRIES) dummy,
+                                        NumTypeParam#(n_ENTRIES) entries,
                                         SHARED_SCRATCH_CACHE_STORE_TYPE storeType,
                                         NumTypeParam#(n_STORE_LATENCY) storeLatency,
                                         Bool hashAddresses,
@@ -503,9 +507,150 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
               // Cache index size needs to be no larger than the memory address
               NumAlias#(TMin#(t_ENTRY_IDX_SZ, t_CACHE_ADDR_SZ), t_CACHE_IDX_SZ),
               Alias#(COH_DM_CACHE_IDX#(t_CACHE_IDX_SZ), t_CACHE_IDX),
+              NumAlias#(TExp#(t_CACHE_IDX_SZ), n_MAX_ENTRIES),
+              
+              Alias#(Bit#(TSub#(t_CACHE_IDX_SZ, n_LOAD_BALANCE_BASE_BITS)), t_LOAD_BALANCE_RANGE_BITS),
+              Alias#(Bit#(TAdd#(n_LOAD_BALANCE_EXTRA_BITS, SizeOf#(t_LOAD_BALANCE_RANGE_BITS))), t_LOAD_BALANCE_DOMAIN_BITS),
+              Alias#(Bit#(n_LOAD_BALANCE_BASE_BITS), t_LOAD_BALANCE_BASE_BITS),
 
               // Tag is the address bits other than the entry index
-              Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, t_CACHE_IDX_SZ)), t_CACHE_TAG),
+              Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, n_LOAD_BALANCE_BASE_BITS)), t_CACHE_TAG),
+              
+              // MSHR index
+              NumAlias#(TMin#(TLog#(TDiv#(COH_DM_CACHE_MSHR_ENTRIES,2)), t_CACHE_IDX_SZ), t_MSHR_IDX_SZ),
+              Alias#(UInt#(t_MSHR_IDX_SZ), t_MSHR_IDX),
+              // Network request index
+              Alias#(COH_DM_CACHE_NETWORK_REQ_IDX#(COH_DM_CACHE_NW_COMPLETION_TABLE_ENTRIES), t_NW_REQ_IDX));
+
+
+
+    COH_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META) cache = ?;
+
+    // Here, we examine n_ENTRIES, and develop different cache implementations
+    // based on how close this value is to the next power of two.  
+    if(valueof(n_ENTRIES) > 7 * valueof(n_MAX_ENTRIES) / 8)
+    begin
+        // Build power of two cache
+        NumTypeParam#(0) loadBalanceExtraBits = ?;
+        NumTypeParam#(t_CACHE_IDX_SZ) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 1;
+
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
+
+    end
+    else if(valueof(n_ENTRIES) > 3 * valueof(n_MAX_ENTRIES) / 4)
+    begin
+        // Build 7/8 power of two cache
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 6;
+        
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
+    end
+    else if(valueof(n_ENTRIES) > 5 * valueof(n_MAX_ENTRIES) / 8)
+    begin
+        // Build 3/4 power of two cache
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,2)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 2;
+        
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
+
+    end
+    else
+    begin
+        // Build 5/8 power of two cache
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,3)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 4;
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
+
+    end
+    
+    return cache;
+
+endmodule
+
+//
+// mkCoherentCacheDirectMappedBalanced --
+//   A coherent cache implementing an optional load-balancer functionality for 
+// non-power of two caches.
+//
+module [m] mkCoherentCacheDirectMappedBalanced#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CACHE_WORD, t_MSHR_IDX, t_NW_REQ_IDX) sourceData,
+                                                CACHE_PREFETCHER#(t_CACHE_IDX, t_CACHE_ADDR, t_CACHE_CLIENT_META) prefetcher,
+                                                NumTypeParam#(n_ENTRIES) entries,
+                                                SHARED_SCRATCH_CACHE_STORE_TYPE storeType,
+                                                NumTypeParam#(n_STORE_LATENCY) storeLatency,
+                                                // These parameters allow us to support non-power of two caches
+                                                // via a load balancing technique.
+                                                NumTypeParam#(n_LOAD_BALANCE_EXTRA_BITS) loadBalanceExtraBits,
+                                                NumTypeParam#(n_LOAD_BALANCE_BASE_BITS) loadBalanceBaseBits,
+                                                Integer maxLoadBalanceIndex,
+                                                Bool hashAddresses,
+                                                DEBUG_FILE debugLog)
+    // interface:
+    (COH_DM_CACHE#(t_CACHE_ADDR, t_CACHE_WORD, t_CACHE_MASK, t_CACHE_CLIENT_META))
+    provisos (IsModule#(m, m__),
+              Bits#(t_CACHE_ADDR, t_CACHE_ADDR_SZ),
+              Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
+              Bits#(t_CACHE_MASK, t_CACHE_MASK_SZ),
+              Bits#(t_CACHE_CLIENT_META, t_CACHE_CLIENT_META_SZ),
+              Div#(t_CACHE_WORD_SZ, 8, t_CACHE_MASK_SZ),
+
+              // Entry index.  Round n_ENTRIES request up to a power of 2.
+              Log#(n_ENTRIES, t_ENTRY_IDX_SZ),
+              // Cache index size needs to be no larger than the memory address
+              NumAlias#(TMin#(t_ENTRY_IDX_SZ, t_CACHE_ADDR_SZ), t_CACHE_IDX_SZ),
+              Alias#(COH_DM_CACHE_IDX#(t_CACHE_IDX_SZ), t_CACHE_IDX),
+              
+              Alias#(Bit#(TSub#(t_CACHE_IDX_SZ, n_LOAD_BALANCE_BASE_BITS)), t_LOAD_BALANCE_RANGE_BITS),
+              Alias#(Bit#(TAdd#(n_LOAD_BALANCE_EXTRA_BITS, SizeOf#(t_LOAD_BALANCE_RANGE_BITS))), t_LOAD_BALANCE_DOMAIN_BITS),
+              Alias#(Bit#(n_LOAD_BALANCE_BASE_BITS), t_LOAD_BALANCE_BASE_BITS),
+
+              // Tag is the address bits other than the entry index
+              Alias#(Bit#(TSub#(t_CACHE_ADDR_SZ, n_LOAD_BALANCE_BASE_BITS)), t_CACHE_TAG),
               Alias#(COH_DM_CACHE_ENTRY#(t_CACHE_WORD, t_CACHE_TAG, COH_DM_CACHE_COH_STATE), t_CACHE_ENTRY),
 
               // MSHR index
@@ -635,22 +780,42 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
     PulseWire ioUpgradeW            <- mkPulseWire();
     PulseWire respFromCacheW        <- mkPulseWire();
     PulseWire respFromMemoryW       <- mkPulseWire();
+    
+    function Integer doMod(Integer modEnd);
+        return modEnd % (maxLoadBalanceIndex + 1);
+    endfunction
+
+    function t_LOAD_BALANCE_RANGE_BITS calculateLoadBalanceIndex(t_LOAD_BALANCE_DOMAIN_BITS index);
+        Vector#(TExp#(SizeOf#(t_LOAD_BALANCE_DOMAIN_BITS)), Integer) loadBalancer = map(doMod, genVector());
+        return fromInteger(loadBalancer[index]);
+    endfunction
 
     //
     // Convert address to cache index and tag
     //
     function Tuple2#(t_CACHE_TAG, t_CACHE_IDX) cacheEntryFromAddr(t_CACHE_ADDR addr);
         let a = hashAddresses ? hashBits(pack(addr)) : pack(addr);
+        
         // The truncateNP avoids having to assert a tautology about the relative
         // sizes.  All objects are actually the same size.
-        return unpack(truncateNP(a));
+        Tuple2#(t_CACHE_TAG, t_LOAD_BALANCE_BASE_BITS) addrSplit = unpack(truncateNP(a));
+        match {.tag, .baseBits} = addrSplit;
+        
+        // Calculate the load balancer index bits
+        t_LOAD_BALANCE_DOMAIN_BITS balancerBits = truncateNP(tag);
+        let balancedIndex = calculateLoadBalanceIndex(balancerBits);
+        
+        return tuple2(tag, unpack({balancedIndex, baseBits}));
     endfunction
 
     function t_CACHE_ADDR cacheAddrFromEntry(t_CACHE_TAG tag, t_CACHE_IDX idx);
-        t_CACHE_ADDR a = unpack(zeroExtendNP({tag, pack(idx)}));
+        t_LOAD_BALANCE_BASE_BITS indexBaseBits = truncateNP(pack(idx));
+        t_CACHE_ADDR a = unpack(zeroExtendNP({tag, indexBaseBits}));
+
         // Are addresses hashed or direct?  The original hash is reversible.
         if (hashAddresses)
             a = unpack(hashBits_inv(pack(a)));
+
         return a;
     endfunction
 
