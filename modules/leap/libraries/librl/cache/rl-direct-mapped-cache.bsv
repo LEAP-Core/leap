@@ -1182,7 +1182,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
             begin
                 // Miss.  Need to flush old data?
                 let old_addr = cacheAddrFromEntry(e.tag, idx);
-                debugLog.record($format("    doWrite: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
+                debugLog.record($format("    lookupRead: FLUSH addr=0x%x, entry=0x%x, val=0x%x", old_addr, idx, e.val));
                 sourceData.write(old_addr, e.val);
                 dirtyEntryFlushW.send;
             end

@@ -50,6 +50,7 @@ import Vector::*;
 import SpecialFIFOs::*;
 import List::*;
 import DefaultValue::*;
+import ConfigReg::*;
 
 // Project foundation imports.
 
@@ -187,19 +188,6 @@ typedef enum
 RL_SA_BRAM_CACHE_ACTION
     deriving (Eq, Bits);
 
-//
-// Basic request information constructed when a new request arrives.
-//
-typedef struct
-{
-    t_CACHE_TAG     tag;
-    t_CACHE_SET_IDX set;
-    t_CACHE_WAY_IDX way;
-}
-RL_SA_BRAM_CACHE_REQ_BASE#(type t_CACHE_TAG,
-                           type t_CACHE_SET_IDX,
-                           type t_CACHE_WAY_IDX)
-    deriving(Bits, Eq);
 
 typedef struct
 {
@@ -235,6 +223,1147 @@ RL_SA_BRAM_CACHE_REQ#(numeric type nWordsPerLine,
                       type t_CACHE_READ_META)
     deriving(Bits, Eq);
 
+
+
+// ========================================================================
+//
+// mkCacheSetAssocWithBRAM --
+//    A wrapper of a set associative cache implemented with BRAM.
+//
+//    NOTE: mkCacheSetAssocWithBRAM may return read responses out of order 
+//          relative to the request order!  For in-order responses the 
+//          caller must add a tag to the t_CACHE_READ_META type and use the
+//          tag to sort the responses.  A SCOREBOARD_FIFO would do the job.
+//
+// ========================================================================
+
+module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_LINE, nWordsPerLine, t_MAF_IDX) sourceData,
+                                NumTypeParam#(nSets) param0,
+                                NumTypeParam#(nWays) param1,
+                                NumTypeParam#(nTagExtraLowBits) param2,
+                                DEBUG_FILE debugLog)
+    // interface:
+        (RL_SA_BRAM_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META))
+    provisos (Bits#(t_CACHE_LINE, t_CACHE_LINE_SZ),
+              Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
+              Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
+
+              // Write word size must tile into cache line
+              Bits#(Vector#(nWordsPerLine, t_CACHE_WORD), t_CACHE_LINE_SZ),
+
+              // Cache address size must be no larger than 128 bits because
+              // of the hash function.
+              Add#(t_CACHE_ADDR_SZ, a__, 128),
+
+              // Set index and tag.  Set index size + tag size == address size.
+              Alias#(RL_SA_CACHE_SET_IDX#(nSets), t_CACHE_SET_IDX),
+              Bits#(t_CACHE_SET_IDX, t_CACHE_SET_IDX_SZ),
+              Alias#(RL_SA_CACHE_TAG#(t_CACHE_ADDR_SZ, nSets), t_CACHE_TAG),
+
+              // Set size must be no longer than 32 bits (for set filter)
+              Add#(t_CACHE_SET_IDX_SZ, b__, 32),
+
+              Alias#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_ADDR),
+              Alias#(Bit#(TLog#(nWordsPerLine)), t_CACHE_WORD_IDX),
+              Alias#(Bit#(TLog#(RL_SA_BRAM_CACHE_MAF_ENTRIES)), t_MAF_IDX),
+
+              // Unbelievably ugly tautologies required by the compiler:
+              Add#(TSub#(t_CACHE_ADDR_SZ, TLog#(nSets)), TLog#(nSets), t_CACHE_ADDR_SZ),
+              Add#(t_CACHE_ADDR_SZ, nTagExtraLowBits, TAdd#(t_CACHE_ADDR_SZ, nTagExtraLowBits)),
+              Log#(nWays, TLog#(nWays)),
+              Add#(TLog#(TExp#(TLog#(nSets))), 0, TLog#(nSets)),
+              Add#(TLog#(TDiv#(TExp#(TLog#(nSets)), 2)), x__, TLog#(nSets)));
+
+    RL_SA_BRAM_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META) cache = ?;
+
+    // Special case: multi-word directed mapped cache
+    if (valueOf(nWays) == 1)
+    begin
+        cache <- mkCacheMultiWordDirectMapped(sourceData, param0, param2, debugLog);
+    end
+    else
+    begin
+        cache <- mkCacheSetAssocWithBRAMImpl(sourceData, param0, param1, param2, debugLog);
+    end
+
+    return cache;
+
+endmodule
+
+
+// ===================================================================
+//
+// Special case: Multi-word direct mapped cache implementation
+//
+// ===================================================================
+
+typedef struct
+{
+    RL_SA_CACHE_TAG#(t_CACHE_ADDR_SZ, nSets) tag;
+    Bool dirty;
+    Vector#(nWordsPerLine, Bool) wordValid;
+}
+RL_MW_DM_CACHE_METADATA#(numeric type t_CACHE_ADDR_SZ, numeric type nWordsPerLine, numeric type nSets)
+    deriving(Bits, Eq);
+
+instance DefaultValue#(RL_MW_DM_CACHE_METADATA#(t_CACHE_ADDR_SZ, nWordsPerLine, nSets));
+    defaultValue = RL_MW_DM_CACHE_METADATA { tag: ?,
+                                             dirty: False,
+                                             wordValid: replicate(False) }; 
+endinstance
+
+typedef struct
+{
+    t_CACHE_TAG     tag;
+    t_CACHE_SET_IDX set;
+}
+RL_MW_DM_CACHE_REQ_BASE#(type t_CACHE_TAG,
+                         type t_CACHE_SET_IDX)
+    deriving(Bits, Eq);
+
+
+module mkCacheMultiWordDirectMapped#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_LINE, nWordsPerLine, t_MAF_IDX) sourceData,
+                                     NumTypeParam#(nSets) param0,
+                                     NumTypeParam#(nTagExtraLowBits) param1,
+                                     DEBUG_FILE debugLog)
+    // interface:
+        (RL_SA_BRAM_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META))
+    provisos (Bits#(t_CACHE_LINE, t_CACHE_LINE_SZ),
+              Bits#(t_CACHE_READ_META, t_CACHE_READ_META_SZ),
+              Bits#(t_CACHE_WORD, t_CACHE_WORD_SZ),
+
+              // Write word size must tile into cache line
+              Bits#(Vector#(nWordsPerLine, t_CACHE_WORD), t_CACHE_LINE_SZ),
+
+              // Cache address size must be no larger than 128 bits because
+              // of the hash function.
+              Add#(t_CACHE_ADDR_SZ, a__, 128),
+
+              // Set index and tag.  Set index size + tag size == address size.
+              Alias#(RL_SA_CACHE_SET_IDX#(nSets), t_CACHE_SET_IDX),
+              Bits#(t_CACHE_SET_IDX, t_CACHE_SET_IDX_SZ),
+              Alias#(RL_SA_CACHE_TAG#(t_CACHE_ADDR_SZ, nSets), t_CACHE_TAG),
+
+              // Set size must be no longer than 32 bits (for set filter)
+              Add#(t_CACHE_SET_IDX_SZ, b__, 32),
+
+              Alias#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_ADDR),
+              Alias#(RL_MW_DM_CACHE_METADATA#(t_CACHE_ADDR_SZ, nWordsPerLine, nSets), t_METADATA),
+              Alias#(RL_SA_CACHE_LOAD_RESP#(t_CACHE_ADDR, t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META), t_CACHE_LOAD_RESP),
+              Alias#(RL_MW_DM_CACHE_REQ_BASE#(t_CACHE_TAG, t_CACHE_SET_IDX), t_CACHE_REQ_BASE),
+              Alias#(RL_SA_BRAM_CACHE_REQ#(nWordsPerLine, t_CACHE_READ_META), t_CACHE_REQ),
+              Alias#(Bit#(TLog#(nWordsPerLine)), t_CACHE_WORD_IDX),
+              Alias#(RL_SA_CACHE_WRITE_INFO#(t_CACHE_WORD, t_CACHE_WORD_IDX), t_CACHE_WRITE_INFO),
+              Alias#(Vector#(nWordsPerLine, Bool), t_CACHE_WORD_VALID_MASK),
+       
+              Bits#(t_CACHE_REQ, t_CACHE_REQ_SZ),
+
+              Alias#(Bit#(TLog#(RL_SA_BRAM_CACHE_MAF_ENTRIES)), t_MAF_IDX),
+
+              // Unbelievably ugly tautologies required by the compiler:
+              Add#(TSub#(t_CACHE_ADDR_SZ, TLog#(nSets)), TLog#(nSets), t_CACHE_ADDR_SZ),
+              Add#(t_CACHE_ADDR_SZ, nTagExtraLowBits, TAdd#(t_CACHE_ADDR_SZ, nTagExtraLowBits)),
+              Add#(TLog#(TExp#(TLog#(nSets))), 0, TLog#(nSets)),
+              Add#(TLog#(TDiv#(TExp#(TLog#(nSets)), 2)), x__, TLog#(nSets)));
+
+    // ***** Elaboration time checks of types
+    // The interface allows for a number of sets that isn't a
+    // power of 2, but the implementation currently does not.
+    if(valueof(nSets) != valueof(TExp#(TLog#(nSets))))
+    begin
+        error("nSets must be a power of 2");
+    end
+    
+    // Cache Storage
+    
+    // Metadata
+    BRAM#(t_CACHE_SET_IDX, t_METADATA) metaStore = ?; 
+    
+    if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
+    begin
+        metaStore <- mkBRAMInitialized(defaultValue);
+    end
+    else if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
+    begin
+        // Cache implemented as 4 BRAM banks with I/O buffering to allow
+        // more time to reach memory.
+        NumTypeParam#(4) p_banks = ?;
+        metaStore <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                     mkBRAMInitializedBuffered(defaultValue));
+    end
+    else
+    begin
+        // Cache implemented as 4 half-speed BRAM banks.
+        NumTypeParam#(4) p_banks = ?;
+
+        // Add buffering.  This accomplishes two things:
+        //   1. It adds a fully scheduled stage (without conservative conditions)
+        //      that allows requests to go to banks that aren't busy.
+        //   2. Buffering supports long wires.
+        let meta_slow = mkSlowMemoryM(mkBRAMInitializedClockDivider(defaultValue), True);
+        metaStore <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, meta_slow);
+    end
+
+    // Values
+    Vector#(nWordsPerLine, BRAM#(t_CACHE_SET_IDX, t_CACHE_WORD)) dataStore = ?;
+
+    if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
+    begin
+        dataStore <- replicateM(mkBRAMSized(valueof(nSets)));
+    end
+    else if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
+    begin
+        NumTypeParam#(4) p_banks = ?;
+        dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                                mkBRAMSizedBuffered(valueof(nSets)/4)));
+    end
+    else
+    begin
+        NumTypeParam#(4) p_banks = ?;
+        let data_slow = mkSlowMemoryM(mkBRAMSizedClockDivider(valueof(nSets)/4), True);
+        dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, data_slow));
+    end
+
+    // ***** Internal state *****
+
+    // Write data is kept in a heap to avoid passing it around through FIFOs.
+    // The heap size limits the number of writes in flight.
+    MEMORY_HEAP_IMM#(Bit#(WRITE_DATA_HEAP_IDX_SZ), t_CACHE_WORD) reqInfo_writeData <- mkMemoryHeapLUTRAM();
+    MEMORY_HEAP#(t_MAF_IDX,Tuple4#(t_CACHE_READ_META, t_CACHE_WORD_IDX, t_CACHE_WORD_VALID_MASK, Bool)) mafTable <- mkMemoryHeapUnionBRAM();
+
+    // Is the cache write back?  If not, never set a dirty bit.  It is then the
+    // responsibility of the caller to write values to backing storage.
+    Reg#(RL_SA_CACHE_MODE) cacheMode <- mkReg(RL_SA_MODE_WRITE_BACK);
+    function Bool writeBackCache() = (cacheMode == RL_SA_MODE_WRITE_BACK);
+    function Bool cacheEnabled() = (pack(cacheMode)[1] == 0);
+
+    // Filter for allowing one live operation per cache set.
+    COUNTING_FILTER#(t_CACHE_SET_IDX, 1) setFilter <- mkCountingFilter(debugLog);
+
+    // ***** Queues between internal pipeline stages *****
+
+    // Incoming requests
+    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) newReqQ <- mkFIFOF();
+    // Cache lookup queue
+    FIFOF#(Maybe#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ))) cacheLookupQ = ?;
+
+    // Fill for read path
+    FIFOF#(Tuple5#(t_CACHE_REQ_BASE, t_MAF_IDX, RL_SA_BRAM_CACHE_READ_REQ#(nWordsPerLine, t_CACHE_READ_META), Maybe#(t_CACHE_WORD_VALID_MASK), Bool)) fillReqQ <- mkFIFOF();
+    FIFOF#(Tuple5#(t_CACHE_REQ_BASE, t_CACHE_LINE, RL_CACHE_GLOBAL_READ_META, t_MAF_IDX, Bool)) mafLookupQ <- mkFIFOF();
+
+    // Inval or flush path
+    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, Bool)) invalOrFlushQ <- mkFIFOF();
+
+    // Exit from all paths
+    FIFOF#(t_CACHE_SET_IDX) doneQ <- mkFIFOF();
+
+    // Read responses may be returned out of order relative to request order!
+    FIFOF#(Tuple5#(t_CACHE_REQ_BASE, RL_SA_BRAM_CACHE_READ_REQ#(nWordsPerLine, t_CACHE_READ_META), t_CACHE_LINE, t_CACHE_WORD_VALID_MASK, Bool)) readRespToClientQ_OOO <- mkFIFOF();
+
+    if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
+    begin
+        cacheLookupQ <- mkFIFOF();
+    end
+    else
+    begin
+        cacheLookupQ <- mkSizedFIFOF(8);
+    end
+
+    RWire#(t_CACHE_READ_META) readMissW          <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeMissW         <- mkRWire();
+    RWire#(t_CACHE_READ_META) readHitW           <- mkRWire();
+    RWire#(t_CACHE_READ_META) writeHitW          <- mkRWire();
+    PulseWire invalEntryW        <- mkPulseWire();
+    PulseWire forceInvalLineW    <- mkPulseWire();
+    PulseWire dirtyEntryFlushW   <- mkPulseWire();
+
+    // ***** Indexing functions *****
+    //
+    // Functions for converting from address to tag and set or vice versa.
+    //
+    function Tuple2#(t_CACHE_TAG, t_CACHE_SET_IDX) cacheTagAndSet(t_CACHE_ADDR addr);
+        return unpack(hashBits(addr));
+    endfunction
+
+    function t_CACHE_ADDR cacheAddr(t_CACHE_TAG tag, t_CACHE_SET_IDX set);
+        t_CACHE_ADDR hashed_addr = { tag, pack(set) };
+        return hashBits_inv(hashed_addr);
+    endfunction
+
+    //
+    // debugAddr --
+    //     Pretty printer for converting cache addresses to system addresses.
+    //     Adds trailing 0's that were dropped from cache addresses because they
+    //     are inside a cache line.
+    //
+    function Bit#(TAdd#(t_CACHE_ADDR_SZ, nTagExtraLowBits)) debugAddr(t_CACHE_ADDR addr);
+        Bit#(nTagExtraLowBits) zero = 0;
+        return { addr, zero };
+    endfunction
+
+    function Bit#(TAdd#(t_CACHE_ADDR_SZ, nTagExtraLowBits)) debugAddrFromTag(t_CACHE_TAG tag, t_CACHE_SET_IDX set);
+        Bit#(nTagExtraLowBits) zero = 0;
+        return { cacheAddr(tag, set), zero };
+    endfunction
+    
+    //
+    // cache access functions
+    //
+    function Action cacheLineDataReadReq(t_CACHE_SET_IDX set);
+        action
+            for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
+            begin
+                dataStore[b].readReq(set);
+            end
+        endaction
+    endfunction
+    
+    function Action cacheLineDataWrite(t_CACHE_SET_IDX set, t_CACHE_WORD_VALID_MASK mask, t_CACHE_LINE val);
+        action
+            Vector#(nWordsPerLine, t_CACHE_WORD) words = unpack(pack(val));
+            for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
+            begin
+                if (mask[b])
+                begin
+                    dataStore[b].write(set, words[b]);
+                end
+            end
+        endaction
+    endfunction
+
+    function ActionValue#(t_CACHE_LINE) getCacheLineDataResp();
+        actionvalue
+            Vector#(nWordsPerLine, t_CACHE_WORD) v = newVector();
+            for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
+            begin
+                let d <- dataStore[b].readRsp();
+                v[b] = d;
+            end
+            t_CACHE_LINE line_data = unpack(pack(v));
+            return line_data;
+        endactionvalue
+    endfunction
+
+    // ***** Rules ***** //
+
+    // ====================================================================
+    //
+    // All incoming requests start here with handleIncomingReq
+    //
+    // ====================================================================
+
+    //
+    // Maintain a side buffer of requests to cache sets that already have
+    // in-flight conflicting requests.  This allows non-conflicting requests
+    // to proceed.
+    //
+    FIFOF#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) sideReqQ <-
+        mkSizedFIFOF(valueOf(RL_SA_CONFLICTQ_ENTRIES));
+
+    // A very simple filter to detect lines with requests already in the side
+    // cache.
+    LUTRAM#(Bit#(6), Bit#(3)) sideReqFilter <- mkLUTRAM(0);
+    Reg#(Bit#(1)) newReqArb <- mkReg(0);
+    Wire#(Tuple3#(Bool,
+                  Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ),
+                  Maybe#(CF_OPAQUE#(t_CACHE_SET_IDX, 1)))) curReq <- mkWire();
+    
+    // Track whether the heads of newReqQ and sideReqQ are blocked.  
+    // Once blocked, a queue stays blocked until either the head is removed or 
+    // a cache index is unlocked when an in-flight request is completed.
+    Reg#(Bool) newReqNotBlocked      <- mkConfigReg(True);
+    Reg#(Bool) retryReqNotBlocked    <- mkConfigReg(True);
+    PulseWire  startSideReqW         <- mkPulseWire();
+    PulseWire  setFilterRemoveW      <- mkPulseWire();
+
+    // Wires for managing cacheLookupQ
+    RWire#(Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ)) newCacheLookupReqW <- mkRWire();
+    PulseWire newCacheLookupValidW <- mkPulseWire();
+    
+    //
+    // pickReqQ --
+    //     Decide whether to consider the new request or side request queue
+    //     this cycle.  Filtering both is too expensive.
+    //
+    rule pickReqQueue (cacheLookupQ.notFull());
+        //
+        // New requests win over side requests if there is a new request
+        // and the arbiter is non-zero.  If the arbitration counter newReqArb
+        // is larger than 1 bit this favors new requests over side-buffer
+        // requests in an effort to have as many requests in flight as possible.
+        //
+        Bool new_req_avail = newReqQ.notEmpty && newReqNotBlocked;
+        Bool side_req_avail = sideReqQ.notEmpty && retryReqNotBlocked;
+        Bool pick_new_req = new_req_avail && ((newReqArb != 0) || ! side_req_avail);
+    
+        let r = pick_new_req ? newReqQ.first() : sideReqQ.first();
+
+        match {.req_base, .req} = r;
+        let tag = req_base.tag;
+        let set = req_base.set;
+        
+        // speculatively read meta and data stores
+        newCacheLookupReqW.wset(r);
+        cacheLineDataReadReq(set);
+        metaStore.readReq(set);
+        
+        // Update arbiter now that a request has been posted.  Arbiter update
+        // is tied to cache requests in order to support storage that
+        // doesn't accept a request every cycle, such as BRAM running
+        // with a divided block.  Updating the arbiter without this connection
+        // can trigger harmonics that result in live locks.
+        newReqArb <= newReqArb + 1;
+
+        // In order to preserve read/write and write/write order, the
+        // request must either come from the side buffer or be a new request
+        // referencing a line not already in the side buffer.
+        //
+        // The array sideReqFilter tracks lines active in the side request
+        // queue.
+        if (! pick_new_req || sideReqFilter.sub(resize(set)) == 0)
+        begin
+            curReq <= tuple3(pick_new_req, r, setFilter.test(set));
+        end
+        else
+        begin
+            curReq <= tuple3(pick_new_req, r, tagged Invalid);
+        end
+    endrule
+
+    //
+    // startReq --
+    //     Start the current request if the line is not busy.
+    //
+    (* fire_when_enabled *)
+    rule startReq (tpl_3(curReq) matches tagged Valid .filter_state);
+        match {.pick_new_req, .r, .cf_opaque} = curReq;
+        match {.req_base, .req} = r;
+
+        let tag = req_base.tag;
+        let set = req_base.set;
+
+        setFilter.set(filter_state);
+        newCacheLookupValidW.send();
+        debugLog.record($format("  FWD %s to ReqQ: addr=0x%x, set=0x%x",
+                                pick_new_req ? "new" : "side",
+                                debugAddrFromTag(tag, set), set));
+        if (pick_new_req)
+        begin
+            newReqQ.deq();
+        end
+        else
+        begin
+            sideReqQ.deq();
+            startSideReqW.send();
+            sideReqFilter.upd(resize(set), sideReqFilter.sub(resize(set)) - 1);
+        end
+    endrule
+
+    //
+    // shuntNewReq --
+    //     If the current request is new (not a shunted request) and the
+    //     line is busy, shunt the new request to a side queue in order to
+    //     attempt to process a later request that may be ready to go.
+    //
+    //     This rule will not fire if startReq fires.
+    //
+    match {.curReq_req_base, .curReq_req} = tpl_2(curReq);
+    
+    function Bool isOrderedReq(t_CACHE_REQ req);
+        if (req matches tagged HCOP_READ .rReq &&& rReq.globalReadMeta.orderedSourceDataReqs == True)
+            return True;
+        else
+            return False;
+    endfunction
+
+    (* fire_when_enabled *)
+    rule shuntNewReq (tpl_1(curReq) &&
+                      ! isOrderedReq(curReq_req) &&
+                      (sideReqFilter.sub(resize(curReq_req_base.set)) != maxBound) &&
+                      ! isValid(tpl_3(curReq)));
+        
+        match {.pick_new_req, .r, .cf_opaque} = curReq;
+        match {.req_base, .req} = r;
+
+        let tag = req_base.tag;
+        let set = req_base.set;
+
+        debugLog.record($format("  SIDE shunt req: addr=0x%x, set=0x%x",
+                                debugAddrFromTag(tag, set), set));
+
+        sideReqQ.enq(r);
+        newReqQ.deq();
+
+        // Note line present in sideReqQ
+        sideReqFilter.upd(resize(set), sideReqFilter.sub(resize(set)) + 1);
+    endrule
+    
+    //
+    // blockNewReq --
+    //     Check if the head of newReqQ is blocked by busy cache lines and 
+    // cannot be shunt to retry queue. 
+    //
+    (* fire_when_enabled *)
+    rule blockNewReq (tpl_1(curReq) && ( isOrderedReq(curReq_req) || 
+                      (sideReqFilter.sub(resize(curReq_req_base.set)) == maxBound) ) &&
+                      ! isValid(tpl_3(curReq)));
+        newReqNotBlocked <= False;
+        debugLog.record($format("  New req blocked by busy: addr=0x%x", 
+                        debugAddrFromTag(curReq_req_base.tag, curReq_req_base.set)));
+    endrule
+    
+    //
+    // unblockLocalReq --
+    //     Unblock newReqQ when a sideReq is processed or an inflight request is complete. 
+    //
+    (* fire_when_enabled *)
+    rule unblockNewReq (startSideReqW || setFilterRemoveW);
+        newReqNotBlocked <= True;
+        debugLog.record($format("  Unblock newReqQ"));
+    endrule
+    
+    //
+    // blockSideReq --
+    //     Check if the head of the sideReqQ is blocked by busy cache lines.
+    //
+    (* fire_when_enabled *)
+    rule blockSideReq (!tpl_1(curReq) && ! isValid(tpl_3(curReq)));
+        retryReqNotBlocked <= False;
+        debugLog.record($format("  Side req blocked by busy: addr=0x%x",
+                        debugAddrFromTag(curReq_req_base.tag, curReq_req_base.set)));
+    endrule
+    
+    //
+    // unblockSideReq --
+    //     Unblock the sideReqQ when an inflight request is complete. 
+    //
+    (* fire_when_enabled *)
+    rule unblockLocalRetryReq (setFilterRemoveW);
+        retryReqNotBlocked <= True;
+        debugLog.record($format("  Unblock sideReqQ"));
+    endrule
+    
+    //
+    // Write cacheLookupQ to indicate whether a new request was started
+    // this cycle.
+    //
+    (* fire_when_enabled *)
+    rule didLookup (newCacheLookupReqW.wget() matches tagged Valid .r);
+        // Was a valid new request started?
+        if (newCacheLookupValidW)
+        begin
+            match {.req_base, .req} = r;
+            cacheLookupQ.enq(tagged Valid r);
+            debugLog.record($format("    Lookup valid, set=0x%x", req_base.set));
+        end
+        else
+        begin
+            cacheLookupQ.enq(tagged Invalid);
+            debugLog.record($format("    Speculative lookup dropped"));
+        end
+    endrule
+    
+    // ====================================================================
+    //
+    // Drain (failed speculative read)
+    //
+    // ====================================================================
+
+    rule drainRead (! isValid(cacheLookupQ.first));
+        cacheLookupQ.deq();
+        let meta <- metaStore.readRsp();
+        let data <- getCacheLineDataResp();
+    endrule
+    
+    // ====================================================================
+    //
+    // Inval / flush path
+    //
+    // Two stage path for invalidate or flush requests.  First stage
+    // looks up the address in the cache.  If the line is present and dirty,
+    // the second stage flushes it to the backing storage.  The third
+    // stage responds with an ACK that storage is consistent, if requested.
+    //
+    // ====================================================================
+
+    function Bool reqIsInvalOrFlush(t_CACHE_REQ req);
+        if (req matches tagged HCOP_INVAL .needAck)
+            return True;
+        else if (req matches tagged HCOP_FLUSH_DIRTY .needAck)
+            return True;
+        else
+            return False;
+    endfunction
+
+    //
+    // handleInvalOrFlush --
+    //     Invalidate and flush requests have similar handling.  Both write
+    //     back a dirty matching line.  Flush preserves the now clean line
+    //     in the cache.
+    //
+    (* conservative_implicit_conditions *)
+    rule handleInvalOrFlush (cacheLookupQ.first() matches tagged Valid .r &&& reqIsInvalOrFlush(tpl_2(r)));
+
+        match {.req_base, .req} = r;
+        cacheLookupQ.deq();
+        let meta <- metaStore.readRsp();
+        let line <- getCacheLineDataResp();
+
+        let tag = req_base.tag;
+        let set = req_base.set;
+
+        Bool need_ack = ?;
+        Bool is_inval = ?;
+
+        case (req) matches
+        tagged HCOP_INVAL .needACK:
+        begin
+            need_ack = needACK;
+            is_inval = True;
+            debugLog.record($format("  Process request: INVAL addr=0x%x, set=0x%x, needAck=%s", 
+                            debugAddrFromTag(tag, set), set, needACK? "True" : "False"));
+        end
+        tagged HCOP_FLUSH_DIRTY .needACK:
+        begin
+            need_ack = needACK;
+            is_inval = False;
+            debugLog.record($format("  Process request: FLUSH addr=0x%x, set=0x%x, needAck=%s", 
+                            debugAddrFromTag(tag, set), set, needACK? "True" : "False"));
+        end
+        endcase
+
+        Bool found_dirty_line = False;
+        let new_meta = meta;
+
+        if (meta.tag == tag)
+        begin
+            if (meta.dirty && !is_inval)
+            begin
+                // Found dirty line.  Prepare for write back.
+                // FLUSH:  Line no longer dirty.  Update meta data.
+                new_meta.dirty = False;
+                found_dirty_line = True;
+                dirtyEntryFlushW.send();
+                debugLog.record($format("  FLUSH: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                                debugAddrFromTag(tag, set), set, meta.wordValid, line));
+                sourceData.write(cacheAddr(tag, set), meta.wordValid, line);
+            end
+            if (is_inval)
+            begin
+                // Invalidate line
+                forceInvalLineW.send();
+                new_meta.wordValid = replicate(False);
+                new_meta.dirty = False;
+                debugLog.record($format("  INVAL: addr=0x%x, set=0x%x, mask=0x%x", 
+                                debugAddrFromTag(tag, set), set, meta.wordValid));
+            end
+            metaStore.write(set, new_meta);
+            debugLog.record($format("  FLUSH/INVAL HIT %s: addr=0x%x, set=0x%x", 
+                            (found_dirty_line ? "dirty" : "clean"), debugAddrFromTag(tag, set), set));
+        end
+        
+        if (need_ack)
+        begin
+            invalOrFlushQ.enq(tuple2(req_base, is_inval)); 
+        end
+        else
+        begin
+            doneQ.enq(set);
+        end
+    endrule
+
+    //
+    //  fwdInvalOrFlush --
+    //    Forward invalidate or flush requests down to next level memory
+    //
+    rule fwdInvalOrFlush (True);
+        match {.req_base, .is_inval} = invalOrFlushQ.first();
+        invalOrFlushQ.deq();
+        let set = req_base.set;
+        let tag = req_base.tag;
+        if (is_inval)
+        begin
+            sourceData.invalReq(cacheAddr(tag, set), True);
+        end
+        else
+        begin
+            sourceData.flushReq(cacheAddr(tag, set), True);
+        end
+        doneQ.enq(set);
+    endrule
+
+    // ====================================================================
+    //
+    // Read and Write data path.
+    //
+    // ====================================================================
+
+    //
+    // handleRead --
+    //     Cache read path.
+    //
+    (* conservative_implicit_conditions *)
+    rule handleRead (cacheLookupQ.first() matches tagged Valid .r &&& tpl_2(r) matches tagged HCOP_READ .rReq);
+        match {.req_base, .req} = r;
+        cacheLookupQ.deq();
+        let meta <- metaStore.readRsp();
+        let line <- getCacheLineDataResp();
+        
+        let tag = req_base.tag;
+        let set = req_base.set;
+        
+        debugLog.record($format("  Process request: READ addr=0x%x, set=0x%x", 
+                        debugAddrFromTag(tag, set), set));
+        
+        Bool needFill = True;
+
+        if (meta.tag == tag)
+        begin
+            //
+            // Line hit!
+            //
+            if (meta.wordValid[rReq.wordIdx])
+            begin
+                // Word hit!
+                readHitW.wset(rReq.readMeta);
+                readRespToClientQ_OOO.enq(tuple5(req_base, rReq, line, meta.wordValid, True));
+                // Done with this read request
+                doneQ.enq(set);
+                debugLog.record($format("  Read HIT: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                                debugAddrFromTag(tag, set), set, meta.wordValid, line));
+            end
+            else
+            begin
+                // Line valid but word in line is not.  Fill.
+                let maf_idx <- mafTable.malloc();
+                fillReqQ.enq(tuple5(req_base, maf_idx, rReq, tagged Valid meta.wordValid, meta.dirty));
+                // Mark all words valid in the line.  They will be after
+                // the fill completes.
+                let new_meta = meta;
+                new_meta.wordValid = replicate(True);
+                metaStore.write(set, new_meta);
+                debugLog.record($format("  Read WORD MISS: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                                debugAddrFromTag(tag, set), set, meta.wordValid, line));
+            end
+        end
+        else 
+        begin
+            // Line Miss.  
+            let maf_idx <- mafTable.malloc();
+            fillReqQ.enq(tuple5(req_base, maf_idx, rReq, tagged Invalid, False));
+            debugLog.record($format("  Read LINE MISS (%s): addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                            meta.dirty? "DIRTY WB" : "CLEAN", 
+                            debugAddrFromTag(tag, set), set, meta.wordValid, line));
+            invalEntryW.send();
+            // Need to flush old data?
+            if (meta.dirty)
+            begin
+                dirtyEntryFlushW.send();
+                sourceData.write(cacheAddr(tag, set), meta.wordValid, line);
+            end
+            // Mark all words valid in the line.  They will be after the fill completes
+            metaStore.write(set, RL_MW_DM_CACHE_METADATA{ tag: tag, dirty: False, wordValid: replicate(True)});
+        end
+    endrule
+
+    //
+    // handleWrite --
+    //     Cache write path.
+    //
+    (* conservative_implicit_conditions *)
+    rule handleWrite (cacheLookupQ.first() matches tagged Valid .r &&& tpl_2(r) matches tagged HCOP_WRITE .wReq);
+        match {.req_base, .req} = r;
+        cacheLookupQ.deq();
+        let meta <- metaStore.readRsp();
+        let line <- getCacheLineDataResp();
+        
+        let tag = req_base.tag;
+        let set = req_base.set;
+        let w_data = reqInfo_writeData.sub(wReq.dataIdx);
+        reqInfo_writeData.free(wReq.dataIdx);
+        let new_meta = meta;
+
+        debugLog.record($format("  Process request: WRITE addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
+
+        if (meta.tag == tag)
+        begin
+            //
+            // Line hit!
+            //
+            writeHitW.wset(?);
+            debugLog.record($format("  Write HIT: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                           debugAddrFromTag(tag, set), set, meta.wordValid, line));
+            if (! writeBackCache())
+            begin
+                // Send all writes to backing storage if in write-through mode.
+                Vector#(nWordsPerLine, Bool) mask = replicate(False);
+                mask[wReq.wordIdx] = True;
+                Vector#(nWordsPerLine, t_CACHE_WORD) val = replicate(w_data);
+                sourceData.write(cacheAddr(tag, set), mask, unpack(pack(val)));
+                debugLog.record($format("  WRITE Through Word: addr=0x%x, wordIdx=%0d, data=0x%x", 
+                                debugAddrFromTag(tag, set), wReq.wordIdx, w_data));
+            end
+        end
+        else
+        begin
+            // Line Miss.  
+            // Need to flush old data?
+            new_meta = RL_MW_DM_CACHE_METADATA{tag: tag, dirty: False, wordValid: replicate(False)};
+            debugLog.record($format("  WRITE LINE MISS (%s): addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                            meta.dirty? "DIRTY WB" : "CLEAN", 
+                            debugAddrFromTag(tag, set), set, meta.wordValid, line));
+            writeMissW.wset(?);
+            invalEntryW.send();
+            if (meta.dirty)
+            begin
+                dirtyEntryFlushW.send();
+                sourceData.write(cacheAddr(tag, set), meta.wordValid, line);
+            end
+            else if (!writeBackCache())
+            begin
+                // Send all writes to backing storage if in write-through mode.
+                Vector#(nWordsPerLine, Bool) mask = replicate(False);
+                mask[wReq.wordIdx] = True;
+                Vector#(nWordsPerLine, t_CACHE_WORD) val = replicate(w_data);
+                sourceData.write(cacheAddr(tag, set), mask, unpack(pack(val)));
+                debugLog.record($format("  WRITE Through Word: addr=0x%x, wordIdx=%0d, data=0x%x", 
+                                debugAddrFromTag(tag, set), wReq.wordIdx, w_data));
+            end
+        end
+        
+        // Mark line dirty and word valid
+        new_meta.wordValid[wReq.wordIdx] = True;
+        new_meta.dirty = writeBackCache();
+        metaStore.write(set, new_meta);
+        
+        // Write word to dataStore
+        dataStore[wReq.wordIdx].write(set, w_data);
+        debugLog.record($format("  WRITE Word: addr=0x%x, set=0x%x, wordIdx=%0d, newMask=0x%x, data=0x%x", 
+                        debugAddrFromTag(tag, set), set, wReq.wordIdx, new_meta.wordValid, w_data));
+        doneQ.enq(set);
+    endrule
+
+    
+    // ====================================================================
+    //
+    // Fill Path
+    //
+    // ====================================================================
+    
+    //
+    // fillReq --
+    //     Request fill from backing storage.
+    //
+    (* conservative_implicit_conditions *)
+    rule fillReq (True);
+        match {.req_base, .maf_idx, .rReq, .mask, .dirty} = fillReqQ.first();
+        fillReqQ.deq();
+        readMissW.wset(rReq.readMeta);
+        let addr = cacheAddr(req_base.tag, req_base.set);
+        let word_valid_mask = fromMaybe(replicate(False), mask);
+        mafTable.write(maf_idx, tuple4(rReq.readMeta, rReq.wordIdx, word_valid_mask, dirty));
+        sourceData.readReq(addr, maf_idx, rReq.globalReadMeta);
+        debugLog.record($format("  READ %s MISS (FILL): addr=0x%x, set=0x%x, maf_idx=%0d", 
+                        isValid(mask)? "WORD" : "LINE", 
+                        debugAddr(addr), req_base.set, maf_idx));
+    endrule
+
+    //
+    // recvFillResp --
+    //     receive fill response from next level memory
+    //
+    rule handleFillForRead (True);
+        let rsp <- sourceData.readResp();
+        match {.tag, .set} = cacheTagAndSet(rsp.addr);
+
+        t_CACHE_REQ_BASE req_base;
+        req_base.tag = tag;
+        req_base.set = set;
+        
+        mafTable.readReq(rsp.readMeta);
+        mafLookupQ.enq(tuple5(req_base, rsp.val, rsp.globalReadMeta, rsp.readMeta, rsp.isCacheable));
+    endrule
+
+    //
+    // handleFillForCacheableRead --
+    //    Update the cache with requested data coming back from memory.
+    //
+    rule handleFillForCacheableRead (tpl_5(mafLookupQ.first()));
+        //
+        // Cache the new values.  Don't overwrite entries that are currently
+        // valid, since they may be dirty.
+        //
+        // On return only claim that the newly filled words are valid.
+        //
+        let maf_data <- mafTable.readRsp();
+        match {.client_meta, .word_idx, .cur_word_valid_mask, .cur_meta_dirty} = maf_data;
+        match {.req_base, .val, .global_read_meta, .maf_idx, .is_cacheable} = mafLookupQ.first();
+        mafLookupQ.deq();
+        mafTable.free(maf_idx);
+
+        t_CACHE_WORD_VALID_MASK ret_valid_words = unpack(~pack(cur_word_valid_mask));
+        
+        let tag = req_base.tag;
+        let set = req_base.set;
+        
+        cacheLineDataWrite(set, ret_valid_words, val);
+
+        let r_req = RL_SA_BRAM_CACHE_READ_REQ { wordIdx: word_idx, 
+                                                readMeta: client_meta, 
+                                                globalReadMeta: global_read_meta };
+
+        readRespToClientQ_OOO.enq(tuple5(req_base,
+                                         r_req,
+                                         val,
+                                         ret_valid_words,
+                                         is_cacheable));
+
+        debugLog.record($format("  Read FILL: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x",
+                                debugAddrFromTag(tag, set), set, ret_valid_words, val));
+        doneQ.enq(req_base.set);
+    endrule
+
+    //
+    // handleFillForUncacheableRead --
+    //
+    rule handleFillForUncacheableRead (!tpl_5(mafLookupQ.first()));
+        //
+        // On return only claim that the newly filled words are valid.
+        //
+        let maf_data <- mafTable.readRsp();
+        match {.client_meta, .word_idx, .cur_word_valid_mask, .cur_meta_dirty} = maf_data;
+        match {.req_base, .val, .global_read_meta, .maf_idx, .is_cacheable} = mafLookupQ.first();
+        mafLookupQ.deq();
+        mafTable.free(maf_idx);
+
+        t_CACHE_WORD_VALID_MASK ret_valid_words = unpack(~pack(cur_word_valid_mask));
+
+        let r_req = RL_SA_BRAM_CACHE_READ_REQ { wordIdx: word_idx, 
+                                                readMeta: client_meta, 
+                                                globalReadMeta: global_read_meta };
+        let tag = req_base.tag;
+        let set = req_base.set;
+       
+        readRespToClientQ_OOO.enq(tuple5(req_base,
+                                         r_req,
+                                         val,
+                                         ret_valid_words,
+                                         is_cacheable));
+
+        debugLog.record($format("  Read FILL [NOT CACHEABLE]: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x",
+                        debugAddrFromTag(tag, set), set, ret_valid_words, val));
+        //
+        // Abnormal path.  Response is uncacheable.  The line has already been 
+        // marked valid in anticipation of the response, so the metadata must 
+        // now be fixed.
+        metaStore.write(set, RL_MW_DM_CACHE_METADATA{tag: tag, dirty: cur_meta_dirty, wordValid: cur_word_valid_mask});
+        doneQ.enq(set);
+    endrule
+
+    // ====================================================================
+    //
+    //   End of reference.
+    //
+    // ====================================================================
+
+    // BE CAREFUL HERE!  Poor choice of order can cause deadlocks.
+    (* descending_urgency = "doneWithRef, handleFillForRead, handleFillForCacheableRead, handleFillForUncacheableRead, fillReq, pickReqQueue, fwdInvalOrFlush, handleRead, handleWrite, handleInvalOrFlush" *)
+
+    //
+    // doneWithRef --
+    //     All access paths terminate here.
+    //
+    rule doneWithRef (True);
+        let set = doneQ.first();
+        doneQ.deq();
+        setFilterRemoveW.send();
+        setFilter.remove(set);
+    endrule
+
+    // ====================================================================
+    //
+    //   Debug scan state
+    //
+    // ====================================================================
+
+    List#(Tuple2#(String, Bool)) ds_data = List::nil;
+
+    ds_data = List::cons(tuple2("SA BRAM Cache newReqQ NotEmpty", newReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA BRAM Cache cacheLookupQ NotEmpty", cacheLookupQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA BRAM Cache fillReqQ NotEmpty", fillReqQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA BRAM Cache mafLookupQ NotEmpty", mafLookupQ.notEmpty), ds_data);
+    ds_data = List::cons(tuple2("SA BRAM Cache doneQ NotEmpty", doneQ.notEmpty), ds_data);
+
+    let debugScanData = ds_data;
+    
+    // ====================================================================
+    //
+    //   Incoming cache requests (methods)
+    //
+    // ====================================================================
+
+    //
+    // genRequest --
+    //     This function is used by most of the request methods to generate
+    //     the internal data structure for managing a request.  It also starts
+    //     the first step:  reading metadata from BRAM.
+    //
+    function ActionValue#(t_CACHE_SET_IDX) genRequest(t_CACHE_REQ req,
+                                                      t_CACHE_ADDR addr);
+        actionvalue
+            match {.tag, .set} = cacheTagAndSet(addr);
+
+            t_CACHE_REQ_BASE req_base;
+            req_base.tag = tag;
+            req_base.set = set;
+            newReqQ.enq(tuple2(req_base, req));
+            
+            return set;
+        endactionvalue
+    endfunction
+
+    //
+    // readReq -- Read up to a full line.  Fetch from backing store if not in the cache.
+    //
+    method Action readReq(t_CACHE_ADDR addr,
+                          Bit#(TLog#(nWordsPerLine)) wordIdx,
+                          t_CACHE_READ_META readMeta,
+                          RL_CACHE_GLOBAL_READ_META globalReadMeta);
+
+        RL_SA_BRAM_CACHE_READ_REQ#(nWordsPerLine, t_CACHE_READ_META) req;
+        req.wordIdx = wordIdx;
+        req.readMeta = readMeta;
+        req.globalReadMeta = globalReadMeta;
+        
+        let set <- genRequest(tagged HCOP_READ req, addr);
+        debugLog.record($format("  New request: READ addr=0x%x, set=0x%x, word=%0d", debugAddr(addr), set, wordIdx));
+    endmethod
+
+    method ActionValue#(t_CACHE_LOAD_RESP) readResp();
+        match {.req_base, .r_req, .v, .valid_words, .is_cacheable} = readRespToClientQ_OOO.first();
+        readRespToClientQ_OOO.deq();
+        Vector#(nWordsPerLine, t_CACHE_WORD) value = unpack(pack(v));
+
+        t_CACHE_LOAD_RESP rsp;
+        for (Integer w = 0; w < valueOf(nWordsPerLine); w = w + 1)
+            rsp.words[w] = valid_words[w] ? tagged Valid value[w] : tagged Invalid;
+        rsp.addr = cacheAddr(req_base.tag, req_base.set);
+        rsp.reqWordIdx = r_req.wordIdx;
+        rsp.isCacheable = is_cacheable;
+        rsp.readMeta = r_req.readMeta;
+        rsp.globalReadMeta = r_req.globalReadMeta;
+
+        return rsp;
+    endmethod
+
+    method t_CACHE_ADDR peekRespAddr();
+        match {.req_base, .r_req, .v, .valid_words} = readRespToClientQ_OOO.first();
+        return cacheAddr(req_base.tag, req_base.set);
+    endmethod
+
+    method Bool readRespReady();
+        return readRespToClientQ_OOO.notEmpty();
+    endmethod
+
+    //
+    // write -- Write a word to a line.
+    //
+    method Action write(t_CACHE_ADDR addr, t_CACHE_WORD val, t_CACHE_WORD_IDX wordIdx);
+        let h <- reqInfo_writeData.malloc();
+        reqInfo_writeData.upd(h, val);
+
+        RL_SA_BRAM_CACHE_WRITE_REQ#(nWordsPerLine) w_req;
+        w_req.wordIdx = wordIdx;    
+        w_req.dataIdx = h;
+
+        let set <- genRequest(tagged HCOP_WRITE w_req, addr);
+
+        debugLog.record($format("  New request: WRITE addr=0x%x, set=0x%x, data=0x%x, word=%0d, wData heap=%0d", debugAddr(addr), set, val, wordIdx, h));
+    endmethod
+
+
+    //
+    // invalReq -- Invalidate (remove) a line from the cache
+    //
+    method Action invalReq(t_CACHE_ADDR addr, Bool sendAck);
+        let set <- genRequest(tagged HCOP_INVAL sendAck, addr);
+        debugLog.record($format("  New request: INVAL addr=0x%x, set=0x%x, needAck=%s", 
+                        debugAddr(addr), set, sendAck? "True" : "False"));
+    endmethod
+    
+
+    //
+    // flushReq --
+    //     Flush (write back) a line from the cache but keep the line cached.
+    //
+    method Action flushReq(t_CACHE_ADDR addr, Bool sendAck);
+        let set <- genRequest(tagged HCOP_FLUSH_DIRTY sendAck, addr);
+        debugLog.record($format("  New request: FLUSH addr=0x%x, set=0x%x, needAck=%s", 
+                        debugAddr(addr), set, sendAck? "True" : "False"));
+    endmethod
+
+    //
+    // invalOrFlushWait -- Block until an inval or flush request completes.
+    //
+    method Action invalOrFlushWait();
+        debugLog.record($format("    INVAL/FLUSH complete"));
+        sourceData.invalOrFlushWait();
+    endmethod
+
+    //
+    // setCacheMode -- Configure cache behavior.
+    //
+    method Action setCacheMode(RL_SA_CACHE_MODE mode);
+        if (cacheMode != mode)
+        begin
+            debugLog.record($format("Cache mode: %0d", mode));
+        end
+        cacheMode <= mode;    
+    endmethod
+
+    //
+    // debugScanState -- Return cache state for DEBUG_SCAN.
+    //
+    method List#(Tuple2#(String, Bool)) debugScanState();
+        return debugScanData;
+    endmethod
+
+    interface RL_CACHE_STATS stats;
+        method readHit = readHitW.wget;
+        method readMiss = readMissW.wget;
+        method readRecentLineHit = False;
+        method writeHit = writeHitW.wget;
+        method writeMiss = writeMissW.wget;
+        method newMRU = False;
+        method invalEntry = invalEntryW;
+        method dirtyEntryFlush = dirtyEntryFlushW;
+        method forceInvalLine = forceInvalLineW;
+        method entryAccesses = ?;
+    endinterface
+
+endmodule
+
+
+// ===================================================================
+//
+// Real set associative cache implementation
+//
+// ===================================================================
+
+//
+// Basic request information constructed when a new request arrives.
+//
+typedef struct
+{
+    t_CACHE_TAG     tag;
+    t_CACHE_SET_IDX set;
+    t_CACHE_WAY_IDX way;
+}
+RL_SA_BRAM_CACHE_REQ_BASE#(type t_CACHE_TAG,
+                           type t_CACHE_SET_IDX,
+                           type t_CACHE_WAY_IDX)
+    deriving(Bits, Eq);
+
 typedef enum
 {
     RL_SA_BRAM_CACHE_DATA_READ_HIT,
@@ -255,6 +1384,7 @@ typedef enum
 }
 RL_SA_BRAM_CACHE_META_CLIENT
     deriving (Eq, Bits);
+
 
 //
 // Cache set metadata includes LRU chain and the metadata for each way.  The
@@ -279,24 +1409,15 @@ instance DefaultValue#(RL_SA_BRAM_CACHE_SET_METADATA#(t_CACHE_WAY_IDX_SZ, t_CACH
 endinstance
 
 
-
-// ========================================================================
 //
-// mkCacheSetAssocWithBRAM --
-//     Set associative cache implemented with BRAM.
+// mkCacheSetAssocWithBRAMImpl --
+//    Set associative cache implemented with BRAM.
 //
-//    NOTE: mkCacheSetAssocWithBRAM may return read responses out of order 
-//          relative to the request order!  For in-order responses the 
-//          caller must add a tag to the t_CACHE_READ_META type and use the
-//          tag to sort the responses.  A SCOREBOARD_FIFO would do the job.
-//
-// ========================================================================
-
-module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_LINE, nWordsPerLine, t_MAF_IDX) sourceData,
-                                NumTypeParam#(nSets) param0,
-                                NumTypeParam#(nWays) param1,
-                                NumTypeParam#(nTagExtraLowBits) param2,
-                                DEBUG_FILE debugLog)
+module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_LINE, nWordsPerLine, t_MAF_IDX) sourceData,
+                                    NumTypeParam#(nSets) param0,
+                                    NumTypeParam#(nWays) param1,
+                                    NumTypeParam#(nTagExtraLowBits) param2,
+                                    DEBUG_FILE debugLog)
     // interface:
         (RL_SA_BRAM_CACHE#(Bit#(t_CACHE_ADDR_SZ), t_CACHE_WORD, nWordsPerLine, t_CACHE_READ_META))
     provisos (Bits#(t_CACHE_LINE, t_CACHE_LINE_SZ),
@@ -746,15 +1867,18 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
     // A very simple filter to detect lines with requests already in the side
     // cache.
     LUTRAM#(Bit#(6), Bit#(3)) sideReqFilter <- mkLUTRAM(0);
-    Reg#(Bit#(2)) newReqArb <- mkReg(0);
+    Reg#(Bit#(1)) newReqArb <- mkReg(0);
     Wire#(Tuple3#(Bool,
                   Tuple2#(t_CACHE_REQ_BASE, t_CACHE_REQ),
                   Maybe#(CF_OPAQUE#(t_CACHE_SET_IDX, 1)))) curReq <- mkWire();
-
-    (* fire_when_enabled, no_implicit_conditions *)
-    rule incrReqArb (True);
-        newReqArb <= newReqArb + 1;
-    endrule
+    
+    // Track whether the heads of newReqQ and sideReqQ are blocked.  
+    // Once blocked, a queue stays blocked until either the head is removed or 
+    // a cache index is unlocked when an in-flight request is completed.
+    Reg#(Bool) newReqNotBlocked      <- mkConfigReg(True);
+    Reg#(Bool) retryReqNotBlocked    <- mkConfigReg(True);
+    PulseWire  startSideReqW         <- mkPulseWire();
+    PulseWire  setFilterRemoveW      <- mkPulseWire();
 
     RWire#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, RL_SA_BRAM_CACHE_META_CLIENT)) metaLookupReqW <- mkRWire();
     PulseWire metaLookupReqValidW <- mkPulseWire();
@@ -769,9 +1893,10 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         // and the arbiter is non-zero.  If the arbitration counter newReqArb
         // is larger than 1 bit this favors new requests over side-buffer
         // requests in an effort to have as many requests in flight as possible.
-        Bool pick_new_req = newReqQ.notEmpty &&
-                            ((newReqArb != 0) || ! sideReqQ.notEmpty);
-
+        Bool new_req_avail = newReqQ.notEmpty && newReqNotBlocked;
+        Bool side_req_avail = sideReqQ.notEmpty && retryReqNotBlocked;
+        Bool pick_new_req = new_req_avail && ((newReqArb != 0) || !side_req_avail);
+    
         let r = pick_new_req ? newReqQ.first() : sideReqQ.first();
 
         match {.req_base, .req} = r;
@@ -781,6 +1906,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         // speculatively read meta data and LRU hints
         metaStore.readReq(req_base.set);
         metaLookupReqW.wset(tuple3(req_base, req, RL_SA_BRAM_CACHE_META_CLIENT_STD));
+        newReqArb <= newReqArb + 1;
 
         // In order to preserve read/write and write/write order, the
         // request must either come from the side buffer or be a new request
@@ -825,6 +1951,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         else
         begin
             sideReqQ.deq();
+            startSideReqW.send();
             sideReqFilter.upd(resize(set), sideReqFilter.sub(resize(set)) - 1);
         end
     endrule
@@ -866,6 +1993,51 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
 
         // Note line present in sideReqQ
         sideReqFilter.upd(resize(set), sideReqFilter.sub(resize(set)) + 1);
+    endrule
+    
+    //
+    // blockNewReq --
+    //     Check if the head of newReqQ is blocked by busy cache lines and 
+    // cannot be shunt to retry queue. 
+    //
+    (* fire_when_enabled *)
+    rule blockNewReq (tpl_1(curReq) && ( isOrderedReq(curReq_req) || 
+                      (sideReqFilter.sub(resize(curReq_req_base.set)) == maxBound) || cacheEnabled ) &&
+                      ! isValid(tpl_3(curReq)));
+        newReqNotBlocked <= False;
+        debugLog.record($format("  New req blocked by busy: addr=0x%x", 
+                        debugAddrFromTag(curReq_req_base.tag, curReq_req_base.set)));
+    endrule
+    
+    //
+    // unblockLocalReq --
+    //     Unblock newReqQ when a sideReq is processed or an inflight request is complete. 
+    //
+    (* fire_when_enabled *)
+    rule unblockNewReq (startSideReqW || setFilterRemoveW);
+        newReqNotBlocked <= True;
+        debugLog.record($format("  Unblock newReqQ"));
+    endrule
+    
+    //
+    // blockSideReq --
+    //     Check if the head of the sideReqQ is blocked by busy cache lines.
+    //
+    (* fire_when_enabled *)
+    rule blockSideReq (!tpl_1(curReq) && ! isValid(tpl_3(curReq)));
+        retryReqNotBlocked <= False;
+        debugLog.record($format("  Side req blocked by busy: addr=0x%x",
+                        debugAddrFromTag(curReq_req_base.tag, curReq_req_base.set)));
+    endrule
+    
+    //
+    // unblockSideReq --
+    //     Unblock the sideReqQ when an inflight request is complete. 
+    //
+    (* fire_when_enabled *)
+    rule unblockLocalRetryReq (setFilterRemoveW);
+        retryReqNotBlocked <= True;
+        debugLog.record($format("  Unblock sideReqQ"));
     endrule
     
     //
@@ -1576,6 +2748,7 @@ module mkCacheSetAssocWithBRAM#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_ADDR_
         doneQ.deq();
 
         setFilter.remove(set);
+        setFilterRemoveW.send();
     endrule
 
 
