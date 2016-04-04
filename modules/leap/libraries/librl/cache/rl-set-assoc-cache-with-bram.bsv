@@ -951,15 +951,16 @@ module mkCacheMultiWordDirectMapped#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_
             // Line Miss.  
             let maf_idx <- mafTable.malloc();
             fillReqQ.enq(tuple5(req_base, maf_idx, rReq, tagged Invalid, False));
-            debugLog.record($format("  Read LINE MISS (%s): addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
-                            meta.dirty? "DIRTY WB" : "CLEAN", 
+            debugLog.record($format("  Read LINE MISS: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
                             debugAddrFromTag(tag, set), set, meta.wordValid, line));
             invalEntryW.send();
             // Need to flush old data?
             if (meta.dirty)
             begin
                 dirtyEntryFlushW.send();
-                sourceData.write(cacheAddr(tag, set), meta.wordValid, line);
+                sourceData.write(cacheAddr(meta.tag, set), meta.wordValid, line);
+                debugLog.record($format("  FLUSH: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                                debugAddrFromTag(meta.tag, set), set, meta.wordValid, line));
             end
             // Mark all words valid in the line.  They will be after the fill completes
             metaStore.write(set, RL_MW_DM_CACHE_METADATA{ tag: tag, dirty: False, wordValid: replicate(True)});
@@ -1009,15 +1010,16 @@ module mkCacheMultiWordDirectMapped#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_
             // Line Miss.  
             // Need to flush old data?
             new_meta = RL_MW_DM_CACHE_METADATA{tag: tag, dirty: False, wordValid: replicate(False)};
-            debugLog.record($format("  WRITE LINE MISS (%s): addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
-                            meta.dirty? "DIRTY WB" : "CLEAN", 
+            debugLog.record($format("  WRITE LINE MISS: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
                             debugAddrFromTag(tag, set), set, meta.wordValid, line));
             writeMissW.wset(?);
             invalEntryW.send();
             if (meta.dirty)
             begin
                 dirtyEntryFlushW.send();
-                sourceData.write(cacheAddr(tag, set), meta.wordValid, line);
+                sourceData.write(cacheAddr(meta.tag, set), meta.wordValid, line);
+                debugLog.record($format("  FLUSH: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
+                                debugAddrFromTag(meta.tag, set), set, meta.wordValid, line));
             end
             else if (!writeBackCache())
             begin
