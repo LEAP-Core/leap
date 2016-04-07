@@ -528,7 +528,7 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
 
     // Here, we examine n_ENTRIES, and develop different cache implementations
     // based on how close this value is to the next power of two.  
-    if(valueof(n_ENTRIES) > 7 * valueof(n_MAX_ENTRIES) / 8)
+    if(valueof(n_ENTRIES) > 15 * valueof(n_MAX_ENTRIES) / 16)
     begin
         // Build power of two cache
         NumTypeParam#(0) loadBalanceExtraBits = ?;
@@ -547,7 +547,27 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                                                      debugLog);
 
     end
-    else if(valueof(n_ENTRIES) > 3 * valueof(n_MAX_ENTRIES) / 4)
+    else if(valueof(n_ENTRIES) > 7 * valueof(n_MAX_ENTRIES) / 8)
+    begin
+        // Build 15/16 power of two cache
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,4)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 14;
+        
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
+    end
+    else if(valueof(n_ENTRIES) > 13 * valueof(n_MAX_ENTRIES) / 16)
     begin
         // Build 7/8 power of two cache
         // Normally, we choose the N bits above the base for balancing. However, in some cases
@@ -567,7 +587,27 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                                                      hashAddresses, 
                                                      debugLog);
     end
-    else if(valueof(n_ENTRIES) > 5 * valueof(n_MAX_ENTRIES) / 8)
+    else if(valueof(n_ENTRIES) > 3 * valueof(n_MAX_ENTRIES) / 4)
+    begin
+        // Build 13/16 power of two cache
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,4)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 12;
+        
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
+    end
+    else if(valueof(n_ENTRIES) > 11 * valueof(n_MAX_ENTRIES) / 16)
     begin
         // Build 3/4 power of two cache
         // Normally, we choose the N bits above the base for balancing. However, in some cases
@@ -588,7 +628,27 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                                                      debugLog);
 
     end
-    else
+    else if(valueof(n_ENTRIES) > 5 * valueof(n_MAX_ENTRIES) / 8)
+    begin
+        // Build 11/16 power of two cache
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,4)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 10;
+        
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
+    end
+    else if(valueof(n_ENTRIES) > 9 * valueof(n_MAX_ENTRIES) / 16)
     begin
         // Build 5/8 power of two cache
         // Normally, we choose the N bits above the base for balancing. However, in some cases
@@ -607,6 +667,26 @@ module [m] mkCoherentCacheDirectMapped#(COH_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, 
                                                      hashAddresses, 
                                                      debugLog);
 
+    end
+    else
+    begin
+        // Build 9/16 power of two cache
+        // Normally, we choose the N bits above the base for balancing. However, in some cases
+        // we may have fewer than this.
+        NumTypeParam#(TMin#(4,TSub#(t_CACHE_ADDR_SZ,t_CACHE_IDX_SZ))) loadBalanceExtraBits = ?;
+        NumTypeParam#(TSub#(t_CACHE_IDX_SZ,4)) loadBalanceBaseBits = ?;
+        Integer maxLoadBalanceIndex = 8;
+        
+        cache <- mkCoherentCacheDirectMappedBalanced(sourceData, 
+                                                     prefetcher, 
+                                                     entries, 
+                                                     storeType,
+                                                     storeLatency,
+                                                     loadBalanceExtraBits, 
+                                                     loadBalanceBaseBits, 
+                                                     maxLoadBalanceIndex, 
+                                                     hashAddresses, 
+                                                     debugLog);
     end
     
     return cache;

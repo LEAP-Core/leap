@@ -293,21 +293,37 @@ module [CONNECTED_MODULE] mkSmallMultiReadStatsCoherentScratchpadClient#(Integer
     // than 16K. Vivado unfortunately doesn't support this yet. 
     
     else if (e <= 16384)  begin NumTypeParam#(16384)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 18432)  begin NumTypeParam#(18432)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 20480)  begin NumTypeParam#(20480)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 22528)  begin NumTypeParam#(22528)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 24576)  begin NumTypeParam#(24576)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 26624)  begin NumTypeParam#(26624)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 28672)  begin NumTypeParam#(28672)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 30720)  begin NumTypeParam#(30720)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 32768)  begin NumTypeParam#(32768)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 36864)  begin NumTypeParam#(36864)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 40960)  begin NumTypeParam#(40960)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 45056)  begin NumTypeParam#(45056)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 49152)  begin NumTypeParam#(49152)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 53248)  begin NumTypeParam#(53248)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 57344)  begin NumTypeParam#(57344)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 61440)  begin NumTypeParam#(61440)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 65536)  begin NumTypeParam#(65536)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 73728)  begin NumTypeParam#(73728)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 81920)  begin NumTypeParam#(81920)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 90112)  begin NumTypeParam#(90112)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 98304)  begin NumTypeParam#(98304)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 106496) begin NumTypeParam#(106496) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 114688) begin NumTypeParam#(114688) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 122880) begin NumTypeParam#(122880) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 131072) begin NumTypeParam#(131072) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 147456) begin NumTypeParam#(147456) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 163840) begin NumTypeParam#(163840) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 180224) begin NumTypeParam#(180224) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 196608) begin NumTypeParam#(196608) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 212992) begin NumTypeParam#(212992) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 229376) begin NumTypeParam#(229376) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 245760) begin NumTypeParam#(245760) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else                  begin NumTypeParam#(262144) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
 
     
@@ -480,23 +496,39 @@ module [CONNECTED_MODULE] mkMediumMultiReadStatsCoherentScratchpadClient#(Intege
     // than 16K. Vivado unfortunately doesn't support this yet. 
     
     else if (e <= 16384)  begin NumTypeParam#(16384)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 18432)  begin NumTypeParam#(18432)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 20480)  begin NumTypeParam#(20480)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 22528)  begin NumTypeParam#(22528)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 24576)  begin NumTypeParam#(24576)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 26624)  begin NumTypeParam#(26624)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 28672)  begin NumTypeParam#(28672)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 30720)  begin NumTypeParam#(30720)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 32768)  begin NumTypeParam#(32768)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 36864)  begin NumTypeParam#(36864)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 40960)  begin NumTypeParam#(40960)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 45056)  begin NumTypeParam#(45056)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 49152)  begin NumTypeParam#(49152)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 53248)  begin NumTypeParam#(53248)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 57344)  begin NumTypeParam#(57344)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 61440)  begin NumTypeParam#(61440)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 65536)  begin NumTypeParam#(65536)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 73728)  begin NumTypeParam#(73728)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 81920)  begin NumTypeParam#(81920)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 90112)  begin NumTypeParam#(90112)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 98304)  begin NumTypeParam#(98304)  n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 106496) begin NumTypeParam#(106496) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 114688) begin NumTypeParam#(114688) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 122880) begin NumTypeParam#(122880) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 131072) begin NumTypeParam#(131072) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 147456) begin NumTypeParam#(147456) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 163840) begin NumTypeParam#(163840) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 180224) begin NumTypeParam#(180224) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 196608) begin NumTypeParam#(196608) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 212992) begin NumTypeParam#(212992) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else if (e <= 229376) begin NumTypeParam#(229376) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
+    else if (e <= 245760) begin NumTypeParam#(245760) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
     else                  begin NumTypeParam#(262144) n = ?; mem <- mkUnmarshalledCachedCoherentScratchpadClient(id, conf, mode, n, n_learners, userAddrWidth, cacheStats, pfStats, reqStats, respStats, debugScanNode, debugLog); end 
-
+    
     //
     // Methods
     //
