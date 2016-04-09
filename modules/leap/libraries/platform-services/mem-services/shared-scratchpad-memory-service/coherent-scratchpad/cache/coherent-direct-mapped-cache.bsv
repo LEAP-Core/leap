@@ -770,7 +770,7 @@ module [m] mkCoherentCacheDirectMappedBalanced#(COH_DM_CACHE_SOURCE_DATA#(t_CACH
     if (storeType == SHARED_SCRATCH_CACHE_STORE_FLAT_BRAM)
     begin
         // Cache implemented as a single BRAM
-        cache <- mkBRAMInitialized(cache_init_val);
+        cache <- mkBRAMInitializedSized(cache_init_val, valueOf(n_ENTRIES));
     end
     else
     begin
@@ -778,7 +778,7 @@ module [m] mkCoherentCacheDirectMappedBalanced#(COH_DM_CACHE_SOURCE_DATA#(t_CACH
         // more time to reach memory.
         NumTypeParam#(4) p_banks = ?;
         cache <- mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
-                                 mkBRAMInitializedBuffered(cache_init_val));
+                                 mkBRAMInitializedSizedBuffered(cache_init_val, valueOf(n_ENTRIES)/4));
     end
 
     // Cache MSHR
