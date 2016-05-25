@@ -70,7 +70,7 @@ defs = {
     'SYNTH_WRAPPERS'     : '@SYNTH_WRAPPERS@',
     'SYNTHESIS_TOOL'     : '@SYNTHESIS_TOOL@',
     'TMP_BSC_DIR'        : '@TMP_BSC_DIR@',
-    'TMP_XILINX_DIR'     : '@TMP_XILINX_DIR@',
+    'TMP_FPGA_DIR'       : '@TMP_FPGA_DIR@',
     'WORKSPACE_ROOT'     : '@WORKSPACE_ROOT@',
 }
 
@@ -97,11 +97,11 @@ APM_NAME = env['DEFS']['APM_NAME']
 
 ############################################################################
 ##
-## Rules for building a Xilinx bit image
+## Rules for building an FPGA bit image
 ##
 ############################################################################
 
-TMP_XILINX_DIR = env['DEFS']['TMP_XILINX_DIR']
+TMP_FPGA_DIR = env['DEFS']['TMP_FPGA_DIR']
 
 moduleList = ModuleList.ModuleList(env, defs['MODULE_LIST'], ARGUMENTS, COMMAND_LINE_TARGETS)
 
@@ -130,7 +130,7 @@ build_pipeline.Build(moduleList)
 ## Clean up a few extra files not described in the build rules
 ##
 if env.GetOption('clean'):
-    os.system('cd ' + TMP_XILINX_DIR + '; rm -f ' + APM_NAME + '*')
+    os.system('cd ' + TMP_FPGA_DIR + '; rm -f ' + APM_NAME + '*')
     os.system('rm -f APM_NAME')
 
 ############################################################################

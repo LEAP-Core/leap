@@ -55,7 +55,6 @@ def globalRTLs(moduleList, rtlModules):
 # Next up, we query the scons environment.
 # Finally, we will query the parameter space. If all of these fail, we will give up.
   
-#may need to do something about TMP_XILINX_DIR
 def generateXST(moduleList, module, xstTemplate):
     localContext = {'APM_NAME': module.wrapperName(),\
                     'HW_BUILD_DIR': module.buildPath}

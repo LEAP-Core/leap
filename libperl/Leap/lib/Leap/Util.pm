@@ -91,8 +91,8 @@ sub common_replacements($$) {
     my $apm = Leap::Build::get_model_name($model);
     Leap::Util::hash_set($replacements_r,'@APM_NAME@',$apm);
 
-    # @TMP_XILINX_DIR@
-    Leap::Util::hash_set($replacements_r,'@TMP_XILINX_DIR@',$Leap::Xilinx::tmp_xilinx_dir);
+    # @TMP_FPGA_DIR@
+    Leap::Util::hash_set($replacements_r,'@TMP_FPGA_DIR@',$Leap::FPGA::tmp_fpga_dir);
 
     # @TMP_BSC_DIR@
     Leap::Util::hash_set($replacements_r,'@TMP_BSC_DIR@',$Leap::Bluespec::tmp_bsc_dir);

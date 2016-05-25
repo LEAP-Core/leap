@@ -526,9 +526,9 @@ sub configure_build_tree {
     generate_makefile_top($model);
     generate_makefile_sub($model);
 
-    # (4) generate files needed by Xilinx tools
-    Leap::Xilinx::generate_files_xilinx($model, $builddir);
-    Leap::Xilinx::generate_files_synplify($model, $builddir);
+    # (4) generate files needed by FPGA tools
+    Leap::FPGA::generate_files_fpga($model, $builddir);
+    Leap::FPGA::generate_files_synplify($model, $builddir);
 
     # (5) make interface files
     make_iface($model);
@@ -592,7 +592,7 @@ sub make_dirs {
       $builddir = $model->build_dir();
     }
 
-    my $dir = Leap::Util::path_append($builddir,$Leap::Xilinx::tmp_xilinx_dir);
+    my $dir = Leap::Util::path_append($builddir,$Leap::FPGA::tmp_fpga_dir);
     $sys_status = system("mkdir -p " . $dir);
     $sys_status = system("mkdir -p " . $dir . "/xst_hdp");
 
@@ -1259,7 +1259,7 @@ sub __make_symlinks {
         my $attributes = $object->getAllAttributes();
         my $library_extension = "";
 
-        # To deal with Xilinx VHDL, we make use of VHDL libraries. 
+        # To deal with FPGA VHDL, we make use of VHDL libraries. 
         if(scalar(keys($attributes))) {
             if(exists $attributes->{'lib'}) {
                 $library_extension = $attributes->{'lib'} . "/"

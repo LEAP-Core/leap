@@ -18,7 +18,7 @@ use Leap::Bluespec;
 use Leap::Build;
 use Leap::Templates;
 use Leap::Util;
-use Leap::Xilinx;
+use Leap::FPGA;
 use Leap::RRR;
 
 our $VERSION = "0.02";

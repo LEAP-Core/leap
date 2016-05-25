@@ -13,7 +13,7 @@
 
 
 
-package Leap::Xilinx;
+package Leap::FPGA;
 
 use Asim;
 
@@ -61,36 +61,36 @@ sub find_all_files_with_suffix {
 ############################################################
 # package variables
 
-our $tmp_xilinx_dir = ".xilinx";
-our $xilinx_config_dir = "config";
+our $tmp_fpga_dir = ".fpga";
+our $fpga_config_dir = "config";
 
 
 ############################################################
-# generate_files_xilinx:
-# create the Xilinx-tool specific build files
-sub generate_files_xilinx {
+# generate_files_fpga:
+# create the FPGA-tool specific build files
+sub generate_files_fpga {
     my $model = shift;
     my $builddir = shift;
     my $name = Leap::Build::get_model_name($model);
 
-    my $config_dir = Leap::Util::path_append($builddir, $xilinx_config_dir);
+    my $config_dir = Leap::Util::path_append($builddir, $fpga_config_dir);
     system("mkdir -p $config_dir");
 
     # Files need to be opened here to share code with the synplify code path
 
     # PRJ file
 
-    my $config_path = Leap::Util::path_append($builddir, $xilinx_config_dir);
+    my $config_path = Leap::Util::path_append($builddir, $fpga_config_dir);
     my $final_prj_file = Leap::Util::path_append($config_path, $name . ".prj_base");
     open(PRJFILE, "> $final_prj_file") || return undef;
 
-    my $xilinx_processfile = sub {
+    my $fpga_processfile = sub {
         my $module = shift;
         my $stream = shift;
         my $dir = shift;
         my $file = shift;
 
-        my $xilinx_printfunc = sub {
+        my $fpga_printfunc = sub {
            my $stream = shift;
            my $type = shift;
            my $file = shift;
@@ -102,12 +102,12 @@ sub generate_files_xilinx {
         
         #crunch this down.
         if ($relative_file =~ /\.v$/ ) {
-            $xilinx_printfunc->($stream,"verilog", $relative_file);
+            $fpga_printfunc->($stream,"verilog", $relative_file);
         }
 
         if ($relative_file =~ /\.vhd$/) {
             my $vhd_lib = get_vhdl_lib($module);
-            $xilinx_printfunc->($stream,"vhdl", $relative_file);
+            $fpga_printfunc->($stream,"vhdl", $relative_file);
         }
     };
 
@@ -117,7 +117,7 @@ sub generate_files_xilinx {
     ## boundary, replacing the stub for a synthesis boundary with the true
     ## wrapper.
     ##
-    generate_prj_file($model, $builddir, *PRJFILE{IO}, $xilinx_processfile);
+    generate_prj_file($model, $builddir, *PRJFILE{IO}, $fpga_processfile);
     my @model_prj_files = find_all_files_with_suffix($model->modelroot(), ".prj");
     generate_concatenation_file($model, $name, $builddir, *PRJFILE{IO}, @model_prj_files);
     close(PRJFILE);
@@ -134,7 +134,7 @@ sub generate_files_xilinx {
 
 
     ## UT File
-    my $final_ut_file = Leap::Util::path_append($builddir,$xilinx_config_dir,$name . ".ut");
+    my $final_ut_file = Leap::Util::path_append($builddir,$fpga_config_dir,$name . ".ut");
     open(UTFILE, "> $final_ut_file") || return undef;
 
     #Concatenate all found .ut files
@@ -151,13 +151,13 @@ sub generate_files_synplify {
     my $builddir = shift;
     my $name = Leap::Build::get_model_name($model);
 
-    my $config_dir = Leap::Util::path_append($builddir, $xilinx_config_dir);
+    my $config_dir = Leap::Util::path_append($builddir, $fpga_config_dir);
     system("mkdir -p $config_dir");
 
     # to generate the synplify tcl, we follow the same path as generate prj, 
     # but with a capability to produce different outputs.
-    my $base_sdf_file = Leap::Util::path_append($builddir,$xilinx_config_dir,$name . ".synplify.prj_base");
-    my $final_sdf_file = Leap::Util::path_append($builddir,$xilinx_config_dir,$name . ".synplify.prj");
+    my $base_sdf_file = Leap::Util::path_append($builddir,$fpga_config_dir,$name . ".synplify.prj_base");
+    my $final_sdf_file = Leap::Util::path_append($builddir,$fpga_config_dir,$name . ".synplify.prj");
 
     open(SDFFILE, "> $base_sdf_file") || return undef;
    
@@ -189,15 +189,15 @@ sub generate_files_synplify {
 
     my @model_sdf_files = find_all_files_with_suffix($model->modelroot(), ".sdf");
 
-    # Notice that the synplify file accumulates more things than its xilinx 
+    # Notice that the synplify file accumulates more things than its fpga 
     # counterpart.
 
     generate_prj_file($model, $builddir, *SDFFILE{IO}, $synplify_processfile);    
 
     # add target of the global constraint file to the sdf
-    #print SDFFILE "add_file -constraint \"\$env(BUILD_DIR)/$tmp_xilinx_dir/$name.sdc\"\n";
+    #print SDFFILE "add_file -constraint \"\$env(BUILD_DIR)/$tmp_fpga_dir/$name.sdc\"\n";
     #print SDFFILE "set_option -constraint -clear\n";
-    #print SDFFILE "set_option -constraint -enable \"\$env(BUILD_DIR)/$tmp_xilinx_dir/$name.sdc\"\n";
+    #print SDFFILE "set_option -constraint -enable \"\$env(BUILD_DIR)/$tmp_fpga_dir/$name.sdc\"\n";
 
     # gather any user sdf files
     generate_concatenation_file($model, $name, $builddir, *SDFFILE{IO}, @model_sdf_files);   
@@ -233,7 +233,7 @@ sub generate_concatenation_file {
     Leap::Util::common_replacements($model, $replacements_r);
     
     Leap::Util::hash_set($replacements_r,'@APM_NAME@',$name);
-    Leap::Util::hash_set($replacements_r,'@TMP_XILINX_DIR@',$tmp_xilinx_dir);
+    Leap::Util::hash_set($replacements_r,'@TMP_FPGA_DIR@',$tmp_fpga_dir);
     Leap::Util::hash_set($replacements_r,'@HW_BUILD_DIR@', Leap::Util::path_append($model->build_dir(),"hw",$currentdir));
 
     my $bdir = bluespec_dir();

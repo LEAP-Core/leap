@@ -312,7 +312,7 @@ for my $platform (@$platforms_ref) {
         if ($platform->{"type"} eq "ASE") {
             # AFU/QPI simulator must start first in order to manage shared memory.
             # Remove a file that will indicate it has started.
-            system("rm -f " . ${platformName} . "/.ase_ready");
+            system("rm -f " . ${platformName} . "/.ase_ready*");
             system("rm -rf " . ${platformName} . "/work");
             system("mkdir -p " . ${platformName} . "/work");
 
@@ -345,6 +345,7 @@ for my $platform (@$platforms_ref) {
         if ($platform->{"type"} eq "ASE") {
             # Wait for ASE
             while (! -f ${platformName} . "/.ase_ready" &&
+                   ! -f ${platformName} . "/.ase_ready.pid" &&
                    ! -f ${platformName} . "/work/.ase_ready") {
                 sleep(1);
             }

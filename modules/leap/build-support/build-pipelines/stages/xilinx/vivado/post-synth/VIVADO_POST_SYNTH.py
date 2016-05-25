@@ -35,9 +35,9 @@ class PostSynthesize():
 
     self.paramTclFile = moduleList.topModule.moduleDependency['PARAM_TCL'][0]
 
-    # If the TMP_XILINX_DIR doesn't exist, create it.
-    if not os.path.isdir(moduleList.env['DEFS']['TMP_XILINX_DIR']):
-        os.mkdir(moduleList.env['DEFS']['TMP_XILINX_DIR'])
+    # If the TMP_FPGA_DIR doesn't exist, create it.
+    if not os.path.isdir(moduleList.env['DEFS']['TMP_FPGA_DIR']):
+        os.mkdir(moduleList.env['DEFS']['TMP_FPGA_DIR'])
 
     # Gather Tcl files for handling constraints.
     self.tcl_headers = []

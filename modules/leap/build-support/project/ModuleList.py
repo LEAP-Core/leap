@@ -93,7 +93,7 @@ class ModuleList:
     self.arguments = arguments
     self.cmdLineTgts = cmdLineTgts
     self.buildDirectory = env['DEFS']['BUILD_DIR']
-    self.compileDirectory = env['DEFS']['TMP_XILINX_DIR']
+    self.compileDirectory = env['DEFS']['TMP_FPGA_DIR']
     givenVerilogs = Utils.clean_split(env['DEFS']['GIVEN_VERILOGS'], sep = ' ') 
     givenVerilogPkgs = Utils.clean_split(env['DEFS']['GIVEN_VERILOG_PKGS'], sep = ' ')
     givenVerilogHs = Utils.clean_split(env['DEFS']['GIVEN_VERILOG_HS'], sep = ' ') 
