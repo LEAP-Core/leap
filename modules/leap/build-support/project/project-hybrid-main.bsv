@@ -97,14 +97,9 @@ module [Module] mkClockedSystem
     match {.int_ctx4, .int_name4} <- runWithContext(int_ctx3, putSynthesisBoundaryID(fpgaPlatformID()));
     match {.int_ctx5, .int_name5} <- runWithContext(int_ctx4, putSynthesisBoundaryName(fpgaPlatformName()));
     match {.int_ctx6, .int_name6} <- runWithContext(int_ctx5, putExposeAllConnections(`EXPOSE_ALL_CONNECTIONS == 1));
-`ifndef SOFT_CONNECTION_REMAP_Z
-    match {.int_ctx7, .int_name7} <- runWithContext(int_ctx6, putConnectionRemapFunction(connectionNameRemap));
-`else
-    let int_ctx7 = int_ctx6;
-`endif
 
    // Instantiate the soft-connected system
-    let sys <- instantiateWithConnections(mkConnectedSystem, tagged Valid int_ctx7);
+    let sys <- instantiateWithConnections(mkConnectedSystem, tagged Valid int_ctx6);
 
     return sys;
 
@@ -146,15 +141,6 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem
     let routes <- mkMultifpgaRouterServices(vp.physicalDrivers, clocked_by clk, reset_by rst);
 `endif
 
-`ifndef SOFT_CONNECTION_REMAP_Z
-    // Instantiate connectors to connect partitioned scratchpads
-    connectPartitionedScratchpads(clocked_by clk, reset_by rst);
-    // Instantiate connectors to build hierarchical rings or tree networks
-    connectScratchpadNetwork(clocked_by clk, reset_by rst);
-    // Instantiate scratchpad ID remap controller
-    mkScratchpadIdRemap(clocked_by clk, reset_by rst);
-`endif
-
     //
     // Instantiate the application.
     //
@@ -169,6 +155,11 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem
     rst = vp.physicalDrivers.clocksDriver.reset;
     let syn <- instantiateAllSynthBoundaries(baseReset,
                                              clocked_by clk, reset_by rst);
+
+`ifndef SOFT_CONNECTION_REMAP_Z
+    // Instantiate the network module to connect scratchpad service connections
+    connectScratchpadNetwork(clocked_by clk, reset_by rst);
+`endif
 
     //
     // Final step: generate the debug logic for soft connections.  This call

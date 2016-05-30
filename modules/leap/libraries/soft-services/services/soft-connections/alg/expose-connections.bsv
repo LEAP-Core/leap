@@ -54,20 +54,24 @@ import FIFOF::*;
 //toWithConnections :: [ConnectionData] -> Module WithConnections
 
 
-module toWithConnections#(LOGICAL_CONNECTION_INFO ctx)       (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI, t_NUM_CHAINS));
+module toWithConnections#(LOGICAL_CONNECTION_INFO ctx) (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI, t_NUM_CHAINS, t_NUM_SERVICE_CLIENTS, t_NUM_SERVICE_SERVERS));
 
     let outs      <- exposeDanglingSends(ctx, ?);
     let ins       <- exposeDanglingRecvs(ctx, ?);
     let outMultis <- exposeDanglingSendMultis(ctx);
     let inMultis  <- exposeDanglingRecvMultis(ctx);
     let chns      <- exposeChains(ctx);
+    let clients   <- exposeServiceClients(ctx);
+    let servers   <- exposeServiceServers(ctx);
 
     interface outgoing = outs;
     interface incoming = ins;
     interface outgoingMultis = outMultis;
     interface incomingMultis = inMultis;
     interface chains = chns;
-  
+    interface serviceClients = clients;
+    interface serviceServers = servers;
+
 endmodule  
 
 instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
@@ -82,6 +86,8 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  unmatchedSendMultis: tagged Nil,
                  unmatchedRecvMultis: tagged Nil,
                  chains: tagged Nil,
+                 unmatchedServiceClients: tagged Nil,
+                 unmatchedServiceServers: tagged Nil,
                  stations: tagged Nil,
                  stationStack: tagged Nil,
                  debugInfo: tagged Nil,
@@ -92,7 +98,6 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
                  synthesisBoundaryName: "UNASSIGNED",
                  exposeAllConnections: False,
                  rootStationName: "InvalidRootStation",
-                 remappingFunction: connectionNameNullRemap,
                  softReset: sReset
              };
     endmodule
@@ -105,9 +110,9 @@ instance SOFT_SERVICE#(LOGICAL_CONNECTION_INFO);
 
 endinstance
 
-instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI,t_NUM_CHAINS));
+instance SYNTHESIZABLE_SOFT_SERVICE#(LOGICAL_CONNECTION_INFO, WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI, t_NUM_CHAINS, t_NUM_SERVICE_CLIENTS, t_NUM_SERVICE_SERVERS));
 
-    module exposeServiceContext#(LOGICAL_CONNECTION_INFO ctx) (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI, t_NUM_CHAINS));
+    module exposeServiceContext#(LOGICAL_CONNECTION_INFO ctx) (WITH_CONNECTIONS#(t_NUM_IN, t_NUM_OUT, t_NUM_IN_MULTI, t_NUM_MULTI, t_NUM_CHAINS, t_NUM_SERVICE_CLIENTS, t_NUM_SERVICE_SERVERS));
 
         let rst <- exposeCurrentReset();
         let clk <- exposeCurrentClock();
@@ -372,3 +377,113 @@ module exposeChains#(LOGICAL_CONNECTION_INFO ctx) (Vector#(n, PHYSICAL_CHAIN));
 
     return chns;
 endmodule
+
+//
+// Expose service connections. 
+//
+module printServiceClient#(Integer cur_out, LOGICAL_SERVICE_CLIENT_INFO cur) (Empty);
+    messageM("Dangling ServiceClient {" + cur.logicalReqType + "} {" + cur.logicalRespType +  "} [" + integerToString(cur_out) +  "]:" + cur.logicalName 
+             + ":" + integerToString(cur.reqBitWidth) + ":" + integerToString(cur.respBitWidth) + ":" + integerToString(cur.clientIdBitWidth)
+             + ":" + cur.moduleName + ":" + cur.clientId);
+endmodule
+
+module printServiceServer#(Integer cur_out, LOGICAL_SERVICE_SERVER_INFO cur) (Empty);
+    messageM("Dangling ServiceServer {" + cur.logicalReqType + "} {" + cur.logicalRespType +  "} [" + integerToString(cur_out) +  "]:" + cur.logicalName 
+             + ":" + integerToString(cur.reqBitWidth) + ":" + integerToString(cur.respBitWidth) + ":" + integerToString(cur.clientIdBitWidth)
+             + ":" + cur.moduleName + ":0");
+endmodule
+
+module exposeServiceClients#(LOGICAL_CONNECTION_INFO ctx) (Vector#(n, PHYSICAL_SERVICE_CON_CLIENT));
+
+    Vector#(n, PHYSICAL_SERVICE_CON_CLIENT) output_vec = newVector();
+    List#(LOGICAL_SERVICE_CLIENT_INFO) clients = ctx.unmatchedServiceClients;
+    
+    Integer cur_client = 0;
+    
+    while (!List::isNull(clients))
+    begin
+        let client = List::head(clients);
+        clients = List::tail(clients);
+        printServiceClient(cur_client, client);
+        output_vec[cur_client] = (interface PHYSICAL_SERVICE_CON_CLIENT;
+                                      interface incoming = client.incoming;
+                                      interface outgoing = client.outgoing;
+                                  endinterface);
+        cur_client = cur_client + 1;
+    end
+
+    for (Integer x = cur_client; x < valueOf(n); x = x + 1)
+    begin  
+        let null_in = (interface PHYSICAL_SERVICE_CON_RESP_IN
+                           interface clock = noClock;
+                           interface reset = noReset;
+                           method Bool success() = False;
+                           method Bool dequeued() = False;
+                           method Action try(PHYSICAL_SERVICE_CON_DATA d) = noAction;
+                           method Action setId(PHYSICAL_SERVICE_CON_IDX id) = noAction;
+                       endinterface);
+
+        let null_out = (interface PHYSICAL_SERVICE_CON_REQ_OUT
+                            interface clock = noClock;
+                            interface reset = noReset;
+                            method Action deq() = noAction;
+                            method PHYSICAL_SERVICE_CON_DATA first = 0;
+                            method Bool notEmpty() = False;
+                       endinterface);
+
+       output_vec[x] = (interface PHYSICAL_SERVICE_CON_CLIENT;
+                            interface incoming = null_in;
+                            interface outgoing = null_out;
+                        endinterface); 
+     end	       
+
+    return output_vec;
+endmodule
+
+module exposeServiceServers#(LOGICAL_CONNECTION_INFO ctx) (Vector#(n, PHYSICAL_SERVICE_CON_SERVER));
+
+    Vector#(n, PHYSICAL_SERVICE_CON_SERVER) output_vec = newVector();
+    List#(LOGICAL_SERVICE_SERVER_INFO) servers = ctx.unmatchedServiceServers;
+    
+    Integer cur_server = 0;
+    
+    while (!List::isNull(servers))
+    begin
+        let server = List::head(servers);
+        servers = List::tail(servers);
+        printServiceServer(cur_server, server);
+        output_vec[cur_server] = (interface PHYSICAL_SERVICE_CON_SERVER;
+                                      interface incoming = server.incoming;
+                                      interface outgoing = server.outgoing;
+                                  endinterface);
+        cur_server = cur_server + 1;
+    end
+
+    for (Integer x = cur_server; x < valueOf(n); x = x + 1)
+    begin  
+        let null_in = (interface PHYSICAL_SERVICE_CON_REQ_IN
+                           interface clock = noClock;
+                           interface reset = noReset;
+                           method Bool success() = False;
+                           method Bool dequeued() = False;
+                           method Action try(PHYSICAL_SERVICE_CON_DATA d) = noAction;
+                       endinterface);
+
+        let null_out = (interface PHYSICAL_SERVICE_CON_RESP_OUT
+                            interface clock = noClock;
+                            interface reset = noReset;
+                            method Action deq() = noAction;
+                            method PHYSICAL_SERVICE_CON_RESP first = 0;
+                            method Bool notEmpty() = False;
+                       endinterface);
+
+       output_vec[x] = (interface PHYSICAL_SERVICE_CON_SERVER;
+                            interface incoming = null_in;
+                            interface outgoing = null_out;
+                        endinterface); 
+     end	       
+
+    return output_vec;
+endmodule
+
+

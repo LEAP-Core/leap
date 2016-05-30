@@ -12,6 +12,6 @@
 %provides soft_connections_alg
 %attributes bluespec
 %notes README
-%public connect-top-level.bsv connect-multicasts.bsv connect-stations-tree.bsv expose-connections.bsv 
+%public connect-top-level.bsv connect-multicasts.bsv connect-stations-tree.bsv expose-connections.bsv connect-services.bsv
 %AWB_END
 

@@ -12,8 +12,5 @@
 %scons %library liGraph.py
 %scons %library liModule.py
 %scons %library liUtility.py
-
-
-
-
+%scons %library liService.py
 

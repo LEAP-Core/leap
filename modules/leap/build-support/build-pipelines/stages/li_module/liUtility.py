@@ -7,6 +7,7 @@ import cPickle as pickle
 import model
 from liChannel import LIChannel
 from liChain import LIChain
+from liService import LIService
 from liGraph import LIGraph
 from liModule import LIModule
 from model import Module, Source, get_build_path
@@ -23,40 +24,58 @@ def parseLogfiles(logfiles):
     connections = []
     for logfile in logfiles:
         log = open(str(logfile), 'r')
-             
+        
         for line in log:
-            if (re.match("Compilation message: .*: Dangling",line)):                
-                match = re.search(r'.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\d+):(\w+):(\w+)', line)
-                if (match):
-                    #python groups begin at index 1  
-                    if (match.group(1) == "Chain"):
-                        connections +=  [LIChain(match.group(1), 
-                                                 match.group(2),
-                                                 match.group(3),
-                                                 match.group(4),      
-                                                 eval(match.group(5)), # optional
-                                                 match.group(6),
-                                                 match.group(7),
-                                                 match.group(8),
-                                                 match.group(8),
-                                                 type)]
-                    else:
-                        connections +=  [LIChannel(match.group(1), 
+            r1 = re.match("Compilation message: .*: Dangling (\w+) {.*",line)
+            if (r1): 
+                if (r1.group(1) == "Chain") or (r1.group(1) == "Send") or (r1.group(1) == "Recv"):
+                    match = re.search(r'.*Dangling (\w+) {(.*)} \[(\d+)\]:(\w+):(\w+):(\d+):(\w+):(\w+)', line)
+                    if (match):
+                        #python groups begin at index 1  
+                        if (match.group(1) == "Chain"):
+                            connections +=  [LIChain(match.group(1), 
+                                                     match.group(2),
+                                                     match.group(3),
+                                                     match.group(4),      
+                                                     eval(match.group(5)), # optional
+                                                     match.group(6),
+                                                     match.group(7),
+                                                     match.group(8),
+                                                     match.group(8),
+                                                     type)]
+                        else:
+                            connections +=  [LIChannel(match.group(1), 
+                                                       match.group(2),
+                                                       match.group(3),
+                                                       match.group(4),      
+                                                       eval(match.group(5)), # optional
+                                                       match.group(6),
+                                                       match.group(7),
+                                                       match.group(7),
+                                                       type)]
+                    else: 
+                        print "Malformed connection message: " + line
+                        sys.exit(-1)
+                else:
+                    match = re.search(r'.*Dangling (\w+) {(.*)} {(.*)} \[(\d+)\]:(\w+):(\d+):(\d+):(\d+):(\w+):(\d+)', line)
+                    if (match):
+                        connections +=  [LIService(match.group(1), 
                                                    match.group(2),
                                                    match.group(3),
                                                    match.group(4),      
-                                                   eval(match.group(5)), # optional
+                                                   match.group(5),
+                                                   False, 
                                                    match.group(6),
                                                    match.group(7),
-                                                   match.group(7),
+                                                   match.group(8),
+                                                   match.group(9), 
+                                                   match.group(9), 
+                                                   match.group(10),
                                                    type)]
-                           
-             
+                    else: 
+                        print "Malformed connection message: " + line
+                        sys.exit(-1)
             
-                else:
-                    print "Malformed connection message: " + line
-                    sys.exit(-1)
-
     return connections
 
 ##

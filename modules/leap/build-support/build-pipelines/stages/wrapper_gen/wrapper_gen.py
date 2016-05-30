@@ -44,12 +44,18 @@ def generateBAImport(module, importHandle):
     incoming = 0
     outgoing = 0
     chains = len(module.chains)
+    service_clients = 0
+    service_servers = 0
     for channel in module.channels:
         if(channel.isSource()):                     
             outgoing += 1
         else:
             incoming += 1
-
+    for service in module.services:      
+        if (service.isClient()):
+            service_clients += 1
+        else:
+            service_servers += 1
 
     importHandle.write("\ninterface IMP_" + module.name + ";\n")
     # Some modules may have a secondary interface.
@@ -65,18 +71,26 @@ def generateBAImport(module, importHandle):
             ifcEnv['DEFAULT_CLOCK'] = clockMangle('default_clock')
         else:
             ifcEnv['DEFAULT_CLOCK'] = 'device_physicalDrivers_clocksDriver_clock'
-        bsvIfc.generateImportInterfaceTop(importHandle, ifcEnv)
+        bsvIfc.generateImportInterfaceTop(importHandle, '    ', ifcEnv)
 
     else:
 
         for channel in module.channels:
             if(channel.isSource()):
-                importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                importHandle.write('    interface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
             else:
-                importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                importHandle.write('    interface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
         for chain in module.chains:
-            importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
-            importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
+            importHandle.write('    interface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
+            importHandle.write('    interface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
+
+        for service in module.services: 
+            if(service.isClient()):
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_RESP_IN  services_fst_serviceClients_' + str(service.module_idx) + "_incoming;// " + service.name + "\n")
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_REQ_OUT  services_fst_serviceClients_' + str(service.module_idx) + "_outgoing;// " + service.name + "\n")
+            else:
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_REQ_IN   services_fst_serviceServers_' + str(service.module_idx) + "_incoming;// " + service.name + "\n")
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_RESP_OUT services_fst_serviceServers_' + str(service.module_idx) + "_outgoing;// " + service.name + "\n")
 
         
     importHandle.write("endinterface\n\n")
@@ -90,45 +104,77 @@ def generateBAImport(module, importHandle):
              rst = resetMangle('default_reset')
              importHandle.write('default_clock ' + clk + '(CLK);\n')
              importHandle.write('default_reset ' + rst + '(RST_N) clocked_by(' + clk + ');\n')
-        bsvIfc.generateImport(importHandle, ifcEnv)
+        bsvIfc.generateImport(importHandle, '    ', ifcEnv)
     else:
         for channel in module.channels:
             if(channel.isSource()):                     
-
-                importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
-                importHandle.write('\t\tmethod services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty notEmpty() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty);\n')
-                importHandle.write('\t\tmethod services_fst_outgoing_' + str(channel.module_idx) + '_first first() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_first);\n')
-                importHandle.write('\t\tmethod deq() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_deq) enable(EN_services_fst_outgoing_' + str(channel.module_idx) + '_deq);\n')
-                importHandle.write('\t\toutput_clock clock(CLK_services_fst_outgoing_' + str(channel.module_idx) + '_clock);\n')
-                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_outgoing_' + str(channel.module_idx) + '_reset);\n')
-                importHandle.write('\tendinterface\n\n')
+                importHandle.write('    interface PHYSICAL_CONNECTION_OUT services_fst_outgoing_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                importHandle.write('        method services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty notEmpty() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_notEmpty);\n')
+                importHandle.write('        method services_fst_outgoing_' + str(channel.module_idx) + '_first first() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_first);\n')
+                importHandle.write('        method deq() ready(RDY_services_fst_outgoing_' + str(channel.module_idx) + '_deq) enable(EN_services_fst_outgoing_' + str(channel.module_idx) + '_deq);\n')
+                importHandle.write('        output_clock clock(CLK_services_fst_outgoing_' + str(channel.module_idx) + '_clock);\n')
+                importHandle.write('        output_reset reset(RST_N_services_fst_outgoing_' + str(channel.module_idx) + '_reset);\n')
+                importHandle.write('    endinterface\n\n')
             else:
-
-                importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
-                importHandle.write('\t\tmethod try(services_fst_incoming_' + str(channel.module_idx) + '_try_d) ready(RDY_services_fst_incoming_' + str(channel.module_idx)  + '_try) enable(EN_services_fst_incoming_' + str(channel.module_idx) + '_try);\n')
-                importHandle.write('\t\tmethod services_fst_incoming_' + str(channel.module_idx) + '_success  success() ready( RDY_services_fst_incoming_' + str(channel.module_idx) + '_success);\n')
-                importHandle.write('\t\tmethod services_fst_incoming_' + str(channel.module_idx) + '_dequeued  dequeued() ready(RDY_services_fst_incoming_' + str(channel.module_idx) + '_dequeued);\n')
-                importHandle.write('\t\toutput_clock clock(CLK_services_fst_incoming_' + str(channel.module_idx) + '_clock);\n')
-                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_incoming_' + str(channel.module_idx) + '_reset);\n')
-                importHandle.write('\tendinterface\n\n')
+                importHandle.write('    interface PHYSICAL_CONNECTION_IN services_fst_incoming_' + str(channel.module_idx) + ";// " + channel.name + "\n")
+                importHandle.write('        method try(services_fst_incoming_' + str(channel.module_idx) + '_try_d) ready(RDY_services_fst_incoming_' + str(channel.module_idx)  + '_try) enable(EN_services_fst_incoming_' + str(channel.module_idx) + '_try);\n')
+                importHandle.write('        method services_fst_incoming_' + str(channel.module_idx) + '_success  success() ready( RDY_services_fst_incoming_' + str(channel.module_idx) + '_success);\n')
+                importHandle.write('        method services_fst_incoming_' + str(channel.module_idx) + '_dequeued  dequeued() ready(RDY_services_fst_incoming_' + str(channel.module_idx) + '_dequeued);\n')
+                importHandle.write('        output_clock clock(CLK_services_fst_incoming_' + str(channel.module_idx) + '_clock);\n')
+                importHandle.write('        output_reset reset(RST_N_services_fst_incoming_' + str(channel.module_idx) + '_reset);\n')
+                importHandle.write('    endinterface\n\n')
 
         for chain in module.chains:
-                importHandle.write('\tinterface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
-                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty notEmpty() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty);\n')
-                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_outgoing_first first() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_first);\n')
-                importHandle.write('\t\tmethod deq() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq);\n')
-                importHandle.write('\t\toutput_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_outgoing_clock);\n')
-                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_outgoing_reset);\n')
-                importHandle.write('\tendinterface\n\n')
+            importHandle.write('    interface PHYSICAL_CONNECTION_OUT services_fst_chains_' + str(chain.module_idx) + "_outgoing;// " + chain.name + "\n")
+            importHandle.write('        method services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty notEmpty() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_notEmpty);\n')
+            importHandle.write('        method services_fst_chains_' + str(chain.module_idx) + '_outgoing_first first() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_first);\n')
+            importHandle.write('        method deq() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_outgoing_deq);\n')
+            importHandle.write('        output_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_outgoing_clock);\n')
+            importHandle.write('        output_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_outgoing_reset);\n')
+            importHandle.write('    endinterface\n\n')
 
-                importHandle.write('\tinterface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
-                importHandle.write('\t\tmethod try(services_fst_chains_' + str(chain.module_idx) + '_incoming_try_d) ready(RDY_services_fst_chains_' + str(chain.module_idx)  + '_incoming_try) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_incoming_try);\n')
-                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_incoming_success  success() ready( RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_success);\n')
-                importHandle.write('\t\tmethod services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued  dequeued() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued);\n')
-                importHandle.write('\t\toutput_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_incoming_clock);\n')
-                importHandle.write('\t\toutput_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_incoming_reset);\n')
-                importHandle.write('\tendinterface\n\n')
+            importHandle.write('    interface PHYSICAL_CONNECTION_IN services_fst_chains_' + str(chain.module_idx) + "_incoming;// " + chain.name + "\n")
+            importHandle.write('        method try(services_fst_chains_' + str(chain.module_idx) + '_incoming_try_d) ready(RDY_services_fst_chains_' + str(chain.module_idx)  + '_incoming_try) enable(EN_services_fst_chains_' + str(chain.module_idx) + '_incoming_try);\n')
+            importHandle.write('        method services_fst_chains_' + str(chain.module_idx) + '_incoming_success  success() ready( RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_success);\n')
+            importHandle.write('        method services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued  dequeued() ready(RDY_services_fst_chains_' + str(chain.module_idx) + '_incoming_dequeued);\n')
+            importHandle.write('        output_clock clock(CLK_services_fst_chains_' + str(chain.module_idx) + '_incoming_clock);\n')
+            importHandle.write('        output_reset reset(RST_N_services_fst_chains_' + str(chain.module_idx) + '_incoming_reset);\n')
+            importHandle.write('    endinterface\n\n')
         
+        for service in module.services:
+            if (service.isClient):
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_REQ_OUT services_fst_serviceClients_' + str(service.module_idx) + "_outgoing;// " + service.name + "\n")
+                importHandle.write('        method services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_notEmpty notEmpty() ready(RDY_services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_notEmpty);\n')
+                importHandle.write('        method services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_first first() ready(RDY_services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_first);\n')
+                importHandle.write('        method deq() ready(RDY_services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_deq) enable(EN_services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_deq);\n')
+                importHandle.write('        output_clock clock(CLK_services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_clock);\n')
+                importHandle.write('        output_reset reset(RST_N_services_fst_serviceClients_' + str(service.module_idx) + '_outgoing_reset);\n')
+                importHandle.write('    endinterface\n\n')
+
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_RESP_IN services_fst_serviceClients_' + str(service.module_idx) + "_incoming;// " + service.name + "\n")
+                importHandle.write('        method try(services_fst_serviceClients_' + str(service.module_idx) + '_incoming_try_d) ready(RDY_services_fst_serviceClients_' + str(service.module_idx)  + '_incoming_try) enable(EN_services_fst_serviceClients_' + str(service.module_idx) + '_incoming_try);\n')
+                importHandle.write('        method services_fst_serviceClients_' + str(service.module_idx) + '_incoming_success  success() ready( RDY_services_fst_serviceClients_' + str(service.module_idx) + '_incoming_success);\n')
+                importHandle.write('        method services_fst_serviceClients_' + str(service.module_idx) + '_incoming_dequeued  dequeued() ready(RDY_services_fst_serviceClients_' + str(service.module_idx) + '_incoming_dequeued);\n')
+                importHandle.write('        output_clock clock(CLK_services_fst_serviceClients_' + str(service.module_idx) + '_incoming_clock);\n')
+                importHandle.write('        output_reset reset(RST_N_services_fst_serviceClients_' + str(service.module_idx) + '_incoming_reset);\n')
+                importHandle.write('    endinterface\n\n')
+            else:
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_RESP_OUT services_fst_serviceServers_' + str(service.module_idx) + "_outgoing;// " + service.name + "\n")
+                importHandle.write('        method services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_notEmpty notEmpty() ready(RDY_services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_notEmpty);\n')
+                importHandle.write('        method services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_first first() ready(RDY_services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_first);\n')
+                importHandle.write('        method deq() ready(RDY_services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_deq) enable(EN_services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_deq);\n')
+                importHandle.write('        output_clock clock(CLK_services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_clock);\n')
+                importHandle.write('        output_reset reset(RST_N_services_fst_serviceServers_' + str(service.module_idx) + '_outgoing_reset);\n')
+                importHandle.write('    endinterface\n\n')
+
+                importHandle.write('    interface PHYSICAL_SERVICE_CON_RESP_IN services_fst_serviceServers_' + str(service.module_idx) + "_incoming;// " + service.name + "\n")
+                importHandle.write('        method try(services_fst_serviceServers_' + str(service.module_idx) + '_incoming_try_d) ready(RDY_services_fst_serviceServers_' + str(service.module_idx)  + '_incoming_try) enable(EN_services_fst_serviceServers_' + str(service.module_idx) + '_incoming_try);\n')
+                importHandle.write('        method services_fst_serviceServers_' + str(service.module_idx) + '_incoming_success  success() ready( RDY_services_fst_serviceServers_' + str(service.module_idx) + '_incoming_success);\n')
+                importHandle.write('        method services_fst_serviceServers_' + str(service.module_idx) + '_incoming_dequeued  dequeued() ready(RDY_services_fst_serviceServers_' + str(service.module_idx) + '_incoming_dequeued);\n')
+                importHandle.write('        output_clock clock(CLK_services_fst_serviceServers_' + str(service.module_idx) + '_incoming_clock);\n')
+                importHandle.write('        output_reset reset(RST_N_services_fst_serviceServers_' + str(service.module_idx) + '_incoming_reset);\n')
+                importHandle.write('    endinterface\n\n')
+
             
     # We cached scheduling and path information during the first pass. Use it now. 
     bsvPathHandle   = open(module.objectCache['BSV_PATH'][0].from_bld(), 'r')
@@ -152,34 +198,41 @@ def generateBAImport(module, importHandle):
         importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n")
 
         # two phases 1) interface definition.  I allow my children to define 2) interface binding I bind my children. 
-        bsvIfc.generateHierarchy(importHandle, '\t', 'm', ifcEnv)
+        bsvIfc.generateHierarchy(importHandle, '    ', 'm', ifcEnv)
         importHandle.write('return ' + bsvIfc.getDefinition()  + ';\n')
 
     else:
-        ifc = 'SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + ', Empty)'
+        ifc = 'SOFT_SERVICES_SYNTHESIS_BOUNDARY#(' + str(incoming) + ', ' + str(outgoing) + ', 0, 0, ' + str(chains) + ', ' + str(service_clients) + ', ' + str(service_servers) + ', Empty)'
 
         importHandle.write('module ' + module.wrapperName() + '#(Reset baseReset) (' + ifc + ');\n')
 
         # This code is very similar to module code below.  We should refactor.
-        importHandle.write("\tlet m <- mk_" + module.name + "_Converted();\n") 
+        importHandle.write("    let m <- mk_" + module.name + "_Converted();\n") 
         module_body = ''
 
-        subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
-                           str(outgoing) + ", 0, 0, " + str(chains) + ")"
+        subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " + str(outgoing) + ", 0, 0, " + str(chains) + ', ' + str(service_clients) + ', ' + str(service_servers) + ")"
         
         for channel in module.channels:
             if(channel.isSource()):                     
-                module_body += "\toutgoingVec[" + str(channel.module_idx) + "] = m.services_fst_outgoing_" + str(channel.module_idx) + ";\n"
+                module_body += "    outgoingVec[" + str(channel.module_idx) + "] = m.services_fst_outgoing_" + str(channel.module_idx) + ";\n"
             else:
-                module_body += "\tincomingVec[" + str(channel.module_idx) + "] = m.services_fst_incoming_" + str(channel.module_idx) + ";\n"
+                module_body += "    incomingVec[" + str(channel.module_idx) + "] = m.services_fst_incoming_" + str(channel.module_idx) + ";\n"
 
         for chain in module.chains:
-            module_body += "\tchainsVec[" + str(chain.module_idx) + "] = PHYSICAL_CHAIN{outgoing: m.services_fst_chains_" + str(chain.module_idx) + "_outgoing, incoming: m.services_fst_chains_" + str(chain.module_idx) + "_incoming};\n"
+            module_body += "    chainsVec[" + str(chain.module_idx) + "] = PHYSICAL_CHAIN{outgoing: m.services_fst_chains_" + str(chain.module_idx) + "_outgoing, incoming: m.services_fst_chains_" + str(chain.module_idx) + "_incoming};\n"
+
+        for service in module.services:
+            if(service.isClient()):
+                module_body += "    serviceClientsVec[" + str(service.module_idx) + "] = PHYSICAL_SERVICE_CON_CLIENT{outgoing: m.services_fst_serviceClients_" + str(service.module_idx) + "_outgoing, incoming: m.services_fst_serviceClients_" + str(service.module_idx) + "_incoming};\n"
+            else:
+                module_body += "    serviceServersVec[" + str(service.module_idx) + "] = PHYSICAL_SERVICE_CON_SERVER{outgoing: m.services_fst_serviceServers_" + str(service.module_idx) + "_outgoing, incoming: m.services_fst_serviceServers_" + str(service.module_idx) + "_incoming};\n"
 
         #declare interface vectors
         importHandle.write("    Vector#(" + str(incoming) + ", PHYSICAL_CONNECTION_IN)  incomingVec = newVector();\n")
         importHandle.write("    Vector#(" + str(outgoing) + ", PHYSICAL_CONNECTION_OUT) outgoingVec = newVector();\n")
         importHandle.write("    Vector#(" + str(chains) + ", PHYSICAL_CHAIN) chainsVec = newVector();\n")
+        importHandle.write("    Vector#(" + str(service_clients) + ", PHYSICAL_SERVICE_CON_CLIENT) serviceClientsVec = newVector();\n")
+        importHandle.write("    Vector#(" + str(service_servers) + ", PHYSICAL_SERVICE_CON_SERVER) serviceServersVec = newVector();\n")
 
         # lay down module body
         importHandle.write(module_body)
@@ -195,6 +248,8 @@ def generateBAImport(module, importHandle):
         importHandle.write("        interface chains = chainsVec;\n")                                   
         importHandle.write("        interface incomingMultis = replicate(PHYSICAL_CONNECTION_IN_MULTI{try: ?, success: ?, clock: clk, reset: rst});\n")
         importHandle.write("        interface outgoingMultis = replicate(PHYSICAL_CONNECTION_OUT_MULTI{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst});\n")
+        importHandle.write("        interface serviceClients = serviceClientsVec;\n")                                   
+        importHandle.write("        interface serviceServers = serviceServersVec;\n")                                   
         importHandle.write("    endinterface;\n")
                                      
         importHandle.write("    interface services = tuple3(moduleIfc,?,?);\n")
@@ -451,6 +506,45 @@ def _emitSynthModule(liModule,
                           ', bitWidth:' + str(chain.bitwidth) +\
                           ', moduleNameIncoming: "' + chain.module_name +\
                           '",  moduleNameOutgoing: "' + chain.module_name + '"});\n')   
+    
+    for service in liModule.services:
+        client_id_str = '", clientId: "' + service.client_idx
+        ch_reg_stmt = 'registerServiceClient'
+        ch_type = 'LOGICAL_SERVICE_CLIENT_INFO'
+        ch_src = 'serviceClients'
+            
+        if (service.isServer()):
+            client_id_str = ''
+            ch_reg_stmt = 'registerServiceServer'
+            ch_type = 'LOGICAL_SERVICE_SERVER_INFO'
+            ch_src = 'serviceServers'
+
+        # Connection to pass to the platform.
+        service_in = maybeWrapConnection(service.name,
+                                         ch_src,
+                                         service.module_idx,
+                                         'incoming',
+                                         'In',
+                                         service.root_module_name)
+
+        service_out = maybeWrapConnection(service.name,
+                                          ch_src,
+                                          service.module_idx,
+                                          'outgoing',
+                                          'Out',
+                                          service.root_module_name)
+            
+        
+        
+        synthHandle.write('    ' + ch_reg_stmt + '(' + ch_type + ' { logicalName: "' +\
+                          service.name + '", logicalReqType: "' + service.req_raw_type +\
+                          '", logicalRespType: "' + service.resp_raw_type +\
+                          '", moduleName: "' + service.module_name + client_id_str +\
+                          '", incoming: ' + service_in +\
+                          ', outgoing: ' + service_out +\
+                          ', reqBitWidth:' + str(service.req_bitwidth) +\
+                          ', respBitWidth:' + str(service.resp_bitwidth) +\
+                          ', clientIdBitWidth:' + str(service.idx_bitwidth) + '});\n')   
 
     synthHandle.write("    return mod.device;\n")
     synthHandle.write("endmodule\n")
@@ -466,6 +560,14 @@ def generateConnectionBSH(liModule, bshHandle):
         else:
             recv += 1
     chains = len(liModule.chains)
+
+    clients = 0
+    servers = 0
+    for service in liModule.services: 
+        if service.isClient():
+            clients += 1
+        else:
+            servers += 1
 
     bshHandle.write("//Generated by liModule.py\n")
     bshHandle.write("`ifndef CON_RECV_" + liModule.name + "\n")
@@ -485,6 +587,14 @@ def generateConnectionBSH(liModule, bshHandle):
 
     bshHandle.write("`ifndef CON_SEND_MULTI_" + liModule.name + "\n")
     bshHandle.write("`define CON_SEND_MULTI_" + liModule.name + " 0\n")
+    bshHandle.write("`endif\n")
+    
+    bshHandle.write("`ifndef CON_SERVICE_CLIENT_" + liModule.name + "\n")
+    bshHandle.write("`define CON_SERVICE_CLIENT_" + liModule.name + " " + str(clients) + "\n")
+    bshHandle.write("`endif\n")
+
+    bshHandle.write("`ifndef CON_SERVICE_SERVER_" + liModule.name + "\n")
+    bshHandle.write("`define CON_SERVICE_SERVER_" + liModule.name + " " + str(servers) + "\n")
     bshHandle.write("`endif\n")
 
 def getSynthHandle(moduleList, module):
@@ -799,12 +909,17 @@ class WrapperGen():
         log_bsv.write('`define CON_RECV_MULTI_' + module.boundaryName + ' 50\n')
         log_bsv.write('`define CON_SEND_MULTI_' + module.boundaryName + ' 50\n')
         log_bsv.write('`define CHAINS_' + module.boundaryName + ' 100\n')
+        log_bsv.write('`define CON_SERVICE_CLIENT_' + module.boundaryName + ' 100\n')
+        log_bsv.write('`define CON_SERVICE_SERVER_' + module.boundaryName + ' 100\n')
         wrapper_bsv.write('// Real build pass.  Include file built dynamically.\n')
         wrapper_bsv.write('`include "' + module.name + '_Wrapper_con_size.bsh"\n')
 
         for wrapper in [wrapper_bsv, log_bsv]:      
             wrapper.write('(* synthesize *)\n')
-            wrapper.write('module [Module] ' + module.wrapperName() + '#(Reset baseReset) (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.boundaryName + ', `CON_SEND_' + module.boundaryName + ', `CON_RECV_MULTI_' + module.boundaryName + ', `CON_SEND_MULTI_' + module.boundaryName +', `CHAINS_' + module.boundaryName +', ' + module.interfaceType + '));\n')
+            wrapper.write('module [Module] ' + module.wrapperName() + '#(Reset baseReset) (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(`CON_RECV_' + module.boundaryName)
+            wrapper.write(', `CON_SEND_' + module.boundaryName + ', `CON_RECV_MULTI_' + module.boundaryName)
+            wrapper.write(', `CON_SEND_MULTI_' + module.boundaryName +', `CHAINS_' + module.boundaryName)
+            wrapper.write(', `CON_SERVICE_CLIENT_' + module.boundaryName + ', `CON_SERVICE_SERVER_' + module.boundaryName + ', ' + module.interfaceType + '));\n')
             wrapper.write('  \n')
             # we need to insert the fpga platform here
             # get my parameters 

@@ -12,14 +12,14 @@ class Vector(Interface):
         # First I let my children write down their definitions. Then I
         # bind them.
         for member in self.members:
-            self.members[member].generateHierarchy(interfaceHandle, ident + '\t', topModule, ifcEnv)
+            self.members[member].generateHierarchy(interfaceHandle, ident + '    ', topModule, ifcEnv)
 
         # now I can create my binding.
-        interfaceHandle.write("//begin import vector " + self.name + "\n")
+        interfaceHandle.write(ident + "//begin import vector " + self.name + "\n")
         interfaceHandle.write(ident + self.type + " " + self.getDefinition() + "= newVector;\n")
         for member in self.members:
             memberObj = self.members[member]
-            interfaceHandle.write(self.getDefinition() + '[' + str(member) + '] =' +  memberObj.getDefinition() + ";\n")
+            interfaceHandle.write(ident + self.getDefinition() + '[' + str(member) + '] =' +  memberObj.getDefinition() + ";\n")
 
 
 

@@ -29,30 +29,29 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-import Vector::*;
-import List::*;
+//
+// Convenience functions for converting Bits to Integer and String. These are 
+// useful for building internal data structures used during compilation.
+//
 
-//The interface of a module with Connections
-interface WITH_CONNECTIONS#(parameter numeric type t_NUM_IN,
-                            parameter numeric type t_NUM_OUT,
-                            parameter numeric type t_NUM_IN_MULTI,
-                            parameter numeric type t_NUM_OUT_MULTI,
-                            parameter numeric type t_NUM_CHAINS, 
-                            parameter numeric type t_NUM_SERVICE_CLIENTS,
-                            parameter numeric type t_NUM_SERVICE_SERVERS);
+//
+// bitToInteger --
+//   Convert Bit#(n) to Integer.
+//
+function Integer bitToInteger(Bit#(n) val);
+    Integer int_val = 0;
+    Integer base = 1;
+    for (Integer i = 0; i < valueOf(n); i = i + 1)
+    begin
+        int_val = (val[i] == 1)? (int_val + base) : int_val;
+        base = base * 2;
+    end
+    return int_val;
+endfunction
 
-  interface Vector#(t_NUM_IN, PHYSICAL_CONNECTION_IN)  incoming;
-  interface Vector#(t_NUM_OUT, PHYSICAL_CONNECTION_OUT) outgoing;
-  interface Vector#(t_NUM_IN_MULTI, PHYSICAL_CONNECTION_IN_MULTI)  incomingMultis;
-  interface Vector#(t_NUM_OUT_MULTI, PHYSICAL_CONNECTION_OUT_MULTI) outgoingMultis;
-
-  interface Vector#(t_NUM_CHAINS, PHYSICAL_CHAIN) chains;
-  interface Vector#(t_NUM_SERVICE_CLIENTS, PHYSICAL_SERVICE_CON_CLIENT) serviceClients;
-  interface Vector#(t_NUM_SERVICE_SERVERS, PHYSICAL_SERVICE_CON_SERVER) serviceServers;
-
-endinterface
-
-// Backwards compatability:
-typedef WITH_CONNECTIONS#(nI, nO, 0, 0, nC, 0, 0) WithConnections#(parameter numeric type nI, parameter numeric type nO, parameter numeric type nC);
-
+//
+// bitToString --
+//   Convert Bit#(n) to String.
+//
+function String bitToString(Bit#(n) val) = integerToString(bitToInteger(val));
 

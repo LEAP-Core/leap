@@ -54,36 +54,31 @@ typedef `CONNECTION_IDX_SIZE CONNECTION_IDX_SIZE;
 typedef Bit#(CONNECTION_IDX_SIZE) CONNECTION_IDX;
 typedef function m#(FIFO#(Bit#(PHYSICAL_DATA_SIZE))) f() CONNECTION_BUFFER_CONSTRUCTOR#(type m);
 
-
-
 typedef union tagged
 {
-   CONNECTION_IDX CONNECTION_ROUTED; // Route a message to a particular dst.
-   void CONNECTION_BROADCAST;        // Send a message to all dsts.
+    CONNECTION_IDX CONNECTION_ROUTED; // Route a message to a particular dst.
+    void CONNECTION_BROADCAST;        // Send a message to all dsts.
 }
 CONNECTION_TAG deriving (Eq, Bits);
 
 // A physical incoming connection
 interface CONNECTION_IN#(numeric type t_MSG_SIZE);
-
-  method Action try(Bit#(t_MSG_SIZE) d);
-  method Bool   success();
-  method Bool   dequeued();
-  interface Clock clock;
-  interface Reset reset;
-
+    method Action try(Bit#(t_MSG_SIZE) d);
+    method Bool   success();
+    method Bool   dequeued();
+    interface Clock clock;
+    interface Reset reset;
 endinterface
 
 typedef CONNECTION_IN#(PHYSICAL_DATA_SIZE) PHYSICAL_CONNECTION_IN;
 
 // A physical outgoing connection
 interface CONNECTION_OUT#(numeric type t_MSG_SIZE);
-  method Bool notEmpty();
-  method Bit#(t_MSG_SIZE) first();
-  method Action deq();
-  interface Clock clock;
-  interface Reset reset;
-
+    method Bool notEmpty();
+    method Bit#(t_MSG_SIZE) first();
+    method Action deq();
+    interface Clock clock;
+    interface Reset reset;
 endinterface
 
 typedef CONNECTION_OUT#(PHYSICAL_DATA_SIZE) PHYSICAL_CONNECTION_OUT;
@@ -101,78 +96,58 @@ typedef CONNECTION_INOUT#(PHYSICAL_DATA_SIZE, PHYSICAL_DATA_SIZE) PHYSICAL_CONNE
 // The basic sending half of a connection.
 
 interface PHYSICAL_SEND#(type t_MSG);
-  
-  method Action send(t_MSG data);
-  method Bool notFull();  
-  method Bool dequeued();  
-
+    method Action send(t_MSG data);
+    method Bool notFull();  
+    method Bool dequeued();  
 endinterface
 
 typeclass ToPhysicalSend#(type t_IFC, type t_MSG)
     dependencies (t_IFC determines t_MSG);
     // Convert original type to physical send.
     module mkPhysicalSend#(t_IFC ifc) (PHYSICAL_SEND#(t_MSG));
-
 endtypeclass
 
 interface PHYSICAL_SEND_MULTI#(type t_MSG);
-
     method Action broadcast(t_MSG msg);
     method Action sendTo(CONNECTION_IDX dst, t_MSG msg);
     method Bool   notFull();
     method Bool   dequeued();
-
 endinterface
-
-
-
 
 // Phsyical incoming connection capable of multicast.
 interface PHYSICAL_CONNECTION_IN_MULTI;
-
-  method Action try(CONNECTION_IDX tag, PHYSICAL_CONNECTION_DATA d);
-  method Bool   success();
-  interface Clock clock;
-  interface Reset reset;
-
+    method Action try(CONNECTION_IDX tag, PHYSICAL_CONNECTION_DATA d);
+    method Bool   success();
+    interface Clock clock;
+    interface Reset reset;
 endinterface
 
 // Physical outgoing connection capable of multicast.
 interface PHYSICAL_CONNECTION_OUT_MULTI;
-
-  method Bool notEmpty();
-  method Tuple2#(CONNECTION_TAG, PHYSICAL_CONNECTION_DATA) first();
-  method Action deq();
-  interface Clock clock;
-  interface Reset reset;
-
+    method Bool notEmpty();
+    method Tuple2#(CONNECTION_TAG, PHYSICAL_CONNECTION_DATA) first();
+    method Action deq();
+    interface Clock clock;
+    interface Reset reset;
 endinterface
 
 // A bi-directional multicast connection.
 interface PHYSICAL_CONNECTION_INOUT_MULTI;
-
-  interface PHYSICAL_CONNECTION_IN_MULTI  incoming;
-  interface PHYSICAL_CONNECTION_OUT_MULTI outgoing;
-
+    interface PHYSICAL_CONNECTION_IN_MULTI  incoming;
+    interface PHYSICAL_CONNECTION_OUT_MULTI outgoing;
 endinterface
 
 // A logical station is just a name.
 interface STATION;
-
     method String name();
-
 endinterface
-
 
 // A physical station just looks like two FIFOFs.
 interface PHYSICAL_STATION;
-
-  method Bool notEmpty();
-  method Tuple2#(CONNECTION_TAG, PHYSICAL_CONNECTION_DATA) first();
-  method Action deq();
-  
-  method Action enq(CONNECTION_TAG tag, PHYSICAL_CONNECTION_DATA d);
-
+    method Bool notEmpty();
+    method Tuple2#(CONNECTION_TAG, PHYSICAL_CONNECTION_DATA) first();
+    method Action deq();
+    method Action enq(CONNECTION_TAG tag, PHYSICAL_CONNECTION_DATA d);
 endinterface
 
 // Global string table entry
@@ -316,14 +291,12 @@ typedef struct
 }
 CONNECTION_DEBUG_INFO;
 
-
 // ========================================================================
 //
 // Latency control.  Permits us to toggle the buffering an latency of the 
 // softconnections at runtime as a test fixture.
 //
 // ========================================================================
-
 
 typedef 256 LATENCY_FIFO_DELAY;
 typedef Bit#(TAdd#(1,TLog#(LATENCY_FIFO_DELAY))) LATENCY_FIFO_DELAY_CONTAINER;
@@ -377,12 +350,80 @@ LOGICAL_CHAIN_INFO;
 
 // ========================================================================
 //
-// The context our connected modules operate on.
+// Data about service connections
 //
 // ========================================================================
 
-typedef function String f(String name) CONNECTION_REMAP_FUNC;
-function String connectionNameNullRemap(String inputName) = inputName;
+typedef `CON_CWIDTH                 SERVICE_CON_DATA_SIZE;
+typedef `CON_SERVICE_N_CLIENT_MAX   N_SERVICE_CLIENTS;
+typedef TLog#(N_SERVICE_CLIENTS)    SERVICE_CON_IDX_SIZE;
+typedef TAdd#(SERVICE_CON_IDX_SIZE,SERVICE_CON_DATA_SIZE)  SERVICE_CON_RESP_SIZE;
+
+typedef Bit#(SERVICE_CON_DATA_SIZE) PHYSICAL_SERVICE_CON_DATA;
+typedef Bit#(SERVICE_CON_IDX_SIZE)  PHYSICAL_SERVICE_CON_IDX;
+typedef Bit#(SERVICE_CON_RESP_SIZE) PHYSICAL_SERVICE_CON_RESP;
+
+// A physical incoming connection with client ID assignment port
+interface CONNECTION_IN_WITH_IDX#(numeric type t_MSG_SIZE, numeric type t_IDX_SIZE);
+    method Action try(Bit#(t_MSG_SIZE) d);
+    method Bool   success();
+    method Bool   dequeued();
+    method Action setId(Bit#(t_IDX_SIZE) id);
+    interface Clock clock;
+    interface Reset reset;
+endinterface
+
+// A bi-directional connection: CONNECTION_IN_WITH_IDX & CONNECTION_OUT.
+interface CONNECTION_INOUT_WITH_IDX#(numeric type t_IN_SIZE, numeric type t_OUT_SIZE, numeric type t_IDX_SIZE);
+
+  interface CONNECTION_IN_WITH_IDX#(t_IN_SIZE, t_IDX_SIZE)  incoming;
+  interface CONNECTION_OUT#(t_OUT_SIZE) outgoing;
+
+endinterface
+
+typedef CONNECTION_IN#(SERVICE_CON_DATA_SIZE)  PHYSICAL_SERVICE_CON_REQ_IN;
+typedef CONNECTION_IN_WITH_IDX#(SERVICE_CON_DATA_SIZE, SERVICE_CON_IDX_SIZE) PHYSICAL_SERVICE_CON_RESP_IN;
+typedef CONNECTION_OUT#(SERVICE_CON_DATA_SIZE) PHYSICAL_SERVICE_CON_REQ_OUT;
+typedef CONNECTION_OUT#(SERVICE_CON_RESP_SIZE) PHYSICAL_SERVICE_CON_RESP_OUT;
+
+typedef CONNECTION_INOUT_WITH_IDX#(SERVICE_CON_DATA_SIZE, SERVICE_CON_DATA_SIZE, SERVICE_CON_IDX_SIZE) PHYSICAL_SERVICE_CON_CLIENT;
+typedef CONNECTION_INOUT#(SERVICE_CON_DATA_SIZE, SERVICE_CON_RESP_SIZE) PHYSICAL_SERVICE_CON_SERVER;
+
+typedef struct 
+{
+    String  logicalName;
+    String  logicalReqType;
+    String  logicalRespType;
+    String  moduleName;
+    String  clientId;
+    Integer reqBitWidth;
+    Integer respBitWidth;
+    Integer clientIdBitWidth;
+    PHYSICAL_SERVICE_CON_RESP_IN  incoming;
+    PHYSICAL_SERVICE_CON_REQ_OUT  outgoing;
+} 
+LOGICAL_SERVICE_CLIENT_INFO;
+
+typedef struct 
+{
+    String  logicalName;
+    String  logicalReqType;
+    String  logicalRespType;
+    String  moduleName;
+    Integer reqBitWidth;
+    Integer respBitWidth;
+    Integer clientIdBitWidth;
+    PHYSICAL_SERVICE_CON_REQ_IN    incoming;
+    PHYSICAL_SERVICE_CON_RESP_OUT  outgoing;
+} 
+LOGICAL_SERVICE_SERVER_INFO;
+
+
+// ========================================================================
+//
+// The context our connected modules operate on.
+//
+// ========================================================================
 
 typedef struct
 {
@@ -391,7 +432,9 @@ typedef struct
     LOGICAL_RECV_INFO_TABLE unmatchedRecvs;
     List#(LOGICAL_SEND_MULTI_INFO) unmatchedSendMultis;
     List#(LOGICAL_RECV_MULTI_INFO) unmatchedRecvMultis;
-    List#(LOGICAL_CHAIN_INFO) chains;     // BACKWARDS COMPATABILITY: connection chains
+    List#(LOGICAL_CHAIN_INFO) chains;  // BACKWARDS COMPATABILITY: connection chains
+    List#(LOGICAL_SERVICE_CLIENT_INFO) unmatchedServiceClients; // connection service clients
+    List#(LOGICAL_SERVICE_SERVER_INFO) unmatchedServiceServers; // connection service servers
     List#(STATION_INFO) stations;
     List#(STATION) stationStack;
     List#(CONNECTION_DEBUG_INFO) debugInfo;
@@ -402,7 +445,7 @@ typedef struct
     String synthesisBoundaryName;
     Bool exposeAllConnections;
     String rootStationName;
-    CONNECTION_REMAP_FUNC remappingFunction; 
     Reset softReset;
 }
 LOGICAL_CONNECTION_INFO;
+

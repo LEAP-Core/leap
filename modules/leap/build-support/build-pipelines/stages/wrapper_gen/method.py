@@ -9,16 +9,16 @@ class Method():
         self.returnType = returnType
         self.attributes = attributes
 
-    def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix=''):
+    def generateImportInterface(self, interfaceHandle, ident, ifcEnv, namePrefix=''):
         #interfaces don't know their name. this must be propagated.
         argBindings = []
         for arg in self.attributes['args']:
             argBindings.append(arg[0] + ' ' + arg[1])
             
-        interfaceHandle.write('method ' + self.returnType + ' ' + namePrefix + '(' + ','.join(argBindings) + ');\n')
+        interfaceHandle.write(ident + 'method ' + self.returnType + ' ' + namePrefix + '(' + ','.join(argBindings) + ');\n')
         self.attributes['namePrefix'] = namePrefix
 
-    def generateImport(self, interfaceHandle, ifcEnv):
+    def generateImport(self, interfaceHandle, ident, ifcEnv):
         # set method defaults.
         clock = ""
         reset = ""
@@ -50,7 +50,7 @@ class Method():
 
         args = ",".join(map(lambda arg: arg[1], self.attributes['args']))
 
-        interfaceHandle.write('method ' + result + ' ' + self.attributes['namePrefix'] + '(' + args + ') ' + ' '.join([ready, enable, clock, reset]) + ";\n")
+        interfaceHandle.write(ident + 'method ' + result + ' ' + self.attributes['namePrefix'] + '(' + args + ') ' + ' '.join([ready, enable, clock, reset]) + ";\n")
 
     def generateHierarchy(self, interfaceHandle, ident, topModule, ifcEnv):
         # remember top module name...

@@ -37,13 +37,12 @@
 // It may be more efficient to build more "packetizing" into the Station and
 // thus keep its routing table smaller.
 //
-module [t_CONTEXT] mkConnectionSendVector#(
-    String portname,
-    Maybe#(STATION) m_station,
-    String origtype,
-    CONNECTION_SEND_PARAM param)
+module [t_CONTEXT] mkConnectionSendVector#(String portname,
+                                           Maybe#(STATION) m_station,
+                                           String origtype,
+                                           CONNECTION_SEND_PARAM param)
     // interface:
-        (PHYSICAL_SEND#(t_MSG))
+    (PHYSICAL_SEND#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SZ),
          Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
@@ -81,7 +80,6 @@ module [t_CONTEXT] mkConnectionSendVector#(
         begin
           res = res && v[x].notFull();
         end
-
         return res;
     endmethod
 
@@ -91,17 +89,15 @@ module [t_CONTEXT] mkConnectionSendVector#(
         begin
           res = res && v[x].dequeued();
         end
-
         return res;
     endmethod
 endmodule
 
 
-module [t_CONTEXT] mkConnectionRecvVector#(
-    String portname,
-    Maybe#(STATION) m_station,
-    String origtype,
-    CONNECTION_RECV_PARAM param)
+module [t_CONTEXT] mkConnectionRecvVector#(String portname,
+                                           Maybe#(STATION) m_station,
+                                           String origtype,
+                                           CONNECTION_RECV_PARAM param)
     // Interface:
     (CONNECTION_RECV#(t_MSG))
     provisos
@@ -121,12 +117,10 @@ module [t_CONTEXT] mkConnectionRecvVector#(
 
     method t_MSG receive();
         Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = newVector();
-
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
             tmp[x] = v[x].receive();
         end
-
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p = pack(tmp);
         Bit#(t_MSG_SZ) p2 = truncateNP(p);
         return unpack(p2);
@@ -134,12 +128,10 @@ module [t_CONTEXT] mkConnectionRecvVector#(
 
     method Bool notEmpty();
         Bool res = True;
-        
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           res = res && v[x].notEmpty();
         end
-        
         return res;
     endmethod
 
@@ -154,11 +146,10 @@ endmodule
 
 // Vectors of multicast connections incur additional overhead because of tag duplication.
 
-module [t_CONTEXT] mkConnectionSendMultiVector#(
-    String portname,
-    Maybe#(STATION) m_station,
-    String origtype,
-    CONNECTION_SEND_PARAM param)
+module [t_CONTEXT] mkConnectionSendMultiVector#(String portname,
+                                                Maybe#(STATION) m_station,
+                                                String origtype,
+                                                CONNECTION_SEND_PARAM param)
     // Interface:
     (PHYSICAL_SEND_MULTI#(t_MSG))
     provisos
@@ -210,7 +201,6 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(
         begin
           res = res && v[x].notFull();
         end
-
         return res;
     endmethod
 
@@ -220,18 +210,16 @@ module [t_CONTEXT] mkConnectionSendMultiVector#(
         begin
           res = res && v[x].dequeued();
         end
-
         return res;
     endmethod
 endmodule
 
 
 
-module [t_CONTEXT] mkConnectionRecvMultiVector#(
-    String portname,
-    Maybe#(STATION) m_station,
-    String origtype,
-    CONNECTION_RECV_PARAM param)
+module [t_CONTEXT] mkConnectionRecvMultiVector#(String portname,
+                                                Maybe#(STATION) m_station,
+                                                String origtype,
+                                                CONNECTION_RECV_PARAM param)
     // Interface:
     (CONNECTION_RECV_MULTI#(t_MSG))
     provisos
@@ -287,7 +275,7 @@ endmodule
 
 module [t_CONTEXT] mkConnectionChainVector#(String portname, String origtype)
     // interface:
-        (CONNECTION_CHAIN#(t_MSG))
+    (CONNECTION_CHAIN#(t_MSG))
     provisos
         (Bits#(t_MSG, t_MSG_SZ),
          Div#(t_MSG_SZ, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
@@ -298,31 +286,26 @@ module [t_CONTEXT] mkConnectionChainVector#(String portname, String origtype)
 
     for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
     begin
-      v[x] <- mkPhysicalConnectionChain(portname + "_chunk_" + integerToString(x), origtype);
+        v[x] <- mkPhysicalConnectionChain(portname + "_chunk_" + integerToString(x), origtype);
     end
   
     method t_MSG peekFromPrev();
         Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = newVector();
-
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           tmp[x] = v[x].peekFromPrev();
         end
-
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p = pack(tmp);
         Bit#(t_MSG_SZ) p2 = truncateNP(p);
         return unpack(p2);
-
     endmethod
 
     method Bool recvNotEmpty();
         Bool res = True;
-
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           res = res && v[x].recvNotEmpty();
         end
-
         return res;
 
     endmethod
@@ -333,7 +316,6 @@ module [t_CONTEXT] mkConnectionChainVector#(String portname, String origtype)
         begin
           res = res && v[x].sendNotFull();
         end
-
         return res;
     endmethod
 
@@ -341,27 +323,22 @@ module [t_CONTEXT] mkConnectionChainVector#(String portname, String origtype)
         Bit#(t_MSG_SZ) p = pack(data);
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p2 = zeroExtendNP(p);
         Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = unpack(p2);
-
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           v[x].sendToNext(tmp[x]);
         end
-
     endmethod
 
     method ActionValue#(t_MSG) recvFromPrev();
-
         Vector#(t_NUM_PHYSICAL_CONNS, Bit#(PHYSICAL_CONNECTION_SIZE)) tmp = newVector();
-
         for (Integer x = 0; x < valueof(t_NUM_PHYSICAL_CONNS); x = x + 1)
         begin
           tmp[x] <- v[x].recvFromPrev();
         end
-
         Bit#(TMul#(t_NUM_PHYSICAL_CONNS, PHYSICAL_CONNECTION_SIZE)) p = pack(tmp);
         Bit#(t_MSG_SZ) p2 = truncateNP(p);
         return unpack(p2);
-
     endmethod
 
 endmodule
+

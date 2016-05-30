@@ -79,22 +79,30 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
    
     for (Integer c = 0; c < valueOf(SCRATCHPAD_N_SERVERS); c = c + 1)
     begin
-        String ringBaseName = "Scratchpad_Platform_" + integerToString(platformID);
+        String serviceName = "Scratchpad_Platform_" + integerToString(platformID);
         if (c > 0)
         begin
-            ringBaseName = "Scratchpad_" + integerToString(c) + "_" + "Platform_" + integerToString(platformID);
+            serviceName = "Scratchpad_" + integerToString(c) + "_" + "Platform_" + integerToString(platformID);
+        end
+        
+        CONNECTION_SERVICE_PARAM conParam = defaultValue;
+        if (`SCRATCHPAD_CHAIN_REMAP == 1)
+        begin
+            conParam.networkType = CONNECTION_COMPILER_GEN;
+        end
+        else if (`SCRATCHPAD_TOKEN_RING_ENABLE == 1)
+        begin
+            conParam.networkType = CONNECTION_TOKEN_RING;
+        end
+        else
+        begin
+            conParam.networkType = CONNECTION_NON_TOKEN_RING;
         end
 
-        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ)) link_mem_req <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
-            mkConnectionAddrRingNode(ringBaseName + "_Req", 0):
-            mkConnectionTokenRingNode(ringBaseName + "_Req", 0);
-
-        CONNECTION_ADDR_RING#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_mem_rsp <- (`SCRATCHPAD_TOKEN_RING_ENABLE == 0 || `SCRATCHPAD_CHAIN_REMAP == 1)?
-            mkConnectionAddrRingNode(ringBaseName + "_Resp", 0):
-            mkConnectionTokenRingNode(ringBaseName + "_Resp", 0);
-
-        messageM("Scratchpad Ring Name: "+ ringBaseName + "_Req, Port: 0");
-        messageM("Scratchpad Ring Name: "+ ringBaseName + "_Resp, Port: 0");
+        CONNECTION_SERVICE_SERVER#(SCRATCHPAD_PORT_NUM, Bit#(t_SCRATCHPAD_MEM_REQ_SZ), Bit#(t_SCRATCHPAD_READ_RSP_SZ)) link_service <- 
+            mkConnectionServiceServer(serviceName, conParam);
+        
+        messageM("Scratchpad Service Name: " + serviceName  + ", Port: 0");
         
         let memory = memories[c];
         
@@ -107,8 +115,8 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
         //     arbiter.
         //
         rule sendScratchpadReq (True);
-            SCRATCHPAD_MEM_REQ req = unpack(link_mem_req.first());
-            link_mem_req.deq();
+            SCRATCHPAD_MEM_REQ req = unpack(link_service.getReq());
+            link_service.deqReq();
 
             case (req) matches
                 tagged SCRATCHPAD_MEM_INIT .init:
@@ -156,7 +164,7 @@ module [CONNECTED_MODULE] mkScratchpadMemoryService
             resp.globalReadMeta = r.globalReadMeta;
             resp.isCacheable = r.isCacheable;
 
-            link_mem_rsp.enq(r.readUID.portNum, pack(resp));
+            link_service.makeRsp(r.readUID.portNum, pack(resp));
         endrule
     end
 
