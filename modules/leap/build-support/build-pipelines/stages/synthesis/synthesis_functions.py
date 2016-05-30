@@ -18,8 +18,6 @@ def getModuleRTLs(moduleList, module):
         moduleVerilogs += [MODULE_PATH + '/' + moduleList.env['DEFS']['TMP_BSC_DIR'] + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VERILOGS'): 
         moduleVerilogs += [MODULE_PATH + '/' + v]
-    for v in moduleList.getDependencies(module, 'GIVEN_VERILOG_PKGS'): 
-        moduleVerilogs += [MODULE_PATH + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VHDS'): 
         moduleVHDs += [MODULE_PATH + '/' + v]
     for v in moduleList.getDependencies(module, 'GIVEN_VHDLS'):
