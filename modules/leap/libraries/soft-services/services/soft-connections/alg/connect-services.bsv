@@ -57,10 +57,10 @@ endinterface
 interface CONNECTION_SERVICE_RING_NODE_IFC#(numeric type t_REQ_SZ, 
                                             numeric type t_RSP_SZ, 
                                             numeric type t_IDX_SZ);
-    // Request port from the service client
+    // Request port from the service client (or child rings)
     interface CONNECTION_IN#(t_REQ_SZ)  clientReqIncoming; 
-    // Response port to the service client
-    interface CONNECTION_OUT#(t_RSP_SZ) clientRspOutgoing;
+    // Response port to the service client (or child rings)
+    interface CONNECTION_OUT#(TAdd#(t_IDX_SZ, t_RSP_SZ)) clientRspOutgoing;
     // Request chain 
     interface CONNECTION_IN#(t_REQ_SZ)  reqChainIncoming;
     interface CONNECTION_OUT#(t_REQ_SZ) reqChainOutgoing;
@@ -180,8 +180,12 @@ module mkServiceRingNetworkModule#(Vector#(t_NUM_CLIENTS, Integer) clientIdVec,
     Reset localReset <- exposeCurrentReset();
    
     // Ring nodes for service clients
+    function Bool isLocalFunc(Integer clientId, t_IDX idx);
+        return idx == fromInteger(clientId);
+    endfunction
+
     Vector#(t_NUM_CLIENTS, CONNECTION_SERVICE_RING_NODE_IFC#(t_REQ_SZ, t_RSP_SZ, t_IDX_SZ)) ringNodes <- 
-        mapM(mkServiceRingNode, clientIdVec);
+        mapM(mkServiceRingNode, map(isLocalFunc, clientIdVec));
     
     // Connect the ring nodes
     for (Integer i = 0; i < (valueOf(t_NUM_CLIENTS) - 1); i = i + 1)
@@ -207,8 +211,8 @@ module mkServiceRingNetworkModule#(Vector#(t_NUM_CLIENTS, Integer) clientIdVec,
 
         clientRspPortsVec[x] = (interface CONNECTION_OUT#(SERVICE_CON_DATA_SIZE);
                                     method Bit#(SERVICE_CON_DATA_SIZE) first();
-                                        Bit#(t_RSP_SZ) tmp = ringNodes[x].clientRspOutgoing.first();
-                                        return zeroExtendNP(tmp); 
+                                        Tuple2#(t_IDX, t_RSP) tmp = unpack(ringNodes[x].clientRspOutgoing.first());
+                                        return zeroExtendNP(tpl_2(tmp)); 
                                     endmethod
                                     method Action deq = ringNodes[x].clientRspOutgoing.deq;
                                     method Bool notEmpty = ringNodes[x].clientRspOutgoing.notEmpty;
@@ -223,8 +227,8 @@ module mkServiceRingNetworkModule#(Vector#(t_NUM_CLIENTS, Integer) clientIdVec,
     interface serverRspPort = interface CONNECTION_IN#(SERVICE_CON_RESP_SIZE);
                                   method Action try(Bit#(SERVICE_CON_RESP_SIZE) d);
                                       Tuple2#(Bit#(SERVICE_CON_IDX_SIZE),Bit#(SERVICE_CON_DATA_SIZE)) tmp = unpack(d);
-                                      Bit#(t_IDX_SZ) idx = truncateNP(tpl_1(tmp));
-                                      Bit#(t_RSP_SZ) rsp = truncateNP(tpl_2(tmp));
+                                      t_IDX idx = truncateNP(tpl_1(tmp));
+                                      t_RSP rsp = truncateNP(tpl_2(tmp));
                                       ringNodes[0].rspChainIncoming.try(pack(tuple2(idx,rsp)));
                                   endmethod
                                   method Bool success  = ringNodes[0].rspChainIncoming.success;
@@ -235,7 +239,7 @@ module mkServiceRingNetworkModule#(Vector#(t_NUM_CLIENTS, Integer) clientIdVec,
     
     interface serverReqPort = interface CONNECTION_OUT#(SERVICE_CON_DATA_SIZE);
                                   method Bit#(SERVICE_CON_DATA_SIZE) first();
-                                      Bit#(t_REQ_SZ) req = ringNodes[fromInteger(valueOf(t_NUM_CLIENTS)-1)].reqChainOutgoing.first();
+                                      t_REQ req = ringNodes[fromInteger(valueOf(t_NUM_CLIENTS)-1)].reqChainOutgoing.first();
                                       return zeroExtendNP(req);
                                   endmethod
                                   method Action deq = ringNodes[fromInteger(valueOf(t_NUM_CLIENTS)-1)].reqChainOutgoing.deq;
@@ -247,11 +251,12 @@ module mkServiceRingNetworkModule#(Vector#(t_NUM_CLIENTS, Integer) clientIdVec,
 endmodule
 
 
+
 //
 // mkServiceRingNode --
 //   A single ring node for a service client.   
 //
-module mkServiceRingNode#(Integer nodeId) 
+module mkServiceRingNode#(function Bool isLocal(Bit#(t_IDX_SZ) nodeId)) 
     // Interface:
     (CONNECTION_SERVICE_RING_NODE_IFC#(t_REQ_SZ, t_RSP_SZ, t_IDX_SZ))
     provisos(Alias#(Bit#(t_REQ_SZ), t_REQ), 
@@ -314,24 +319,15 @@ module mkServiceRingNode#(Integer nodeId)
     PulseWire                      networkRspDeqW  <- mkPulseWire();
     
     FIFOF#(Tuple2#(t_IDX, t_RSP))  rspToNetworkQ   <- mkUGFIFOF();
-    FIFOF#(t_RSP)                  rspFromNetworkQ <- mkUGFIFOF();
-    
-    function Bool newMsgIsForMe();
-        Bool is_own_rsp = False;
-        if (networkRspW.wget() matches tagged Valid .msg &&& tpl_1(msg) == fromInteger(nodeId))
-        begin
-           is_own_rsp = True; 
-        end
-        return is_own_rsp;
-    endfunction
+    FIFOF#(Tuple2#(t_IDX, t_RSP))  rspFromNetworkQ <- mkUGFIFOF();
     
     //
     // recvRspFromRing --
     //     Receive a new response from the ring destined for this node.
     //
     rule recvRspFromRing (networkRspW.wget() matches tagged Valid .msg &&&
-                          tpl_1(msg) == fromInteger(nodeId) &&& rspFromNetworkQ.notFull());
-        rspFromNetworkQ.enq(tpl_2(msg));
+                          isLocal(tpl_1(msg)) &&& rspFromNetworkQ.notFull());
+        rspFromNetworkQ.enq(msg);
         networkRspDeqW.send();
     endrule
 
@@ -340,7 +336,7 @@ module mkServiceRingNode#(Integer nodeId)
     //     Receive a new response from the ring that is not destined for this node.
     //
     rule forwardRspOnRing (networkRspW.wget() matches tagged Valid .msg &&&
-                          tpl_1(msg) != fromInteger(nodeId) &&& rspToNetworkQ.notFull());
+                          !isLocal(tpl_1(msg)) &&& rspToNetworkQ.notFull());
         rspToNetworkQ.enq(msg);
         networkRspDeqW.send();
     endrule
@@ -364,7 +360,7 @@ module mkServiceRingNode#(Integer nodeId)
     
     // Response port to the service client
     interface clientRspOutgoing = interface CONNECTION_OUT#(t_RSP_SZ);
-                                      method Bit#(t_RSP_SZ) first() = rspFromNetworkQ.first();
+                                      method Bit#(TAdd#(t_IDX_SZ,t_RSP_SZ)) first() = pack(rspFromNetworkQ.first());
                                       method Action deq();
                                           rspFromNetworkQ.deq();
                                       endmethod
