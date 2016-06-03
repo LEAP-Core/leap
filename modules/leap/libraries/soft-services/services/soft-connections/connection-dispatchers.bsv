@@ -41,17 +41,15 @@
 // single physical connection than only one is used. Otherwise a vector of
 // physical connections is instantiated.
 
-module [t_CONTEXT] mkConnectionDispatchSend#(
-    String name,
-    Maybe#(STATION) m_station,
-    CONNECTION_SEND_PARAM param)
+module [t_CONTEXT] mkConnectionDispatchSend#(String name,
+                                             Maybe#(STATION) m_station,
+                                             CONNECTION_SEND_PARAM param)
     // Interface:
     (CONNECTION_SEND#(t_MSG))
-    provisos
-        (Bits#(t_MSG, t_MSG_SIZE),
-         Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_MSG, t_MSG_SIZE),
+             Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Figure out logical type for user-level typechecking.
     t_MSG msg = ?;
@@ -78,17 +76,15 @@ endmodule
 // single physical connection than only one is used. Otherwise a vector of
 // physical connections is instantiated.
 
-module [t_CONTEXT] mkConnectionDispatchSendMulti#(
-    String name,
-    Maybe#(STATION) m_station,
-    CONNECTION_SEND_PARAM param) 
+module [t_CONTEXT] mkConnectionDispatchSendMulti#(String name,
+                                                  Maybe#(STATION) m_station,
+                                                  CONNECTION_SEND_PARAM param) 
     // Interface:
     (CONNECTION_SEND_MULTI#(t_MSG))
-    provisos
-        (Bits#(t_MSG, t_MSG_SIZE),
-         Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_MSG, t_MSG_SIZE),
+             Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Figure out logical type for user-level typechecking.
     t_MSG msg = ?;
@@ -119,17 +115,15 @@ endmodule
 // single physical connection than only one is used. Otherwise a vector of
 // physical connections is instantiated.
 
-module [t_CONTEXT] mkConnectionDispatchRecv#(
-    String name,
-    Maybe#(STATION) m_station,
-    CONNECTION_RECV_PARAM param)
+module [t_CONTEXT] mkConnectionDispatchRecv#(String name,
+                                             Maybe#(STATION) m_station,
+                                             CONNECTION_RECV_PARAM param)
     // Interface:
     (CONNECTION_RECV#(t_MSG))
-    provisos
-        (Bits#(t_MSG, t_MSG_SIZE),
-         Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_MSG, t_MSG_SIZE),
+             Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Figure out the logical type for user-level typechecking
     t_MSG msg = ?;
@@ -160,17 +154,15 @@ endmodule
 // Dispatcher of a many-to-1 receive connection. If the data is small enough to fit into a
 // single physical connection than only one is used. Otherwise a vector of
 // physical connections is instantiated.
-module [t_CONTEXT] mkConnectionDispatchRecvMulti#(
-    String name,
-    Maybe#(STATION) m_station,
-    CONNECTION_RECV_PARAM param) 
+module [t_CONTEXT] mkConnectionDispatchRecvMulti#(String name,
+                                                  Maybe#(STATION) m_station,
+                                                  CONNECTION_RECV_PARAM param) 
     // Interface:
     (CONNECTION_RECV_MULTI#(t_MSG))
-    provisos
-        (Bits#(t_MSG, t_MSG_SIZE),
-         Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_MSG, t_MSG_SIZE),
+             Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Figure out the logical type for user-level typechecking
     t_MSG msg = ?;
@@ -201,18 +193,16 @@ endmodule
 // Dispatcher of a client connection. Requests and responses are "chunked"
 // separately using the send/recv dispatchers.
 
-module [t_CONTEXT] mkConnectionDispatchClient#(
-    String name,
-    Maybe#(STATION) m_station,
-    CONNECTION_SEND_PARAM sendParam,
-    CONNECTION_RECV_PARAM recvParam)
+module [t_CONTEXT] mkConnectionDispatchClient#(String name,
+                                               Maybe#(STATION) m_station,
+                                               CONNECTION_SEND_PARAM sendParam,
+                                               CONNECTION_RECV_PARAM recvParam)
     // Interface:
     (CONNECTION_CLIENT#(t_REQ, t_RSP))
-    provisos
-        (Bits#(t_REQ, t_REQ_SIZE),
-         Bits#(t_RSP, t_RSP_SIZE),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_REQ, t_REQ_SIZE),
+             Bits#(t_RSP, t_RSP_SIZE),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Instantiate using dispatchers to "chunk" connections.
     CONNECTION_SEND#(t_REQ) req <- mkConnectionDispatchSend(getReqName(name), m_station, sendParam);
@@ -233,18 +223,16 @@ endmodule
 // Reqs and rsps are "chunked" separately using the sendMulti/recvMulti 
 // dispatchers.
 
-module [t_CONTEXT] mkConnectionDispatchClientMulti#(
-    String name,
-    Maybe#(STATION) m_station,
-    CONNECTION_SEND_PARAM sendParam,
-    CONNECTION_RECV_PARAM recvParam)
+module [t_CONTEXT] mkConnectionDispatchClientMulti#(String name,
+                                                    Maybe#(STATION) m_station,
+                                                    CONNECTION_SEND_PARAM sendParam,
+                                                    CONNECTION_RECV_PARAM recvParam)
     // Interface:
     (CONNECTION_CLIENT_MULTI#(t_REQ, t_RSP))
-    provisos
-        (Bits#(t_REQ, t_REQ_SIZE),
-         Bits#(t_RSP, t_RSP_SIZE),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_REQ, t_REQ_SIZE),
+             Bits#(t_RSP, t_RSP_SIZE),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Instantiate using dispatchers to "chunk" connections.
     CONNECTION_SEND_MULTI#(t_REQ) req <- mkConnectionDispatchSendMulti(getReqName(name), m_station, sendParam);
@@ -266,17 +254,16 @@ endmodule
 // Dispatcher of a server connection. Requests and responses are "chunked"
 // separately using the send/recv dispatchers.
 
-module [t_CONTEXT] mkConnectionDispatchServer#(
-    String name, Maybe#(STATION) m_station,
-    CONNECTION_SEND_PARAM sendParam,
-    CONNECTION_RECV_PARAM recvParam)
+module [t_CONTEXT] mkConnectionDispatchServer#(String name, 
+                                               Maybe#(STATION) m_station,
+                                               CONNECTION_SEND_PARAM sendParam,
+                                               CONNECTION_RECV_PARAM recvParam)
     // Interface:
     (CONNECTION_SERVER#(t_REQ, t_RSP))
-    provisos
-        (Bits#(t_REQ, t_REQ_SIZE),
-         Bits#(t_RSP, t_RSP_SIZE),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_REQ, t_REQ_SIZE),
+             Bits#(t_RSP, t_RSP_SIZE),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Instantiate using dispatchers to "chunk" connections.
     CONNECTION_RECV#(t_REQ) req <- mkConnectionDispatchRecv(getReqName(name), m_station, recvParam);
@@ -298,18 +285,16 @@ endmodule
 // Dispatcher of a server_multi connection. Requests and responses are "chunked"
 // separately using the sendMulti/recvMulti dispatchers.
 
-module [t_CONTEXT] mkConnectionDispatchServerMulti#(
-    String name,
-    Maybe#(STATION) m_station,
-    CONNECTION_SEND_PARAM sendParam,
-    CONNECTION_RECV_PARAM recvParam)
+module [t_CONTEXT] mkConnectionDispatchServerMulti#(String name,
+                                                    Maybe#(STATION) m_station,
+                                                    CONNECTION_SEND_PARAM sendParam,
+                                                    CONNECTION_RECV_PARAM recvParam)
     // Interface:
     (CONNECTION_SERVER_MULTI#(t_REQ, t_RSP))
-    provisos
-        (Bits#(t_REQ, t_REQ_SIZE),
-         Bits#(t_RSP, t_RSP_SIZE),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+    provisos(Bits#(t_REQ, t_REQ_SIZE),
+             Bits#(t_RSP, t_RSP_SIZE),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Instantiate using dispatchers to "chunk" connections.
     CONNECTION_RECV_MULTI#(t_REQ) req <- mkConnectionDispatchRecvMulti(getReqName(name), m_station, recvParam);
@@ -341,18 +326,19 @@ function String getReqName(String s) = s + "__req";
 function String getRspName(String s) = s + "__rsp";
 
 
-// Dispatcher of a send connection. If the data is small enough to fit into a 
+// Dispatcher of a chain connection. If the data is small enough to fit into a 
 // single physical connection than only one is used. Otherwise a vector of
 // physical connections is instantiated.
 
-module [t_CONTEXT] mkConnectionDispatchChain#(String name, Maybe#(STATION) m_station, Bool guarded) 
-  // interface:
-        (CONNECTION_CHAIN#(t_MSG))
-    provisos
-        (Bits#(t_MSG, t_MSG_SIZE),
-         Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
-         Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
-         IsModule#(t_CONTEXT, t_DUMMY));
+module [t_CONTEXT] mkConnectionDispatchChain#(String name, 
+                                              Maybe#(STATION) m_station, 
+                                              Bool guarded) 
+    // interface:
+    (CONNECTION_CHAIN#(t_MSG))
+    provisos(Bits#(t_MSG, t_MSG_SIZE),
+             Div#(t_MSG_SIZE, PHYSICAL_CONNECTION_SIZE, t_NUM_PHYSICAL_CONNS),
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
 
     // Figure out logical type for user-level typechecking.
     t_MSG msg = ?;
@@ -369,15 +355,111 @@ module [t_CONTEXT] mkConnectionDispatchChain#(String name, Maybe#(STATION) m_sta
     // Currently all our implementations ask for the guard. However a "power user" can get an
     // unguarded connection conveniently by invoking the dispatcher directly.
     
+    method peekFromPrev = c.peekFromPrev;
 
-  method peekFromPrev = c.peekFromPrev;
+    method recvNotEmpty= c.recvNotEmpty;
 
-  method recvNotEmpty= c.recvNotEmpty;
+    method sendNotFull = c.sendNotFull;
 
-  method sendNotFull = c.sendNotFull;
+    method sendToNext = c.sendToNext;
 
-  method sendToNext = c.sendToNext;
-
-  method recvFromPrev = c.recvFromPrev;
+    method recvFromPrev = c.recvFromPrev;
 
 endmodule
+
+//
+// Dispatchers of service connections. Currently we only support data sizes 
+// less or equal to the physical connection data size. 
+//
+module [t_CONTEXT] mkConnectionDispatchServiceClient#(String serviceName,
+                                                      Maybe#(t_CLIENT_ID) clientId) 
+    // interface:
+    (CONNECTION_SERVICE_CLIENT#(t_CLIENT_ID, t_REQ, t_RSP))
+    provisos(Bits#(t_REQ, t_REQ_SIZE),
+             Bits#(t_RSP, t_RSP_SIZE),
+             Bits#(t_CLIENT_ID, t_CLIENT_ID_SZ), 
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
+    
+    if (valueOf(t_REQ_SIZE) > valueOf(SERVICE_CON_DATA_SIZE))
+    begin
+        error("Service connection " + serviceName + "request size (" + integerToString(valueOf(t_REQ_SIZE)) + ") is larger than physical connection data size (CON_CWIDTH): " + integerToString(`CON_CWIDTH));
+    end
+    else if (valueOf(t_RSP_SIZE) > valueOf(SERVICE_CON_DATA_SIZE))
+    begin
+        error("Service connection " + serviceName + "response size (" + integerToString(valueOf(t_RSP_SIZE)) + ") is larger than physical connection data size (CON_CWIDTH): " + integerToString(`CON_CWIDTH));
+    end
+    else if (valueOf(TExp#(t_CLIENT_ID_SZ)) > valueOf(N_SERVICE_CLIENTS))
+    begin
+        error("Service connection " + serviceName + "client id size (" + integerToString(valueOf(t_CLIENT_ID_SZ)) + ") is too large: CON_SERVICE_N_CLIENT_MAX = " + integerToString(`CON_SERVICE_N_CLIENT_MAX));
+    end
+
+    // Figure out logical type for user-level typechecking.
+    t_REQ req = ?;
+    t_RSP rsp = ?;
+    String connReqtype = printType(typeOf(req));
+    String connRsptype = printType(typeOf(rsp));
+    
+    // Phsyical connections are unguarded. We make them guarded here.
+    CONNECTION_SERVICE_CLIENT#(t_CLIENT_ID, t_REQ, t_RSP) c <- mkPhysicalConnectionServiceClient(serviceName, connReqtype, connRsptype, clientId);
+    
+    method Action makeReq(t_REQ data) if (c.reqNotFull());
+        c.makeReq(data);
+    endmethod
+    method Bool reqNotFull() = c.reqNotFull();
+    method Bool rspNotEmpty() = c.rspNotEmpty();
+    method t_RSP getRsp() if (c.rspNotEmpty());
+        return c.getRsp();
+    endmethod
+    method Action deqRsp() if (c.rspNotEmpty());
+        c.deqRsp();
+    endmethod
+    method t_CLIENT_ID clientId() = c.clientId();
+
+endmodule
+
+module [t_CONTEXT] mkConnectionDispatchServiceServer#(String serviceName)
+    // interface:
+    (CONNECTION_SERVICE_SERVER#(t_CLIENT_ID, t_REQ, t_RSP))
+    provisos(Bits#(t_REQ, t_REQ_SIZE),
+             Bits#(t_RSP, t_RSP_SIZE),
+             Bits#(t_CLIENT_ID, t_CLIENT_ID_SZ), 
+             Context#(t_CONTEXT, LOGICAL_CONNECTION_INFO),
+             IsModule#(t_CONTEXT, t_DUMMY));
+    
+    if (valueOf(t_REQ_SIZE) > valueOf(SERVICE_CON_DATA_SIZE))
+    begin
+        error("Service connection " + serviceName + "request size (" + integerToString(valueOf(t_REQ_SIZE)) + ") is larger than physical connection data size (CON_CWIDTH): " + integerToString(`CON_CWIDTH));
+    end
+    else if (valueOf(t_RSP_SIZE) > valueOf(SERVICE_CON_DATA_SIZE))
+    begin
+        error("Service connection " + serviceName + "response size (" + integerToString(valueOf(t_RSP_SIZE)) + ") is larger than physical connection data size (CON_CWIDTH): " + integerToString(`CON_CWIDTH));
+    end
+    else if (valueOf(TExp#(t_CLIENT_ID_SZ)) > valueOf(N_SERVICE_CLIENTS))
+    begin
+        error("Service connection " + serviceName + "client id size (" + integerToString(valueOf(t_CLIENT_ID_SZ)) + ") is too large: CON_SERVICE_N_CLIENT_MAX = " + integerToString(`CON_SERVICE_N_CLIENT_MAX));
+    end
+
+    // Figure out logical type for user-level typechecking.
+    t_REQ req = ?;
+    t_RSP rsp = ?;
+    String connReqtype = printType(typeOf(req));
+    String connRsptype = printType(typeOf(rsp));
+    
+    // Phsyical connections are unguarded. We make them guarded here.
+    CONNECTION_SERVICE_SERVER#(t_CLIENT_ID, t_REQ, t_RSP) c <- mkPhysicalConnectionServiceServer(serviceName, connReqtype, connRsptype);
+    
+    method Bool reqNotEmpty() = c.reqNotEmpty();
+    method t_REQ getReq() if (c.reqNotEmpty);
+        return c.getReq();
+    endmethod
+    method Action deqReq() if (c.reqNotEmpty);
+        c.deqReq();
+    endmethod
+    method Action makeRsp(t_CLIENT_ID dst, t_RSP data) if (c.rspNotFull);
+        c.makeRsp(dst, data);
+    endmethod
+    method Bool rspNotFull() = c.rspNotFull();
+
+endmodule
+

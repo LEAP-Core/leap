@@ -5,6 +5,7 @@ import pygraph
 
 from liModule import LIModule
 from liChannel import LIChannel
+from liService import LIService
 
 try:
     from pygraph.classes.digraph import digraph
@@ -35,6 +36,8 @@ class LIGraph():
        
             if (isinstance(connection, LIChannel)):
                 self.modules[connection.module_name].addChannel(connection)
+            elif (isinstance(connection, LIService)):
+                self.modules[connection.module_name].addService(connection)
             else:
                 self.modules[connection.module_name].addChain(connection)
  
@@ -87,7 +90,10 @@ class LIGraph():
                 rep += "Channel: " + channel.name + " <-> " + partnerName + "\n"
             for chain in module.chains:
                 rep += "Chain: " + chain.name + "\n"
-            rep += "Names " + str(module.chainNames) +"\n"
+            for service in module.services:
+                rep += "Service: " + service.name + "\n"
+            rep += "Names " + str(module.chainNames) + "\n"
+            rep += "Names " + str(module.serviceNames) + "\n"
         rep += '\n}'
 
         rep += 'DETAILED:\n'
@@ -117,7 +123,12 @@ class LIGraph():
         for (name,module) in self.modules.items():
             chains += module.chains
         return chains
-
+    
+    def getServices(self):
+        services = []
+        for (name,module) in self.modules.items():
+            services += module.services
+        return services
 
     # Should this move to liUtilities?
     def matchGraphChannels(self):

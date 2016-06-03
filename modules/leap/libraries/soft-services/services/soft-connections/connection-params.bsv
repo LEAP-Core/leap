@@ -90,3 +90,35 @@ instance DefaultValue#(CONNECTION_RECV_PARAM);
         optional: False,
         guarded: True };
 endinstance
+
+
+//
+// Service connection network type
+//
+typedef enum
+{
+   // Non token ring
+   CONNECTION_NON_TOKEN_RING,
+   // Token ring
+   CONNECTION_TOKEN_RING,
+   // Compiler generated network
+   CONNECTION_COMPILER_GEN
+}
+CONNECTION_SERVICE_NETWORK_TYPE
+    deriving (Bits, Eq);
+
+typedef struct
+{
+    // Network type
+    CONNECTION_SERVICE_NETWORK_TYPE networkType;
+}
+CONNECTION_SERVICE_PARAM;
+
+instance DefaultValue#(CONNECTION_SERVICE_PARAM);
+    defaultValue = CONNECTION_SERVICE_PARAM 
+    {
+        networkType: CONNECTION_NON_TOKEN_RING
+    };
+endinstance
+
+

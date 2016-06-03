@@ -506,7 +506,7 @@ class BSVSynthTreeBuilder():
         for module in sorted(liGraph.graph.nodes(), key=lambda module: module.name):
             wrapper_handle.write('import ' + module.name + '_Wrapper::*;\n')
 
-        wrapper_handle.write('module mk_empty_Wrapper#(Reset baseReset) (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0, Empty)); return ?; endmodule\n')
+        wrapper_handle.write('module mk_empty_Wrapper#(Reset baseReset) (SOFT_SERVICES_SYNTHESIS_BOUNDARY#(0,0,0,0,0,0,0, Empty)); return ?; endmodule\n')
 
         if (pipeline_debug != 0):
             print "LIGraph: " + str(liGraph)
@@ -551,13 +551,12 @@ class BSVSynthTreeBuilder():
             # Generate the code for the cut tree.
             self.emitWrappersRecurse(state, top_module, 1)
 
-
             # walk the top module to annotate area group paths
             def annotateAreaGroups(treeModule, verilogPath):
                 if (isinstance(treeModule, TreeModule)):
                     if (not treeModule.children is None):
                         for child in treeModule.children:
-                            annotateAreaGroups(child,verilogPath + getInstanceName(treeModule.name) + treeModule.seperator)
+                            annotateAreaGroups(child, verilogPath + getInstanceName(treeModule.name) + treeModule.seperator)
                 else:
                     # fill in the area group data structure
                     if (area_constraints and (treeModule.name in area_constraints.constraints)):
@@ -693,7 +692,7 @@ class BSVSynthTreeBuilder():
         graph0Connections = []
         graph1Connections = []
 
-        for connection in subgraph.getChannels() + subgraph.getChains():
+        for connection in subgraph.getChannels() + subgraph.getChains() + subgraph.getServices():
             connectionSet = graph0Connections
             if (map[connection.module] == 1):
                 connectionSet = graph1Connections
@@ -725,7 +724,7 @@ class BSVSynthTreeBuilder():
         # Build a representation of the new liModule we are about to construct.
         treeModule = TreeModule("node", localModule)
         treeModule.children = [submodule0, submodule1]
-
+        
         return treeModule
     # END OF cutRecurse
 
@@ -789,7 +788,6 @@ class BSVSynthTreeBuilder():
             module_body += "    let " + name + " = tpl_1(" +\
                             getInstanceName(name) + ".services);\n"
             module_body += "\n";
-
 
         # At this node in the tree, we can match channels from our two children.
         # This matching is what reduces the bluespec compiler complexity, since matched
@@ -857,10 +855,12 @@ class BSVSynthTreeBuilder():
         # any chains.  we need to check chains for a match
         # so that we get the routing right.  if matched,
         # ingress will be module0 and egress will be module1
-
+        
         incoming = 0
         outgoing = 0
         chains = 0
+        service_clients = 0
+        service_servers = 0
 
         # We need to propagate any remaining unmatched channels and chains up the tree,
         # To do this we populate the LI module representing this node with the unmatched
@@ -934,6 +934,31 @@ class BSVSynthTreeBuilder():
                     chainCopy.module_name = treeModule.name
                     treeModule.addChain(chainCopy)
                     chains = chains + 1
+       
+        # Propagate all service connections
+        for service in submodule0.services + submodule1.services:
+            serviceCopy = service.copy()
+            if (service.isClient()):
+                sizeName = "sz_" + service.module_name + "_" + service.name + "_client_" + str(service.module_idx)
+                module_body += "    NumTypeParam#(" + str(service.req_bitwidth) + ") " + sizeName + " = ?;\n"
+                module_body += "    serviceClientsVec[" + str(service_clients) + "] = PHYSICAL_SERVICE_CON_CLIENT{incoming: " +\
+                               service.module_name + ".serviceClients[" + str(service.module_idx) +\
+                               "].incoming, outgoing: resizeConnectOut(" + service.module_name +\
+                               ".serviceClients[" + str(service.module_idx) + "].outgoing, " + sizeName + ")}; // Service client: " + service.name + "\n"
+                serviceCopy.module_idx = service_clients
+                service_clients += 1
+            else:
+                sizeName = "sz_" + service.module_name + "_" + service.name + "_server_" + str(service.module_idx)
+                module_body += "    NumTypeParam#(" + str(service.resp_bitwidth + service.idx_bitwidth) + ") " + sizeName + " = ?;\n"
+                module_body += "    serviceServersVec[" + str(service_servers) +"] = PHYSICAL_SERVICE_CON_SERVER{incoming: " +\
+                               service.module_name + ".serviceServers[" + str(service.module_idx) +\
+                               "].incoming, outgoing: resizeConnectOut(" + service.module_name +\
+                               ".serviceServers[" + str(service.module_idx) + "].outgoing, " + sizeName + ")}; // Service server: " + service.name + "\n"
+                serviceCopy.module_idx = service_servers
+                service_servers += 1
+            
+            serviceCopy.module_name = treeModule.name
+            treeModule.addService(serviceCopy)
 
         ##
         ## Should this module be a synthesis boundary?  We could just
@@ -959,7 +984,6 @@ class BSVSynthTreeBuilder():
         else:
             treeModule.seperator = '_'
 
-
         ##
         ## Now we can write out our modules.
         ##
@@ -970,11 +994,11 @@ class BSVSynthTreeBuilder():
         if (not gen_synth_boundary):
             wrapper_handle.write("[Module] ")
         wrapper_handle.write("mk_" + treeModule.name + '_Wrapper#(Reset baseReset)')
-        moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) +\
-                     ", " + str(outgoing) + ", 0, 0, " + str(chains) + ", Empty)"
+        moduleType = "SOFT_SERVICES_SYNTHESIS_BOUNDARY#(" + str(incoming) + ", " + str(outgoing) +\
+                     ", 0, 0, " + str(chains) + ", " + str(service_clients) + ", " +  str(service_servers) + ", Empty)"
 
-        subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " +\
-                           str(outgoing) + ", 0, 0, " + str(chains) + ")"
+        subinterfaceType = "WITH_CONNECTIONS#(" + str(incoming) + ", " + str(outgoing) + ", 0, 0, " +\
+                           str(chains) + ", " + str(service_clients) + ", " + str(service_servers) + ")"
         wrapper_handle.write(" (" + moduleType +")")
         if (gen_synth_boundary):
             wrapper_handle.write(";\n")
@@ -1000,6 +1024,10 @@ class BSVSynthTreeBuilder():
         wrapper_handle.write("    Vector#(" + str(incoming) + ", PHYSICAL_CONNECTION_IN)  incomingVec = newVector();\n")
         wrapper_handle.write("    Vector#(" + str(outgoing) + ", PHYSICAL_CONNECTION_OUT) outgoingVec = newVector();\n")
         wrapper_handle.write("    Vector#(" + str(chains) + ", PHYSICAL_CHAIN) chainsVec = newVector();\n")
+        if (service_clients > 0): 
+            wrapper_handle.write("    Vector#(" + str(service_clients) + ", PHYSICAL_SERVICE_CON_CLIENT) serviceClientsVec = newVector();\n")
+        if (service_servers > 0): 
+            wrapper_handle.write("    Vector#(" + str(service_servers) + ", PHYSICAL_SERVICE_CON_SERVER) serviceServersVec = newVector();\n")
 
         # lay down module body
         wrapper_handle.write(module_body)
@@ -1015,8 +1043,20 @@ class BSVSynthTreeBuilder():
         wrapper_handle.write("        interface chains = chainsVec;\n")
         wrapper_handle.write("        interface incomingMultis = replicate(PHYSICAL_CONNECTION_IN_MULTI{try: ?, success: ?, clock: clk, reset: rst});\n")
         wrapper_handle.write("        interface outgoingMultis = replicate(PHYSICAL_CONNECTION_OUT_MULTI{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst});\n")
-        wrapper_handle.write("    endinterface;\n")
+        
+        if (service_clients > 0): 
+            wrapper_handle.write("        interface serviceClients = serviceClientsVec;\n")
+        else: 
+            wrapper_handle.write("        interface serviceClients = replicate(PHYSICAL_SERVICE_CON_CLIENT{incoming: PHYSICAL_SERVICE_CON_RESP_IN{try: ?, success: ?, dequeued: ?, setId: ?, clock: clk, reset: rst},") 
+            wrapper_handle.write(" outgoing: PHYSICAL_SERVICE_CON_REQ_OUT{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst}});\n")
 
+        if (service_servers > 0):
+            wrapper_handle.write("        interface serviceServers = serviceServersVec;\n")
+        else: 
+            wrapper_handle.write("        interface serviceServers = replicate(PHYSICAL_SERVICE_CON_SERVER{incoming: PHYSICAL_SERVICE_CON_REQ_IN{try: ?, success: ?, dequeued: ?, clock: clk, reset: rst},") 
+            wrapper_handle.write(" outgoing: PHYSICAL_SERVICE_CON_RESP_OUT{notEmpty: ?, first: ?, deq: ?, clock: clk, reset: rst}});\n")
+
+        wrapper_handle.write("    endinterface;\n")
         wrapper_handle.write("    interface services = tuple3(moduleIfc,?,?);\n")
         wrapper_handle.write("    interface device = ?;//e2;\n")
         wrapper_handle.write("endmodule\n")

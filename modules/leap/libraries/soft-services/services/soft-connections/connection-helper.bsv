@@ -168,7 +168,37 @@ instance Matchable#(LOGICAL_CHAIN_INFO);
     // have the incoming and outgoing modules tagged in the same way.
     
     return sinfo.moduleNameIncoming; 
-  endfunction endinstance
+  endfunction 
+endinstance
+
+instance Matchable#(LOGICAL_SERVICE_CLIENT_INFO);
+  function String getLogicalName(LOGICAL_SERVICE_CLIENT_INFO sinfo);
+    return sinfo.logicalName;
+  endfunction
+
+  function Integer getLogicalWidth(LOGICAL_SERVICE_CLIENT_INFO sinfo);
+    return sinfo.reqBitWidth + sinfo.respBitWidth + sinfo.clientIdBitWidth;
+  endfunction
+
+  function String getModuleName(LOGICAL_SERVICE_CLIENT_INFO sinfo);
+    return sinfo.moduleName;
+  endfunction
+endinstance
+
+instance Matchable#(LOGICAL_SERVICE_SERVER_INFO);
+  function String getLogicalName(LOGICAL_SERVICE_SERVER_INFO sinfo);
+    return sinfo.logicalName;
+  endfunction
+
+  function Integer getLogicalWidth(LOGICAL_SERVICE_SERVER_INFO sinfo);
+    return sinfo.reqBitWidth + sinfo.respBitWidth + sinfo.clientIdBitWidth;
+  endfunction
+
+  function String getModuleName(LOGICAL_SERVICE_SERVER_INFO sinfo);
+    return sinfo.moduleName;
+  endfunction
+endinstance
+
 
 function Bool nameMatches(Bool exposeAllConnections, r rinfo, s sinfo)
   provisos (Matchable#(r),
@@ -199,6 +229,10 @@ function Bool primNameDoesNotMatch(String rinfo, s sinfo)
   provisos (Matchable#(s));
   
   return !primNameMatches(rinfo, sinfo);
+endfunction
+
+function Bool serviceNameIdMatches(String name, String id, LOGICAL_SERVICE_CLIENT_INFO sinfo);
+    return (sinfo.logicalName == name) && (sinfo.clientId == id);
 endfunction
 
 

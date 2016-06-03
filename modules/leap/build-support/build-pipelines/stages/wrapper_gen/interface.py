@@ -11,29 +11,29 @@ class Interface():
         self.members = members
         self.attributes = {}
 
-    def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix):
+    def generateImportInterface(self, interfaceHandle, ident, ifcEnv, namePrefix):
         #interfaces don't know their name. this must be propagated.
         for member in self.members:
-            self.members[member].generateImportInterface(interfaceHandle, ifcEnv, namePrefix + '_' + str(self.members[member].name)) 
+            self.members[member].generateImportInterface(interfaceHandle, ident, ifcEnv, namePrefix + '_' + str(self.members[member].name)) 
             self.attributes['namePrefix'] = namePrefix
 
-    def generateImportInterfaceTop(self, interfaceHandle, ifcEnv):
+    def generateImportInterfaceTop(self, interfaceHandle, ident, ifcEnv):
         #interfaces don't know their name. this must be propagated.
         for member in self.members:
-            self.members[member].generateImportInterface(interfaceHandle, ifcEnv, str(self.members[member].name)) 
+            self.members[member].generateImportInterface(interfaceHandle, ident, ifcEnv, str(self.members[member].name)) 
             self.attributes['namePrefix'] = ''
 
-    def generateImport(self, interfaceHandle, ifcEnv):
+    def generateImport(self, interfaceHandle, ident, ifcEnv):
         #interfaces don't know their name. this must be propagated.
-        interfaceHandle.write("//begin import subinterface " + self.name + "\n")
+        interfaceHandle.write(ident + "//begin import subinterface " + self.name + "\n")
         for member in self.members:
-            self.members[member].generateImport(interfaceHandle, ifcEnv) 
+            self.members[member].generateImport(interfaceHandle, ident, ifcEnv) 
 
     def generateImportTop(self, interfaceHandle):
         #interfaces don't know their name. this must be propagated.
         interfaceHandle.write("//begin import\n")
         for member in self.members:
-            self.members[member].generateImport(interfaceHandle, ifcEnv) 
+            self.members[member].generateImport(interfaceHandle, '' + ifcEnv) 
 
 
     def generateHierarchy(self, interfaceHandle, ident, topModule, ifcEnv):
@@ -41,7 +41,7 @@ class Interface():
         # First I let my children write down their definitions. Then I
         # bind them.
         for member in self.members:
-            self.members[member].generateHierarchy(interfaceHandle, ident + '\t', topModule, ifcEnv)
+            self.members[member].generateHierarchy(interfaceHandle, ident + '    ', topModule, ifcEnv)
 
         # now I can create my binding.
         interfaceHandle.write(ident + "//begin import subinterface " + self.name + "\n")
@@ -49,9 +49,9 @@ class Interface():
         for member in self.members:
             memberObj = self.members[member]
             if(isinstance(memberObj, wrapper_gen_tool.Method)):
-                interfaceHandle.write(ident + "\tmethod " + memberObj.name + " = " + memberObj.getDefinition() + ";\n")
+                interfaceHandle.write(ident + "    method " + memberObj.name + " = " + memberObj.getDefinition() + ";\n")
             else:
-                interfaceHandle.write(ident + "\tinterface " + memberObj.name + " = " + memberObj.getDefinition() + ";\n")
+                interfaceHandle.write(ident + "    interface " + memberObj.name + " = " + memberObj.getDefinition() + ";\n")
 
         interfaceHandle.write(ident + "endinterface;\n")
 

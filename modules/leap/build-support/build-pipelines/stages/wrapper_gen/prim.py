@@ -23,14 +23,14 @@ class Prim_Clock(Prim):
         self.gate = gate
         self.osc = osc
 
-    def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix=''):
+    def generateImportInterface(self, interfaceHandle, ident, ifcEnv, namePrefix=''):
         #interfaces don't know their name. this must be propagated.
-        interfaceHandle.write('interface Clock ' + namePrefix + ';\n')
+        interfaceHandle.write(ident + 'interface Clock ' + namePrefix + ';\n')
         self.attributes['namePrefix'] = namePrefix
 
-    def generateImport(self, interfaceHandle, ifcEnv):
-        interfaceHandle.write('output_clock ' + self.attributes['namePrefix'] + '(' + self.osc + ');\n') 
-        interfaceHandle.write('ancestor(' + self.attributes['namePrefix'] + ', ' + ifcEnv['DEFAULT_CLOCK'] + ');\n') 
+    def generateImport(self, interfaceHandle, ident, ifcEnv):
+        interfaceHandle.write(ident + 'output_clock ' + self.attributes['namePrefix'] + '(' + self.osc + ');\n') 
+        interfaceHandle.write(ident + 'ancestor(' + self.attributes['namePrefix'] + ', ' + ifcEnv['DEFAULT_CLOCK'] + ');\n') 
 
 class Prim_Reset(Prim):
     def __init__(self, name, port, clock):
@@ -38,13 +38,13 @@ class Prim_Reset(Prim):
         self.port = port
         self.clock = clockMangle(clock)
 
-    def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix=''):
+    def generateImportInterface(self, interfaceHandle, ident, ifcEnv, namePrefix=''):
         #interfaces don't know their name. this must be propagated.
-        interfaceHandle.write('interface Reset ' + namePrefix + ';\n')
+        interfaceHandle.write(ident + 'interface Reset ' + namePrefix + ';\n')
         self.attributes['namePrefix'] = namePrefix
 
-    def generateImport(self, interfaceHandle, ifcEnv):
-        interfaceHandle.write('output_reset ' + self.attributes['namePrefix'] + '(' + self.port + ') clocked_by(' + self.clock + ');\n') 
+    def generateImport(self, interfaceHandle, ident, ifcEnv):
+        interfaceHandle.write(ident + 'output_reset ' + self.attributes['namePrefix'] + '(' + self.port + ') clocked_by(' + self.clock + ');\n') 
 
 class Prim_Inout(Prim):
     def __init__(self, type, name, port, clock, reset):
@@ -54,11 +54,11 @@ class Prim_Inout(Prim):
         self.clock = clockMangle(clock)
         self.reset = resetMangle(reset)
 
-    def generateImportInterface(self, interfaceHandle, ifcEnv, namePrefix=''):
+    def generateImportInterface(self, interfaceHandle, ident, ifcEnv, namePrefix=''):
         #interfaces don't know their name. this must be propagated.
-        interfaceHandle.write('interface ' + self.type + ' ' + namePrefix + ';\n')
+        interfaceHandle.write(ident + 'interface ' + self.type + ' ' + namePrefix + ';\n')
         self.attributes['namePrefix'] = namePrefix
 
-    def generateImport(self, interfaceHandle, ifcEnv):
+    def generateImport(self, interfaceHandle, ident, ifcEnv):
         #ifc_inout   dq(ddr3_dq)          clocked_by(no_clock)  reset_by(no_reset);
-        interfaceHandle.write('ifc_inout ' + self.attributes['namePrefix'] + '(' + self.port + ') clocked_by(' + self.clock + ') reset_by(' + self.reset + ');\n') 
+        interfaceHandle.write(ident + 'ifc_inout ' + self.attributes['namePrefix'] + '(' + self.port + ') clocked_by(' + self.clock + ') reset_by(' + self.reset + ');\n') 

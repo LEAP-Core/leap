@@ -9,8 +9,10 @@ class LIModule():
         self.name = name
         self.channels = []    
         self.chains = []    
+        self.services = []
         self.chainNames = {}
         self.channelNames = {}    
+        self.serviceNames = {}
 
         self.attributes = {}
         
@@ -39,8 +41,11 @@ class LIModule():
         
 
     def __repr__(self):
-        return "{ MODULE:" + self.name + ":" + self.type + ":\nChannels:" + ',\n'.join(map(str, self.channels)) + ":\nChains:" + ',\n'.join(map(str, self.chains)) + "\nChainsNames:" + ',\n'.join(map(str, self.chainNames.keys())) + "\nAttributes: " + str(self.attributes) + "}\n"
-
+        rep = "{ MODULE:" + self.name + ":" + self.type + ":\nChannels:" + ',\n'.join(map(str, self.channels))
+        rep += ":\nChains:" + ',\n'.join(map(str, self.chains)) + "\nChainsNames:" + ',\n'.join(map(str, self.chainNames.keys()))
+        rep += ":\nServices:" + ',\n'.join(map(str, self.services)) + "\nServiceNames:" + ',\n'.join(map(str, self.serviceNames.keys()))
+        rep += "\nAttributes: " + str(self.attributes) + "}\n"
+        return rep
 
     def unmatch(self):
         for channel in self.channels:
@@ -49,6 +54,8 @@ class LIModule():
         for chain in self.chains:
             chain.unmatch()
 
+        for service in self.services:
+            service.unmatch()
 
     def copy(self):
         moduleCopy = LIModule(self.type, self.name)
@@ -56,6 +63,8 @@ class LIModule():
             moduleCopy.addChannel(channel.copy())
         for chain in self.chains:
             moduleCopy.addChain(chain.copy())
+        for service in self.services: 
+            moduleCopy.addService(service.copy())
         moduleCopy.numExportedRules = self.numExportedRules
         moduleCopy.attributes = copy.deepcopy(self.attributes)
         moduleCopy.objectCache = copy.deepcopy(self.objectCache)
@@ -84,6 +93,13 @@ class LIModule():
     def deleteChain(self, chain):
         del self.chainNames[chain]
         self.chains = [memberChain for memberChain in self.chains if memberChain.name != chain]
+    
+    def addService(self, service):
+        serviceCopy = service.copy()
+        serviceCopy.module = self
+        self.services.append(serviceCopy)
+        self.serviceNames[serviceCopy.name] = serviceCopy
+        return serviceCopy
 
     def setNumExportedRules(self, n):
         self.numExportedRules = n

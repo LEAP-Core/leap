@@ -33,6 +33,7 @@
 %public memory-pack.bsv
 %public register.bsv
 %public valid.bsv
+%public bit-conversion.bsv
 
 %include --type=verilog @BLUESPECDIR@/Verilog
 %include --type=verilog @BLUESPECDIR@/Libraries

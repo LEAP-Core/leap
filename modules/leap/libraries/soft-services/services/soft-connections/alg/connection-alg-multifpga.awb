@@ -11,7 +11,7 @@
 %desc SoftService Soft Connections Algorithm MultiFPGA 
 %provides soft_connections_alg
 %attributes bluespec
-%public connect-top-level-multifpga.bsv connect-multicasts.bsv connect-stations-tree.bsv expose-connections.bsv 
+%public connect-top-level-multifpga.bsv connect-multicasts.bsv connect-stations-tree.bsv expose-connections.bsv connect-services.bsv
 
 %AWB_END
 
