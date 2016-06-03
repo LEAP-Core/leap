@@ -142,6 +142,10 @@ typedef struct
     // Backing store to use in cache.
     RL_CACHE_STORE_TYPE backingStore;
 
+    // Does the underlying memory have deep pipelines?  Setting this true
+    // increases the number of operations permitted to be in flight.
+    Bool deepMemoryPipelines;
+
     // The number of entries in scratchpad's private cache
     Integer cacheEntries;
 

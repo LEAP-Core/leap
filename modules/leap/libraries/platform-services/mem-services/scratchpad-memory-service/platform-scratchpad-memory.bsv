@@ -150,8 +150,9 @@ SCRATCHPAD_READ_RSP
 // does not guarantee to return results in order, so all clients need a ROB.
 // The ROB size limits the number of read requests in flight for a given port.
 // For longer latency backing stores, we will use more slots. 
-typedef 32 SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY;
-typedef 64 SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY;
+typedef 32  SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY;
+typedef 64  SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY;
+typedef 512 SCRATCHPAD_PORT_ROB_SLOTS_DEEP_LATENCY;
 
 // Provide a backwards compatible definition of ROB slots.
 typedef SCRATCHPAD_PORT_ROB_SLOTS_LONG_LATENCY SCRATCHPAD_PORT_ROB_SLOTS;
@@ -449,7 +450,17 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpad#(
     MEMORY_MULTI_READ_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE) _scr = ?;
     Integer robSlots = ?;
 
-    if(conf.backingStore == RL_CACHE_STORE_FLAT_BRAM)
+    if (conf.deepMemoryPipelines)
+    begin
+        NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_DEEP_LATENCY) nROBSlots = ?;
+        _scr <- mkUnmarshalledScratchpadImpl(scratchpadID,
+                                             nContainerObjects,
+                                             nROBSlots,
+                                             conf);
+
+        robSlots = valueOf(SCRATCHPAD_PORT_ROB_SLOTS_DEEP_LATENCY);
+    end
+    else if (conf.backingStore == RL_CACHE_STORE_FLAT_BRAM)
     begin
         NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY) nROBSlots = ?;
         _scr <- mkUnmarshalledScratchpadImpl(scratchpadID,
@@ -592,7 +603,15 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     // Scratchpad responses are not ordered.  Sort them with a reorder buffer.
     // Each read port gets its own reorder buffer so that each port returns data
     // when available, independent of the latency of requests on other ports.
-    Vector#(n_READERS, SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
+    Vector#(n_READERS, SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ;
+    if (! conf.deepMemoryPipelines)
+    begin
+        sortResponseQ <- replicateM(mkScoreboardFIFOF());
+    end
+    else    
+    begin
+        sortResponseQ <- replicateM(mkBRAMScoreboardFIFOF());
+    end
 
     // Merge FIFOF combines read and write requests in temporal order,
     // with reads from the same cycle as a write going first.  Each read port
@@ -841,7 +860,21 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpad#(
     Integer robSlots = ?;
     MEMORY_MULTI_READ_MASKED_WRITE_IFC#(n_READERS, t_MEM_ADDRESS, SCRATCHPAD_MEM_VALUE, t_MEM_MASK) _scr = ?;
 
-    if(conf.backingStore == RL_CACHE_STORE_FLAT_BRAM) 
+    if (conf.deepMemoryPipelines)
+    begin
+        NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_DEEP_LATENCY) nROBSlots = ?;
+        _scr <- mkUnmarshalledCachedScratchpadImpl(scratchpadID, 
+                                                   conf,
+                                                   nContainerObjects, 
+                                                   nCacheEntries,
+                                                   nPrefetchLearners,
+                                                   nROBSlots,
+                                                   userAddrWidth,
+                                                   maskedWriteEn);
+
+        robSlots = valueOf(SCRATCHPAD_PORT_ROB_SLOTS_DEEP_LATENCY);
+    end
+    else if (conf.backingStore == RL_CACHE_STORE_FLAT_BRAM) 
     begin
         NumTypeParam#(SCRATCHPAD_PORT_ROB_SLOTS_SHORT_LATENCY) nROBSlots = ?;
         _scr <- mkUnmarshalledCachedScratchpadImpl(scratchpadID, 
@@ -1043,7 +1076,15 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     end
 
     // Cache responses are not ordered.  Sort them with a reorder buffer.
-    Vector#(n_READERS, SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ <- replicateM(mkScoreboardFIFOF());
+    Vector#(n_READERS, SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE)) sortResponseQ;
+    if (! conf.deepMemoryPipelines)
+    begin
+        sortResponseQ <- replicateM(mkScoreboardFIFOF());
+    end
+    else    
+    begin
+        sortResponseQ <- replicateM(mkBRAMScoreboardFIFOF());
+    end
     
     // Initialization
     Reg#(Bool) initialized <- mkReg(False);
