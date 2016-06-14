@@ -184,6 +184,7 @@ instance DefaultValue#(SCRATCHPAD_CONFIG);
         cacheMode: SCRATCHPAD_CACHED,
         cacheEntries: 0,
         backingStore: unpack(`RL_DM_CACHE_BRAM_TYPE),
+        deepMemoryPipelines: False,
         initFilePath: tagged Invalid,
         enablePrefetching: tagged Invalid,
         enableAddressHashing: True,
