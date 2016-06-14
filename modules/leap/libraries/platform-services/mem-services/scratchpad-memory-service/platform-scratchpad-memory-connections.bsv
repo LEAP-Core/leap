@@ -65,7 +65,8 @@ import DefaultValue::*;
 module [CONNECTED_MODULE] mkScratchpadClientInterleaver#(Vector#(n_CONTROLLERS, CONNECTION_IN#(SERVICE_CON_DATA_SIZE)) controllerReqPorts,
                                                          Vector#(n_CONTROLLERS, CONNECTION_OUT#(SERVICE_CON_DATA_SIZE)) controllerRspPorts,
                                                          Integer scratchPortId, 
-                                                         function UInt#(TLog#(n_CONTROLLERS)) getControllerIdxFromAddr(SCRATCHPAD_MEM_ADDRESS addr))
+                                                         function UInt#(TLog#(n_CONTROLLERS)) getControllerIdxFromAddr(SCRATCHPAD_MEM_ADDRESS addr), 
+                                                         Bool crossClockDomain)
     (CONNECTION_SERVICE_CLIENT_COUNTERPART_IFC#(SERVICE_CON_DATA_SIZE, SERVICE_CON_DATA_SIZE))
     provisos (NumAlias#(TMax#(LOCAL_MEM_BURST_DATA_SZ, LOCAL_MEM_LINE_SZ), t_LOCAL_MEM_DATA_SZ),
               Add#(a_, SCRATCHPAD_MEM_VALUE_SZ, t_LOCAL_MEM_DATA_SZ),
@@ -84,10 +85,20 @@ module [CONNECTED_MODULE] mkScratchpadClientInterleaver#(Vector#(n_CONTROLLERS, 
 
     DEBUG_FILE debugLog <- mkDebugFile("scratchpad_client_" + integerToString(scratchPortId) + "_interleaver.out");
     
-    // Dynamic parameters
-    PARAMETER_NODE   paramNode  <- mkDynamicParameterNode();
-    Param#(2) addrMapModeParam  <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_ADDR_MAP_MODE, paramNode);
-    Reg#(Bit#(2))  addrMapMode  <- mkReg(0);
+    Reg#(Bool) initialized     <- mkReg(crossClockDomain);
+    Reg#(Bit#(2)) addrMapMode  <- mkReg(0);
+    
+    if (!crossClockDomain)
+    begin
+        // Dynamic parameters
+        PARAMETER_NODE   paramNode  <- mkDynamicParameterNode();
+        Param#(2) addrMapModeParam  <- mkDynamicParameter(`PARAMS_SCRATCHPAD_MEMORY_SERVICE_SCRATCHPAD_ADDR_MAP_MODE, paramNode);
+        // Initialization
+        rule doInit (! initialized);
+            addrMapMode <= addrMapModeParam;
+            initialized <= True;
+        endrule
+    end
 
     // address map pre-processing function
     function SCRATCHPAD_MEM_ADDRESS addrMap (SCRATCHPAD_MEM_ADDRESS addr);
@@ -108,13 +119,6 @@ module [CONNECTED_MODULE] mkScratchpadClientInterleaver#(Vector#(n_CONTROLLERS, 
             return zeroExtend(a); 
         end
     endfunction
-
-    // Initialization
-    Reg#(Bool) initialized <- mkReg(False);
-    rule doInit (! initialized);
-        addrMapMode <= addrMapModeParam;
-        initialized <= True;
-    endrule
     
     // Interact with the client side
     RWire#(SCRATCHPAD_MEM_REQ)  clientReqW      <- mkRWire();

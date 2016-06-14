@@ -157,8 +157,9 @@ module [SOFT_SERVICES_MODULE] mkConnectedSystem
                                              clocked_by clk, reset_by rst);
 
 `ifndef SOFT_CONNECTION_REMAP_Z
+    rst <- mkResetFanout(baseReset, clocked_by clk);
     // Instantiate the network module to connect scratchpad service connections
-    connectScratchpadNetwork(clocked_by clk, reset_by rst);
+    connectScratchpadNetwork(vp.physicalDrivers.clocksDriver, clocked_by clk, reset_by rst);
 `endif
 
     //

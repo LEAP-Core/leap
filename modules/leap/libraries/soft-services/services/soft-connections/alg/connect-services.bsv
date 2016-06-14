@@ -135,6 +135,74 @@ module connectOutToInWithIdx#(CONNECTION_OUT#(t_MSG_SIZE) cout,
 endmodule
 
 //
+// Cross-domain connection
+//
+module connectOutToInDualClock#(CONNECTION_OUT#(t_MSG_SIZE) cout,
+                                CONNECTION_IN#(t_MSG_SIZE) cin)
+    // Interface:
+    ();
+  
+    // choose a size large enough to cover latency of fifo
+    let domainFIFO <- mkSyncFIFO(16,
+                                 cout.clock, 
+                                 cout.reset,
+                                 cin.clock);
+
+    rule receive (cout.notEmpty() && domainFIFO.notFull());
+        Bit#(t_MSG_SIZE) x = cout.first();
+        domainFIFO.enq(x);
+        cout.deq();
+    endrule
+  
+    rule trySend (domainFIFO.notEmpty());
+        cin.try(domainFIFO.first());
+    endrule
+
+    rule succeedSend(cin.success());
+        domainFIFO.deq();
+    endrule
+
+endmodule
+
+
+module connectOutToInWithIdxDualClock#(CONNECTION_OUT#(t_MSG_SIZE) cout,
+                                       CONNECTION_IN_WITH_IDX#(t_MSG_SIZE, t_IDX_SIZE) cin,
+                                       Integer idx) 
+    // Interface:
+    ();
+    
+    // choose a size large enough to cover latency of fifo
+    let domainFIFO <- mkSyncFIFO(16,
+                                 cout.clock, 
+                                 cout.reset,
+                                 cin.clock);
+
+    rule receive (cout.notEmpty() && domainFIFO.notFull());
+        Bit#(t_MSG_SIZE) x = cout.first();
+        domainFIFO.enq(x);
+        cout.deq();
+    endrule
+  
+    rule trySend (domainFIFO.notEmpty());
+        cin.try(domainFIFO.first());
+    endrule
+
+    rule succeedSend(cin.success());
+        domainFIFO.deq();
+    endrule
+
+    Reg#(Bool) idIsSet <- mkReg(False, clocked_by cin.clock, reset_by cin.reset);
+    
+    rule setClientId (!idIsSet);
+        idIsSet <= True;
+        cin.setId(fromInteger(idx));
+    endrule
+
+endmodule
+
+
+
+//
 // resizeServiceConnectionOut --
 // Resize the message size for service connection out interface. 
 // This is useful for directly connecting the service server with a single 
@@ -523,6 +591,62 @@ module [CONNECTED_MODULE] mkServiceTreeRoot#(CONNECTION_IN#(SERVICE_CON_DATA_SIZ
         t_RSP rsp = unpack(truncateNP(tpl_2(msg)));
         root.enq(TREE_MSG{dstNode: id, data: rsp});
         serverRspPort.deq();
+    endrule
+
+endmodule
+
+//
+//  mkServiceTreeRootDualClock --
+//      Dual clock domain version of mkServiceTreeRoot.
+//
+module [CONNECTED_MODULE] mkServiceTreeRootDualClock#(CONNECTION_IN#(SERVICE_CON_DATA_SIZE) serverReqPort,
+                                                      CONNECTION_OUT#(SERVICE_CON_RESP_SIZE) serverRspPort,
+                                                      Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_IDX, t_REQ, t_RSP)) children, 
+                                                      Vector#(TAdd#(1, n_INGRESS_PORTS), t_IDX) addressBounds, 
+                                                      Vector#(n_INGRESS_PORTS, UInt#(nFRACTION)) bandwidthFractions)
+    (Empty)
+    provisos (Bits#(t_REQ, t_REQ_SZ), 
+              Bits#(t_RSP, t_RSP_SZ),
+              Bits#(t_IDX, t_IDX_SZ),
+              Ord#(t_IDX),
+              Add#(1, nFRACTION_extra_bits, nFRACTION),
+              Add#(1, nFRACTION_VALUES_extra_bits, TLog#(TAdd#(1, TExp#(nFRACTION)))));
+
+    // Instantiate the tree root
+    CONNECTION_ADDR_TREE#(t_IDX, t_REQ, t_RSP) root <- 
+        mkTreeRouter(children, addressBounds, mkLocalArbiterBandwidth(bandwidthFractions));
+    
+    SyncFIFOIfc#(t_REQ) reqDomainQ <- mkSyncFIFOFromCC(16,serverReqPort.clock);
+    SyncFIFOIfc#(Tuple2#(t_IDX, t_RSP)) rspDomainQ <- mkSyncFIFOToCC(16, serverRspPort.clock, serverRspPort.reset);
+
+    // Forward requests to the server
+    rule fwdReq (root.notEmpty() && reqDomainQ.notFull());
+        reqDomainQ.enq(root.first());
+        root.deq();
+    endrule
+
+    rule trySend (reqDomainQ.notEmpty());
+        Bit#(SERVICE_CON_DATA_SIZE) req = zeroExtendNP(pack(reqDomainQ.first()));
+        serverReqPort.try(req);
+    endrule
+
+    rule succeedSend (serverReqPort.success());
+        reqDomainQ.deq();
+    endrule
+
+    // Forward responses from the server 
+    rule recvResp (serverRspPort.notEmpty() && rspDomainQ.notFull());
+        Tuple2#(Bit#(SERVICE_CON_IDX_SIZE), Bit#(SERVICE_CON_DATA_SIZE)) msg = unpack(serverRspPort.first());
+        t_IDX id = unpack(truncateNP(tpl_1(msg)));
+        t_RSP rsp = unpack(truncateNP(tpl_2(msg)));
+        rspDomainQ.enq(tuple2(id, rsp));
+        serverRspPort.deq();
+    endrule    
+        
+    rule fwdResp (rspDomainQ.notEmpty());
+        match {.id, .rsp} = rspDomainQ.first();
+        root.enq(TREE_MSG{dstNode: id, data: rsp});
+        rspDomainQ.deq();
     endrule
 
 endmodule
