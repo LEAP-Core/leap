@@ -93,6 +93,13 @@ interface CONNECTION_SERVICE_TREE_LEAF_IFC#(type t_REQ, type t_RSP, type t_IDX);
     interface CONNECTION_ADDR_TREE#(t_IDX, t_REQ, t_RSP) tree;
 endinterface
 
+//
+// The interface of the connector for service connections
+//
+interface CONNECTION_SERVICE_CONNECTOR_IFC#(numeric type t_MSG_SZ); 
+    interface CONNECTION_IN#(t_MSG_SZ)  incoming; 
+    interface CONNECTION_OUT#(t_MSG_SZ) outgoing;
+endinterface
 
 //
 // connectOutToInWithIdx --
@@ -130,6 +137,143 @@ module connectOutToInWithIdx#(CONNECTION_OUT#(t_MSG_SIZE) cout,
     rule setClientId (!idIsSet);
         idIsSet <= True;
         cin.setId(fromInteger(idx));
+    endrule
+
+endmodule
+
+//
+// connectManyOutToIn --
+//   This is the module that actually performs the connection between multiple
+//   physical endpoints. This is for many-to-1 communication.
+//
+//   A configurable number of buffer stages may be added to relax timing
+//   between distant endpoints.
+//
+module [m] connectManyOutToIn#(Vector#(n_OUT_PORTS, CONNECTION_OUT#(t_MSG_SIZE)) couts,
+                               CONNECTION_IN#(t_MSG_SIZE) cin,
+                               Integer bufferStages,
+                               function m#(LOCAL_ARBITER#(n_OUT_PORTS)) mkArbiter()) 
+    // Interface:
+    ()
+    provisos(Add#(1, extras, n_OUT_PORTS),
+             IsModule#(m, t_MODULE));
+  
+    let msgArbiter <- mkArbiter();
+    
+    Vector#(n_OUT_PORTS, CONNECTION_OUT#(t_MSG_SIZE)) buf_couts <- zipWithM(mkBufferedConnectionOut, couts, replicate(bufferStages));
+    
+    RWire#(LOCAL_ARBITER_CLIENT_IDX#(n_OUT_PORTS)) selectionIndex <- mkRWire();
+    RWire#(LOCAL_ARBITER_OPAQUE#(n_OUT_PORTS)) selectionState <- mkRWire();
+
+    function Bool isNotEmpty(CONNECTION_OUT#(t_MSG_SIZE) conn);
+         return conn.notEmpty();
+    endfunction
+    
+    Vector#(n_OUT_PORTS, Bool) notEmptyVec = map(isNotEmpty, buf_couts);
+
+    rule doArbitration (fold(\|| , notEmptyVec));
+        let selectionResult <- msgArbiter.arbitrateNoUpd(notEmptyVec, False);
+        if(tpl_1(selectionResult) matches tagged Valid .port_id)
+        begin
+            selectionIndex.wset(port_id); 
+            selectionState.wset(tpl_2(selectionResult));
+        end
+    endrule
+    
+    rule trySend (selectionIndex.wget() matches tagged Valid .idx);
+        cin.try(buf_couts[idx].first());
+    endrule
+    
+    rule success (cin.success());
+        let idx = fromMaybe(?, selectionIndex.wget()); 
+        buf_couts[idx].deq(); 
+        let state_upd = fromMaybe(?, selectionState.wget());
+        msgArbiter.update(state_upd);
+    endrule
+
+    // function Bool isNotEmpty(CONNECTION_OUT#(t_MSG_SIZE) conn);
+    //      return conn.notEmpty();
+    // endfunction
+
+    // FIFOF#(Bit#(t_MSG_SIZE)) msgQ <- mkBypassFIFOF();
+
+    // rule doArbitration (msgQ.notFull);
+    //     let selectionResult <- msgArbiter.arbitrate( map(isNotEmpty,buf_couts), False);
+    //     if(selectionResult matches tagged Valid .port_id)
+    //     begin
+    //         selectionIndex.wset(port_id); 
+    //     end
+    // endrule
+    // 
+    // for (Integer idx = 0; idx < valueof(n_OUT_PORTS); idx = idx + 1) 
+    // begin
+    //     rule selectOutputPort (selectionIndex.wget() matches tagged Valid .s &&& s == fromInteger(idx));
+    //         msgQ.enq(buf_couts[idx].first());
+    //         buf_couts[idx].deq();
+    //     endrule
+    // end
+
+    // rule trySend (msgQ.notEmpty());
+    //     Bit#(t_MSG_SIZE) x = msgQ.first();
+    //     cin.try(x);
+    // endrule
+
+    // rule success (cin.success());
+    //     msgQ.deq();
+    // endrule
+
+endmodule
+
+//
+// connectOutToManyInWithIdx --
+//   This is the module that actually performs the connection between multiple
+//   physical endpoints, one CONNECTION_OUT and multiple CONNECTION_IN_WITH_IDX. 
+//   This is for 1-to-many communication.
+//
+//   Each incoming connection requires a one-time client Id assignment.
+//
+//   A configurable number of buffer stages may be added to relax timing
+//   between distant endpoints.
+//
+module connectOutToManyInWithIdx#(CONNECTION_OUT#(TAdd#(t_IDX_SIZE, t_MSG_SIZE)) cout,
+                                  Vector#(n_IN_PORTS, CONNECTION_IN_WITH_IDX#(t_MSG_SIZE, t_IDX_SIZE)) cins,
+                                  Vector#(n_IN_PORTS, Integer) ids, 
+                                  Integer bufferStages)
+    // Interface:
+    ()
+    provisos(Add#(1, extras, n_IN_PORTS));
+  
+    let buf_cout <- mkBufferedConnectionOut(cout, bufferStages);
+
+    function Bool isSuccess(CONNECTION_IN_WITH_IDX#(t_MSG_SIZE, t_IDX_SIZE) conn);
+        return conn.success();
+    endfunction
+
+    Vector#(n_IN_PORTS, Bit#(t_IDX_SIZE)) idx_vec = map(fromInteger, ids);
+    Vector#(n_IN_PORTS, Bool) success_vec = map(isSuccess, cins);
+
+    rule trySend (buf_cout.notEmpty());
+        Tuple2#(Bit#(t_IDX_SIZE), Bit#(t_MSG_SIZE)) tmp = unpack(buf_cout.first());
+        match {.dst, .rsp} = tmp;
+        let dst_idx = findElem(dst, idx_vec); 
+        if (dst_idx matches tagged Valid .idx)
+        begin
+            cins[idx].try(rsp);
+        end
+    endrule
+
+    rule success (fold(\|| , success_vec));
+        buf_cout.deq();
+    endrule
+
+    Reg#(Bool) idIsSet <- mkReg(False);
+    
+    rule setClientId (!idIsSet);
+        idIsSet <= True;
+        for (Integer idx = 0; idx < valueof(n_IN_PORTS); idx = idx + 1)
+        begin
+            cins[idx].setId(fromInteger(ids[fromInteger(idx)]));
+        end
     endrule
 
 endmodule
@@ -204,11 +348,11 @@ endmodule
 
 //
 // resizeServiceConnectionOut --
-// Resize the message size for service connection out interface. 
-// This is useful for directly connecting the service server with a single 
-// service client where the part of the response message that contains 
-// the client ID needs to be removed (in order to match the service client's 
-// connection width.)
+//   Resize the message size for service connection out interface. 
+//   This is useful for directly connecting the service server with a single 
+//   service client where the part of the response message that contains 
+//   the client ID needs to be removed (in order to match the service client's 
+//   connection width.)
 //
 function CONNECTION_OUT#(t_ACTUAL_SIZE) resizeServiceConnectionOut(CONNECTION_OUT#(t_MSG_SIZE) cout)
     provisos(Add#(t_EXTRA, t_ACTUAL_SIZE, t_MSG_SIZE));
@@ -226,6 +370,61 @@ function CONNECTION_OUT#(t_ACTUAL_SIZE) resizeServiceConnectionOut(CONNECTION_OU
 
     return retval;
 endfunction
+
+//
+// convertConnectionInToConnectionInWithIdx --
+//   CONNECTION_IN to CONNECTION_IN_WITH_IDX interface conversion.
+//
+function CONNECTION_IN_WITH_IDX#(t_MSG_SIZE, t_IDX_SIZE) convertConnectionInToConnectionInWithIdx(CONNECTION_IN#(t_MSG_SIZE) cin);
+    CONNECTION_IN_WITH_IDX#(t_MSG_SIZE, t_IDX_SIZE) new_cin = interface CONNECTION_IN_WITH_IDX;
+                                                                  method try = cin.try;
+                                                                  method success = cin.success;
+                                                                  method dequeued = cin.dequeued;
+                                                                  method Action setId(Bit#(t_IDX_SIZE) id);
+                                                                      noAction;
+                                                                  endmethod
+                                                                  interface Clock clock = cin.clock;
+                                                                  interface Reset reset = cin.reset;
+                                                              endinterface;
+    return new_cin;
+endfunction
+
+//
+// mkServiceConnector --
+//     A service connection connector. 
+//
+module mkServiceConnector(CONNECTION_SERVICE_CONNECTOR_IFC#(t_MSG_SIZE));
+    
+    Clock localClock <- exposeCurrentClock();
+    Reset localReset <- exposeCurrentReset();
+    
+    RWire#(Bit#(t_MSG_SIZE))  msgW  <- mkRWire();
+    PulseWire deqW <- mkPulseWire();
+
+    interface incoming = interface CONNECTION_IN#(t_MSG_SIZE);
+                             method Action try(Bit#(t_MSG_SIZE) d);
+                                 msgW.wset(d);
+                             endmethod
+                             method Bool success  = deqW;
+                             method Bool dequeued = deqW;
+                             interface Clock clock = localClock;
+                             interface Reset reset = localReset;
+                         endinterface; 
+    
+    interface outgoing = interface CONNECTION_OUT#(t_MSG_SIZE);
+                             method Bit#(t_MSG_SIZE) first() if (msgW.wget() matches tagged Valid .d);
+                                 return d;
+                             endmethod
+                             method Action deq();
+                                 deqW.send();
+                             endmethod
+                             method notEmpty = isValid(msgW.wget());
+                             interface Clock clock = localClock;
+                             interface Reset reset = localReset;
+                         endinterface; 
+
+endmodule
+
 
 
 //
