@@ -29,8 +29,12 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+import ConfigReg::*;
+
 `include "awb/provides/soft_services.bsh"
 `include "awb/provides/soft_connections.bsh"
+`include "awb/provides/common_services.bsh"
+`include "awb/dict/PARAMS_LOCAL_MEM.bsh"
 
 //
 // platformHasLocalMem --
@@ -170,6 +174,101 @@ module [CONNECTED_MODULE] mkLocalMemDDRBankConnection#(Integer bankIdx)
     CONNECTION_SEND#(Tuple2#(FPGA_DDR_DUALEDGE_BEAT, FPGA_DDR_DUALEDGE_BEAT_MASK)) writeDataQ <-
         mkConnectionSend(ddrName + "writeData");
 
+`ifndef LOCAL_MEM_DDR_SLOW_MODEL_EN_Z
+    
+    DEBUG_FILE debugLog <- mkDebugFile(ddrName + "local_mem.out");   
+    
+    // Dynamic parameters.
+    PARAMETER_NODE paramNode    <- mkDynamicParameterNode();
+    Param#(16) latencyParam     <- mkDynamicParameter(`PARAMS_LOCAL_MEM_LOCAL_MEM_DDR_MIN_LATENCY, paramNode);
+    Param#(1) latencyEnParam    <- mkDynamicParameter(`PARAMS_LOCAL_MEM_LOCAL_MEM_DDR_MIN_LATENCY_EN, paramNode);
+    Param#(8) bandwidthParam    <- mkDynamicParameter(`PARAMS_LOCAL_MEM_LOCAL_MEM_DDR_BANDWIDTH_LIMIT, paramNode);
+    Param#(1) bandwidthEnParam  <- mkDynamicParameter(`PARAMS_LOCAL_MEM_LOCAL_MEM_DDR_BANDWIDTH_LIMIT_EN, paramNode);
+    
+    let latencyLimitEn   = latencyEnParam == 1;
+    let bandwidthLimitEn = bandwidthEnParam == 1;
+
+    FIFOF#(Bit#(64)) readReqCycleQ <- mkSizedFIFOF(valueOf(FPGA_DDR_MAX_OUTSTANDING_READS));
+    Reg#(Bit#(64))   cycleCnt      <- mkReg(0);
+    Reg#(Bit#(7))    reqCnt        <- mkConfigReg(0);
+    Reg#(Bit#(7))    reqCntMax     <- mkRegU;
+    Reg#(Bit#(16))   latencyMin    <- mkRegU;
+    Reg#(Bool)       initialized   <- mkReg(False);
+    PulseWire        requestEnW    <- mkPulseWire();
+    PulseWire        responseEnW   <- mkPulseWire();
+
+    Reg#(Bit#(TLog#(FPGA_DDR_BURST_LENGTH))) readBurstIdx <- mkReg(0);
+
+    function Bool bandwidthFree() = (reqCnt <= reqCntMax);
+    function Bool underMinlatency() = ((cycleCnt - readReqCycleQ.first()) < zeroExtend(latencyMin));
+        
+    (* fire_when_enabled *)
+    rule countCycle(True);
+        cycleCnt <= cycleCnt + 1;
+    endrule
+    
+    (* fire_when_enabled *)
+    rule doInit (!initialized);
+        initialized <= True;
+        reqCntMax   <= truncate(bandwidthParam -1);
+        latencyMin  <= latencyParam;
+        debugLog.record($format("doInit: bandwidthParam=%0d, latencyParam=%0d, bandwidthEn=%0d, latencyEn=%0d", 
+                        bandwidthParam, latencyParam, bandwidthEnParam, latencyEnParam));
+    endrule
+
+    (* fire_when_enabled *)
+    rule updReqCnt (initialized && ((cycleCnt[6:0] == 0) || requestEnW));
+        Bit#(7) new_cnt =  (cycleCnt[6:0] == 0)? zeroExtend(pack(requestEnW)) : (reqCnt + zeroExtend(pack(requestEnW)));
+        reqCnt <= new_cnt;
+        debugLog.record($format("updCnt: oldReqCnt=%0d, newReqCnt=%0d", reqCnt, new_cnt));
+    endrule
+    
+    (* fire_when_enabled *)
+    rule deqReadReqQ (responseEnW);
+        if (valueOf(FPGA_DDR_BURST_LENGTH) == 1)
+        begin
+            readReqCycleQ.deq();
+            debugLog.record($format("deqReadReqQ..."));
+        end
+        else
+        begin
+            readBurstIdx <= readBurstIdx + 1;
+            if (readBurstIdx == maxBound)
+            begin
+                readReqCycleQ.deq();
+                debugLog.record($format("deqReadReqQ..."));
+            end
+        end
+    endrule
+
+    method Action readReq(FPGA_DDR_ADDRESS addr) if (initialized && (!bandwidthLimitEn || bandwidthFree()));
+        commandQ.send(tagged DRAM_READ addr);
+        readReqCycleQ.enq(cycleCnt);
+        requestEnW.send();
+        debugLog.record($format("readReq: addr=0x%x", addr));
+    endmethod
+
+    method ActionValue#(FPGA_DDR_DUALEDGE_BEAT) readRsp() if (initialized && (!latencyLimitEn || !underMinlatency()));
+        let d = readRspQ.receive();
+        readRspQ.deq();
+        responseEnW.send();
+        debugLog.record($format("reaRsp: data=0x%x, latency=%0d", d, cycleCnt-readReqCycleQ.first()));
+        return d;
+    endmethod
+
+    method Action writeReq(FPGA_DDR_ADDRESS addr) if (initialized && (!bandwidthLimitEn || bandwidthFree()));
+        commandQ.send(tagged DRAM_WRITE addr);
+        requestEnW.send();
+        debugLog.record($format("writeReq: addr=0x%x", addr));
+    endmethod
+
+    method Action writeData(FPGA_DDR_DUALEDGE_BEAT data, FPGA_DDR_DUALEDGE_BEAT_MASK mask) if (initialized);
+        writeDataQ.send(tuple2(data, mask));
+        debugLog.record($format("writeData: data=0x%x, mask=%b", data, mask));
+    endmethod
+
+`else
+
     method Action readReq(FPGA_DDR_ADDRESS addr);
         commandQ.send(tagged DRAM_READ addr);
     endmethod
@@ -177,7 +276,6 @@ module [CONNECTED_MODULE] mkLocalMemDDRBankConnection#(Integer bankIdx)
     method ActionValue#(FPGA_DDR_DUALEDGE_BEAT) readRsp();
         let d = readRspQ.receive();
         readRspQ.deq();
-
         return d;
     endmethod
 
@@ -188,6 +286,9 @@ module [CONNECTED_MODULE] mkLocalMemDDRBankConnection#(Integer bankIdx)
     method Action writeData(FPGA_DDR_DUALEDGE_BEAT data, FPGA_DDR_DUALEDGE_BEAT_MASK mask);
         writeDataQ.send(tuple2(data, mask));
     endmethod
+
+`endif
+
 endmodule
 
 

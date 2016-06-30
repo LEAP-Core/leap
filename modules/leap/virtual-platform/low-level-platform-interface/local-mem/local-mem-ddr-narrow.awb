@@ -9,7 +9,12 @@
 %public local-mem-ddr-common.bsv
 %public local-mem-ddr-narrow.bsv
 
-%param LOCAL_MEM_WORD_BITS      64  "Local memory word size"
-%param LOCAL_MEM_WORDS_PER_LINE  4  "Local memory words per line (must be power of 2)"
-%param LOCAL_MEM_UNIFIED         1  "0: distributed local memory banks, 1: memory bank(s) form a unified local memory address space"
+%param LOCAL_MEM_WORD_BITS                         64  "Local memory word size"
+%param LOCAL_MEM_WORDS_PER_LINE                     4  "Local memory words per line (must be power of 2)"
+%param LOCAL_MEM_UNIFIED                            1  "0: distributed local memory banks, 1: memory bank(s) form a unified local memory address space"
 
+%param LOCAL_MEM_DDR_SLOW_MODEL_EN                  0  "Enable modeling slow DDR memory"
+%param --dynamic LOCAL_MEM_DDR_MIN_LATENCY         35  "Local memory DDR minimum latency"
+%param --dynamic LOCAL_MEM_DDR_MIN_LATENCY_EN       0  "Enable limiting local memory DDR minimum latency"
+%param --dynamic LOCAL_MEM_DDR_BANDWIDTH_LIMIT     49  "Maximum number of serving requests per 128 cycles"
+%param --dynamic LOCAL_MEM_DDR_BANDWIDTH_LIMIT_EN   0  "Enable limiting maximum number of serving requests per 128 cycles"
