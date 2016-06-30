@@ -5,7 +5,7 @@ Description=Hybrid VC707 PCIE FPGA Environment - No Central Cache (Vivado)
 File=fpgaenv-hybrid-vc707-pcie-no-cc-vivado
 Version=2.2
 Type=Leap
-Name=Hybrid VC707 PCIE FPGA Environment - No Centtral Cache (Vivado)
+Name=Hybrid VC707 PCIE FPGA Environment - No Central Cache (Vivado)
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -198,7 +198,6 @@ Packagehint=leap-platforms
 
 [Virtex-7 DDR3 SDRAM (v2.3)/Requires]
 ddr_sdram_xilinx_v23_config=VC707 DDR3 SDRAM Configuration
-
 
 [NULL Local Memory Interface/Requires]
 local_mem_interface=Local Memory Interface
