@@ -15,3 +15,5 @@
 %public  dynamic-parameters-service.dic
 
 %sources -t LOG -v PUBLIC dynamic-parameters-service.log 
+
+%param USE_DYNAMIC_PARAMETERS_SERVICE 1 "Creates a flag for dynamic parameters, needed in the dictionary building code"

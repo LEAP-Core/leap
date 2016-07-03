@@ -98,6 +98,20 @@ GLOBAL_STRINGS::Lookup(const string& str, bool abortIfUndef)
     }
 }
 
+//
+// Pattern match against the search string prefix.  This is helpful in
+// finding "clases" of soft string. Fills in a vector of matches.
+//
+const void
+GLOBAL_STRINGS::LookupMatchingPrefix(const string& prefix, vector<GLOBAL_STRING_UID> results)
+{
+    for(auto strings=stringToUID.begin(); strings != stringToUID.end(); strings++) {
+        if (strings->first.compare(0, prefix.length(), prefix)) {
+            results.push_back(strings->second);
+        }
+    }
+}
+
 
 //
 // Public version of string addition allocates a UID for the new string.

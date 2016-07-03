@@ -224,13 +224,12 @@ module [CONNECTED_MODULE] mkDynamicParameter#(PARAMS_DICT_TYPE myID, PARAMETER_N
 
 endmodule
 
-
 //
-// mkDynamicParameterStr --
+// mkDynamicParameteFromStringID --
 //
-// Object for an individual, new-style string parameter.
+// Object for an individual, new-style string parameter.  This takes a string ID. 
 //
-module [CONNECTED_MODULE] mkDynamicParameterFromString#(GLOBAL_STRING_UID myStrID, PARAMETER_NODE paramNode)
+module [CONNECTED_MODULE] mkDynamicParameterFromStringID#(GLOBAL_STRING_UID myStrID, PARAMETER_NODE paramNode)
     //interface:
         (Param#(bits)) provisos (Add#(a__, bits, 64));
 
@@ -251,4 +250,42 @@ module [CONNECTED_MODULE] mkDynamicParameterFromString#(GLOBAL_STRING_UID myStrI
         return v;
     endmethod
 
+endmodule
+
+
+
+//
+// mkDynamicParameteFromString --
+//
+// Object for an individual, new-style string parameter. Takes a string.
+//
+module [CONNECTED_MODULE] mkDynamicParameterFromString#(String myStr, PARAMETER_NODE paramNode)
+    //interface:
+        (Param#(bits)) provisos (Add#(a__, bits, 64));
+
+    GLOBAL_STRING_UID myStrID <- getGlobalStringUID(myStr);
+
+    Param#(bits) m <- mkDynamicParameterFromStringID(myStrID, paramNode);
+  
+    return m;
+endmodule
+
+
+module [CONNECTED_MODULE] mkDynamicParameterFromStringInitialized#(String myStr, t_INIT init, PARAMETER_NODE paramNode)
+    //interface:
+        (Param#(bits)) provisos 
+        (
+            Add#(a__, bits, 64),
+            Bits#(t_INIT, bits)
+        );
+
+    GLOBAL_STRING_UID myStrID <- getGlobalStringUID(myStr);
+
+    // Construct a special string containing the bit initializer for the parameter.
+  
+    GLOBAL_STRING_UID myStrInit <- getGlobalStringUID("ANON_DYN_PARAM_INIT_" + myStr + "_" + bitToString(pack(init)));
+
+    Param#(bits) m <- mkDynamicParameterFromStringID(myStrID, paramNode);
+ 
+    return m;
 endmodule

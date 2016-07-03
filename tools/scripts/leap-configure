@@ -789,9 +789,14 @@ sub dyn_params($)
     print PARAM "\n";
 
     print PARAM "#include \"awb/provides/sim_config.h\"\n";
+    print PARAM "#include \"awb/provides/sim_config.h\"\n";
     print PARAM "#include \"awb/param.h\"\n";
     print PARAM "#include <strings.h>\n";
     print PARAM "#include \"asim/atoi.h\"\n\n";
+
+    print PARAM "#ifdef USE_DYNAMIC_PARAMETERS_SERVICE\n";
+    print PARAM "    #include \"awb/provides/dynamic_parameters_service.h\"\n";
+    print PARAM "#endif\n";
 
     foreach my $param (sort keys(%dynamic_params)) {
         print PARAM "$dynamic_params{$param}[2] ${param} = ${param}_DYNDEFAULT;\n";
@@ -828,7 +833,11 @@ sub dyn_params($)
         print PARAM "    else {\n        found = false;\n    }\n";
     }
 
+    print PARAM "#ifdef USE_DYNAMIC_PARAMETERS_SERVICE\n";
+    print PARAM "    return found || (DYNAMIC_PARAMS_SERVICE_CLASS::GetInstance()->SetAnonymousParameter(name,atoi_general_unsigned(value)));\n";
+    print PARAM "#else\n";
     print PARAM "    return found;\n";
+    print PARAM "#endif\n";
     print PARAM "}\n\n";
 
     print PARAM "void ListParams(void)\n";

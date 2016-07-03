@@ -79,6 +79,7 @@ class GLOBAL_STRINGS : public COMMAND_SWITCH_STRING_CLASS
 
     static const string* Lookup(GLOBAL_STRING_UID uid, bool abortIfUndef = true);
     static const GLOBAL_STRING_UID Lookup(const string& str, bool abortIfUndef = true);
+    static const void LookupMatchingPrefix(const string& prefix, vector<GLOBAL_STRING_UID> results);
 
     // Add a string to the table.  A handle will be allocated and returned.
     static GLOBAL_STRING_UID AddString(const string& str);
