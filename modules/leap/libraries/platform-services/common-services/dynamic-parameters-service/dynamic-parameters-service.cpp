@@ -124,32 +124,6 @@ DYNAMIC_PARAMS_SERVICE_CLASS::Init(PLATFORMS_MODULE p)
     // chain
     PLATFORMS_MODULE_CLASS::Init(p);
 
-    // Initialize those anon parameters.
-
-    // Anonymous dynamic parameters defaults are found by looking up
-    // special matching names.
-    vector<GLOBAL_STRING_UID> initTargets;
-
-    GLOBAL_STRINGS::LookupMatchingPrefix(string("ANON_DYN_PARAM_INIT_"), initTargets);
-
-    for (auto targets = initTargets.begin(); targets != initTargets.end(); targets++) {
-        const int paramSize = 256;
-        char paramName[paramSize];
-        UINT64 paramValue;
-        const string *initString = GLOBAL_STRINGS::Lookup(*targets);
-
-        if (initString->length() > paramSize) { 
-          ASIMERROR("Anonymous parameter initializer " << *initString << " is too large!");
-        }
-     
-        sscanf(initString->c_str(), "ANON_DYN_PARAM_INIT_%s_%d", paramName, &paramValue);
-
-        // Now we need to find the actual parameter UID and assign value        
-        string paramNameStr(paramName);
-        anonParams[paramName] = paramValue;
-
-    }
-
 }
 
 void 
@@ -157,7 +131,50 @@ DYNAMIC_PARAMS_SERVICE_CLASS::SendAllParams()
 {
     if (PLATFORM_SERVICES_AVAILABLE)
     {
+
+        // Initialize those anon parameters.
+
+        // Anonymous dynamic parameters defaults are found by looking up
+        // special matching names.
+        vector<GLOBAL_STRING_UID> initTargets;
+
+        GLOBAL_STRINGS::LookupMatchingPrefix(string("ANON_DYN_PARAM_NAME_"), initTargets);
+
+        for (auto targets = initTargets.begin(); targets != initTargets.end(); targets++) {
+            const int paramSize = 256;
+            char paramName[paramSize + 64];
+            char initString[paramSize + 64];
+            UINT64 paramValue;
+            const string *nameString = GLOBAL_STRINGS::Lookup(*targets);
+
+            if (nameString->length() > paramSize) { 
+              ASIMERROR("Anonymous parameter initializer " << *nameString << " is too large!");
+            }
+
+            // Obtain init string
+            sscanf(nameString->c_str(), "ANON_DYN_PARAM_NAME_%s", paramName);
+ 
+            vector<GLOBAL_STRING_UID> initializer;
+            GLOBAL_STRINGS::LookupMatchingPrefix(string("ANON_DYN_PARAM_INIT_") + string(paramName), initializer);
+            
+            // initializer should have one value, and this should be our initilaizer. 
+
+            strcpy(initString, "ANON_DYN_PARAM_INIT_");
+            strcat(initString, paramName);
+            strcat(initString, "_%d");
+            sscanf(GLOBAL_STRINGS::Lookup(initializer[0])->c_str(), initString, &paramValue); 
+
+            // Now we need to find the actual parameter UID and assign value        
+            string paramNameStr(paramName);
+            // If we got an initializer, it will already be in the
+            // structure.  Do not override in this case.
+            if (anonParams.find(paramName) == anonParams.end()) {              
+                anonParams[paramNameStr] = paramValue;
+            }
+        }
+        
         UINT32 i = 0;
+
         while (paramValues[i])
         {
             clientStub->sendParam(paramDictIDs[i], TYPE_ID, *paramValues[i]);

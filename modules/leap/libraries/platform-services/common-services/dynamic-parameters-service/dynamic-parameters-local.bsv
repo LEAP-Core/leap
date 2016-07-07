@@ -282,7 +282,8 @@ module [CONNECTED_MODULE] mkDynamicParameterFromStringInitialized#(String myStr,
     GLOBAL_STRING_UID myStrID <- getGlobalStringUID(myStr);
 
     // Construct a special string containing the bit initializer for the parameter.
-  
+
+    GLOBAL_STRING_UID myStrName <- getGlobalStringUID("ANON_DYN_PARAM_NAME_" + myStr);
     GLOBAL_STRING_UID myStrInit <- getGlobalStringUID("ANON_DYN_PARAM_INIT_" + myStr + "_" + bitToString(pack(init)));
 
     Param#(bits) m <- mkDynamicParameterFromStringID(myStrID, paramNode);

@@ -103,10 +103,10 @@ GLOBAL_STRINGS::Lookup(const string& str, bool abortIfUndef)
 // finding "clases" of soft string. Fills in a vector of matches.
 //
 const void
-GLOBAL_STRINGS::LookupMatchingPrefix(const string& prefix, vector<GLOBAL_STRING_UID> results)
+GLOBAL_STRINGS::LookupMatchingPrefix(const string& prefix, vector<GLOBAL_STRING_UID>& results)
 {
     for(auto strings=stringToUID.begin(); strings != stringToUID.end(); strings++) {
-        if (strings->first.compare(0, prefix.length(), prefix)) {
+        if (strings->first.compare(0, prefix.length(), prefix) == 0) {
             results.push_back(strings->second);
         }
     }
