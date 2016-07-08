@@ -1846,6 +1846,7 @@ module [m] mkCacheDirectMappedBalanced#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t
         method invalEntry = False;
         method dirtyEntryFlush = dirtyEntryFlushW;
         method forceInvalLine = forceInvalLineW;
+        method reqQueueBlocked() = !newReqNotBlocked[0] && !sideReqNotBlocked[0];
         method entryAccesses = tagged Invalid;
     endinterface
 
@@ -1945,6 +1946,7 @@ module [m] mkNullCacheDirectMapped#(RL_DM_CACHE_SOURCE_DATA#(t_CACHE_ADDR, t_CAC
         method invalEntry() = False;
         method dirtyEntryFlush() = False;
         method forceInvalLine() = False;
+        method reqQueueBlocked() = False; 
         method entryAccesses = tagged Invalid;
     endinterface
 

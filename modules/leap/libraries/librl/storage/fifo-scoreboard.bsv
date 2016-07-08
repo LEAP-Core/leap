@@ -199,7 +199,7 @@ module mkScoreboardFIFOF
     endmethod
 
     method Bool notEmpty();
-        return isNotEmpty();
+        return oldestIsReady();
     endmethod
 
     method SCOREBOARD_FIFO_ENTRY_ID#(t_NUM_ENTRIES) deqEntryId();

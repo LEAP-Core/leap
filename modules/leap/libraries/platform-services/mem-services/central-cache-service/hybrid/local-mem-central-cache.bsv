@@ -200,7 +200,7 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     
     PulseWire fifoEnqW <- mkPulseWire;
     PulseWire fifoDeqW <- mkPulseWire;
-    mkQueueingStats(statsHeader, "Central cache", tagged Valid 16, fifoEnqW, fifoDeqW);
+    mkQueueingStats(statsHeader, "Central cache", tagged Valid 4, fifoEnqW, fifoDeqW, True);
 `endif
 
     // ====================================================================
@@ -236,8 +236,8 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
 
 `ifndef CENTRAL_CACHE_PROFILE_ENABLE_Z
     MERGE_FIFOF#(CENTRAL_CACHE_N_CLIENTS, CENTRAL_CACHE_REQ) incomingReqQ <- mkMergeFIFOF();
-    FIFO#(CENTRAL_CACHE_REQ) reqQ <- mkSizedFIFO(16);
-    FIFO#(Bit#(TLog#(CENTRAL_CACHE_N_CLIENTS))) reqPortIdQ <- mkSizedFIFO(16);
+    FIFOF#(CENTRAL_CACHE_REQ) reqQ <- mkSizedBypassFIFOF(4);
+    FIFOF#(Bit#(TLog#(CENTRAL_CACHE_N_CLIENTS))) reqPortIdQ <- mkSizedBypassFIFOF(4);
 
     (* fire_when_enabled *)
     rule forwardMergeFifo(initialized);

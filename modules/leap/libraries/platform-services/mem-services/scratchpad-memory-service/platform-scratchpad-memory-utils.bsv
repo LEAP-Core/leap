@@ -37,6 +37,9 @@ import DReg::*;
 `include "awb/provides/stats_service.bsh"
 `include "awb/provides/soft_connections.bsh"
 
+`include "awb/dict/PARAMS_SCRATCHPAD_MEMORY_SERVICE.bsh"
+`include "awb/dict/VDEV.bsh"
+
 //
 // A type class which allows us to extract the ID of a datatype. 
 // Although this is general, we currently only use it to extract 
@@ -287,5 +290,317 @@ endmodule
 module [CONNECTED_MODULE] mkNullScratchpadPrefetchStats#(RL_PREFETCH_STATS stats)
     // interface:
     ();
+endmodule
+
+
+interface SCRATCHPAD_MONITOR_IFC#(type t_MAF_IDX);
+    method Action enqReadReq(SCRATCHPAD_READ_REQ req);
+    method Action enqWriteReq(SCRATCHPAD_WRITE_REQ req);
+    method Action enqWriteMaskedReq(SCRATCHPAD_WRITE_MASKED_REQ req);
+    method Action enqReadRsp(t_MAF_IDX maf);
+    method Bool   reqNotEmpty();
+    method ActionValue#(SCRATCHPAD_MEM_REQ) getReq();
+endinterface: SCRATCHPAD_MONITOR_IFC
+
+typedef 2048                SCRATCHPAD_READ_MAX_LATENCY;
+typedef HISTOGRAM_STATS_NUM SCRATCHPAD_HISTOGRAM_STATS_NUM;
+
+//
+// Scratchpad performance monitor 
+//
+module [CONNECTED_MODULE] mkScratchpadMonitor#(Integer scratchpadID,
+                                               NumTypeParam#(t_COUNTER_SZ) reqCounterSz,
+                                               DEBUG_FILE debugLog)
+    // interface:
+    (SCRATCHPAD_MONITOR_IFC#(t_MAF_IDX))
+    provisos (Bits#(SCRATCHPAD_MEM_ADDRESS, t_SCRATCHPAD_MEM_ADDRESS_SZ),
+              Bits#(SCRATCHPAD_MEM_REQ, t_SCRATCHPAD_MEM_REQ_SZ), 
+              Bits#(SCRATCHPAD_READ_RSP, t_SCRATCHPAD_READ_RSP_SZ), 
+              Bits#(t_MAF_IDX, t_MAF_IDX_SZ),
+              // Read latency
+              Alias#(Bit#(TAdd#(TLog#(SCRATCHPAD_READ_MAX_LATENCY), 1)), t_LATENCY),
+              NumAlias#(TLog#(SCRATCHPAD_HISTOGRAM_STATS_NUM), n_STATS_LOG));
+    
+    let platformID <- getSynthesisBoundaryPlatformID();
+    
+    STAT_ID statIDs[3];
+    statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
+                          "Scratchpad read requests sent to the network");
+    let statReadReq = 0;
+    statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_WRITE_REQUESTS",
+                          "Scratchpad write requests sent to the network");
+    let statWriteReq = 1;
+    statIDs[2] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
+                          "Scratchpad responses received from the network");
+    let statReadResp = 2;
+    STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
+
+    COUNTER#(t_COUNTER_SZ) readReqCounter <- mkLCounter(0);
+    Reg#(Bool) readReqCounterEnabled <- mkReg(False); 
+    
+    mkCounterHistogramStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS_INFLIGHT",
+                            "Scratchpad inflight read requests", 
+                            readReqCounter.value(), 
+                            readReqCounterEnabled._read());
+    
+    // Set scratchpad network latency tests
+    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyFifo  <- mkSCSizedFIFOF(4);
+    FIFOF#(SCRATCHPAD_MEM_REQ)  bypassReqFifo <- mkSizedBypassFIFOF(4);
+    Reg#(Bool) latencyInitialized             <- mkReg(False);
+    PARAMETER_NODE paramNode                  <- mkDynamicParameterNode();
+    Param#(6) latencyParam                    <- mkDynamicParameterFromStringInitialized("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_NETWORK_EXTRA_LATENCY", 6'd0, paramNode);
+    PulseWire fifoEnqW                        <- mkPulseWire;
+    PulseWire fifoDeqW                        <- mkPulseWire;
+    let delayEn = (latencyParam > 0);
+    let reqFifo = (delayEn)? latencyFifo.fifo : bypassReqFifo;
+
+    mkQueueingStats("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_NETWORK_REQUEST",
+                    "Scratchpad network request", 
+                    tagged Valid 4,
+                    fifoEnqW, 
+                    fifoDeqW, 
+                    True);
+
+    Reg#(Bool) initialized <- mkReg(False);
+    
+    rule doInit (!initialized);
+        initialized <= True;
+        if (delayEn)
+        begin
+            latencyFifo.control.setControl(True);
+            debugLog.record($format("Profiling: doInit: enable latencyFIFO, scratchpadID=%0d, delay=0x%x", scratchpadIntPortId(scratchpadID), latencyParam));
+        end
+    endrule
+
+    rule initLatency (!latencyInitialized && initialized);
+        if (delayEn)
+        begin
+            latencyFifo.control.setDelay(resize(pack(latencyParam)));
+        end
+        latencyInitialized <= True;
+    endrule
+    
+    //
+    // Tracking read latency
+    //
+    STAT_ID latencyStatID = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_MISS_LATENCY",
+                            "Scratchpad read miss latency (unit: 4 cycles)");
+    STAT_VECTOR#(HISTOGRAM_STATS_NUM) latencySv  <- mkStatCounter_RAM(latencyStatID);
+    
+    UInt#(n_STATS_LOG) maxStatIdx = maxBound;
+    
+    function Bit#(n_STATS_LOG) getStatIdx(t_LATENCY val);
+        return (val >= zeroExtend(pack(maxStatIdx)))? pack(maxStatIdx) : truncate(val);
+    endfunction
+    
+    Reg#(t_LATENCY)         latencyReg     <- mkDReg(0);
+    Reg#(Bit#(n_STATS_LOG)) latencyStatIdx <- mkRegU;
+    Reg#(Bool)              latencyStatEn  <- mkReg(False);
+    
+    MEMORY_IFC#(Bit#(t_MAF_IDX_SZ), t_LATENCY) reqStartCycleTable <- mkBRAMInitialized(0);
+    
+    Reg#(t_LATENCY) cycleCnt <- mkReg(0);
+    FIFOF#(Tuple2#(Bit#(t_MAF_IDX_SZ), t_LATENCY)) readLatencyReqQ <- mkFIFOF();
+
+    (* fire_when_enabled, no_implicit_conditions *)
+    rule tickCurrent;
+        cycleCnt <= cycleCnt + 1;
+    endrule
+    
+    rule readLatencyLookup (True);
+        match {.maf, .rsp_cycle} = readLatencyReqQ.first();
+        readLatencyReqQ.deq();
+        let req_cycle <- reqStartCycleTable.readRsp();
+        let latency = (rsp_cycle >= req_cycle)? (rsp_cycle - req_cycle) : (maxBound - req_cycle + rsp_cycle);
+        debugLog.record($format("Profiling: readLatencyLookup: maf=0x%x, latency=%0d", maf, latency));
+        latencyReg <= latency; 
+    endrule
+    
+    (* fire_when_enabled *)
+    rule addPipeline (True);
+        latencyStatIdx  <= getStatIdx(latencyReg>>2);
+        latencyStatEn   <= (latencyReg != 0);
+    endrule
+    
+    (* fire_when_enabled *)
+    rule latencyStatsIncr (latencyStatEn);
+        latencySv.incr(latencyStatIdx);
+        debugLog.record($format("Profiling: latencyStatsIncr: idx=%0d", latencyStatIdx));
+    endrule
+
+    // ========================================================================
+    // 
+    //   Methods
+    //
+    // ========================================================================
+    
+    method Action enqReadReq(SCRATCHPAD_READ_REQ req) if (initialized && latencyInitialized);
+        stats.incr(statReadReq);
+        readReqCounter.up();
+        readReqCounterEnabled <= True;
+        reqFifo.enq(tagged SCRATCHPAD_MEM_READ req);
+        fifoEnqW.send();
+        reqStartCycleTable.write(truncateNP(pack(req.readUID)), cycleCnt);
+        debugLog.record($format("Profiling: forwardReadReq: addr=0x%x, readUID=0x%x, read_cnt=%0d", 
+                        req.addr, req.readUID, readReqCounter.value()));
+    endmethod
+    
+    method Action enqWriteReq(SCRATCHPAD_WRITE_REQ req) if (initialized && latencyInitialized);
+        stats.incr(statWriteReq);
+        reqFifo.enq(tagged SCRATCHPAD_MEM_WRITE req);
+        debugLog.record($format("Profiling: forwardWriteReq: addr=0x%x, val=0x%x", req.addr, req.val));
+        fifoEnqW.send();
+    endmethod
+    
+    method Action enqWriteMaskedReq(SCRATCHPAD_WRITE_MASKED_REQ req) if (initialized && latencyInitialized);
+        stats.incr(statWriteReq);
+        reqFifo.enq(tagged SCRATCHPAD_MEM_WRITE_MASKED req);
+        debugLog.record($format("Profiling: forwardWriteMaskedReq: addr=0x%x, val=0x%x", req.addr, req.val));
+        fifoEnqW.send();
+    endmethod
+
+    method Action enqReadRsp(t_MAF_IDX maf);
+        stats.incr(statReadResp);
+        readReqCounter.down();
+        readLatencyReqQ.enq(tuple2(pack(maf), cycleCnt));
+        reqStartCycleTable.readReq(pack(maf));
+        debugLog.record($format("Profiling: receiveResp: read_cnt=%0d",readReqCounter.value())); 
+    endmethod
+
+    method Bool reqNotEmpty() = reqFifo.notEmpty();
+    
+    method ActionValue#(SCRATCHPAD_MEM_REQ) getReq() if (initialized && latencyInitialized);
+        let req = reqFifo.first();
+        reqFifo.deq();
+        fifoDeqW.send();
+        let addr = ?;
+        if (req matches tagged SCRATCHPAD_MEM_READ .r)
+        begin
+            addr = r.addr;
+        end
+        else if (req matches tagged SCRATCHPAD_MEM_WRITE .w)
+        begin
+            addr = w.addr;
+        end
+        else if (req matches tagged SCRATCHPAD_MEM_WRITE_MASKED .mw)
+        begin
+            addr = mw.addr;
+        end
+        debugLog.record($format("Profiling: getReq: addr=0x%x", addr));
+        return req;
+    endmethod
+
+endmodule
+
+
+interface SCRATCHPAD_SCOREBOARD_MONITOR_IFC#(numeric type n_READERS, 
+                                             type t_SCOREBOARD_ENTRY_ID);
+    method Action setValue(Bit#(TAdd#(1,TLog#(n_READERS))) reader, t_SCOREBOARD_ENTRY_ID id);
+    method Action deq(Bit#(TAdd#(1,TLog#(n_READERS))) reader);
+endinterface: SCRATCHPAD_SCOREBOARD_MONITOR_IFC
+
+//
+// Scratchpad scoreboard FIFO performance monitor 
+//
+module [CONNECTED_MODULE] mkScratchpadScoreboardMonitor#(Integer scratchpadID,
+                                                         Vector#(n_READERS, t_SCOREBOARD_ENTRY_ID) deqEntryIds,
+                                                         Vector#(n_READERS, Bool) emptySignals,
+                                                         DEBUG_FILE debugLog)
+    // interface:
+    (SCRATCHPAD_SCOREBOARD_MONITOR_IFC#(n_READERS, t_SCOREBOARD_ENTRY_ID))
+    provisos (Bits#(t_SCOREBOARD_ENTRY_ID, t_SCOREBOARD_ENTRY_ID_SZ));
+    
+    let platformID <- getSynthesisBoundaryPlatformID();
+
+    // Tracking waiting cycles
+    STAT_ID waitStatID = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_SCOREBOARD_WAITING_TIME",
+                                     "Scratchpad scoreboard waiting time when later responses are ready");
+    STAT waitStat <- mkStatCounter(waitStatID); 
+    
+    Vector#(n_READERS, Reg#(Bit#(16))) waitCycleCnt <- replicateM(mkReg(0));
+    Vector#(n_READERS, Reg#(Bool)) isWaiting <- replicateM(mkReg(False));
+    Vector#(n_READERS, Reg#(Maybe#(t_SCOREBOARD_ENTRY_ID))) preSetEntry <- replicateM(mkReg(tagged Invalid));
+    Vector#(n_READERS, PulseWire) readerActive <- replicateM(mkPulseWire);
+    Vector#(n_READERS, PulseWire) deqPresetEntry <- replicateM(mkPulseWire);
+    RWire#(Tuple2#(Bit#(TAdd#(1,TLog#(n_READERS))), t_SCOREBOARD_ENTRY_ID)) newValue <- mkRWire(); 
+    RWire#(Bit#(TAdd#(1,TLog#(n_READERS)))) deqPort <- mkRWire();
+    RWire#(Bit#(16)) waitStatValue <- mkRWire();
+    
+    (* fire_when_enabled *)
+    rule updOnDelayedNewValue (newValue.wget() matches tagged Valid .v &&& pack(tpl_2(v)) == pack(deqEntryIds[tpl_1(v)]) &&& isWaiting[tpl_1(v)]);
+        let i = tpl_1(v);
+        readerActive[i].send();
+        waitStatValue.wset(waitCycleCnt[i]);
+        waitCycleCnt[i] <= 0;
+        isWaiting[i] <= False;
+    endrule
+        
+    (* mutually_exclusive = "updOnNewValue, updOnDelayedNewValue" *)
+    (* fire_when_enabled *)
+    rule updOnNewValue (newValue.wget() matches tagged Valid .v &&& pack(tpl_2(v)) != pack(deqEntryIds[tpl_1(v)]) &&& emptySignals[tpl_1(v)]);
+        let i = tpl_1(v);
+        readerActive[i].send();
+        preSetEntry[i] <= tagged Valid tpl_2(v);
+        if (isWaiting[i])
+        begin
+            waitCycleCnt[i] <= waitCycleCnt[i] + 1;
+            debugLog.record($format("Profiling: scoreboard: port=%0d, setEntryId=%0d, deqEntryId=%0d, waitCycleCnt=%0d",
+                            i, pack(tpl_2(v)), pack(deqEntryIds[i]), waitCycleCnt[i]+1));
+        end
+        else
+        begin
+            isWaiting[i] <= True;
+            debugLog.record($format("Profiling: scoreboard: port=%0d, setEntryId=%0d, deqEntryId=%0d, startWaiting...", 
+                            i, pack(tpl_2(v)), pack(deqEntryIds[i])));
+        end
+    endrule
+
+    (* mutually_exclusive = "updOnNewValue, resetEntry" *)
+    (* fire_when_enabled *)
+    rule resetEntry (deqPort.wget() matches tagged Valid .p &&& !emptySignals[p] &&& deqPresetEntry[p]);
+        preSetEntry[p] <= tagged Invalid;
+        debugLog.record($format("Profiling: scoreboard: port=%0d, reset preSetEntryId=%0d", 
+                        p, pack(fromMaybe(unpack(0), preSetEntry[p]))));
+    endrule
+
+    for (Integer i = 0; i < valueof(n_READERS); i = i + 1)
+    begin
+         (* fire_when_enabled *)
+         rule checkDeqPresetEntry (preSetEntry[i] matches tagged Valid .e &&& pack(e) == pack(deqEntryIds[i]));
+             deqPresetEntry[i].send();
+         endrule
+
+         (* mutually_exclusive = "incrWaitCnt, updOnNewValue" *)
+         (* mutually_exclusive = "incrWaitCnt, updOnDelayedNewValue" *)
+         (* fire_when_enabled *)
+         rule incrWaitCnt (!readerActive[i]);
+             if (emptySignals[i] && isValid(preSetEntry[i]) && !isWaiting[i])
+             begin
+                 isWaiting[i] <= True;
+                 debugLog.record($format("Profiling: scoreboard: port=%0d, preSetEntryId=%0d, deqEntryId=%0d, startWaiting...", 
+                                 fromInteger(i), pack(fromMaybe(unpack(0),preSetEntry[i])), pack(deqEntryIds[i])));
+             end
+             if (isWaiting[i])
+             begin
+                 waitCycleCnt[i] <= waitCycleCnt[i] + 1;
+                 debugLog.record($format("Profiling: scoreboard: port=%0d, deqEntryId=%0d, waitCycleCnt=%0d",
+                                 fromInteger(i), pack(deqEntryIds[i]), waitCycleCnt[i]+1));
+             end
+         endrule
+    end
+   
+    rule waitStatsIncr (waitStatValue.wget() matches tagged Valid .s &&& s > 0);
+        waitStat.incrBy(zeroExtend(s));
+        debugLog.record($format("waitStatsIncr: incr=%0d", s));
+    endrule
+
+    method Action setValue(Bit#(TAdd#(1,TLog#(n_READERS))) reader, t_SCOREBOARD_ENTRY_ID id);
+        newValue.wset(tuple2(reader, id));
+    endmethod
+    
+    method Action deq(Bit#(TAdd#(1,TLog#(n_READERS))) reader);
+        deqPort.wset(reader);
+    endmethod
+
 endmodule
 

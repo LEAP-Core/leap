@@ -104,7 +104,7 @@ interface RL_CACHE_STATS#(type t_CACHE_METADATA);
     method Bool                     invalEntry();            // Invalidate due to capacity
     method Bool                     dirtyEntryFlush();
     method Bool                     forceInvalLine();        // Invalidate forced by external request
-
+    method Bool                     reqQueueBlocked();       // Request queue blocked due to dependency
     // Upon line eviction, returns number of accesses to a line before its eviction.   
     method Maybe#(UInt#(`RL_CACHE_LINE_ACCESS_TRACKER_WIDTH)) entryAccesses(); 
 endinterface: RL_CACHE_STATS
