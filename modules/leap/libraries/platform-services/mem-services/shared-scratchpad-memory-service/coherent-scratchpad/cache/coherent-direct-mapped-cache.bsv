@@ -2184,6 +2184,8 @@ module [m] mkCoherentCacheDirectMappedBalanced#(COH_DM_CACHE_SOURCE_DATA#(t_CACH
     ds_data = List::cons(tuple2("Coherent Cache localRetryQ notFull", localRetryQ.notFull), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache mshrRetryQ notEmpty", mshrRetryQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache mshrRetryQ notFull", mshrRetryQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache newReqNotBlocked", newReqNotBlocked), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache retryReqNotBlocked", retryReqNotBlocked), ds_data);
     // Cache lookup queues
     ds_data = List::cons(tuple2("Coherent Cache cacheLookupQ notEmpty", cacheLookupQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache cacheLookupQ notFull", cacheLookupQ.notFull), ds_data);

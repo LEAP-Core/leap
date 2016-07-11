@@ -406,11 +406,16 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     PulseWire releaseGetEntryW   <- mkPulseWire();
     PulseWire getFwdRespValW     <- mkPulseWire();
 
-    //track inflight GETX/GETS requests
+    // Track inflight GETX/GETS requests
     PulseWire getsProcessedW                          <- mkPulseWire();
     PulseWire getxProcessedW                          <- mkPulseWire();
     COUNTER#((TAdd#(t_MSHR_IDX_SZ,1))) numPendingGetX <- mkLCounter(0);
     COUNTER#((TAdd#(t_MSHR_IDX_SZ,1))) numPendingGetS <- mkLCounter(0);
+
+    // Track busy mshr entries
+    COUNTER#((TAdd#(t_MSHR_IDX_SZ,1))) numBusyGetEntries <- mkLCounter(0);
+    COUNTER#((TAdd#(t_MSHR_IDX_SZ,1))) numBusyPutEntries <- mkLCounter(0);
+
 
     //
     // Apply write mask and return the updated data
@@ -564,6 +569,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             end
             debugLog.record($format("        MSHR: mshrGet entry (0x%x) release", mshr_idx));
             mshrGetValidBits.upd(mshr_idx, False);
+            numBusyGetEntries.down();
             if (!curPutBusy)
             begin
                 mshrReleaseW.send();
@@ -602,6 +608,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         
         // release mshrPut entry
         mshrPutValidBits.upd(mshr_idx, False);
+        numBusyPutEntries.down();
         debugLog.record($format("        MSHR: mshrPut entry (0x%x) release", mshr_idx));
         if (!curGetBusy)
         begin
@@ -854,6 +861,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
             begin
                 debugLog.record($format("        MSHR: mshrGet entry (0x%x) release", r.meta));
                 mshrGetValidBits.upd(r.meta, False);
+                numBusyGetEntries.down();
                 if (!mshrPutValidBits.sub(r.meta))
                 begin
                     mshrReleaseW.send();
@@ -900,6 +908,8 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
     ds_data = List::cons(tuple2("Coherent Cache MSHR retryReqToNetworkQ notFull", retryReqQ.notFull), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache MSHR resendGetxQ notEmpty", resendGetxQ.notEmpty), ds_data);
     ds_data = List::cons(tuple2("Coherent Cache MSHR resendGetxQ notFull", resendGetxQ.notFull), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR numBusyGetEntries notEmpty", numBusyGetEntries.value()> 0), ds_data);
+    ds_data = List::cons(tuple2("Coherent Cache MSHR numBusyPutEntries notEmpty", numBusyPutEntries.value()> 0), ds_data);
 
     let debugScanData = ds_data;
 
@@ -922,6 +932,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         mshrGetValidBits.upd(idx, True);
         cacheGetReqEnW.send();
         numPendingGetS.up();
+        numBusyGetEntries.up();
         getReqQ.enq( COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
                                                 addr: addr,
                                                 val: ?,
@@ -950,6 +961,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         cacheGetReqEnW.send();
         let new_state = (oldState == COH_DM_CACHE_STATE_O)? COH_CACHE_STATE_OM_A : COH_CACHE_STATE_IM_AD;
         numPendingGetX.up();
+        numBusyGetEntries.up();
         getReqQ.enq( COH_DM_CACHE_MSHR_GET_REQ{ idx: idx,
                                                 addr: addr,
                                                 val: val,
@@ -972,6 +984,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
 
         debugLog.record($format("        MSHR: receive PUTX request from cache to allocate a new entry (idx=0x%x, addr=0x%x)", idx, addr));
         mshrPutValidBits.upd(idx, True);
+        numBusyPutEntries.up();
         cachePutReqEnW.send();
         putReqQ.enq( COH_DM_CACHE_MSHR_PUT_REQ{ idx: idx,
                                                 addr: addr,
@@ -1060,6 +1073,7 @@ module [m] mkMSHRForDirectMappedCache#(DEBUG_FILE debugLog)
         releaseGetEntryW.send();
         debugLog.record($format("        MSHR: releaseGetEntry: mshrGet entry (0x%x) release", mshrIdx));
         mshrGetValidBits.upd(mshrIdx, False);
+        numBusyGetEntries.down();
         if (!mshrPutValidBits.sub(mshrIdx))
         begin
             mshrReleaseW.send();
