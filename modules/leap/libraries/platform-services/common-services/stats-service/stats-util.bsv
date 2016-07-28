@@ -188,7 +188,10 @@ module [CONNECTED_MODULE] mkQueueingStatsMonitor#(Maybe#(Integer) fifoSz,
         if (!isFirstReq)
         begin
             let inter_arr = (current > lastReqTime)? (current - lastReqTime) : (maxBound - lastReqTime + current);
-            interArrivalReg <= tagged Valid inter_arr;
+            if (inter_arr > 0)
+            begin
+                interArrivalReg <= tagged Valid inter_arr;
+            end
             debugLog.record($format("enqueueTimeStamp: current=%0d, interArrival=%0d, reqCnt=%0d", 
                             current, inter_arr, reqCnt));
         end
@@ -299,6 +302,7 @@ module [CONNECTED_MODULE] mkQueueingStats#(String statTagPrefix,
     ();
         
     DEBUG_FILE debugLog <- mkDebugFile(statTagPrefix + "_stats.out");
+    // DEBUG_FILE debugLog <- mkDebugFileNull(""); 
 
     // Instantiate stats monitor
     QUEUE_STATS monitor <- mkQueueingStatsMonitor(fifoSz, enqEn, deqEn, useBypassFIFO, debugLog);

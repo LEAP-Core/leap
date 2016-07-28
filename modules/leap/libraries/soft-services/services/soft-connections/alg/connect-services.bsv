@@ -191,37 +191,6 @@ module [m] connectManyOutToIn#(Vector#(n_OUT_PORTS, CONNECTION_OUT#(t_MSG_SIZE))
         msgArbiter.update(state_upd);
     endrule
 
-    // function Bool isNotEmpty(CONNECTION_OUT#(t_MSG_SIZE) conn);
-    //      return conn.notEmpty();
-    // endfunction
-
-    // FIFOF#(Bit#(t_MSG_SIZE)) msgQ <- mkBypassFIFOF();
-
-    // rule doArbitration (msgQ.notFull);
-    //     let selectionResult <- msgArbiter.arbitrate( map(isNotEmpty,buf_couts), False);
-    //     if(selectionResult matches tagged Valid .port_id)
-    //     begin
-    //         selectionIndex.wset(port_id); 
-    //     end
-    // endrule
-    // 
-    // for (Integer idx = 0; idx < valueof(n_OUT_PORTS); idx = idx + 1) 
-    // begin
-    //     rule selectOutputPort (selectionIndex.wget() matches tagged Valid .s &&& s == fromInteger(idx));
-    //         msgQ.enq(buf_couts[idx].first());
-    //         buf_couts[idx].deq();
-    //     endrule
-    // end
-
-    // rule trySend (msgQ.notEmpty());
-    //     Bit#(t_MSG_SIZE) x = msgQ.first();
-    //     cin.try(x);
-    // endrule
-
-    // rule success (cin.success());
-    //     msgQ.deq();
-    // endrule
-
 endmodule
 
 //

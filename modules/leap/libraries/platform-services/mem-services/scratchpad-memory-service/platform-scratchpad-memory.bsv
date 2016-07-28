@@ -582,7 +582,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     function Bool scoreboardIsEmpty (SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE) sfifo) = !sfifo.notEmpty();
     Vector#(n_READERS, SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS)) deqEntryIds = map(getScoreboardEntryId, sortResponseQ);
     Vector#(n_READERS, Bool) emptySignals = map(scoreboardIsEmpty, sortResponseQ);
-    let scoreboard_monitor <- mkScratchpadScoreboardMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
+    let scoreboard_monitor <- mkScratchpadScoreboardVecMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
 `endif
 
     Reg#(Bool) initialized <- mkReg(False);
@@ -608,6 +608,12 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     rule sendReqFromMonitor (initialized);
         let req <- monitor.getReq();
         link_service.makeReq(pack(req));
+    endrule
+    (* fire_when_enabled *)
+    rule sendRspToMonitor (initialized);
+        SCRATCHPAD_READ_RSP s = unpack(link_service.getRsp());
+        link_service.deqRsp();
+        monitor.enqReadRsp(unpack(truncateNP(s.readUID)), s);
     endrule
 `endif
 
@@ -665,18 +671,22 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
     //
     (* fire_when_enabled *)
     rule receiveResp (True);
+
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        SCRATCHPAD_READ_RSP s <- monitor.getRsp();
+`else
         SCRATCHPAD_READ_RSP s = unpack(link_service.getRsp());
         link_service.deqRsp();
-
+`endif
         // The read UID field holds the concatenation of the port ID and
         // the port's reorder buffer index.
         t_MAF_IDX maf_idx = unpack(truncateNP(s.readUID));
         match {.port, .rob_idx} = maf_idx;
 
         sortResponseQ[port].setValue(rob_idx, s.val);
+
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
-        monitor.enqReadRsp(maf_idx);
-        scoreboard_monitor.setValue(zeroExtend(port), rob_idx);
+        scoreboard_monitor.scoreboards[port].setValue(rob_idx);
         debugLog.record($format("receiveResp: port=%0d, rob_idx=%0d", port, rob_idx));
 `endif
     endrule
@@ -706,7 +716,7 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
-                    scoreboard_monitor.deq(fromInteger(p));
+                    scoreboard_monitor.scoreboards[p].deq();
 `endif
                     debugLog.record($format("read port %0d: resp val=0x%x, rob_idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
@@ -1034,7 +1044,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
     function Bool scoreboardIsEmpty (SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE) sfifo) = !sfifo.notEmpty();
     Vector#(n_READERS, SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS)) deqEntryIds = map(getScoreboardEntryId, sortResponseQ);
     Vector#(n_READERS, Bool) emptySignals = map(scoreboardIsEmpty, sortResponseQ);
-    let scoreboard_monitor <- mkScratchpadScoreboardMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
+    let scoreboard_monitor <- mkScratchpadScoreboardVecMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
 `endif
     
     // Initialization
@@ -1134,7 +1144,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
             sortResponseQ[p].setValue(r.readMeta.robSlot, r.val);
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z 
             reqCounter.down();
-            scoreboard_monitor.setValue(fromInteger(p), r.readMeta.robSlot);
+            scoreboard_monitor.scoreboards[p].setValue(r.readMeta.robSlot);
             debugLog.record($format("receiveResp: req_cnt=%0d, port=%0d, rob_idx=%0d", reqCounter.value(), fromInteger(p), r.readMeta.robSlot));
 `endif        
         endrule
@@ -1164,7 +1174,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
-                    scoreboard_monitor.deq(fromInteger(p));
+                    scoreboard_monitor.scoreboards[p].deq();
 `endif
                     debugLog.record($format("read port %0d: resp val=0x%x, rob_idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
@@ -1279,6 +1289,12 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         let req <- monitor.getReq();
         link_service.makeReq(pack(req));
     endrule
+    (* fire_when_enabled *)
+    rule sendRspToMonitor (initialized);
+        SCRATCHPAD_READ_RSP s = unpack(link_service.getRsp());
+        link_service.deqRsp();
+        monitor.enqReadRsp(unpack(truncateNP(s.readUID)), s);
+    endrule
 `endif
 
     //
@@ -1315,9 +1331,12 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
     //     Fill response from scratchpad controller backing storage.
     //
     method ActionValue#(t_CACHE_FILL_RESP) readResp();
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        SCRATCHPAD_READ_RSP s <- monitor.getRsp();
+`else
         SCRATCHPAD_READ_RSP s = unpack(link_service.getRsp());
         link_service.deqRsp();
-
+`endif
         t_CACHE_FILL_RESP r;
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
@@ -1327,15 +1346,15 @@ module [CONNECTED_MODULE] mkScratchpadCacheSourceData#(Integer scratchpadID,
         r.readMeta = unpack(truncateNP(s.readUID));
         r.globalReadMeta = s.globalReadMeta;
         debugLog.record($format("sourceData: read RESP: addr=0x%x, val=0x%x", s.addr, s.val));
-`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z        
-        monitor.enqReadRsp(unpack(truncateNP(s.readUID)));
-`endif
         return r;
     endmethod
 
     method t_CACHE_FILL_RESP peekResp();
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        SCRATCHPAD_READ_RSP s = monitor.peekRsp();
+`else
         SCRATCHPAD_READ_RSP s = unpack(link_service.getRsp());
-
+`endif
         t_CACHE_FILL_RESP r;
         r.addr = unpack(truncateNP(s.addr));
         r.val = s.val;
@@ -1545,7 +1564,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     function Bool scoreboardIsEmpty (SCOREBOARD_FIFOF#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS, t_DATA) sfifo) = !sfifo.notEmpty();
     Vector#(n_READERS, SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS)) deqEntryIds = map(getScoreboardEntryId, sortResponseQ);
     Vector#(n_READERS, Bool) emptySignals = map(scoreboardIsEmpty, sortResponseQ);
-    let scoreboard_monitor <- mkScratchpadScoreboardMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
+    let scoreboard_monitor <- mkScratchpadScoreboardVecMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
 `endif
 
     // Most recent writes are collected in a buffer in order to group
@@ -1618,6 +1637,12 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     rule sendReqFromMonitor (initialized);
         let req <- monitor.getReq();
         link_service.makeReq(pack(req));
+    endrule
+    (* fire_when_enabled *)
+    rule sendRspToMonitor (initialized);
+        SCRATCHPAD_READ_RSP s = unpack(link_service.getRsp());
+        link_service.deqRsp();
+        monitor.enqReadRsp(unpack(truncateNP(s.readUID)), s);
     endrule
 `endif
 
@@ -1743,9 +1768,12 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     //
     (* fire_when_enabled *)
     rule receiveResp (True);
+`ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+        SCRATCHPAD_READ_RSP s <- monitor.getRsp();
+`else
         SCRATCHPAD_READ_RSP s = unpack(link_service.getRsp());
         link_service.deqRsp();
-
+`endif
         // The read UID field holds the concatenation of the port ID and
         // the port's reorder buffer index.
         t_MAF_IDX maf_idx = unpack(truncateNP(s.readUID));
@@ -1763,8 +1791,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
         debugLog.record($format("read port %0d: resp val=0x%x, s_idx=%0d, rob_idx=%0d", 
                         port, v, addr_idx, rob_idx));
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z        
-        monitor.enqReadRsp(maf_idx);
-        scoreboard_monitor.setValue(zeroExtendNP(port), rob_idx);
+        scoreboard_monitor.scoreboards[port].setValue(rob_idx);
 `endif
     endrule
 
@@ -1780,7 +1807,7 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
             let d = sortResponseQ[r].first();
             sortResponseQ[r].deq();
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
-            scoreboard_monitor.deq(fromInteger(r));
+            scoreboard_monitor.scoreboards[r].deq();
 `endif
             responseQ[r].enq(d);
         endrule
