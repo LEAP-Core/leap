@@ -211,6 +211,7 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingConnector_Impl#(String
                         tagged Valid 1,  
                         parentChain.recvNotEmpty && (parentChainFirstR || parentChainDeqR) && init.initialized, 
                         fwdFromParentToParentW || fwdFromParentToChildW,
+                        True, 
                         True);
 
         mkQueueingStats(childStatTagPrefix,
@@ -218,6 +219,7 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalAddrRingConnector_Impl#(String
                         tagged Valid 1, 
                         childChain.recvNotEmpty && (childChainFirstR || childChainDeqR) && init.initialized,
                         fwdFromChildToParentW || fwdFromChildToChildW,
+                        True,
                         True);
 
     end
@@ -433,6 +435,7 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalTokenRingConnector_Impl#(Strin
                         tagged Valid 1,  
                         parentChain.recvNotEmpty && (parentChainFirstR || parentChainDeqR) && init.initialized, 
                         fwdFromParentToParentW || fwdFromParentToChildW, 
+                        True,
                         True);
 
         mkQueueingStats(childStatTagPrefix,
@@ -440,6 +443,7 @@ module [CONNECTED_MODULE] mkConnectionHierarchicalTokenRingConnector_Impl#(Strin
                         tagged Valid 1, 
                         childChain.recvNotEmpty && (childChainFirstR || childChainDeqR) && init.initialized,
                         fwdFromChildToParentW || fwdFromChildToChildW, 
+                        True,
                         True);
     end
 

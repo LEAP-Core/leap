@@ -325,17 +325,15 @@ module [CONNECTED_MODULE] mkScratchpadMonitor#(Integer scratchpadID,
     
     let platformID <- getSynthesisBoundaryPlatformID();
     
-    STAT_ID statIDs[3];
+    STAT_ID statIDs[2];
     statIDs[0] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_READ_REQUESTS",
                           "Scratchpad read requests sent to the network");
     let statReadReq = 0;
     statIDs[1] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_WRITE_REQUESTS",
                           "Scratchpad write requests sent to the network");
     let statWriteReq = 1;
-    statIDs[2] = statName("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_PLATFORM_" + integerToString(platformID) + "_RESPONSES",
-                          "Scratchpad responses received from the network");
-    let statReadResp = 2;
-    STAT_VECTOR#(3) stats <- mkStatCounter_Vector(statIDs);
+    
+    STAT_VECTOR#(2) stats <- mkStatCounter_Vector(statIDs);
 
     COUNTER#(t_COUNTER_SZ) readReqCounter <- mkLCounter(0);
     Reg#(Bool) readReqCounterEnabled <- mkReg(False); 
@@ -348,17 +346,15 @@ module [CONNECTED_MODULE] mkScratchpadMonitor#(Integer scratchpadID,
     // Set scratchpad network latency tests
     PARAMETER_NODE paramNode                     <- mkDynamicParameterNode();
     Reg#(Bool) latencyInitialized                <- mkReg(False);
-    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyReqFifo  <- mkSCSizedFIFOF(4);
-    FIFOF#(SCRATCHPAD_MEM_REQ)  bypassReqFifo    <- mkSizedBypassFIFOF(4);
+    SCFIFOF#(SCRATCHPAD_MEM_REQ) latencyReqFifo  <- mkSCSizedBypassFIFOF(4);
     Param#(6) reqLatencyParam                    <- mkDynamicParameterFromStringInitialized("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_REQ_NETWORK_EXTRA_LATENCY", 6'd0, paramNode);
     let reqDelayEn = (reqLatencyParam > 0);
-    let reqFifo = (reqDelayEn)? latencyReqFifo.fifo : bypassReqFifo;
+    let reqFifo = latencyReqFifo.fifo;
     
-    SCFIFOF#(Tuple2#(t_MAF_IDX, SCRATCHPAD_READ_RSP)) latencyRspFifo  <- mkSCSizedFIFOF(4);
-    FIFOF#(Tuple2#(t_MAF_IDX, SCRATCHPAD_READ_RSP))  bypassRspFifo    <- mkSizedBypassFIFOF(4);
-    Param#(6) rspLatencyParam                                         <- mkDynamicParameterFromStringInitialized("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_RSP_NETWORK_EXTRA_LATENCY", 6'd0, paramNode);
+    SCFIFOF#(Tuple2#(t_MAF_IDX, SCRATCHPAD_READ_RSP)) latencyRspFifo  <- mkSCSizedBypassFIFOF(4);
+    Param#(6) rspLatencyParam <- mkDynamicParameterFromStringInitialized("LEAP_SCRATCHPAD_" + integerToString(scratchpadIntPortId(scratchpadID)) + "_RSP_NETWORK_EXTRA_LATENCY", 6'd0, paramNode);
     let rspDelayEn = (rspLatencyParam > 0);
-    let rspFifo = (rspDelayEn)? latencyRspFifo.fifo : bypassRspFifo;
+    let rspFifo = latencyRspFifo.fifo;
     
     PulseWire fifoEnqW  <- mkPulseWire;
     PulseWire fifoDeqW  <- mkPulseWire;
@@ -368,18 +364,19 @@ module [CONNECTED_MODULE] mkScratchpadMonitor#(Integer scratchpadID,
                     tagged Valid 4,
                     fifoEnqW, 
                     fifoDeqW, 
-                    True);
+                    True, 
+                    (`PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE == 1));
 
     Reg#(Bool) initialized <- mkReg(False);
     
     rule doInit (!initialized);
         initialized <= True;
-        if (reqDelayEn && reqLatencyParam > 1)
+        if (reqDelayEn)
         begin
             latencyReqFifo.control.setControl(True);
             debugLog.record($format("Profiling: doInit: enable latencyReqFIFO, scratchpadID=%0d, delay=0x%x", scratchpadIntPortId(scratchpadID), reqLatencyParam));
         end
-        if (rspDelayEn && rspLatencyParam > 1)
+        if (rspDelayEn)
         begin
             latencyRspFifo.control.setControl(True);
             debugLog.record($format("Profiling: doInit: enable latencyRspFIFO, scratchpadID=%0d, delay=0x%x", scratchpadIntPortId(scratchpadID), rspLatencyParam));
@@ -387,13 +384,13 @@ module [CONNECTED_MODULE] mkScratchpadMonitor#(Integer scratchpadID,
     endrule
 
     rule initLatency (!latencyInitialized && initialized);
-        if (reqDelayEn && reqLatencyParam > 1)
+        if (reqDelayEn)
         begin
-            latencyReqFifo.control.setDelay(resize(pack(reqLatencyParam)-1));
+            latencyReqFifo.control.setDelay(resize(pack(reqLatencyParam)));
         end
-        if (rspDelayEn && rspLatencyParam > 1)
+        if (rspDelayEn)
         begin
-            latencyRspFifo.control.setDelay(resize(pack(rspLatencyParam)-1));
+            latencyRspFifo.control.setDelay(resize(pack(rspLatencyParam)));
         end
         latencyInitialized <= True;
     endrule
@@ -508,7 +505,6 @@ module [CONNECTED_MODULE] mkScratchpadMonitor#(Integer scratchpadID,
     method ActionValue#(SCRATCHPAD_READ_RSP) getRsp() if (initialized && latencyInitialized);
         match {.maf, .rsp} = rspFifo.first();
         rspFifo.deq();
-        stats.incr(statReadResp);
         readReqCounter.down();
         readLatencyReqQ.enq(tuple2(pack(maf), cycleCnt));
         reqStartCycleTable.readReq(pack(maf));
@@ -596,6 +592,7 @@ module [CONNECTED_MODULE] mkScratchpadScoreboardVecMonitor#(Integer scratchpadID
                 method Action deq();
                     monitors[p].deq();
                 endmethod
+                method Maybe#(STAT_VALUE) waitCycleStatInfo() = monitors[p].waitCycleStatInfo();
             endinterface;
     end
 

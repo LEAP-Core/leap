@@ -577,12 +577,14 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
     NumTypeParam#(t_COUNTER_SZ) reqCounterSz = ?;
     SCRATCHPAD_MONITOR_IFC#(t_MAF_IDX) monitor <- mkScratchpadMonitor(scratchpadID, reqCounterSz, debugLog);
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
     // Track scoreboard fifo wait cycles
     function SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS) getScoreboardEntryId (SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE) sfifo) = sfifo.deqEntryId();
     function Bool scoreboardIsEmpty (SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE) sfifo) = !sfifo.notEmpty();
     Vector#(n_READERS, SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS)) deqEntryIds = map(getScoreboardEntryId, sortResponseQ);
     Vector#(n_READERS, Bool) emptySignals = map(scoreboardIsEmpty, sortResponseQ);
     let scoreboard_monitor <- mkScratchpadScoreboardVecMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
+`endif 
 `endif
 
     Reg#(Bool) initialized <- mkReg(False);
@@ -686,8 +688,10 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
         sortResponseQ[port].setValue(rob_idx, s.val);
 
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
         scoreboard_monitor.scoreboards[port].setValue(rob_idx);
         debugLog.record($format("receiveResp: port=%0d, rob_idx=%0d", port, rob_idx));
+`endif
 `endif
     endrule
 
@@ -716,7 +720,9 @@ module [CONNECTED_MODULE] mkUnmarshalledScratchpadImpl#(
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
                     scoreboard_monitor.scoreboards[p].deq();
+`endif
 `endif
                     debugLog.record($format("read port %0d: resp val=0x%x, rob_idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
@@ -1029,6 +1035,7 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
                     tagged Valid 4,  
                     fifoEnqW, 
                     fifoDeqW, 
+                    True,
                     True);
     
     // Track cache queue blocked cycles
@@ -1039,12 +1046,14 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
         blockedStat.incr();
     endrule
 
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
     // Track scoreboard fifo wait cycles
     function SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS) getScoreboardEntryId (SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE) sfifo) = sfifo.deqEntryId();
     function Bool scoreboardIsEmpty (SCOREBOARD_FIFOF#(n_ROB_SLOTS, SCRATCHPAD_MEM_VALUE) sfifo) = !sfifo.notEmpty();
     Vector#(n_READERS, SCOREBOARD_FIFO_ENTRY_ID#(n_ROB_SLOTS)) deqEntryIds = map(getScoreboardEntryId, sortResponseQ);
     Vector#(n_READERS, Bool) emptySignals = map(scoreboardIsEmpty, sortResponseQ);
     let scoreboard_monitor <- mkScratchpadScoreboardVecMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
+`endif
 `endif
     
     // Initialization
@@ -1144,7 +1153,9 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
             sortResponseQ[p].setValue(r.readMeta.robSlot, r.val);
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z 
             reqCounter.down();
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
             scoreboard_monitor.scoreboards[p].setValue(r.readMeta.robSlot);
+`endif        
             debugLog.record($format("receiveResp: req_cnt=%0d, port=%0d, rob_idx=%0d", reqCounter.value(), fromInteger(p), r.readMeta.robSlot));
 `endif        
         endrule
@@ -1174,7 +1185,9 @@ module [CONNECTED_MODULE] mkUnmarshalledCachedScratchpadImpl#(
                     let r = sortResponseQ[p].first();
                     sortResponseQ[p].deq();
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
                     scoreboard_monitor.scoreboards[p].deq();
+`endif
 `endif
                     debugLog.record($format("read port %0d: resp val=0x%x, rob_idx=%0d", p, r, sortResponseQ[p].deqEntryId()));
                     return r;
@@ -1559,12 +1572,14 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
     NumTypeParam#(TAdd#(TLog#(TMul#(n_READERS, SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS)),1)) reqCounterSz = ?; 
     SCRATCHPAD_MONITOR_IFC#(t_MAF_IDX) monitor <- mkScratchpadMonitor(scratchpadID, reqCounterSz, debugLog);
     
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
     // Track scoreboard fifo wait cycles
     function SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS) getScoreboardEntryId (SCOREBOARD_FIFOF#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS, t_DATA) sfifo) = sfifo.deqEntryId();
     function Bool scoreboardIsEmpty (SCOREBOARD_FIFOF#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS, t_DATA) sfifo) = !sfifo.notEmpty();
     Vector#(n_READERS, SCOREBOARD_FIFO_ENTRY_ID#(SCRATCHPAD_UNCACHED_PORT_ROB_SLOTS)) deqEntryIds = map(getScoreboardEntryId, sortResponseQ);
     Vector#(n_READERS, Bool) emptySignals = map(scoreboardIsEmpty, sortResponseQ);
     let scoreboard_monitor <- mkScratchpadScoreboardVecMonitor(scratchpadID, deqEntryIds, emptySignals, debugLog); 
+`endif
 `endif
 
     // Most recent writes are collected in a buffer in order to group
@@ -1791,7 +1806,9 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
         debugLog.record($format("read port %0d: resp val=0x%x, s_idx=%0d, rob_idx=%0d", 
                         port, v, addr_idx, rob_idx));
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z        
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
         scoreboard_monitor.scoreboards[port].setValue(rob_idx);
+`endif
 `endif
     endrule
 
@@ -1807,7 +1824,9 @@ module [CONNECTED_MODULE] mkUncachedScratchpadImpl#(Integer scratchpadID,
             let d = sortResponseQ[r].first();
             sortResponseQ[r].deq();
 `ifndef PLATFORM_SCRATCHPAD_PROFILE_ENABLE_Z
+`ifdef PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE_Z
             scoreboard_monitor.scoreboards[r].deq();
+`endif
 `endif
             responseQ[r].enq(d);
         endrule

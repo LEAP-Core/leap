@@ -297,7 +297,8 @@ module [CONNECTED_MODULE] mkQueueingStats#(String statTagPrefix,
                                            Maybe#(Integer) fifoSz, 
                                            Bool enqEn, 
                                            Bool deqEn, 
-                                           Bool useBypassFIFO)
+                                           Bool useBypassFIFO, 
+                                           Bool reducedAreaEn)
     // interface:
     ();
         
@@ -310,46 +311,44 @@ module [CONNECTED_MODULE] mkQueueingStats#(String statTagPrefix,
     // Tracking queueing delay
     STAT_ID latencyStatID = statName(statTagPrefix + "_QUEUEING_DELAY", statDescPrefix + " queueing delay (unit: 4 cycles)");
     STAT_VECTOR#(HISTOGRAM_STATS_NUM) latencySv  <- mkStatCounter_RAM(latencyStatID);
-    
-    // Tracking arrival rates
-    STAT_ID arrivalStatID = statName(statTagPrefix + "_QUEUE_ARRIVALS", statDescPrefix + " queue arrivals every " + integerToString(valueOf(QUEUEING_STATS_PERIOD)) + " cycles (unit: 1 request)");
-    STAT_VECTOR#(HISTOGRAM_STATS_NUM) arrivalSv  <- mkStatCounter_RAM(arrivalStatID);
-    
-    // Tracking inter-arrival time
-    STAT_ID interArrivalStatID = statName(statTagPrefix + "_QUEUE_INTER_ARRIVAL_TIME", statDescPrefix + " queue inter-arrival time (unit: 2 cycles)");
-    STAT_VECTOR#(HISTOGRAM_STATS_NUM) interArrivalSv  <- mkStatCounter_RAM(interArrivalStatID);
-    
-    // Tracking idle cycles
-    STAT_ID idleStatID = statName(statTagPrefix + "_QUEUE_IDLE_TIME", statDescPrefix + " queue idle time");
-    STAT idleStat <- mkStatCounter(idleStatID); 
-    
-    // Tracking busy cycles
-    STAT_ID busyStatID = statName(statTagPrefix + "_QUEUE_BUSY_TIME", statDescPrefix + " queue busy time");
-    STAT busyStat <- mkStatCounter(busyStatID); 
-    
     rule latencyStatsIncr (monitor.latencyStatInfo matches tagged Valid .s);
         latencySv.incr(s);
         debugLog.record($format("latencyStatsIncr: idx=%0d", s));
     endrule
-    
+
+    // Tracking arrival rates
+    STAT_ID arrivalStatID = statName(statTagPrefix + "_QUEUE_ARRIVALS", statDescPrefix + " queue arrivals every " + integerToString(valueOf(QUEUEING_STATS_PERIOD)) + " cycles (unit: 1 request)");
+    STAT_VECTOR#(HISTOGRAM_STATS_NUM) arrivalSv  <- mkStatCounter_RAM(arrivalStatID);
     rule arrivalStatsIncr (monitor.arrivalStatInfo matches tagged Valid .s);
         arrivalSv.incrBy(tpl_1(s), tpl_2(s));
         debugLog.record($format("arrivalStatsIncr: idx=%0d, incr=%0d", tpl_1(s), tpl_2(s)));
     endrule
     
-    rule interArrivalStatsIncr (monitor.interArrivalStatInfo matches tagged Valid .s);
-        interArrivalSv.incr(s);
-        debugLog.record($format("interArrivalStatsIncr: idx=%0d", s));
-    endrule
-    
-    rule idleStatsIncr (monitor.idleCycleStatInfo matches tagged Valid .s);
-        idleStat.incrBy(s);
-        debugLog.record($format("idleStatsIncr: incr=%0d", s));
-    endrule
-    
-    rule busyStatIncr (monitor.queueBusy);
-        busyStat.incr();
-    endrule
+    if (!reducedAreaEn)
+    begin
+        // Tracking inter-arrival time
+        STAT_ID interArrivalStatID = statName(statTagPrefix + "_QUEUE_INTER_ARRIVAL_TIME", statDescPrefix + " queue inter-arrival time (unit: 2 cycles)");
+        STAT_VECTOR#(HISTOGRAM_STATS_NUM) interArrivalSv  <- mkStatCounter_RAM(interArrivalStatID);
+        rule interArrivalStatsIncr (monitor.interArrivalStatInfo matches tagged Valid .s);
+            interArrivalSv.incr(s);
+            debugLog.record($format("interArrivalStatsIncr: idx=%0d", s));
+        endrule
+        
+        // Tracking idle cycles
+        STAT_ID idleStatID = statName(statTagPrefix + "_QUEUE_IDLE_TIME", statDescPrefix + " queue idle time");
+        STAT idleStat <- mkStatCounter(idleStatID); 
+        rule idleStatsIncr (monitor.idleCycleStatInfo matches tagged Valid .s);
+            idleStat.incrBy(s);
+            debugLog.record($format("idleStatsIncr: incr=%0d", s));
+        endrule
+        
+        // Tracking busy cycles
+        STAT_ID busyStatID = statName(statTagPrefix + "_QUEUE_BUSY_TIME", statDescPrefix + " queue busy time");
+        STAT busyStat <- mkStatCounter(busyStatID); 
+        rule busyStatIncr (monitor.queueBusy);
+            busyStat.incr();
+        endrule
+    end
 
 endmodule
 

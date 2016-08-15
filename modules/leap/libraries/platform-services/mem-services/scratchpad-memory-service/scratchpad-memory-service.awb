@@ -26,8 +26,6 @@
 %param --dynamic SCRATCHPAD_PREFETCHER_PRIORITY_SPEC             1  "Bit 1: Override Default, Bit 0: Priority to use (High - 1, Low - 1)" 
 
 %param --dynamic SCRATCHPAD_ADDR_MAP_MODE                        0  "1-0: 0 consider dram burst size, 1 ignore dram burst size, 2 hash + consider dram burst size"
-%param --dynamic SCRATCHPAD_NETWORK_EXTRA_LATENCY                0  "Add additional latency to scratchpad network for a particular scratchpad specified with SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID"
-%param --dynamic SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID             0  "Add additional latency to scratchpad network for a particular scratchpad specified with SCRATCHPAD_NETWORK_EXTRA_LATENCY_ID"
 
 // 1K entries as the base size of scratchpad makes sense because of Xilinx
 // block RAM layout.  Scratchpads will use mainly 1K x 18 bit BRAMs.
@@ -45,4 +43,5 @@
 %param --global PLATFORM_SCRATCHPAD_DEBUG_ENABLE                 0  "Enable Platform Scratchpad Debug Log"
 %param --global PLATFORM_SCRATCHPAD_STATS_ENABLE                 0  "Enable Platform Scratchpad Statistics collection"
 %param --global PLATFORM_SCRATCHPAD_PROFILE_ENABLE               0  "Enable Platform Scratchpad Profiling"
+%param --global PLATFORM_SCRATCHPAD_PROFILE_REDUCE_AREA_ENABLE   0  "Enable Platform Scratchpad Profiling with Reduced Area"
 

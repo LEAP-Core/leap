@@ -200,7 +200,7 @@ module [CONNECTED_MODULE] mkCentralCache#(CENTRAL_CACHE_CONFIG conf)
     
     PulseWire fifoEnqW <- mkPulseWire;
     PulseWire fifoDeqW <- mkPulseWire;
-    mkQueueingStats(statsHeader, "Central cache", tagged Valid 4, fifoEnqW, fifoDeqW, True);
+    mkQueueingStats(statsHeader, "Central cache", tagged Valid 4, fifoEnqW, fifoDeqW, True, False);
 `endif
 
     // ====================================================================

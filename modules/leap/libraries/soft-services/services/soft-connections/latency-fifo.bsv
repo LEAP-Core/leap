@@ -30,6 +30,7 @@
 //
 import FIFOF::*;
 import FIFO::*;
+import SpecialFIFOs::*;
 
 //`include "awb/provides/physical_platform.bsh"
 `include "awb/provides/librl_bsv_base.bsh"
@@ -170,6 +171,73 @@ module mkSCSizedFIFOF#(Integer depth)
     endinterface
 
     interface CONNECTION_LATENCY_CONTROL control = m.control;
+
+endmodule
+
+//
+// Guarded bypass latency FIFO. (Allow zero FIFO latency.)
+//
+module mkSCSizedBypassFIFOF#(Integer depthParam)
+    // interface:
+    (SCFIFOF#(t_MSG))
+    provisos(Bits#(t_MSG, t_MSG_sz));
+
+    let fifoMem <- mkSizedBypassFIFOF(depthParam);
+    Reg#(LATENCY_FIFO_DELAY_CONTAINER) current <- mkReg(0);
+    COUNTER#(SizeOf#(LATENCY_FIFO_DEPTH_CONTAINER)) count <- mkLCounter(0);     
+    Reg#(Bool) enable <- mkReg(False);
+    
+    if (depthParam > valueOf(LATENCY_FIFO_DEPTH))
+    begin
+        error("LATENCY_FIFO_DEPTH is not big enough: need to be set to at least " + integerToString(depthParam));
+    end
+    
+    Reg#(LATENCY_FIFO_DELAY_CONTAINER) delayExternal <- mkReg(0);
+    Reg#(LATENCY_FIFO_DEPTH_CONTAINER) depthExternal <- mkReg(fromInteger(depthParam));
+
+    PulseWire statIncr <- mkPulseWire();
+
+    let delay = (enable)? delayExternal : 0;
+    let depth = (enable)? depthExternal : fromInteger(depthParam);
+
+    Int#(SizeOf#(LATENCY_FIFO_DELAY_CONTAINER)) stampDelta = unpack(abs(current-fifoMem.first.stamp));
+        
+    PulseWire enqW <- mkPulseWire(); 
+    let fifoNotEmpty = (fifoMem.notEmpty || enqW) && (delay <= pack(abs(stampDelta)));   
+    let fifoNotFull = fifoMem.notFull && (count.value <= depth);
+    
+    rule tickCurrent;
+        current <= current + 1;
+    endrule
+
+    interface FIFOF fifo;
+        method first() if (fifoNotEmpty);   
+            return fifoMem.first.payload;
+        endmethod
+        method Action deq() if (fifoNotEmpty);
+            fifoMem.deq; 
+            count.down;
+            statIncr.send;
+        endmethod
+        method Action enq(t_MSG value) if (fifoNotFull);
+            count.up();
+            enqW.send();
+            fifoMem.enq(TimestampedValue{stamp: current, payload: value});
+        endmethod
+        method Bool notEmpty = fifoNotEmpty;   
+        method Bool notFull = fifoNotFull;
+        method Action clear(); 
+            fifoMem.clear();
+            count.setC(0);   
+        endmethod
+    endinterface
+
+    interface CONNECTION_LATENCY_CONTROL control;
+        method setControl = enable._write();
+        method setDelay = delayExternal._write();
+        method setDepth = depthExternal._write();
+        method incrStat = statIncr._read();
+    endinterface
 
 endmodule
 
