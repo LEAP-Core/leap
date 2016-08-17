@@ -1512,6 +1512,31 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
     end
 
     // Values
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z    
+    Vector#(TMul#(nWordsPerLine, nWays), BRAM#(t_CACHE_SET_IDX, t_CACHE_WORD)) dataStore = ?;
+    FIFOF#(t_CACHE_LINE) dataStoreRspQ <- mkFIFOF();
+    FIFOF#(t_CACHE_WAY_IDX) dataStoreLookupInfoQ = ?;
+
+    if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
+    begin
+        dataStore <- replicateM(mkBRAMSized(valueof(nSets)));
+        dataStoreLookupInfoQ <- mkFIFOF();
+    end
+    else if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 1)
+    begin
+        NumTypeParam#(4) p_banks = ?;
+        dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW,
+                                                mkBRAMSizedBuffered(valueof(nSets)/4)));
+        dataStoreLookupInfoQ <- mkSizedFIFOF(4);
+    end
+    else
+    begin
+        NumTypeParam#(4) p_banks = ?;
+        let data_slow = mkSlowMemoryM(mkBRAMSizedClockDivider(valueof(nSets)/4), True);
+        dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, data_slow));
+        dataStoreLookupInfoQ <- mkSizedFIFOF(4);
+    end
+`else    
     Vector#(nWordsPerLine, BRAM#(t_CACHE_DATA_IDX, t_CACHE_WORD)) dataStore = ?;
 
     if (`RL_SA_BRAM_CACHE_BRAM_TYPE == 0)
@@ -1530,6 +1555,7 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         let data_slow = mkSlowMemoryM(mkBRAMSizedClockDivider(valueof(nSets)*valueof(nWays)/4), True);
         dataStore <- replicateM(mkBankedMemoryM(p_banks, MEM_BANK_SELECTOR_BITS_LOW, data_slow));
     end
+`endif
 
     // ***** Internal state *****
 
@@ -1555,6 +1581,10 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
     FIFOF#(Tuple3#(t_CACHE_REQ_BASE, t_CACHE_REQ, RL_SA_BRAM_CACHE_META_CLIENT)) metaLookupQ = ?;
     // Cache data lookup queue
     FIFOF#(Tuple4#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_CACHE_WORD_VALID_MASK, RL_SA_BRAM_CACHE_DATA_LOOKUP_TYPE)) dataLookupQ = ?;
+
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+    FIFOF#(Tuple4#(t_CACHE_REQ_BASE, t_CACHE_REQ, t_SET_METADATA, Bool)) metaProcessQ = ?;
+`endif
 
     // Queues on miss path
     FIFOF#(Tuple3#(t_SET_METADATA, t_CACHE_WAY_IDX, t_MAF_IDX)) lineMissQ = ?;
@@ -1583,6 +1613,9 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         dataLookupQ <- mkFIFOF();
         lineMissQ   <- mkFIFOF();
         fillLineUncacheableQ <- mkFIFOF();
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+        metaProcessQ <- mkFIFOF();
+`endif
     end
     else
     begin
@@ -1590,6 +1623,9 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         dataLookupQ <- mkSizedFIFOF(4);
         lineMissQ   <- mkSizedFIFOF(4);
         fillLineUncacheableQ <- mkSizedFIFOF(4);
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+        metaProcessQ <- mkSizedFIFOF(4);
+`endif
     end
 
     RWire#(t_CACHE_READ_META) readMissW          <- mkRWire();
@@ -1621,7 +1657,7 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         end
         return idx;
     endfunction
-
+    
     //
     // Functions for converting from address to tag and set or vice versa.
     //
@@ -1811,21 +1847,43 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         endactionvalue
     endfunction
 
-
     // cache access functions
     function Action cacheLineDataReadReq(t_CACHE_SET_IDX set, t_CACHE_WAY_IDX way);
         action
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z        
+            Tuple2#(t_CACHE_WAY_IDX, Bit#(TLog#(nWordsPerLine))) data_store_idx = tuple2(way, 0);
+            for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
+            begin
+                let idx = pack(data_store_idx) + fromInteger(b);
+                dataStore[idx].readReq(set);
+                debugLog.record($format("  cacheLineDataReadReq: set=0x%x, way=%0d, dataStoreIdx=%0d", set, way, idx));
+            end
+            dataStoreLookupInfoQ.enq(way);
+`else            
             let data_idx = getDataIdx(set, way); 
             for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
             begin
                 dataStore[b].readReq(data_idx);
             end
+`endif
         endaction
     endfunction
     
     function Action cacheLineDataWrite(t_CACHE_SET_IDX set, t_CACHE_WAY_IDX way, t_CACHE_WORD_VALID_MASK mask, t_CACHE_LINE val);
         action
             Vector#(nWordsPerLine, t_CACHE_WORD) words = unpack(pack(val));
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z        
+            Tuple2#(t_CACHE_WAY_IDX, Bit#(TLog#(nWordsPerLine))) data_store_idx = tuple2(way, 0);
+            for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
+            begin
+                if (mask[b])
+                begin
+                    let idx = pack(data_store_idx) + fromInteger(b);
+                    dataStore[idx].write(set, words[b]);
+                    debugLog.record($format("  cacheLineDataWrite: set=0x%x, way=%0d, dataStoreIdx=%0d", set, way, idx));
+                end
+            end
+`else            
             let data_idx = getDataIdx(set, way); 
             for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
             begin
@@ -1834,11 +1892,16 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
                     dataStore[b].write(data_idx, words[b]);
                 end
             end
+`endif            
         endaction
     endfunction
 
     function ActionValue#(t_CACHE_LINE) getCacheLineDataResp();
         actionvalue
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z       
+            let line_data = dataStoreRspQ.first();
+            dataStoreRspQ.deq();
+`else            
             Vector#(nWordsPerLine, t_CACHE_WORD) v = newVector();
             for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
             begin
@@ -1846,9 +1909,12 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
                 v[b] = d;
             end
             t_CACHE_LINE line_data = unpack(pack(v));
+`endif            
             return line_data;
         endactionvalue
     endfunction
+            
+            
 
     // ***** Rules ***** //
 
@@ -2064,6 +2130,61 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         metaLookupQ.deq();
         let cur_meta <- metaStore.readRsp();
     endrule
+    
+
+    // ======================================================================
+    //
+    // Pipelined meta processing if RL_SA_BRAM_CACHE_PIPELINE_EN is enabled.
+    // Determine whether there is a way match and partially claculate the lru 
+    // list in the first stage.   
+    //
+    // ======================================================================
+
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+    rule cacheMetaLookup (tpl_3(metaLookupQ.first()) == RL_SA_BRAM_CACHE_META_CLIENT_STD);
+        match {.req_base_in, .req, .lookup_type} = metaLookupQ.first();
+        metaLookupQ.deq();
+        let meta <- metaStore.readRsp();
+
+        let tag = req_base_in.tag;
+        let set = req_base_in.set;
+        let req_base_out = req_base_in;
+        
+        debugLog.record($format("  cacheMetaLookup: addr=0x%x, set=0x%x", debugAddrFromTag(tag, set), set));
+        
+        if (findWayMatch(tag, meta) matches tagged Valid {.way, .way_meta})
+        begin
+            req_base_out.way = way;
+            metaProcessQ.enq(tuple4(req_base_out, req, meta, True));
+            debugLog.record($format("  cacheMetaLookup: find matched way=%0d", way));
+        end
+        else
+        begin
+            metaProcessQ.enq(tuple4(req_base_out, req, meta, False));
+        end
+        
+    endrule
+            
+    
+    // Pipelined data store response if RL_SA_BRAM_CACHE_PIPELINE_EN is enabled.
+    rule cacheDataLookup (dataStoreLookupInfoQ.notEmpty());
+        let way = dataStoreLookupInfoQ.first();
+        dataStoreLookupInfoQ.deq();
+        Tuple2#(t_CACHE_WAY_IDX, Bit#(TLog#(nWordsPerLine))) data_store_idx = tuple2(way, 0);
+        Vector#(nWordsPerLine, t_CACHE_WORD) v = newVector();
+        for (Integer b = 0; b < valueOf(nWordsPerLine); b = b + 1)
+        begin
+            let idx = pack(data_store_idx) + fromInteger(b);
+            let d <- dataStore[idx].readRsp();
+            v[b] = d;
+            debugLog.record($format("  cacheLineDataResp: way=%0d, dataStoreIdx=%0d", way, idx));
+        end
+        t_CACHE_LINE line_data = unpack(pack(v));
+        dataStoreRspQ.enq(line_data);
+    endrule
+
+`endif
+
 
     // ====================================================================
     //
@@ -2090,11 +2211,16 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
     //     in the cache.
     //
     (* conservative_implicit_conditions *)
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+    rule handleInvalOrFlush (reqIsInvalOrFlush(tpl_2(metaProcessQ.first())));
+        match {.req_base_in, .req, .meta, .way_matched} = metaProcessQ.first();
+        metaProcessQ.deq();
+`else
     rule handleInvalOrFlush (tpl_3(metaLookupQ.first()) == RL_SA_BRAM_CACHE_META_CLIENT_STD && reqIsInvalOrFlush(tpl_2(metaLookupQ.first())));
-
         match {.req_base_in, .req, .lookup_type} = metaLookupQ.first();
         metaLookupQ.deq();
         let meta <- metaStore.readRsp();
+`endif
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -2122,14 +2248,21 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         Bool found_dirty_line = False;
         let req_base_out = req_base_in;
 
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+        if (way_matched)
+        begin
+            let way = req_base_in.way;
+            let way_meta = validValue(meta.ways[way]);
+`else
         if (findWayMatch(tag, meta) matches tagged Valid {.way, .way_meta})
         begin
+            req_base_out.way = way;
+`endif
             let meta_upd = meta;
 
             if (way_meta.dirty)
             begin
                 // Found dirty line.  Prepare for write back.
-                req_base_out.way = way;
                 dataLookupQ.enq(tuple4(req_base_out, req, way_meta.wordValid, RL_SA_BRAM_CACHE_DATA_FLUSH));
                 found_dirty_line = True;
                 cacheLineDataReadReq(set, way);
@@ -2171,15 +2304,16 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
     // flushDirtyLine --
     //   Flush a dirty line and continue on to fill, if appropriate.
     //
+    (* conservative_implicit_conditions *)
     rule flushDirtyLine (reqIsInvalOrFlush(tpl_2(dataLookupQ.first())));
         match {.req_base, .req, .word_valid_mask, .req_type} = dataLookupQ.first();
         dataLookupQ.deq();
 
-        t_CACHE_LINE flush_data <- getCacheLineDataResp();
-
         let tag = req_base.tag;
         let set = req_base.set;
         let way = req_base.way;
+        
+        t_CACHE_LINE flush_data <- getCacheLineDataResp();
 
         dirtyEntryFlushW.send();
         debugLog.record($format("  Write back DIRTY: addr=0x%x, set=0x%x, mask=0x%x, data=0x%x", 
@@ -2229,11 +2363,16 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
     //     First stage of cache READ path.
     //
     (* conservative_implicit_conditions *)
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+    rule handleRead (tpl_2(metaProcessQ.first()) matches tagged HCOP_READ .rReq);
+        match {.req_base_in, .req, .meta, .way_matched} = metaProcessQ.first();
+        metaProcessQ.deq();
+`else
     rule handleRead (tpl_2(metaLookupQ.first()) matches tagged HCOP_READ .rReq &&& tpl_3(metaLookupQ.first()) == RL_SA_BRAM_CACHE_META_CLIENT_STD);
-        
         match {.req_base_in, .req, .lookup_type} = metaLookupQ.first();
         metaLookupQ.deq();
         let meta <- metaStore.readRsp();
+`endif
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -2243,13 +2382,19 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         Bool need_set_data = False;
         let req_base_out = req_base_in;
 
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+        if (way_matched)
+        begin
+            let way = req_base_in.way;
+            let way_meta = validValue(meta.ways[way]);
+`else
         if (findWayMatch(tag, meta) matches tagged Valid {.way, .way_meta})
         begin
+            req_base_out.way = way;
+`endif            
             //
             // Line hit!
             //
-            req_base_out.way = way;
-
             // Update LRU
             let meta_upd = meta;
             meta_upd.lru <- cacheLRUUpdate(set, way, meta.lru);
@@ -2305,12 +2450,18 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
     // handleWrite --
     //     First unique stage of cache WRITE path.
     //
+    (* mutually_exclusive = "handleInvalOrFlush, handleRead, handleWrite" *)
     (* conservative_implicit_conditions *)
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+    rule handleWrite (tpl_2(metaProcessQ.first()) matches tagged HCOP_WRITE .wReq);
+        match {.req_base_in, .req, .meta, .way_matched} = metaProcessQ.first();
+        metaProcessQ.deq();
+`else
     rule handleWrite (tpl_2(metaLookupQ.first()) matches tagged HCOP_WRITE .wReq &&& tpl_3(metaLookupQ.first()) == RL_SA_BRAM_CACHE_META_CLIENT_STD);
-
         match {.req_base_in, .req, .lookup_type} = metaLookupQ.first();
         metaLookupQ.deq();
         let meta <- metaStore.readRsp();
+`endif
 
         let tag = req_base_in.tag;
         let set = req_base_in.set;
@@ -2319,13 +2470,19 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
 
         let req_base_out = req_base_in;
 
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z
+        if (way_matched)
+        begin
+            let way = req_base_in.way;
+            let way_meta = validValue(meta.ways[way]);
+`else
         if (findWayMatch(tag, meta) matches tagged Valid {.way, .way_meta})
         begin
+            req_base_out.way = way;
+`endif            
             //
             // Line hit!
             //
-            req_base_out.way = way;
-
             // Update LRU
             let meta_upd = meta;
             meta_upd.lru <- cacheLRUUpdate(set, way, meta.lru);
@@ -2381,12 +2538,12 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         match {.req_base, .req, .word_valid_mask, .req_type} = dataLookupQ.first();
         dataLookupQ.deq();
         
-        t_CACHE_LINE v <- getCacheLineDataResp();
-
         let tag = req_base.tag;
         let set = req_base.set;
         let way = req_base.way;
 
+        t_CACHE_LINE v <- getCacheLineDataResp();
+        
         readRespToClientQ_OOO.enq(tuple5(req_base, rReq, v, word_valid_mask, True));
 
         // Done with this read request
@@ -2409,7 +2566,12 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
         let set = req_base.set;
         let way = req_base.way;
 
+`ifndef RL_SA_BRAM_CACHE_PIPELINE_EN_Z        
+        Tuple2#(t_CACHE_WAY_IDX, Bit#(TLog#(nWordsPerLine))) data_store_idx = tuple2(way, w_req.wordIdx);
+        dataStore[pack(data_store_idx)].write(set, w_data.val);
+`else
         dataStore[w_req.wordIdx].write(getDataIdx(set, way), w_data.val);
+`endif        
         debugLog.record($format("  WRITE Word: addr=0x%x, set=0x%x, way=%0d, word=%0d, data=0x%x", debugAddrFromTag(tag, set), set, way, w_req.wordIdx, w_data.val));
 
         if (! writeBackCache())
@@ -2524,6 +2686,7 @@ module mkCacheSetAssocWithBRAMImpl#(RL_SA_BRAM_CACHE_SOURCE_DATA#(Bit#(t_CACHE_A
     // handleMissForWrite --
     //     Pick a victim and write back the dirty data, if needed.
     //
+    (* mutually_exclusive = "flushDirtyLine, handleReadCacheHit, handleMissForRead, handleMissForWrite" *)
     (* conservative_implicit_conditions *)
     rule handleMissForWrite (tpl_2(dataLookupQ.first()) matches tagged HCOP_WRITE .wReq &&& tpl_4(dataLookupQ.first()) == RL_SA_BRAM_CACHE_DATA_MISS);
 
