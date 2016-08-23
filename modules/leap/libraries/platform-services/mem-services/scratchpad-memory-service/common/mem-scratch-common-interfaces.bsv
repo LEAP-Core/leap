@@ -187,6 +187,7 @@ instance DefaultValue#(SCRATCHPAD_CONFIG);
         deepMemoryPipelines: False,
         initFilePath: tagged Invalid,
         enablePrefetching: tagged Invalid,
+        privateCacheImplementation: tagged Invalid, 
         enableAddressHashing: True,
         requestMerging: False,
         debugLogPath: tagged Invalid,
