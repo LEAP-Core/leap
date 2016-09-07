@@ -729,7 +729,10 @@ module [CONNECTED_MODULE] mkServiceTreeRoot#(CONNECTION_IN#(SERVICE_CON_DATA_SIZ
                                              CONNECTION_OUT#(SERVICE_CON_RESP_SIZE) serverRspPort,
                                              Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_IDX, t_REQ, t_RSP)) children, 
                                              Vector#(TAdd#(1, n_INGRESS_PORTS), t_IDX) addressBounds, 
-                                             Vector#(n_INGRESS_PORTS, UInt#(nFRACTION)) bandwidthFractions)
+                                             Vector#(n_INGRESS_PORTS, UInt#(nFRACTION)) bandwidthFractions,
+                                             Vector#(n_INGRESS_PORTS, Bool) priorityVec, 
+                                             Bool bandwidthSelEn, 
+                                             Bool prioritySelEn)
     (Empty)
     provisos (Bits#(t_REQ, t_REQ_SZ), 
               Bits#(t_RSP, t_RSP_SZ),
@@ -740,7 +743,7 @@ module [CONNECTED_MODULE] mkServiceTreeRoot#(CONNECTION_IN#(SERVICE_CON_DATA_SIZ
 
     // Instantiate the tree root
     CONNECTION_ADDR_TREE#(t_IDX, t_REQ, t_RSP) root <- 
-        mkTreeRouter(children, addressBounds, mkLocalArbiterBandwidth(bandwidthFractions));
+        mkTreeRouter(children, addressBounds, mkLocalArbiterBandwidthWithPriority(bandwidthFractions, priorityVec, bandwidthSelEn, prioritySelEn));
 
     // Forward requests to the server
     rule fwdReq (root.notEmpty());
@@ -771,7 +774,10 @@ module [CONNECTED_MODULE] mkServiceTreeRootDualClock#(CONNECTION_IN#(SERVICE_CON
                                                       CONNECTION_OUT#(SERVICE_CON_RESP_SIZE) serverRspPort,
                                                       Vector#(n_INGRESS_PORTS, CONNECTION_ADDR_TREE#(t_IDX, t_REQ, t_RSP)) children, 
                                                       Vector#(TAdd#(1, n_INGRESS_PORTS), t_IDX) addressBounds, 
-                                                      Vector#(n_INGRESS_PORTS, UInt#(nFRACTION)) bandwidthFractions)
+                                                      Vector#(n_INGRESS_PORTS, UInt#(nFRACTION)) bandwidthFractions,
+                                                      Vector#(n_INGRESS_PORTS, Bool) priorityVec, 
+                                                      Bool bandwidthSelEn, 
+                                                      Bool prioritySelEn)
     (Empty)
     provisos (Bits#(t_REQ, t_REQ_SZ), 
               Bits#(t_RSP, t_RSP_SZ),
@@ -782,7 +788,7 @@ module [CONNECTED_MODULE] mkServiceTreeRootDualClock#(CONNECTION_IN#(SERVICE_CON
 
     // Instantiate the tree root
     CONNECTION_ADDR_TREE#(t_IDX, t_REQ, t_RSP) root <- 
-        mkTreeRouter(children, addressBounds, mkLocalArbiterBandwidth(bandwidthFractions));
+        mkTreeRouter(children, addressBounds, mkLocalArbiterBandwidthWithPriority(bandwidthFractions, priorityVec, bandwidthSelEn, prioritySelEn));
     
     SyncFIFOIfc#(t_REQ) reqDomainQ <- mkSyncFIFOFromCC(16,serverReqPort.clock);
     SyncFIFOIfc#(Tuple2#(t_IDX, t_RSP)) rspDomainQ <- mkSyncFIFOToCC(16, serverRspPort.clock, serverRspPort.reset);

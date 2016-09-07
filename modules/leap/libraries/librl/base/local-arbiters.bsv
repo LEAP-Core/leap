@@ -240,13 +240,33 @@ module mkLocalRandomArbiter
 
 endmodule
 
-
 //
 // mkLocalArbiterBandwidth --
 //   An arbiter which permits bandwidth allocation among the clients. It applies
 //   a fair arbitration scheme to those clients whose bandwidth has been met.
 //
 module mkLocalArbiterBandwidth#(Vector#(nCLIENTS, UInt#(nFRACTION)) bandwidthFractions)
+    // Interface:
+    (LOCAL_ARBITER#(nCLIENTS))
+    provisos (Add#(1, nFRACTION_extra_bits, nFRACTION),
+              Add#(1, nFRACTION_VALUES_extra_bits, TLog#(TAdd#(1, TExp#(nFRACTION)))));
+
+    Vector#(nCLIENTS, Bool) priorityVec = replicate(True);
+    let m <- mkLocalArbiterBandwidthWithPriority(bandwidthFractions, priorityVec, True, True);
+    return m;
+
+endmodule
+
+//
+// mkLocalArbiterBandwidthWithPriority --
+//   An arbiter which permits bandwidth allocation among the clients. It applies
+//   a fair arbitration scheme to those clients whose bandwidth has been met and 
+//   has been prioritized.
+//
+module mkLocalArbiterBandwidthWithPriority#(Vector#(nCLIENTS, UInt#(nFRACTION)) bandwidthFractions, 
+                                            Vector#(nCLIENTS, Bool) prioritized, 
+                                            Bool bandwidthSelEn, 
+                                            Bool prioritySelEn)
     // Interface:
     (LOCAL_ARBITER#(nCLIENTS))
     provisos (Add#(1, nFRACTION_extra_bits, nFRACTION),
@@ -269,30 +289,33 @@ module mkLocalArbiterBandwidth#(Vector#(nCLIENTS, UInt#(nFRACTION)) bandwidthFra
     //    observing the request history of each client, and throttling clients who overuse their 
     //    bandwidth. 
     //
-    function ActionValue#(Tuple2#(Maybe#(LOCAL_ARBITER_CLIENT_IDX#(nCLIENTS)),
-                     LOCAL_ARBITER_OPAQUE#(nCLIENTS)))
-        bandwidthArbiterFunc(LOCAL_ARBITER_CLIENT_MASK#(nCLIENTS) req);
+    function ActionValue#(Tuple2#(Maybe#(LOCAL_ARBITER_CLIENT_IDX#(nCLIENTS)), LOCAL_ARBITER_OPAQUE#(nCLIENTS)))
+             bandwidthArbiterFunc(LOCAL_ARBITER_CLIENT_MASK#(nCLIENTS) req);
         actionvalue
 
-        let n_clients = valueOf(nCLIENTS);
+            let n_clients = valueOf(nCLIENTS);
 
-        //
-        // Define hungry clients.
-        //
-        let candidates = req;
-        let hungry = zipWith ( \< , map(countOnes, readVReg(usageHistory)), map(zeroExtendNP, bandwidthFractions));
+            //
+            // Define hungry clients.
+            //
+            let candidates = req;
+            let hungry = zipWith ( \< , map(countOnes, readVReg(usageHistory)), map(zeroExtendNP, bandwidthFractions));
 
-        //
-        // If we have any hungry clients, we prefer them.
-        //
-        if (elem(True, zipWith( \&& , hungry, req)))  
-        begin
-            candidates = zipWith( \&& , req, hungry); 
-        end
+            //
+            // If we have any hungry clients, we prefer them.
+            //
+            if (bandwidthSelEn && elem(True, zipWith( \&& , hungry, req)))  
+            begin
+                candidates = zipWith( \&& , req, hungry); 
+            end
+            else if (prioritySelEn) // Select from prioritized clients if there are no hungry clients
+            begin
+                candidates = zipWith( \&& , req, prioritized); 
+            end
 
-        let winner = localArbiterPickWinner(candidates, state);
-        
-        return tuple2(winner, LOCAL_ARBITER_OPAQUE{priorityIdx: winner.Valid});
+            let winner = localArbiterPickWinner(candidates, state);
+            
+            return tuple2(winner, LOCAL_ARBITER_OPAQUE{priorityIdx: winner.Valid});
         endactionvalue
     endfunction
       
