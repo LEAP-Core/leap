@@ -193,3 +193,12 @@ def path_to_root(dir = None):
         dir = dir.up()
 
     return p
+
+##
+## link_file: helpful scons command to create a symlink
+##
+def link_file(target, source, env):
+    if(os.path.lexists(str(target[0]))):
+        os.remove(str(target[0]))
+    print "Linking: " + str(source[0]) + " to " + str(target[0])
+    os.symlink(str(source[0]), str(target[0]))

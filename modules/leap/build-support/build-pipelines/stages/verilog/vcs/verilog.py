@@ -24,6 +24,11 @@ class Verilog():
     ALL_DIRS_FROM_ROOT = moduleList.env['DEFS']['ALL_HW_DIRS']
     ALL_BUILD_DIRS_FROM_ROOT = model.transform_string_list(ALL_DIRS_FROM_ROOT, ':', '', '/' + TMP_BSC_DIR)
     ALL_INC_DIRS_FROM_ROOT   = '-Xv +incdir+' + ALL_DIRS_FROM_ROOT.replace(':','+') 
+
+    #insert any supplied include paths
+    for incdir in moduleList.getAllDependencies('VERILOG_INC_DIRS'):
+        ALL_INC_DIRS_FROM_ROOT += "+" + incdir
+
     ALL_LIB_DIRS_FROM_ROOT   = ALL_DIRS_FROM_ROOT + ':' + ALL_BUILD_DIRS_FROM_ROOT
 
     # Due to the bluespec linker, for LI second pass builds, the final
@@ -54,13 +59,7 @@ class Verilog():
                 if(codeType in moduleObject.objectCache):
                     for verilog in moduleObject.objectCache[codeType]:
                         linkPath = vexe_vdir + '/' + os.path.basename(verilog)
-                        def linkVerilog(target, source, env):
-                            # It might be more useful if the Module contained a pointer to the LIModules...                        
-                            if(os.path.lexists(str(target[0]))):
-                                os.remove(str(target[0]))
-                            print "Linking: " + str(source[0]) + " to " + str(target[0])
-                            os.symlink(str(source[0]), str(target[0]))
-                        moduleList.env.Command(linkPath, verilog, linkVerilog)
+                        moduleList.env.Command(linkPath, verilog, model.link_file)
                         if(codeType in moduleList.topModule.moduleDependency):
                             moduleList.topModule.moduleDependency[codeType] += [linkPath]
                         else:
@@ -194,6 +193,7 @@ class Verilog():
         if(not self.firstPassLIGraph is None):
             vbinDeps += moduleList.getDependencies(moduleList.topModule, 'VERILOG_PKG') + \
                         moduleList.getDependencies(moduleList.topModule, 'VERILOG') + \
+                        moduleList.getDependencies(moduleList.topModule, 'VERILOG_LIB') + \
                         moduleList.getDependencies(moduleList.topModule, 'GIVEN_VERILOG_HS') + \
                         moduleList.getDependencies(moduleList.topModule, 'GEN_VPI_HS') + \
                         moduleList.getDependencies(moduleList.topModule, 'GEN_VPI_CS') + \
@@ -204,6 +204,7 @@ class Verilog():
         else:
             vbinDeps += moduleList.getAllDependencies('VERILOG_PKG') + \
                         moduleList.getAllDependencies('VERILOG') + \
+                        moduleList.getAllDependencies('VERILOG_LIB') + \
                         moduleList.getAllDependencies('VHDL') + \
                         moduleList.getAllDependencies('BA') + \
                         map(modify_path_ba_local, moduleList.getAllDependenciesWithPaths('GEN_BAS'))
