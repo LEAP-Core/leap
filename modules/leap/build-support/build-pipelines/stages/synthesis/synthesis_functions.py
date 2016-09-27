@@ -243,13 +243,17 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
  
     # First, elaborate the rtl design. 
 
-    inc_dirs = model.rel_if_not_abspath(moduleList.env['DEFS']['ROOT_DIR_HW_INC'], str(vivadoCompileDirectory))
+    # Obtain the include directories of any other verilog headers.
+    inc_dirs = moduleList.getAllDependencies('VERILOG_INC_DIRS')
+
+    # add in the present header files 
+    inc_dirs.append(model.rel_if_not_abspath(moduleList.env['DEFS']['ROOT_DIR_HW_INC'], str(vivadoCompileDirectory)))
 
     # For the top module, we don't use out of context.b
     if(module.getAttribute('TOP_MODULE') is None):
-        newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
+        newTclFile.write("synth_design -rtl -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs [list " + " ".join(inc_dirs) + "]\n")
     else:
-        newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
+        newTclFile.write("synth_design -rtl -top " + module.wrapperName() + " -part " + part + " -include_dirs [list " + " ".join(inc_dirs) + "]\n")
 
 
     for file in annotationFiles:
@@ -266,11 +270,11 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
         if(useClockConversion > 0):
             clockConversion = " -gated_clock_conversion auto "
         
-        newTclFile.write("synth_design  " + clockConversion + " -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
+        newTclFile.write("synth_design  " + clockConversion + " -mode out_of_context -top " + module.wrapperName() + " -part " + part + " -include_dirs [list " + " ".join(inc_dirs) + "]\n")
 
         newTclFile.write("set_property HD.PARTITION 1 [current_design]\n")
     else:
-        newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part + " -include_dirs " + inc_dirs + "\n")
+        newTclFile.write("synth_design -top " + module.wrapperName() + " -part " + part + " -include_dirs [list " + " ".join(inc_dirs) + "]\n")
 
     newTclFile.write("all_clocks\n")
     newTclFile.write("report_clocks\n")
@@ -436,6 +440,7 @@ def buildNGC(moduleList, module, globalVerilogs, globalVHDs, xstTemplate, xilinx
         [ngcFile, srpFile],
         sorted(module.moduleDependency['VERILOG']) +
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
+        sorted(map(model.modify_path_hw,moduleList.getAllDependenciesWithPaths('GIVEN_VERILOGS'))) +
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))) +
         [ newXSTPath ] +
         xilinx_xcf,
@@ -501,6 +506,7 @@ def buildVivadoEDF(moduleList, module, globalVerilogs, globalVHDs):
         sorted(moduleList.getDependencies(module,'VERILOG')) +
         tclDeps + 
         sorted(moduleList.getAllDependencies('VERILOG_LIB')) +
+        sorted(map(model.modify_path_hw,moduleList.getAllDependenciesWithPaths('GIVEN_VERILOGS'))) +
         sorted(model.convertDependencies(moduleList.getDependencies(module, 'VERILOG_STUB'))),
         [ SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '.synth.opt.util')),
           SCons.Script.Delete(vivadoCompileDirectory.File(module.wrapperName() + '_xst.xrpt')),
@@ -587,6 +593,7 @@ def buildXSTTopLevel(moduleList, firstPassGraph):
         compile_dir.File(moduleList.topModule.wrapperName() + '.ngc'),
         moduleList.topModule.moduleDependency['VERILOG'] +
         moduleList.getAllDependencies('VERILOG_STUB') +
+        sorted(map(model.modify_path_hw,moduleList.getAllDependenciesWithPaths('GIVEN_VERILOGS'))) +
         moduleList.getAllDependencies('VERILOG_LIB') +
         [ templateFile ] +
         [ topXSTPath ] + xilinx_xcf,
