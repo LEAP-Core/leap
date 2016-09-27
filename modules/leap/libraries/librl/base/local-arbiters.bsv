@@ -361,7 +361,10 @@ module mkLocalArbiterBandwidthWithPriority#(Vector#(nCLIENTS, UInt#(nFRACTION)) 
     method ActionValue#(Maybe#(t_CLIENT_IDX)) arbitrate(t_CLIENT_MASK req, Bool fixed);
         match {.winner, .state_upd} <- bandwidthArbiterFunc(req);
         updateState(winner);
-        winnerWire.wset(winner.Valid);
+        if (isValid(winner))
+        begin
+            winnerWire.wset(winner.Valid);
+        end
         return winner;
     endmethod
 
