@@ -266,7 +266,6 @@ class Floorplanner():
 
     def __init__(self, moduleList):
         self.pipeline_debug = model.getBuildPipelineDebug(moduleList)
-
         # if we have a deps build, don't do anything...
         if(moduleList.isDependsBuild):           
             return
@@ -301,11 +300,14 @@ class Floorplanner():
 
         # elaborate area group representation. This may be used in configuring later stages. 
         areaGroups = self.elaborateAreaConstraints(moduleList)
-
         pickle_handle = open(_areaConstraintsFileElaborated(moduleList), 'wb')
         pickle.dump(areaGroups, pickle_handle, protocol=-1)
         pickle_handle.close()                 
 
+
+        # if we are only building logs, then we can stop. 
+        if (moduleList.getAWBParam('bsv_tool', 'BUILD_LOGS_ONLY')):
+            return  
 
         # We'll build a rather complex function to emit area group constraints 
         def area_group_closure(moduleList):
@@ -350,7 +352,7 @@ class Floorplanner():
                  # We failed to assign area groups.  Eventually, we
                  # could demote this to a warning.
                  if(areaGroupsFinal is None):      
-                     print "Failed to obtain area groups"   
+                     print "Failed to obtain area groups"
                      exit(1)
 
                  # Sort area groups topologically, annotating each area group
@@ -992,8 +994,9 @@ class Floorplanner():
 
 
 def insertDeviceModules(moduleList, annotateParentsOnly=False):
-
+     
     elabAreaConstraints = AreaConstraints(moduleList)
+    # this was constructed upon the original call to load area.
     elabAreaConstraints.loadAreaConstraintsElaborated()
 
     for userAreaGroup in elabAreaConstraints.constraints.values():
