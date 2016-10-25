@@ -246,6 +246,12 @@ def generateVivadoTcl(moduleList, module, globalVerilogs, globalVHDs, vivadoComp
     # Obtain the include directories of any other verilog headers.
     inc_dirs = moduleList.getAllDependencies('VERILOG_INC_DIRS')
 
+    # The user might have provided verilog header files.  Make the visible here. 
+    for verilog_h in map(model.modify_path_hw, moduleList.getAllDependenciesWithPaths('GIVEN_VERILOG_HS')):
+        relpath = os.path.dirname(model.rel_if_not_abspath(verilog_h, str(vivadoCompileDirectory)))
+        if relpath not in inc_dirs:
+            inc_dirs.append(relpath)
+
     # add in the present header files 
     inc_dirs.append(model.rel_if_not_abspath(moduleList.env['DEFS']['ROOT_DIR_HW_INC'], str(vivadoCompileDirectory)))
 
