@@ -105,11 +105,12 @@ module [CONNECTED_MODULE] mkMultiReadSharedScratchpadClient#(Integer scratchpadI
         MEMORY_MULTI_READ_WITH_FENCE_IFC#(n_READERS, t_ADDR, t_DATA) coherent_scratch <- mkMultiReadCoherentScratchpadClient(scratchpadID, coh_conf);
         mem <- mkMultiReadMemFenceIfcToMultiReadSharedMemIfc(coherent_scratch);
     end
-    // else
-    // begin
-    //     SHARED_MEMORY_SIMPLE_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) shared_scratch <- mkCachedSharedScratchpadClient(scratchpadID, conf);
-    //     mem <- mkMultiReadSimpleSharedMemIfcToMultiReadSharedMemIfc(shared_scratch);
-    // end
+    else
+    begin
+        error("Cached shared clients not supported");
+        //SHARED_MEMORY_SIMPLE_MULTI_READ_IFC#(n_READERS, t_ADDR, t_DATA) shared_scratch <- mkCachedSharedScratchpadClient(scratchpadID, conf);
+        //mem <- mkMultiReadSimpleSharedMemIfcToMultiReadSharedMemIfc(shared_scratch);
+    end
 
     return mem;
 
