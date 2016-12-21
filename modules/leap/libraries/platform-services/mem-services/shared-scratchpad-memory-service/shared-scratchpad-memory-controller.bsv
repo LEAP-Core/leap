@@ -31,7 +31,19 @@
 
 import List::*;
 
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/common_services.bsh"
+`include "awb/provides/fpga_components.bsh"
 `include "awb/provides/shared_scratchpad_memory_common.bsh"
+//`include "awb/provides/cached_shared_scratchpad_memory_service.bsh"
+`include "awb/provides/uncached_shared_scratchpad_memory_service.bsh"
+`include "awb/provides/coherent_scratchpad_memory_service.bsh"
 
 //
 // mkSharedScratchpadController --
@@ -46,7 +58,7 @@ module [CONNECTED_MODULE] mkSharedScratchpadController#(List#(Integer) scratchpa
     
     if (conf.controllerType == UNCACHED_SCRATCHPAD_CONTROLLER)
     begin
-        if (List::length(args) != 1)
+        if (List::length(scratchpadIDs) != 1)
         begin
             error("Wrong number of scratchpadIDs: uncached shared scratchpad controller needs 1 registered scratchpad ID");
         end
@@ -57,16 +69,17 @@ module [CONNECTED_MODULE] mkSharedScratchpadController#(List#(Integer) scratchpa
     end
     else if (conf.controllerType == CACHED_SCRATCHPAD_CONTROLLER)
     begin
-        if (List::length(args) != 1)
-        begin
-            error("Wrong number of scratchpadIDs: cached shared scratchpad controller needs 1 registered scratchpad ID");
-        end
-        mkCachedSharedScratchpadController(scratchpadIDs[0], inAddrSz, inDataSz, conf);
+        error("Shared Scratchpad Controller does not support cached scratchpad.");
+        //if (List::length(scratchpadIDs) != 1)
+        //begin
+        //    error("Wrong number of scratchpadIDs: cached shared scratchpad controller needs 1 registered scratchpad ID");
+        //end
+        //mkCachedSharedScratchpadController(scratchpadIDs[0], inAddrSz, inDataSz, conf);
     end
     else // default: coherent scratchpad controller
     begin
         // Coherent scratchpad controller requires 2 scratchpad IDs (one for data, one for ownership) 
-        if (List::length(args) != 2)
+        if (List::length(scratchpadIDs) != 2)
         begin
             error("Wrong number of scratchpadIDs: coherent scratchpad controller needs 2 registered scratchpad IDs");
         end
@@ -80,7 +93,7 @@ module [CONNECTED_MODULE] mkSharedScratchpadController#(List#(Integer) scratchpa
                                                         enableDebugScan: conf.enableDebugScan,
                                                         enableStatistics: conf.enableStatistics };
         
-        mkCoherentScratchpadController#(scratchpadIDs[0], scratchpadIDs[1], inAddrSz, inDataSz, coh_conf);
+        mkCoherentScratchpadController(scratchpadIDs[0], scratchpadIDs[1], inAddrSz, inDataSz, coh_conf);
     end
 
 endmodule

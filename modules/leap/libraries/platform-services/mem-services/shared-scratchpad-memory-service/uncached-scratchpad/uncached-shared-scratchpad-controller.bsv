@@ -31,6 +31,7 @@
 
 import FIFO::*;
 import FIFOF::*;
+import Vector::*;
 
 `include "awb/provides/soft_connections.bsh"
 `include "awb/provides/soft_services.bsh"

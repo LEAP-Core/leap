@@ -29,7 +29,17 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
+`include "awb/provides/librl_bsv_base.bsh"
+`include "awb/provides/librl_bsv_storage.bsh"
+`include "awb/provides/librl_bsv_cache.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "awb/provides/soft_services.bsh"
+`include "awb/provides/soft_services_lib.bsh"
+`include "awb/provides/soft_services_deps.bsh"
+`include "awb/provides/common_services.bsh"
+`include "awb/provides/fpga_components.bsh"
 `include "awb/provides/shared_scratchpad_memory_common.bsh"
+`include "awb/provides/uncached_shared_scratchpad_memory_service.bsh"
 
 //
 // mkSharedScratchpadClient --
@@ -50,7 +60,7 @@ module [CONNECTED_MODULE] mkSharedScratchpadClient#(Integer scratchpadID,
     // and convert it to SHARED_MEMORY_IFC.
     //
     SHARED_MEMORY_MULTI_READ_IFC#(1, t_ADDR, t_DATA) m_scratch <- mkMultiReadSharedScratchpadClient(scratchpadID, conf);
-    SHARED_MEMORY_MULTI_READ_IFC#(t_ADDR, t_DATA) scratch <- mkMultiReadSharedMemIfcToSharedMemIfc(m_scratch);
+    SHARED_MEMORY_IFC#(t_ADDR, t_DATA) scratch <- mkMultiReadSharedMemIfcToSharedMemIfc(m_scratch);
     return scratch;
 endmodule
 

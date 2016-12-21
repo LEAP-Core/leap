@@ -164,7 +164,7 @@ typedef struct
     Bool                       multiController;
 
     // Enable prefetching in shared scratchpad's private cache
-    Maybe#(Bool)               enablePrefetching;
+    Maybe#(SCRATCHPAD_PREFETCHER_IMPL)        enablePrefetching;
     
     // Enable the request merging optimization to merge multiple read requests
     // accessing the same scratchpad internal address
