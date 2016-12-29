@@ -374,6 +374,31 @@ module mkMemFenceIfcToMemIfc#(MEMORY_WITH_FENCE_IFC#(t_ADDR, t_DATA) mem)
     method Bool writeNotFull() = mem.writeNotFull();
 endmodule
 
+// 
+// mkSharedMemIfcToMemIfc -- 
+//     Interface conversion from a SHARED_MEMORY_IFC to a basic MEMORY_IFC.    
+// 
+module mkSharedMemIfcToMemIfc#(SHARED_MEMORY_IFC#(t_ADDR, t_DATA) mem)
+    // interface:
+    (MEMORY_IFC#(t_ADDR, t_DATA))
+    provisos (Bits#(t_ADDR, t_ADDR_SZ),
+              Bits#(t_DATA, t_DATA_SZ));
+
+    method Action readReq(t_ADDR addr) = mem.readReq(addr);
+
+    method ActionValue#(t_DATA) readRsp();
+        let v <- mem.readRsp();
+        return v;
+    endmethod
+
+    method t_DATA peek() = mem.peek();
+    method Bool notEmpty() = mem.notEmpty();
+    method Bool notFull() = mem.notFull();
+
+    method Action write(t_ADDR addr, t_DATA val) = mem.write(addr, val);
+    method Bool writeNotFull() = mem.writeNotFull();
+endmodule
+
 //
 // mkMultiReadMemFenceIfcToMemFenceIfc --
 //     Interface conversion from a MEMORY_MULTI_READ_WITH_FENCE_IFC with one port 
