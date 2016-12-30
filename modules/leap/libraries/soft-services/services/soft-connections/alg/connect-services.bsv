@@ -595,7 +595,7 @@ module mkServiceRingNode#(function Bool isLocal(Bit#(t_IDX_SZ) nodeId))
                                   endinterface; 
     
     // Response port to the service client
-    interface clientRspOutgoing = interface CONNECTION_OUT#(t_RSP_SZ);
+    interface clientRspOutgoing = interface CONNECTION_OUT#(TAdd#(t_IDX_SZ, t_RSP_SZ));
                                       method Bit#(TAdd#(t_IDX_SZ,t_RSP_SZ)) first() = pack(rspFromNetworkQ.first());
                                       method Action deq();
                                           rspFromNetworkQ.deq();
