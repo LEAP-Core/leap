@@ -31,6 +31,7 @@
 %public memory-mapping.bsv
 %public memory-misc.bsv
 %public memory-pack.bsv
+%public shuffle.bsv
 %public register.bsv
 %public valid.bsv
 %public bit-conversion.bsv
